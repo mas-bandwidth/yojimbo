@@ -10,7 +10,7 @@
 #define YOJIMBO_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_util.h"
+#include "yojimbo_common.h"
 #include "yojimbo_types.h"
 #include "yojimbo_memory.h"
 #include "yojimbo_crypto.h"

@@ -9,7 +9,7 @@
 #include "yojimbo_packet_processor.h"
 #include "yojimbo_protocol.h"
 #include "yojimbo_crypto.h"
-#include "yojimbo_util.h"
+#include "yojimbo_common.h"
 #include <stdio.h>
 #include <sodium.h>
 
@@ -64,7 +64,7 @@ namespace yojimbo
             }
 
             int prefixBytes;
-            CompressPacketSequence( sequence, m_scratchBuffer[0], prefixBytes, m_scratchBuffer+1 );
+            compress_packet_sequence( sequence, m_scratchBuffer[0], prefixBytes, m_scratchBuffer+1 );
             m_scratchBuffer[0] |= ENCRYPTED_PACKET_FLAG;
             prefixBytes++;
 
@@ -140,7 +140,7 @@ namespace yojimbo
                 return NULL;
             }
 
-            const int sequenceBytes = GetPacketSequenceBytes( prefixByte );
+            const int sequenceBytes = get_packet_sequence_bytes( prefixByte );
 
             const int prefixBytes = 1 + sequenceBytes;
 
@@ -150,7 +150,7 @@ namespace yojimbo
                 return NULL;
             }
 
-            sequence = DecompressPacketSequence( prefixByte, packetData + 1 );
+            sequence = decompress_packet_sequence( prefixByte, packetData + 1 );
 
             int decryptedPacketBytes;
 
