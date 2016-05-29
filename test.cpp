@@ -124,7 +124,7 @@ struct TestContext
     int max;
 };
 
-struct TestObject : public Object
+struct TestObject : public Serializable
 {
     TestData data;
 
