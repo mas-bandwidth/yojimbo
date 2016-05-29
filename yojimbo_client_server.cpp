@@ -227,9 +227,7 @@ namespace yojimbo
 
             if ( m_clientData[i].lastPacketReceiveTime + ConnectionTimeOut < time )
             {
-                char buffer[256];
-                const char *addressString = m_clientAddress[i].ToString( buffer, sizeof( buffer ) );
-                printf( "client %d timed out (client address = %s, client id = %" PRIx64 ")\n", i, addressString, m_clientId[i] );
+                OnClientTimedOut( i );
                 DisconnectClient( i, time );
             }
         }
@@ -343,9 +341,7 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketSendTime = time;
         m_clientData[clientIndex].lastPacketReceiveTime = time;
 
-        char buffer[256];
-        const char *addressString = challengeToken.clientAddress.ToString( buffer, sizeof( buffer ) );
-        printf( "client %d connected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, challengeToken.clientId );
+        OnClientConnect( clientIndex );
 
         ConnectionHeartBeatPacket * connectionHeartBeatPacket = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_HEARTBEAT );
 
@@ -362,9 +358,7 @@ namespace yojimbo
         assert( m_numConnectedClients > 0 );
         assert( m_clientConnected[clientIndex] );
 
-        char buffer[256];
-        const char *addressString = m_clientAddress[clientIndex].ToString( buffer, sizeof( buffer ) );
-        printf( "client %d disconnected: (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, m_clientId[clientIndex] );
+        OnClientDisconnect( clientIndex );
 
         ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );
 
@@ -411,9 +405,11 @@ namespace yojimbo
 
     void Server::ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address, double time )
     {
+        /*
         char buffer[256];
         const char * addressString = address.ToString( buffer, sizeof( buffer ) );        
         printf( "processing connection request packet from: %s\n", addressString );
+        */
 
         ConnectToken connectToken;
         if ( !DecryptConnectToken( packet.connectTokenData, connectToken, NULL, 0, packet.connectTokenNonce, m_privateKey ) )
@@ -631,8 +627,18 @@ namespace yojimbo
         if ( m_clientState == CLIENT_STATE_CONNECTED )
         {
             printf( "client-side disconnect: (client id = %" PRIx64 ")\n", m_clientId );
+
             ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );
-            SendPacketToServer( packet, time );
+            
+            if ( packet )
+            {
+                SendPacketToServer( packet, time );
+
+                // todo: for the server-side version of this we probably want "WriteFlush" that takes an address for all packets to flush.
+
+                // IMPORTANT: flush the disconnect packet to the network *before* the encryption mapping is reset!
+                m_networkInterface->WritePackets( time );      
+            }
         }
 
         ResetConnectionData();

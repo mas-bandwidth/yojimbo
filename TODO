@@ -1,8 +1,14 @@
 DONE
 
+    Inherit custom GameClient and GameServer classes from base client and server.
+
+    Did the same for GameNetworkInterface and GamePacketFactory.
+
 TODO
 
-    Inherit custom TestClient and TestServer classes from base client and server.
+    There seems to be some sort of weirdness with the disconnect packet set from client -> server?
+
+    -------------------
 
     Setup in server a virtual for each log that already exists.
 

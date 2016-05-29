@@ -356,12 +356,6 @@ namespace yojimbo
 
         virtual ~Server();
 
-        void SendPackets( double time );
-
-        void ReceivePackets( double time );
-
-        void CheckForTimeOut( double time );
-
         void SetPrivateKey( const uint8_t * privateKey )
         {
             memcpy( m_privateKey, privateKey, KeyBytes );
@@ -377,10 +371,38 @@ namespace yojimbo
             return m_serverAddress;
         }
 
+        uint64_t GetClientId( int clientIndex ) const
+        {
+            assert( clientIndex >= 0 );
+            assert( clientIndex < MaxClients );
+            return m_clientId[clientIndex];
+        }
+
+        const Address & GetClientAddress( int clientIndex ) const
+        {
+            assert( clientIndex >= 0 );
+            assert( clientIndex < MaxClients );
+            return m_clientAddress[clientIndex];
+        }
+
         int GetNumConnectedClients() 
         {
             return m_numConnectedClients;
         }
+
+        void SendPackets( double time );
+
+        void ReceivePackets( double time );
+
+        void CheckForTimeOut( double time );
+
+    protected:
+
+        virtual void OnClientConnect( int /*clientIndex*/ ) {}
+
+        virtual void OnClientDisconnect( int /*clientIndex*/ ) {}
+
+        virtual void OnClientTimedOut( int /*clientIndex*/ ) {}
 
     protected:
 
