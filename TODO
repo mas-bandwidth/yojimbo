@@ -4,11 +4,11 @@ DONE
 
     Did the same for GameNetworkInterface and GamePacketFactory.
 
-TODO
-
     There seems to be some sort of weirdness with the disconnect packet set from client -> server?
 
-    -------------------
+    Ah. There was a packet leak if the packet failed to decrypt (eg. broken encryption mapping)
+
+TODO
 
     Setup in server a virtual for each log that already exists.
 
