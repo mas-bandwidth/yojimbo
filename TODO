@@ -10,8 +10,6 @@ DONE
 
     I like yojimbo_common.h better. Fuck util.
 
-TODO
-
     Finish conversion of yojimbo_common.h inlines into yojimbo_common.cpp
 
     Move bitpacker into yojimbo_bitpack.h
@@ -19,3 +17,7 @@ TODO
     Move stream into yojimbo_stream.h
 
     Move serialization functions into yojimbo_serialize.h
+
+TODO
+
+    Now repurpose yojimbo_protocol.h into yojimbo_packet.h - packet header, packet class, packet factory, read/write packet functions.
