@@ -577,7 +577,7 @@ void test_packet_sequence()
         uint8_t sequence_bytes[8];
         int num_sequence_bytes;
 
-        yojimbo::CompressPacketSequence( sequence, prefix_byte, num_sequence_bytes, sequence_bytes );
+        yojimbo::compress_packet_sequence( sequence, prefix_byte, num_sequence_bytes, sequence_bytes );
 
         check( prefix_byte == ( 1 | (1<<1) | (1<<3) ) );
 
@@ -588,11 +588,11 @@ void test_packet_sequence()
         check( sequence_bytes[2] == 0x33 );
         check( sequence_bytes[3] == 0x44 );
 
-        int decoded_num_sequence_bytes = yojimbo::GetPacketSequenceBytes( prefix_byte );
+        int decoded_num_sequence_bytes = yojimbo::get_packet_sequence_bytes( prefix_byte );
 
         check( decoded_num_sequence_bytes == num_sequence_bytes );
 
-        uint64_t decoded_sequence = yojimbo::DecompressPacketSequence( prefix_byte, sequence_bytes );
+        uint64_t decoded_sequence = yojimbo::decompress_packet_sequence( prefix_byte, sequence_bytes );
 
         check( decoded_sequence == sequence );
     }
@@ -602,8 +602,8 @@ void test_packet_sequence()
         uint8_t prefix_byte;
         uint8_t sequence_bytes[8];
         int num_sequence_bytes;
-        yojimbo::CompressPacketSequence( sequence, prefix_byte, num_sequence_bytes, sequence_bytes );
-        uint64_t decoded_sequence = yojimbo::DecompressPacketSequence( prefix_byte, sequence_bytes );
+        yojimbo::compress_packet_sequence( sequence, prefix_byte, num_sequence_bytes, sequence_bytes );
+        uint64_t decoded_sequence = yojimbo::decompress_packet_sequence( prefix_byte, sequence_bytes );
         check( decoded_sequence == sequence );
     }
 }
