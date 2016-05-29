@@ -1,279 +1,29 @@
 /*
-    Network2 Library.
-
-    Copyright © 2016, The Network Protocol Company, Inc.
+    Yojimbo Client/Server Network Library.
     
+    Copyright © 2016, The Network Protocol Company, Inc.
+
     All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-        1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
-           in the documentation and/or other materials provided with the distribution.
-
-        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived 
-           from this software without specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
-    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-    USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef NETWORK2_H
-#define NETWORK2_H
+#include "yojimbo_network.h"
 
-#ifdef _MSC_VER
-#define _CRT_SECURE_NO_WARNINGS
-#endif
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
-#include <stdint.h>
-#include <assert.h>
-#include <math.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+    #define NOMINMAX
+    #define _WINSOCK_DEPRECATED_NO_WARNINGS
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #include <ws2ipdef.h>
+    #pragma comment( lib, "WS2_32.lib" )
 
-#define NETWORK2_SOCKETS 1
-#define NETWORK2_SIMULATOR 1
+    #ifdef SetPort
+    #undef SetPort
+    #endif // #ifdef SetPort
 
-#define NETWORK2_PLATFORM_WINDOWS  1
-#define NETWORK2_PLATFORM_MAC      2
-#define NETWORK2_PLATFORM_UNIX     3
+#elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
 
-#if defined(_WIN32)
-#define NETWORK2_PLATFORM NETWORK2_PLATFORM_WINDOWS
-#elif defined(__APPLE__)
-#define NETWORK2_PLATFORM NETWORK2_PLATFORM_MAC
-#else
-#define NETWORK2_PLATFORM NETWORK2_PLATFORM_UNIX
-#endif
-
-struct addrinfo;
-struct sockaddr_in6;
-struct sockaddr_storage;
-
-namespace network2
-{
-    bool InitializeNetwork();
-
-    void ShutdownNetwork();
-
-    bool IsNetworkInitialized();
-
-    enum AddressType
-    {
-        ADDRESS_UNDEFINED,
-        ADDRESS_IPV4,
-        ADDRESS_IPV6
-    };
-
-    inline int random_int( int a, int b )
-    {
-        assert( a < b );
-        int result = a + rand() % ( b - a + 1 );
-        assert( result >= a );
-        assert( result <= b );
-        return result;
-    }
-
-    inline float random_float( float a, float b )
-    {
-        assert( a < b );
-		float random = ( (float) rand() ) / (float) RAND_MAX;
-		float diff = b - a;
-		float r = random * diff;
-		return a + r;
-	}
-
-    class Address
-    {
-        AddressType m_type;
-
-        union
-        {
-            uint32_t m_address_ipv4;
-            uint16_t m_address_ipv6[8];
-        };
-
-        uint16_t m_port;
-
-   public:
-
-        Address();
-
-        Address( uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint16_t port = 0 );
-
-        explicit Address( uint32_t address, int16_t port = 0 );
-
-        explicit Address( uint16_t a, uint16_t b, uint16_t c, uint16_t d,
-                          uint16_t e, uint16_t f, uint16_t g, uint16_t h,
-                          uint16_t port = 0 );
-
-        explicit Address( const uint16_t address[], uint16_t port = 0 );
-
-        explicit Address( const sockaddr_storage & addr );
-
-        explicit Address( const sockaddr_in6 & addr_ipv6 );
-
-        explicit Address( addrinfo * p );
-
-        explicit Address( const char * address );
-
-        explicit Address( const char * address, uint16_t port );
-
-        void Clear();
-
-        uint32_t GetAddress4() const;
-
-        const uint16_t * GetAddress6() const;
-
-        void SetPort( uint16_t port );
-
-        uint16_t GetPort() const;
-
-        AddressType GetType() const;
-
-        const char * ToString( char buffer[], int bufferSize ) const;
-
-        bool IsValid() const;
-
-        bool operator ==( const Address & other ) const;
-
-        bool operator !=( const Address & other ) const;
-
-    protected:
-
-        void Parse( const char * address );
-    };
-
-#if NETWORK2_SOCKETS
-
-    enum SocketType
-    {
-        SOCKET_TYPE_IPV4,
-        SOCKET_TYPE_IPV6
-    };
-
-    enum SocketError
-    {
-        SOCKET_ERROR_NONE,
-        SOCKET_ERROR_CREATE_FAILED,
-        SOCKET_ERROR_SET_NON_BLOCKING_FAILED,
-        SOCKET_ERROR_SOCKOPT_IPV6_ONLY_FAILED,
-        SOCKET_ERROR_BIND_IPV4_FAILED,
-        SOCKET_ERROR_BIND_IPV6_FAILED
-    };
-
-#if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
-	typedef uint64_t SocketHandle;
-#else // #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
-	typedef int SocketHandle;
-#endif // #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
-						   
-    class Socket
-    {
-    public:
-
-        Socket( uint16_t port, SocketType type = SOCKET_TYPE_IPV6 );
-
-        ~Socket();
-
-        bool IsError() const;
-
-        int GetError() const;
-
-        bool SendPacket( const Address & address, const void * packetData, size_t packetBytes );
-    
-        int ReceivePacket( Address & from, void * packetData, int maxPacketSize );
-
-    private:
-
-        int m_error;
-        uint16_t m_port;
-        SocketHandle m_socket;
-    };
-
-#endif // #if NETWORK2_SOCKETS
-
-#if NETWORK2_SIMULATOR
-
-    class Simulator
-    {
-        float m_latency;                                // latency in milliseconds
-        float m_jitter;                                 // jitter in milliseconds +/-
-        float m_packetLoss;                             // packet loss percentage
-        float m_duplicates;                             // duplicate packet percentage
-
-        int m_numEntries;                               // number of elements in the packet entry array.
-        int m_currentIndex;                             // current index in the packet entry array. new packets are inserted here.
-
-        struct Entry
-        {
-            Entry()
-            {
-                deliveryTime = 0.0;
-                packetData = NULL;
-                packetSize = 0;
-            }
-
-            Address from;                               // address this packet is from
-            Address to;                                 // address this packet is sent to
-            double deliveryTime;                        // delivery time for this packet
-            uint8_t *packetData;                        // packet data (owns pointer)
-            int packetSize;                             // size of packet in bytes
-        };
-
-        Entry * m_entries;                              // pointer to dynamically allocated packet entries. this is where buffered packets are stored.
-
-        double m_currentTime;                           // current time from last call to update. initially 0.0
-
-    public:
-
-        Simulator( int numPackets = 1024 );
-        ~Simulator();
-
-        void SetLatency( float milliseconds );
-        void SetJitter( float milliseconds );
-        void SetPacketLoss( float percent );
-        void SetDuplicates( float percent );
-        
-        void SendPacket( const Address & from, const Address & to, uint8_t *packetData, int packetSize );
-
-        uint8_t* ReceivePacket( Address & from, Address & to, int & packetSize );
-
-        void Update( double t );
-    };
-
-#endif // #if NETWORK2_SIMULATOR
-}
-
-#endif // #ifndef NETWORK2_H
-
-// ======================================================================================================
-
-#ifdef NETWORK2_IMPLEMENTATION
-
-#if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
-
-	#define NOMINMAX
-	#define _WINSOCK_DEPRECATED_NO_WARNINGS
-	#include <winsock2.h>
-	#include <ws2tcpip.h>
-	#include <ws2ipdef.h>
-	#pragma comment( lib, "WS2_32.lib" )
-
-	#ifdef SetPort
-	#undef SetPort
-	#endif // #ifdef SetPort
-
-#elif NETWORK2_PLATFORM == NETWORK2_PLATFORM_MAC || NETWORK2_PLATFORM == NETWORK2_PLATFORM_UNIX
-
-	#include <netdb.h>
+    #include <netdb.h>
     #include <sys/types.h>
     #include <sys/socket.h>
     #include <netinet/in.h>
@@ -292,7 +42,7 @@ namespace network2
 #include <memory.h>
 #include <string.h>
 
-namespace network2
+namespace yojimbo
 {
     static bool s_networkInitialized = false;
 
@@ -302,10 +52,10 @@ namespace network2
 
         bool result = true;
 
-        #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
         WSADATA WsaData;         
         result = WSAStartup( MAKEWORD(2,2), &WsaData ) == NO_ERROR;
-        #endif
+#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
         if ( result )
             s_networkInitialized = result;   
@@ -317,9 +67,9 @@ namespace network2
     {
         assert( s_networkInitialized );
 
-        #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
         WSACleanup();
-        #endif
+#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
         s_networkInitialized = false;
     }
@@ -461,7 +211,7 @@ namespace network2
                     break;
                 if ( address[index] == ':' )
                 {
-					m_port = uint16_t( atoi( &address[index + 1] ) );
+                    m_port = uint16_t( atoi( &address[index + 1] ) );
                     address[index-1] = '\0';
                 }
             }
@@ -599,7 +349,7 @@ namespace network2
         return !( *this == other );
     }
 
-#if NETWORK2_SOCKETS
+#if YOJIMBO_SOCKETS
 
     Socket::Socket( uint16_t port, SocketType type )
     {
@@ -739,7 +489,7 @@ namespace network2
             socket_address.sin6_port = htons( address.GetPort() );
             memcpy( &socket_address.sin6_addr, address.GetAddress6(), sizeof( socket_address.sin6_addr ) );
             size_t sent_bytes = sendto( m_socket, (const char*)packetData, (int) packetBytes, 0, (sockaddr*)&socket_address, sizeof( sockaddr_in6 ) );
-			result = sent_bytes == packetBytes;
+            result = sent_bytes == packetBytes;
         }
         else if ( address.GetType() == ADDRESS_IPV4 )
         {
@@ -766,28 +516,28 @@ namespace network2
         assert( packetData );
         assert( maxPacketSize > 0 );
 
-        #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
         typedef int socklen_t;
-        #endif
+#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
         
         sockaddr_storage sockaddr_from;
         socklen_t fromLength = sizeof( sockaddr_from );
 
         int result = recvfrom( m_socket, (char*)packetData, maxPacketSize, 0, (sockaddr*)&sockaddr_from, &fromLength );
 
-#if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
-		if ( result == SOCKET_ERROR )
-		{
-			int error = WSAGetLastError();
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+        if ( result == SOCKET_ERROR )
+        {
+            int error = WSAGetLastError();
 
-			if ( error == WSAEWOULDBLOCK )
-				return 0;
+            if ( error == WSAEWOULDBLOCK )
+                return 0;
 
-			printf( "recvfrom failed: %d\n", error );
+            printf( "recvfrom failed: %d\n", error );
 
-			return 0;
-		}
-#else // #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
+            return 0;
+        }
+#else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
         if ( result <= 0 )
         {
             if ( errno == EAGAIN )
@@ -797,7 +547,7 @@ namespace network2
 
             return 0;
         }
-#endif // #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
+#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
         from = Address( sockaddr_from );
 
@@ -808,9 +558,11 @@ namespace network2
         return bytesRead;
     }
 
-#endif // #if NETWORK2_SOCKETS
+#endif // #if YOJIMBO_SOCKETS
 
-#if NETWORK2_SIMULATOR
+#if YOJIMBO_NETWORK_SIMULATOR
+
+    // todo: move to own file
 
     Simulator::Simulator( int numPackets )
     {
@@ -954,7 +706,5 @@ namespace network2
         m_currentTime = t;
     }
 
-#endif // #if NETWORK2_SIMULATOR
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
 }
-
-#endif // #ifdef NETWORK2_IMPLEMENTATION

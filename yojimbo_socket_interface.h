@@ -9,12 +9,12 @@
 #ifndef YOJIMBO_SOCKET_INTERFACE_H
 #define YOJIMBO_SOCKET_INTERFACE_H
 
-#include "network2.h"
 #include "yojimbo_config.h"
 #include "yojimbo_util.h"
 #include "yojimbo_types.h"
 #include "yojimbo_memory.h"
 #include "yojimbo_crypto.h"
+#include "yojimbo_network.h"
 #include "yojimbo_protocol.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_network_interface.h"
@@ -51,14 +51,14 @@ namespace yojimbo
         int m_receiveQueueSize;
 
         Allocator * m_allocator;
-        network2::Socket * m_socket;
+        Socket * m_socket;
         PacketFactory * m_packetFactory;
         PacketProcessor * m_packetProcessor;
 
         struct PacketEntry
         {
             uint64_t sequence;
-            network2::Address address;
+            Address address;
             Packet * packet;
         };
 
@@ -70,7 +70,7 @@ namespace yojimbo
 
         struct EncryptionMapping
         {
-            network2::Address address;
+            Address address;
             uint8_t sendKey[KeyBytes];
             uint8_t receiveKey[KeyBytes];
         };
@@ -87,7 +87,7 @@ namespace yojimbo
 
         void ClearReceiveQueue();
 
-        EncryptionMapping * FindEncryptionMapping( const network2::Address & address )
+        EncryptionMapping * FindEncryptionMapping( const Address & address )
         {
             for ( int i = 0; i < m_numEncryptionMappings; ++i )
             {
@@ -103,7 +103,7 @@ namespace yojimbo
                          PacketFactory & packetFactory, 
                          uint32_t protocolId,
                          uint16_t socketPort, 
-                         network2::SocketType socketType = network2::SOCKET_TYPE_IPV6, 
+                         SocketType socketType = SOCKET_TYPE_IPV6, 
                          int maxPacketSize = 4 * 1024,
                          int sendQueueSize = 1024,
                          int receiveQueueSize = 1024 );
@@ -118,9 +118,9 @@ namespace yojimbo
 
         void DestroyPacket( Packet * packet );
 
-        void SendPacket( const network2::Address & address, Packet * packet, uint64_t sequence = 0 );
+        void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0 );
 
-        Packet * ReceivePacket( network2::Address & from, uint64_t * sequence = NULL );
+        Packet * ReceivePacket( Address & from, uint64_t * sequence = NULL );
 
         void WritePackets( double time );
 
@@ -136,9 +136,9 @@ namespace yojimbo
 
         bool IsEncryptedPacketType( int type ) const;
 
-        bool AddEncryptionMapping( const network2::Address & address, const uint8_t * sendKey, const uint8_t * receiveKey );
+        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey );
 
-        bool RemoveEncryptionMapping( const network2::Address & address );
+        bool RemoveEncryptionMapping( const Address & address );
 
         void ResetEncryptionMappings();
 

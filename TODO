@@ -1,0 +1,15 @@
+DONE
+
+    Convert protocol2.h
+
+    Convert network2.h
+
+TODO
+
+    Split out parts of yojimbo_protocol.h / network.h to other files
+
+    Especially, generally useful functions into yojimbo_util.h or yojimbo_common.h
+
+    I like yojimbo_common.h better. Fuck util.
+
+    Split out serialization support (inline heavy) from rest of yojimbo_protocol.h?

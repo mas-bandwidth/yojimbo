@@ -361,54 +361,54 @@ void test_address_ipv4()
     char buffer[256];
 
     {
-        network2::Address address( 127, 0, 0, 1 );
+        Address address( 127, 0, 0, 1 );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV4 );
+        check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 0 );
         check( address.GetAddress4() == 0x100007f );
         check( strcmp( address.ToString( buffer, 256 ), "127.0.0.1" ) == 0 );
     }
 
     {
-        network2::Address address( 127, 0, 0, 1, 1000 );
+        Address address( 127, 0, 0, 1, 1000 );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV4 );
+        check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 1000 );
         check( address.GetAddress4() == 0x100007f );
         check( strcmp( address.ToString( buffer, 256 ), "127.0.0.1:1000" ) == 0 );
     }
 
     {
-        network2::Address address( "127.0.0.1" );
+        Address address( "127.0.0.1" );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV4 );
+        check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 0 );
         check( address.GetAddress4() == 0x100007f );
         check( strcmp( address.ToString( buffer, 256 ), "127.0.0.1" ) == 0 );
     }
 
     {
-        network2::Address address( "127.0.0.1:65535" );
+        Address address( "127.0.0.1:65535" );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV4 );
+        check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 65535 );
         check( address.GetAddress4() == 0x100007f );
         check( strcmp( address.ToString( buffer, 256 ), "127.0.0.1:65535" ) == 0 );
     }
 
     {
-        network2::Address address( "10.24.168.192:3000" );
+        Address address( "10.24.168.192:3000" );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV4 );
+        check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 3000 );
         check( address.GetAddress4() == 0xc0a8180a );
         check( strcmp( address.ToString( buffer, 256 ), "10.24.168.192:3000" ) == 0 );
     }
 
     {
-        network2::Address address( "255.255.255.255:65535" );
+        Address address( "255.255.255.255:65535" );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV4 );
+        check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 65535 );
         check( address.GetAddress4() == 0xffffffff );
         check( strcmp( address.ToString( buffer, 256 ), "255.255.255.255:65535" ) == 0 );
@@ -416,16 +416,16 @@ void test_address_ipv4()
 }
 
 // todo: this is annoying -- all this just for htons? -- just implement your own htons glenn
-#if NETWORK2_PLATFORM == NETWORK2_PLATFORM_UNIX
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#elif NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
+#elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 #define NOMINMAX
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <ws2ipdef.h>
-#endif // #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_UNIX
+#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
 
 void test_address_ipv6()
 {
@@ -438,11 +438,11 @@ void test_address_ipv6()
     {
         const uint16_t address6[] = { 0xFE80, 0x0000, 0x0000, 0x0000, 0x0202, 0xB3FF, 0xFE1E, 0x8329 };
 
-        network2::Address address( address6[0], address6[1], address6[2], address6[2],
-                                   address6[4], address6[5], address6[6], address6[7] );
+        Address address( address6[0], address6[1], address6[2], address6[2],
+                         address6[4], address6[5], address6[6], address6[7] );
 
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
@@ -454,10 +454,10 @@ void test_address_ipv6()
     {
         const uint16_t address6[] = { 0xFE80, 0x0000, 0x0000, 0x0000, 0x0202, 0xB3FF, 0xFE1E, 0x8329 };
 
-        network2::Address address( address6 );
+        Address address( address6 );
 
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
@@ -469,10 +469,10 @@ void test_address_ipv6()
     {
         const uint16_t address6[] = { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001 };
 
-        network2::Address address( address6 );
+        Address address( address6 );
 
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
@@ -486,11 +486,11 @@ void test_address_ipv6()
     {
         const uint16_t address6[] = { 0xFE80, 0x0000, 0x0000, 0x0000, 0x0202, 0xB3FF, 0xFE1E, 0x8329 };
 
-        network2::Address address( address6[0], address6[1], address6[2], address6[2],
-                                  address6[4], address6[5], address6[6], address6[7], 65535 );
+        Address address( address6[0], address6[1], address6[2], address6[2],
+                         address6[4], address6[5], address6[6], address6[7], 65535 );
 
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
@@ -502,10 +502,10 @@ void test_address_ipv6()
     {
         const uint16_t address6[] = { 0xFE80, 0x0000, 0x0000, 0x0000, 0x0202, 0xB3FF, 0xFE1E, 0x8329 };
 
-        network2::Address address( address6, 65535 );
+        Address address( address6, 65535 );
 
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
@@ -517,10 +517,10 @@ void test_address_ipv6()
     {
         const uint16_t address6[] = { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001 };
 
-        network2::Address address( address6, 65535 );
+        Address address( address6, 65535 );
 
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
@@ -532,17 +532,17 @@ void test_address_ipv6()
     // parse addresses from strings (no ports)
 
     {
-        network2::Address address( "fe80::202:b3ff:fe1e:8329" );
+        Address address( "fe80::202:b3ff:fe1e:8329" );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 0 );
         check( strcmp( address.ToString( buffer, 256 ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
     }
 
     {
-        network2::Address address( "::1" );
+        Address address( "::1" );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 0 );
         check( strcmp( address.ToString( buffer, 256 ), "::1" ) == 0 );
     }
@@ -550,17 +550,17 @@ void test_address_ipv6()
     // parse addresses from strings (with ports)
 
     {
-        network2::Address address( "[fe80::202:b3ff:fe1e:8329]:65535" );
+        Address address( "[fe80::202:b3ff:fe1e:8329]:65535" );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 65535 );
         check( strcmp( address.ToString( buffer, 256 ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
 
     {
-        network2::Address address( "[::1]:65535" );
+        Address address( "[::1]:65535" );
         check( address.IsValid() );
-        check( address.GetType() == network2::ADDRESS_IPV6 );
+        check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 65535 );
         check( strcmp( address.ToString( buffer, 256 ), "[::1]:65535" ) == 0 );
     }
