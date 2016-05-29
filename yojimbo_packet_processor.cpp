@@ -7,7 +7,7 @@
 */
 
 #include "yojimbo_packet_processor.h"
-#include "yojimbo_protocol.h"
+#include "yojimbo_packet.h"
 #include "yojimbo_crypto.h"
 #include "yojimbo_common.h"
 #include <stdio.h>

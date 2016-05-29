@@ -9,6 +9,8 @@
 #include "yojimbo.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 using namespace yojimbo;
 
@@ -627,12 +629,6 @@ void test_packet_encryption()
 
     using namespace yojimbo;
 
-    if ( !InitializeCrypto() )
-    {
-        printf( "error: failed to initialize crypto\n" );
-        exit( 1 );
-    }
-
     uint8_t packet[1024];
   
     int packet_length = 1;
@@ -684,8 +680,105 @@ void test_packet_encryption()
     }
 }
 
+void test_client_server_tokens()
+{
+    printf( "test_client_server_tokens\n" );
+
+    const uint32_t ProtocolId = 0x12398137;
+    const int ServerPort = 50000;
+    const int ClientPort = 60000;
+
+    uint8_t private_key[KeyBytes];
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t challengeTokenData[ChallengeTokenBytes];
+    
+    uint8_t connectTokenNonce[NonceBytes];
+    uint8_t challengeTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+    memset( challengeTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    numServerAddresses = 1;
+    serverAddresses[0] = Address( "::1", ServerPort );
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    {
+        ConnectToken token;
+        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
+
+        memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
+        memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
+
+        if ( !EncryptConnectToken( token, connectTokenData, NULL, 0, connectTokenNonce, private_key ) )
+        {
+            printf( "error: failed to encrypt connect token\n" );
+            exit( 1 );
+        }
+    }
+
+    ConnectToken connectToken;
+    if ( !DecryptConnectToken( connectTokenData, connectToken, NULL, 0, connectTokenNonce, private_key ) )
+    {
+        printf( "error: failed to decrypt connect token\n" );
+        exit( 1 );
+    }
+
+    check( connectToken.clientId == clientId );
+    check( connectToken.numServerAddresses == 1 );
+    check( connectToken.serverAddresses[0] == Address( "::1", ServerPort ) );
+    check( memcmp( connectToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
+    check( memcmp( connectToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
+
+    Address clientAddress( "::1", ClientPort );
+
+    ChallengeToken challengeToken;
+    if ( !GenerateChallengeToken( connectToken, clientAddress, serverAddresses[0], connectTokenData, challengeToken ) )
+    {
+        printf( "error: failed to generate challenge token\n" );
+        exit( 1 );
+    }
+
+    if ( !EncryptChallengeToken( challengeToken, challengeTokenData, NULL, 0, challengeTokenNonce, private_key ) )
+    {
+        printf( "error: failed to encrypt challenge token\n" );
+        exit( 1 );
+    }
+
+    ChallengeToken decryptedChallengeToken;
+    if ( !DecryptChallengeToken( challengeTokenData, decryptedChallengeToken, NULL, 0, challengeTokenNonce, private_key ) )
+    {
+        printf( "error: failed to decrypt challenge token\n" );
+        exit( 1 );
+    }
+
+    check( challengeToken.clientId == clientId );
+    check( challengeToken.clientAddress == clientAddress );
+    check( challengeToken.serverAddress == serverAddresses[0] );
+    check( memcmp( challengeToken.connectTokenMac, connectTokenData, MacBytes ) == 0 );
+    check( memcmp( challengeToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
+    check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
+}
+
 int main()
 {
+    if ( !InitializeYojimbo() )
+    {
+        printf( "error: failed to initialize yojimbo!\n" );
+        exit( 1 );
+    }
+
     test_bitpacker();   
     test_stream();
     test_packets();
@@ -693,5 +786,9 @@ int main()
     test_address_ipv6();
     test_packet_sequence();
     test_packet_encryption();
+    test_client_server_tokens();
+
+    ShutdownYojimbo();
+
     return 0;
 }

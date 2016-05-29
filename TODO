@@ -1,23 +1,40 @@
 DONE
 
-    Convert protocol2.h
+    Split up network into multiple headers.
 
-    Convert network2.h
+    yojimbo_network.h is good for address and sockets. Great. Leave that.
 
-    Split out parts of yojimbo_protocol.h / network.h to other files
+    Move the network simulator out to yojimbo_network_simulator.h
 
-    Especially, generally useful functions into yojimbo_util.h or yojimbo_common.h
+    Remove InitCrypto, instead put it inside InitializeYojimbo / ShutdownYojimbo instead.
 
-    I like yojimbo_common.h better. Fuck util.
+    Move the token stuff into yojimbo_client_server.h
 
-    Finish conversion of yojimbo_common.h inlines into yojimbo_common.cpp
+    Unit test the token stuff (based on 008 starter...)
 
-    Move bitpacker into yojimbo_bitpack.h
-
-    Move stream into yojimbo_stream.h
-
-    Move serialization functions into yojimbo_serialize.h
+    Remove the testing harness stuff from client_server.cpp
 
 TODO
 
-    Now repurpose yojimbo_protocol.h into yojimbo_packet.h - packet header, packet class, packet factory, read/write packet functions.
+    Move the rest of the client/server stuff into yojimbo_client_server.h/cpp
+
+    Eventually, going to want to make a bunch of this stuff more *configurable*
+
+    eg. let the server restrict the number of clients he wants to allow to connect.
+
+    even though the maximum of 64 is enforced statically at compile time...
+
+    -------------------
+    
+    Up next, yojimbo_encryption_mapping.h/cpp?
+
+    I think so. Derived from client/server expiring constant time structure?
+
+    Must be dynamically allocated, don't use the stupid allocator, move away from it.
+
+    -------------------
+
+    Bring back the "pm loc" counter.
+
+    -------------------
+    
