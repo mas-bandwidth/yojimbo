@@ -16,11 +16,7 @@
 
 namespace yojimbo
 {
-    int WritePacket( const PacketInfo & info, 
-                     Packet *packet,
-                     uint8_t *buffer, 
-                     int bufferSize, 
-                     Object *header )
+    int WritePacket( const PacketInfo & info, Packet * packet, uint8_t * buffer, int bufferSize, PacketHeader * header )
     {
         assert( packet );
         assert( buffer );
@@ -81,11 +77,7 @@ namespace yojimbo
         return stream.GetBytesProcessed();
     }
 
-    Packet* ReadPacket( const PacketInfo & info, 
-                        const uint8_t * buffer, 
-                        int bufferSize, 
-                        Object * header, 
-                        int * errorCode )
+    Packet * ReadPacket( const PacketInfo & info, const uint8_t * buffer, int bufferSize, PacketHeader * header, int * errorCode )
     {
         assert( buffer );
         assert( bufferSize > 0 );
@@ -118,8 +110,9 @@ namespace yojimbo
 
             if ( crc32 != read_crc32 )
             {
+#ifdef DEBUG
                 printf( "corrupt packet. expected crc32 %x, got %x\n", crc32, read_crc32 );
-
+#endif // #ifdef DEBUG
                 if ( errorCode )
                     *errorCode = YOJIMBO_PROTOCOL_ERROR_CRC32_MISMATCH;
                 return NULL;
@@ -208,8 +201,8 @@ cleanup:
                               uint8_t *buffer, 
                               int bufferSize, 
                               int & numPacketsWritten, 
-                              Object *aggregatePacketHeader, 
-                              Object **packetHeaders )
+                              PacketHeader * aggregatePacketHeader, 
+                              PacketHeader ** packetHeaders )
     {
         assert( numPackets >= 0 );
         assert( packets );
@@ -354,8 +347,8 @@ cleanup:
                               const uint8_t * buffer, 
                               int bufferSize, 
                               int & numPacketsRead, 
-                              Object * aggregatePacketHeader, 
-                              Object ** packetHeaders, 
+                              PacketHeader * aggregatePacketHeader, 
+                              PacketHeader ** packetHeaders, 
                               int * errorCode )
     {
         assert( info.protocolId );
