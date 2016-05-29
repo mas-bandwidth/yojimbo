@@ -1,28 +1,34 @@
 DONE
 
-    Split up network into multiple headers.
-
-    yojimbo_network.h is good for address and sockets. Great. Leave that.
-
-    Move the network simulator out to yojimbo_network_simulator.h
-
-    Remove InitCrypto, instead put it inside InitializeYojimbo / ShutdownYojimbo instead.
-
-    Move the token stuff into yojimbo_client_server.h
-
-    Unit test the token stuff (based on 008 starter...)
-
-    Remove the testing harness stuff from client_server.cpp
-
 TODO
 
-    Move the rest of the client/server stuff into yojimbo_client_server.h/cpp
+    Inherit custom TestClient and TestServer classes from base client and server.
 
-    Eventually, going to want to make a bunch of this stuff more *configurable*
+    Setup in server a virtual for each log that already exists.
 
-    eg. let the server restrict the number of clients he wants to allow to connect.
+    Move the logs into the derived class via callbacks instead.
 
-    even though the maximum of 64 is enforced statically at compile time...
+    Now look for more callbacks that should exist.
+
+    -------------------
+
+    Need to design in the concept of both secure and insecure connects at the same time.
+
+    Eg. should be secure by default, but the server can be opened up into insecure mode.
+
+    In this mode, packets that are normally encrypted are globally allowed to be received unencrypted.
+
+    When the client connects insecure mode, all packets are sent insecure. No safety here.
+
+    Server allows insecure connections, eg. direct to slot without challenge token.
+
+    -------------------
+
+    Also make the heartbeat only get sent if a packet hasn't been sent for heartbeat rate...
+
+    Don't send them redundantly when other packets are being fired across. Same for client -> server.
+
+    Make sure that received packets, even unknown ones per-the base class let the timeout reset on receive.
 
     -------------------
     
