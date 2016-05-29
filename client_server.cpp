@@ -17,7 +17,6 @@
 
 using namespace std;
 using namespace yojimbo;
-using namespace network2;
 
 const uint32_t ProtocolId = 0x12341651;
 
