@@ -63,9 +63,8 @@ namespace yojimbo
             }
 
             int prefixBytes;
-            uint8_t prefix[16];
-            CompressPacketSequence( sequence, prefix[0], prefixBytes, prefix+1 );
-            prefix[0] |= ENCRYPTED_PACKET_FLAG;
+            CompressPacketSequence( sequence, m_scratchBuffer[0], prefixBytes, m_scratchBuffer+1 );
+            m_scratchBuffer[0] |= ENCRYPTED_PACKET_FLAG;
             prefixBytes++;
 
             PacketInfo info;
@@ -74,8 +73,7 @@ namespace yojimbo
             info.packetFactory = m_packetFactory;
 //            info.rawFormat = 1;
 
-            packetBytes = yojimbo::WritePacket( info, packet, m_scratchBuffer, m_maxPacketSize );
-
+            packetBytes = yojimbo::WritePacket( info, packet, m_packetBuffer, m_maxPacketSize );
             if ( packetBytes <= 0 )
             {
                 m_error = PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED;
@@ -86,24 +84,21 @@ namespace yojimbo
 
             int encryptedPacketSize;
 
-            if ( !Encrypt( m_scratchBuffer,
-                          packetBytes,
-                          m_scratchBuffer,
-                          encryptedPacketSize, 
-                          (uint8_t*) &sequence, key ) )
+            if ( !Encrypt( m_packetBuffer,
+                           packetBytes,
+                           m_scratchBuffer + prefixBytes,
+                           encryptedPacketSize, 
+                           (uint8_t*) &sequence, key ) )
             {
                 m_error = PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED;
                 return NULL;
             }
-
-            memcpy( m_packetBuffer, prefix, prefixBytes );
-            memcpy( m_packetBuffer + prefixBytes, m_scratchBuffer, encryptedPacketSize );
-
+            
             packetBytes = prefixBytes + encryptedPacketSize;
 
             assert( packetBytes <= m_absoluteMaxPacketSize );
 
-            return m_packetBuffer;
+            return m_scratchBuffer;
         }
         else
         {
@@ -158,9 +153,7 @@ namespace yojimbo
 
             int decryptedPacketBytes;
 
-            memcpy( m_scratchBuffer, packetData + prefixBytes, packetBytes - prefixBytes );
-
-            if ( !Decrypt( m_scratchBuffer, packetBytes - prefixBytes, m_scratchBuffer, decryptedPacketBytes, (uint8_t*)&sequence, key ) )
+            if ( !Decrypt( packetData + prefixBytes, packetBytes - prefixBytes, m_scratchBuffer, decryptedPacketBytes, (uint8_t*)&sequence, key ) )
             {
                 m_error = PACKET_PROCESSOR_ERROR_DECRYPT_FAILED;
                 return NULL;

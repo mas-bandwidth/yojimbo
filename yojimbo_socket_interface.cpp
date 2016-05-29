@@ -15,13 +15,13 @@
 
 namespace yojimbo
 {
-    typedef network2::Socket NetworkSocket;
+    typedef Socket NetworkSocket;
 
     SocketInterface::SocketInterface( Allocator & allocator, 
                                       PacketFactory & packetFactory, 
                                       uint32_t protocolId,
                                       uint16_t socketPort, 
-                                      network2::SocketType socketType, 
+                                      SocketType socketType, 
                                       int maxPacketSize, 
                                       int sendQueueSize, 
                                       int receiveQueueSize )
@@ -140,7 +140,7 @@ namespace yojimbo
         m_packetFactory->DestroyPacket( packet );
     }
 
-    void SocketInterface::SendPacket( const network2::Address & address, Packet * packet, uint64_t sequence )
+    void SocketInterface::SendPacket( const Address & address, Packet * packet, uint64_t sequence )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -171,7 +171,7 @@ namespace yojimbo
         m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_SENT]++;
     }
 
-    Packet * SocketInterface::ReceivePacket( network2::Address & from, uint64_t * /*sequence*/ )
+    Packet * SocketInterface::ReceivePacket( Address & from, uint64_t * /*sequence*/ )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -268,7 +268,7 @@ namespace yojimbo
 
         while ( true )
         {
-            network2::Address address;
+            Address address;
             int packetBytes = m_socket->ReceivePacket( address, packetBuffer, maxPacketSize );
             if ( !packetBytes )
                 break;
@@ -356,7 +356,7 @@ namespace yojimbo
         return m_packetTypeIsEncrypted[type] != 0;
     }
 
-    bool SocketInterface::AddEncryptionMapping( const network2::Address & address, const uint8_t * sendKey, const uint8_t * receiveKey )
+    bool SocketInterface::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey )
     {
         EncryptionMapping *encryptionMapping = FindEncryptionMapping( address );
         if ( encryptionMapping )
@@ -381,7 +381,7 @@ namespace yojimbo
         return true;
     }
 
-    bool SocketInterface::RemoveEncryptionMapping( const network2::Address & /*address*/ )
+    bool SocketInterface::RemoveEncryptionMapping( const Address & /*address*/ )
     {
         // todo: implement this and consider a different data structure. this is not great.
         assert( !"not implemented yet" );

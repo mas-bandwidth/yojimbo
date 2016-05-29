@@ -108,7 +108,7 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "client_server",
+        trigger     = "cs",
         description = "Build client server test program",
         valid_kinds = premake.action.get("gmake").valid_kinds,
         valid_languages = premake.action.get("gmake").valid_languages,

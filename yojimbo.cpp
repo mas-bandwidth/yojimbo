@@ -6,6 +6,15 @@
     All rights reserved.
 */
 
-#define NETWORK2_IMPLEMENTATION
+namespace yojimbo
+{
+    void InitializeYojimbo()
+    {
+        // ...
+    }
 
-#include "network2.h"
+    void ShutdownYojimbo()
+    {
+        // ...
+    }
+}
