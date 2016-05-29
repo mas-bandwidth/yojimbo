@@ -15,6 +15,10 @@
 
 namespace yojimbo
 {
+    const int MaxPrefixBytes = 9;
+
+    const int CryptoOverhead = MacBytes;
+
     PacketProcessor::PacketProcessor( PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize, void * context )
     {
         m_packetFactory = &packetFactory;
@@ -27,9 +31,6 @@ namespace yojimbo
         
         assert( m_maxPacketSize % 4 == 0 );
         assert( m_maxPacketSize >= maxPacketSize );
-
-        const int MaxPrefixBytes = 9;
-        const int CryptoOverhead = MacBytes;
 
         m_absoluteMaxPacketSize = maxPacketSize + MaxPrefixBytes + CryptoOverhead;
 
@@ -71,7 +72,7 @@ namespace yojimbo
             info.context = m_context;
             info.protocolId = m_protocolId;
             info.packetFactory = m_packetFactory;
-//            info.rawFormat = 1;
+            info.rawFormat = 1;
 
             packetBytes = yojimbo::WritePacket( info, packet, m_packetBuffer, m_maxPacketSize );
             if ( packetBytes <= 0 )
@@ -164,6 +165,7 @@ namespace yojimbo
             info.protocolId = m_protocolId;
             info.packetFactory = m_packetFactory;
             info.allowedPacketTypes = encryptedPacketTypes;
+            info.rawFormat = 1;
 
             int readError;
             
