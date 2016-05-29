@@ -244,6 +244,8 @@ namespace yojimbo
     uint32_t hash_string( const char string[], uint32_t hash );
 
     uint64_t murmur_hash_64( const void * key, uint32_t length, uint64_t seed );
+
+    void print_bytes( const char * label, const uint8_t * data, int data_bytes );
 }
 
 #endif // #ifndef YOJIMBO_COMMON_H

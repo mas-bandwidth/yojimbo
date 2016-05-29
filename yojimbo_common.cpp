@@ -9,6 +9,7 @@
 #include "yojimbo_common.h"
 #include <stdint.h>
 #include <assert.h>
+#include <stdio.h>
 
 namespace yojimbo
 {
@@ -203,5 +204,17 @@ namespace yojimbo
         h ^= h >> r;
 
         return h;
+    }
+
+    void print_bytes( const char * label, const uint8_t * data, int data_bytes )
+    {
+        printf( "%s: ", label );
+        for ( int i = 0; i < data_bytes; ++i )
+        {
+            printf( "%02x", (int) data[i] );
+            if ( i != data_bytes - 1 )
+                printf( "-" );
+        }
+        printf( " (%d bytes)\n", data_bytes );
     }
 }
