@@ -10,9 +10,9 @@
 #define YOJIMBO_SOCKET_INTERFACE_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_util.h"
 #include "yojimbo_types.h"
 #include "yojimbo_memory.h"
+#include "yojimbo_common.h"
 #include "yojimbo_crypto.h"
 #include "yojimbo_network.h"
 #include "yojimbo_protocol.h"
