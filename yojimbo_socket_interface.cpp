@@ -4,24 +4,6 @@
     Copyright © 2016, The Network Protocol Company, Inc.
     
     All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-        1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
-           in the documentation and/or other materials provided with the distribution.
-
-        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived 
-           from this software without specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
-    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-    USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "yojimbo_socket_interface.h"
@@ -36,7 +18,7 @@ namespace yojimbo
     typedef network2::Socket NetworkSocket;
 
     SocketInterface::SocketInterface( Allocator & allocator, 
-                                      protocol2::PacketFactory & packetFactory, 
+                                      PacketFactory & packetFactory, 
                                       uint32_t protocolId,
                                       uint16_t socketPort, 
                                       network2::SocketType socketType, 
@@ -146,19 +128,19 @@ namespace yojimbo
         return m_socket->GetError();
     }
 
-    protocol2::Packet * SocketInterface::CreatePacket( int type )
+    Packet * SocketInterface::CreatePacket( int type )
     {
         assert( m_packetFactory );
         return m_packetFactory->CreatePacket( type );
     }
 
-    void SocketInterface::DestroyPacket( protocol2::Packet * packet )
+    void SocketInterface::DestroyPacket( Packet * packet )
     {
         assert( m_packetFactory );
         m_packetFactory->DestroyPacket( packet );
     }
 
-    void SocketInterface::SendPacket( const network2::Address & address, protocol2::Packet * packet, uint64_t sequence )
+    void SocketInterface::SendPacket( const network2::Address & address, Packet * packet, uint64_t sequence )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -189,7 +171,7 @@ namespace yojimbo
         m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_SENT]++;
     }
 
-    protocol2::Packet * SocketInterface::ReceivePacket( network2::Address & from, uint64_t * /*sequence*/ )
+    Packet * SocketInterface::ReceivePacket( network2::Address & from, uint64_t * /*sequence*/ )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -309,7 +291,7 @@ namespace yojimbo
 
             bool encrypted = false;
 
-            protocol2::Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, m_packetTypeIsEncrypted, m_packetTypeIsUnencrypted );
+            Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, m_packetTypeIsEncrypted, m_packetTypeIsUnencrypted );
 
             if ( !packet )
             {
