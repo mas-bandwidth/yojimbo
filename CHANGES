@@ -1,0 +1,23 @@
+
+Sunday 29th May, 2016
+=====================
+
+    Convert protocol2.h
+
+    Convert network2.h
+
+    Split out parts of yojimbo_protocol.h / network.h to other files
+
+    Especially, generally useful functions into yojimbo_util.h or yojimbo_common.h
+
+    I like yojimbo_common.h better. Fuck util.
+
+    Finish conversion of yojimbo_common.h inlines into yojimbo_common.cpp
+
+    Move bitpacker into yojimbo_bitpack.h
+
+    Move stream into yojimbo_stream.h
+
+    Move serialization functions into yojimbo_serialize.h
+
+    Now repurpose yojimbo_protocol.h into yojimbo_packet.h - packet header, packet class, packet factory, read/write packet functions.

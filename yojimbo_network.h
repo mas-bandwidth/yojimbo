@@ -37,24 +37,6 @@ namespace yojimbo
         ADDRESS_IPV6
     };
 
-    inline int random_int( int a, int b )
-    {
-        assert( a < b );
-        int result = a + rand() % ( b - a + 1 );
-        assert( result >= a );
-        assert( result <= b );
-        return result;
-    }
-
-    inline float random_float( float a, float b )
-    {
-        assert( a < b );
-		float random = ( (float) rand() ) / (float) RAND_MAX;
-		float diff = b - a;
-		float r = random * diff;
-		return a + r;
-	}
-
     class Address
     {
         AddressType m_type;
@@ -164,59 +146,6 @@ namespace yojimbo
     };
 
 #endif // #if YOJIMBO_SOCKETS
-
-#if YOJIMBO_NETWORK_SIMULATOR
-
-    // todo: rename to "NetworkSimulator"
-
-    class Simulator
-    {
-        float m_latency;                                // latency in milliseconds
-        float m_jitter;                                 // jitter in milliseconds +/-
-        float m_packetLoss;                             // packet loss percentage
-        float m_duplicates;                             // duplicate packet percentage
-
-        int m_numEntries;                               // number of elements in the packet entry array.
-        int m_currentIndex;                             // current index in the packet entry array. new packets are inserted here.
-
-        struct Entry
-        {
-            Entry()
-            {
-                deliveryTime = 0.0;
-                packetData = NULL;
-                packetSize = 0;
-            }
-
-            Address from;                               // address this packet is from
-            Address to;                                 // address this packet is sent to
-            double deliveryTime;                        // delivery time for this packet
-            uint8_t *packetData;                        // packet data (owns pointer)
-            int packetSize;                             // size of packet in bytes
-        };
-
-        Entry * m_entries;                              // pointer to dynamically allocated packet entries. this is where buffered packets are stored.
-
-        double m_currentTime;                           // current time from last call to update. initially 0.0
-
-    public:
-
-        Simulator( int numPackets = 1024 );
-        ~Simulator();
-
-        void SetLatency( float milliseconds );
-        void SetJitter( float milliseconds );
-        void SetPacketLoss( float percent );
-        void SetDuplicates( float percent );
-        
-        void SendPacket( const Address & from, const Address & to, uint8_t *packetData, int packetSize );
-
-        uint8_t * ReceivePacket( Address & from, Address & to, int & packetSize );
-
-        void Update( double t );
-    };
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 }
 
 #endif // #ifndef YOJIMBO_NETWORK_H

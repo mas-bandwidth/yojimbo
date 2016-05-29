@@ -14,11 +14,16 @@
 #include "yojimbo_types.h"
 #include "yojimbo_memory.h"
 #include "yojimbo_crypto.h"
+#include "yojimbo_packet.h"
 #include "yojimbo_network.h"
-#include "yojimbo_protocol.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_packet_processor.h"
 #include "yojimbo_network_interface.h"
 #include "yojimbo_socket_interface.h"
+#include "yojimbo_client_server.h"
+
+bool InitializeYojimbo();
+
+void ShutdownYojimbo();
 
 #endif // #ifndef YOJIMBO_H

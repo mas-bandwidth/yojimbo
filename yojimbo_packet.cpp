@@ -6,7 +6,7 @@
     All rights reserved.
 */
 
-#include "yojimbo_protocol.h"
+#include "yojimbo_packet.h"
 
 #ifdef _MSC_VER
 #include <malloc.h>
