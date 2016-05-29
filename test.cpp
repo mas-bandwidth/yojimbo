@@ -1,32 +1,16 @@
 /*
-    Functional Tests for Protocol2 Library and Network2 Library.
+    Yojimbo Client/Server Network Library.
 
     Copyright © 2016, The Network Protocol Company, Inc.
     
     All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-        1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
-           in the documentation and/or other materials provided with the distribution.
-
-        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived 
-           from this software without specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
-    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-    USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "yojimbo.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+using namespace yojimbo;
 
 static void CheckHandler( const char * condition, 
                           const char * function,
@@ -61,7 +45,7 @@ void test_bitpacker()
 
     uint8_t buffer[256];
 
-    protocol2::BitWriter writer( buffer, BufferSize );
+    BitWriter writer( buffer, BufferSize );
 
     check( writer.GetData() == buffer );
     check( writer.GetTotalBytes() == BufferSize );
@@ -91,7 +75,7 @@ void test_bitpacker()
 
     memset( buffer + bytesWritten, 0, BufferSize - bytesWritten );
 
-    protocol2::BitReader reader( buffer, bytesWritten );
+    BitReader reader( buffer, bytesWritten );
 
     check( reader.GetBitsRead() == 0 );
     check( reader.GetBitsRemaining() == bytesWritten * 8 );
@@ -140,7 +124,7 @@ struct TestContext
     int max;
 };
 
-struct TestObject : public protocol2::Object
+struct TestObject : public Object
 {
     TestData data;
 
@@ -211,7 +195,7 @@ struct TestObject : public protocol2::Object
         return true;
     }
 
-    PROTOCOL2_DECLARE_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_SERIALIZE_FUNCTIONS();
 
     bool operator == ( const TestObject & other ) const
     {
@@ -236,7 +220,7 @@ void test_stream()
     context.min = -10;
     context.max = +10;
 
-    protocol2::WriteStream writeStream( buffer, BufferSize );
+    WriteStream writeStream( buffer, BufferSize );
 
     TestObject writeObject;
     writeObject.Init();
@@ -249,7 +233,7 @@ void test_stream()
     memset( buffer + bytesWritten, 0, BufferSize - bytesWritten );
 
     TestObject readObject;
-    protocol2::ReadStream readStream( buffer, bytesWritten );
+    ReadStream readStream( buffer, bytesWritten );
     readStream.SetContext( &context );
     readObject.SerializeRead( readStream );
 
@@ -264,7 +248,7 @@ enum TestPacketTypes
     TEST_PACKET_NUM_TYPES
 };
 
-struct TestPacketA : public protocol2::Packet
+struct TestPacketA : public Packet
 {
     int a,b,c;
 
@@ -283,10 +267,10 @@ struct TestPacketA : public protocol2::Packet
         return true;
     }
 
-    PROTOCOL2_DECLARE_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_SERIALIZE_FUNCTIONS();
 };
 
-struct TestPacketB : public protocol2::Packet
+struct TestPacketB : public Packet
 {
     int x,y;
 
@@ -303,10 +287,10 @@ struct TestPacketB : public protocol2::Packet
         return true;
     }
 
-    PROTOCOL2_DECLARE_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_SERIALIZE_FUNCTIONS();
 };
 
-struct TestPacketC : public protocol2::Packet
+struct TestPacketC : public Packet
 {
     uint8_t data[16];
 
@@ -323,14 +307,14 @@ struct TestPacketC : public protocol2::Packet
         return true;
     }
 
-    PROTOCOL2_DECLARE_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_SERIALIZE_FUNCTIONS();
 };
 
-struct TestPacketFactory : public protocol2::PacketFactory
+struct TestPacketFactory : public PacketFactory
 {
     TestPacketFactory() : PacketFactory( TEST_PACKET_NUM_TYPES ) {}
 
-    protocol2::Packet* Create( int type )
+    Packet * Create( int type )
     {
         switch ( type )
         {
@@ -341,7 +325,7 @@ struct TestPacketFactory : public protocol2::PacketFactory
         return NULL;
     }
 
-    void Destroy( protocol2::Packet *packet )
+    void Destroy( Packet * packet )
     {
         delete packet;
     }
@@ -353,9 +337,9 @@ void test_packets()
 
     TestPacketFactory packetFactory;
 
-    TestPacketA *a = (TestPacketA*) packetFactory.CreatePacket( TEST_PACKET_A );
-    TestPacketB *b = (TestPacketB*) packetFactory.CreatePacket( TEST_PACKET_B );
-    TestPacketC *c = (TestPacketC*) packetFactory.CreatePacket( TEST_PACKET_C );
+    TestPacketA * a = (TestPacketA*) packetFactory.CreatePacket( TEST_PACKET_A );
+    TestPacketB * b = (TestPacketB*) packetFactory.CreatePacket( TEST_PACKET_B );
+    TestPacketC * c = (TestPacketC*) packetFactory.CreatePacket( TEST_PACKET_C );
 
     check( a );
     check( b );
@@ -431,6 +415,7 @@ void test_address_ipv4()
     }
 }
 
+// todo: this is annoying -- all this just for htons? -- just implement your own htons glenn
 #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_UNIX
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -644,7 +629,7 @@ void test_packet_encryption()
 
     if ( !InitializeCrypto() )
     {
-        printf( "error: failed to initialize crypto\n\n" );
+        printf( "error: failed to initialize crypto\n" );
         exit( 1 );
     }
 
@@ -673,7 +658,7 @@ void test_packet_encryption()
     const uint8_t expected_encrypted_packet[] = { 0xfa, 0x6c, 0x91, 0xf7, 0xef, 0xdc, 0xed, 0x22, 0x09, 0x23, 0xd5, 0xbf, 0xa1, 0xe9, 0x17, 0x70, 0x14 };
     if ( encrypted_length != expected_encrypted_length || memcmp( expected_encrypted_packet, encrypted_packet, encrypted_length ) != 0 )
     {
-        printf( "\npacket encryption failure!\n\n" );
+        printf( "\npacket encryption failure!\n" );
 
         printf( " expected: " );
         PrintBytes( expected_encrypted_packet, expected_encrypted_length );
@@ -688,13 +673,13 @@ void test_packet_encryption()
     int decrypted_length;
     if ( !Decrypt( encrypted_packet, encrypted_length, decrypted_packet, decrypted_length, nonce, key ) )
     {
-        printf( "error: failed to decrypt\n\n" );
+        printf( "error: failed to decrypt\n" );
         exit(1);
     }
 
     if ( decrypted_length != packet_length || memcmp( packet, decrypted_packet, packet_length ) != 0 )
     {
-        printf( "error: decrypted packet does not match original packet\n\n" );
+        printf( "error: decrypted packet does not match original packet\n" );
         exit(1);
     }
 }
