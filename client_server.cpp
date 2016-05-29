@@ -25,20 +25,9 @@ const int ServerPort = 50000;
 
 static uint8_t private_key[KeyBytes];
 
-struct MatcherServerData
-{
-    Address serverAddress;                              // IP address of this server
-
-    int numConnectedClients;                            // number of connected clients on this dedi
-
-    uint64_t connectedClients[MaxClients];              // client ids connected to this server (tight array)
-};
-
 class Matcher
 {
-    uint64_t m_nonce;                                   // increments with each match request
-
-    map<Address,MatcherServerData*> m_serverMap;        // maps network address to data for that server
+    uint64_t m_nonce;
 
 public:
 
@@ -74,17 +63,52 @@ public:
     }
 };
 
-class ClientServerNetworkInterface : public SocketInterface
+class GameServer : public Server
+{
+public:
+
+    GameServer( NetworkInterface & networkInterface ) : Server( networkInterface )
+    {
+        // ...
+    }
+
+    ~GameServer()
+    {
+        // ...
+    }
+
+    // ...
+};
+
+class GameClient : public Client
+{
+public:
+
+    GameClient( NetworkInterface & networkInterface ) : Client( networkInterface )
+    {
+        // ...
+    }
+
+    ~GameClient()
+    {
+        // ...
+    }
+
+    // ...
+};
+
+
+class GameNetworkInterface : public SocketInterface
 {   
 public:
 
-    ClientServerNetworkInterface( ClientServerPacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
+    GameNetworkInterface( ClientServerPacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
     {
         EnablePacketEncryption();
         DisableEncryptionForPacketType( PACKET_CONNECTION_REQUEST );
     }
 
-    ~ClientServerNetworkInterface()
+    ~GameNetworkInterface()
     {
         ClearSendQueue();
         ClearReceiveQueue();
@@ -101,10 +125,10 @@ int main()
         return 1;
     }
 
+    srand( (unsigned int) time( NULL ) );
+
     memory_initialize();
     {
-        srand( (unsigned int) time( NULL ) );
-
         Matcher matcher;
 
         uint64_t clientId = 1;
@@ -137,8 +161,8 @@ int main()
         Address clientAddress( "::1", ClientPort );
         Address serverAddress( "::1", ServerPort );
 
-        ClientServerNetworkInterface clientInterface( packetFactory, ClientPort );
-        ClientServerNetworkInterface serverInterface( packetFactory, ServerPort );
+        GameNetworkInterface clientInterface( packetFactory, ClientPort );
+        GameNetworkInterface serverInterface( packetFactory, ServerPort );
 
         if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
         {

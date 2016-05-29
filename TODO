@@ -12,6 +12,19 @@ TODO
 
     -------------------
 
+    Same treatment for client.
+
+    -------------------
+
+    Now extend the packet factory as well, and include additional packet types. 
+
+    This needs to be tested, and easy to do, as this is the common situation, extend the client/server
+    packet types with your own that must be processed.
+
+    What needs to be done to client and server classes so they can let derived classes handle custom packet types?
+
+    -------------------
+
     Need to design in the concept of both secure and insecure connects at the same time.
 
     Eg. should be secure by default, but the server can be opened up into insecure mode.
