@@ -227,6 +227,8 @@ namespace yojimbo
 
             const uint8_t * packetData = m_packetProcessor->WritePacket( entry.packet, entry.sequence, packetBytes, encrypt, key );
 
+            m_packetFactory->DestroyPacket( entry.packet );
+
             if ( !packetData )
             {
                 switch ( m_packetProcessor->GetError() )
@@ -243,8 +245,6 @@ namespace yojimbo
             }
 
             m_socket->SendPacket( entry.address, packetData, packetBytes );
-
-            m_packetFactory->DestroyPacket( entry.packet );
 
             m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_WRITTEN]++;
 

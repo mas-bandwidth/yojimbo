@@ -69,6 +69,8 @@ public:
 
     GameServer( NetworkInterface & networkInterface ) : Server( networkInterface )
     {
+        SetPrivateKey( private_key );
+
         // ...
     }
 
@@ -77,7 +79,28 @@ public:
         // ...
     }
 
-    // ...
+protected:
+
+    void OnClientConnect( int clientIndex )
+    {
+        char buffer[256];
+        const char * addressString = GetClientAddress( clientIndex ).ToString( buffer, sizeof( buffer ) );
+        printf( "client %d connected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+    }
+
+    void OnClientDisconnect( int clientIndex )
+    {
+        char buffer[256];
+        const char * addressString = GetClientAddress( clientIndex ).ToString( buffer, sizeof( buffer ) );
+        printf( "client %d disconnected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+    }
+
+    void OnClientTimedOut( int clientIndex )
+    {
+        char buffer[256];
+        const char * addressString = GetClientAddress( clientIndex ).ToString( buffer, sizeof( buffer ) );
+        printf( "client %d timed out (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+    }
 };
 
 class GameClient : public Client
@@ -93,16 +116,18 @@ public:
     {
         // ...
     }
-
-    // ...
 };
 
+class GamePacketFactory : public ClientServerPacketFactory
+{
+    // ...
+};
 
 class GameNetworkInterface : public SocketInterface
 {   
 public:
 
-    GameNetworkInterface( ClientServerPacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
+    GameNetworkInterface( GamePacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
     {
         EnablePacketEncryption();
         DisableEncryptionForPacketType( PACKET_CONNECTION_REQUEST );
@@ -144,8 +169,6 @@ int main()
 
         memset( connectTokenNonce, 0, NonceBytes );
 
-        printf( "requesting match\n\n" );
-
         GenerateKey( private_key );
 
         if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
@@ -156,7 +179,7 @@ int main()
 
         InitializeNetwork();
 
-        ClientServerPacketFactory packetFactory;
+        GamePacketFactory packetFactory;
 
         Address clientAddress( "::1", ClientPort );
         Address serverAddress( "::1", ServerPort );
@@ -174,12 +197,10 @@ int main()
 
         double time = 0.0;
 
-        Client client( clientInterface );
+        GameClient client( clientInterface );
 
-        Server server( serverInterface );
+        GameServer server( serverInterface );
 
-        server.SetPrivateKey( private_key );
-        
         server.SetServerAddress( serverAddress );
         
         client.Connect( serverAddress, time, clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
@@ -218,7 +239,7 @@ int main()
 
             printf( "----------------------------------------------------------\n" );
 
-            if ( !client.IsConnecting() && !client.IsConnected() && server.GetNumConnectedClients() )
+            if ( !client.IsConnecting() && !client.IsConnected() && server.GetNumConnectedClients() == 0 )
                 break;
         }
 
