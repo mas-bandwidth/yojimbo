@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"PACKET_P",
+				"PACKET_PROCESSOR_WRITE_PACKET_FAILED"
+			],
+			[
 				"server",
 				"serverAddresses"
 			],
@@ -510,17 +514,13 @@
 			[
 				"fargmen",
 				"fragmentId"
-			],
-			[
-				"ack",
-				"ackedFragment"
 			]
 		]
 	},
 	"buffers":
 	[
 	],
-	"build_system": "Packages/Makefile/Make.sublime-build",
+	"build_system": "",
 	"build_system_choices":
 	[
 		[
@@ -710,25 +710,56 @@
 	},
 	"expanded_folders":
 	[
-		"/Users/gaffer/git/protocol2"
+		"/Users/gaffer/git/libyojimbo"
 	],
 	"file_history":
 	[
-		"/Users/gaffer/git/protocol2/TODO",
-		"/Users/gaffer/git/protocol2/test.cpp",
-		"/Users/gaffer/git/protocol2/yojimbo_packet_processor.h",
-		"/Users/gaffer/git/protocol2/yojimbo_socket_interface.cpp",
-		"/Users/gaffer/git/protocol2/008_securing_dedicated_servers.cpp",
-		"/Users/gaffer/git/protocol2/protocol2.h",
-		"/Users/gaffer/git/protocol2/yojimbo_packet_processor.cpp",
+		"/Users/gaffer/git/libyojimbo/network2.h",
+		"/Users/gaffer/git/libyojimbo/protocol2.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_allocator.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_array.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_config.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_crypto.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_hash.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_memory.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_network_interface.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_packet_processor.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_queue.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_socket_interface.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_util.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_types.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo.h",
+		"/Users/gaffer/git/libyojimbo/test.cpp",
+		"/Users/gaffer/git/libyojimbo/client_server.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_crypto.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_memory.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_socket_interface.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_packet_processor.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo.cpp",
+		"/Users/gaffer/git/protocol2/premake5.lua",
 		"/Users/gaffer/git/protocol2/yojimbo_socket_interface.h",
+		"/Users/gaffer/git/protocol2/yojimbo_socket_interface.cpp",
+		"/Users/gaffer/git/protocol2/007_packet_encryption.cpp",
+		"/Users/gaffer/git/protocol2/TODO",
+		"/Users/gaffer/git/protocol2/yojimbo_packet_processor.h",
+		"/Users/gaffer/git/protocol2/yojimbo_packet_processor.cpp",
+		"/Users/gaffer/git/protocol2/CHANGES",
+		"/Users/gaffer/git/protocol2/yojimbo_network_interface.h",
 		"/Users/gaffer/git/protocol2/yojimbo_crypto.h",
+		"/Users/gaffer/git/protocol2/yojimbo_crypto.cpp",
+		"/Users/gaffer/git/protocol2/network2.h",
+		"/Users/gaffer/git/protocol2/protocol2.h",
+		"/Users/gaffer/git/protocol2/test.cpp",
+		"/Users/gaffer/git/protocol2/008_securing_dedicated_servers.cpp",
+		"/Users/gaffer/git/protocol2/006_client_server.cpp",
+		"/Users/gaffer/git/protocol2/yojimbo.cpp",
+		"/Users/gaffer/git/protocol2/yojimbo_config.h",
+		"/Users/gaffer/git/protocol2/001_reading_and_writing_packets.cpp",
+		"/Users/gaffer/git/protocol2/002_serialization_strategies.cpp",
+		"/Users/gaffer/git/protocol2/003_packet_fragmentation_and_reassembly.cpp",
+		"/Users/gaffer/git/protocol2/004_sending_large_blocks_of_data.cpp",
 		"/Users/gaffer/Desktop/CONTRACT GOALS",
 		"/Users/gaffer/git/protocol2/temp.cpp",
-		"/Users/gaffer/git/protocol2/CHANGES",
-		"/Users/gaffer/git/protocol2/006_client_server.cpp",
-		"/Users/gaffer/git/protocol2/yojimbo_config.h",
-		"/Users/gaffer/git/protocol2/yojimbo.cpp",
 		"/Users/gaffer/git/protocol2/yojimbo.h",
 		"/Users/gaffer/git/protocol2/yojimbo_types.h",
 		"/Users/gaffer/git/protocol2/yojimbo_array.h",
@@ -743,15 +774,11 @@
 		"/Users/gaffer/git/protocol/src/Network/Enums.h",
 		"/Users/gaffer/git/protocol2/vectorial/simd4f_neon.h",
 		"/Users/gaffer/git/protocol2/vectorial/vec3f.h",
-		"/Users/gaffer/git/protocol2/002_serialization_strategies.cpp",
 		"/Users/gaffer/git/protocol2/yojimbo_memory.cpp",
-		"/Users/gaffer/git/protocol2/003_packet_fragmentation_and_reassembly.cpp",
 		"/Users/gaffer/git/protocol2/untitled",
 		"/Users/gaffer/git/protocol/src/Core/Core.cpp",
-		"/Users/gaffer/git/protocol2/network2.h",
 		"/Users/gaffer/git/protocol/tests/Protocol/TestBitArray.cpp",
 		"/Users/gaffer/git/protocol2/005_packet_aggregation.cpp",
-		"/Users/gaffer/git/protocol2/premake5.lua",
 		"/Users/gaffer/git/protocol/src/Core/File.cpp",
 		"/Users/gaffer/git/protocol/premake4.lua",
 		"/Users/gaffer/git/protocol/src/Network/Interface.h",
@@ -768,11 +795,9 @@
 		"/Users/gaffer/git/protocol/src/Network/Network.cpp",
 		"/Users/gaffer/Documents/PLANNING",
 		"/Users/gaffer/Documents/STRATEGY",
-		"/Users/gaffer/git/protocol2/004_sending_large_blocks_of_data.cpp",
 		"/Users/gaffer/Documents/PATREON",
 		"/Users/gaffer/Desktop/press.txt",
 		"/Users/gaffer/Desktop/Building a Game Network Protocol/premake5.lua",
-		"/Users/gaffer/git/protocol2/001_reading_and_writing_packets.cpp",
 		"/Users/gaffer/git/protocol2/006_reliable_packets.cpp",
 		"/Users/gaffer/Backup/netgame/02 - Virtual Connection over UDP/Net.h",
 		"/Users/gaffer/git/protocol2/premake4.lua",
@@ -816,36 +841,11 @@
 		"/Users/gaffer/git/protocol2/004_packet_aggregation.cpp",
 		"/Users/gaffer/git/protocol2/003_sending_large_blocks_of_data_quickly_and_reliably.cpp",
 		"/Users/gaffer/git/protocol2/protocol2-old.h",
-		"/Users/gaffer/Desktop/taxes/corporate 2015/working.txt",
-		"/Users/gaffer/Documents/DONE",
-		"/Users/gaffer/Documents/ADVISORS",
-		"/Users/gaffer/Documents/WORKLOG",
-		"/Users/gaffer/Documents/WORK",
-		"/Users/gaffer/Documents/RESPAWN RECS",
-		"/Users/gaffer/Documents/HEDGING",
-		"/Users/gaffer/Downloads/JPMC.CSV",
-		"/Users/gaffer/Documents/BURN RATE",
-		"/Users/gaffer/Desktop/taxes/working.txt",
-		"/Users/gaffer/git/protocol2/GAME IDEAS",
-		"/Users/gaffer/git/protocol2/output.txt",
-		"/Users/gaffer/Desktop/Simulator.cpp",
-		"/Users/gaffer/git/protocol/tests/Network/TestAddress.cpp",
-		"/Users/gaffer/Desktop/Address.cpp",
-		"/Users/gaffer/git/protocol/src/Core/Config.h",
-		"/Users/gaffer/Desktop/Address.h",
-		"/Users/gaffer/Desktop/BSDSocket.cpp",
-		"/Users/gaffer/Desktop/Network.cpp",
-		"/Users/gaffer/git/protocol/src/Network/Network.h",
-		"/Users/gaffer/Desktop/Network.h",
-		"/Users/gaffer/Desktop/Simulator.h",
-		"/Users/gaffer/Desktop/taxes/profit.txt",
-		"/Users/gaffer/Documents/AUSTRALIA",
-		"/Users/gaffer/Documents/OUTBACK",
-		"/Users/gaffer/git/protocol2/backup.txt"
+		"/Users/gaffer/Desktop/taxes/corporate 2015/working.txt"
 	],
 	"find":
 	{
-		"height": 35.0
+		"height": 23.0
 	},
 	"find_in_files":
 	{
@@ -892,6 +892,21 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"SOCKET_INTERFACE_COUNTER_ENCRYPTED_PACKETS_READ",
+			"SOCKET_INTERFACE_COUNTER_PACKETS_WRITTEN",
+			"#if DEBUG",
+			"NETWORK2_SOCKETS",
+			"error",
+			"YOJIMBO_SECURE",
+			"rawFormat",
+			"rawMode",
+			"sockaddr_storage",
+			"addrinfo",
+			"PROTOCOL2_SER",
+			"PROTOCOL2_ASSERT_ON",
+			"PROTOCOL2_SERIALIZE_CHECKS",
+			"#define PROTOCOL2_SERIALIZE_CHECKS              1\n",
+			"PROTOCOL2_ASSERT_ON_SERIALIZE_CHECK",
 			"ProcessConnectionRequest",
 			"PacketFactory",
 			"ChallengeToken",
@@ -1004,22 +1019,7 @@
 			"random_int",
 			"int min",
 			"sizeof(",
-			"_WINDOWS",
-			"sizeof(",
-			"printf",
-			"NumChunksToSend",
-			"NumIterations",
-			"WriteBytes",
-			"serialize_bytes",
-			"ReadPacket",
-			"PROTOCOL2_ASSERT_ON_SERIALIZE_CHECK",
-			"SERIALIZE_CHECKS",
-			"DEBUG",
-			"Check",
-			"serialize check failed",
-			"serialize_check",
-			"ReadPacket",
-			"WritePacket"
+			"_WINDOWS"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1111,7 +1111,7 @@
 		"height": 0.0
 	},
 	"pinned_build_system": "Packages/Makefile/Make.sublime-build",
-	"project": "protocol2.sublime-project",
+	"project": "yojimbo.sublime-project",
 	"replace":
 	{
 		"height": 42.0
@@ -1124,16 +1124,100 @@
 		"selected_items":
 		[
 			[
-				"test.cpp",
-				"test.cpp"
+				"premake5.lua",
+				"protocol2/premake5.lua"
 			],
 			[
 				"todo",
 				"TODO"
 			],
 			[
+				"007",
+				"007_packet_encryption.cpp"
+			],
+			[
+				"packet_processor.h",
+				"yojimbo_packet_processor.h"
+			],
+			[
+				"packet",
+				"yojimbo_packet_processor.h"
+			],
+			[
+				"socket_interface.cpp",
+				"yojimbo_socket_interface.cpp"
+			],
+			[
+				"protocol2.h",
+				"protocol2.h"
+			],
+			[
+				"protocol2h",
+				"protocol2.h"
+			],
+			[
+				"test.cpp",
+				"test.cpp"
+			],
+			[
+				"network2h",
+				"network2.h"
+			],
+			[
+				"changes",
+				"CHANGES"
+			],
+			[
+				"yojimbo_con",
+				"yojimbo_config.h"
+			],
+			[
+				"yoj",
+				"yojimbo_config.h"
+			],
+			[
+				"packet_processor",
+				"yojimbo_packet_processor.h"
+			],
+			[
+				"yojimbo.cpp",
+				"yojimbo.cpp"
+			],
+			[
+				"006",
+				"006_client_server.cpp"
+			],
+			[
+				"config.h",
+				"yojimbo_config.h"
+			],
+			[
 				"packet_processor.cpp",
 				"yojimbo_packet_processor.cpp"
+			],
+			[
+				"008",
+				"008_securing_dedicated_servers.cpp"
+			],
+			[
+				"004",
+				"004_sending_large_blocks_of_data.cpp"
+			],
+			[
+				"003",
+				"003_packet_fragmentation_and_reassembly.cpp"
+			],
+			[
+				"002",
+				"002_serialization_strategies.cpp"
+			],
+			[
+				"001",
+				"001_reading_and_writing_packets.cpp"
+			],
+			[
+				"network2.h",
+				"network2.h"
 			],
 			[
 				"socket_interfac",
@@ -1148,32 +1232,12 @@
 				"yojimbo_crypto.h"
 			],
 			[
-				"008",
-				"008_securing_dedicated_servers.cpp"
-			],
-			[
 				"packet_process",
 				"yojimbo_packet_processor.cpp"
 			],
 			[
-				"protocol2.h",
-				"protocol2.h"
-			],
-			[
-				"changes",
-				"CHANGES"
-			],
-			[
-				"006",
-				"006_client_server.cpp"
-			],
-			[
 				"canges",
 				"CHANGES"
-			],
-			[
-				"yoj",
-				"yojimbo_config.h"
 			],
 			[
 				"bsdsocket.",
@@ -1220,10 +1284,6 @@
 				"yojimbo_allocator.h"
 			],
 			[
-				"protocol2h",
-				"protocol2.h"
-			],
-			[
 				"yojim",
 				"yojimbo.cpp"
 			],
@@ -1232,20 +1292,8 @@
 				"yojimbo.h"
 			],
 			[
-				"003",
-				"003_packet_fragmentation_and_reassembly.cpp"
-			],
-			[
-				"002",
-				"002_serialization_strategies.cpp"
-			],
-			[
 				"allocator.h",
 				"yojimbo_allocator.h"
-			],
-			[
-				"config.h",
-				"yojimbo_config.h"
 			],
 			[
 				"memory.cpp",
@@ -1308,10 +1356,6 @@
 				"network2.h"
 			],
 			[
-				"network2.h",
-				"network2.h"
-			],
-			[
 				"netwo",
 				"network2.h"
 			],
@@ -1332,27 +1376,11 @@
 				"CHANGES"
 			],
 			[
-				"network2h",
-				"network2.h"
-			],
-			[
 				"premake5",
 				"premake5.lua"
 			],
 			[
-				"004",
-				"004_sending_large_blocks_of_data.cpp"
-			],
-			[
 				"prem",
-				"premake5.lua"
-			],
-			[
-				"001",
-				"001_reading_and_writing_packets.cpp"
-			],
-			[
-				"premake5.lua",
 				"premake5.lua"
 			],
 			[
@@ -1606,34 +1634,6 @@
 			[
 				"client.h",
 				"obj/x64/Release/client/physics_ode.d"
-			],
-			[
-				"game.cpp",
-				"game.cpp"
-			],
-			[
-				"wouldenice",
-				"WOULD BE NICE"
-			],
-			[
-				"planning",
-				"PLANNING"
-			],
-			[
-				"cilent.cpp",
-				"client.cpp"
-			],
-			[
-				"network.h",
-				"network.h"
-			],
-			[
-				"network.cpp",
-				"network.cpp"
-			],
-			[
-				"tood",
-				"TODO"
 			]
 		],
 		"width": 0.0
