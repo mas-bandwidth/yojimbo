@@ -12,9 +12,28 @@
 #include "yojimbo_config.h"
 #include <stdint.h>
 #include <stddef.h>
+#include <assert.h>
     
 namespace yojimbo
 {
+    inline int random_int( int a, int b )
+    {
+        assert( a < b );
+        int result = a + rand() % ( b - a + 1 );
+        assert( result >= a );
+        assert( result <= b );
+        return result;
+    }
+
+    inline float random_float( float a, float b )
+    {
+        assert( a < b );
+        float random = ( (float) rand() ) / (float) RAND_MAX;
+        float diff = b - a;
+        float r = random * diff;
+        return a + r;
+    }
+
     #ifndef min
     template <typename T> const T & min( const T & a, const T & b )
     {

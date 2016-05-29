@@ -19,15 +19,6 @@
 
 namespace yojimbo
 {
-    bool InitializeCrypto()
-    {
-        assert( NonceBytes == crypto_aead_chacha20poly1305_NPUBBYTES );
-        assert( KeyBytes == crypto_aead_chacha20poly1305_KEYBYTES );
-        assert( AuthBytes == crypto_aead_chacha20poly1305_ABYTES );
-        assert( MacBytes == crypto_secretbox_MACBYTES );
-        return sodium_init() == 0;
-    }
-
     void GenerateKey( uint8_t * key )
     {
         assert( key );

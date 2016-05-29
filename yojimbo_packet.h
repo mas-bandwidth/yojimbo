@@ -6,19 +6,14 @@
     All rights reserved.
 */
 
-#ifndef YOJIMBO_PROTOCOL_H
-#define YOJIMBO_PROTOCOL_H
+#ifndef YOJIMBO_PACKET_H
+#define YOJIMBO_PACKET_H
 
 #include "yojimbo_config.h"
 #include "yojimbo_common.h"
 #include "yojimbo_bitpack.h"
 #include "yojimbo_stream.h"
 #include "yojimbo_serialize.h"
-#include <stdint.h>
-#include <stdio.h>
-#include <assert.h>
-#include <math.h>
-#include <string.h>
 
 namespace yojimbo
 {
@@ -47,12 +42,6 @@ namespace yojimbo
 
     class PacketFactory
     {        
-        int m_numPacketTypes;
-        int m_numAllocatedPackets;  
-#if YOJIMBO_DEBUG_PACKET_LEAKS
-        std::map<void*,int> allocated_packets;
-#endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
-
     public:
 
         PacketFactory( int numTypes );
@@ -70,15 +59,28 @@ namespace yojimbo
         virtual Packet * Create( int type ) = 0;
 
         virtual void Destroy( Packet * packet ) = 0;
+
+    private:
+
+        int m_numPacketTypes;
+        int m_numAllocatedPackets;  
+#if YOJIMBO_DEBUG_PACKET_LEAKS
+        std::map<void*,int> allocated_packets;
+#endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
     };
 
     struct PacketInfo
     {
         bool rawFormat;                             // if true packets are written in "raw" format without crc32 (useful for encrypted packets).
+
         int prefixBytes;                            // prefix this number of bytes when reading and writing packets. stick your own data there.
+
         uint32_t protocolId;                        // protocol id that distinguishes your protocol from other packets sent over UDP.
+
         PacketFactory * packetFactory;              // create packets and determine information about packet types. required.
+
         const uint8_t * allowedPacketTypes;         // array of allowed packet types. if a packet type is not allowed the serialize read or write will fail.
+
         void * context;                             // context for the packet serialization (optional, pass in NULL)
 
         PacketInfo()
@@ -92,17 +94,9 @@ namespace yojimbo
         }
     };
 
-    int WritePacket( const PacketInfo & info, 
-                     Packet * packet, 
-                     uint8_t * buffer, 
-                     int bufferSize, 
-                     PacketHeader * header = NULL );
+    int WritePacket( const PacketInfo & info, Packet * packet, uint8_t * buffer, int bufferSize, PacketHeader * header = NULL );
 
-    Packet * ReadPacket( const PacketInfo & info, 
-                         const uint8_t * buffer, 
-                         int bufferSize, 
-                         PacketHeader * header = NULL, 
-                         int * errorCode = NULL );
+    Packet * ReadPacket( const PacketInfo & info, const uint8_t * buffer, int bufferSize, PacketHeader * header = NULL, int * errorCode = NULL );
 
 #if YOJIMBO_PACKET_AGGREGATION
 
@@ -128,4 +122,4 @@ namespace yojimbo
 #endif // #if YOJIMBO_PACKET_AGGREGATION
 }
 
-#endif // #ifndef YOJIMBO_PROTOCOL_H
+#endif // #ifndef YOJIMBO_PACKET_H

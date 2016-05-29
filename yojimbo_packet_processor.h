@@ -10,7 +10,7 @@
 #define YOJIMBO_PACKET_PROCESSOR_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_protocol.h"
+#include "yojimbo_packet.h"
 
 namespace yojimbo
 {
