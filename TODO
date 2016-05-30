@@ -1,28 +1,36 @@
 DONE
 
-    Add callbacks for packets sent on server (by type)
-
-    Unified all packet send to go through one function, don't directly call on the interface (keep it internal)
-
-    Implement logs so I can see the traffic going back and forth for debugging. Works well!
-
-    Now implement callbacks for packet receive on server.
 
 TODO
 
+    Wrap it up. Make sure everything works on Windows, Mac and Linux.
+
     -------------------
 
-    Same treatment for client:
+    Porting back some fixes to protocol2.
 
-    1. Replace logs with callbacks where possible
+    Fix the overlapping buffers trash on linux.
 
-    2. Add counters
+    Fix the bad logic on client side disconnect.
 
-    3. Add callback for packet send
+    Fix the packet leak.
 
-    4. Add callback for packet receive
+    -------------------
 
-    Verify logs are now acceptable.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     -------------------
 

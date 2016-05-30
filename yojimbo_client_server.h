@@ -467,7 +467,7 @@ namespace yojimbo
         bool IsConnected( const Address & address, uint64_t clientId ) const;
 
         void SendPacket( const Address & address, Packet * packet );
-        
+
         void SendPacketToConnectedClient( int clientIndex, Packet * packet, double time );
 
         void ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address, double time );
@@ -481,15 +481,33 @@ namespace yojimbo
 
     enum ClientState
     {
-        CLIENT_STATE_DISCONNECTED,
-        CLIENT_STATE_SENDING_CONNECTION_REQUEST,
-        CLIENT_STATE_SENDING_CHALLENGE_RESPONSE,
-        CLIENT_STATE_CONNECTED,
-        CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT,
-        CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT,
-        CLIENT_STATE_CONNECTION_TIMED_OUT,
-        CLIENT_STATE_CONNECTION_DENIED
+        CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT = -4,
+        CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT = -3,
+        CLIENT_STATE_CONNECTION_TIMED_OUT = -2,
+        CLIENT_STATE_CONNECTION_DENIED = -1,
+        CLIENT_STATE_DISCONNECTED = 0,
+        CLIENT_STATE_SENDING_CONNECTION_REQUEST = 1,
+        CLIENT_STATE_SENDING_CHALLENGE_RESPONSE = 2,
+        CLIENT_STATE_CONNECTED = 3
     };
+
+    inline const char * GetClientStateName( int clientState )
+    {
+        switch ( clientState )
+        {
+            case CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT: return "connection request timed out";
+            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT: return "challenge response timed out";
+            case CLIENT_STATE_CONNECTION_TIMED_OUT: return "connection timed out";
+            case CLIENT_STATE_CONNECTION_DENIED: return "connection denied";
+            case CLIENT_STATE_DISCONNECTED: return "disconnected";
+            case CLIENT_STATE_SENDING_CONNECTION_REQUEST: return "sending connection request";
+            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE: return "sending challenge response";
+            case CLIENT_STATE_CONNECTED: return "connected";
+            default:
+                assert( false );
+                return "???";
+        }
+    }
 
     class Client
     {
@@ -539,10 +557,10 @@ namespace yojimbo
 
         bool ConnectionFailed() const
         {
-            return m_clientState > CLIENT_STATE_CONNECTED;
+            return m_clientState < CLIENT_STATE_DISCONNECTED;
         }
 
-        void Disconnect( double time );
+        void Disconnect( double time, int clientState = CLIENT_STATE_DISCONNECTED );
 
         void SendPackets( double time );
 
@@ -551,6 +569,20 @@ namespace yojimbo
         void CheckForTimeOut( double time );
 
     protected:
+
+        virtual void OnConnect( const Address & /*address*/ ) {}
+
+        virtual void OnClientStateChange( int /*previousState*/, int /*currentState*/ ) {}
+
+        virtual void OnDisconnect() {};
+
+        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/ ) {}
+
+        virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/ ) {}
+
+    protected:
+
+        void SetClientState( int clientState );
 
         void ResetConnectionData();
 
