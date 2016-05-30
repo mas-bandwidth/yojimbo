@@ -7,8 +7,13 @@
 */
 
 #include "yojimbo_crypto.h"
-#include <sodium.h>
 #include <assert.h>
+
+#ifdef _MSC_VER
+#define SODIUM_STATIC
+#endif // #ifdef _MSC_VER
+
+#include <sodium.h>
 
 bool InitializeYojimbo()
 {
