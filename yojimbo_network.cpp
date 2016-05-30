@@ -413,13 +413,11 @@ namespace yojimbo
             }
         }
 
-        // todo: get the actual port we bound to in the case of passing in port 0 we must ask the OS
-
         m_port = port;
 
         // set non-blocking io
 
-        #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_MAC || NETWORK2_PLATFORM == NETWORK2_PLATFORM_UNIX
+        #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
     
             int nonBlocking = 1;
             if ( fcntl( m_socket, F_SETFL, O_NONBLOCK, nonBlocking ) == -1 )
@@ -429,7 +427,7 @@ namespace yojimbo
                 return;
             }
         
-        #elif NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
+        #elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
     
             DWORD nonBlocking = 1;
             if ( ioctlsocket( m_socket, FIONBIO, &nonBlocking ) != 0 )
@@ -450,9 +448,9 @@ namespace yojimbo
     {
         if ( m_socket != 0 )
         {
-            #if NETWORK2_PLATFORM == NETWORK2_PLATFORM_MAC || NETWORK2_PLATFORM == NETWORK2_PLATFORM_UNIX
+            #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
             close( m_socket );
-            #elif NETWORK2_PLATFORM == NETWORK2_PLATFORM_WINDOWS
+            #elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
             closesocket( m_socket );
             #else
             #error unsupported platform
