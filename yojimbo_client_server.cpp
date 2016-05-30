@@ -159,6 +159,7 @@ namespace yojimbo
         m_challengeTokenNonce = 0;
         for ( int i = 0; i < MaxClients; ++i )
             ResetClientState( i );
+        memset( m_counters, 0, sizeof( m_counters ) );
     }
 
     Server::~Server()
@@ -179,6 +180,8 @@ namespace yojimbo
 
             ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_HEARTBEAT );
 
+            // todo: don't send heartbeat if another user packet (in derived game server) has been sent recently. don't send heartbeat redundantly.
+
             SendPacketToConnectedClient( i, packet, time );
         }
     }
@@ -188,9 +191,11 @@ namespace yojimbo
         while ( true )
         {
             Address address;
-            Packet *packet = m_networkInterface->ReceivePacket( address );
+            Packet * packet = m_networkInterface->ReceivePacket( address );
             if ( !packet )
                 break;
+
+            OnPacketReceived( packet->GetType(), address );
             
             switch ( packet->GetType() )
             {
@@ -228,6 +233,9 @@ namespace yojimbo
             if ( m_clientData[i].lastPacketReceiveTime + ConnectionTimeOut < time )
             {
                 OnClientTimedOut( i );
+
+                m_counters[SERVER_COUNTER_CLIENT_TIMEOUT_DISCONNECTS]++;
+
                 DisconnectClient( i, time );
             }
         }
@@ -329,6 +337,8 @@ namespace yojimbo
         assert( m_numConnectedClients < MaxClients - 1 );
         assert( !m_clientConnected[clientIndex] );
 
+        m_counters[SERVER_COUNTER_CLIENT_CONNECTS]++;
+
         m_numConnectedClients++;
 
         m_clientConnected[clientIndex] = true;
@@ -366,6 +376,8 @@ namespace yojimbo
 
         ResetClientState( clientIndex );
 
+        m_counters[SERVER_COUNTER_CLIENT_DISCONNECTS]++;
+
         m_numConnectedClients--;
     }
 
@@ -393,6 +405,12 @@ namespace yojimbo
         return false;
     }
 
+    void Server::SendPacket( const Address & address, Packet * packet )
+    {
+        m_networkInterface->SendPacket( address, packet );
+        OnPacketSent( packet->GetType(), address );
+    }
+
     void Server::SendPacketToConnectedClient( int clientIndex, Packet * packet, double time )
     {
         assert( packet );
@@ -400,21 +418,23 @@ namespace yojimbo
         assert( clientIndex < MaxClients );
         assert( m_clientConnected[clientIndex] );
         m_clientData[clientIndex].lastPacketSendTime = time;
-        m_networkInterface->SendPacket( m_clientAddress[clientIndex], packet );
+        SendPacket( m_clientAddress[clientIndex], packet );
     }
 
     void Server::ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address, double time )
     {
         /*
-        char buffer[256];
-        const char * addressString = address.ToString( buffer, sizeof( buffer ) );        
-        printf( "processing connection request packet from: %s\n", addressString );
+        char addressString[64];
+        address.ToString( addressString, sizeof( addressString ) );
+        printf( "server received connection request from %s\n", addressString );
         */
+
+        m_counters[SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED]++;
 
         ConnectToken connectToken;
         if ( !DecryptConnectToken( packet.connectTokenData, connectToken, NULL, 0, packet.connectTokenNonce, m_privateKey ) )
         {
-            printf( "failed to decrypt connect token\n" );
+            m_counters[SERVER_COUNTER_FAILED_TO_DECRYPT_CONNECT_TOKEN]++;
             return;
         }
 
@@ -431,19 +451,19 @@ namespace yojimbo
 
         if ( !serverAddressInConnectTokenWhiteList )
         {
-            printf( "server address is not in connect token whitelist\n" );
+            m_counters[SERVER_COUNTER_SERVER_ADDRESS_NOT_IN_CONNECT_TOKEN_WHITELIST]++;
             return;
         }
 
         if ( connectToken.clientId == 0 )
         {
-            printf( "connect token client id is 0\n" );
+            m_counters[SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_IS_ZERO]++;
             return;
         }
 
         if ( IsConnected( address, connectToken.clientId ) )
         {
-            printf( "client is already connected\n" );
+            m_counters[SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_ALREADY_CONNECTED]++;
             return;
         }
 
@@ -451,34 +471,37 @@ namespace yojimbo
 
         if ( connectToken.expiryTimestamp <= timestamp )
         {
-            printf( "connect token has expired\n" );
+            m_counters[SERVER_COUNTER_CONNECT_TOKEN_EXPIRED]++;
             return;
         }
 
         if ( !m_networkInterface->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
         {
-            printf( "failed to add encryption mapping\n" );
+            m_counters[SERVER_COUNTER_ADD_ENCRYPTION_MAPPING_FAILURES]++;
             return;
         }
 
         if ( m_numConnectedClients == MaxClients )
         {
-            printf( "connection denied: server is full\n" );
+            m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DENIED );
-            m_networkInterface->SendPacket( address, connectionDeniedPacket );
+            if ( connectionDeniedPacket )
+            {
+                SendPacket( address, connectionDeniedPacket );
+            }
             return;
         }
 
         if ( !FindOrAddConnectTokenEntry( address, packet.connectTokenData, time ) )
         {
-            printf( "connect token has already been used\n" );
+            m_counters[SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED]++;
             return;
         }
 
         ChallengeToken challengeToken;
         if ( !GenerateChallengeToken( connectToken, address, m_serverAddress, packet.connectTokenData, challengeToken ) )
         {
-            printf( "failed to generate challenge token\n" );
+            m_counters[SERVER_COUNTER_FAILED_TO_GENERATE_CHALLENGE_TOKEN]++;
             return;
         }
 
@@ -490,35 +513,41 @@ namespace yojimbo
 
         if ( !EncryptChallengeToken( challengeToken, connectionChallengePacket->challengeTokenData, NULL, 0, connectionChallengePacket->challengeTokenNonce, m_privateKey ) )
         {
-            printf( "failed to encrypt challenge token\n" );
+            m_counters[SERVER_COUNTER_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN]++;
             return;
         }
 
+        /*
         char clientAddressString[64];
         address.ToString( clientAddressString, sizeof( clientAddressString ) );
         printf( "server sent challenge to client %s\n", clientAddressString );
+        */
 
-        m_networkInterface->SendPacket( address, connectionChallengePacket );
+        m_counters[SERVER_COUNTER_CHALLENGE_PACKETS_SENT]++;
+
+        SendPacket( address, connectionChallengePacket );
     }
 
     void Server::ProcessConnectionResponse( const ConnectionResponsePacket & packet, const Address & address, double time )
     {
+        m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED]++;
+
         ChallengeToken challengeToken;
         if ( !DecryptChallengeToken( packet.challengeTokenData, challengeToken, NULL, 0, packet.challengeTokenNonce, m_privateKey ) )
         {
-            printf( "failed to decrypt challenge token\n" );
+            m_counters[SERVER_COUNTER_FAILED_TO_DECRYPT_CHALLENGE_TOKEN]++;
             return;
         }
 
         if ( challengeToken.clientAddress != address )
         {
-            printf( "challenge token client address does not match\n" );
+            m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_CLIENT_ADDRESS_DOES_NOT_MATCH]++;
             return;
         }
 
         if ( challengeToken.serverAddress != m_serverAddress )
         {
-            printf( "challenge token server address does not match\n" );
+            m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_SERVER_ADDRESS_DOES_NOT_MATCH]++;
             return;
         }
 
@@ -534,6 +563,7 @@ namespace yojimbo
 
                 if ( connectionHeartBeatPacket )
                 {
+                    m_counters[SERVER_COUNTER_CHALLENGE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT]++;
                     SendPacketToConnectedClient( existingClientIndex, connectionHeartBeatPacket, time );
                 }
             }
@@ -541,17 +571,19 @@ namespace yojimbo
             return;
         }
 
+        /*
         char buffer[256];
         const char * addressString = address.ToString( buffer, sizeof( buffer ) );
         printf( "processing connection response from client %s (client id = %" PRIx64 ")\n", addressString, challengeToken.clientId );
+        */
 
         if ( m_numConnectedClients == MaxClients )
         {
-            printf( "connection denied: server is full\n" );
+            m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
-                m_networkInterface->SendPacket( address, connectionDeniedPacket );
+                SendPacket( address, connectionDeniedPacket );
             }
             return;
         }
@@ -585,6 +617,8 @@ namespace yojimbo
 
         assert( clientIndex >= 0 );
         assert( clientIndex < MaxClients );
+
+        m_counters[SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS]++;
 
         DisconnectClient( clientIndex, time );
     }
@@ -634,9 +668,7 @@ namespace yojimbo
             {
                 SendPacketToServer( packet, time );
 
-                // todo: for the server-side version of this we probably want "WriteFlush" that takes an address for all packets to flush.
-
-                // IMPORTANT: flush the disconnect packet to the network *before* the encryption mapping is reset!
+                // IMPORTANT: we need to flush the disconnect packet to the network *before* the encryption mapping is reset!
                 m_networkInterface->WritePackets( time );      
             }
         }

@@ -70,36 +70,69 @@ public:
     GameServer( NetworkInterface & networkInterface ) : Server( networkInterface )
     {
         SetPrivateKey( private_key );
-
-        // ...
-    }
-
-    ~GameServer()
-    {
-        // ...
     }
 
 protected:
 
     void OnClientConnect( int clientIndex )
     {
-        char buffer[256];
-        const char * addressString = GetClientAddress( clientIndex ).ToString( buffer, sizeof( buffer ) );
+        char addressString[256];
+        GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
         printf( "client %d connected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
     void OnClientDisconnect( int clientIndex )
     {
-        char buffer[256];
-        const char * addressString = GetClientAddress( clientIndex ).ToString( buffer, sizeof( buffer ) );
+        char addressString[256];
+        GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
         printf( "client %d disconnected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
     void OnClientTimedOut( int clientIndex )
     {
-        char buffer[256];
-        const char * addressString = GetClientAddress( clientIndex ).ToString( buffer, sizeof( buffer ) );
+        char addressString[256];
+        GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
         printf( "client %d timed out (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+    }
+
+    void OnPacketSent( int packetType, const Address & to )
+    {
+        const char * packetTypeString = NULL;
+
+        switch ( packetType )
+        {
+            case PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
+            case PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
+            case PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
+            case PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+
+            default:
+                return;
+        }
+
+        char addressString[256];
+        to.ToString( addressString, sizeof( addressString ) );
+        printf( "server sent %s packet to %s\n", packetTypeString, addressString );
+    }
+
+    void OnPacketReceived( int packetType, const Address & from )
+    {
+        const char * packetTypeString = NULL;
+
+        switch ( packetType )
+        {
+            case PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
+            case PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
+            case PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
+            case PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+
+            default:
+                return;
+        }
+
+        char addressString[256];
+        from.ToString( addressString, sizeof( addressString ) );
+        printf( "server received %s packet from %s\n", packetTypeString, addressString );
     }
 };
 
@@ -142,8 +175,6 @@ public:
 
 int main()
 {
-    printf( "\nclient/server\n" );
-
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize Yojimbo!\n" );
@@ -205,12 +236,8 @@ int main()
         
         client.Connect( serverAddress, time, clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-        printf( "----------------------------------------------------------\n" );
-
         for ( int i = 0; i < NumIterations; ++i )
         {
-            printf( "t = %f\n", time );
-
             client.SendPackets( time );
             server.SendPackets( time );
 
@@ -236,8 +263,6 @@ int main()
                 client.Disconnect( time );
 
             time += 0.1f;
-
-            printf( "----------------------------------------------------------\n" );
 
             if ( !client.IsConnecting() && !client.IsConnected() && server.GetNumConnectedClients() == 0 )
                 break;
