@@ -328,6 +328,35 @@ namespace yojimbo
         }
     };
 
+    enum ServerCounters
+    {
+        SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED,
+        SERVER_COUNTER_FAILED_TO_DECRYPT_CONNECT_TOKEN,
+        SERVER_COUNTER_SERVER_ADDRESS_NOT_IN_CONNECT_TOKEN_WHITELIST,
+        SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_IS_ZERO,
+        SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_ALREADY_CONNECTED,
+        SERVER_COUNTER_CONNECT_TOKEN_EXPIRED,
+        SERVER_COUNTER_ADD_ENCRYPTION_MAPPING_FAILURES,
+        SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL,
+        SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED,
+        SERVER_COUNTER_FAILED_TO_GENERATE_CHALLENGE_TOKEN,
+        SERVER_COUNTER_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN,
+        SERVER_COUNTER_CHALLENGE_PACKETS_SENT,
+
+        SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED,
+        SERVER_COUNTER_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,
+        SERVER_COUNTER_CHALLENGE_TOKEN_CLIENT_ADDRESS_DOES_NOT_MATCH,
+        SERVER_COUNTER_CHALLENGE_TOKEN_SERVER_ADDRESS_DOES_NOT_MATCH,
+        SERVER_COUNTER_CHALLENGE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT,
+
+        SERVER_COUNTER_CLIENT_CONNECTS,
+        SERVER_COUNTER_CLIENT_DISCONNECTS,
+        SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS,
+        SERVER_COUNTER_CLIENT_TIMEOUT_DISCONNECTS,
+
+        SERVER_COUNTER_NUM_COUNTERS
+    };
+
     class Server
     {
         NetworkInterface * m_networkInterface;                              // network interface for sending and receiving packets.
@@ -349,6 +378,8 @@ namespace yojimbo
         ServerClientData m_clientData[MaxClients];                          // heavier weight data per-client, eg. not for fast lookup
 
         ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
+
+        uint64_t m_counters[SERVER_COUNTER_NUM_COUNTERS];
 
     public:
 
@@ -390,6 +421,13 @@ namespace yojimbo
             return m_numConnectedClients;
         }
 
+        uint64_t GetCounter( int index ) const 
+        {
+            assert( index >= 0 );
+            assert( index < SERVER_COUNTER_NUM_COUNTERS );
+            return m_counters[index];
+        }
+
         void SendPackets( double time );
 
         void ReceivePackets( double time );
@@ -403,6 +441,10 @@ namespace yojimbo
         virtual void OnClientDisconnect( int /*clientIndex*/ ) {}
 
         virtual void OnClientTimedOut( int /*clientIndex*/ ) {}
+
+        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/ ) {}
+
+        virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/ ) {}
 
     protected:
 
@@ -424,6 +466,8 @@ namespace yojimbo
 
         bool IsConnected( const Address & address, uint64_t clientId ) const;
 
+        void SendPacket( const Address & address, Packet * packet );
+        
         void SendPacketToConnectedClient( int clientIndex, Packet * packet, double time );
 
         void ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address, double time );

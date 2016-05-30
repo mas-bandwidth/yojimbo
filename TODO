@@ -1,33 +1,52 @@
 DONE
 
-    Inherit custom GameClient and GameServer classes from base client and server.
+    Add callbacks for packets sent on server (by type)
 
-    Did the same for GameNetworkInterface and GamePacketFactory.
+    Unified all packet send to go through one function, don't directly call on the interface (keep it internal)
 
-    There seems to be some sort of weirdness with the disconnect packet set from client -> server?
+    Implement logs so I can see the traffic going back and forth for debugging. Works well!
 
-    Ah. There was a packet leak if the packet failed to decrypt (eg. broken encryption mapping)
+    Now implement callbacks for packet receive on server.
 
 TODO
 
-    Setup in server a virtual for each log that already exists.
+    -------------------
 
-    Move the logs into the derived class via callbacks instead.
+    Same treatment for client:
 
-    Now look for more callbacks that should exist.
+    1. Replace logs with callbacks where possible
+
+    2. Add counters
+
+    3. Add callback for packet send
+
+    4. Add callback for packet receive
+
+    Verify logs are now acceptable.
 
     -------------------
 
-    Same treatment for client.
-
-    -------------------
-
-    Now extend the packet factory as well, and include additional packet types. 
+    Now extend the packet factory as well, and include additional packet types above the client/server packet set.
 
     This needs to be tested, and easy to do, as this is the common situation, extend the client/server
     packet types with your own that must be processed.
 
     What needs to be done to client and server classes so they can let derived classes handle custom packet types?
+
+    -------------------
+
+    When the server needs to flush to a client (who is disconnected, and will lose encryption mapping shortly),
+    it will also be necessary to send packets to that client immediately.
+
+    However, you only want to flush packets sent to that address immediately, not all addresses.
+
+    So the send queue really needs to be more like a ring-buffer, with the ability to have holes,
+    eg. packets that have been sent ahead of time.
+
+    We're going to need this as well for packets sent to a particular client, we need to aggregate
+    all encrypted packets together into one packet, then all unencrypted packets -- so the ability
+    to walk over the send queue and inspect packets and remove packets from that queue out of order
+    is necessary.
 
     -------------------
 
@@ -63,3 +82,12 @@ TODO
 
     -------------------
     
+    Idea: maybe a flag on send packet, "immediate"?
+
+    eg. as an alternative to complicated queue rewrite with packets being sent out of order, eg. flush all for this address.
+
+    Just send some packets and marke their sends as *immediate*, = no queue, serialize this and send it right away.
+
+    Sounds good.
+
+    -------------------
