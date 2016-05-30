@@ -423,12 +423,6 @@ namespace yojimbo
 
     void Server::ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address, double time )
     {
-        /*
-        char addressString[64];
-        address.ToString( addressString, sizeof( addressString ) );
-        printf( "server received connection request from %s\n", addressString );
-        */
-
         m_counters[SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED]++;
 
         ConnectToken connectToken;
@@ -517,12 +511,6 @@ namespace yojimbo
             return;
         }
 
-        /*
-        char clientAddressString[64];
-        address.ToString( clientAddressString, sizeof( clientAddressString ) );
-        printf( "server sent challenge to client %s\n", clientAddressString );
-        */
-
         m_counters[SERVER_COUNTER_CHALLENGE_PACKETS_SENT]++;
 
         SendPacket( address, connectionChallengePacket );
@@ -570,12 +558,6 @@ namespace yojimbo
 
             return;
         }
-
-        /*
-        char buffer[256];
-        const char * addressString = address.ToString( buffer, sizeof( buffer ) );
-        printf( "processing connection response from client %s (client id = %" PRIx64 ")\n", addressString, challengeToken.clientId );
-        */
 
         if ( m_numConnectedClients == MaxClients )
         {
@@ -646,7 +628,8 @@ namespace yojimbo
     {
         Disconnect( time );
         m_serverAddress = address;
-        m_clientState = CLIENT_STATE_SENDING_CONNECTION_REQUEST;
+        OnConnect( address );
+        SetClientState( CLIENT_STATE_SENDING_CONNECTION_REQUEST );
         m_lastPacketSendTime = time - 1.0f;
         m_lastPacketReceiveTime = time;
         m_clientId = clientId;
@@ -656,14 +639,18 @@ namespace yojimbo
         m_networkInterface->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
     }
 
-    void Client::Disconnect( double time )
+    void Client::Disconnect( double time, int clientState )
     {
+        assert( clientState <= CLIENT_STATE_DISCONNECTED );
+
+        if ( m_clientState != clientState )
+        {
+            OnDisconnect();
+        }
+
         if ( m_clientState == CLIENT_STATE_CONNECTED )
         {
-            printf( "client-side disconnect: (client id = %" PRIx64 ")\n", m_clientId );
-
-            ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );
-            
+            ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );            
             if ( packet )
             {
                 SendPacketToServer( packet, time );
@@ -685,12 +672,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + ConnectionRequestSendRate > time )
                     return;
 
-                char buffer[256];
-                const char *addressString = m_serverAddress.ToString( buffer, sizeof( buffer ) );
-                printf( "client sending connection request to server %s\n", addressString );
-
                 ConnectionRequestPacket * packet = (ConnectionRequestPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_REQUEST );
-
                 if ( packet )
                 {
                     memcpy( packet->connectTokenData, m_connectTokenData, ConnectTokenBytes );
@@ -706,12 +688,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + ConnectionResponseSendRate > time )
                     return;
 
-                char buffer[256];
-                const char *addressString = m_serverAddress.ToString( buffer, sizeof( buffer ) );
-                printf( "client sending challenge response to server %s\n", addressString );
-
                 ConnectionResponsePacket * packet = (ConnectionResponsePacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_RESPONSE );
-
                 if ( packet )
                 {
                     memcpy( packet->challengeTokenData, m_challengeTokenData, ChallengeTokenBytes );
@@ -746,9 +723,11 @@ namespace yojimbo
         while ( true )
         {
             Address address;
-            Packet *packet = m_networkInterface->ReceivePacket( address );
+            Packet * packet = m_networkInterface->ReceivePacket( address );
             if ( !packet )
                 break;
+
+            OnPacketReceived( packet->GetType(), address );
             
             switch ( packet->GetType() )
             {
@@ -784,8 +763,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ConnectionRequestTimeOut < time )
                 {
-                    printf( "connection request to server timed out\n" );
-                    m_clientState = CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT;
+                    Disconnect( time, CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
                     return;
                 }
             }
@@ -795,8 +773,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ChallengeResponseTimeOut < time )
                 {
-                    printf( "challenge response to server timed out\n" );
-                    m_clientState = CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT;
+                    Disconnect( time, CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT );
                     return;
                 }
             }
@@ -806,9 +783,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ConnectionTimeOut < time )
                 {
-                    printf( "keep alive timed out\n" );
-                    m_clientState = CLIENT_STATE_CONNECTION_TIMED_OUT;
-                    Disconnect( time );
+                    Disconnect( time, CLIENT_STATE_CONNECTION_TIMED_OUT );
                     return;
                 }
             }
@@ -819,11 +794,19 @@ namespace yojimbo
         }
     }
 
+    void Client::SetClientState( int clientState )
+    {
+        const int previous = m_clientState;
+        m_clientState = (ClientState) clientState;
+        if ( clientState != previous )
+            OnClientStateChange( previous, clientState );
+    }
+
     void Client::ResetConnectionData()
     {
         assert( m_networkInterface );
         m_serverAddress = Address();
-        m_clientState = CLIENT_STATE_DISCONNECTED;
+        SetClientState( CLIENT_STATE_DISCONNECTED );
         m_lastPacketSendTime = -1000.0;
         m_lastPacketReceiveTime = -1000.0;
         m_clientId = 0;
@@ -834,12 +817,15 @@ namespace yojimbo
         m_networkInterface->ResetEncryptionMappings();
     }
 
-    void Client::SendPacketToServer( Packet *packet, double time )
+    void Client::SendPacketToServer( Packet * packet, double time )
     {
+        assert( packet );
         assert( m_clientState != CLIENT_STATE_DISCONNECTED );
         assert( m_serverAddress.IsValid() );
 
         m_networkInterface->SendPacket( m_serverAddress, packet );
+
+        OnPacketSent( packet->GetType(), m_serverAddress );
 
         m_lastPacketSendTime = time;
     }
@@ -852,10 +838,7 @@ namespace yojimbo
         if ( address != m_serverAddress )
             return;
 
-        char buffer[256];
-        const char * addressString = address.ToString( buffer, sizeof( buffer ) );
-        printf( "client received connection denied from server: %s\n", addressString );
-        m_clientState = CLIENT_STATE_CONNECTION_DENIED;
+        SetClientState( CLIENT_STATE_CONNECTION_DENIED );
     }
 
     void Client::ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address, double time )
@@ -866,14 +849,10 @@ namespace yojimbo
         if ( address != m_serverAddress )
             return;
 
-        char buffer[256];
-        const char * addressString = address.ToString( buffer, sizeof( buffer ) );
-        printf( "client received connection challenge from server: %s\n", addressString );
-
         memcpy( m_challengeTokenData, packet.challengeTokenData, ChallengeTokenBytes );
         memcpy( m_challengeTokenNonce, packet.challengeTokenNonce, NonceBytes );
 
-        m_clientState = CLIENT_STATE_SENDING_CHALLENGE_RESPONSE;
+        SetClientState( CLIENT_STATE_SENDING_CHALLENGE_RESPONSE );
 
         m_lastPacketReceiveTime = time;
     }
@@ -888,16 +867,12 @@ namespace yojimbo
 
         if ( m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
         {
-            char buffer[256];
-            const char * addressString = address.ToString( buffer, sizeof( buffer ) );
-            printf( "client is now connected to server: %s\n", addressString );
-
             memset( m_connectTokenData, 0, ConnectTokenBytes );
             memset( m_connectTokenNonce, 0, NonceBytes );
             memset( m_challengeTokenData, 0, ChallengeTokenBytes );
             memset( m_challengeTokenNonce, 0, NonceBytes );
 
-            m_clientState = CLIENT_STATE_CONNECTED;        
+            SetClientState( CLIENT_STATE_CONNECTED );
         }
 
         m_lastPacketReceiveTime = time;
