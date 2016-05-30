@@ -149,6 +149,66 @@ public:
     {
         // ...
     }
+
+    void OnConnect( const Address & address )
+    {
+        char addressString[256];
+        address.ToString( addressString, sizeof( addressString ) );
+        printf( "client connecting to %s\n", addressString );
+    }
+
+    void OnClientStateChange( int previousState, int currentState )
+    {
+        assert( previousState != currentState );
+        const char * previousStateString = GetClientStateName( previousState );
+        const char * currentStateString = GetClientStateName( currentState );
+        printf( "client changed state from %s -> %s\n", previousStateString, currentStateString );
+    }
+
+    void OnDisconnect()
+    {
+        printf( "client disconnected\n" );
+    }
+
+    void OnPacketSent( int packetType, const Address & to )
+    {
+        const char * packetTypeString = NULL;
+
+        switch ( packetType )
+        {
+            case PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
+            case PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
+            case PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
+            case PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+
+            default:
+                return;
+        }
+
+        char addressString[256];
+        to.ToString( addressString, sizeof( addressString ) );
+        printf( "client sent %s packet to %s\n", packetTypeString, addressString );
+    }
+
+    void OnPacketReceived( int packetType, const Address & from )
+    {
+        const char * packetTypeString = NULL;
+
+        switch ( packetType )
+        {
+            case PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
+            case PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
+            case PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
+            case PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+
+            default:
+                return;
+        }
+
+        char addressString[256];
+        from.ToString( addressString, sizeof( addressString ) );
+        printf( "client received %s packet from %s\n", packetTypeString, addressString );
+    }
 };
 
 class GamePacketFactory : public ClientServerPacketFactory
