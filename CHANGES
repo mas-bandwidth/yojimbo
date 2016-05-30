@@ -49,3 +49,21 @@ Sunday 29th May, 2016
     eg. you extend the client/server to create your own versions, and demonstrate this by adding
     new packet types, implementing all client/server logs I want via callbacks (not the base class)
     etc.
+
+    Inherited custom GameClient and GameServer classes from base client and server.
+
+    Did the same for GameNetworkInterface and GamePacketFactory.
+
+    There seems to be some sort of weirdness with the disconnect packet set from client -> server?
+
+    Ah. There was a packet leak if the packet failed to decrypt (eg. broken encryption mapping)
+
+    Look for interesting counters to add on the server, eg. a counter for each invisible thing that could happen,
+    but indicates something maybe going wrong, eg. connect token reject etc.
+
+    Done. A bunch of counters. Will be more.
+
+    Comment out logs that don't make sense to become callbacks.
+
+    Commented out logs that I might want to bring back (#if CLIENT_SERVER_DEBUG_LOGS or something)
+
