@@ -12,6 +12,7 @@
 #include "yojimbo_config.h"
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <assert.h>
     
 namespace yojimbo
