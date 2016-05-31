@@ -565,7 +565,7 @@ namespace yojimbo
             return m_clientState < CLIENT_STATE_DISCONNECTED;
         }
 
-        void Disconnect( double time, int clientState = CLIENT_STATE_DISCONNECTED );
+        void Disconnect( double time, int clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
 
         void SendPackets( double time );
 
