@@ -26,6 +26,9 @@ Tuesday 31st May, 2016
 
     And then I pass false into DisconnectClient for timeouts and when processing a disconnect packet sent from that client, because it is redundant.
 
+    Make the same change vice versa for the client, so if a server-side connect happens, or the client times out, the client does not send a redundant 
+    disconnect packet to the server.
+
 
 Sunday 29th May, 2016
 =====================

@@ -2,7 +2,6 @@ DONE
 
 TODO
 
-
     ---------------
 
     Implement yojimbo_encryption_mapping.h/cpp
@@ -15,7 +14,7 @@ TODO
 
     ---------------
 
-    Now unit test basic cases of the client/server, eg. client connect, reconnect, can't connect because full and so on.
+    Now unit test basic cases of the client/server, eg. client connect, reconnect, timeouts. can't connect because full and so on.
 
     ---------------
 
