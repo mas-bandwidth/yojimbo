@@ -23,7 +23,7 @@ namespace yojimbo
 
         virtual void DestroyPacket( Packet * packet ) = 0;
 
-        virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0 ) = 0;
+        virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
 
         virtual Packet * ReceivePacket( Address & from, uint64_t * sequence = NULL ) = 0;
 

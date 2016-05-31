@@ -95,7 +95,7 @@ protected:
         printf( "client %d timed out (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
-    void OnPacketSent( int packetType, const Address & to )
+    void OnPacketSent( int packetType, const Address & to, bool immediate )
     {
         const char * packetTypeString = NULL;
 
@@ -112,7 +112,7 @@ protected:
 
         char addressString[256];
         to.ToString( addressString, sizeof( addressString ) );
-        printf( "server sent %s packet to %s\n", packetTypeString, addressString );
+        printf( "server sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
     }
 
     void OnPacketReceived( int packetType, const Address & from )
@@ -170,7 +170,7 @@ public:
         printf( "client disconnected\n" );
     }
 
-    void OnPacketSent( int packetType, const Address & to )
+    void OnPacketSent( int packetType, const Address & to, bool immediate )
     {
         const char * packetTypeString = NULL;
 
@@ -187,7 +187,7 @@ public:
 
         char addressString[256];
         to.ToString( addressString, sizeof( addressString ) );
-        printf( "client sent %s packet to %s\n", packetTypeString, addressString );
+        printf( "client sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
     }
 
     void OnPacketReceived( int packetType, const Address & from )
@@ -319,7 +319,7 @@ int main()
                 break;
             }
 
-            if ( client.IsConnected() )
+            if ( client.IsConnected() && server.GetNumConnectedClients() == 1 )
                 client.Disconnect( time );
 
             time += 0.1f;

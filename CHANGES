@@ -1,4 +1,32 @@
 
+Tuesday 31st May, 2016
+======================
+
+    Idea: maybe a flag on send packet, "immediate"?
+
+    eg. as an alternative to complicated queue rewrite with packets being sent out of order, eg. flush all for this address.
+
+    Just send some packets and marke their sends as *immediate*, = no queue, serialize this and send it right away.
+
+    Sounds like a good feature to add.
+
+    Found some bugs in the client/server connection. They were not increasing the sequence number for client/server packets on sends.
+
+    This means they were not encrypting with nonce, hence the code was broken from a security point of view. Fixed.
+
+    This fix should be brought across to the open source example source code for the article series.
+
+    Added the interface, now need to restructure the socket interface to be able to write and send a single packet at a time when necessary.
+
+    Done works well.
+
+    It's annoying that the server when procesing a client side disconnect sends a disconnect packet to the client that has already disconnected.
+
+    So I extended DisconnectClient to take a bool parameter, true by default, to send a disconnect packet to the client.
+
+    And then I pass false into DisconnectClient for timeouts and when processing a disconnect packet sent from that client, because it is redundant.
+
+
 Sunday 29th May, 2016
 =====================
 

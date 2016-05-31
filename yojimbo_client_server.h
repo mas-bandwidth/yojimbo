@@ -43,7 +43,6 @@ namespace yojimbo
             address.ToString( buffer, sizeof( buffer ) );
         }
 
-        // todo: serialize the address as binary instead.
         serialize_string( stream, buffer, sizeof( buffer ) );
 
         if ( Stream::IsReading )
@@ -373,6 +372,10 @@ namespace yojimbo
         
         Address m_serverAddress;                                            // the external IP address of this server (what clients will be sending packets to)
 
+        uint64_t m_globalSequence;                                          // global sequence number for packets sent not corresponding to any particular connected client.
+
+        uint64_t m_clientSequence[MaxClients];                              // per-client sequence number for packets sent
+
         Address m_clientAddress[MaxClients];                                // array of client address values per-client
         
         ServerClientData m_clientData[MaxClients];                          // heavier weight data per-client, eg. not for fast lookup
@@ -442,7 +445,7 @@ namespace yojimbo
 
         virtual void OnClientTimedOut( int /*clientIndex*/ ) {}
 
-        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/ ) {}
+        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
 
         virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/ ) {}
 
@@ -460,15 +463,15 @@ namespace yojimbo
 
         void ConnectClient( int clientIndex, const ChallengeToken & challengeToken, double time );
 
-        void DisconnectClient( int clientIndex, double time );
+        void DisconnectClient( int clientIndex, double time, bool sendDisconnectPacket = true );
 
         bool IsConnected( uint64_t clientId ) const;
 
         bool IsConnected( const Address & address, uint64_t clientId ) const;
 
-        void SendPacket( const Address & address, Packet * packet );
+        void SendPacket( const Address & address, Packet * packet, bool immediate = false );
 
-        void SendPacketToConnectedClient( int clientIndex, Packet * packet, double time );
+        void SendPacketToConnectedClient( int clientIndex, Packet * packet, double time, bool immediate = false );
 
         void ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address, double time );
 
@@ -523,6 +526,8 @@ namespace yojimbo
 
         uint64_t m_clientId;                                                // client id as per-connect call
 
+        uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
+
         uint8_t m_connectTokenData[ConnectTokenBytes];                      // encrypted connect token data for connection request packet
 
         uint8_t m_connectTokenNonce[NonceBytes];                            // nonce required to send to server so it can decrypt connect token
@@ -576,7 +581,7 @@ namespace yojimbo
 
         virtual void OnDisconnect() {};
 
-        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/ ) {}
+        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
 
         virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/ ) {}
 
@@ -586,7 +591,7 @@ namespace yojimbo
 
         void ResetConnectionData();
 
-        void SendPacketToServer( Packet *packet, double time );
+        void SendPacketToServer( Packet *packet, double time, bool immediate = false );
 
         void ProcessConnectionDenied( const ConnectionDeniedPacket & /*packet*/, const Address & address, double /*time*/ );
 
