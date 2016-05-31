@@ -97,6 +97,8 @@ namespace yojimbo
             return NULL;
         }
 
+        void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence );
+
     public:
 
         SocketInterface( Allocator & allocator,
@@ -118,9 +120,9 @@ namespace yojimbo
 
         void DestroyPacket( Packet * packet );
 
-        void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0 );
+        void SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate );
 
-        Packet * ReceivePacket( Address & from, uint64_t * sequence = NULL );
+        Packet * ReceivePacket( Address & from, uint64_t * sequence );
 
         void WritePackets( double time );
 

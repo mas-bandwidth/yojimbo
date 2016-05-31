@@ -154,17 +154,27 @@ namespace yojimbo
     Server::Server( NetworkInterface & networkInterface )
     {
         memset( m_privateKey, 0, KeyBytes );
+
         m_networkInterface = &networkInterface;
+
         m_numConnectedClients = 0;
+
         m_challengeTokenNonce = 0;
+
+        m_globalSequence = 0;
+
+        memset( m_clientSequence, 0, sizeof( m_clientSequence ) );
+
         for ( int i = 0; i < MaxClients; ++i )
             ResetClientState( i );
+
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
     Server::~Server()
     {
         assert( m_networkInterface );
+
         m_networkInterface = NULL;
     }
 
@@ -179,8 +189,6 @@ namespace yojimbo
                 return;
 
             ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_HEARTBEAT );
-
-            // todo: don't send heartbeat if another user packet (in derived game server) has been sent recently. don't send heartbeat redundantly.
 
             SendPacketToConnectedClient( i, packet, time );
         }
@@ -236,7 +244,7 @@ namespace yojimbo
 
                 m_counters[SERVER_COUNTER_CLIENT_TIMEOUT_DISCONNECTS]++;
 
-                DisconnectClient( i, time );
+                DisconnectClient( i, time, false );
             }
         }
     }
@@ -249,6 +257,7 @@ namespace yojimbo
         m_clientId[clientIndex] = 0;
         m_clientAddress[clientIndex] = Address();
         m_clientData[clientIndex] = ServerClientData();
+        m_clientSequence[clientIndex] = 0;
     }
 
     int Server::FindFreeClientIndex() const
@@ -361,7 +370,7 @@ namespace yojimbo
         }
     }
 
-    void Server::DisconnectClient( int clientIndex, double time )
+    void Server::DisconnectClient( int clientIndex, double time, bool sendDisconnectPacket )
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < MaxClients );
@@ -370,9 +379,12 @@ namespace yojimbo
 
         OnClientDisconnect( clientIndex );
 
-        ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );
+        if ( sendDisconnectPacket )
+        {
+            ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );
 
-        SendPacketToConnectedClient( clientIndex, packet, time );
+            SendPacketToConnectedClient( clientIndex, packet, time, true );
+        }
 
         ResetClientState( clientIndex );
 
@@ -405,20 +417,25 @@ namespace yojimbo
         return false;
     }
 
-    void Server::SendPacket( const Address & address, Packet * packet )
+    void Server::SendPacket( const Address & address, Packet * packet, bool immediate )
     {
-        m_networkInterface->SendPacket( address, packet );
-        OnPacketSent( packet->GetType(), address );
+        m_networkInterface->SendPacket( address, packet, m_globalSequence++, immediate );
+
+        OnPacketSent( packet->GetType(), address, immediate );
     }
 
-    void Server::SendPacketToConnectedClient( int clientIndex, Packet * packet, double time )
+    void Server::SendPacketToConnectedClient( int clientIndex, Packet * packet, double time, bool immediate )
     {
         assert( packet );
         assert( clientIndex >= 0 );
         assert( clientIndex < MaxClients );
         assert( m_clientConnected[clientIndex] );
+        
         m_clientData[clientIndex].lastPacketSendTime = time;
-        SendPacket( m_clientAddress[clientIndex], packet );
+        
+        m_networkInterface->SendPacket( m_clientAddress[clientIndex], packet, m_clientSequence[clientIndex]++, immediate );
+        
+        OnPacketSent( packet->GetType(), m_clientAddress[clientIndex], immediate );
     }
 
     void Server::ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address, double time )
@@ -602,7 +619,7 @@ namespace yojimbo
 
         m_counters[SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS]++;
 
-        DisconnectClient( clientIndex, time );
+        DisconnectClient( clientIndex, time, false );
     }
 
     // =============================================================
@@ -653,10 +670,7 @@ namespace yojimbo
             ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );            
             if ( packet )
             {
-                SendPacketToServer( packet, time );
-
-                // IMPORTANT: we need to flush the disconnect packet to the network *before* the encryption mapping is reset!
-                m_networkInterface->WritePackets( time );      
+                SendPacketToServer( packet, time, true );
             }
         }
 
@@ -815,17 +829,18 @@ namespace yojimbo
         memset( m_challengeTokenData, 0, ChallengeTokenBytes );
         memset( m_challengeTokenNonce, 0, NonceBytes );
         m_networkInterface->ResetEncryptionMappings();
+        m_sequence = 0;
     }
 
-    void Client::SendPacketToServer( Packet * packet, double time )
+    void Client::SendPacketToServer( Packet * packet, double time, bool immediate )
     {
         assert( packet );
         assert( m_clientState != CLIENT_STATE_DISCONNECTED );
         assert( m_serverAddress.IsValid() );
 
-        m_networkInterface->SendPacket( m_serverAddress, packet );
+        m_networkInterface->SendPacket( m_serverAddress, packet, m_sequence++, immediate );
 
-        OnPacketSent( packet->GetType(), m_serverAddress );
+        OnPacketSent( packet->GetType(), m_serverAddress, immediate );
 
         m_lastPacketSendTime = time;
     }

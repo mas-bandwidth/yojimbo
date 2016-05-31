@@ -140,7 +140,7 @@ namespace yojimbo
         m_packetFactory->DestroyPacket( packet );
     }
 
-    void SocketInterface::SendPacket( const Address & address, Packet * packet, uint64_t sequence )
+    void SocketInterface::SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -154,19 +154,28 @@ namespace yojimbo
             return;
         }
 
-        PacketEntry entry;
-        entry.sequence = sequence;
-        entry.address = address;
-        entry.packet = packet;
-
-        if ( queue_size( m_sendQueue ) >= (size_t)m_sendQueueSize )
+        if ( immediate )
         {
-            m_counters[SOCKET_INTERFACE_COUNTER_SEND_QUEUE_OVERFLOW]++;
-            m_packetFactory->DestroyPacket( packet );
-            return;
-        }
+            WriteAndFlushPacket( address, packet, sequence );
 
-        queue_push_back( m_sendQueue, entry );
+            m_packetFactory->DestroyPacket( packet );
+        }
+        else
+        {
+            PacketEntry entry;
+            entry.sequence = sequence;
+            entry.address = address;
+            entry.packet = packet;
+
+            if ( queue_size( m_sendQueue ) >= (size_t)m_sendQueueSize )
+            {
+                m_counters[SOCKET_INTERFACE_COUNTER_SEND_QUEUE_OVERFLOW]++;
+                m_packetFactory->DestroyPacket( packet );
+                return;
+            }
+
+            queue_push_back( m_sendQueue, entry );
+        }
 
         m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_SENT]++;
     }
@@ -212,47 +221,52 @@ namespace yojimbo
 
             queue_consume( m_sendQueue, 1 );
 
-            int packetBytes;
-
-            const bool encrypt = IsEncryptedPacketType( entry.packet->GetType() );
-
-            const uint8_t * key = NULL;
-
-            if ( encrypt)
-            {
-                EncryptionMapping * encryptionMapping = FindEncryptionMapping( entry.address );
-                if ( encryptionMapping )
-                    key = encryptionMapping->sendKey;
-            }
-
-            const uint8_t * packetData = m_packetProcessor->WritePacket( entry.packet, entry.sequence, packetBytes, encrypt, key );
+            WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
 
             m_packetFactory->DestroyPacket( entry.packet );
+        }
+    }
 
-            if ( !packetData )
+    void SocketInterface::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
+    {
+        int packetBytes;
+
+        const bool encrypt = IsEncryptedPacketType( packet->GetType() );
+
+        const uint8_t * key = NULL;
+
+        if ( encrypt)
+        {
+            EncryptionMapping * encryptionMapping = FindEncryptionMapping( address );
+            if ( encryptionMapping )
+                key = encryptionMapping->sendKey;
+        }
+
+        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key );
+
+        if ( !packetData )
+        {
+            switch ( m_packetProcessor->GetError() )
             {
-                switch ( m_packetProcessor->GetError() )
-                {
-                    case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[SOCKET_INTERFACE_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;         break;
-                    case PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED:             m_counters[SOCKET_INTERFACE_COUNTER_ENCRYPT_PACKET_FAILURES]++;             break;
-                    case PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED:        m_counters[SOCKET_INTERFACE_COUNTER_WRITE_PACKET_FAILURES]++;               break;
+                case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[SOCKET_INTERFACE_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;         break;
+                case PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED:             m_counters[SOCKET_INTERFACE_COUNTER_ENCRYPT_PACKET_FAILURES]++;             break;
+                case PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED:        m_counters[SOCKET_INTERFACE_COUNTER_WRITE_PACKET_FAILURES]++;               break;
 
-                    default:
-                        break;
-                }
-
-                continue;
+                default:
+                    break;
             }
 
-            m_socket->SendPacket( entry.address, packetData, packetBytes );
-
-            m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_WRITTEN]++;
-
-            if ( encrypt )
-                m_counters[SOCKET_INTERFACE_COUNTER_ENCRYPTED_PACKETS_WRITTEN]++;
-            else
-                m_counters[SOCKET_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_WRITTEN]++;
+            return;
         }
+
+        m_socket->SendPacket( address, packetData, packetBytes );
+
+        m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_WRITTEN]++;
+
+        if ( encrypt )
+            m_counters[SOCKET_INTERFACE_COUNTER_ENCRYPTED_PACKETS_WRITTEN]++;
+        else
+            m_counters[SOCKET_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_WRITTEN]++;
     }
 
     void SocketInterface::ReadPackets( double /*time*/ )
