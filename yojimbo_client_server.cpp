@@ -656,7 +656,7 @@ namespace yojimbo
         m_networkInterface->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
     }
 
-    void Client::Disconnect( double time, int clientState )
+    void Client::Disconnect( double time, int clientState, bool sendDisconnectPacket )
     {
         assert( clientState <= CLIENT_STATE_DISCONNECTED );
 
@@ -665,7 +665,7 @@ namespace yojimbo
             OnDisconnect();
         }
 
-        if ( m_clientState == CLIENT_STATE_CONNECTED )
+        if ( sendDisconnectPacket && m_clientState > CLIENT_STATE_DISCONNECTED )
         {
             ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );            
             if ( packet )
@@ -777,7 +777,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ConnectionRequestTimeOut < time )
                 {
-                    Disconnect( time, CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+                    Disconnect( time, CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT, false );
                     return;
                 }
             }
@@ -787,7 +787,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ChallengeResponseTimeOut < time )
                 {
-                    Disconnect( time, CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT );
+                    Disconnect( time, CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT, false );
                     return;
                 }
             }
@@ -797,7 +797,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ConnectionTimeOut < time )
                 {
-                    Disconnect( time, CLIENT_STATE_CONNECTION_TIMED_OUT );
+                    Disconnect( time, CLIENT_STATE_CONNECTION_TIMED_OUT, false );
                     return;
                 }
             }
@@ -835,7 +835,7 @@ namespace yojimbo
     void Client::SendPacketToServer( Packet * packet, double time, bool immediate )
     {
         assert( packet );
-        assert( m_clientState != CLIENT_STATE_DISCONNECTED );
+        assert( m_clientState > CLIENT_STATE_DISCONNECTED );
         assert( m_serverAddress.IsValid() );
 
         m_networkInterface->SendPacket( m_serverAddress, packet, m_sequence++, immediate );
@@ -901,6 +901,6 @@ namespace yojimbo
         if ( address != m_serverAddress )
             return;
 
-        Disconnect( time );
+        Disconnect( time, CLIENT_STATE_DISCONNECTED, false );
     }
 }
