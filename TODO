@@ -1,40 +1,34 @@
 DONE
 
-
 TODO
 
-    Wrap it up. Make sure everything works on Windows, Mac and Linux.
 
-    -------------------
+    ---------------
 
-    Porting back some fixes to protocol2.
+    Implement yojimbo_encryption_mapping.h/cpp
 
-    Fix the overlapping buffers trash on linux.
+    Must be dynamically allocated, but don't use the stupid allocator, move away from it.
 
-    Fix the bad logic on client side disconnect.
+    Start with something simple that is O(n) but hot/cold split so it is reasonably efficient, eg. array with holes and max.
 
-    Fix the packet leak.
+    Unit test the encryption mapping.
 
-    -------------------
+    ---------------
 
+    Now unit test basic cases of the client/server, eg. client connect, reconnect, can't connect because full and so on.
 
+    ---------------
 
+    Next put in tests for cases that need to be handled and tested via counters, eg. invalid connect token discarded.
 
+    Verify that packets sent over the network once client/server are connected have valid sequence #s, and that
+    sequence number is passed in to the receive packet.
 
+    Make sure that encrypted packet packets can't get through if they are sent unencrypted. V.important obviously.
 
+    ---------------
 
-
-
-
-
-
-
-
-
-
-    -------------------
-
-    Now extend the packet factory as well, and include additional packet types above the client/server packet set.
+    Extend the packet factory so additional packet types above the client/server packet set can be sent and received.
 
     This needs to be tested, and easy to do, as this is the common situation, extend the client/server
     packet types with your own that must be processed.
@@ -43,22 +37,7 @@ TODO
 
     -------------------
 
-    When the server needs to flush to a client (who is disconnected, and will lose encryption mapping shortly),
-    it will also be necessary to send packets to that client immediately.
-
-    However, you only want to flush packets sent to that address immediately, not all addresses.
-
-    So the send queue really needs to be more like a ring-buffer, with the ability to have holes,
-    eg. packets that have been sent ahead of time.
-
-    We're going to need this as well for packets sent to a particular client, we need to aggregate
-    all encrypted packets together into one packet, then all unencrypted packets -- so the ability
-    to walk over the send queue and inspect packets and remove packets from that queue out of order
-    is necessary.
-
-    -------------------
-
-    Need to design in the concept of both secure and insecure connects at the same time.
+    Design in the concept of both secure and insecure connects at the same time.
 
     Eg. should be secure by default, but the server can be opened up into insecure mode.
 
@@ -77,25 +56,9 @@ TODO
     Make sure that received packets, even unknown ones per-the base class let the timeout reset on receive.
 
     -------------------
-    
-    Up next, yojimbo_encryption_mapping.h/cpp?
 
-    I think so. Derived from client/server expiring constant time structure?
-
-    Must be dynamically allocated, don't use the stupid allocator, move away from it.
-
-    -------------------
-
-    Bring back the "pm loc" counter.
-
-    -------------------
-    
-    Idea: maybe a flag on send packet, "immediate"?
-
-    eg. as an alternative to complicated queue rewrite with packets being sent out of order, eg. flush all for this address.
-
-    Just send some packets and marke their sends as *immediate*, = no queue, serialize this and send it right away.
-
-    Sounds good.
+    Need to implement packet aggregation and fragmentation and reassembly as well inside the socket interface,
+    but by composition using base classes so this functionality can easily be reimplemented for other interfaces,
+    eg. a network interface implementation that goes over boost asio instead of BSD sockets for example.
 
     -------------------
