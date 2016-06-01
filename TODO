@@ -2,25 +2,32 @@ DONE
 
 TODO
     
-    Unit test the encryption manager.
-
-    Make sure to test expiry and reuse of encryption mapping slots, because this is v. important to ensure actually works.
-
     ---------------
 
-    Next hook up that encryption mapping to be actually used in the socket interface.
+    Now unit test all basic cases of the client/server, 
 
+    client connect, 
 
-    ---------------
+    client reconnect, 
 
-    Now unit test basic cases of the client/server, eg. client connect, reconnect, timeouts. can't connect because full and so on.
+    timeouts while in each connecting state, 
+
+    timeouts on client and server side after connection established
+
+    client can't connect because full
+
+    client-side disconnect
+
+    server-side disconnect
+
+    Should probably implement a local interface for these tests, so no actual packets have to go over the network.
 
     ---------------
 
     Next put in tests for cases that need to be handled and tested via counters, eg. invalid connect token discarded.
 
-    Verify that packets sent over the network once client/server are connected have valid sequence #s, and that
-    sequence number is passed in to the receive packet.
+    Verify that packets sent over the network once client/server are connected have valid sequence #s and these sequence #s 
+    are not always zero (make sure proper sequence #s are used)
 
     Make sure that encrypted packet packets can't get through if they are sent unencrypted. V.important obviously.
 
@@ -58,5 +65,31 @@ TODO
     Need to implement packet aggregation and fragmentation and reassembly as well inside the socket interface,
     but by composition using base classes so this functionality can easily be reimplemented for other interfaces,
     eg. a network interface implementation that goes over boost asio instead of BSD sockets for example.
+
+    -------------------
+
+    Server should be able to dynamically configure how many clients it wants to support. There is a hard-limit max of 64,
+    but it should be able to be configured dynamically to 2, 4, 8, 16, 32 or whatever.
+
+    This is important because certain data structures, especially the stuff for reliability of messages, chunks and so on,
+    will have a memory cost on the server according to the maximum # of clients allocated.
+
+    So users of the library won't want to be always taking a cost proportional to 64, in say, a 4 player game.
+
+    -------------------
+
+    Possibly implement open/close support for the server.
+
+    Implement a disconnect all clients function.
+
+    If closed while players are connected, disconnect all clients.
+
+    Perhaps open could accept max # of clients?
+
+    -------------------
+
+    Bring across the reliable ordered event system and large block sender.
+
+    Store this reliability level system inside the client/server, have one of these endpoints per-client slot.
 
     -------------------

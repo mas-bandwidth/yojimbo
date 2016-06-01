@@ -771,6 +771,98 @@ void test_client_server_tokens()
     check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
 }
 
+void test_encryption_manager()
+{
+    printf( "test_encryption_manager\n" );
+
+    EncryptionManager encryptionManager;
+
+    struct EncryptionMapping
+    {
+        Address address;
+        uint8_t sendKey[KeyBytes];
+        uint8_t receiveKey[KeyBytes];
+    };
+
+    const int NumEncryptionMappings = 5;
+
+    EncryptionMapping encryptionMapping[NumEncryptionMappings];
+
+    double time = 0.0;
+
+    for ( int i = 0; i < NumEncryptionMappings; ++i )
+    {
+        encryptionMapping[i].address = Address( "::1", 20000 + i );
+        GenerateKey( encryptionMapping[i].sendKey );
+        GenerateKey( encryptionMapping[i].receiveKey );
+
+        check( encryptionManager.GetSendKey( encryptionMapping[i].address, time ) == NULL );
+        check( encryptionManager.GetReceiveKey( encryptionMapping[i].address, time ) == NULL );
+
+        check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time ) );
+
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+
+        check( sendKey );
+        check( receiveKey );
+
+        check( memcmp( sendKey, encryptionMapping[i].sendKey, KeyBytes ) == 0 );
+        check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
+    }
+
+    check( encryptionManager.RemoveEncryptionMapping( Address( "::1", 50000 ), time ) == false );
+
+    check( encryptionManager.RemoveEncryptionMapping( encryptionMapping[0].address, time ) );
+    check( encryptionManager.RemoveEncryptionMapping( encryptionMapping[NumEncryptionMappings-1].address, time ) );
+
+    for ( int i = 0; i < NumEncryptionMappings; ++i )
+    {
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+
+        if ( i != 0 && i != NumEncryptionMappings -1 )
+        {
+            check( sendKey );
+            check( receiveKey );
+
+            check( memcmp( sendKey, encryptionMapping[i].sendKey, KeyBytes ) == 0 );
+            check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
+        }
+        else
+        {
+            check( !sendKey );
+            check( !receiveKey );
+        }
+    }
+
+    check( encryptionManager.AddEncryptionMapping( encryptionMapping[0].address, encryptionMapping[0].sendKey, encryptionMapping[0].receiveKey, time ) );
+    check( encryptionManager.AddEncryptionMapping( encryptionMapping[NumEncryptionMappings-1].address, encryptionMapping[NumEncryptionMappings-1].sendKey, encryptionMapping[NumEncryptionMappings-1].receiveKey, time ) );
+
+    for ( int i = 0; i < NumEncryptionMappings; ++i )
+    {
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+
+        check( sendKey );
+        check( receiveKey );
+
+        check( memcmp( sendKey, encryptionMapping[i].sendKey, KeyBytes ) == 0 );
+        check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
+    }
+
+    time = DefaultEncryptionMappingTimeout * 2;
+
+    for ( int i = 0; i < NumEncryptionMappings; ++i )
+    {
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+
+        check( !sendKey );
+        check( !receiveKey );
+    }
+}
+
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -787,6 +879,7 @@ int main()
     test_packet_sequence();
     test_packet_encryption();
     test_client_server_tokens();
+    test_encryption_manager();
 
     ShutdownYojimbo();
 

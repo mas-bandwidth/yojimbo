@@ -111,7 +111,7 @@ namespace yojimbo
     {
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
-            if ( m_address[i] == address )
+            if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
             {
                 m_lastAccessTime[i] = time;
                 memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
@@ -180,7 +180,7 @@ namespace yojimbo
     {
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
-            if ( m_address[i] == address )
+            if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
             {
                 m_lastAccessTime[i] = time;
                 return m_sendKey + i*KeyBytes;
@@ -193,7 +193,7 @@ namespace yojimbo
     {
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
-            if ( m_address[i] == address )
+            if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
             {
                 m_lastAccessTime[i] = time;
                 return m_receiveKey + i*KeyBytes;
