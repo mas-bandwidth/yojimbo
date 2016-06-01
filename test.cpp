@@ -680,97 +680,6 @@ void test_packet_encryption()
     }
 }
 
-void test_client_server_tokens()
-{
-    printf( "test_client_server_tokens\n" );
-
-    const uint32_t ProtocolId = 0x12398137;
-    const int ServerPort = 50000;
-    const int ClientPort = 60000;
-
-    uint8_t private_key[KeyBytes];
-
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t challengeTokenData[ChallengeTokenBytes];
-    
-    uint8_t connectTokenNonce[NonceBytes];
-    uint8_t challengeTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-    memset( challengeTokenNonce, 0, NonceBytes );
-
-    GenerateKey( private_key );
-
-    numServerAddresses = 1;
-    serverAddresses[0] = Address( "::1", ServerPort );
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
-    {
-        ConnectToken token;
-        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
-
-        memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
-        memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
-
-        if ( !EncryptConnectToken( token, connectTokenData, NULL, 0, connectTokenNonce, private_key ) )
-        {
-            printf( "error: failed to encrypt connect token\n" );
-            exit( 1 );
-        }
-    }
-
-    ConnectToken connectToken;
-    if ( !DecryptConnectToken( connectTokenData, connectToken, NULL, 0, connectTokenNonce, private_key ) )
-    {
-        printf( "error: failed to decrypt connect token\n" );
-        exit( 1 );
-    }
-
-    check( connectToken.clientId == clientId );
-    check( connectToken.numServerAddresses == 1 );
-    check( connectToken.serverAddresses[0] == Address( "::1", ServerPort ) );
-    check( memcmp( connectToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
-    check( memcmp( connectToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
-
-    Address clientAddress( "::1", ClientPort );
-
-    ChallengeToken challengeToken;
-    if ( !GenerateChallengeToken( connectToken, clientAddress, serverAddresses[0], connectTokenData, challengeToken ) )
-    {
-        printf( "error: failed to generate challenge token\n" );
-        exit( 1 );
-    }
-
-    if ( !EncryptChallengeToken( challengeToken, challengeTokenData, NULL, 0, challengeTokenNonce, private_key ) )
-    {
-        printf( "error: failed to encrypt challenge token\n" );
-        exit( 1 );
-    }
-
-    ChallengeToken decryptedChallengeToken;
-    if ( !DecryptChallengeToken( challengeTokenData, decryptedChallengeToken, NULL, 0, challengeTokenNonce, private_key ) )
-    {
-        printf( "error: failed to decrypt challenge token\n" );
-        exit( 1 );
-    }
-
-    check( challengeToken.clientId == clientId );
-    check( challengeToken.clientAddress == clientAddress );
-    check( challengeToken.serverAddress == serverAddresses[0] );
-    check( memcmp( challengeToken.connectTokenMac, connectTokenData, MacBytes ) == 0 );
-    check( memcmp( challengeToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
-    check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
-}
-
 void test_encryption_manager()
 {
     printf( "test_encryption_manager\n" );
@@ -884,23 +793,304 @@ void test_encryption_manager()
     }
 }
 
+void test_client_server_tokens()
+{
+    printf( "test_client_server_tokens\n" );
+
+    const uint32_t ProtocolId = 0x12398137;
+    const int ServerPort = 50000;
+    const int ClientPort = 60000;
+
+    uint8_t private_key[KeyBytes];
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t challengeTokenData[ChallengeTokenBytes];
+    
+    uint8_t connectTokenNonce[NonceBytes];
+    uint8_t challengeTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+    memset( challengeTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    numServerAddresses = 1;
+    serverAddresses[0] = Address( "::1", ServerPort );
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    {
+        ConnectToken token;
+        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
+
+        memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
+        memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
+
+        if ( !EncryptConnectToken( token, connectTokenData, NULL, 0, connectTokenNonce, private_key ) )
+        {
+            printf( "error: failed to encrypt connect token\n" );
+            exit( 1 );
+        }
+    }
+
+    ConnectToken connectToken;
+    if ( !DecryptConnectToken( connectTokenData, connectToken, NULL, 0, connectTokenNonce, private_key ) )
+    {
+        printf( "error: failed to decrypt connect token\n" );
+        exit( 1 );
+    }
+
+    check( connectToken.clientId == clientId );
+    check( connectToken.numServerAddresses == 1 );
+    check( connectToken.serverAddresses[0] == Address( "::1", ServerPort ) );
+    check( memcmp( connectToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
+    check( memcmp( connectToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
+
+    Address clientAddress( "::1", ClientPort );
+
+    ChallengeToken challengeToken;
+    if ( !GenerateChallengeToken( connectToken, clientAddress, serverAddresses[0], connectTokenData, challengeToken ) )
+    {
+        printf( "error: failed to generate challenge token\n" );
+        exit( 1 );
+    }
+
+    if ( !EncryptChallengeToken( challengeToken, challengeTokenData, NULL, 0, challengeTokenNonce, private_key ) )
+    {
+        printf( "error: failed to encrypt challenge token\n" );
+        exit( 1 );
+    }
+
+    ChallengeToken decryptedChallengeToken;
+    if ( !DecryptChallengeToken( challengeTokenData, decryptedChallengeToken, NULL, 0, challengeTokenNonce, private_key ) )
+    {
+        printf( "error: failed to decrypt challenge token\n" );
+        exit( 1 );
+    }
+
+    check( challengeToken.clientId == clientId );
+    check( challengeToken.clientAddress == clientAddress );
+    check( challengeToken.serverAddress == serverAddresses[0] );
+    check( memcmp( challengeToken.connectTokenMac, connectTokenData, MacBytes ) == 0 );
+    check( memcmp( challengeToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
+    check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
+}
+
+const uint32_t ProtocolId = 0x01231111;
+
+const int ClientPort = 40000;
+const int ServerPort = 50000;
+
+static uint8_t private_key[KeyBytes];
+
+class Matcher
+{
+    uint64_t m_nonce;
+
+public:
+
+    Matcher()
+    {
+        m_nonce = 0;
+    }
+
+    bool RequestMatch( uint64_t clientId, uint8_t * tokenData, uint8_t * tokenNonce, uint8_t * clientToServerKey, uint8_t * serverToClientKey, int & numServerAddresses, Address * serverAddresses )
+    {
+        if ( clientId == 0 )
+            return false;
+
+        numServerAddresses = 1;
+        serverAddresses[0] = Address( "::1", ServerPort );
+
+        ConnectToken token;
+        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
+
+        memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
+        memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
+
+        if ( !EncryptConnectToken( token, tokenData, NULL, 0, (const uint8_t*) &m_nonce, private_key ) )
+            return false;
+
+        assert( NonceBytes == 8 );
+
+        memcpy( tokenNonce, &m_nonce, NonceBytes );
+
+        m_nonce++;
+
+        return true;
+    }
+};
+
+class TestServer : public Server
+{
+public:
+
+    TestServer( NetworkInterface & networkInterface ) : Server( networkInterface )
+    {
+        SetPrivateKey( private_key );
+    }
+
+    // ...
+};
+
+class TestClient : public Client
+{
+public:
+
+    TestClient( NetworkInterface & networkInterface ) : Client( networkInterface )
+    {
+        // ...
+    }
+
+    // ...
+};
+
+class TestClientServerPacketFactory : public ClientServerPacketFactory
+{
+    // ...
+};
+
+class TestNetworkInterface : public SocketInterface
+{   
+public:
+
+    TestNetworkInterface( TestClientServerPacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
+    {
+        EnablePacketEncryption();
+        DisableEncryptionForPacketType( PACKET_CONNECTION_REQUEST );
+    }
+
+    ~TestNetworkInterface()
+    {
+        ClearSendQueue();
+        ClearReceiveQueue();
+    }
+};
+
+void test_client_server_connect()
+{
+    printf( "test_client_server_connect\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    TestClient client( clientInterface );
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    client.Connect( serverAddress, time, clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets( time );
+        server.SendPackets( time );
+
+        clientInterface.WritePackets( time );
+        serverInterface.WritePackets( time );
+
+        clientInterface.ReadPackets( time );
+        serverInterface.ReadPackets( time );
+
+        client.ReceivePackets( time );
+        server.ReceivePackets( time );
+
+        client.CheckForTimeOut( time );
+        server.CheckForTimeOut( time );
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+}
+
 int main()
 {
     if ( !InitializeYojimbo() )
     {
-        printf( "error: failed to initialize yojimbo!\n" );
+        printf( "error: failed to initialize yojimbo\n" );
         exit( 1 );
     }
 
-    test_bitpacker();   
-    test_stream();
-    test_packets();
-    test_address_ipv4();
-    test_address_ipv6();
-    test_packet_sequence();
-    test_packet_encryption();
-    test_client_server_tokens();
-    test_encryption_manager();
+    if ( !InitializeNetwork() )
+    {
+        printf( "error: failed to initialize network\n" );
+        exit( 1 );
+    }
+
+    memory_initialize();
+    {
+        test_bitpacker();   
+        test_stream();
+        test_packets();
+        test_address_ipv4();
+        test_address_ipv6();
+        test_packet_sequence();
+        test_packet_encryption();
+        test_encryption_manager();
+        test_client_server_tokens();
+        test_client_server_connect();
+    }
+
+    memory_shutdown();
+
+    ShutdownNetwork();
 
     ShutdownYojimbo();
 
