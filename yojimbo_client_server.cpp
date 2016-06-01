@@ -199,7 +199,7 @@ namespace yojimbo
         while ( true )
         {
             Address address;
-            Packet * packet = m_networkInterface->ReceivePacket( address );
+            Packet * packet = m_networkInterface->ReceivePacket( time, address );
             if ( !packet )
                 break;
 
@@ -417,9 +417,9 @@ namespace yojimbo
         return false;
     }
 
-    void Server::SendPacket( const Address & address, Packet * packet, bool immediate )
+    void Server::SendPacket( const Address & address, Packet * packet, double time, bool immediate )
     {
-        m_networkInterface->SendPacket( address, packet, m_globalSequence++, immediate );
+        m_networkInterface->SendPacket( time, address, packet, m_globalSequence++, immediate );
 
         OnPacketSent( packet->GetType(), address, immediate );
     }
@@ -433,7 +433,7 @@ namespace yojimbo
         
         m_clientData[clientIndex].lastPacketSendTime = time;
         
-        m_networkInterface->SendPacket( m_clientAddress[clientIndex], packet, m_clientSequence[clientIndex]++, immediate );
+        m_networkInterface->SendPacket( time, m_clientAddress[clientIndex], packet, m_clientSequence[clientIndex]++, immediate );
         
         OnPacketSent( packet->GetType(), m_clientAddress[clientIndex], immediate );
     }
@@ -486,7 +486,7 @@ namespace yojimbo
             return;
         }
 
-        if ( !m_networkInterface->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
+        if ( !m_networkInterface->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey, time ) )
         {
             m_counters[SERVER_COUNTER_ADD_ENCRYPTION_MAPPING_FAILURES]++;
             return;
@@ -498,7 +498,7 @@ namespace yojimbo
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
-                SendPacket( address, connectionDeniedPacket );
+                SendPacket( address, connectionDeniedPacket, time );
             }
             return;
         }
@@ -530,7 +530,7 @@ namespace yojimbo
 
         m_counters[SERVER_COUNTER_CHALLENGE_PACKETS_SENT]++;
 
-        SendPacket( address, connectionChallengePacket );
+        SendPacket( address, connectionChallengePacket, time );
     }
 
     void Server::ProcessConnectionResponse( const ConnectionResponsePacket & packet, const Address & address, double time )
@@ -582,7 +582,7 @@ namespace yojimbo
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
-                SendPacket( address, connectionDeniedPacket );
+                SendPacket( address, connectionDeniedPacket, time );
             }
             return;
         }
@@ -653,7 +653,7 @@ namespace yojimbo
         memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
         memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
         m_networkInterface->ResetEncryptionMappings();
-        m_networkInterface->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
+        m_networkInterface->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey, time );
     }
 
     void Client::Disconnect( double time, int clientState, bool sendDisconnectPacket )
@@ -737,7 +737,7 @@ namespace yojimbo
         while ( true )
         {
             Address address;
-            Packet * packet = m_networkInterface->ReceivePacket( address );
+            Packet * packet = m_networkInterface->ReceivePacket( time, address );
             if ( !packet )
                 break;
 
@@ -838,7 +838,7 @@ namespace yojimbo
         assert( m_clientState > CLIENT_STATE_DISCONNECTED );
         assert( m_serverAddress.IsValid() );
 
-        m_networkInterface->SendPacket( m_serverAddress, packet, m_sequence++, immediate );
+        m_networkInterface->SendPacket( time, m_serverAddress, packet, m_sequence++, immediate );
 
         OnPacketSent( packet->GetType(), m_serverAddress, immediate );
 

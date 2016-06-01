@@ -7,8 +7,8 @@
 */
 
 #include "yojimbo_packet_processor.h"
+#include "yojimbo_encryption.h"
 #include "yojimbo_packet.h"
-#include "yojimbo_crypto.h"
 #include "yojimbo_common.h"
 #include <stdio.h>
 #include <sodium.h>

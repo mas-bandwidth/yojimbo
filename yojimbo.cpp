@@ -6,7 +6,7 @@
     All rights reserved.
 */
 
-#include "yojimbo_crypto.h"
+#include "yojimbo_encryption.h"
 #include <assert.h>
 
 #ifdef _MSC_VER

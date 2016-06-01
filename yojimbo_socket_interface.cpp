@@ -61,8 +61,6 @@ namespace yojimbo
         memset( m_packetTypeIsEncrypted, 0, m_packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
 
-        m_numEncryptionMappings = 0;
-
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
@@ -84,9 +82,7 @@ namespace yojimbo
         m_packetFactory = NULL;
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
-
         m_packetProcessor = NULL;
-
         m_allocator = NULL;
     }
 
@@ -140,7 +136,7 @@ namespace yojimbo
         m_packetFactory->DestroyPacket( packet );
     }
 
-    void SocketInterface::SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate )
+    void SocketInterface::SendPacket( double time, const Address & address, Packet * packet, uint64_t sequence, bool immediate )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -156,7 +152,7 @@ namespace yojimbo
 
         if ( immediate )
         {
-            WriteAndFlushPacket( address, packet, sequence );
+            WriteAndFlushPacket( address, packet, sequence, time );
 
             m_packetFactory->DestroyPacket( packet );
         }
@@ -180,7 +176,7 @@ namespace yojimbo
         m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_SENT]++;
     }
 
-    Packet * SocketInterface::ReceivePacket( Address & from, uint64_t * /*sequence*/ )
+    Packet * SocketInterface::ReceivePacket( double /*time*/, Address & from, uint64_t * sequence )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -200,12 +196,15 @@ namespace yojimbo
 
         from = entry.address;
 
+        if ( sequence )
+            *sequence = entry.sequence;
+
         m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_RECEIVED]++;
 
         return entry.packet;
     }
 
-    void SocketInterface::WritePackets( double /*time*/ )
+    void SocketInterface::WritePackets( double time )
     {
         assert( m_allocator );
         assert( m_socket );
@@ -221,26 +220,19 @@ namespace yojimbo
 
             queue_consume( m_sendQueue, 1 );
 
-            WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
+            WriteAndFlushPacket( entry.address, entry.packet, entry.sequence, time );
 
             m_packetFactory->DestroyPacket( entry.packet );
         }
     }
 
-    void SocketInterface::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
+    void SocketInterface::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence, double time )
     {
         int packetBytes;
 
         const bool encrypt = IsEncryptedPacketType( packet->GetType() );
 
-        const uint8_t * key = NULL;
-
-        if ( encrypt)
-        {
-            EncryptionMapping * encryptionMapping = FindEncryptionMapping( address );
-            if ( encryptionMapping )
-                key = encryptionMapping->sendKey;
-        }
+        const uint8_t * key = encrypt ? m_encryptionManager.GetSendKey( address, time ) : NULL;
 
         const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key );
 
@@ -269,7 +261,7 @@ namespace yojimbo
             m_counters[SOCKET_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_WRITTEN]++;
     }
 
-    void SocketInterface::ReadPackets( double /*time*/ )
+    void SocketInterface::ReadPackets( double time )
     {
         assert( m_allocator );
         assert( m_socket );
@@ -297,11 +289,7 @@ namespace yojimbo
 
             uint64_t sequence;
 
-            const uint8_t * key = NULL;
-
-            EncryptionMapping * encryptionMapping = FindEncryptionMapping( address );
-            if ( encryptionMapping )
-                key = encryptionMapping->receiveKey;
+            const uint8_t * key = m_encryptionManager.GetReceiveKey( address, time );
 
             bool encrypted = false;
 
@@ -370,41 +358,19 @@ namespace yojimbo
         return m_packetTypeIsEncrypted[type] != 0;
     }
 
-    bool SocketInterface::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey )
+    bool SocketInterface::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time )
     {
-        EncryptionMapping *encryptionMapping = FindEncryptionMapping( address );
-        if ( encryptionMapping )
-        {
-            encryptionMapping->address = address;
-            memcpy( encryptionMapping->sendKey, sendKey, KeyBytes );
-            memcpy( encryptionMapping->receiveKey, receiveKey, KeyBytes );
-            return true;
-        }
-
-        assert( m_numEncryptionMappings >= 0 );
-        assert( m_numEncryptionMappings <= MaxEncryptionMappings );
-
-        if ( m_numEncryptionMappings == MaxEncryptionMappings )
-            return false;
-
-        encryptionMapping = &m_encryptionMappings[m_numEncryptionMappings++];
-        encryptionMapping->address = address;
-        memcpy( encryptionMapping->sendKey, sendKey, KeyBytes );
-        memcpy( encryptionMapping->receiveKey, receiveKey, KeyBytes );
-
-        return true;
+        return m_encryptionManager.AddEncryptionMapping( address, sendKey, receiveKey, time );
     }
 
-    bool SocketInterface::RemoveEncryptionMapping( const Address & /*address*/ )
+    bool SocketInterface::RemoveEncryptionMapping( const Address & address, double time )
     {
-        // todo: implement this and consider a different data structure. this is not great.
-        assert( !"not implemented yet" );
-        return false;
+        return m_encryptionManager.RemoveEncryptionMapping( address, time );
     }
 
     void SocketInterface::ResetEncryptionMappings()
     {
-        m_numEncryptionMappings = 0;
+        m_encryptionManager.ResetEncryptionMappings();
     }
 
     uint64_t SocketInterface::GetCounter( int index ) const

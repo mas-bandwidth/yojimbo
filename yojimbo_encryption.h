@@ -6,10 +6,11 @@
     All rights reserved.
 */
 
-#ifndef YOJIMBO_CRYPTO_H
-#define YOJIMBO_CRYPTO_H
+#ifndef YOJIMBO_ENCRYPTION_H
+#define YOJIMBO_ENCRYPTION_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_network.h"
 
 #include <stdint.h>
 
@@ -43,6 +44,41 @@ namespace yojimbo
                               const uint8_t * additional, uint64_t additionalLength,
                               const uint8_t * nonce,
                               const uint8_t * key );
+
+    const int MaxEncryptionMappings = 1024;
+
+    const double DefaultEncryptionMappingTimeout = 10;
+
+    class EncryptionManager
+    {
+    public:
+
+        EncryptionManager();
+
+        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time );
+
+        bool RemoveEncryptionMapping( const Address & address, double time );
+
+        void ResetEncryptionMappings();
+
+        const uint8_t * GetSendKey( const Address & address, double time );
+
+        const uint8_t * GetReceiveKey( const Address & address, double time );
+
+        void SetTimeout( double timeout )
+        {
+            m_encryptionMappingTimeout = timeout;
+        }
+
+    private:
+
+        int m_numEncryptionMappings;
+        double m_encryptionMappingTimeout;
+        double m_lastAccessTime[MaxEncryptionMappings];
+        Address m_address[MaxEncryptionMappings];
+        uint8_t m_sendKey[KeyBytes*MaxEncryptionMappings];
+        uint8_t m_receiveKey[KeyBytes*MaxEncryptionMappings];
+    };
 }
 
-#endif // #ifndef YOJIMBO_CRYPTO_H
+#endif // #ifndef YOJIMBO_ENCRYPTION_H
