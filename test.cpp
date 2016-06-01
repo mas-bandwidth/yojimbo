@@ -861,6 +861,27 @@ void test_encryption_manager()
         check( !sendKey );
         check( !receiveKey );
     }
+
+    for ( int i = 0; i < NumEncryptionMappings; ++i )
+    {
+        encryptionMapping[i].address = Address( "::1", 20000 + i );
+        GenerateKey( encryptionMapping[i].sendKey );
+        GenerateKey( encryptionMapping[i].receiveKey );
+
+        check( encryptionManager.GetSendKey( encryptionMapping[i].address, time ) == NULL );
+        check( encryptionManager.GetReceiveKey( encryptionMapping[i].address, time ) == NULL );
+
+        check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time ) );
+
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+
+        check( sendKey );
+        check( receiveKey );
+
+        check( memcmp( sendKey, encryptionMapping[i].sendKey, KeyBytes ) == 0 );
+        check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
+    }
 }
 
 int main()
