@@ -11,8 +11,8 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_packet.h"
-#include "yojimbo_crypto.h"
 #include "yojimbo_network.h"
+#include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
 #include "yojimbo_network_interface.h"
 #include "yojimbo_socket_interface.h"
@@ -469,7 +469,7 @@ namespace yojimbo
 
         bool IsConnected( const Address & address, uint64_t clientId ) const;
 
-        void SendPacket( const Address & address, Packet * packet, bool immediate = false );
+        void SendPacket( const Address & address, Packet * packet, double time, bool immediate = false );
 
         void SendPacketToConnectedClient( int clientIndex, Packet * packet, double time, bool immediate = false );
 

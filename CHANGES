@@ -29,6 +29,42 @@ Tuesday 31st May, 2016
     Make the same change vice versa for the client, so if a server-side connect happens, or the client times out, the client does not send a redundant 
     disconnect packet to the server.
 
+    Implement encryption manager.
+
+    Hook up the socket interface to use it.
+
+    It needs time passed in to do timeouts for encryption mappings, so extended send/receive packets to take time parameters.
+
+    (This will come in super handy when implementing a network interface wrapper around the network simulator)
+
+    Start with something simple that is O(n) but hot/cold split so it is reasonably efficient, eg. array with holes and max.
+
+    Consider. How does the encryption mapping deal with connection requests that setup an encryption mapping
+    but don't complete all the way to connect. Do encryption mappings have timeouts? eg. 10 seconds?
+
+    Each time a packet is sent or received on the encryption mapping, the encryption mapping is updated
+    so the MRU time is the current time.
+
+    Then if an encryption mapping is old, or if we are looking for an empty encryption mapping slot, the old slots
+    are thrown out and reused automatically, which should fill holes. Works well.
+
+    Implement a basic timeout, eg. if an entry is older than 15 seconds, it will be reused for another address.
+
+    Now need to implement encryption mapping remove.
+
+    The only tricky part of this is that it has to be smart enough when it is the last entry
+    to search to the left and find the next valid entry which has not already expired (time).
+
+    This means that remove encryption mapping also needs time passed in.
+
+    Extended interface to add this.
+
+    Now to implement the function. Do it.
+
+    Verify basic client/server test still passes.
+
+    All good.
+
 
 Sunday 29th May, 2016
 =====================

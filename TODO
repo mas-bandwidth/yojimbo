@@ -1,16 +1,15 @@
 DONE
 
 TODO
+    
+    Unit test the encryption manager.
+
+    Make sure to test expiry and reuse of encryption mapping slots, because this is v. important to ensure actually works.
 
     ---------------
 
-    Implement yojimbo_encryption_mapping.h/cpp
+    Next hook up that encryption mapping to be actually used in the socket interface.
 
-    Must be dynamically allocated, but don't use the stupid allocator, move away from it.
-
-    Start with something simple that is O(n) but hot/cold split so it is reasonably efficient, eg. array with holes and max.
-
-    Unit test the encryption mapping.
 
     ---------------
 

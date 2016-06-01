@@ -6,7 +6,7 @@
     All rights reserved.
 */
 
-#include "yojimbo_crypto.h"
+#include "yojimbo_encryption.h"
 
 #ifdef _MSC_VER
 #define SODIUM_STATIC
@@ -98,5 +98,107 @@ namespace yojimbo
         decryptedMessageLength = (uint64_t) decryptedLength;
 
         return result == 0;
+    }
+
+    EncryptionManager::EncryptionManager()
+    {
+        m_encryptionMappingTimeout = DefaultEncryptionMappingTimeout;
+
+        ResetEncryptionMappings();
+    }
+
+    bool EncryptionManager::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time )
+    {
+        for ( int i = 0; i < m_numEncryptionMappings; ++i )
+        {
+            if ( m_address[i] == address )
+            {
+                m_lastAccessTime[i] = time;
+                memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
+                memcpy( m_receiveKey + i*KeyBytes, receiveKey, KeyBytes );
+                return true;
+            }
+        }
+
+        for ( int i = 0; i < MaxEncryptionMappings; ++i )
+        {
+            if ( m_lastAccessTime[i] + m_encryptionMappingTimeout < time )
+            {
+                m_address[i] = address;
+                m_lastAccessTime[i] = time;
+                memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
+                memcpy( m_receiveKey + i*KeyBytes, receiveKey, KeyBytes );
+                if ( i + 1 > m_numEncryptionMappings )
+                    m_numEncryptionMappings = i + 1;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool EncryptionManager::RemoveEncryptionMapping( const Address & address, double time )
+    {
+        for ( int i = 0; i < m_numEncryptionMappings; ++i )
+        {
+            if ( m_address[i] == address )
+            {
+                m_address[i] = Address();
+                m_lastAccessTime[i] = -1000.0;
+                memset( m_sendKey + i*KeyBytes, 0, KeyBytes );
+                memset( m_receiveKey + i*KeyBytes, 0, KeyBytes );
+                if ( i + 1 == m_numEncryptionMappings )
+                {
+                    int index = i - 1;
+                    while ( index >= 0 )
+                    {
+                        if ( m_lastAccessTime[index] + m_encryptionMappingTimeout >= time )
+                            break;
+                        index--;
+                    }
+                    m_numEncryptionMappings = index + 1;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void EncryptionManager::ResetEncryptionMappings()
+    {
+        m_numEncryptionMappings = 0;
+        for ( int i = 0; i < MaxEncryptionMappings; ++i )
+        {
+            m_lastAccessTime[i] = -1000.0;
+            m_address[i] = Address();
+        }
+        memset( m_sendKey, 0, sizeof( m_sendKey ) );
+        memset( m_receiveKey, 0, sizeof( m_receiveKey ) );
+    }
+
+    const uint8_t * EncryptionManager::GetSendKey( const Address & address, double time )
+    {
+        for ( int i = 0; i < m_numEncryptionMappings; ++i )
+        {
+            if ( m_address[i] == address )
+            {
+                m_lastAccessTime[i] = time;
+                return m_sendKey + i*KeyBytes;
+            }
+        }
+        return NULL;
+    }
+
+    const uint8_t * EncryptionManager::GetReceiveKey( const Address & address, double time )
+    {
+        for ( int i = 0; i < m_numEncryptionMappings; ++i )
+        {
+            if ( m_address[i] == address )
+            {
+                m_lastAccessTime[i] = time;
+                return m_receiveKey + i*KeyBytes;
+            }
+        }
+        return NULL;
     }
 }
