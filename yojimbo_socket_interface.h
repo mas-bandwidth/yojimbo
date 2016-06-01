@@ -13,12 +13,12 @@
 #include "yojimbo_types.h"
 #include "yojimbo_memory.h"
 #include "yojimbo_common.h"
-#include "yojimbo_crypto.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_network.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_network_interface.h"
+#include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
+#include "yojimbo_network_interface.h"
 
 namespace yojimbo
 {
@@ -68,18 +68,9 @@ namespace yojimbo
         uint8_t * m_packetTypeIsEncrypted;
         uint8_t * m_packetTypeIsUnencrypted;
 
-        struct EncryptionMapping
-        {
-            Address address;
-            uint8_t sendKey[KeyBytes];
-            uint8_t receiveKey[KeyBytes];
-        };
-
-        enum { MaxEncryptionMappings = 1024 };
-        int m_numEncryptionMappings;
-        EncryptionMapping m_encryptionMappings[MaxEncryptionMappings];
-
         uint64_t m_counters[SOCKET_INTERFACE_COUNTER_NUM_COUNTERS];
+
+        EncryptionManager m_encryptionManager;
 
     protected:
 
@@ -87,17 +78,7 @@ namespace yojimbo
 
         void ClearReceiveQueue();
 
-        EncryptionMapping * FindEncryptionMapping( const Address & address )
-        {
-            for ( int i = 0; i < m_numEncryptionMappings; ++i )
-            {
-                if ( m_encryptionMappings[i].address == address )
-                    return &m_encryptionMappings[i];
-            }
-            return NULL;
-        }
-
-        void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence );
+        void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence, double time );
 
     public:
 
@@ -120,9 +101,9 @@ namespace yojimbo
 
         void DestroyPacket( Packet * packet );
 
-        void SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate );
+        void SendPacket( double time, const Address & address, Packet * packet, uint64_t sequence, bool immediate );
 
-        Packet * ReceivePacket( Address & from, uint64_t * sequence );
+        Packet * ReceivePacket( double time, Address & from, uint64_t * sequence );
 
         void WritePackets( double time );
 
@@ -138,9 +119,9 @@ namespace yojimbo
 
         bool IsEncryptedPacketType( int type ) const;
 
-        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey );
+        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time );
 
-        bool RemoveEncryptionMapping( const Address & address );
+        bool RemoveEncryptionMapping( const Address & address, double time );
 
         void ResetEncryptionMappings();
 
