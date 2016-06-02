@@ -1060,6 +1060,76 @@ void test_client_server_connect()
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 }
 
+void test_client_server_connection_request_timeout()
+{
+    printf( "test_client_server_connection_request_timeout\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    TestClient client( clientInterface );
+
+    client.Connect( serverAddress, time, clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets( time );
+
+        clientInterface.WritePackets( time );
+
+        clientInterface.ReadPackets( time );
+
+        client.ReceivePackets( time );
+
+        client.CheckForTimeOut( time );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += 1.0f;
+    }
+
+    check( client.ConnectionFailed() );
+    check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+}
+
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -1086,6 +1156,7 @@ int main()
         test_encryption_manager();
         test_client_server_tokens();
         test_client_server_connect();
+        test_client_server_connection_request_timeout();
     }
 
     memory_shutdown();
