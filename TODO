@@ -1,12 +1,12 @@
 DONE
 
+    client connect
+
+    client connection request timeout
+
 TODO
     
-    ---------------
-
     Now unit test all basic cases of the client/server, 
-
-    client connect, 
 
     client reconnect, 
 

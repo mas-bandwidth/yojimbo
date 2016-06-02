@@ -627,6 +627,7 @@ namespace yojimbo
     Client::Client( NetworkInterface & networkInterface )
     {
         m_networkInterface = &networkInterface;
+        m_clientState = CLIENT_STATE_DISCONNECTED;
         ResetConnectionData();
     }
 
@@ -674,7 +675,7 @@ namespace yojimbo
             }
         }
 
-        ResetConnectionData();
+        ResetConnectionData( clientState );
     }
 
     void Client::SendPackets( double time )
@@ -816,11 +817,11 @@ namespace yojimbo
             OnClientStateChange( previous, clientState );
     }
 
-    void Client::ResetConnectionData()
+    void Client::ResetConnectionData( int clientState )
     {
         assert( m_networkInterface );
         m_serverAddress = Address();
-        SetClientState( CLIENT_STATE_DISCONNECTED );
+        SetClientState( clientState );
         m_lastPacketSendTime = -1000.0;
         m_lastPacketReceiveTime = -1000.0;
         m_clientId = 0;
