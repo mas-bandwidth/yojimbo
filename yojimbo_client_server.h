@@ -364,6 +364,10 @@ namespace yojimbo
 
         uint64_t m_challengeTokenNonce;                                     // nonce used for encoding challenge tokens
 
+        double m_time;                                                      // current server time (see "AdvanceTime")
+
+        int m_maxClients;                                                   // maximum number of clients supported by this server
+
         int m_numConnectedClients;                                          // number of connected clients
         
         bool m_clientConnected[MaxClients];                                 // true if client n is connected
@@ -390,54 +394,43 @@ namespace yojimbo
 
         virtual ~Server();
 
-        void SetPrivateKey( const uint8_t * privateKey )
-        {
-            memcpy( m_privateKey, privateKey, KeyBytes );
-        }
+        void Start( int maxClients = MaxClients );
 
-        void SetServerAddress( const Address & address )
-        {
-            m_serverAddress = address;
-        }
+        void Stop();
 
-        const Address & GetServerAddress() const
-        {
-            return m_serverAddress;
-        }
+        bool IsRunning() const;
 
-        uint64_t GetClientId( int clientIndex ) const
-        {
-            assert( clientIndex >= 0 );
-            assert( clientIndex < MaxClients );
-            return m_clientId[clientIndex];
-        }
+        int GetMaxClients() const;
 
-        const Address & GetClientAddress( int clientIndex ) const
-        {
-            assert( clientIndex >= 0 );
-            assert( clientIndex < MaxClients );
-            return m_clientAddress[clientIndex];
-        }
+        void SetPrivateKey( const uint8_t * privateKey );
+        
+        void SetServerAddress( const Address & address );
 
-        int GetNumConnectedClients() 
-        {
-            return m_numConnectedClients;
-        }
+        const Address & GetServerAddress() const;
 
-        uint64_t GetCounter( int index ) const 
-        {
-            assert( index >= 0 );
-            assert( index < SERVER_COUNTER_NUM_COUNTERS );
-            return m_counters[index];
-        }
+        uint64_t GetClientId( int clientIndex ) const;
 
-        void SendPackets( double time );
+        const Address & GetClientAddress( int clientIndex ) const;
 
-        void ReceivePackets( double time );
+        int GetNumConnectedClients();
 
-        void CheckForTimeOut( double time );
+        uint64_t GetCounter( int index ) const;
+
+        void SendPackets();
+
+        void ReceivePackets();
+
+        void CheckForTimeOut();
+
+        void AdvanceTime( double time );
+
+        double GetTime() const;
 
     protected:
+
+        virtual void OnStart() {}
+
+        virtual void OnStop() {}
 
         virtual void OnClientConnect( int /*clientIndex*/ ) {}
 
@@ -459,27 +452,29 @@ namespace yojimbo
 
         int FindExistingClientIndex( const Address & address, uint64_t clientId ) const;
 
-        bool FindOrAddConnectTokenEntry( const Address & address, const uint8_t * mac, double time );
+        bool FindOrAddConnectTokenEntry( const Address & address, const uint8_t * mac );
 
-        void ConnectClient( int clientIndex, const ChallengeToken & challengeToken, double time );
+        void ConnectClient( int clientIndex, const ChallengeToken & challengeToken );
 
-        void DisconnectClient( int clientIndex, double time, bool sendDisconnectPacket = true );
+        void DisconnectClient( int clientIndex, bool sendDisconnectPacket = true );
+
+        void DisconnectAllClients( bool sendDisconnectPacket = true );
 
         bool IsConnected( uint64_t clientId ) const;
 
         bool IsConnected( const Address & address, uint64_t clientId ) const;
 
-        void SendPacket( const Address & address, Packet * packet, double time, bool immediate = false );
+        void SendPacket( const Address & address, Packet * packet, bool immediate = false );
 
-        void SendPacketToConnectedClient( int clientIndex, Packet * packet, double time, bool immediate = false );
+        void SendPacketToConnectedClient( int clientIndex, Packet * packet, bool immediate = false );
 
-        void ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address, double time );
+        void ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address );
 
-        void ProcessConnectionResponse( const ConnectionResponsePacket & packet, const Address & address, double time );
+        void ProcessConnectionResponse( const ConnectionResponsePacket & packet, const Address & address );
 
-        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address, double time );
+        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address );
 
-        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address, double time );
+        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address );
     };
 
     enum ClientState
@@ -524,6 +519,8 @@ namespace yojimbo
 
         NetworkInterface * m_networkInterface;                              // network interface the client uses to send and receive packets.
 
+        double m_time;                                                      // current client time (see "AdvanceTime")
+
         uint64_t m_clientId;                                                // client id as per-connect call
 
         uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
@@ -542,38 +539,32 @@ namespace yojimbo
 
         virtual ~Client();
 
-        void Connect( const Address & address, 
-                      double time, 
-                      uint64_t clientId,
+        void Connect( uint64_t clientId,
+                      const Address & address, 
                       const uint8_t * connectTokenData, 
                       const uint8_t * connectTokenNonce,
                       const uint8_t * clientToServerKey,
                       const uint8_t * serverToClientKey );
 
-        bool IsConnecting() const
-        {
-            return m_clientState == CLIENT_STATE_SENDING_CONNECTION_REQUEST || m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE;
-        }
+        bool IsConnecting() const;
 
-        bool IsConnected() const
-        {
-            return m_clientState == CLIENT_STATE_CONNECTED;
-        }
+        bool IsConnected() const;
 
-        bool ConnectionFailed() const
-        {
-            return m_clientState < CLIENT_STATE_DISCONNECTED;
-        }
+        bool ConnectionFailed() const;
 
-        ClientState GetState() const { return m_clientState; }
+        ClientState GetState() const;
 
-        void Disconnect( double time, int clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
+        void Disconnect( int clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
 
-        void SendPackets( double time );
+        void SendPackets();
 
-        void ReceivePackets( double time );
+        void ReceivePackets();
 
-        void CheckForTimeOut( double time );
+        void CheckForTimeOut();
+
+        void AdvanceTime( double time );
+
+        double GetTime() const;
 
     protected:
 
@@ -581,7 +572,7 @@ namespace yojimbo
 
         virtual void OnClientStateChange( int /*previousState*/, int /*currentState*/ ) {}
 
-        virtual void OnDisconnect() {};
+        virtual void OnDisconnect() {}
 
         virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
 
@@ -593,15 +584,15 @@ namespace yojimbo
 
         void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
 
-        void SendPacketToServer( Packet *packet, double time, bool immediate = false );
+        void SendPacketToServer( Packet * packet, bool immediate = false );
 
-        void ProcessConnectionDenied( const ConnectionDeniedPacket & /*packet*/, const Address & address, double /*time*/ );
+        void ProcessConnectionDenied( const ConnectionDeniedPacket & /*packet*/, const Address & address );
 
-        void ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address, double time );
+        void ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address );
 
-        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address, double time );
+        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address );
 
-        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address, double time );
+        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address );
     };
 }
 

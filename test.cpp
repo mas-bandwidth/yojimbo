@@ -1026,24 +1026,26 @@ void test_client_server_connect()
 
     server.SetServerAddress( serverAddress );
     
-    client.Connect( serverAddress, time, clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        client.SendPackets( time );
-        server.SendPackets( time );
+        client.SendPackets();
+        server.SendPackets();
 
-        clientInterface.WritePackets( time );
-        serverInterface.WritePackets( time );
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
 
-        clientInterface.ReadPackets( time );
-        serverInterface.ReadPackets( time );
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
 
-        client.ReceivePackets( time );
-        server.ReceivePackets( time );
+        client.ReceivePackets();
+        server.ReceivePackets();
 
-        client.CheckForTimeOut( time );
-        server.CheckForTimeOut( time );
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
 
         if ( client.ConnectionFailed() )
         {
@@ -1055,6 +1057,12 @@ void test_client_server_connect()
 
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -1106,24 +1114,28 @@ void test_client_server_connection_request_timeout()
 
     TestClient client( clientInterface );
 
-    client.Connect( serverAddress, time, clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        client.SendPackets( time );
+        client.SendPackets();
 
-        clientInterface.WritePackets( time );
+        clientInterface.WritePackets();
 
-        clientInterface.ReadPackets( time );
+        clientInterface.ReadPackets();
 
-        client.ReceivePackets( time );
+        client.ReceivePackets();
 
-        client.CheckForTimeOut( time );
+        client.CheckForTimeOut();
 
         if ( client.ConnectionFailed() )
             break;
 
         time += 1.0f;
+
+        client.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
     }
 
     check( client.ConnectionFailed() );

@@ -32,6 +32,8 @@ namespace yojimbo
         assert( sendQueueSize > 0 );
         assert( receiveQueueSize > 0 );
 
+        m_time = 0.0;
+
         m_context = NULL;
 
         m_allocator = &allocator;
@@ -136,7 +138,7 @@ namespace yojimbo
         m_packetFactory->DestroyPacket( packet );
     }
 
-    void SocketInterface::SendPacket( double time, const Address & address, Packet * packet, uint64_t sequence, bool immediate )
+    void SocketInterface::SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -152,7 +154,7 @@ namespace yojimbo
 
         if ( immediate )
         {
-            WriteAndFlushPacket( address, packet, sequence, time );
+            WriteAndFlushPacket( address, packet, sequence );
 
             m_packetFactory->DestroyPacket( packet );
         }
@@ -176,7 +178,7 @@ namespace yojimbo
         m_counters[SOCKET_INTERFACE_COUNTER_PACKETS_SENT]++;
     }
 
-    Packet * SocketInterface::ReceivePacket( double /*time*/, Address & from, uint64_t * sequence )
+    Packet * SocketInterface::ReceivePacket( Address & from, uint64_t * sequence )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -204,7 +206,7 @@ namespace yojimbo
         return entry.packet;
     }
 
-    void SocketInterface::WritePackets( double time )
+    void SocketInterface::WritePackets()
     {
         assert( m_allocator );
         assert( m_socket );
@@ -220,14 +222,16 @@ namespace yojimbo
 
             queue_consume( m_sendQueue, 1 );
 
-            WriteAndFlushPacket( entry.address, entry.packet, entry.sequence, time );
+            WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
 
             m_packetFactory->DestroyPacket( entry.packet );
         }
     }
 
-    void SocketInterface::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence, double time )
+    void SocketInterface::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
     {
+        const double time = GetTime();
+
         int packetBytes;
 
         const bool encrypt = IsEncryptedPacketType( packet->GetType() );
@@ -261,7 +265,7 @@ namespace yojimbo
             m_counters[SOCKET_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_WRITTEN]++;
     }
 
-    void SocketInterface::ReadPackets( double time )
+    void SocketInterface::ReadPackets()
     {
         assert( m_allocator );
         assert( m_socket );
@@ -289,7 +293,7 @@ namespace yojimbo
 
             uint64_t sequence;
 
-            const uint8_t * key = m_encryptionManager.GetReceiveKey( address, time );
+            const uint8_t * key = m_encryptionManager.GetReceiveKey( address, GetTime() );
 
             bool encrypted = false;
 
@@ -358,19 +362,30 @@ namespace yojimbo
         return m_packetTypeIsEncrypted[type] != 0;
     }
 
-    bool SocketInterface::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time )
+    bool SocketInterface::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey )
     {
-        return m_encryptionManager.AddEncryptionMapping( address, sendKey, receiveKey, time );
+        return m_encryptionManager.AddEncryptionMapping( address, sendKey, receiveKey, GetTime() );
     }
 
-    bool SocketInterface::RemoveEncryptionMapping( const Address & address, double time )
+    bool SocketInterface::RemoveEncryptionMapping( const Address & address )
     {
-        return m_encryptionManager.RemoveEncryptionMapping( address, time );
+        return m_encryptionManager.RemoveEncryptionMapping( address, GetTime() );
     }
 
     void SocketInterface::ResetEncryptionMappings()
     {
         m_encryptionManager.ResetEncryptionMappings();
+    }
+
+    void SocketInterface::AdvanceTime( double time )
+    {
+        assert( time >= m_time );
+        m_time = time;
+    }
+
+    double SocketInterface::GetTime() const
+    {
+        return m_time;
     }
 
     uint64_t SocketInterface::GetCounter( int index ) const
