@@ -1,4 +1,40 @@
 
+Friday June 4th, 2016
+=====================
+
+    added tests:
+
+        1. client connect
+
+        2. client connection request timeout
+
+    extended client/server to have start/stop concept.
+
+    Most importantly, start allows you to specify the # of clients you want.
+
+    Added a bunch of checks "assert( IsRunning() )" where appropriate in server.
+
+    Now get test working with new start as well.
+
+    Standardized passing in time in first parameter to function in client/server (public) where required.
+
+    I like keeping time separate because you'll probably wrap the client/server with your own struct or class,
+    and probably have separate global concepts of time. The client/server don't OWN time. You want the time
+    somewhere up above and passed in.
+
+    Add callbacks for OnStart and OnStop
+
+    Added time to all callbacks because if you want it, how else will you get it?!
+
+    OK. The time thing is annoying. Adding cached copy of time in client/server.
+
+    "AdvanceTime" function sets it. You must advance time!
+
+    This cleans up stuff nicely. I think I want this in the network interface as well. It's annoying to pass in time redundantly.
+
+    Yes. Adjusted client interface as well and everything has cleared up nicely.
+
+
 Tuesday 31st May, 2016
 ======================
 

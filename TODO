@@ -1,20 +1,18 @@
 DONE
 
-    client connect
-
-    client connection request timeout
-
 TODO
+
+    ---------------
     
     Now unit test all basic cases of the client/server, 
 
     client reconnect, 
 
+    client can't connect because full
+
     timeouts while in each connecting state, 
 
     timeouts on client and server side after connection established
-
-    client can't connect because full
 
     client-side disconnect
 
@@ -65,16 +63,6 @@ TODO
     Need to implement packet aggregation and fragmentation and reassembly as well inside the socket interface,
     but by composition using base classes so this functionality can easily be reimplemented for other interfaces,
     eg. a network interface implementation that goes over boost asio instead of BSD sockets for example.
-
-    -------------------
-
-    Server should be able to dynamically configure how many clients it wants to support. There is a hard-limit max of 64,
-    but it should be able to be configured dynamically to 2, 4, 8, 16, 32 or whatever.
-
-    This is important because certain data structures, especially the stuff for reliability of messages, chunks and so on,
-    will have a memory cost on the server according to the maximum # of clients allocated.
-
-    So users of the library won't want to be always taking a cost proportional to 64, in say, a 4 player game.
 
     -------------------
 
