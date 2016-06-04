@@ -23,13 +23,13 @@ namespace yojimbo
 
         virtual void DestroyPacket( Packet * packet ) = 0;
 
-        virtual void SendPacket( double time, const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
+        virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
 
-        virtual Packet * ReceivePacket( double time, Address & from, uint64_t * sequence = NULL ) = 0;
+        virtual Packet * ReceivePacket( Address & from, uint64_t * sequence = NULL ) = 0;
 
-        virtual void WritePackets( double time ) = 0;
+        virtual void WritePackets() = 0;
 
-        virtual void ReadPackets( double time ) = 0;
+        virtual void ReadPackets() = 0;
 
         virtual int GetMaxPacketSize() const = 0;
 
@@ -41,11 +41,15 @@ namespace yojimbo
 
         virtual bool IsEncryptedPacketType( int type ) const = 0;
 
-        virtual bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time ) = 0;
+        virtual bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey ) = 0;
 
-        virtual bool RemoveEncryptionMapping( const Address & address, double time ) = 0;
+        virtual bool RemoveEncryptionMapping( const Address & address ) = 0;
 
         virtual void ResetEncryptionMappings() = 0;
+
+        virtual void AdvanceTime( double time ) = 0;
+
+        virtual double GetTime() const = 0;
     };
 }
 

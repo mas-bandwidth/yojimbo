@@ -293,25 +293,27 @@ int main()
         GameServer server( serverInterface );
 
         server.SetServerAddress( serverAddress );
+
+        server.Start();
         
-        client.Connect( serverAddress, time, clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+        client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
         for ( int i = 0; i < NumIterations; ++i )
         {
-            client.SendPackets( time );
-            server.SendPackets( time );
+            client.SendPackets();
+            server.SendPackets();
 
-            clientInterface.WritePackets( time );
-            serverInterface.WritePackets( time );
+            clientInterface.WritePackets();
+            serverInterface.WritePackets();
 
-            clientInterface.ReadPackets( time );
-            serverInterface.ReadPackets( time );
+            clientInterface.ReadPackets();
+            serverInterface.ReadPackets();
 
-            client.ReceivePackets( time );
-            server.ReceivePackets( time );
+            client.ReceivePackets();
+            server.ReceivePackets();
 
-            client.CheckForTimeOut( time );
-            server.CheckForTimeOut( time );
+            client.CheckForTimeOut();
+            server.CheckForTimeOut();
 
             if ( client.ConnectionFailed() )
             {
@@ -320,12 +322,18 @@ int main()
             }
 
             if ( client.IsConnected() && server.GetNumConnectedClients() == 1 )
-                client.Disconnect( time );
+                client.Disconnect();
 
             time += 0.1f;
 
             if ( !client.IsConnecting() && !client.IsConnected() && server.GetNumConnectedClients() == 0 )
                 break;
+
+            client.AdvanceTime( time );
+            server.AdvanceTime( time );
+    
+            clientInterface.AdvanceTime( time );
+            serverInterface.AdvanceTime( time );
         }
 
         ShutdownNetwork();

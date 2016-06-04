@@ -44,6 +44,8 @@ namespace yojimbo
 
     class SocketInterface : public NetworkInterface
     {
+        double m_time;
+
         void * m_context;
 
         uint32_t m_protocolId;
@@ -78,7 +80,7 @@ namespace yojimbo
 
         void ClearReceiveQueue();
 
-        void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence, double time );
+        void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence );
 
     public:
 
@@ -101,13 +103,13 @@ namespace yojimbo
 
         void DestroyPacket( Packet * packet );
 
-        void SendPacket( double time, const Address & address, Packet * packet, uint64_t sequence, bool immediate );
+        void SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate );
 
-        Packet * ReceivePacket( double time, Address & from, uint64_t * sequence );
+        Packet * ReceivePacket( Address & from, uint64_t * sequence );
 
-        void WritePackets( double time );
+        void WritePackets();
 
-        void ReadPackets( double time );
+        void ReadPackets();
 
         int GetMaxPacketSize() const;
 
@@ -119,11 +121,15 @@ namespace yojimbo
 
         bool IsEncryptedPacketType( int type ) const;
 
-        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time );
+        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey );
 
-        bool RemoveEncryptionMapping( const Address & address, double time );
+        bool RemoveEncryptionMapping( const Address & address );
 
         void ResetEncryptionMappings();
+
+        void AdvanceTime( double time );
+
+        double GetTime() const;
 
         uint64_t GetCounter( int index ) const;
     };
