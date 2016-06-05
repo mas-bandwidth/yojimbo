@@ -1586,6 +1586,248 @@ void test_client_server_connection_response_timeout()
     // todo: to do this one need to provide the server with a callback that can reject (ignore) processing of a challenge response
 }
 
+void test_client_server_client_side_timeout()
+{
+    printf( "test_client_server_client_side_timeout\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    TestClient client( clientInterface );
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        server.SendPackets();
+
+        serverInterface.WritePackets();
+
+        serverInterface.ReadPackets();
+
+        server.ReceivePackets();
+
+        server.CheckForTimeOut();
+
+        time += 1.0f;
+
+        if ( server.GetNumConnectedClients() == 0 )
+            break;
+
+        server.AdvanceTime( time );
+
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( server.GetNumConnectedClients() == 0 );
+}
+
+void test_client_server_server_side_timeout()
+{
+    printf( "test_client_server_server_side_timeout\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    TestClient client( clientInterface );
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+
+        clientInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+
+        client.ReceivePackets();
+
+        client.CheckForTimeOut();
+
+        time += 1.0f;
+
+        if ( !client.IsConnected() )
+            break;
+
+        client.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnected() );
+    check( client.GetState() == CLIENT_STATE_CONNECTION_TIMED_OUT );
+}
+
+void test_client_server_server_is_full()
+{
+    printf( "test_client_server_server_is_full\n" );
+
+    // ...
+}
+
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -1617,10 +1859,18 @@ int main()
         test_client_server_server_side_disconnect();
         test_client_server_connection_request_timeout();
         test_client_server_connection_response_timeout();
+        test_client_server_client_side_timeout();
+        test_client_server_server_side_timeout();
+        test_client_server_server_is_full();
+
         // todo: connect token reuse
         // todo: connect token expiry
         // todo: connect token whitelist
+        // todo: connect token invalid (random bytes), check counter
 
+        // todo: challenge token reuse (different client address)
+        // todo: challenge token whitelist (different server address)
+        // todo: challenge token invalid (random bytes), check counter
     }
 
     memory_shutdown();

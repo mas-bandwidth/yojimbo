@@ -19,6 +19,8 @@ Sunday June 5th, 2016
 
     Made sure OnStart and OnStop are called (they weren't...)
 
+    Added tests for client and server-side timeout after connection established
+
 
 Saturday June 4th, 2016
 =======================
