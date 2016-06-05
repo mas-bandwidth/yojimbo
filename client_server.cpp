@@ -235,6 +235,8 @@ public:
 
 int main()
 {
+    printf( "\n" );
+
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize Yojimbo!\n" );
