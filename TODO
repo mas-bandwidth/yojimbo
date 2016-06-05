@@ -2,23 +2,11 @@ DONE
 
 TODO
 
+    test client can't connect because full (eg. connect 4/4 clients, try to connect another...)
+
     ---------------
     
-    Now unit test all basic cases of the client/server, 
-
-    client reconnect, 
-
-    client can't connect because full
-
-    timeouts while in each connecting state, 
-
     timeouts on client and server side after connection established
-
-    client-side disconnect
-
-    server-side disconnect
-
-    Should probably implement a local interface for these tests, so no actual packets have to go over the network.
 
     ---------------
 

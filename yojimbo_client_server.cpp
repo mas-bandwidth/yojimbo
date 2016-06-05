@@ -182,36 +182,6 @@ namespace yojimbo
         m_networkInterface = NULL;
     }
 
-    void Server::Start( int maxClients )
-    {
-        assert( maxClients > 0 );
-        assert( maxClients <= MaxClients );
-
-        Stop();
-
-        m_maxClients = maxClients;
-    }
-
-    void Server::Stop()
-    {
-        if ( !IsRunning() )
-            return;
-
-        DisconnectAllClients();
-
-        m_maxClients = -1;
-    }
-
-    bool Server::IsRunning() const
-    {
-        return m_maxClients > 0;
-    }
-
-    int Server::GetMaxClients() const
-    {
-        return m_maxClients;
-    }
-
     void Server::SetPrivateKey( const uint8_t * privateKey )
     {
         memcpy( m_privateKey, privateKey, KeyBytes );
@@ -222,35 +192,63 @@ namespace yojimbo
         m_serverAddress = address;
     }
 
-    const Address & Server::GetServerAddress() const
+    void Server::Start( int maxClients )
     {
-        return m_serverAddress;
+        assert( maxClients > 0 );
+        assert( maxClients <= MaxClients );
+
+        Stop();
+
+        m_maxClients = maxClients;
+
+        OnStart( maxClients );
     }
 
-    uint64_t Server::GetClientId( int clientIndex ) const
+    void Server::Stop()
     {
+        if ( !IsRunning() )
+            return;
+
+        OnStop();
+
+        DisconnectAllClients();
+
+        m_maxClients = -1;
+    }
+
+    void Server::DisconnectClient( int clientIndex, bool sendDisconnectPacket )
+    {
+        assert( IsRunning() );
         assert( clientIndex >= 0 );
-        assert( clientIndex < MaxClients );
-        return m_clientId[clientIndex];
+        assert( clientIndex < m_maxClients );
+        assert( m_numConnectedClients > 0 );
+        assert( m_clientConnected[clientIndex] );
+
+        OnClientDisconnect( clientIndex );
+
+        if ( sendDisconnectPacket )
+        {
+            ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );
+
+            SendPacketToConnectedClient( clientIndex, packet, true );
+        }
+
+        ResetClientState( clientIndex );
+
+        m_counters[SERVER_COUNTER_CLIENT_DISCONNECTS]++;
+
+        m_numConnectedClients--;
     }
 
-    const Address & Server::GetClientAddress( int clientIndex ) const
+    void Server::DisconnectAllClients( bool sendDisconnectPacket )
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < MaxClients );
-        return m_clientAddress[clientIndex];
-    }
+        assert( IsRunning() );
 
-    int Server::GetNumConnectedClients() 
-    {
-        return m_numConnectedClients;
-    }
-
-    uint64_t Server::GetCounter( int index ) const 
-    {
-        assert( index >= 0 );
-        assert( index < SERVER_COUNTER_NUM_COUNTERS );
-        return m_counters[index];
+        for ( int i = 0; i < m_maxClients; ++i )
+        {
+            if ( m_clientConnected[i] )
+                DisconnectClient( i, sendDisconnectPacket );
+        }
     }
 
     void Server::SendPackets()
@@ -260,7 +258,7 @@ namespace yojimbo
 
         const double time = GetTime();
 
-        for ( int i = 0; i < MaxClients; ++i )
+        for ( int i = 0; i < m_maxClients; ++i )
         {
             if ( !m_clientConnected[i] )
                 continue;
@@ -321,7 +319,7 @@ namespace yojimbo
 
         const double time = GetTime();
 
-        for ( int i = 0; i < MaxClients; ++i )
+        for ( int i = 0; i < m_maxClients; ++i )
         {
             if ( !m_clientConnected[i] )
                 continue;
@@ -344,6 +342,54 @@ namespace yojimbo
         m_time = time;
     }
 
+    bool Server::IsRunning() const
+    {
+        return m_maxClients > 0;
+    }
+
+    int Server::GetMaxClients() const
+    {
+        return m_maxClients;
+    }
+
+    bool Server::IsClientConnected( int clientIndex ) const
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        return m_clientConnected[clientIndex];
+    }
+
+    const Address & Server::GetServerAddress() const
+    {
+        return m_serverAddress;
+    }
+
+    uint64_t Server::GetClientId( int clientIndex ) const
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        return m_clientId[clientIndex];
+    }
+
+    const Address & Server::GetClientAddress( int clientIndex ) const
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        return m_clientAddress[clientIndex];
+    }
+
+    int Server::GetNumConnectedClients() const
+    {
+        return m_numConnectedClients;
+    }
+
+    uint64_t Server::GetCounter( int index ) const 
+    {
+        assert( index >= 0 );
+        assert( index < SERVER_COUNTER_NUM_COUNTERS );
+        return m_counters[index];
+    }
+
     double Server::GetTime() const
     {
         return m_time;
@@ -362,7 +408,7 @@ namespace yojimbo
 
     int Server::FindFreeClientIndex() const
     {
-        for ( int i = 0; i < MaxClients; ++i )
+        for ( int i = 0; i < m_maxClients; ++i )
         {
             if ( !m_clientConnected[i] )
                 return i;
@@ -372,7 +418,7 @@ namespace yojimbo
 
     int Server::FindExistingClientIndex( const Address & address ) const
     {
-        for ( int i = 0; i < MaxClients; ++i )
+        for ( int i = 0; i < m_maxClients; ++i )
         {
             if ( m_clientConnected[i] && m_clientAddress[i] == address )
                 return i;
@@ -382,7 +428,7 @@ namespace yojimbo
 
     int Server::FindExistingClientIndex( const Address & address, uint64_t clientId ) const
     {
-        for ( int i = 0; i < MaxClients; ++i )
+        for ( int i = 0; i < m_maxClients; ++i )
         {
             if ( m_clientId[i] == clientId && m_clientConnected[i] && m_clientAddress[i] == address )
                 return i;
@@ -446,7 +492,7 @@ namespace yojimbo
     {
         assert( IsRunning() );
         assert( m_numConnectedClients >= 0 );
-        assert( m_numConnectedClients < MaxClients - 1 );
+        assert( m_numConnectedClients < m_maxClients - 1 );
         assert( !m_clientConnected[clientIndex] );
 
         const double time = GetTime();
@@ -475,63 +521,28 @@ namespace yojimbo
         }
     }
 
-    void Server::DisconnectClient( int clientIndex, bool sendDisconnectPacket )
+    int Server::FindClientId( uint64_t clientId ) const
     {
-        assert( IsRunning() );
-        assert( clientIndex >= 0 );
-        assert( clientIndex < MaxClients );
-        assert( m_numConnectedClients > 0 );
-        assert( m_clientConnected[clientIndex] );
-
-        OnClientDisconnect( clientIndex );
-
-        if ( sendDisconnectPacket )
-        {
-            ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DISCONNECT );
-
-            SendPacketToConnectedClient( clientIndex, packet, true );
-        }
-
-        ResetClientState( clientIndex );
-
-        m_counters[SERVER_COUNTER_CLIENT_DISCONNECTS]++;
-
-        m_numConnectedClients--;
-    }
-
-    void Server::DisconnectAllClients( bool sendDisconnectPacket )
-    {
-        assert( IsRunning() );
-
         for ( int i = 0; i < m_maxClients; ++i )
-        {
-            if ( IsConnected( i ) )
-                DisconnectClient( i, sendDisconnectPacket );
-        }
-    }
-
-    bool Server::IsConnected( uint64_t clientId ) const
-    {
-        for ( int i = 0; i < MaxClients; ++i )
         {
             if ( !m_clientConnected[i] )
                 continue;
             if ( m_clientId[i] == clientId )
-                return true;
+                return i;
         }
-        return false;
+        return -1;
     }
 
-    bool Server::IsConnected( const Address & address, uint64_t clientId ) const
+    int Server::FindAddressAndClientId( const Address & address, uint64_t clientId ) const
     {
-        for ( int i = 0; i < MaxClients; ++i )
+        for ( int i = 0; i < m_maxClients; ++i )
         {
             if ( !m_clientConnected[i] )
                 continue;
             if ( m_clientAddress[i] == address && m_clientId[i] == clientId )
-                return true;
+                return i;
         }
-        return false;
+        return -1;
     }
 
     void Server::SendPacket( const Address & address, Packet * packet, bool immediate )
@@ -548,7 +559,7 @@ namespace yojimbo
         assert( IsRunning() );
         assert( packet );
         assert( clientIndex >= 0 );
-        assert( clientIndex < MaxClients );
+        assert( clientIndex < m_maxClients );
         assert( m_clientConnected[clientIndex] );
 
         const double time = GetTime();
@@ -598,7 +609,7 @@ namespace yojimbo
             return;
         }
 
-        if ( IsConnected( address, connectToken.clientId ) )
+        if ( FindAddressAndClientId( address, connectToken.clientId ) >= 0 )
         {
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_ALREADY_CONNECTED]++;
             return;
@@ -618,7 +629,10 @@ namespace yojimbo
             return;
         }
 
-        if ( m_numConnectedClients == MaxClients )
+        assert( m_numConnectedClients >= 0 );
+        assert( m_numConnectedClients <= m_maxClients );
+
+        if ( m_numConnectedClients == m_maxClients )
         {
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DENIED );
@@ -690,7 +704,7 @@ namespace yojimbo
         if ( existingClientIndex != -1 )
         {
             assert( existingClientIndex >= 0 );
-            assert( existingClientIndex < MaxClients );
+            assert( existingClientIndex < m_maxClients );
 
             if ( m_clientData[existingClientIndex].lastPacketSendTime + ConnectionConfirmSendRate < time )
             {
@@ -706,7 +720,7 @@ namespace yojimbo
             return;
         }
 
-        if ( m_numConnectedClients == MaxClients )
+        if ( m_numConnectedClients == m_maxClients )
         {
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( PACKET_CONNECTION_DENIED );
@@ -735,7 +749,7 @@ namespace yojimbo
             return;
 
         assert( clientIndex >= 0 );
-        assert( clientIndex < MaxClients );
+        assert( clientIndex < m_maxClients );
 
         const double time = GetTime();
         
@@ -751,7 +765,7 @@ namespace yojimbo
             return;
 
         assert( clientIndex >= 0 );
-        assert( clientIndex < MaxClients );
+        assert( clientIndex < m_maxClients );
 
         m_counters[SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS]++;
 

@@ -394,27 +394,17 @@ namespace yojimbo
 
         virtual ~Server();
 
-        void Start( int maxClients = MaxClients );
-
-        void Stop();
-
-        bool IsRunning() const;
-
-        int GetMaxClients() const;
-
         void SetPrivateKey( const uint8_t * privateKey );
         
         void SetServerAddress( const Address & address );
 
-        const Address & GetServerAddress() const;
+        void Start( int maxClients = MaxClients );
 
-        uint64_t GetClientId( int clientIndex ) const;
+        void Stop();
 
-        const Address & GetClientAddress( int clientIndex ) const;
+        void DisconnectClient( int clientIndex, bool sendDisconnectPacket = true );
 
-        int GetNumConnectedClients();
-
-        uint64_t GetCounter( int index ) const;
+        void DisconnectAllClients( bool sendDisconnectPacket = true );
 
         void SendPackets();
 
@@ -424,11 +414,29 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
+        // accessors
+
+        bool IsRunning() const;
+
+        int GetMaxClients() const;
+
+        bool IsClientConnected( int clientIndex ) const;
+
+        int GetNumConnectedClients() const;
+
+        uint64_t GetClientId( int clientIndex ) const;
+
+        const Address & GetServerAddress() const;
+
+        const Address & GetClientAddress( int clientIndex ) const;
+
+        uint64_t GetCounter( int index ) const;
+
         double GetTime() const;
 
     protected:
 
-        virtual void OnStart() {}
+        virtual void OnStart( int /*maxClients*/ ) {}
 
         virtual void OnStop() {}
 
@@ -454,15 +462,11 @@ namespace yojimbo
 
         bool FindOrAddConnectTokenEntry( const Address & address, const uint8_t * mac );
 
+        int FindClientId( uint64_t clientId ) const;
+
+        int FindAddressAndClientId( const Address & address, uint64_t clientId ) const;
+
         void ConnectClient( int clientIndex, const ChallengeToken & challengeToken );
-
-        void DisconnectClient( int clientIndex, bool sendDisconnectPacket = true );
-
-        void DisconnectAllClients( bool sendDisconnectPacket = true );
-
-        bool IsConnected( uint64_t clientId ) const;
-
-        bool IsConnected( const Address & address, uint64_t clientId ) const;
 
         void SendPacket( const Address & address, Packet * packet, bool immediate = false );
 
