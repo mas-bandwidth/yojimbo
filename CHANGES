@@ -1,4 +1,25 @@
 
+Sunday June 5th, 2016
+=====================
+
+    Added test for client reconnect 
+
+    Added tests for client side disconnect and server side disconnect
+
+    Renamed "IsConnected" functions in the server to "FindClientId" and "FindAddressAndClientId"
+    because it had already created a bug where I thought "IsConnected" meant "IsConnected( int clientIndex )"
+
+    Added code to check client slots and iterate across only up to m_maxClients rather than MaxClients
+
+    This allows the server start to spocify a max clients less than MaxClients (64), which would 
+    allow for a subclassed server to restrict allocation of expensive per-client data to smaller
+    client counts on start/stop life cycle.
+
+    Extended OnStart so it accepts int maxClients to make stuff easy for allocation on start.
+
+    Made sure OnStart and OnStop are called (they weren't...)
+
+
 Saturday June 4th, 2016
 =======================
 
