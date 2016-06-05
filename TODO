@@ -5,10 +5,6 @@ TODO
     test client can't connect because full (eg. connect 4/4 clients, try to connect another...)
 
     ---------------
-    
-    timeouts on client and server side after connection established
-
-    ---------------
 
     Next put in tests for cases that need to be handled and tested via counters, eg. invalid connect token discarded.
 
