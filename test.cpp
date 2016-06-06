@@ -2530,7 +2530,7 @@ int main()
         // todo: challenge token reuse (different client address)
         // todo: challenge token expiry
         // todo: challenge token whitelist (different server address)
-        // todo: challenge token invalid (random bytes), check counter
+        // todo: challenge token invalid (random bytes)
     }
 
     memory_shutdown();
