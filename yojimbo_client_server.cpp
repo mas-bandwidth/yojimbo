@@ -492,7 +492,7 @@ namespace yojimbo
     {
         assert( IsRunning() );
         assert( m_numConnectedClients >= 0 );
-        assert( m_numConnectedClients < m_maxClients - 1 );
+        assert( m_numConnectedClients < m_maxClients );
         assert( !m_clientConnected[clientIndex] );
 
         const double time = GetTime();
