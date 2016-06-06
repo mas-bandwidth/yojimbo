@@ -31,13 +31,25 @@ DONE
 
     2. a client needs to be *forced* into a connection challenge response state with a specified server address and challenge token
 
-    If I can implement both of these, I should be able to implement all the tests required.
+    3. a way for the server to construct an older challenge token, eg. with an already expired timestamp
+
+    If I can implement these, I should be able to implement all the tests required for challenge token.
 
     Made data members in yojimbo client/server protected rather than private.
 
 TODO
 
-    ...
+    Implement client connect, stash token and abort.
+
+    Add accessor to grab challenge token.
+
+    Add function "ForceIntoConnectionChallengeResponse" that takes challenge token, server address etc.
+
+    ^---- this should be called after faking the same connect with all the same client connect data (from the original client)
+
+    Implement way to override construction of the challenge token so it has an early expiry, or a complete
+    overriden version of the function that generates the challenge token, and then makes a modification to it
+    before returning it?
 
     ---------------
 
