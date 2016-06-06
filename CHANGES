@@ -21,6 +21,8 @@ Monday June 6th, 2016
 
     Added test for detecting connect token reuse.
 
+    Added a test for client connect token expiry.
+
 
 Sunday June 5th, 2016
 =====================
