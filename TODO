@@ -1,12 +1,8 @@
 DONE
-
+    
 TODO
 
-    test client can't connect because full (eg. connect 4/4 clients, try to connect another...)
-
     ---------------
-
-    Next put in tests for cases that need to be handled and tested via counters, eg. invalid connect token discarded.
 
     Verify that packets sent over the network once client/server are connected have valid sequence #s and these sequence #s 
     are not always zero (make sure proper sequence #s are used)

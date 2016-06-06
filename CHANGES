@@ -1,4 +1,27 @@
 
+Monday June 6th, 2016
+=====================
+
+    test client can't connect because full (eg. connect 4/4 clients, try to connect another...)
+
+    test was incorrect because it tried to call "connect" again on an already connected client,
+    with the same token.
+
+    should this be supported? not really. each connect requires a new token.
+
+    It's a fact however that you can kick off an undefined reconnect with the same token
+    already grabbed, but that connect will risk having a client join into an state that is
+    undefined, eg. the client will have to indicate to the server that it wants to start again
+    from the lowest defined state, eg. build up from state 0.
+
+    So it could be supported at the high level if necessary.
+
+    It may also have some implications on reliable ordered events though, so perhaps it's
+    *not* worth supporting.
+
+    Added test for detecting connect token reuse.
+
+
 Sunday June 5th, 2016
 =====================
 
