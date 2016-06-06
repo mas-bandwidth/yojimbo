@@ -902,13 +902,21 @@ public:
         m_nonce = 0;
     }
 
-    bool RequestMatch( uint64_t clientId, uint8_t * tokenData, uint8_t * tokenNonce, uint8_t * clientToServerKey, uint8_t * serverToClientKey, int & numServerAddresses, Address * serverAddresses, int timestampOffsetInSeconds = 0 )
+    bool RequestMatch( uint64_t clientId, 
+                       uint8_t * tokenData, 
+                       uint8_t * tokenNonce, 
+                       uint8_t * clientToServerKey, 
+                       uint8_t * serverToClientKey, 
+                       int & numServerAddresses, 
+                       Address * serverAddresses, 
+                       int timestampOffsetInSeconds = 0, 
+                       int serverPortOverride = -1 )
     {
         if ( clientId == 0 )
             return false;
 
         numServerAddresses = 1;
-        serverAddresses[0] = Address( "::1", ServerPort );
+        serverAddresses[0] = Address( "::1", serverPortOverride == -1 ? ServerPort : serverPortOverride );
 
         ConnectToken token;
         GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
@@ -2301,6 +2309,103 @@ void test_client_server_connect_token_expiry()
     check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
 }
 
+void test_client_server_connect_token_whitelist()
+{
+    printf( "test_client_server_connect_token_whitelist\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, 
+                                connectTokenData, 
+                                connectTokenNonce, 
+                                clientToServerKey, 
+                                serverToClientKey, 
+                                numServerAddresses, 
+                                serverAddresses, 
+                                0, 
+                                ServerPort + 1 ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    TestClient client( clientInterface );
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += 1.0f;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( client.ConnectionFailed() );
+    check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_SERVER_ADDRESS_NOT_IN_WHITELIST ) > 0 );
+    check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+}
+
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -2337,8 +2442,8 @@ int main()
         test_client_server_server_is_full();
         test_client_server_connect_token_reuse();
         test_client_server_connect_token_expiry();
+        test_client_server_connect_token_whitelist();
 
-        // todo: connect token whitelist
         // todo: connect token invalid (random bytes), check counter
 
         // todo: challenge token reuse (different client address)
