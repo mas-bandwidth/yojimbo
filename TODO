@@ -2,6 +2,27 @@ DONE
     
 TODO
 
+    Add tests for typical challenge token exploits.
+
+    To do this I will need to be able to create a modified version of the client
+    that gets the challenge token and then saves it off, so it can be stored
+    and then reused by another client with a different address.
+
+    Attacks to protect against are:
+
+    reuse of the same challenge token, from a different client address (impersonation)
+
+    reuse of the same challenge token, on a different server (going wide and trying to join servers)
+
+    using an expired challenge token
+
+    getting through with an invalid challenge token.
+
+    It's really difficult to see how I can keep the client/server code clean in Yojimbo,
+    while still provide enough flexibility to override behavior and test these cases above.
+
+    Need to think about this for a while!  
+
     ---------------
 
     Verify that packets sent over the network once client/server are connected have valid sequence #s and these sequence #s 
