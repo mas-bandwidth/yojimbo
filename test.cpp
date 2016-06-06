@@ -2406,6 +2406,88 @@ void test_client_server_connect_token_whitelist()
     check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
 }
 
+void test_client_server_connect_token_invalid()
+{
+    printf( "test_client_server_connect_token_invalid\n" );
+
+    const uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    RandomBytes( connectTokenData, ConnectTokenBytes );
+    RandomBytes( connectTokenNonce, NonceBytes );
+
+    GenerateKey( clientToServerKey );
+    GenerateKey( serverToClientKey );
+
+    GenerateKey( private_key );
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    TestClient client( clientInterface );
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += 1.0f;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( client.ConnectionFailed() );
+    check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_FAILED_TO_DECRYPT ) > 0 );
+    check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+}
+
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -2443,10 +2525,10 @@ int main()
         test_client_server_connect_token_reuse();
         test_client_server_connect_token_expiry();
         test_client_server_connect_token_whitelist();
-
-        // todo: connect token invalid (random bytes), check counter
+        test_client_server_connect_token_invalid();
 
         // todo: challenge token reuse (different client address)
+        // todo: challenge token expiry
         // todo: challenge token whitelist (different server address)
         // todo: challenge token invalid (random bytes), check counter
     }
