@@ -1,7 +1,5 @@
 DONE
     
-TODO
-
     Add tests for typical challenge token exploits.
 
     To do this I will need to be able to create a modified version of the client
@@ -22,6 +20,24 @@ TODO
     while still provide enough flexibility to override behavior and test these cases above.
 
     Need to think about this for a while!  
+
+    It seems that the least disruptive way to handle this is for the derived client and server
+    to be able to access data members of the parent class, so it can be inspected, modified
+    and messed with, allowing the derived classes to read data and changed behavior.
+
+    Two key pieces of tech are needed:
+
+    1. a client needs to try to connect, stash the challenge token when it receives it, and stop connect (without clearing connect token)
+
+    2. a client needs to be *forced* into a connection challenge response state with a specified server address and challenge token
+
+    If I can implement both of these, I should be able to implement all the tests required.
+
+    Made data members in yojimbo client/server protected rather than private.
+
+TODO
+
+    ...
 
     ---------------
 
