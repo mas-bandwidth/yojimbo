@@ -355,6 +355,8 @@ namespace yojimbo
 
     class Server
     {
+    protected:
+
         NetworkInterface * m_networkInterface;                              // network interface for sending and receiving packets.
 
         uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
@@ -510,6 +512,8 @@ namespace yojimbo
 
     class Client
     {
+    protected:
+
         ClientState m_clientState;                                          // current client state
 
         Address m_serverAddress;                                            // server address we are connecting or connected to.
