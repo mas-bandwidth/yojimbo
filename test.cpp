@@ -2003,55 +2003,46 @@ void test_client_server_server_is_full()
 
     // try to connect one more client and verify that its connection attempt is rejected
 
-    clientData[NumClients-1].client->Connect( clientData[NumClients-1].clientId, 
-                                              serverAddress, 
-                                              clientData[NumClients-1].connectTokenData, 
-                                              clientData[NumClients-1].connectTokenNonce, 
-                                              clientData[NumClients-1].clientToServerKey, 
-                                              clientData[NumClients-1].serverToClientKey );
+    clientData[NumClients].client->Connect( clientData[NumClients].clientId, 
+                                            serverAddress, 
+                                            clientData[NumClients].connectTokenData, 
+                                            clientData[NumClients].connectTokenNonce, 
+                                            clientData[NumClients].clientToServerKey, 
+                                            clientData[NumClients].serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        for ( int j = 0; j < NumClients + 1; ++j )
+        for ( int j = 0; j <= NumClients; ++j )
             clientData[j].client->SendPackets();
 
         server.SendPackets();
 
-        for ( int j = 0; j < NumClients + 1; ++j )
+        for ( int j = 0; j <= NumClients; ++j )
             clientData[j].networkInterface->WritePackets();
 
         serverInterface.WritePackets();
 
-        for ( int j = 0; j < NumClients + 1; ++j )
+        for ( int j = 0; j <= NumClients; ++j )
             clientData[j].networkInterface->ReadPackets();
 
         serverInterface.ReadPackets();
 
-        for ( int j = 0; j < NumClients + 1; ++j )
+        for ( int j = 0; j <= NumClients; ++j )
             clientData[j].client->ReceivePackets();
 
         server.ReceivePackets();
 
-        for ( int j = 0; j < NumClients + 1; ++j )
+        for ( int j = 0; j <= NumClients; ++j )
             clientData[j].client->CheckForTimeOut();
 
         server.CheckForTimeOut();
 
-        for ( int j = 0; j < NumClients + 1; ++j )
-        {
-            if ( clientData[j].client->ConnectionFailed() )
-            {
-                printf( "error: client connect failed!\n" );
-                exit( 1 );
-            }
-        }
-
         time += 0.1f;
 
-        if ( clientData[NumClients-1].client->GetState() == CLIENT_STATE_CONNECTION_DENIED )
+        if ( clientData[NumClients].client->GetState() == CLIENT_STATE_CONNECTION_DENIED )
             break;
 
-        for ( int j = 0; j < NumClients + 1; ++j )
+        for ( int j = 0; j <= NumClients; ++j )
         {
             clientData[j].client->AdvanceTime( time );
 
@@ -2063,9 +2054,161 @@ void test_client_server_server_is_full()
         serverInterface.AdvanceTime( time );
     }
 
-    printf( "client state is %d\n", clientData[NumClients-1].client->GetState() );
+    check( server.GetNumConnectedClients() == NumClients );
+    check( clientData[NumClients].client->GetState() == CLIENT_STATE_CONNECTION_DENIED );
+    for ( int i = 0; i < NumClients; ++i )
+    {
+        check( clientData[i].client->IsConnected() );
+    }
+}
 
-    check( clientData[NumClients-1].client->GetState() == CLIENT_STATE_CONNECTION_DENIED );
+void test_client_server_connect_token_reuse()
+{
+    printf( "test_client_server_connect_token_reuse\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    TestClient client( clientInterface );
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    // now try to connect a second client (different address) using the same token. the connect should be ignored
+
+    Address clientAddress2( "::1", ClientPort + 1 );
+
+    TestNetworkInterface clientInterface2( packetFactory, ClientPort + 1 );
+
+    if ( clientInterface2.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client #2 socket\n" );
+        exit( 1 );
+    }
+    
+    TestClient client2( clientInterface2 );
+
+    client2.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        client2.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        clientInterface2.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        clientInterface2.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        client2.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        client2.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        time += 1.0f;
+
+        if ( client2.ConnectionFailed() )
+            break;
+
+        client.AdvanceTime( time );
+        client2.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        clientInterface2.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+    check( client2.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED ) > 0 );
 }
 
 int main()
@@ -2084,7 +2227,7 @@ int main()
 
     memory_initialize();
     {
-        test_bitpacker();   
+        test_bitpacker();
         test_stream();
         test_packets();
         test_address_ipv4();
@@ -2102,6 +2245,7 @@ int main()
         test_client_server_client_side_timeout();
         test_client_server_server_side_timeout();
         test_client_server_server_is_full();
+        test_client_server_connect_token_reuse();
 
         // todo: connect token reuse
         // todo: connect token expiry

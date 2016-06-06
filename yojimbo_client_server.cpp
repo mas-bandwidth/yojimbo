@@ -491,6 +491,8 @@ namespace yojimbo
     void Server::ConnectClient( int clientIndex, const ChallengeToken & challengeToken )
     {
         assert( IsRunning() );
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
         assert( m_numConnectedClients >= 0 );
         assert( m_numConnectedClients < m_maxClients );
         assert( !m_clientConnected[clientIndex] );
