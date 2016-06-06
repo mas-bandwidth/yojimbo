@@ -584,7 +584,7 @@ namespace yojimbo
         ConnectToken connectToken;
         if ( !DecryptConnectToken( packet.connectTokenData, connectToken, NULL, 0, packet.connectTokenNonce, m_privateKey ) )
         {
-            m_counters[SERVER_COUNTER_FAILED_TO_DECRYPT_CONNECT_TOKEN]++;
+            m_counters[SERVER_COUNTER_CONNECT_TOKEN_FAILED_TO_DECRYPT]++;
             return;
         }
 
@@ -601,7 +601,7 @@ namespace yojimbo
 
         if ( !serverAddressInConnectTokenWhiteList )
         {
-            m_counters[SERVER_COUNTER_SERVER_ADDRESS_NOT_IN_CONNECT_TOKEN_WHITELIST]++;
+            m_counters[SERVER_COUNTER_CONNECT_TOKEN_SERVER_ADDRESS_NOT_IN_WHITELIST]++;
             return;
         }
 
@@ -627,7 +627,7 @@ namespace yojimbo
 
         if ( !m_networkInterface->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
         {
-            m_counters[SERVER_COUNTER_ADD_ENCRYPTION_MAPPING_FAILURES]++;
+            m_counters[SERVER_COUNTER_ENCRYPTION_MAPPING_CANNOT_ADD]++;
             return;
         }
 
@@ -654,7 +654,7 @@ namespace yojimbo
         ChallengeToken challengeToken;
         if ( !GenerateChallengeToken( connectToken, address, m_serverAddress, packet.connectTokenData, challengeToken ) )
         {
-            m_counters[SERVER_COUNTER_FAILED_TO_GENERATE_CHALLENGE_TOKEN]++;
+            m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_GENERATE]++;
             return;
         }
 
@@ -666,7 +666,7 @@ namespace yojimbo
 
         if ( !EncryptChallengeToken( challengeToken, connectionChallengePacket->challengeTokenData, NULL, 0, connectionChallengePacket->challengeTokenNonce, m_privateKey ) )
         {
-            m_counters[SERVER_COUNTER_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN]++;
+            m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_ENCRYPT]++;
             return;
         }
 
@@ -686,7 +686,7 @@ namespace yojimbo
         ChallengeToken challengeToken;
         if ( !DecryptChallengeToken( packet.challengeTokenData, challengeToken, NULL, 0, packet.challengeTokenNonce, m_privateKey ) )
         {
-            m_counters[SERVER_COUNTER_FAILED_TO_DECRYPT_CHALLENGE_TOKEN]++;
+            m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_DECRYPT]++;
             return;
         }
 
@@ -714,7 +714,7 @@ namespace yojimbo
 
                 if ( connectionHeartBeatPacket )
                 {
-                    m_counters[SERVER_COUNTER_CHALLENGE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT]++;
+                    m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT]++;
                     SendPacketToConnectedClient( existingClientIndex, connectionHeartBeatPacket, time );
                 }
             }
