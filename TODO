@@ -4,7 +4,7 @@ TODO
 
     ---------------
 
-    Make sure that encrypted packet packets can't get through if they are sent unencrypted. V.important obviously.
+    Implement test_client_server_connection_response_timeout
 
     -------------------
 
