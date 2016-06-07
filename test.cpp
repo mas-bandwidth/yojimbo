@@ -918,41 +918,174 @@ public:
     }
 };
 
-class TestServer : public Server
+enum GamePackets
 {
+    GAME_PACKET = CLIENT_SERVER_NUM_PACKETS,
+    GAME_NUM_PACKETS
+};
+
+struct GamePacket : public Packet
+{
+    uint32_t sequence;
+    uint32_t a,b,c;
+
+    GamePacket() : Packet( GAME_PACKET )
+    {
+        sequence = 0;
+        a = 0;
+        b = 0;
+        c = 0;
+    }
+
+    void Initialize( uint32_t seq )
+    {
+        assert( seq > 0 );
+        sequence = seq;
+        a = seq % 2;
+        b = seq % 3;
+        c = seq % 5;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream ) 
+    { 
+        serialize_bits( stream, sequence, 32 );
+        
+        serialize_bits( stream, a, 32 );
+        serialize_bits( stream, b, 32 );
+        serialize_bits( stream, c, 32 );
+
+        assert( sequence > 0 );
+        assert( a == sequence % 2 );
+        assert( b == sequence % 3 );
+        assert( c == sequence % 5 );
+
+        return true;
+    }
+
+    YOJIMBO_SERIALIZE_FUNCTIONS();
+};
+
+class GameServer : public Server
+{
+    uint32_t m_gamePacketSequence;
+    uint64_t m_numGamePacketsReceived[MaxClients];
+
 public:
 
-    TestServer( NetworkInterface & networkInterface ) : Server( networkInterface )
+    GameServer( NetworkInterface & networkInterface ) : Server( networkInterface )
     {
         SetPrivateKey( private_key );
+        m_gamePacketSequence = 0;
+        memset( m_numGamePacketsReceived, 0, sizeof( m_numGamePacketsReceived ) );
+    }
+
+    void OnClientConnect( int clientIndex )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        m_numGamePacketsReceived[clientIndex] = 0;
+    }
+
+    uint64_t GetNumGamePacketsReceived( int clientIndex ) const
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        return m_numGamePacketsReceived[clientIndex];
+    }
+
+    void SendGamePacketToClient( int clientIndex )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( IsClientConnected( clientIndex ) );
+        GamePacket * packet = (GamePacket*) m_networkInterface->CreatePacket( GAME_PACKET );
+        assert( packet );
+        packet->Initialize( ++m_gamePacketSequence );
+        SendPacketToConnectedClient( clientIndex, packet );
+    }
+
+    bool ProcessGamePacket( int clientIndex, Packet * packet, uint64_t /*sequence*/ )
+    {
+        if ( packet->GetType() == GAME_PACKET )
+        {
+            m_numGamePacketsReceived[clientIndex]++;
+            return true;
+        }
+
+        return false;
     }
 };
 
-class TestClient : public Client
+class GameClient : public Client
+{
+    uint64_t m_numGamePacketsReceived;
+    uint32_t m_gamePacketSequence;
+
+public:
+
+    GameClient( NetworkInterface & networkInterface ) : Client( networkInterface )
+    {
+        m_numGamePacketsReceived = 0;
+        m_gamePacketSequence = 0;
+    }
+
+    void SendGamePacketToServer()
+    {
+        GamePacket * packet = (GamePacket*) m_networkInterface->CreatePacket( GAME_PACKET );
+        assert( packet );
+        packet->Initialize( ++m_gamePacketSequence );
+        SendPacketToServer( packet );
+    }
+
+    void OnConnect( const Address & /*address*/ )
+    {
+        m_numGamePacketsReceived = 0;
+    }
+
+    uint64_t GetNumGamePacketsReceived() const
+    {
+        return m_numGamePacketsReceived;
+    }
+
+    bool ProcessGamePacket( Packet * packet, uint64_t /*sequence*/ )
+    {
+        if ( packet->GetType() == GAME_PACKET )
+        {
+            m_numGamePacketsReceived++;
+            return true;
+        }
+
+        return false;
+    }
+};
+
+class GamePacketFactory : public ClientServerPacketFactory
 {
 public:
 
-    TestClient( NetworkInterface & networkInterface ) : Client( networkInterface )
+    GamePacketFactory() : ClientServerPacketFactory( GAME_NUM_PACKETS ) {}
+
+    Packet * Create( int type )
     {
-        // ...
+        Packet * packet = ClientServerPacketFactory::Create( type );
+        if ( packet )
+            return packet;
+
+        if ( type == GAME_PACKET )
+            return new GamePacket();
+
+        return NULL;
     }
-
-    // ...
-};
-
-class TestClientServerPacketFactory : public ClientServerPacketFactory
-{
-    // ...
 };
 
 class TestNetworkInterface : public SocketInterface
 {   
 public:
 
-    TestNetworkInterface( TestClientServerPacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
+    TestNetworkInterface( GamePacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
     {
         EnablePacketEncryption();
-        DisableEncryptionForPacketType( PACKET_CONNECTION_REQUEST );
+        DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
     ~TestNetworkInterface()
@@ -989,7 +1122,7 @@ void test_client_server_connect()
         exit( 1 );
     }
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -1007,9 +1140,9 @@ void test_client_server_connect()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1076,7 +1209,7 @@ void test_client_server_reconnect()
 
     GenerateKey( private_key );
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -1094,9 +1227,9 @@ void test_client_server_reconnect()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1253,7 +1386,7 @@ void test_client_server_client_side_disconnect()
 
     GenerateKey( private_key );
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -1271,9 +1404,9 @@ void test_client_server_client_side_disconnect()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1383,7 +1516,7 @@ void test_client_server_server_side_disconnect()
 
     GenerateKey( private_key );
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -1401,9 +1534,9 @@ void test_client_server_server_side_disconnect()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1519,7 +1652,7 @@ void test_client_server_connection_request_timeout()
         exit( 1 );
     }
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -1536,7 +1669,7 @@ void test_client_server_connection_request_timeout()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
     client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
@@ -1600,7 +1733,7 @@ void test_client_server_client_side_timeout()
         exit( 1 );
     }
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -1618,9 +1751,9 @@ void test_client_server_client_side_timeout()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1717,7 +1850,7 @@ void test_client_server_server_side_timeout()
         exit( 1 );
     }
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -1735,9 +1868,9 @@ void test_client_server_server_side_timeout()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1814,7 +1947,7 @@ struct ClientData
     int numServerAddresses;
     Address serverAddresses[MaxServersPerConnectToken];
     TestNetworkInterface * networkInterface;
-    TestClient * client;
+    GameClient * client;
     uint8_t connectTokenData[ConnectTokenBytes];
     uint8_t connectTokenNonce[NonceBytes];
     uint8_t clientToServerKey[KeyBytes];
@@ -1853,7 +1986,7 @@ void test_client_server_server_is_full()
 
     ClientData clientData[NumClients+1];
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     for ( int i = 0; i < NumClients + 1; ++i )
     {
@@ -1880,7 +2013,7 @@ void test_client_server_server_is_full()
             exit( 1 );
         }
 
-        clientData[i].client = new TestClient( *clientData[i].networkInterface );
+        clientData[i].client = new GameClient( *clientData[i].networkInterface );
     }
 
     Address serverAddress( "::1", ServerPort );
@@ -1897,7 +2030,7 @@ void test_client_server_server_is_full()
 
     double time = 0.0;
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2076,7 +2209,7 @@ void test_client_server_connect_token_reuse()
         exit( 1 );
     }
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -2094,9 +2227,9 @@ void test_client_server_connect_token_reuse()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2153,7 +2286,7 @@ void test_client_server_connect_token_reuse()
         exit( 1 );
     }
     
-    TestClient client2( clientInterface2 );
+    GameClient client2( clientInterface2 );
 
     client2.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
@@ -2225,7 +2358,7 @@ void test_client_server_connect_token_expiry()
         exit( 1 );
     }
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -2243,9 +2376,9 @@ void test_client_server_connect_token_expiry()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2322,7 +2455,7 @@ void test_client_server_connect_token_whitelist()
         exit( 1 );
     }
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -2340,9 +2473,9 @@ void test_client_server_connect_token_whitelist()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2404,7 +2537,7 @@ void test_client_server_connect_token_invalid()
 
     GenerateKey( private_key );
 
-    TestClientServerPacketFactory packetFactory;
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -2422,9 +2555,9 @@ void test_client_server_connect_token_invalid()
 
     double time = 0.0;
 
-    TestClient client( clientInterface );
+    GameClient client( clientInterface );
 
-    TestServer server( serverInterface );
+    GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2466,6 +2599,141 @@ void test_client_server_connect_token_invalid()
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
 }
 
+void test_client_server_game_packets()
+{
+    printf( "test_client_server_game_packets\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    GamePacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    GameClient client( clientInterface );
+
+    GameServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    // now that the client and server are connected lets exchange game packets and count them getting through
+
+    const int clientIndex = server.FindClientIndex( clientAddress );
+
+    check( clientIndex != -1 );
+
+    const int NumGamePackets = NumIterations / 4;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendGamePacketToServer();
+        server.SendGamePacketToClient( clientIndex );
+
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        time += 0.1f;
+
+        if ( client.GetNumGamePacketsReceived() >= NumGamePackets && server.GetNumGamePacketsReceived( clientIndex ) >= NumGamePackets )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( client.GetNumGamePacketsReceived() >= NumGamePackets && server.GetNumGamePacketsReceived( clientIndex ) >= NumGamePackets );
+}
+
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -2504,6 +2772,7 @@ int main()
         test_client_server_connect_token_expiry();
         test_client_server_connect_token_whitelist();
         test_client_server_connect_token_invalid();
+        test_client_server_game_packets();
     }
 
     memory_shutdown();
