@@ -101,10 +101,10 @@ protected:
 
         switch ( packetType )
         {
-            case PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
-            case PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
-            case PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
+            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
 
             default:
                 return;
@@ -115,16 +115,16 @@ protected:
         printf( "server sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
     }
 
-    void OnPacketReceived( int packetType, const Address & from )
+    void OnPacketReceived( int packetType, const Address & from, uint64_t /*sequence*/ )
     {
         const char * packetTypeString = NULL;
 
         switch ( packetType )
         {
-            case PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
-            case PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
-            case PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+            case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
+            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
 
             default:
                 return;
@@ -176,10 +176,10 @@ public:
 
         switch ( packetType )
         {
-            case PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
-            case PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
-            case PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+            case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
+            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
 
             default:
                 return;
@@ -190,16 +190,16 @@ public:
         printf( "client sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
     }
 
-    void OnPacketReceived( int packetType, const Address & from )
+    void OnPacketReceived( int packetType, const Address & from, uint64_t /*sequence*/ )
     {
         const char * packetTypeString = NULL;
 
         switch ( packetType )
         {
-            case PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
-            case PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
-            case PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
+            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
 
             default:
                 return;
@@ -213,7 +213,8 @@ public:
 
 class GamePacketFactory : public ClientServerPacketFactory
 {
-    // ...
+public:
+    GamePacketFactory() : ClientServerPacketFactory( CLIENT_SERVER_NUM_PACKETS ) {}
 };
 
 class GameNetworkInterface : public SocketInterface
@@ -223,7 +224,7 @@ public:
     GameNetworkInterface( GamePacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
     {
         EnablePacketEncryption();
-        DisableEncryptionForPacketType( PACKET_CONNECTION_REQUEST );
+        DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
     ~GameNetworkInterface()

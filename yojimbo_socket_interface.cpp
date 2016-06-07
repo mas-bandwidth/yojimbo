@@ -291,7 +291,7 @@ namespace yojimbo
                 break;
             }
 
-            uint64_t sequence;
+            uint64_t sequence = 0;
 
             const uint8_t * key = m_encryptionManager.GetReceiveKey( address, GetTime() );
 
@@ -316,7 +316,7 @@ namespace yojimbo
             }
 
             PacketEntry entry;
-            entry.sequence = 0;
+            entry.sequence = sequence;
             entry.packet = packet;
             entry.address = address;
 
