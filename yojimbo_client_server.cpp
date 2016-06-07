@@ -79,19 +79,12 @@ namespace yojimbo
         return true;
     }
 
-    bool GenerateChallengeToken( const ConnectToken & connectToken, const Address & clientAddress, const Address & serverAddress, const uint8_t * connectTokenMac, ChallengeToken & challengeToken )
+    bool GenerateChallengeToken( const ConnectToken & connectToken, const uint8_t * connectTokenMac, ChallengeToken & challengeToken )
     {
         if ( connectToken.clientId == 0 )
             return false;
 
-        if ( !clientAddress.IsValid() )
-            return false;
-
         challengeToken.clientId = connectToken.clientId;
-
-        challengeToken.clientAddress = clientAddress;
-        
-        challengeToken.serverAddress = serverAddress;
 
         memcpy( challengeToken.connectTokenMac, connectTokenMac, MacBytes );
 
@@ -488,7 +481,7 @@ namespace yojimbo
         return false;
     }
 
-    void Server::ConnectClient( int clientIndex, const ChallengeToken & challengeToken )
+    void Server::ConnectClient( int clientIndex, const Address & clientAddress, const ChallengeToken & challengeToken )
     {
         assert( IsRunning() );
         assert( clientIndex >= 0 );
@@ -505,9 +498,9 @@ namespace yojimbo
 
         m_clientConnected[clientIndex] = true;
         m_clientId[clientIndex] = challengeToken.clientId;
-        m_clientAddress[clientIndex] = challengeToken.clientAddress;
+        m_clientAddress[clientIndex] = clientAddress;
 
-        m_clientData[clientIndex].address = challengeToken.clientAddress;
+        m_clientData[clientIndex].address = clientAddress;
         m_clientData[clientIndex].clientId = challengeToken.clientId;
         m_clientData[clientIndex].connectTime = time;
         m_clientData[clientIndex].lastPacketSendTime = time;
@@ -652,7 +645,7 @@ namespace yojimbo
         }
 
         ChallengeToken challengeToken;
-        if ( !GenerateChallengeToken( connectToken, address, m_serverAddress, packet.connectTokenData, challengeToken ) )
+        if ( !GenerateChallengeToken( connectToken, packet.connectTokenData, challengeToken ) )
         {
             m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_GENERATE]++;
             return;
@@ -687,18 +680,6 @@ namespace yojimbo
         if ( !DecryptChallengeToken( packet.challengeTokenData, challengeToken, NULL, 0, packet.challengeTokenNonce, m_privateKey ) )
         {
             m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_DECRYPT]++;
-            return;
-        }
-
-        if ( challengeToken.clientAddress != address )
-        {
-            m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_CLIENT_ADDRESS_DOES_NOT_MATCH]++;
-            return;
-        }
-
-        if ( challengeToken.serverAddress != m_serverAddress )
-        {
-            m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_SERVER_ADDRESS_DOES_NOT_MATCH]++;
             return;
         }
 
@@ -739,7 +720,7 @@ namespace yojimbo
         if ( clientIndex == -1 )
             return;
 
-        ConnectClient( clientIndex, challengeToken );
+        ConnectClient( clientIndex, address, challengeToken );
     }
 
     void Server::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address )

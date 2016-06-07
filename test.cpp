@@ -839,7 +839,7 @@ void test_client_server_tokens()
     Address clientAddress( "::1", ClientPort );
 
     ChallengeToken challengeToken;
-    if ( !GenerateChallengeToken( connectToken, clientAddress, serverAddresses[0], connectTokenData, challengeToken ) )
+    if ( !GenerateChallengeToken( connectToken, connectTokenData, challengeToken ) )
     {
         printf( "error: failed to generate challenge token\n" );
         exit( 1 );
@@ -859,8 +859,6 @@ void test_client_server_tokens()
     }
 
     check( challengeToken.clientId == clientId );
-    check( challengeToken.clientAddress == clientAddress );
-    check( challengeToken.serverAddress == serverAddresses[0] );
     check( memcmp( challengeToken.connectTokenMac, connectTokenData, MacBytes ) == 0 );
     check( memcmp( challengeToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
     check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );

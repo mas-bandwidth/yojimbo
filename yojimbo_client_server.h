@@ -157,7 +157,7 @@ namespace yojimbo
 
     bool DecryptConnectToken( const uint8_t * encryptedMessage, ConnectToken & decryptedToken, const uint8_t * additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
 
-    bool GenerateChallengeToken( const ConnectToken & connectToken, const Address & clientAddress, const Address & serverAddress, const uint8_t * connectTokenMac, ChallengeToken & challengeToken );
+    bool GenerateChallengeToken( const ConnectToken & connectToken, const uint8_t * connectTokenMac, ChallengeToken & challengeToken );
 
     bool EncryptChallengeToken( ChallengeToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
 
@@ -333,8 +333,6 @@ namespace yojimbo
         SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_GENERATE,
         SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_ENCRYPT,
         SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_DECRYPT,
-        SERVER_COUNTER_CHALLENGE_TOKEN_CLIENT_ADDRESS_DOES_NOT_MATCH,
-        SERVER_COUNTER_CHALLENGE_TOKEN_SERVER_ADDRESS_DOES_NOT_MATCH,
         SERVER_COUNTER_CHALLENGE_PACKETS_SENT,
         SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED,
         SERVER_COUNTER_CHALLENGE_RESPONSE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT,
@@ -457,7 +455,7 @@ namespace yojimbo
 
         int FindAddressAndClientId( const Address & address, uint64_t clientId ) const;
 
-        void ConnectClient( int clientIndex, const ChallengeToken & challengeToken );
+        void ConnectClient( int clientIndex, const Address & clientAddress, const ChallengeToken & challengeToken );
 
         void SendPacket( const Address & address, Packet * packet, bool immediate = false );
 
