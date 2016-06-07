@@ -27,6 +27,74 @@ Monday June 6th, 2016
 
     Added test for client connect token being invalid (random data).
 
+    Add tests for typical challenge token exploits.
+
+    To do this I will need to be able to create a modified version of the client
+    that gets the challenge token and then saves it off, so it can be stored
+    and then reused by another client with a different address.
+
+    Attacks to protect against are:
+
+    reuse of the same challenge token, from a different client address (impersonation)
+
+    reuse of the same challenge token, on a different server (going wide and trying to join servers)
+
+    using an expired challenge token
+
+    getting through with an invalid challenge token.
+
+    It's really difficult to see how I can keep the client/server code clean in Yojimbo,
+    while still provide enough flexibility to override behavior and test these cases above.
+
+    Need to think about this for a while!  
+
+    ...
+
+    It seems that the least disruptive way to handle this is for the derived client and server
+    to be able to access data members of the parent class, so it can be inspected, modified
+    and messed with, allowing the derived classes to read data and changed behavior.
+
+    Two key pieces of tech are needed:
+
+    1. a client needs to try to connect, stash the challenge token when it receives it, and stop connect (without clearing connect token)
+
+    2. a client needs to be *forced* into a connection challenge response state with a specified server address and challenge token
+
+    3. a way for the server to construct an older challenge token, eg. with an already expired timestamp
+
+    If I can implement these, I should be able to implement all the tests required for challenge token.
+
+    Made data members in yojimbo client/server protected rather than private.
+
+    Implement client connect, stash token and abort.
+
+    Add accessor to grab challenge token.
+
+    Add function "ForceIntoConnectionChallengeResponse" that takes challenge token, server address etc.
+
+    Did all this, but the challenge response token doesn't get through because the server doesn't have an
+    encryption mapping added for the address.
+
+    The only way to get a valid encryption mapping setup is to have a valid connect token for your
+    address and the server...
+
+    So I don't actually think it is possible in the real world to do challenge token attacks,
+    because the challenge token must follow a gated connect token...
+
+    Is this worth testing futher given this fact?!
+
+    It seems I would need to actually hack up the server so that for some reason it has an encryption mapping
+    for the second client.
+
+    I guess it's worth testing, but really practically I don't think this makes stuff any more secure
+
+    It is just like another layer of security if somehow the connect tokens are broken...
+
+    But if connect tokens are broken, the whole system breaks down....
+
+    OK. Hacked up an encryption mapping on the server interface somehow. Now the codepath is exercised,
+    but this is still I think not actually a valid attack vector in the wild.
+
 
 Sunday June 5th, 2016
 =====================

@@ -1,55 +1,16 @@
 DONE
-    
-    Add tests for typical challenge token exploits.
-
-    To do this I will need to be able to create a modified version of the client
-    that gets the challenge token and then saves it off, so it can be stored
-    and then reused by another client with a different address.
-
-    Attacks to protect against are:
-
-    reuse of the same challenge token, from a different client address (impersonation)
-
-    reuse of the same challenge token, on a different server (going wide and trying to join servers)
-
-    using an expired challenge token
-
-    getting through with an invalid challenge token.
-
-    It's really difficult to see how I can keep the client/server code clean in Yojimbo,
-    while still provide enough flexibility to override behavior and test these cases above.
-
-    Need to think about this for a while!  
-
-    It seems that the least disruptive way to handle this is for the derived client and server
-    to be able to access data members of the parent class, so it can be inspected, modified
-    and messed with, allowing the derived classes to read data and changed behavior.
-
-    Two key pieces of tech are needed:
-
-    1. a client needs to try to connect, stash the challenge token when it receives it, and stop connect (without clearing connect token)
-
-    2. a client needs to be *forced* into a connection challenge response state with a specified server address and challenge token
-
-    3. a way for the server to construct an older challenge token, eg. with an already expired timestamp
-
-    If I can implement these, I should be able to implement all the tests required for challenge token.
-
-    Made data members in yojimbo client/server protected rather than private.
 
 TODO
 
-    Implement client connect, stash token and abort.
+    ---------------
 
-    Add accessor to grab challenge token.
+    Add test for token being sent to a different server than the one initially sent to.
 
-    Add function "ForceIntoConnectionChallengeResponse" that takes challenge token, server address etc.
-
-    ^---- this should be called after faking the same connect with all the same client connect data (from the original client)
+    ---------------
 
     Implement way to override construction of the challenge token so it has an early expiry, or a complete
     overriden version of the function that generates the challenge token, and then makes a modification to it
-    before returning it?
+    before returning it?    
 
     ---------------
 

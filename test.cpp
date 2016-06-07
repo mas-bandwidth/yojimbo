@@ -610,17 +610,6 @@ void test_packet_sequence()
     }
 }
 
-void PrintBytes( const uint8_t * data, int data_bytes )
-{
-    for ( int i = 0; i < data_bytes; ++i )
-    {
-        printf( "%02x", (int) data[i] );
-        if ( i != data_bytes - 1 )
-            printf( "-" );
-    }
-    printf( " (%d bytes)", data_bytes );
-}
-
 #include <sodium.h>
 
 void test_packet_encryption()
@@ -654,15 +643,8 @@ void test_packet_encryption()
     const uint8_t expected_encrypted_packet[] = { 0xfa, 0x6c, 0x91, 0xf7, 0xef, 0xdc, 0xed, 0x22, 0x09, 0x23, 0xd5, 0xbf, 0xa1, 0xe9, 0x17, 0x70, 0x14 };
     if ( encrypted_length != expected_encrypted_length || memcmp( expected_encrypted_packet, encrypted_packet, encrypted_length ) != 0 )
     {
-        printf( "\npacket encryption failure!\n" );
-
-        printf( " expected: " );
-        PrintBytes( expected_encrypted_packet, expected_encrypted_length );
-        printf( "\n" );
-
-        printf( "      got: " );
-        PrintBytes( encrypted_packet, encrypted_length );
-        printf( "\n\n" );
+        printf( "error: packet encryption failed\n" );
+        exit(1);
     }
 
     uint8_t decrypted_packet[2048];
@@ -946,8 +928,6 @@ public:
     {
         SetPrivateKey( private_key );
     }
-
-    // ...
 };
 
 class TestClient : public Client
@@ -1499,7 +1479,7 @@ void test_client_server_server_side_disconnect()
         client.CheckForTimeOut();
         server.CheckForTimeOut();
 
-        time += 0.1f;
+        time += 1.0f;
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
@@ -1585,7 +1565,7 @@ void test_client_server_connection_request_timeout()
     }
 
     check( client.ConnectionFailed() );
-    check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
 }
 
 void test_client_server_connection_response_timeout()
@@ -1827,7 +1807,7 @@ void test_client_server_server_side_timeout()
     }
 
     check( !client.IsConnected() );
-    check( client.GetState() == CLIENT_STATE_CONNECTION_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_TIMED_OUT );
 }
 
 struct ClientData
@@ -2048,7 +2028,7 @@ void test_client_server_server_is_full()
 
         time += 0.1f;
 
-        if ( clientData[NumClients].client->GetState() == CLIENT_STATE_CONNECTION_DENIED )
+        if ( clientData[NumClients].client->GetClientState() == CLIENT_STATE_CONNECTION_DENIED )
             break;
 
         for ( int j = 0; j <= NumClients; ++j )
@@ -2064,7 +2044,7 @@ void test_client_server_server_is_full()
     }
 
     check( server.GetNumConnectedClients() == NumClients );
-    check( clientData[NumClients].client->GetState() == CLIENT_STATE_CONNECTION_DENIED );
+    check( clientData[NumClients].client->GetClientState() == CLIENT_STATE_CONNECTION_DENIED );
     for ( int i = 0; i < NumClients; ++i )
     {
         check( clientData[i].client->IsConnected() );
@@ -2216,7 +2196,7 @@ void test_client_server_connect_token_reuse()
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
-    check( client2.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED ) > 0 );
 }
 
@@ -2306,7 +2286,7 @@ void test_client_server_connect_token_expiry()
 
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_EXPIRED ) > 0 );
-    check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
 }
 
 void test_client_server_connect_token_whitelist()
@@ -2403,7 +2383,7 @@ void test_client_server_connect_token_whitelist()
 
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_SERVER_ADDRESS_NOT_IN_WHITELIST ) > 0 );
-    check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
 }
 
 void test_client_server_connect_token_invalid()
@@ -2485,7 +2465,310 @@ void test_client_server_connect_token_invalid()
 
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_FAILED_TO_DECRYPT ) > 0 );
-    check( client.GetState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+}
+
+class HackedClient : public Client
+{
+    bool m_captureChallengeToken;
+
+public:
+
+    HackedClient( NetworkInterface & networkInterface ) : Client( networkInterface )
+    {
+        m_captureChallengeToken = false;
+    }
+
+    void CaptureChallengeToken()
+    {
+        m_captureChallengeToken = true;
+    }
+
+    virtual void OnClientStateChange( int /*previous*/, int current )
+    {
+        if ( m_captureChallengeToken && current == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
+        {
+            SetClientState( CLIENT_STATE_CONNECTION_DENIED );
+        }
+    }
+
+    const uint8_t * GetChallengeTokenData() const
+    {
+        return m_challengeTokenData;
+    }
+
+    const uint8_t * GetChallengeTokenNonce() const
+    {
+        return m_challengeTokenNonce;
+    }
+
+    void ForceConnectionResponse( const uint8_t * challengeTokenData, const uint8_t * challengeTokenNonce )
+    {
+        memcpy( m_challengeTokenData, challengeTokenData, ChallengeTokenBytes );
+        memcpy( m_challengeTokenNonce, challengeTokenNonce, NonceBytes );
+        SetClientState( CLIENT_STATE_SENDING_CHALLENGE_RESPONSE );
+    }
+};
+
+void PrintBytes( const char * label, const uint8_t * data, int data_bytes )
+{
+    printf( "%s: ", label );
+    for ( int i = 0; i < data_bytes; ++i )
+    {
+        printf( "%02x", (int) data[i] );
+        if ( i != data_bytes - 1 )
+            printf( "-" );
+    }
+    printf( " (%d bytes)\n", data_bytes );
+}
+
+void test_client_server_challenge_token_reuse()
+{
+    printf( "test_client_server_challenge_token_reuse\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    // first connect a hacked client and capture the challenge token data and nonce
+
+    HackedClient client( clientInterface );
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    client.CaptureChallengeToken();
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += 0.1f;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_DENIED );
+
+    // now force a second client (w. different address) immediately into sending challenge response
+    // with the captured challenge token data and nonce. this second client connect should be rejected!
+
+    Address clientAddress2( "::1", ClientPort + 1 );
+
+    TestNetworkInterface clientInterface2( packetFactory, ClientPort + 1 );
+
+    if ( clientInterface2.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client 2 socket\n" );
+        exit( 1 );
+    }
+    
+    HackedClient client2( clientInterface2 );
+
+    serverInterface.AddEncryptionMapping( clientAddress2, serverToClientKey, clientToServerKey );
+
+    client2.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    client2.ForceConnectionResponse( client.GetChallengeTokenData(), client.GetChallengeTokenNonce() );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client2.SendPackets();
+        server.SendPackets();
+
+        clientInterface2.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface2.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client2.ReceivePackets();
+        server.ReceivePackets();
+
+        client2.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client2.ConnectionFailed() )
+            break;
+
+        time += 1.0f;
+
+        client2.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface2.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( client2.GetClientState() == CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT );
+    check( server.GetCounter( SERVER_COUNTER_CHALLENGE_TOKEN_CLIENT_ADDRESS_DOES_NOT_MATCH ) > 0 );
+}
+
+void test_client_server_challenge_token_expiry()
+{
+    printf( "test_client_server_challenge_token_expiry\n" );
+
+    // todo
+}
+
+void test_client_server_challenge_token_whitelist()
+{
+    printf( "test_client_server_challenge_token_whitelist\n" );
+
+    // todo
+}
+
+void test_client_server_challenge_token_invalid()
+{
+    printf( "test_client_server_challenge_token_invalid\n" );
+
+    printf( "test_client_server_challenge_token_reuse\n" );
+
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    memset( connectTokenData, 0, ConnectTokenBytes );
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    GenerateKey( clientToServerKey );
+    GenerateKey( clientToServerKey );
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+    
+    serverInterface.AddEncryptionMapping( clientAddress, serverToClientKey, clientToServerKey );
+
+    HackedClient client( clientInterface );
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    client.ForceConnectionResponse( client.GetChallengeTokenData(), client.GetChallengeTokenNonce() );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += 1.0f;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( client.GetClientState() == CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT );
+    check( server.GetCounter( SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_DECRYPT ) > 0 );
 }
 
 int main()
@@ -2526,11 +2809,10 @@ int main()
         test_client_server_connect_token_expiry();
         test_client_server_connect_token_whitelist();
         test_client_server_connect_token_invalid();
-
-        // todo: challenge token reuse (different client address)
-        // todo: challenge token expiry
-        // todo: challenge token whitelist (different server address)
-        // todo: challenge token invalid (random bytes)
+        test_client_server_challenge_token_reuse();
+        test_client_server_challenge_token_expiry();
+        test_client_server_challenge_token_whitelist();
+        test_client_server_challenge_token_invalid();
     }
 
     memory_shutdown();

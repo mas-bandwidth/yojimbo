@@ -557,7 +557,7 @@ namespace yojimbo
 
         bool ConnectionFailed() const;
 
-        ClientState GetState() const;
+        ClientState GetClientState() const;
 
         void Disconnect( int clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
 
