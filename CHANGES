@@ -21,6 +21,52 @@ Tuesday June 7th, 2016
 
     So removing all this complexity, it doesn't add any security at all!
 
+    Extend the packet factory so additional packet types above the client/server packet set can be sent and received.
+
+    This needs to be tested, and easy to do, as this is the common situation, extend the client/server
+    packet types with your own that must be processed.
+
+    What needs to be done to client and server classes so they can let derived classes handle custom packet types?
+
+    To get started there must be a base set of packet enums, packet factory in yojimbo_client_server.h/cpp
+
+    After this is going it must be possible to *extend* this packet factory to add new user packets.
+
+    Get this working with existing client/server harness and tests.
+
+    There is already a ClientServerPacketFactory inside yojimbo_client_server.h
+
+    Derive a GamePacketFactory inside test.cpp and add "game packet".
+
+    Rename PACKET_* in yojimbo client server to CLIENT_SERVER_PACKET_* so they cannot conflict with user packet types.
+
+    Made ClientServerPacketFactory ctor take in # of packet types, so the user can add more packet types.
+
+    Now add a test that verifies game packet payload gets through in both directions (eg. send 10 packets each way)
+
+    Extended game packet so it has sequence and 3 dependent variables that can be checked vs. that sequence
+    this way I know that the game packets are actaully getting through uncorrupted.
+
+    Added function to look up connected client by address
+
+    Extended GameClient and GameServer in test.cpp to have framework for sending and receiving game packets and counting # received.
+
+    Added code to actually send game packets from client -> server and server -> client.
+
+    Now need to implement a process packet for client and server, which return false if the packet is to be rejected.
+
+    This way if it returns false, don't consider that packet towards any timeout credits (eg. time last packet recv'd)
+
+    Call the base process packet for all packets inside yojimbo client/server and adjust so all the timeout stuff is done
+    on the return code for that process packet function.
+
+    Next add a ProcessGamePacket for both, that is an override, returns false by default. Override it and return true
+    for any packets the game recognizes, but only call it for packet types not recognized by base client/server.
+
+    Implement client and server side and now test passes. Game packets are getting across.
+
+    When receiving game packets in the test make sure all encrypted packets have sequence > 0 when received. eg. correct nonce.
+
 
 Monday June 6th, 2016
 =====================

@@ -4,33 +4,13 @@ TODO
 
     ---------------
 
-    Implement way to override construction of the challenge token so it has an early expiry, or a complete
-    overriden version of the function that generates the challenge token, and then makes a modification to it
-    before returning it?    
-
-    Add a test for the challenge token expiry case.
-
-    ---------------
-
-    Verify that packets sent over the network once client/server are connected have valid sequence #s and these sequence #s 
-    are not always zero (make sure proper sequence #s are used)
-
     Make sure that encrypted packet packets can't get through if they are sent unencrypted. V.important obviously.
-
-    ---------------
-
-    Extend the packet factory so additional packet types above the client/server packet set can be sent and received.
-
-    This needs to be tested, and easy to do, as this is the common situation, extend the client/server
-    packet types with your own that must be processed.
-
-    What needs to be done to client and server classes so they can let derived classes handle custom packet types?
 
     -------------------
 
     Design in the concept of both secure and insecure connects at the same time.
 
-    Eg. should be secure by default, but the server can be opened up into insecure mode.
+    Eg. should be secure by default, but the server can be switched into insecure mode.
 
     In this mode, packets that are normally encrypted are globally allowed to be received unencrypted.
 
@@ -38,13 +18,16 @@ TODO
 
     Server allows insecure connections, eg. direct to slot without challenge token.
 
+    Don't put any effort into making this secure or robust... this is just a testing mode
+    for the client so they can connect ad-hoc to servers without going through a matchmaker.
+
     -------------------
 
-    Also make the heartbeat only get sent if a packet hasn't been sent for heartbeat rate...
+    Don't send the heartbeat packet if other packets have been sent recently, eg. don't send if redundant.
 
-    Don't send them redundantly when other packets are being fired across. Same for client -> server.
-
-    Make sure that received packets, even unknown ones per-the base class let the timeout reset on receive.
+    Make sure to do this *only* once the connection has been established. You don't want to miss the first
+    game packet sent through (discard) because you are not connected. eg. keep sending heartbeats until
+    fully connected on that side, even if other packets are sent.
 
     -------------------
 
@@ -52,20 +35,27 @@ TODO
     but by composition using base classes so this functionality can easily be reimplemented for other interfaces,
     eg. a network interface implementation that goes over boost asio instead of BSD sockets for example.
 
-    -------------------
-
-    Possibly implement open/close support for the server.
-
-    Implement a disconnect all clients function.
-
-    If closed while players are connected, disconnect all clients.
-
-    Perhaps open could accept max # of clients?
+    Also in the simulator. The simulator should have the same aggregation behavior.
 
     -------------------
 
     Bring across the reliable ordered event system and large block sender.
 
     Store this reliability level system inside the client/server, have one of these endpoints per-client slot.
+
+    -------------------
+
+    It's annoying that the network interface has to:
+
+    a) manually enable encryption and disable encryption for connection request packet type
+
+    b) clear send and recv queues manually in destructor
+
+    -------------------
+
+    Need to clean up the simulator and create a network interface around the simulator (or implement that interface directly...)
+
+    This is important for tests because even over loopback occasionally packets don't get through (due to thread race)
+    which is breaking my functional tests 1/10 runs or so.
 
     -------------------
