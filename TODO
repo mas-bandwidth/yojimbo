@@ -4,13 +4,11 @@ TODO
 
     ---------------
 
-    Add test for token being sent to a different server than the one initially sent to.
-
-    ---------------
-
     Implement way to override construction of the challenge token so it has an early expiry, or a complete
     overriden version of the function that generates the challenge token, and then makes a modification to it
     before returning it?    
+
+    Add a test for the challenge token expiry case.
 
     ---------------
 
