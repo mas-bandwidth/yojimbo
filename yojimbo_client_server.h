@@ -118,10 +118,6 @@ namespace yojimbo
     {
         uint64_t clientId;                                                  // the unique client id. max one connection per-client id, per-server.
 
-        Address clientAddress;                                              // client address corresponding to the initial connection request.
-
-        Address serverAddress;                                              // client address corresponding to the initial connection request.
-
         uint8_t connectTokenMac[MacBytes];                                  // mac of the initial connect token this challenge corresponds to.
      
         uint8_t clientToServerKey[KeyBytes];                                // the key for encrypted communication from client -> server.
@@ -142,10 +138,6 @@ namespace yojimbo
         template <typename Stream> bool Serialize( Stream & stream )
         {
             serialize_uint64( stream, clientId );
-            
-            serialize_address( stream, clientAddress );
-
-            serialize_address( stream, serverAddress );
 
             serialize_bytes( stream, connectTokenMac, MacBytes );
 
