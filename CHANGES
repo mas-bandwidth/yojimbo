@@ -67,6 +67,8 @@ Tuesday June 7th, 2016
 
     When receiving game packets in the test make sure all encrypted packets have sequence > 0 when received. eg. correct nonce.
 
+    Added a test for unencrypted packets not getting through if encrypted.
+
 
 Monday June 6th, 2016
 =====================

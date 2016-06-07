@@ -335,7 +335,7 @@ struct TestPacketFactory : public PacketFactory
 
 void test_packets()
 {
-    printf( "test packets\n" );
+    printf( "test_packets\n" );
 
     TestPacketFactory packetFactory;
 
@@ -612,9 +612,9 @@ void test_packet_sequence()
 
 #include <sodium.h>
 
-void test_packet_encryption()
+void test_encrypt_and_decrypt()
 {
-    printf( "test_packet_encryption\n" );
+    printf( "test_encrypt_and_decrypt\n" );
 
     using namespace yojimbo;
 
@@ -1094,6 +1094,72 @@ public:
         ClearReceiveQueue();
     }
 };
+
+void test_unencrypted_packets()
+{
+    printf( "test_unencrypted_packets\n" );
+
+    const int ClientPort = 30000;
+    const int ServerPort = 40000;
+
+    GamePacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+
+    // make sure that encrypted packet types will *not* be received if they are sent as unencrypted
+
+    check( clientInterface.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
+    check( serverInterface.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
+
+    clientInterface.DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+
+    check( !clientInterface.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
+
+    const int NumIterations = 32;
+
+    int numPacketsReceived = 0;
+
+    double time = 0.0;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Packet * sendPacket = clientInterface.CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+        check( sendPacket );
+        clientInterface.SendPacket( serverAddress, sendPacket, 0, false );
+
+        clientInterface.WritePackets();
+
+        serverInterface.ReadPackets();
+
+        while ( true )
+        {
+            Address address;
+            uint64_t sequence;
+            Packet * packet = serverInterface.ReceivePacket( address, &sequence );
+            if ( !packet )
+                break;
+            if ( packet->GetType() == CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT )
+                numPacketsReceived++;
+        }
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+
+        time += 0.1;
+    }
+
+    check( numPacketsReceived == 0 );
+}
 
 void test_client_server_connect()
 {
@@ -2756,8 +2822,9 @@ int main()
         test_address_ipv4();
         test_address_ipv6();
         test_packet_sequence();
-        test_packet_encryption();
+        test_encrypt_and_decrypt();
         test_encryption_manager();
+        test_unencrypted_packets();
         test_client_server_tokens();
         test_client_server_connect();
         test_client_server_reconnect();
