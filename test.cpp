@@ -2479,9 +2479,9 @@ public:
         m_captureChallengeToken = false;
     }
 
-    void CaptureChallengeToken()
+    void SetCaptureChallengeToken( bool flag )
     {
-        m_captureChallengeToken = true;
+        m_captureChallengeToken = flag;
     }
 
     virtual void OnClientStateChange( int /*previous*/, int current )
@@ -2579,7 +2579,7 @@ void test_client_server_challenge_token_reuse()
 
     client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    client.CaptureChallengeToken();
+    client.SetCaptureChallengeToken( true );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2677,7 +2677,155 @@ void test_client_server_challenge_token_whitelist()
 {
     printf( "test_client_server_challenge_token_whitelist\n" );
 
-    // todo
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestClientServerPacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    // first connect a hacked client and capture the challenge token data and nonce
+
+    HackedClient client( clientInterface );
+
+    TestServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    client.SetCaptureChallengeToken( true );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += 0.1f;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_DENIED );
+
+    // now start up a second server on a different address and try to reuse the challenge token with that server
+
+    client.SetCaptureChallengeToken( false );
+
+    Address serverAddress2( "::1", ServerPort + 1 );
+
+    TestNetworkInterface serverInterface2( packetFactory, ServerPort + 1 );
+
+    if ( serverInterface2.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize server 2 socket\n" );
+        exit( 1 );
+    }
+    
+    TestServer server2( serverInterface2 );
+
+    server2.SetServerAddress( serverAddress2 );
+    
+    server2.Start();
+
+    serverInterface2.AddEncryptionMapping( clientAddress, serverToClientKey, clientToServerKey );
+
+    uint8_t challengeTokenData[ChallengeTokenBytes];
+    uint8_t challengeTokenNonce[NonceBytes];
+
+    memcpy( challengeTokenData, client.GetChallengeTokenData(), ChallengeTokenBytes );
+    memcpy( challengeTokenNonce, client.GetChallengeTokenNonce(), NonceBytes );
+
+    client.Connect( clientId, serverAddress2, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    client.ForceConnectionResponse( challengeTokenData, challengeTokenNonce );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server2.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface2.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface2.ReadPackets();
+
+        client.ReceivePackets();
+        server2.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server2.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += 1.0f;
+
+        client.AdvanceTime( time );
+        server2.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface2.AdvanceTime( time );
+    }
+
+    check( client.GetClientState() == CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT );
+    check( server2.GetCounter( SERVER_COUNTER_CHALLENGE_TOKEN_SERVER_ADDRESS_DOES_NOT_MATCH ) > 0 );
 }
 
 void test_client_server_challenge_token_invalid()
