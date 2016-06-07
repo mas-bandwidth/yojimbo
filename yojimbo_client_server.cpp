@@ -680,7 +680,7 @@ namespace yojimbo
         assert( IsRunning() );
 
         const double time = GetTime();
-        
+
         m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED]++;
 
         ChallengeToken challengeToken;
@@ -853,7 +853,7 @@ namespace yojimbo
         return m_clientState < CLIENT_STATE_DISCONNECTED;
     }
 
-    ClientState Client::GetState() const
+    ClientState Client::GetClientState() const
     { 
         return m_clientState;
     }
