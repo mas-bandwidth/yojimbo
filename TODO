@@ -2,6 +2,23 @@ DONE
 
 TODO
 
+    Removing any and all complexity from challenge token.
+
+    The client has already authenticated. The encryption mapping means that only that particular address/port
+    can respond with that challenge token, there was no timeout in the challenge token, so the encryption
+    mapping timeout was the thing that would expire the challenge response.
+
+    Point is all the challenge response does is say, OK, I'm the client, I actually got the data you
+    sent to me, and here is my response that can't really be authenticated.
+
+    You can never go wide on a challenge response because it needs a setup of the encryption mapping.
+
+    Encryption mapping setup can *only* happen with a connect token.
+
+    So any going wide hack with challenge token would necessitate an attack at the connect token level first.
+
+    So removing all this complexity, it doesn't add any security at all!
+
     ---------------
 
     Implement way to override construction of the challenge token so it has an early expiry, or a complete
