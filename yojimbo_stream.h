@@ -17,7 +17,6 @@
 
 namespace yojimbo
 {
-    // todo: move this somewhere else, and split apart the stuff that corresponds to stream errors vs. packet read/write errors
     #define YOJIMBO_PROTOCOL_ERROR_NONE                         0
     #define YOJIMBO_PROTOCOL_ERROR_CRC32_MISMATCH               1
     #define YOJIMBO_PROTOCOL_ERROR_INVALID_PACKET_TYPE          2

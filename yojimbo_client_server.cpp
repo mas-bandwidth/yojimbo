@@ -152,6 +152,8 @@ namespace yojimbo
 
         m_time = 0.0;
 
+        m_flags = 0;
+
         m_maxClients = -1;
 
         m_numConnectedClients = 0;
@@ -312,6 +314,11 @@ namespace yojimbo
         m_time = time;
     }
 
+    void Server::SetFlags( uint64_t flags )
+    {
+        m_flags = flags;
+    }
+
     bool Server::IsRunning() const
     {
         return m_maxClients > 0;
@@ -377,6 +384,11 @@ namespace yojimbo
     double Server::GetTime() const
     {
         return m_time;
+    }
+
+    uint64_t Server::GetFlags() const
+    {
+        return m_flags;
     }
 
     void Server::ResetClientState( int clientIndex )
@@ -561,6 +573,9 @@ namespace yojimbo
     {
         assert( IsRunning() );
 
+        if ( m_flags & SERVER_FLAG_IGNORE_CONNECTION_REQUESTS )
+            return;
+
         const double time = GetTime();
         
         m_counters[SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED]++;
@@ -662,6 +677,9 @@ namespace yojimbo
     void Server::ProcessConnectionResponse( const ConnectionResponsePacket & packet, const Address & address )
     {
         assert( IsRunning() );
+
+        if ( m_flags & SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES )
+            return;
 
         const double time = GetTime();
 
