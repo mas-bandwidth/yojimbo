@@ -13,6 +13,11 @@
 
 namespace yojimbo
 {
+    enum NetworkInterfaceFlags
+    {
+        NETWORK_INTERFACE_FLAG_INSECURE_MODE = (1<<0)
+    };
+
     class NetworkInterface
     {
     public:
@@ -50,6 +55,10 @@ namespace yojimbo
         virtual void AdvanceTime( double time ) = 0;
 
         virtual double GetTime() const = 0;
+
+        virtual void SetFlags( uint64_t flags ) = 0;
+
+        virtual uint64_t GetFlags() const = 0;
     };
 }
 

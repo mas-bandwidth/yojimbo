@@ -764,6 +764,27 @@ namespace yojimbo
         DisconnectClient( clientIndex, false );
     }
 
+#if YOJIMBO_INSECURE_CONNECT
+    void Server::ProcessInsecureConnect( const InsecureConnectPacket & /*packet*/, const Address & address )
+    {
+        assert( IsRunning() );
+
+        if ( ( GetFlags() & SERVER_FLAG_ALLOW_INSECURE_CONNECT ) == 0 )
+            return;
+
+        const int clientIndex = FindExistingClientIndex( address );
+        if ( clientIndex == -1 )
+            return;
+
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+
+        m_counters[SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS]++;
+
+        DisconnectClient( clientIndex, false );
+    }
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
     void Server::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
     {
 #if DEBUG
@@ -796,6 +817,12 @@ namespace yojimbo
             case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:
                 ProcessConnectionDisconnect( *(ConnectionDisconnectPacket*)packet, address );
                 return;
+
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_SERVER_PACKET_INSECURE_CONNECT:
+                ProcessInsecureConnect( *(InsecureConnectPacket*)packet, address );
+                return;
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
             default:
                 break;

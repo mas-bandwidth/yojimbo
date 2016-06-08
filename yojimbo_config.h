@@ -66,4 +66,6 @@
     
 #define YOJIMBO_NETWORK_SIMULATOR               1
 
+#define YOJIMBO_INSECURE_CONNECT                1                   // best to disable this in retail build
+
 #endif // #ifndef YOJIMBO_CONFIG_H

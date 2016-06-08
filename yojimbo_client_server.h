@@ -171,6 +171,7 @@ namespace yojimbo
         CLIENT_SERVER_PACKET_CONNECTION_RESPONSE,                     // client response to server connection challenge.
         CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT,                    // heartbeat packet sent at some low rate (once per-second) to keep the connection alive.
         CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT,                   // courtesy packet to indicate that the other side has disconnected. better than a timeout.
+        CLIENT_SERVER_PACKET_INSECURE_CONNECT,                        // client requests an insecure connection (dev only!)
         CLIENT_SERVER_NUM_PACKETS
     };
 
@@ -264,6 +265,22 @@ namespace yojimbo
         YOJIMBO_SERIALIZE_FUNCTIONS();
     };
 
+#if YOJIMBO_INSECURE_CONNECT
+    struct InsecureConnectPacket : public Packet
+    {
+        InsecureConnectPacket() : Packet( CLIENT_SERVER_PACKET_INSECURE_CONNECT )
+        {
+        }
+
+        template <typename Stream> bool Serialize( Stream & /*stream*/ )
+        {
+            return true;
+        }
+
+        YOJIMBO_SERIALIZE_FUNCTIONS();
+    };
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
     struct ClientServerPacketFactory : public PacketFactory
     {
         ClientServerPacketFactory( int numPackets ) : PacketFactory( numPackets ) {}
@@ -278,6 +295,9 @@ namespace yojimbo
                 case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        return new ConnectionResponsePacket();
                 case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       return new ConnectionHeartBeatPacket();
                 case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      return new ConnectionDisconnectPacket();
+#if YOJIMBO_INSECURE_CONNECT
+                case CLIENT_SERVER_PACKET_INSECURE_CONNECT:           return new InsecureConnectPacket();
+#endif // #if YOJIMBO_INSECURE_CONNECT
                 default:
                     return NULL;
             }
@@ -346,7 +366,8 @@ namespace yojimbo
     enum ServerFlags
     {
         SERVER_FLAG_IGNORE_CONNECTION_REQUESTS = (1<<0),
-        SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES = (1<<1)
+        SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES = (1<<1),
+        SERVER_FLAG_ALLOW_INSECURE_CONNECT = (1<<2)
     };
 
     class Server
@@ -484,6 +505,10 @@ namespace yojimbo
         void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address );
 
         void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address );
+
+#if YOJIMBO_INSECURE_CONNECT
+        void ProcessInsecureConnect( const InsecureConnectPacket & /*packet*/, const Address & address );
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
     };
