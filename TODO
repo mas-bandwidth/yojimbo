@@ -1,21 +1,42 @@
 DONE
 
+    Now implement the server-side processing of the insecure packet. Basically, take that packet, find a
+    free client slot and immediately accept or deny.
+
+    What to do if the client is already connected?
+
+    I think the insecure connect needs a salt.
+
+    If the same address is connected but with a different salt, ignore the connect.
+
+    No need to do the challenge response tho. That's for security and we don't need that here.
+
 TODO
+
+    Add salt to the insecure connect packet.
+
+    Add insecure connect state.
+
+    Implement client "InsecureConnect" that takes just the address, and goes into insecure connect state.
+
+    Generate a random salt on each call to insecure connect.
+
+    Make sure all this is wrapped with #if YOJIMBO_INSECURE_CONNECT
+
+    Get it to the point where it sends the insecure connect packets, and then if it gets a heartbeat back
+    it goes into fully connected mode.
 
     -------------------
 
-    Design in the concept of both secure and insecure connects at the same time.
+    Next on the server side process the insecure connect packets
 
-    Eg. should be secure by default, but the server can be switched into insecure mode.
+    Look for a matching client slot with the address and salt.
 
-    In this mode, packets that are normally encrypted are globally allowed to be received unencrypted.
+    If the address and salt match, reply with a heartbeat.
 
-    When the client connects insecure mode, all packets are sent insecure. No safety here.
+    Otherwise, if the address does not exist, add it, reply with heartbeat.
 
-    Server allows insecure connections, eg. direct to slot without challenge token.
-
-    Don't put any effort into making this secure or robust... this is just a testing mode
-    for the client so they can connect ad-hoc to servers without going through a matchmaker.
+    If the address exists, but the salt is different, deny the connection request.
 
     -------------------
 
