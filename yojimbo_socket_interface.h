@@ -46,6 +46,8 @@ namespace yojimbo
     {
         double m_time;
 
+        uint64_t m_flags;
+
         void * m_context;
 
         uint32_t m_protocolId;
@@ -67,6 +69,7 @@ namespace yojimbo
         Queue<PacketEntry> m_sendQueue;
         Queue<PacketEntry> m_receiveQueue;
 
+        uint8_t * m_allPacketTypes;
         uint8_t * m_packetTypeIsEncrypted;
         uint8_t * m_packetTypeIsUnencrypted;
 
@@ -132,6 +135,10 @@ namespace yojimbo
         double GetTime() const;
 
         uint64_t GetCounter( int index ) const;
+
+        void SetFlags( uint64_t flags );
+
+        uint64_t GetFlags() const;
     };
 }
 

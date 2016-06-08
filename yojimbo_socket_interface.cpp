@@ -34,6 +34,8 @@ namespace yojimbo
 
         m_time = 0.0;
 
+        m_flags = 0;
+
         m_context = NULL;
 
         m_allocator = &allocator;
@@ -57,9 +59,11 @@ namespace yojimbo
 
 		assert( numPacketTypes > 0 );
 
+        m_allPacketTypes = (uint8_t*) m_allocator->Allocate( numPacketTypes );
         m_packetTypeIsEncrypted = (uint8_t*) m_allocator->Allocate( numPacketTypes );
         m_packetTypeIsUnencrypted = (uint8_t*) m_allocator->Allocate( numPacketTypes );
 
+        memset( m_allPacketTypes, 1, m_packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsEncrypted, 0, m_packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
 
@@ -75,6 +79,7 @@ namespace yojimbo
 
         YOJIMBO_DELETE( *m_allocator, NetworkSocket, m_socket );
 
+        m_allocator->Free( m_allPacketTypes );
         m_allocator->Free( m_packetTypeIsEncrypted );
         m_allocator->Free( m_packetTypeIsUnencrypted );
 
@@ -82,6 +87,7 @@ namespace yojimbo
 
         m_socket = NULL;
         m_packetFactory = NULL;
+        m_allPacketTypes = NULL;
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
         m_packetProcessor = NULL;
@@ -234,7 +240,11 @@ namespace yojimbo
 
         int packetBytes;
 
+#if YOJIMBO_INSECURE_CONNECT
+        const bool encrypt = IsEncryptedPacketType( packet->GetType() ) && ( GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) == 0;
+#else // #if YOJIMBO_INSECURE_CONNECT
         const bool encrypt = IsEncryptedPacketType( packet->GetType() );
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
         const uint8_t * key = encrypt ? m_encryptionManager.GetSendKey( address, time ) : NULL;
 
@@ -297,7 +307,18 @@ namespace yojimbo
 
             bool encrypted = false;
 
-            Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, m_packetTypeIsEncrypted, m_packetTypeIsUnencrypted );
+            const uint8_t * encryptedPacketTypes = m_packetTypeIsEncrypted;
+            const uint8_t * unencryptedPacketTypes = m_packetTypeIsUnencrypted;
+
+#if YOJIMBO_INSECURE_CONNECT
+            if ( GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE )
+            {
+                encryptedPacketTypes = m_allPacketTypes;
+                unencryptedPacketTypes = m_allPacketTypes;
+            }
+#endif // #if YOJIMBO_INSECURE_CONNECT
+           
+            Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes );
 
             if ( !packet )
             {
@@ -393,5 +414,15 @@ namespace yojimbo
         assert( index >= 0 );
         assert( index < SOCKET_INTERFACE_COUNTER_NUM_COUNTERS );
         return m_counters[index];
+    }
+
+    void SocketInterface::SetFlags( uint64_t flags )
+    {
+        m_flags = flags;
+    }
+
+    uint64_t SocketInterface::GetFlags() const
+    {
+        return m_flags;
     }
 }

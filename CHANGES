@@ -76,6 +76,33 @@ Tuesday June 7th, 2016
 
     Implemented test for connection response timeout.
 
+    Design in the concept of both secure and insecure connects at the same time.
+
+    Eg. should be secure by default, but the server can be switched into insecure mode.
+
+    In this mode, packets that are normally encrypted are globally allowed to be received unencrypted.
+
+    Does the network interface also need to be put into an insecure mode?
+
+    I think it would need it, in order to know to always send packets insecure, otherwise it could get weird.
+
+    Start here.
+
+    Implement network interface flags, easy to extend for additional behavior.
+
+    Added flag for insecure mode: NETWORK_INTERFACE_FLAG_INSECURE_MODE
+
+    Now implement the insecure mode on the client and server.
+
+    I think the client should switch into insecure mode automatically on calling insecure connect.
+
+    But the server needs to explicitly enable insecure connects. via a flag?
+
+    Yes via a flag, but also needs to be completely compiled out of retail servers.
+
+    Make sure insecure connects are a separate packet, so they can be completely removed
+    and also so they have zero impact on normal connection codepath.
+
 
 Monday June 6th, 2016
 =====================
