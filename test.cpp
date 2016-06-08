@@ -417,17 +417,15 @@ void test_address_ipv4()
     }
 }
 
-// todo: this is annoying -- all this just for htons? -- just implement your own htons glenn
-#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
-#define NOMINMAX
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <ws2ipdef.h>
-#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+inline uint16_t test_htons( uint16_t input )
+{
+#if YOJIMBO_LITTLE_ENDIAN
+    return ( ( input & 0xFF ) << 8 ) | 
+           ( ( input & 0xFF00 ) >> 8 );
+#else
+    return input;
+#endif // #if YOJIMBO_LITTLE_ENDIAN
+}
 
 void test_address_ipv6()
 {
@@ -448,7 +446,7 @@ void test_address_ipv6()
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
-            check( htons( address6[i] ) == address.GetAddress6()[i] );
+            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, 256 ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
     }
@@ -463,7 +461,7 @@ void test_address_ipv6()
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
-            check( htons( address6[i] ) == address.GetAddress6()[i] );
+            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, 256 ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
     }
@@ -478,7 +476,7 @@ void test_address_ipv6()
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
-            check( htons( address6[i] ) == address.GetAddress6()[i] );
+            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, 256 ), "::1" ) == 0 );
     }
@@ -496,7 +494,7 @@ void test_address_ipv6()
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
-            check( htons( address6[i] ) == address.GetAddress6()[i] );
+            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, 256 ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
@@ -526,7 +524,7 @@ void test_address_ipv6()
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
-            check( htons( address6[i] ) == address.GetAddress6()[i] );
+            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, 256 ), "[::1]:65535" ) == 0 );
     }
@@ -1676,7 +1674,7 @@ void test_client_server_server_side_disconnect()
         client.CheckForTimeOut();
         server.CheckForTimeOut();
 
-        time += 1.0f;
+        time += 1.0;
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
@@ -1754,7 +1752,7 @@ void test_client_server_connection_request_timeout()
         if ( client.ConnectionFailed() )
             break;
 
-        time += 1.0f;
+        time += 1.0;
 
         client.AdvanceTime( time );
 
@@ -1769,7 +1767,90 @@ void test_client_server_connection_response_timeout()
 {
     printf( "test_client_server_connection_response_timeout\n" );
 
-    // todo: to do this one need to provide the server with a callback that can reject (ignore) processing of a challenge response
+    Matcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    GamePacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    GameClient client( clientInterface );
+
+    GameServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    server.SetFlags( SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES );
+
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += 1.0;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( client.ConnectionFailed() );
+    check( client.GetClientState() == CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT );
 }
 
 void test_client_server_client_side_timeout()
@@ -1876,7 +1957,7 @@ void test_client_server_client_side_timeout()
 
         server.CheckForTimeOut();
 
-        time += 1.0f;
+        time += 1.0;
 
         if ( server.GetNumConnectedClients() == 0 )
             break;
@@ -1993,7 +2074,7 @@ void test_client_server_server_side_timeout()
 
         client.CheckForTimeOut();
 
-        time += 1.0f;
+        time += 1.0;
 
         if ( !client.IsConnected() )
             break;
@@ -2378,7 +2459,7 @@ void test_client_server_connect_token_reuse()
         client2.CheckForTimeOut();
         server.CheckForTimeOut();
 
-        time += 1.0f;
+        time += 1.0;
 
         if ( client2.ConnectionFailed() )
             break;
@@ -2472,7 +2553,7 @@ void test_client_server_connect_token_expiry()
         if ( client.ConnectionFailed() )
             break;
 
-        time += 1.0f;
+        time += 1.0;
 
         client.AdvanceTime( time );
         server.AdvanceTime( time );
@@ -2569,7 +2650,7 @@ void test_client_server_connect_token_whitelist()
         if ( client.ConnectionFailed() )
             break;
 
-        time += 1.0f;
+        time += 1.0;
 
         client.AdvanceTime( time );
         server.AdvanceTime( time );
@@ -2651,7 +2732,7 @@ void test_client_server_connect_token_invalid()
         if ( client.ConnectionFailed() )
             break;
 
-        time += 1.0f;
+        time += 1.0;
 
         client.AdvanceTime( time );
         server.AdvanceTime( time );

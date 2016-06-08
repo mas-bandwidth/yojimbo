@@ -343,6 +343,12 @@ namespace yojimbo
         SERVER_COUNTER_NUM_COUNTERS
     };
 
+    enum ServerFlags
+    {
+        SERVER_FLAG_IGNORE_CONNECTION_REQUESTS = (1<<0),
+        SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES = (1<<1)
+    };
+
     class Server
     {
     protected:
@@ -354,6 +360,8 @@ namespace yojimbo
         uint64_t m_challengeTokenNonce;                                     // nonce used for encoding challenge tokens
 
         double m_time;                                                      // current server time (see "AdvanceTime")
+
+        uint64_t m_flags;                                                   // server flags
 
         int m_maxClients;                                                   // maximum number of clients supported by this server
 
@@ -403,6 +411,8 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
+        void SetFlags( uint64_t flags );
+
         // accessors
 
         bool IsRunning() const;
@@ -424,6 +434,8 @@ namespace yojimbo
         uint64_t GetCounter( int index ) const;
 
         double GetTime() const;
+
+        uint64_t GetFlags() const;
 
     protected:
 

@@ -2,10 +2,6 @@ DONE
 
 TODO
 
-    ---------------
-
-    Implement test_client_server_connection_response_timeout
-
     -------------------
 
     Design in the concept of both secure and insecure connects at the same time.
