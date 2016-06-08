@@ -69,6 +69,13 @@ Tuesday June 7th, 2016
 
     Added a test for unencrypted packets not getting through if encrypted.
 
+    Implement own htons - test_htons, so I don't have to include a bunch of stuff in test.cpp for manipulating addresses.
+
+    Added concept of server flags. Now can easily set custom behavior with a flag. Added flags to ignore connection requests
+    and another to ignore challenge responses.
+
+    Implemented test for connection response timeout.
+
 
 Monday June 6th, 2016
 =====================
