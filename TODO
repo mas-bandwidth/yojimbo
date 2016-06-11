@@ -11,11 +11,29 @@ DONE
 
     No need to do the challenge response tho. That's for security and we don't need that here.
 
-TODO
+    Add insecure connect state.
 
     Add salt to the insecure connect packet.
 
-    Add insecure connect state.
+    Idea: Instead of adding salt, make the client id a random number, and then stash per-client an insecure flag.
+
+    Why not add a concept of client flags, eg. uint32_t clientFlags[MaxClients]?
+
+    Or, make insecure clients have a client id of 0 and use the salt?
+
+    It's difficult to say what is best.
+
+    On one hand, a random 64bit number is extremely unlikely to collide.
+
+    On the other, what value is a client id anyway, if it is a random number for fake clients? Why not just make it zero with salt?
+
+    What if somebody during testing wanted to connect a client with a *known* client id, but insecurely. 
+
+    Complicated. What exactly is the use case for insecure connect?
+
+    For the moment, assume that insecure connect just won't establish a valid client id, eg. client id will be zero
+
+    Removed client id from connect function. Not used.
 
     Implement client "InsecureConnect" that takes just the address, and goes into insecure connect state.
 
@@ -23,12 +41,15 @@ TODO
 
     Make sure all this is wrapped with #if YOJIMBO_INSECURE_CONNECT
 
-    Get it to the point where it sends the insecure connect packets, and then if it gets a heartbeat back
-    it goes into fully connected mode.
+    Get it to the point where the client sends the insecure connect packets w. the salt
+
+TODO
 
     -------------------
 
     Next on the server side process the insecure connect packets
+
+    On the secure, and insecure connect, test if somebody is already connected with the same client id. If already connected, deny immediately. *ALREADY CONNECTED*
 
     Look for a matching client slot with the address and salt.
 
@@ -40,7 +61,13 @@ TODO
 
     -------------------
 
+    Now on the client take the heartbeat and go direct from insecure connect to connected if it's received.
+
+    -------------------
+
     Don't send the heartbeat packet if other packets have been sent recently, eg. don't send if redundant.
+
+    -------------------
 
     Make sure to do this *only* once the connection has been established. You don't want to miss the first
     game packet sent through (discard) because you are not connected. eg. keep sending heartbeats until

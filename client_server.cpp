@@ -299,7 +299,7 @@ int main()
 
         server.Start();
         
-        client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+        client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
         for ( int i = 0; i < NumIterations; ++i )
         {
