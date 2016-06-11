@@ -2,6 +2,14 @@ DONE
 
 TODO
 
+    Server compiles and runs on linux but obviously its hardcoded address is wrong.
+
+    Need a way to get the address of a network interface after the fact
+
+    And then that address can be automatically passed to the server, so it knows its address.
+
+    No need for "SetServerAddress" anymore, but leave it in in case the user wants to override.
+
     -------------------
     
     Setup the client so it can accept an IP address or port on the command line.
@@ -11,6 +19,8 @@ TODO
     -------------------
 
     Make sure both the client and server can compile and run on Windows.
+
+    eg. Need to implement platform_* functions for windows. I must have implementations somewhere.
 
     Verify cross connects, eg. windows -> mac client, mac -> windows connect. both -> linux.
 
