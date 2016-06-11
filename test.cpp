@@ -2877,6 +2877,87 @@ void test_client_server_game_packets()
     check( client.GetNumGamePacketsReceived() >= NumGamePackets && server.GetNumGamePacketsReceived( clientIndex ) >= NumGamePackets );
 }
 
+#if YOJIMBO_INSECURE_CONNECT
+
+void test_client_server_insecure_connect()
+{
+    printf( "test_client_server_insecure_connect\n" );
+
+    GamePacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client/server sockets\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    GameClient client( clientInterface );
+
+    GameServer server( serverInterface );
+
+    server.SetServerAddress( serverAddress );
+
+    clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+    serverInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+
+    server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
+
+    server.Start();
+
+    client.InsecureConnect( serverAddress );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+}
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -2917,6 +2998,9 @@ int main()
         test_client_server_connect_token_whitelist();
         test_client_server_connect_token_invalid();
         test_client_server_game_packets();
+#if YOJIMBO_INSECURE_CONNECT
+        test_client_server_insecure_connect();
+#endif // #if YOJIMBO_INSECURE_CONNECT
     }
 
     memory_shutdown();

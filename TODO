@@ -1,77 +1,31 @@
 DONE
 
-    Now implement the server-side processing of the insecure packet. Basically, take that packet, find a
-    free client slot and immediately accept or deny.
-
-    What to do if the client is already connected?
-
-    I think the insecure connect needs a salt.
-
-    If the same address is connected but with a different salt, ignore the connect.
-
-    No need to do the challenge response tho. That's for security and we don't need that here.
-
-    Add insecure connect state.
-
-    Add salt to the insecure connect packet.
-
-    Idea: Instead of adding salt, make the client id a random number, and then stash per-client an insecure flag.
-
-    Why not add a concept of client flags, eg. uint32_t clientFlags[MaxClients]?
-
-    Or, make insecure clients have a client id of 0 and use the salt?
-
-    It's difficult to say what is best.
-
-    On one hand, a random 64bit number is extremely unlikely to collide.
-
-    On the other, what value is a client id anyway, if it is a random number for fake clients? Why not just make it zero with salt?
-
-    What if somebody during testing wanted to connect a client with a *known* client id, but insecurely. 
-
-    Complicated. What exactly is the use case for insecure connect?
-
-    For the moment, assume that insecure connect just won't establish a valid client id, eg. client id will be zero
-
-    Removed client id from connect function. Not used.
-
-    Implement client "InsecureConnect" that takes just the address, and goes into insecure connect state.
-
-    Generate a random salt on each call to insecure connect.
-
-    Make sure all this is wrapped with #if YOJIMBO_INSECURE_CONNECT
-
-    Get it to the point where the client sends the insecure connect packets w. the salt
-
 TODO
 
     -------------------
 
-    Next on the server side process the insecure connect packets
+    Need to get some basic client/server setup running using actual sockets (insecure mode) 
 
-    On the secure, and insecure connect, test if somebody is already connected with the same client id. If already connected, deny immediately. *ALREADY CONNECTED*
+    Need a sleep functionality to get the client server working, eg. sleep( 0.1 )
 
-    Look for a matching client slot with the address and salt.
+    I have some code for this elsewhere, find it....
 
-    If the address and salt match, reply with a heartbeat.
-
-    Otherwise, if the address does not exist, add it, reply with heartbeat.
-
-    If the address exists, but the salt is different, deny the connection request.
+    Make sure this works across all platforms, this tests actual socket functionality.
 
     -------------------
 
-    Now on the client take the heartbeat and go direct from insecure connect to connected if it's received.
+    Clean up the simulator and create a network interface around the simulator (or implement that interface directly...)
 
-    -------------------
+    This is important for tests because even over loopback occasionally packets don't get through (due to thread race)
+    which is breaking my functional tests 1/10 runs or so.
 
-    Don't send the heartbeat packet if other packets have been sent recently, eg. don't send if redundant.
+    The simulator needs to *back* an interface, eg. a network simulator is created, and a simulator interface works on top of it.
 
-    -------------------
+    Move the tests over to use network simulator interfaces instead of sockets.
 
-    Make sure to do this *only* once the connection has been established. You don't want to miss the first
-    game packet sent through (discard) because you are not connected. eg. keep sending heartbeats until
-    fully connected on that side, even if other packets are sent.
+    Verify that the tests can run in soak mode, eg. reps and don't break. 
+
+    Make sure all tests pass with ridiculous packet loss as well (90%). Probably need to extend the # of iterations...
 
     -------------------
 
@@ -87,19 +41,14 @@ TODO
 
     Store this reliability level system inside the client/server, have one of these endpoints per-client slot.
 
-    -------------------
+    Consider how the ack system is going to integrate. Custom ack header with bits and so on per-packet? (aggregate packet header?)
 
-    It's annoying that the network interface has to:
+    Acks on a message id level instead of acks on a packet level? Who knows. A packet id that increases for each *message*
+    packet sent, with packet header just for that packet type? Sure. This is it. This way I don't need to send message
+    packets unless there are actually messages to be sent.
 
-    a) manually enable encryption and disable encryption for connection request packet type
+    The whole message packet system can be self contained with no bullshit. Awesome. 
 
-    b) clear send and recv queues manually in destructor
-
-    -------------------
-
-    Need to clean up the simulator and create a network interface around the simulator (or implement that interface directly...)
-
-    This is important for tests because even over loopback occasionally packets don't get through (due to thread race)
-    which is breaking my functional tests 1/10 runs or so.
+    Combine the ack system and the message packet into one system!
 
     -------------------

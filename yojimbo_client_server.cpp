@@ -223,9 +223,15 @@ namespace yojimbo
 
         if ( sendDisconnectPacket )
         {
-            ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );
+            for ( int i = 0; i < NumDisconnectPackets; ++i )
+            {
+                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );
 
-            SendPacketToConnectedClient( clientIndex, packet, true );
+                if ( packet )
+                {
+                    SendPacketToConnectedClient( clientIndex, packet, true );
+                }
+            }
         }
 
         ResetClientState( clientIndex );
@@ -263,7 +269,7 @@ namespace yojimbo
 
             ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
-            SendPacketToConnectedClient( i, packet, time );
+            SendPacketToConnectedClient( i, packet );
         }
     }
 
@@ -397,9 +403,6 @@ namespace yojimbo
         assert( clientIndex < MaxClients );
         m_clientConnected[clientIndex] = false;
         m_clientId[clientIndex] = 0;
-#if YOJIMBO_INSECURE_CONNECT
-        m_clientId[clientIndex] = 0;
-#endif // #if YOJIMBO_INSECURE_CONNECT
         m_clientAddress[clientIndex] = Address();
         m_clientData[clientIndex] = ServerClientData();
         m_clientSequence[clientIndex] = 0;
@@ -487,7 +490,7 @@ namespace yojimbo
         return false;
     }
 
-    void Server::ConnectClient( int clientIndex, const Address & clientAddress, const ChallengeToken & challengeToken )
+    void Server::ConnectClient( int clientIndex, const Address & clientAddress, uint64_t clientId )
     {
         assert( IsRunning() );
         assert( clientIndex >= 0 );
@@ -503,11 +506,11 @@ namespace yojimbo
         m_numConnectedClients++;
 
         m_clientConnected[clientIndex] = true;
-        m_clientId[clientIndex] = challengeToken.clientId;
+        m_clientId[clientIndex] = clientId;
         m_clientAddress[clientIndex] = clientAddress;
 
         m_clientData[clientIndex].address = clientAddress;
-        m_clientData[clientIndex].clientId = challengeToken.clientId;
+        m_clientData[clientIndex].clientId = clientId;
         m_clientData[clientIndex].connectTime = time;
         m_clientData[clientIndex].lastPacketSendTime = time;
         m_clientData[clientIndex].lastPacketReceiveTime = time;
@@ -518,7 +521,7 @@ namespace yojimbo
 
         if ( connectionHeartBeatPacket )
         {
-            SendPacketToConnectedClient( clientIndex, connectionHeartBeatPacket, time );
+            SendPacketToConnectedClient( clientIndex, connectionHeartBeatPacket );
         }
     }
 
@@ -579,8 +582,6 @@ namespace yojimbo
         if ( m_flags & SERVER_FLAG_IGNORE_CONNECTION_REQUESTS )
             return;
 
-        const double time = GetTime();
-        
         m_counters[SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED]++;
 
         ConnectToken connectToken;
@@ -642,7 +643,7 @@ namespace yojimbo
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
-                SendPacket( address, connectionDeniedPacket, time );
+                SendPacket( address, connectionDeniedPacket );
             }
             return;
         }
@@ -674,7 +675,7 @@ namespace yojimbo
 
         m_counters[SERVER_COUNTER_CHALLENGE_PACKETS_SENT]++;
 
-        SendPacket( address, connectionChallengePacket, time );
+        SendPacket( address, connectionChallengePacket );
     }
 
     void Server::ProcessConnectionResponse( const ConnectionResponsePacket & packet, const Address & address )
@@ -708,7 +709,7 @@ namespace yojimbo
                 if ( connectionHeartBeatPacket )
                 {
                     m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT]++;
-                    SendPacketToConnectedClient( existingClientIndex, connectionHeartBeatPacket, time );
+                    SendPacketToConnectedClient( existingClientIndex, connectionHeartBeatPacket );
                 }
             }
 
@@ -721,7 +722,7 @@ namespace yojimbo
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
-                SendPacket( address, connectionDeniedPacket, time );
+                SendPacket( address, connectionDeniedPacket );
             }
             return;
         }
@@ -732,7 +733,7 @@ namespace yojimbo
         if ( clientIndex == -1 )
             return;
 
-        ConnectClient( clientIndex, address, challengeToken );
+        ConnectClient( clientIndex, address, challengeToken.clientId );
     }
 
     void Server::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address )
@@ -768,45 +769,56 @@ namespace yojimbo
     }
 
 #if YOJIMBO_INSECURE_CONNECT
-    void Server::ProcessInsecureConnect( const InsecureConnectPacket & /*packet*/, const Address & address )
+    void Server::ProcessInsecureConnect( const InsecureConnectPacket & packet, const Address & address )
     {
         assert( IsRunning() );
 
         if ( ( GetFlags() & SERVER_FLAG_ALLOW_INSECURE_CONNECT ) == 0 )
             return;
 
-        // search for the same address
+        if ( m_numConnectedClients == m_maxClients )
+        {
+            m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
+            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+            if ( connectionDeniedPacket )
+            {
+                SendPacket( address, connectionDeniedPacket );
+            }
+            return;
+        }
 
-        // if a client with this address is already connected, but has a different salt, ignore this connection request
+        const uint64_t clientSalt = packet.clientSalt;
 
-        // otherwise, if no matching client slot with the address is found, find a free slot and put this client in there
+        int clientIndex = FindExistingClientIndex( address );
 
-        // now reply back with a heartbeat packet
+        if ( clientIndex != -1 )
+        {
+            if ( m_clientData[clientIndex].clientSalt == clientSalt )
+            {
+                ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
-        // 
+                SendPacketToConnectedClient( clientIndex, packet );
+            }
 
-        // if no client with this address is connected, find a new slot and connect there
+            return;            
+        }
 
+        clientIndex = FindFreeClientIndex();
 
-        /*
-        const int clientIndex = FindExistingClientIndex( address );
+        assert( clientIndex != -1 );
         if ( clientIndex == -1 )
             return;
 
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
+        ConnectClient( clientIndex, address, 0 );
 
-        m_counters[SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS]++;
-
-        DisconnectClient( clientIndex, false );
-        */
+        m_clientData[clientIndex].clientSalt = clientSalt;
     }
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
     void Server::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
     {
 #if DEBUG
-        if ( m_networkInterface->IsEncryptedPacketType( packet->GetType() ) )
+        if ( m_networkInterface->IsEncryptedPacketType( packet->GetType() ) && ( m_networkInterface->GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) == 0 )
         {
             assert( sequence > 0 );
         }
@@ -931,10 +943,14 @@ namespace yojimbo
 
         if ( sendDisconnectPacket && m_clientState > CLIENT_STATE_DISCONNECTED )
         {
-            ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );            
-            if ( packet )
+            for ( int i = 0; i < NumDisconnectPackets; ++i )
             {
-                SendPacketToServer( packet, true );
+                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );            
+
+                if ( packet )
+                {
+                    SendPacketToServer( packet, true );
+                }
             }
         }
 
@@ -978,7 +994,7 @@ namespace yojimbo
                 if ( packet )
                 {
                     packet->clientSalt = m_clientSalt;
-                    SendPacketToServer( packet, time );
+                    SendPacketToServer( packet );
                 }
             }
             break;
@@ -996,7 +1012,7 @@ namespace yojimbo
                     memcpy( packet->connectTokenData, m_connectTokenData, ConnectTokenBytes );
                     memcpy( packet->connectTokenNonce, m_connectTokenNonce, NonceBytes );
 
-                    SendPacketToServer( packet, time );
+                    SendPacketToServer( packet );
                 }
             }
             break;
@@ -1012,7 +1028,7 @@ namespace yojimbo
                     memcpy( packet->challengeTokenData, m_challengeTokenData, ChallengeTokenBytes );
                     memcpy( packet->challengeTokenNonce, m_challengeTokenNonce, NonceBytes );
                     
-                    SendPacketToServer( packet, time );
+                    SendPacketToServer( packet );
                 }
             }
             break;
@@ -1026,7 +1042,7 @@ namespace yojimbo
 
                 if ( packet )
                 {
-                    SendPacketToServer( packet, time );
+                    SendPacketToServer( packet );
                 }
             }
             break;
@@ -1175,11 +1191,26 @@ namespace yojimbo
 
     void Client::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address )
     {
+#if YOJIMBO_INSECURE_CONNECT
+
+        if ( m_clientState != CLIENT_STATE_SENDING_CHALLENGE_RESPONSE && 
+             m_clientState != CLIENT_STATE_SENDING_INSECURE_CONNECT && 
+             m_clientState != CLIENT_STATE_CONNECTED )
+        {
+            return;
+        }
+
+#else // #if YOJIMBO_INSECURE_CONNECT
+
         if ( m_clientState < CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
             return;
 
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
         if ( address != m_serverAddress )
+        {
             return;
+        }
 
         if ( m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
         {
@@ -1190,6 +1221,15 @@ namespace yojimbo
 
             SetClientState( CLIENT_STATE_CONNECTED );
         }
+
+#if YOJIMBO_INSECURE_CONNECT
+
+        if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT )
+        {
+            SetClientState( CLIENT_STATE_CONNECTED );
+        }
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
         const double time = GetTime();
 
@@ -1210,7 +1250,7 @@ namespace yojimbo
     void Client::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
     {
 #if DEBUG
-        if ( m_networkInterface->IsEncryptedPacketType( packet->GetType() ) )
+        if ( m_networkInterface->IsEncryptedPacketType( packet->GetType() ) && ( m_networkInterface->GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) == 0 )
         {
             assert( sequence > 0 );
         }
