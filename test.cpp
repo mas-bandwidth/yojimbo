@@ -2956,6 +2956,61 @@ void test_client_server_insecure_connect()
     check( server.GetNumConnectedClients() == 1 );
 }
 
+void test_client_server_insecure_connect_timeout()
+{
+    printf( "test_client_server_insecure_connect_timeout\n" );
+
+    GamePacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client socket\n" );
+        exit( 1 );
+    }
+    
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    GameClient client( clientInterface );
+
+    clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+
+    client.InsecureConnect( serverAddress );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+
+        clientInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+
+        client.ReceivePackets();
+
+        client.CheckForTimeOut();
+
+        time += 1.0f;
+
+        if ( !client.IsConnecting() && client.ConnectionFailed() )
+            break;
+
+        client.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() );
+    check( !client.IsConnected() );
+    check( client.ConnectionFailed() );
+    check( client.GetClientState() == CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT );
+}
+
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
 int main()
@@ -3000,6 +3055,7 @@ int main()
         test_client_server_game_packets();
 #if YOJIMBO_INSECURE_CONNECT
         test_client_server_insecure_connect();
+        test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
     }
 

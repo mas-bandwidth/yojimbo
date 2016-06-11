@@ -15,6 +15,7 @@
 #include "yojimbo_memory.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_network.h"
+#include "yojimbo_platform.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
