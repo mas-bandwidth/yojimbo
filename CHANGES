@@ -1,4 +1,128 @@
 
+Saturday June 11th, 2016
+========================
+
+    Now implement the server-side processing of the insecure packet. Basically, take that packet, find a
+    free client slot and immediately accept or deny.
+
+    What to do if the client is already connected?
+
+    I think the insecure connect needs a salt.
+
+    If the same address is connected but with a different salt, ignore the connect.
+
+    No need to do the challenge response tho. That's for security and we don't need that here.
+
+    Add insecure connect state.
+
+    Add salt to the insecure connect packet.
+
+    Idea: Instead of adding salt, make the client id a random number, and then stash per-client an insecure flag.
+
+    Why not add a concept of client flags, eg. uint32_t clientFlags[MaxClients]?
+
+    Or, make insecure clients have a client id of 0 and use the salt?
+
+    It's difficult to say what is best.
+
+    On one hand, a random 64bit number is extremely unlikely to collide.
+
+    On the other, what value is a client id anyway, if it is a random number for fake clients? Why not just make it zero with salt?
+
+    What if somebody during testing wanted to connect a client with a *known* client id, but insecurely. 
+
+    Complicated. What exactly is the use case for insecure connect?
+
+    For the moment, assume that insecure connect just won't establish a valid client id, eg. client id will be zero
+
+    Removed client id from connect function. Not used.
+
+    Implement client "InsecureConnect" that takes just the address, and goes into insecure connect state.
+
+    Generate a random salt on each call to insecure connect.
+
+    Make sure all this is wrapped with #if YOJIMBO_INSECURE_CONNECT
+
+    Get it to the point where the client sends the insecure connect packets w. the salt
+
+    Next on the server side process the insecure connect packets
+
+    Look for a matching client slot with the address and salt.
+
+    If the address and salt match, reply with a heartbeat.
+
+    Otherwise, if the address does not exist, add it, reply with heartbeat.
+
+    If the address exists, but the salt is different, ignore the connect request.
+
+    Now on the client take the heartbeat and go direct from insecure connect to connected if it's received.
+
+    Had to set both server and client/server interfaces into insecure mode in order to get this to work.
+
+    Good! It *should* be hard to get the insecure mode working.
+
+    Test passes. Ready to move on to the next stuff.
+
+    Choice as to what to work on now. It's complicated.
+
+    For example, could work on getting the reliable protocol + data blocks working inside the client/server.
+
+    This would be a large amount of work, but it *would* transform the library into something actually useful
+    instead of just being an auth client/server layer over UDP.
+
+    The other choice is to hack up a matchmaker web interface that distributes tokens
+
+    This would allow setting up *secure* connect end-to-end demonstrating the auth.
+
+    In reality I need both.
+
+    But which is the most important to work on next?
+
+    -------------------
+
+    I think the most important is to implement the actual protocol side, even if insecure,
+    because teams can use insecure during LAN and start using this library if it has the support
+    for reliable-ordered messages.
+
+    But if it doesn't have reliable ordered messages, the library is basically just a wrapper
+    over UDP packets.
+
+    -------------------
+
+    Another thing that needs to be done, is setup the proper packet fragmentation and re-assembly
+    at the packet level, otherwise this system is not useful for large delta encoded state,
+    which is the primary network model I work with these days.
+
+    -------------------
+
+    So the order of operations seems to be:
+
+        0. Create an insecure client.cpp and server.cpp and verify they can actually connect over sockets on all platforms
+
+        1. Pass over network simulator and add simulator interface on top of it
+
+        2. Switch over all unit tests to use the network simulator instead of sockets
+
+        3. Bring across the complicated message and data block code and get it working inside client/server
+
+        4. Unit test and soak test the crap out of the reliable message and data block system (bring tests across)
+
+        5. Bring across packet fragmentation and reassembly support in such a way that it can be used
+           across multiple network interface implementations (eg. part of packet processor)
+
+        6. Implement test program demonstrating lots of clients connecting via matchmaker in one C++ program
+
+        7. Implement actual functional matchmaker backend and demonstrate secure connect (lots of work...)
+
+    -------------------
+
+    In terms of what I can actually do this month, it seems I should be able to make good progress up to #4.
+
+    I think if I tried to implement the matchmaker framework as well, I would run out of time.
+
+    -------------------
+
+
 Tuesday June 7th, 2016
 ======================
 
