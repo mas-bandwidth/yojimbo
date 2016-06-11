@@ -25,6 +25,7 @@ namespace yojimbo
     const int ChallengeTokenBytes = 256;
     const int MaxServersPerConnectToken = 8;
     const int ConnectTokenExpirySeconds = 10;
+    const int NumDisconnectPackets = 10;
 #if YOJIMBO_INSECURE_CONNECT
     const float InsecureConnectSendRate = 0.1f;
 #endif // #if YOJIMBO_INSECURE_CONNECT
@@ -320,6 +321,9 @@ namespace yojimbo
     {
         Address address;
         uint64_t clientId;
+#if YOJIMBO_INSECURE_CONNECT
+        uint64_t clientSalt;
+#endif // #if YOJIMBO_INSECURE_CONNECT
         double connectTime;
         double lastPacketSendTime;
         double lastPacketReceiveTime;
@@ -327,6 +331,9 @@ namespace yojimbo
         ServerClientData()
         {
             clientId = 0;
+#if YOJIMBO_INSECURE_CONNECT
+            clientSalt = 0;
+#endif // #if YOJIMBO_INSECURE_CONNECT
             connectTime = 0.0;
             lastPacketSendTime = 0.0;
             lastPacketReceiveTime = 0.0;
@@ -499,7 +506,7 @@ namespace yojimbo
 
         int FindAddressAndClientId( const Address & address, uint64_t clientId ) const;
 
-        void ConnectClient( int clientIndex, const Address & clientAddress, const ChallengeToken & challengeToken );
+        void ConnectClient( int clientIndex, const Address & clientAddress, uint64_t clientId );
 
         void SendPacket( const Address & address, Packet * packet, bool immediate = false );
 
