@@ -27,10 +27,22 @@ project "yojimbo"
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp" }
     links { "sodium" }
 
+project "client"
+    language "C++"
+    kind "ConsoleApp"
+    files { "client.cpp", "shared.h" }
+    links { "yojimbo", "sodium" }
+
+project "server"
+    language "C++"
+    kind "ConsoleApp"
+    files { "server.cpp", "shared.h" }
+    links { "yojimbo", "sodium" }
+
 project "client_server"
     language "C++"
     kind "ConsoleApp"
-    files { "client_server.cpp", "protocol2.h", "network2.h" }
+    files { "client_server.cpp", "shared.h" }
     links { "yojimbo", "sodium" }
 
 if _ACTION == "clean" then
@@ -44,6 +56,8 @@ if _ACTION == "clean" then
         os.execute "rm -f *.zip"
         os.execute "rm -f *.make"
         os.execute "rm -f test"
+        os.execute "rm -f client"
+        os.execute "rm -f server"
         os.execute "rm -f client_server"
         os.execute "find . -name .DS_Store -delete"
     else
@@ -108,15 +122,30 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "cs",
-        description = "Build client server test program",
+        trigger     = "client",
+        description = "Build and run client/server testbed",
         valid_kinds = premake.action.get("gmake").valid_kinds,
         valid_languages = premake.action.get("gmake").valid_languages,
         valid_tools = premake.action.get("gmake").valid_tools,
      
         execute = function ()
-            if os.execute "make -j4 client_server" == 0 then
-                os.execute "./bin/client_server"
+            if os.execute "make -j4 client" == 0 then
+                os.execute "./bin/client"
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "server",
+        description = "Build and run server",
+        valid_kinds = premake.action.get("gmake").valid_kinds,
+        valid_languages = premake.action.get("gmake").valid_languages,
+        valid_tools = premake.action.get("gmake").valid_tools,
+     
+        execute = function ()
+            if os.execute "make -j4 server" == 0 then
+                os.execute "./bin/server"
             end
         end
     }

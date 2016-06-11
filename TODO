@@ -3,14 +3,16 @@ DONE
 TODO
 
     -------------------
+    
+    Setup the client so it can accept an IP address or port on the command line.
 
-    Need to get some basic client/server setup running using actual sockets (insecure mode) 
+    Run the server on my linux box and verify I can connect to it from my macbook.
 
-    Need a sleep functionality to get the client server working, eg. sleep( 0.1 )
+    -------------------
 
-    I have some code for this elsewhere, find it....
+    Make sure both the client and server can compile and run on Windows.
 
-    Make sure this works across all platforms, this tests actual socket functionality.
+    Verify cross connects, eg. windows -> mac client, mac -> windows connect. both -> linux.
 
     -------------------
 
