@@ -1074,6 +1074,20 @@ namespace yojimbo
 
         switch ( m_clientState )
         {
+#if YOJIMBO_INSECURE_CONNECT
+
+            case CLIENT_STATE_SENDING_INSECURE_CONNECT:
+            {
+                if ( m_lastPacketReceiveTime + InsecureConnectTimeOut < time )
+                {
+                    Disconnect( CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT, false );
+                    return;
+                }
+            }
+            break;
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
             {
                 if ( m_lastPacketReceiveTime + ConnectionRequestTimeOut < time )

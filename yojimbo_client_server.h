@@ -26,9 +26,6 @@ namespace yojimbo
     const int MaxServersPerConnectToken = 8;
     const int ConnectTokenExpirySeconds = 10;
     const int NumDisconnectPackets = 10;
-#if YOJIMBO_INSECURE_CONNECT
-    const float InsecureConnectSendRate = 0.1f;
-#endif // #if YOJIMBO_INSECURE_CONNECT
     const float ConnectionRequestSendRate = 0.1f;
     const float ConnectionResponseSendRate = 0.1f;
     const float ConnectionConfirmSendRate = 0.1f;
@@ -36,6 +33,10 @@ namespace yojimbo
     const float ConnectionRequestTimeOut = 5.0f;
     const float ChallengeResponseTimeOut = 5.0f;
     const float ConnectionTimeOut = 10.0f;
+#if YOJIMBO_INSECURE_CONNECT
+    const float InsecureConnectSendRate = 0.1f;
+    const float InsecureConnectTimeOut = 5.0f;
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
     template <typename Stream> bool serialize_address_internal( Stream & stream, Address & address )
     {
@@ -529,6 +530,9 @@ namespace yojimbo
 
     enum ClientState
     {
+#if YOJIMBO_INSECURE_CONNECT
+        CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT = -5,
+#endif // #if YOJIMBO_INSECURE_CONNECT
         CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT = -4,
         CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT = -3,
         CLIENT_STATE_CONNECTION_TIMED_OUT = -2,
@@ -546,6 +550,9 @@ namespace yojimbo
     {
         switch ( clientState )
         {
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT: return "insecure connect timed out";
+#endif // #if YOJIMBO_INSECURE_CONNECT
             case CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT: return "connection request timed out";
             case CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT: return "challenge response timed out";
             case CLIENT_STATE_CONNECTION_TIMED_OUT: return "connection timed out";

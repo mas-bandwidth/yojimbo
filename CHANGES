@@ -122,6 +122,43 @@ Saturday June 11th, 2016
 
     -------------------
 
+    Split out a bunch of shared code into shared.h
+
+    Added defines to control what gets pulled in, eg:
+
+    #define CLIENT 1
+    #define SERVER 0
+    #define MATCHER 0
+
+    This way the code can be reused in multiple contexts, which is important.
+
+    Brought across some old platform code I have for platform_sleep and platform_time functions.
+
+    Need to implement a Windows version of these platform functions btw!
+
+    Now setup an actual server (insecure mode) including a sleep 0.1 seconds between update pumps.
+
+    Done. It needs to be updated to properly sleep to the next frame and detect dropped frames,
+    once an actual game simulation is running, but right now it's OK for it to just sleep 0.1.
+
+    Next setup an client.
+
+    Make the client port 0 so the client can connect from any port, eg. multiple clients per-machine.
+
+    Ahah. The client connect isn't timing out. insecure client connect isn't implemented.
+
+    Added at test for insecure connect timeout, and a new client state for that.
+
+    Test fails. Now make it pass.
+
+    Passes. Moving on!
+
+    Verify that client.cpp times out after 5 seconds with no server running.
+
+    Now set the server into insecure mode so the client can connect to it.
+
+    Verify multiple clients can connect to the server
+
 
 Tuesday June 7th, 2016
 ======================
