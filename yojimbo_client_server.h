@@ -25,6 +25,9 @@ namespace yojimbo
     const int ChallengeTokenBytes = 256;
     const int MaxServersPerConnectToken = 8;
     const int ConnectTokenExpirySeconds = 10;
+#if YOJIMBO_INSECURE_CONNECT
+    const float InsecureConnectSendRate = 0.1f;
+#endif // #if YOJIMBO_INSECURE_CONNECT
     const float ConnectionRequestSendRate = 0.1f;
     const float ConnectionResponseSendRate = 0.1f;
     const float ConnectionConfirmSendRate = 0.1f;
@@ -268,12 +271,16 @@ namespace yojimbo
 #if YOJIMBO_INSECURE_CONNECT
     struct InsecureConnectPacket : public Packet
     {
+        uint64_t clientSalt;
+
         InsecureConnectPacket() : Packet( CLIENT_SERVER_PACKET_INSECURE_CONNECT )
         {
+            clientSalt = 0;
         }
 
-        template <typename Stream> bool Serialize( Stream & /*stream*/ )
+        template <typename Stream> bool Serialize( Stream & stream )
         {
+            serialize_uint64( stream, clientSalt );
             return true;
         }
 
@@ -391,7 +398,7 @@ namespace yojimbo
         bool m_clientConnected[MaxClients];                                 // true if client n is connected
         
         uint64_t m_clientId[MaxClients];                                    // array of client id values per-client
-        
+
         Address m_serverAddress;                                            // the external IP address of this server (what clients will be sending packets to)
 
         uint64_t m_globalSequence;                                          // global sequence number for packets sent not corresponding to any particular connected client.
@@ -520,9 +527,12 @@ namespace yojimbo
         CLIENT_STATE_CONNECTION_TIMED_OUT = -2,
         CLIENT_STATE_CONNECTION_DENIED = -1,
         CLIENT_STATE_DISCONNECTED = 0,
-        CLIENT_STATE_SENDING_CONNECTION_REQUEST = 1,
-        CLIENT_STATE_SENDING_CHALLENGE_RESPONSE = 2,
-        CLIENT_STATE_CONNECTED = 3
+#if YOJIMBO_INSECURE_CONNECT
+        CLIENT_STATE_SENDING_INSECURE_CONNECT,
+#endif // #if YOJIMBO_INSECURE_CONNECT
+        CLIENT_STATE_SENDING_CONNECTION_REQUEST,
+        CLIENT_STATE_SENDING_CHALLENGE_RESPONSE,
+        CLIENT_STATE_CONNECTED
     };
 
     inline const char * GetClientStateName( int clientState )
@@ -534,6 +544,9 @@ namespace yojimbo
             case CLIENT_STATE_CONNECTION_TIMED_OUT: return "connection timed out";
             case CLIENT_STATE_CONNECTION_DENIED: return "connection denied";
             case CLIENT_STATE_DISCONNECTED: return "disconnected";
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_SENDING_INSECURE_CONNECT: return "sending insecure connect";
+#endif // #if YOJIMBO_INSECURE_CONNECT
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST: return "sending connection request";
             case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE: return "sending challenge response";
             case CLIENT_STATE_CONNECTED: return "connected";
@@ -559,7 +572,9 @@ namespace yojimbo
 
         double m_time;                                                      // current client time (see "AdvanceTime")
 
-        uint64_t m_clientId;                                                // client id as per-connect call
+#if YOJIMBO_INSECURE_CONNECT
+        uint64_t m_clientSalt;                                              // client salt for insecure connect
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
         uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
 
@@ -577,8 +592,11 @@ namespace yojimbo
 
         virtual ~Client();
 
-        void Connect( uint64_t clientId,
-                      const Address & address, 
+#if YOJIMBO_INSECURE_CONNECT
+        void InsecureConnect( const Address & address );
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+        void Connect( const Address & address, 
                       const uint8_t * connectTokenData, 
                       const uint8_t * connectTokenNonce,
                       const uint8_t * clientToServerKey,

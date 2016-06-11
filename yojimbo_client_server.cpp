@@ -397,6 +397,9 @@ namespace yojimbo
         assert( clientIndex < MaxClients );
         m_clientConnected[clientIndex] = false;
         m_clientId[clientIndex] = 0;
+#if YOJIMBO_INSECURE_CONNECT
+        m_clientId[clientIndex] = 0;
+#endif // #if YOJIMBO_INSECURE_CONNECT
         m_clientAddress[clientIndex] = Address();
         m_clientData[clientIndex] = ServerClientData();
         m_clientSequence[clientIndex] = 0;
@@ -772,6 +775,20 @@ namespace yojimbo
         if ( ( GetFlags() & SERVER_FLAG_ALLOW_INSECURE_CONNECT ) == 0 )
             return;
 
+        // search for the same address
+
+        // if a client with this address is already connected, but has a different salt, ignore this connection request
+
+        // otherwise, if no matching client slot with the address is found, find a free slot and put this client in there
+
+        // now reply back with a heartbeat packet
+
+        // 
+
+        // if no client with this address is connected, find a new slot and connect there
+
+
+        /*
         const int clientIndex = FindExistingClientIndex( address );
         if ( clientIndex == -1 )
             return;
@@ -782,6 +799,7 @@ namespace yojimbo
         m_counters[SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS]++;
 
         DisconnectClient( clientIndex, false );
+        */
     }
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
@@ -854,8 +872,29 @@ namespace yojimbo
         m_networkInterface = NULL;
     }
 
-    void Client::Connect( uint64_t clientId,
-                          const Address & address, 
+#if YOJIMBO_INSECURE_CONNECT
+    void Client::InsecureConnect( const Address & address )
+    {
+        Disconnect();
+
+        m_serverAddress = address;
+
+        OnConnect( address );
+
+        SetClientState( CLIENT_STATE_SENDING_INSECURE_CONNECT );
+
+        const double time = GetTime();        
+
+        m_lastPacketSendTime = time - 1.0f;
+        m_lastPacketReceiveTime = time;
+
+        RandomBytes( (uint8_t*) &m_clientSalt, sizeof( m_clientSalt ) );
+
+        m_networkInterface->ResetEncryptionMappings();
+    }
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+    void Client::Connect( const Address & address, 
                           const uint8_t * connectTokenData, 
                           const uint8_t * connectTokenNonce,
                           const uint8_t * clientToServerKey,
@@ -873,7 +912,6 @@ namespace yojimbo
 
         m_lastPacketSendTime = time - 1.0f;
         m_lastPacketReceiveTime = time;
-        m_clientId = clientId;
         memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
         memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
 
@@ -905,7 +943,7 @@ namespace yojimbo
 
     bool Client::IsConnecting() const
     {
-        return m_clientState == CLIENT_STATE_SENDING_CONNECTION_REQUEST || m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE;
+        return m_clientState > CLIENT_STATE_DISCONNECTED && m_clientState < CLIENT_STATE_CONNECTED;
     }
 
     bool Client::IsConnected() const
@@ -929,6 +967,24 @@ namespace yojimbo
 
         switch ( m_clientState )
         {
+#if YOJIMBO_INSECURE_CONNECT
+
+            case CLIENT_STATE_SENDING_INSECURE_CONNECT:
+            {
+                if ( m_lastPacketSendTime + InsecureConnectSendRate > time )
+                    return;
+
+                InsecureConnectPacket * packet = (InsecureConnectPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
+                if ( packet )
+                {
+                    packet->clientSalt = m_clientSalt;
+                    SendPacketToServer( packet, time );
+                }
+            }
+            break;
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
             {
                 if ( m_lastPacketSendTime + ConnectionRequestSendRate > time )
@@ -1064,13 +1120,15 @@ namespace yojimbo
         SetClientState( clientState );
         m_lastPacketSendTime = -1000.0;
         m_lastPacketReceiveTime = -1000.0;
-        m_clientId = 0;
         memset( m_connectTokenData, 0, ConnectTokenBytes );
         memset( m_connectTokenNonce, 0, NonceBytes );
         memset( m_challengeTokenData, 0, ChallengeTokenBytes );
         memset( m_challengeTokenNonce, 0, NonceBytes );
         m_networkInterface->ResetEncryptionMappings();
         m_sequence = 0;
+#if YOJIMBO_INSECURE_CONNECT
+        m_clientSalt = 0;
+#endif // #if YOJIMBO_INSECURE_CONNECT
     }
 
     void Client::SendPacketToServer( Packet * packet, bool immediate )

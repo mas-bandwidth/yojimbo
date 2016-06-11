@@ -1212,7 +1212,7 @@ void test_client_server_connect()
     
     server.Start();
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -1307,7 +1307,7 @@ void test_client_server_reconnect()
         exit( 1 );
     }
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -1389,7 +1389,7 @@ void test_client_server_reconnect()
         exit( 1 );
     }
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -1484,7 +1484,7 @@ void test_client_server_client_side_disconnect()
         exit( 1 );
     }
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -1614,7 +1614,7 @@ void test_client_server_server_side_disconnect()
         exit( 1 );
     }
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -1735,7 +1735,7 @@ void test_client_server_connection_request_timeout()
 
     GameClient client( clientInterface );
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -1818,7 +1818,7 @@ void test_client_server_connection_response_timeout()
 
     server.SetFlags( SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES );
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -1906,7 +1906,7 @@ void test_client_server_client_side_timeout()
     
     server.Start();
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2023,7 +2023,7 @@ void test_client_server_server_side_timeout()
     
     server.Start();
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2187,8 +2187,7 @@ void test_client_server_server_is_full()
 
     for ( int i = 0; i < NumClients; ++i )
     {
-        clientData[i].client->Connect( clientData[i].clientId, 
-                                       serverAddress, 
+        clientData[i].client->Connect( serverAddress, 
                                        clientData[i].connectTokenData, 
                                        clientData[i].connectTokenNonce, 
                                        clientData[i].clientToServerKey, 
@@ -2270,8 +2269,7 @@ void test_client_server_server_is_full()
 
     // try to connect one more client and verify that its connection attempt is rejected
 
-    clientData[NumClients].client->Connect( clientData[NumClients].clientId, 
-                                            serverAddress, 
+    clientData[NumClients].client->Connect( serverAddress, 
                                             clientData[NumClients].connectTokenData, 
                                             clientData[NumClients].connectTokenNonce, 
                                             clientData[NumClients].clientToServerKey, 
@@ -2382,7 +2380,7 @@ void test_client_server_connect_token_reuse()
     
     server.Start();
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2435,7 +2433,7 @@ void test_client_server_connect_token_reuse()
     
     GameClient client2( clientInterface2 );
 
-    client2.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2531,7 +2529,7 @@ void test_client_server_connect_token_expiry()
     
     server.Start();
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2628,7 +2626,7 @@ void test_client_server_connect_token_whitelist()
     
     server.Start();
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2667,8 +2665,6 @@ void test_client_server_connect_token_whitelist()
 void test_client_server_connect_token_invalid()
 {
     printf( "test_client_server_connect_token_invalid\n" );
-
-    const uint64_t clientId = 1;
 
     uint8_t connectTokenData[ConnectTokenBytes];
     uint8_t connectTokenNonce[NonceBytes];
@@ -2710,7 +2706,7 @@ void test_client_server_connect_token_invalid()
     
     server.Start();
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2799,7 +2795,7 @@ void test_client_server_game_packets()
     
     server.Start();
 
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
