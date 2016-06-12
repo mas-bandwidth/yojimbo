@@ -526,7 +526,7 @@ namespace yojimbo
 
         if ( connectionHeartBeatPacket )
         {
-            connectionHeartBeatPacket = clientIndex;
+            connectionHeartBeatPacket->clientIndex = clientIndex;
 
             SendPacketToConnectedClient( clientIndex, connectionHeartBeatPacket );
         }
@@ -715,7 +715,7 @@ namespace yojimbo
 
                 if ( connectionHeartBeatPacket )
                 {
-                    connectionHeartBeatPacket.clientIndex = existingClientIndex;
+                    connectionHeartBeatPacket->clientIndex = existingClientIndex;
 
                     SendPacketToConnectedClient( existingClientIndex, connectionHeartBeatPacket );
 
