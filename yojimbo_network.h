@@ -63,9 +63,7 @@ namespace yojimbo
 
         explicit Address( const uint16_t address[], uint16_t port = 0 );
 
-        explicit Address( const sockaddr_storage & addr );
-
-        explicit Address( const sockaddr_in6 & addr_ipv6 );
+        explicit Address( const sockaddr_storage * addr );
 
         explicit Address( addrinfo * p );
 

@@ -3013,6 +3013,45 @@ void test_client_server_insecure_connect_timeout()
 
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
+// hack test (linux only)
+
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <ifaddrs.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+
+void test_interfaces()
+{
+    struct ifaddrs *ifaddr, *ifa;
+
+    if ( getifaddrs( &ifaddr ) == -1 )
+    {
+        printf( "error: getifaddrs failed\n" );
+        exit( 1 );
+    }
+
+    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+    {
+        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
+            continue;
+
+        printf( "interface %s\n", ifa->ifa_name );
+
+        Address address( (sockaddr_storage*) ifa->ifa_addr );
+        if ( !address.IsValid() )
+            continue;
+
+        char addressString[64];
+        address.ToString( addressString, sizeof( addressString) );
+        printf( "address: %s\n", addressString );        
+    }
+
+    freeifaddrs( ifaddr );
+}
+
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -3057,6 +3096,7 @@ int main()
         test_client_server_insecure_connect();
         test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
+        test_interfaces();
     }
 
     memory_shutdown();
