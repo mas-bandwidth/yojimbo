@@ -40,7 +40,8 @@ int ClientMain()
 
     GameClient client( clientInterface );
 
-    Address serverAddress( "::1", ServerPort );
+    Address serverAddress( "173.255.195.190", ServerPort );
+    //Address serverAddress( "::1", ServerPort );
 
     client.InsecureConnect( serverAddress );
 
