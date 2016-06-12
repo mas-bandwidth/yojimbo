@@ -529,15 +529,16 @@ namespace yojimbo
         return Address();
     }
 
-    Socket::Socket( uint16_t port, SocketType type )
+    Socket::Socket( const Address & address )
     {
+        assert( address.IsValid() );
         assert( IsNetworkInitialized() );
 
         m_error = SOCKET_ERROR_NONE;
 
         // create socket
 
-        m_socket = socket( ( type == SOCKET_TYPE_IPV6 ) ? AF_INET6 : AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+        m_socket = socket( ( address.GetType() == ADDRESS_IPV6 ) ? AF_INET6 : AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
         if ( m_socket <= 0 )
         {
@@ -547,7 +548,7 @@ namespace yojimbo
 
         // force IPv6 only if necessary
 
-        if ( type == SOCKET_TYPE_IPV6 )
+        if ( address.GetType() == ADDRESS_IPV6 )
         {
             int yes = 1;
             if ( setsockopt( m_socket, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&yes, sizeof(yes) ) != 0 )
@@ -559,13 +560,13 @@ namespace yojimbo
 
         // bind to port
 
-        if ( type == SOCKET_TYPE_IPV6 )
+        if ( address.GetType() == ADDRESS_IPV6 )
         {
             sockaddr_in6 sock_address;
             memset( &sock_address, 0, sizeof( sockaddr_in6 ) );
             sock_address.sin6_family = AF_INET6;
-            sock_address.sin6_addr = in6addr_any;
-            sock_address.sin6_port = htons( port );
+            memcpy( &sock_address.sin6_addr, address.GetAddress6(), sizeof( sock_address.sin6_addr ) );
+            sock_address.sin6_port = htons( address.GetPort() );
 
             if ( ::bind( m_socket, (const sockaddr*) &sock_address, sizeof(sock_address) ) < 0 )
             {
@@ -577,8 +578,8 @@ namespace yojimbo
         {
             sockaddr_in sock_address;
             sock_address.sin_family = AF_INET;
-            sock_address.sin_addr.s_addr = INADDR_ANY;
-            sock_address.sin_port = htons( port );
+            sock_address.sin_addr.s_addr = address.GetAddress4();
+            sock_address.sin_port = htons( address.GetPort() );
 
             if ( ::bind( m_socket, (const sockaddr*) &sock_address, sizeof(sock_address) ) < 0 )
             {
@@ -587,7 +588,9 @@ namespace yojimbo
             }
         }
 
-        m_port = port;
+        m_address = address;
+
+        // todo: if port is 0, ask the socket what the actual bound port # is
 
         // set non-blocking io
 

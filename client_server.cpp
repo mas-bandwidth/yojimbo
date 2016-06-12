@@ -58,8 +58,8 @@ int main()
         Address clientAddress( "::1", ClientPort );
         Address serverAddress( "::1", ServerPort );
 
-        GameNetworkInterface clientInterface( packetFactory, ClientPort );
-        GameNetworkInterface serverInterface( packetFactory, ServerPort );
+        GameNetworkInterface clientInterface( packetFactory, clientAddress );
+        GameNetworkInterface serverInterface( packetFactory, serverAddress );
 
         if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
         {

@@ -122,12 +122,6 @@ namespace yojimbo
 
     Address GetFirstLocalAddress();
 
-    enum SocketType
-    {
-        SOCKET_TYPE_IPV4,
-        SOCKET_TYPE_IPV6
-    };
-
     enum SocketError
     {
         SOCKET_ERROR_NONE,
@@ -148,9 +142,7 @@ namespace yojimbo
     {
     public:
 
-        // todo: pass in the address to bind to, and from that address infer the correct socket type
-
-        Socket( uint16_t port, SocketType type = SOCKET_TYPE_IPV4 );
+        Socket( const Address & address );
 
         ~Socket();
 
@@ -162,12 +154,12 @@ namespace yojimbo
     
         int ReceivePacket( Address & from, void * packetData, int maxPacketSize );
 
-        // todo: get the port from the socket, in the case where the port passed in is zero on create
+        const Address & GetAddress() const;
 
     private:
 
         int m_error;
-        uint16_t m_port;
+        Address m_address;
         SocketHandle m_socket;
     };
 

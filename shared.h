@@ -250,7 +250,7 @@ class GameNetworkInterface : public SocketInterface
 {   
 public:
 
-    GameNetworkInterface( GamePacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
+    GameNetworkInterface( GamePacketFactory & packetFactory, const Address & address ) : SocketInterface( memory_default_allocator(), packetFactory, address, ProtocolId )
     {
         EnablePacketEncryption();
         DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
