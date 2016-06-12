@@ -232,7 +232,7 @@ namespace yojimbo
 
     void Address::Clear()
     {
-        m_type = ADDRESS_UNDEFINED;
+        m_type = ADDRESS_INVALID;
         memset( m_address_ipv6, 0, sizeof( m_address_ipv6 ) );
         m_port = 0;
     }
@@ -295,13 +295,14 @@ namespace yojimbo
         }
         else
         {
-            return "undefined";
+            snprintf( buffer, bufferSize, "%s", "INVALID" );
+			return buffer;
         }
     }
 
     bool Address::IsValid() const
     {
-        return m_type != ADDRESS_UNDEFINED;
+        return m_type != ADDRESS_INVALID;
     }
 
     bool Address::IsLinkLocal() const
@@ -346,6 +347,37 @@ namespace yojimbo
     }
 
 #if YOJIMBO_SOCKETS
+
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+
+    void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, int maxInterfaces )
+    {
+        assert( info );
+        assert( maxInterfaces >= 0 );
+
+		// todo
+        numInterfaces = 0;
+    }
+
+    Address GetFirstLocalAddress_IPV4()
+    {
+		// todo
+        return Address();
+    }
+
+    Address GetFirstLocalAddress_IPV6()
+    {
+		// todo
+        return Address();
+    }
+
+    Address GetFirstLocalAddress()
+    {
+		// todo
+        return Address();
+    }
+
+#else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
     void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, int maxInterfaces )
     {
@@ -529,7 +561,9 @@ namespace yojimbo
         return Address();
     }
 
-    Socket::Socket( const Address & address )
+#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+
+	Socket::Socket( const Address & address )
     {
         assert( address.IsValid() );
         assert( IsNetworkInitialized() );
