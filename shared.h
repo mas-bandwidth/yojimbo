@@ -187,7 +187,7 @@ public:
 
         if ( currentState == CLIENT_STATE_CONNECTED )
         {
-            printf( "client connected as client index %d\n", GetClientIndex() );
+            printf( "client connected as client %d\n", GetClientIndex() );
         }
     }
 
