@@ -120,6 +120,25 @@ Sunday June 12th, 2016
 
     Done. Seems to work.
 
+    Now wrap a new "SimulatorInterface" around the base interface, but instead of piping packet sends through
+    a socket, pipe them through the simulator.
+
+    Should be easy.
+
+    OK done in theory.
+
+    Some annoyance based on how the simulator bends over backwards to avoid packet copies.
+
+    In order to make the simulator match with the socket behavior I'll have to add a copy on top, which is annoying.
+
+    But the simulator is for debug only so whatever...
+
+    OK. It adds two extra copies, one on each side... ahahah so inefficient. May want to revisit.
+
+    Should be working now. Try it on a few tests.
+
+    Amazing. Switched over the tests to the simulator interface and everything just worked.
+
 
 Saturday June 11th, 2016
 ========================

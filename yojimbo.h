@@ -21,6 +21,7 @@
 #include "yojimbo_packet_processor.h"
 #include "yojimbo_network_interface.h"
 #include "yojimbo_socket_interface.h"
+#include "yojimbo_simulator_interface.h"
 #include "yojimbo_client_server.h"
 
 bool InitializeYojimbo();
