@@ -269,7 +269,12 @@ namespace yojimbo
 
             ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
-            SendPacketToConnectedClient( i, packet );
+            if ( packet )
+            {
+                packet->clientIndex = i;
+
+                SendPacketToConnectedClient( i, packet );
+            }
         }
     }
 
@@ -1140,6 +1145,11 @@ namespace yojimbo
         return m_time;
     }
 
+    int Client::GetClientIndex() const
+    {
+        return m_clientIndex;
+    }
+
     void Client::SetClientState( int clientState )
     {
         const int previous = m_clientState;
@@ -1151,6 +1161,7 @@ namespace yojimbo
     void Client::ResetConnectionData( int clientState )
     {
         assert( m_networkInterface );
+        m_clientIndex = -1;
         m_serverAddress = Address();
         SetClientState( clientState );
         m_lastPacketSendTime = -1000.0;
@@ -1208,7 +1219,7 @@ namespace yojimbo
         m_lastPacketReceiveTime = time;
     }
 
-    void Client::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address )
+    void Client::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & packet, const Address & address )
     {
 #if YOJIMBO_INSECURE_CONNECT
 
@@ -1233,6 +1244,8 @@ namespace yojimbo
 
         if ( m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
         {
+            m_clientIndex = packet.clientIndex;
+
             memset( m_connectTokenData, 0, ConnectTokenBytes );
             memset( m_connectTokenNonce, 0, NonceBytes );
             memset( m_challengeTokenData, 0, ChallengeTokenBytes );
@@ -1245,6 +1258,8 @@ namespace yojimbo
 
         if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT )
         {
+            m_clientIndex = packet.clientIndex;
+
             SetClientState( CLIENT_STATE_CONNECTED );
         }
 
