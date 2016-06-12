@@ -7,6 +7,7 @@
 */
 
 #include "yojimbo_platform.h"
+#include <assert.h>
 
 #if __APPLE__
 
@@ -87,7 +88,6 @@ namespace yojimbo
 // ===========================================================================================================================================
 
 #include <windows.h>
-#include <assert.h>
 
 namespace yojimbo
 {
