@@ -147,31 +147,6 @@ namespace yojimbo
         }
     }
 
-/*
-    Address::Address( addrinfo * p )
-    {
-        m_port = 0;
-        if ( p->ai_family == AF_INET )
-        { 
-            m_type = ADDRESS_IPV4;
-            struct sockaddr_in * ipv4 = (struct sockaddr_in *)p->ai_addr;
-            m_address_ipv4 = ipv4->sin_addr.s_addr;
-            m_port = ntohs( ipv4->sin_port );
-        } 
-        else if ( p->ai_family == AF_INET6 )
-        { 
-            m_type = ADDRESS_IPV6;
-            struct sockaddr_in6 * ipv6 = (struct sockaddr_in6 *)p->ai_addr;
-            memcpy( m_address_ipv6, &ipv6->sin6_addr, 16 );
-            m_port = ntohs( ipv6->sin6_port );
-        }
-        else
-        {
-            assert( false );
-            Clear();
-        }
-    }
-*/
     Address::Address( const char * address )
     {
         Parse( address );
@@ -360,7 +335,6 @@ namespace yojimbo
 
         if ( m_socket <= 0 )
         {
-            printf( "create socket failed: %s\n", strerror( errno ) );
             m_error = SOCKET_ERROR_CREATE_FAILED;
             return;
         }
@@ -372,7 +346,6 @@ namespace yojimbo
             int yes = 1;
             if ( setsockopt( m_socket, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&yes, sizeof(yes) ) != 0 )
             {
-                printf( "failed to set ipv6 only sockopt\n" );
                 m_error = SOCKET_ERROR_SOCKOPT_IPV6_ONLY_FAILED;
                 return;
             }
@@ -390,7 +363,6 @@ namespace yojimbo
 
             if ( ::bind( m_socket, (const sockaddr*) &sock_address, sizeof(sock_address) ) < 0 )
             {
-                printf( "bind socket failed (ipv6) - %s\n", strerror( errno ) );
                 m_socket = SOCKET_ERROR_BIND_IPV6_FAILED;
                 return;
             }
@@ -404,7 +376,6 @@ namespace yojimbo
 
             if ( ::bind( m_socket, (const sockaddr*) &sock_address, sizeof(sock_address) ) < 0 )
             {
-                printf( "bind socket failed (ipv4) - %s\n", strerror( errno ) );
                 m_error = SOCKET_ERROR_BIND_IPV4_FAILED;
                 return;
             }
@@ -419,7 +390,6 @@ namespace yojimbo
             int nonBlocking = 1;
             if ( fcntl( m_socket, F_SETFL, O_NONBLOCK, nonBlocking ) == -1 )
             {
-                printf( "failed to make socket non-blocking\n" );
                 m_error = SOCKET_ERROR_SET_NON_BLOCKING_FAILED;
                 return;
             }
@@ -429,7 +399,6 @@ namespace yojimbo
             DWORD nonBlocking = 1;
             if ( ioctlsocket( m_socket, FIONBIO, &nonBlocking ) != 0 )
             {
-                printf( "failed to make socket non-blocking\n" );
                 m_error = SOCKET_ERROR_SET_NON_BLOCKING_FAILED;
                 return;
             }
@@ -497,11 +466,6 @@ namespace yojimbo
             result = sent_bytes == packetBytes;
         }
 
-        if ( !result )
-        {
-            printf( "sendto failed: %s\n", strerror( errno ) );
-        }
-
         return result;
     }
 
@@ -528,8 +492,6 @@ namespace yojimbo
             if ( error == WSAEWOULDBLOCK )
                 return 0;
 
-            printf( "recvfrom failed: %d\n", error );
-
             return 0;
         }
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
@@ -537,8 +499,6 @@ namespace yojimbo
         {
             if ( errno == EAGAIN )
                 return 0;
-
-            printf( "recvfrom failed: %s\n", strerror( errno ) );
 
             return 0;
         }

@@ -3013,12 +3013,11 @@ void test_client_server_insecure_connect_timeout()
 
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-// hack test (linux only)
-
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <ifaddrs.h>
+#include <net/if.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -3035,7 +3034,13 @@ void test_interfaces()
 
     for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
     {
-        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
+        if ( ifa->ifa_addr == NULL || ( ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6 ) ) 
+            continue;
+
+        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+            continue;
+
+        if ( strncmp( ifa->ifa_name, "lo", 2 )==0 )
             continue;
 
         printf( "interface %s\n", ifa->ifa_name );
