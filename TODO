@@ -2,6 +2,15 @@ DONE
 
 TODO
 
+    Setup the socket interface so that it can bind to a specific IP address, not just a port.
+
+    Modify the linux server program to get the first local address and bind the server network interface to that (IPV4...)
+
+    Set this address on the server.
+
+    Now on the client, modify so it connects to the linux server IP address: 173.255.195.190
+
+    Verify that the MacOSX client is able to connect to the linux server IP address.
 
     -------------------
     

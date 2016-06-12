@@ -28,7 +28,13 @@ int ServerMain()
 
     GamePacketFactory packetFactory;
 
-    Address serverAddress( "::1", ServerPort );
+    Address serverAddress = GetFirstLocalAddress_IPV4();
+    if ( !serverAddress.IsValid() )
+    {
+        printf( "error: no valid local IPV4 address found\n" );
+        return 1;
+    }
+//    Address serverAddress( "::1", ServerPort );
 
     GameNetworkInterface serverInterface( packetFactory, ServerPort );
 
