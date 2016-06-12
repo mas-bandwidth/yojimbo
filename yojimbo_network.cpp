@@ -672,6 +672,9 @@ namespace yojimbo
             if ( !address.IsValid() )
                 continue;
 
+            if ( address.IsLoopback() )
+                continue;
+
             if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
                 continue;
 
@@ -699,6 +702,9 @@ namespace yojimbo
             Address address( (sockaddr_storage*) ifa->ifa_addr );
 
             if ( !address.IsValid() )
+                continue;
+
+            if ( address.IsLoopback() )
                 continue;
 
             assert( address.GetType() == ADDRESS_IPV4 );
@@ -731,6 +737,9 @@ namespace yojimbo
             Address address( (sockaddr_storage*) ifa->ifa_addr );
 
             if ( !address.IsValid() )
+                continue;
+
+            if ( address.IsLoopback() )
                 continue;
 
             assert( address.GetType() == ADDRESS_IPV6 );
