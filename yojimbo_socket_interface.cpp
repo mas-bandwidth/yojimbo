@@ -7,11 +7,6 @@
 */
 
 #include "yojimbo_socket_interface.h"
-#include "yojimbo_array.h"
-#include "yojimbo_queue.h"
-#include "yojimbo_common.h"
-#include <stdint.h>
-#include <inttypes.h>
 
 namespace yojimbo
 {
