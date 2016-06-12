@@ -309,6 +309,23 @@ namespace yojimbo
         return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xfe80 );
     }
 
+    bool Address::IsSiteLocal() const
+    {
+        return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xfec0 );
+    }
+
+    bool Address::IsMulticast() const
+    {
+        return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xff00 );
+    }
+
+    bool Address::IsGlobalUnicast() const
+    {
+        return m_type == ADDRESS_IPV6 && m_address_ipv6[0] != htons( 0xfe80 )
+                                      && m_address_ipv6[0] != htons( 0xfec0 )
+                                      && m_address_ipv6[0] != htons( 0xff00 );
+    }
+
     bool Address::operator ==( const Address & other ) const
     {
         if ( m_type != other.m_type )
@@ -361,7 +378,7 @@ namespace yojimbo
             if ( !address.IsValid() )
                 continue;
 
-            if ( address.IsLinkLocal() )
+            if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
                 continue;
 
             strncpy( info[numInterfaces].name, ifa->ifa_name, MaxNetworkInterfaceNameLength );
@@ -396,9 +413,6 @@ namespace yojimbo
             Address address( (sockaddr_storage*) ifa->ifa_addr );
 
             if ( !address.IsValid() )
-                continue;
-
-            if ( address.IsLinkLocal() )
                 continue;
 
             assert( address.GetType() == ADDRESS_IPV4 );
@@ -436,10 +450,10 @@ namespace yojimbo
             if ( !address.IsValid() )
                 continue;
 
-            if ( address.IsLinkLocal() )
-                continue;
-
             assert( address.GetType() == ADDRESS_IPV6 );
+
+            if ( !address.IsGlobalUnicast() )
+                continue;
 
             freeifaddrs( ifaddr );
 
@@ -474,10 +488,10 @@ namespace yojimbo
             if ( !address.IsValid() )
                 continue;
 
-            if ( address.IsLinkLocal() )
-                continue;
-
             assert( address.GetType() == ADDRESS_IPV6 );
+
+            if ( !address.IsGlobalUnicast() )
+                continue;
 
             freeifaddrs( ifaddr );
 

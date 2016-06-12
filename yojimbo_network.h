@@ -89,6 +89,12 @@ namespace yojimbo
 
         bool IsLinkLocal() const;
 
+        bool IsSiteLocal() const;
+
+        bool IsMulticast() const;
+
+        bool IsGlobalUnicast() const;
+
         bool operator ==( const Address & other ) const;
 
         bool operator !=( const Address & other ) const;
