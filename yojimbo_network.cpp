@@ -590,7 +590,33 @@ namespace yojimbo
 
         m_address = address;
 
-        // todo: if port is 0, ask the socket what the actual bound port # is
+        // if bound to port 0 find the actual port we got
+
+        if ( address.GetPort() == 0 )
+        {
+            if ( address.GetType() == ADDRESS_IPV6 )
+            {
+                struct sockaddr_in6 sin;
+                socklen_t len = sizeof( sin );
+                if ( getsockname( m_socket, (struct sockaddr*)&sin, &len ) == -1 )
+                {
+                    m_error = SOCKET_ERROR_GET_SOCKNAME_IPV6_FAILED;
+                    return;
+                }
+                m_address.SetPort( sin.sin6_port );
+            }
+            else
+            {
+                struct sockaddr_in sin;
+                socklen_t len = sizeof( sin );
+                if ( getsockname( m_socket, (struct sockaddr*)&sin, &len ) == -1 )
+                {
+                    m_error = SOCKET_ERROR_GET_SOCKNAME_IPV4_FAILED;
+                    return;
+                }
+                m_address.SetPort( sin.sin_port );
+            }
+        }
 
         // set non-blocking io
 
@@ -720,6 +746,11 @@ namespace yojimbo
         const int bytesRead = result;
 
         return bytesRead;
+    }
+
+    const Address & Socket::GetAddress() const
+    {
+        return m_address;
     }
 
 #endif // #if YOJIMBO_SOCKETS

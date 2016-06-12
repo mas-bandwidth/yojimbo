@@ -1,26 +1,6 @@
 DONE
 
-    Fix up socket and socket interface to accept an address instead of just a port.
-
-    This is important so that the socket interface can infer the correct socket type from the address.
-
-    Otherwise, it will be extremely difficult to mix IPv4 and IPv6 functionality in the same library.
-
-    Ideally, *everything* should just work, whether IPv4 or IPv6.    
-
-    To do this, the socket must adapt to the address it is bound to.
-
-    Seems to work.
-
-    Now actually pass in the correct address in bind.
-
-    See how sendto gets the address. Do the same.
-
-    Done. Seems to work fine.
-
 TODO
-
-    Update the socket to get its port # after bind to 0 port.
 
     -------------------
 

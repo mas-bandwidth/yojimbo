@@ -28,7 +28,15 @@ int ClientMain()
 
     GamePacketFactory packetFactory;
 
-    Address clientAddress( "0.0.0.0", 0 );
+//    Address serverAddress( "::1", ServerPort );
+
+    Address clientAddress = GetFirstLocalAddress_IPV4();
+
+    if ( !clientAddress.IsValid() )
+    {
+        printf( "error: no valid local IPV4 address\n" );
+        return 1;
+    }
 
     GameNetworkInterface clientInterface( packetFactory, clientAddress );
 
@@ -38,6 +46,10 @@ int ClientMain()
         return 1;
     }
     
+    char clientAddressString[64];
+    clientInterface.GetAddress().ToString( clientAddressString, sizeof( clientAddressString ) );
+    printf( "client started on %s\n", clientAddressString );
+
     clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
 
     GameClient client( clientInterface );

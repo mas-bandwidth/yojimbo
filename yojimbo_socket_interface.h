@@ -140,6 +140,8 @@ namespace yojimbo
         void SetFlags( uint64_t flags );
 
         uint64_t GetFlags() const;
+
+        const Address & GetAddress() const;
     };
 }
 

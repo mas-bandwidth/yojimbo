@@ -23,6 +23,37 @@ Sunday June 12th, 2016
 
     OK. It works now. Almost certainly incorrect socket type.
 
+    Fix up socket and socket interface to accept an address instead of just a port.
+
+    This is important so that the socket interface can infer the correct socket type from the address.
+
+    Otherwise, it will be extremely difficult to mix IPv4 and IPv6 functionality in the same library.
+
+    Ideally, *everything* should just work, whether IPv4 or IPv6.    
+
+    To do this, the socket must adapt to the address it is bound to.
+
+    Seems to work.
+
+    Now actually pass in the correct address in bind.
+
+    See how sendto gets the address. Do the same.
+
+    Done. Seems to work fine.
+
+    Update the socket to get its port # after bind to 0 port.
+
+    Later on, might want to support multiple interfaces per-server.
+
+    This way can have one socket for IPv4 and another for IPv6... supporting both in the same server.
+
+    Something to consider later, but this would be very nice, because it would transparently use IPv6 
+    when available, and fall back to IPv4 when it's not.
+
+    The only question is should the socket interface handle the dual IPv4 IPv6 internally, *or*
+    should there be two interfaces managed by the client/server? Hard to say. Seems to me that 
+    there should probably be only one address per-interface.
+
 
 Saturday June 11th, 2016
 ========================
