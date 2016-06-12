@@ -122,8 +122,23 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "client",
+        trigger     = "cs",
         description = "Build and run client/server testbed",
+        valid_kinds = premake.action.get("gmake").valid_kinds,
+        valid_languages = premake.action.get("gmake").valid_languages,
+        valid_tools = premake.action.get("gmake").valid_tools,
+     
+        execute = function ()
+            if os.execute "make -j4 client_server" == 0 then
+                os.execute "./bin/client_server"
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "client",
+        description = "Build and run client",
         valid_kinds = premake.action.get("gmake").valid_kinds,
         valid_languages = premake.action.get("gmake").valid_languages,
         valid_tools = premake.action.get("gmake").valid_tools,

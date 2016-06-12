@@ -122,21 +122,23 @@ namespace yojimbo
         m_port = port;
     }
 
-    Address::Address( const sockaddr_storage & addr )
+    Address::Address( const sockaddr_storage * addr )
     {
-        if ( addr.ss_family == AF_INET )
+        assert( addr );
+
+        if ( addr->ss_family == AF_INET )
         {
-            const sockaddr_in & addr_ipv4 = reinterpret_cast<const sockaddr_in&>( addr );
+            const sockaddr_in * addr_ipv4 = reinterpret_cast<const sockaddr_in*>( addr );
             m_type = ADDRESS_IPV4;
-            m_address_ipv4 = addr_ipv4.sin_addr.s_addr;
-            m_port = ntohs( addr_ipv4.sin_port );
+            m_address_ipv4 = addr_ipv4->sin_addr.s_addr;
+            m_port = ntohs( addr_ipv4->sin_port );
         }
-        else if ( addr.ss_family == AF_INET6 )
+        else if ( addr->ss_family == AF_INET6 )
         {
-            const sockaddr_in6 & addr_ipv6 = reinterpret_cast<const sockaddr_in6&>( addr );
+            const sockaddr_in6 * addr_ipv6 = reinterpret_cast<const sockaddr_in6*>( addr );
             m_type = ADDRESS_IPV6;
-            memcpy( m_address_ipv6, &addr_ipv6.sin6_addr, 16 );
-            m_port = ntohs( addr_ipv6.sin6_port );
+            memcpy( m_address_ipv6, &addr_ipv6->sin6_addr, 16 );
+            m_port = ntohs( addr_ipv6->sin6_port );
         }
         else
         {
@@ -145,13 +147,7 @@ namespace yojimbo
         }
     }
 
-    Address::Address( const sockaddr_in6 & addr_ipv6 )
-    {
-        m_type = ADDRESS_IPV6;
-        memcpy( m_address_ipv6, &addr_ipv6.sin6_addr, 16 );
-        m_port = ntohs( addr_ipv6.sin6_port );
-    }
-
+/*
     Address::Address( addrinfo * p )
     {
         m_port = 0;
@@ -171,10 +167,11 @@ namespace yojimbo
         }
         else
         {
+            assert( false );
             Clear();
         }
     }
-
+*/
     Address::Address( const char * address )
     {
         Parse( address );
@@ -547,7 +544,7 @@ namespace yojimbo
         }
 #endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
-        from = Address( sockaddr_from );
+        from = Address( &sockaddr_from );
 
         assert( result >= 0 );
 
