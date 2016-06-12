@@ -52,9 +52,12 @@ int main()
 
     {
         Address address = GetFirstLocalAddress_IPV6();
-        char addressString[64];
-        address.ToString( addressString, sizeof( addressString) );
-        printf( "\nfirst local IPV6 address: %s\n", addressString );
+        if ( address.IsValid() )
+        {
+            char addressString[64];
+            address.ToString( addressString, sizeof( addressString) );
+            printf( "\nfirst local IPV6 address: %s\n", addressString );
+        }
     }
 
     {

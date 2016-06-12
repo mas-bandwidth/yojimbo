@@ -87,6 +87,8 @@ namespace yojimbo
 
         bool IsValid() const;
 
+        bool IsLinkLocal() const;
+
         bool operator ==( const Address & other ) const;
 
         bool operator !=( const Address & other ) const;

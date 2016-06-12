@@ -304,6 +304,11 @@ namespace yojimbo
         return m_type != ADDRESS_UNDEFINED;
     }
 
+    bool Address::IsLinkLocal() const
+    {
+        return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xfe80 );
+    }
+
     bool Address::operator ==( const Address & other ) const
     {
         if ( m_type != other.m_type )
@@ -352,7 +357,11 @@ namespace yojimbo
                 continue;
 
             Address address( (sockaddr_storage*) ifa->ifa_addr );
+            
             if ( !address.IsValid() )
+                continue;
+
+            if ( address.IsLinkLocal() )
                 continue;
 
             strncpy( info[numInterfaces].name, ifa->ifa_name, MaxNetworkInterfaceNameLength );
@@ -385,7 +394,11 @@ namespace yojimbo
                 continue;
 
             Address address( (sockaddr_storage*) ifa->ifa_addr );
+
             if ( !address.IsValid() )
+                continue;
+
+            if ( address.IsLinkLocal() )
                 continue;
 
             assert( address.GetType() == ADDRESS_IPV4 );
@@ -419,7 +432,11 @@ namespace yojimbo
                 continue;
 
             Address address( (sockaddr_storage*) ifa->ifa_addr );
+
             if ( !address.IsValid() )
+                continue;
+
+            if ( address.IsLinkLocal() )
                 continue;
 
             assert( address.GetType() == ADDRESS_IPV6 );
@@ -453,7 +470,11 @@ namespace yojimbo
                 continue;
 
             Address address( (sockaddr_storage*) ifa->ifa_addr );
+
             if ( !address.IsValid() )
+                continue;
+
+            if ( address.IsLinkLocal() )
                 continue;
 
             assert( address.GetType() == ADDRESS_IPV6 );
@@ -475,7 +496,11 @@ namespace yojimbo
                 continue;
 
             Address address( (sockaddr_storage*) ifa->ifa_addr );
+
             if ( !address.IsValid() )
+                continue;
+
+            if ( address.IsLinkLocal() )
                 continue;
 
             assert( address.GetType() == ADDRESS_IPV4 );
