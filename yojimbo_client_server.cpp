@@ -797,11 +797,11 @@ namespace yojimbo
         {
             if ( m_clientData[clientIndex].clientSalt == clientSalt )
             {
-                ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( clientIndex );
+                ConnectionHeartBeatPacket * connectionHeartBeatPacket = CreateHeartBeatPacket( clientIndex );
 
-                if ( packet )
+                if ( connectionHeartBeatPacket )
                 {
-                    SendPacketToConnectedClient( clientIndex, packet );
+                    SendPacketToConnectedClient( clientIndex, connectionHeartBeatPacket );
                 }
             }
 
