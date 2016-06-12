@@ -509,7 +509,7 @@ void test_address_ipv6()
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
-            check( htons( address6[i] ) == address.GetAddress6()[i] );
+            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, 256 ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
