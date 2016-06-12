@@ -98,6 +98,22 @@ namespace yojimbo
 
 #if YOJIMBO_SOCKETS
 
+    const int MaxNetworkInterfaceNameLength = 256;
+
+    struct NetworkInterfaceInfo
+    {
+        char name[MaxNetworkInterfaceNameLength];
+        Address address;
+    };
+
+    void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, int maxInterfaces );
+
+    Address GetFirstLocalAddress_IPV4();
+
+    Address GetFirstLocalAddress_IPV6();
+
+    Address GetFirstLocalAddress();
+
     enum SocketType
     {
         SOCKET_TYPE_IPV4,

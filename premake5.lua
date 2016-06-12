@@ -18,7 +18,13 @@ solution "Yojimbo"
 project "test"
     language "C++"
     kind "ConsoleApp"
-    files { "test.cpp", "protocol2.h", "network2.h" }
+    files { "test.cpp" }
+    links { "yojimbo", "sodium" }
+
+project "network_info"
+    language "C++"
+    kind "ConsoleApp"
+    files { "network_info.cpp" }
     links { "yojimbo", "sodium" }
 
 project "yojimbo"
@@ -51,11 +57,10 @@ if _ACTION == "clean" then
         os.execute "rm -rf bin"
         os.execute "rm -rf obj"
         os.execute "rm -f Makefile"
-        os.execute "rm -f protocol2"
-        os.execute "rm -f network2"
         os.execute "rm -f *.zip"
         os.execute "rm -f *.make"
         os.execute "rm -f test"
+        os.execute "rm -f network_info"
         os.execute "rm -f client"
         os.execute "rm -f server"
         os.execute "rm -f client_server"
@@ -103,6 +108,21 @@ if not os.is "windows" then
         execute = function ()
             if os.execute "make -j4 test" == 0 then
                 os.execute "./bin/test"
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "info",
+        description = "Build and run network info utility",
+        valid_kinds = premake.action.get("gmake").valid_kinds,
+        valid_languages = premake.action.get("gmake").valid_languages,
+        valid_tools = premake.action.get("gmake").valid_tools,
+     
+        execute = function ()
+            if os.execute "make -j4 network_info" == 0 then
+                os.execute "./bin/network_info"
             end
         end
     }

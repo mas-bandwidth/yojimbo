@@ -27,6 +27,8 @@
     #include <sys/types.h>
     #include <sys/socket.h>
     #include <netinet/in.h>
+    #include <ifaddrs.h>
+    #include <net/if.h>
     #include <fcntl.h>
     #include <netdb.h>
     #include <arpa/inet.h>
@@ -322,6 +324,171 @@ namespace yojimbo
     }
 
 #if YOJIMBO_SOCKETS
+
+    void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, int maxInterfaces )
+    {
+        assert( info );
+        assert( maxInterfaces >= 0 );
+
+        struct ifaddrs *ifaddr, *ifa;
+
+        numInterfaces = 0;
+
+        if ( getifaddrs( &ifaddr ) == -1 )
+            return;
+
+        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+        {
+            if ( numInterfaces >= maxInterfaces )
+                break;
+
+            if ( ifa->ifa_addr == NULL || ( ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6 ) ) 
+                continue;
+
+            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+                continue;
+
+            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+                continue;
+
+            Address address( (sockaddr_storage*) ifa->ifa_addr );
+            if ( !address.IsValid() )
+                continue;
+
+            strncpy( info[numInterfaces].name, ifa->ifa_name, MaxNetworkInterfaceNameLength );
+            info[numInterfaces].name[MaxNetworkInterfaceNameLength-1] = '\0';
+
+            info[numInterfaces].address = address;
+
+            numInterfaces++;
+        }
+
+        freeifaddrs( ifaddr );
+    }
+
+    Address GetFirstLocalAddress_IPV4()
+    {
+        struct ifaddrs *ifaddr, *ifa;
+
+        if ( getifaddrs( &ifaddr ) == -1 )
+            return Address();
+
+        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+        {
+            if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
+                continue;
+
+            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+                continue;
+
+            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+                continue;
+
+            Address address( (sockaddr_storage*) ifa->ifa_addr );
+            if ( !address.IsValid() )
+                continue;
+
+            assert( address.GetType() == ADDRESS_IPV4 );
+
+            freeifaddrs( ifaddr );
+
+            return address;
+        }
+
+        freeifaddrs( ifaddr );
+
+        return Address();
+    }
+
+    Address GetFirstLocalAddress_IPV6()
+    {
+        struct ifaddrs *ifaddr, *ifa;
+
+        if ( getifaddrs( &ifaddr ) == -1 )
+            return Address();
+
+        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+        {
+            if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ) 
+                continue;
+
+            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+                continue;
+
+            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+                continue;
+
+            Address address( (sockaddr_storage*) ifa->ifa_addr );
+            if ( !address.IsValid() )
+                continue;
+
+            assert( address.GetType() == ADDRESS_IPV6 );
+
+            freeifaddrs( ifaddr );
+
+            return address;
+        }
+
+        freeifaddrs( ifaddr );
+
+        return Address();
+    }
+
+    Address GetFirstLocalAddress()
+    {
+        struct ifaddrs *ifaddr, *ifa;
+
+        if ( getifaddrs( &ifaddr ) == -1 )
+            return Address();
+
+        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+        {
+            if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ) 
+                continue;
+
+            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+                continue;
+
+            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+                continue;
+
+            Address address( (sockaddr_storage*) ifa->ifa_addr );
+            if ( !address.IsValid() )
+                continue;
+
+            assert( address.GetType() == ADDRESS_IPV6 );
+
+            freeifaddrs( ifaddr );
+
+            return address;
+        }
+
+        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+        {
+            if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
+                continue;
+
+            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+                continue;
+
+            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+                continue;
+
+            Address address( (sockaddr_storage*) ifa->ifa_addr );
+            if ( !address.IsValid() )
+                continue;
+
+            assert( address.GetType() == ADDRESS_IPV4 );
+
+            freeifaddrs( ifaddr );
+
+            return address;
+        }
+
+        freeifaddrs( ifaddr );
+
+        return Address();
+    }
 
     Socket::Socket( uint16_t port, SocketType type )
     {
