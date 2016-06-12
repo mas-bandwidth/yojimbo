@@ -1076,11 +1076,13 @@ public:
     }
 };
 
-class TestNetworkInterface : public SocketInterface
+NetworkSimulator networkSimulator;
+
+class TestNetworkInterface : public SimulatorInterface
 {   
 public:
 
-    TestNetworkInterface( GamePacketFactory & packetFactory, const Address & address ) : SocketInterface( memory_default_allocator(), packetFactory, address, ProtocolId )
+    TestNetworkInterface( GamePacketFactory & packetFactory, const Address & address ) : SimulatorInterface( memory_default_allocator(), networkSimulator, packetFactory, address, ProtocolId )
     {
         EnablePacketEncryption();
         DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
@@ -1104,12 +1106,6 @@ void test_unencrypted_packets()
 
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
-
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
 
     // make sure that encrypted packet types will *not* be received if they are sent as unencrypted
 
@@ -1191,12 +1187,6 @@ void test_client_server_connect()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -1278,12 +1268,6 @@ void test_client_server_reconnect()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -1455,12 +1439,6 @@ void test_client_server_client_side_disconnect()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -1585,12 +1563,6 @@ void test_client_server_server_side_disconnect()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -1720,12 +1692,6 @@ void test_client_server_connection_request_timeout()
 
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -1795,12 +1761,6 @@ void test_client_server_connection_response_timeout()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -1885,12 +1845,6 @@ void test_client_server_client_side_timeout()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2002,12 +1956,6 @@ void test_client_server_server_side_timeout()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2140,11 +2088,6 @@ void test_client_server_server_is_full()
 
         clientData[i].networkInterface = new TestNetworkInterface( packetFactory, clientAddress );
 
-        if ( clientData[i].networkInterface->GetError() != SOCKET_ERROR_NONE )
-        {
-            printf( "error: failed to initialize client socket\n" );
-        }
-
         if ( !matcher.RequestMatch( clientData[i].clientId, 
                                     clientData[i].connectTokenData, 
                                     clientData[i].connectTokenNonce, 
@@ -2164,12 +2107,6 @@ void test_client_server_server_is_full()
 
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize server socket\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2359,12 +2296,6 @@ void test_client_server_connect_token_reuse()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2421,12 +2352,6 @@ void test_client_server_connect_token_reuse()
     Address clientAddress2( "::1", ClientPort + 1 );
 
     TestNetworkInterface clientInterface2( packetFactory, clientAddress2 );
-
-    if ( clientInterface2.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client #2 socket\n" );
-        exit( 1 );
-    }
     
     GameClient client2( clientInterface2 );
 
@@ -2508,12 +2433,6 @@ void test_client_server_connect_token_expiry()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2605,12 +2524,6 @@ void test_client_server_connect_token_whitelist()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2685,12 +2598,6 @@ void test_client_server_connect_token_invalid()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2774,12 +2681,6 @@ void test_client_server_game_packets()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2888,12 +2789,6 @@ void test_client_server_insecure_connect()
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client/server sockets\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;
@@ -2964,12 +2859,6 @@ void test_client_server_insecure_connect_timeout()
 
     TestNetworkInterface clientInterface( packetFactory, clientAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client socket\n" );
-        exit( 1 );
-    }
-    
     const int NumIterations = 20;
 
     double time = 0.0;

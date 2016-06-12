@@ -2,6 +2,9 @@ DONE
 
 TODO
 
+    Idea: when a simulator interface shuts down, it should flush anything to or from its address out of the simulator,
+    so packets are not buffered in the shared network simulator across different simulator interface instances.
+
     -------------------
     
     Move the tests over to use network simulator interfaces instead of sockets.
@@ -10,11 +13,9 @@ TODO
 
     -------------------
 
-    Need to implement packet aggregation and fragmentation and reassembly as well inside the socket interface,
-    but by composition using base classes so this functionality can easily be reimplemented for other interfaces,
-    eg. a network interface implementation that goes over boost asio instead of BSD sockets for example.
+    Implement packet aggregation in the base interface (packet processor?)
 
-    Also in the simulator. The simulator should have the same aggregation behavior.
+    Implement packet fragmentation and reassembly in the base interface (packet processor?)
 
     -------------------
 
