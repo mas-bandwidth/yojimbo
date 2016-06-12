@@ -30,11 +30,11 @@ int ServerMain()
 
 //    Address serverAddress( "::1", ServerPort );
 
-    Address serverAddress = GetFirstLocalAddress_IPV4();
+    Address serverAddress = GetFirstNetworkAddress_IPV4();
 
     if ( !serverAddress.IsValid() )
     {
-        printf( "error: no valid local IPV4 address\n" );
+        printf( "error: no valid IPV4 address\n" );
         return 1;
     }
 
