@@ -16,6 +16,8 @@ int main()
 {
     printf( "\n" );
 
+    verbose_logging = true;
+
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize Yojimbo!\n" );
