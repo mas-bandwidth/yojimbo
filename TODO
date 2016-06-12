@@ -1,54 +1,5 @@
 DONE
 
-    Server compiles and runs on linux but obviously its hardcoded address is wrong...
-
-    Need a way to get the address of a network interface after the fact
-
-    And then that address can be automatically passed to the server, so it knows its address.
-
-    No need for "SetServerAddress" anymore, but leave it in in case the user wants to override.
-
-    Update. You can't query the local IP address from a socket. Instead you need to walk the set of
-    network interfaces using platform specific APIs, and then you can bind a socket to 0.0.0.0 *or*
-    bind it to a specific IP address in that list of interface IP addresses.
-
-    Windows:
-
-        GetAdaptersInfo()
-        GetAdaptersAddresses()
-
-    MacOSX:
-
-        ?
-
-    Linux:
-
-        getifaddrs
-
-    More info: http://linux.die.net/man/2/bind
-
-    Seems that I need to extend network interfaces so they can be bound to a specific IP address.
-
-    If you have multiple network interfaces, especially for dedicated servers, you're going to only
-    want the packets sent to particular IP (eg. the interface you are running your dedi on)
-
-    Since localhost connections are going to be, by definition, insecure... as long as non-secure
-    connections work to the localhost it's fine. Don't sweat too much the whole ::1 vs. 127.0.0.1 vs
-    real IP thing that sometimes happens.
-
-    Added a bunch of functions, eg. get network interface info. get first IPv4 address, get first IPv6
-    address...
-
-    Now, IPv6 addresses prefixed with f8e0 are "link local" and cannot be routed.
-
-    This means I believe that I should filter these out... if the are listed in the network interfaces,
-    they are not actualy IPv6 addresses that I can share with the rest of the world to connect to.
-
-    So they should be filtered out.
-
-    This way, if you ask for the first local address, and only a link local IPv6 address is specified,
-    then that address will be ignored.
-
 TODO
 
 
