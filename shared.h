@@ -184,6 +184,11 @@ public:
         const char * previousStateString = GetClientStateName( previousState );
         const char * currentStateString = GetClientStateName( currentState );
         printf( "client changed state from '%s' to '%s'\n", previousStateString, currentStateString );
+
+        if ( currentState == CLIENT_STATE_CONNECTED )
+        {
+            printf( "client connected as client index %d\n", GetClientIndex() );
+        }
     }
 
     void OnDisconnect()

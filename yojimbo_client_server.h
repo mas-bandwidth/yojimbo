@@ -254,9 +254,18 @@ namespace yojimbo
 
     struct ConnectionHeartBeatPacket : public Packet
     {
-        ConnectionHeartBeatPacket() : Packet( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) {}
+        int clientIndex;
 
-        template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return true; }
+        ConnectionHeartBeatPacket() : Packet( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT )
+        {
+            clientIndex = 0;
+        }
+
+        template <typename Stream> bool Serialize( Stream & stream )
+        { 
+            serialize_int( stream, clientIndex, 0, MaxClients - 1 );
+            return true; 
+        }
 
         YOJIMBO_SERIALIZE_FUNCTIONS();
     };
@@ -574,6 +583,8 @@ namespace yojimbo
     {
     protected:
 
+        int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
+
         ClientState m_clientState;                                          // current client state
 
         Address m_serverAddress;                                            // server address we are connecting or connected to.
@@ -637,6 +648,8 @@ namespace yojimbo
         void AdvanceTime( double time );
 
         double GetTime() const;
+
+        int GetClientIndex() const;
 
     protected:
 
