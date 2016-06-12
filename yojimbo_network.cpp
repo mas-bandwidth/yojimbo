@@ -237,7 +237,7 @@ namespace yojimbo
 
     void Address::Clear()
     {
-        m_type = ADDRESS_INVALID;
+        m_type = ADDRESS_NONE;
         memset( m_address_ipv6, 0, sizeof( m_address_ipv6 ) );
         m_port = 0;
     }
@@ -300,14 +300,14 @@ namespace yojimbo
         }
         else
         {
-            snprintf( buffer, bufferSize, "%s", "INVALID" );
+            snprintf( buffer, bufferSize, "%s", "NONE" );
 			return buffer;
         }
     }
 
     bool Address::IsValid() const
     {
-        return m_type != ADDRESS_INVALID;
+        return m_type != ADDRESS_NONE;
     }
 
 	// todo: can process these into flags on address creation and store
@@ -644,30 +644,27 @@ namespace yojimbo
 
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
-    void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, int maxInterfaces )
+    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses )
     {
-        assert( info );
-        assert( maxInterfaces >= 0 );
+        assert( addresses );
+        assert( maxAddresses >= 0 );
 
         struct ifaddrs *ifaddr, *ifa;
 
-        numInterfaces = 0;
+        numAddresses = 0;
 
         if ( getifaddrs( &ifaddr ) == -1 )
             return;
 
         for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
         {
-            if ( numInterfaces >= maxInterfaces )
+            if ( numAddresses >= maxAddresses )
                 break;
 
             if ( ifa->ifa_addr == NULL || ( ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6 ) ) 
                 continue;
 
             if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-                continue;
-
-            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
                 continue;
 
             Address address( (sockaddr_storage*) ifa->ifa_addr );
@@ -678,18 +675,13 @@ namespace yojimbo
             if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
                 continue;
 
-            strncpy( info[numInterfaces].name, ifa->ifa_name, MaxNetworkInterfaceNameLength );
-            info[numInterfaces].name[MaxNetworkInterfaceNameLength-1] = '\0';
-
-            info[numInterfaces].address = address;
-
-            numInterfaces++;
+            addresses[numAddresses++] = address;
         }
 
         freeifaddrs( ifaddr );
     }
 
-    Address GetFirstLocalAddress_IPV4()
+    Address GetFirstNetworkAddress_IPV4()
     {
         struct ifaddrs *ifaddr, *ifa;
 
@@ -702,9 +694,6 @@ namespace yojimbo
                 continue;
 
             if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-                continue;
-
-            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
                 continue;
 
             Address address( (sockaddr_storage*) ifa->ifa_addr );
@@ -724,7 +713,7 @@ namespace yojimbo
         return Address();
     }
 
-    Address GetFirstLocalAddress_IPV6()
+    Address GetFirstNetworkAddress_IPV6()
     {
         struct ifaddrs *ifaddr, *ifa;
 
@@ -739,9 +728,6 @@ namespace yojimbo
             if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
                 continue;
 
-            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
-                continue;
-
             Address address( (sockaddr_storage*) ifa->ifa_addr );
 
             if ( !address.IsValid() )
@@ -751,70 +737,6 @@ namespace yojimbo
 
             if ( !address.IsGlobalUnicast() )
                 continue;
-
-            freeifaddrs( ifaddr );
-
-            return address;
-        }
-
-        freeifaddrs( ifaddr );
-
-        return Address();
-    }
-
-    Address GetFirstLocalAddress()
-    {
-        struct ifaddrs *ifaddr, *ifa;
-
-        if ( getifaddrs( &ifaddr ) == -1 )
-            return Address();
-
-        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-        {
-            if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ) 
-                continue;
-
-            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-                continue;
-
-            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
-                continue;
-
-            Address address( (sockaddr_storage*) ifa->ifa_addr );
-
-            if ( !address.IsValid() )
-                continue;
-
-            assert( address.GetType() == ADDRESS_IPV6 );
-
-            if ( !address.IsGlobalUnicast() )
-                continue;
-
-            freeifaddrs( ifaddr );
-
-            return address;
-        }
-
-        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-        {
-            if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
-                continue;
-
-            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-                continue;
-
-            if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
-                continue;
-
-            Address address( (sockaddr_storage*) ifa->ifa_addr );
-
-            if ( !address.IsValid() )
-                continue;
-
-            if ( address.IsLinkLocal() )
-                continue;
-
-            assert( address.GetType() == ADDRESS_IPV4 );
 
             freeifaddrs( ifaddr );
 

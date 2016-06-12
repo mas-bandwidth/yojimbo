@@ -4,12 +4,6 @@ TODO
 
     -------------------
 
-    Port the network interface code to windows.
-
-    Port the platform_time and platform_sleep to windows. (must have some old code around for this...)
-
-    Make sure both the client and server can compile and run on Windows.
-
     Verify cross connects, eg. windows -> mac client, mac -> windows connect. both -> linux.
 
     -------------------

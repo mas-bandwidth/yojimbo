@@ -68,6 +68,35 @@ Sunday June 12th, 2016
 
     To avoid having this problem again, created a function on the server to create a heartbeat packet that requires a client index passed in.
 
+    Port the network interface code to windows.
+
+    Port the platform_time and platform_sleep to windows. (must have some old code around for this...)
+
+    So far just ported platform_sleep, time is not used yet (but will be soon...)
+
+    Implement the network interface walk, find first local address on windows.
+
+        GetAdaptersInfo()
+        GetAdaptersAddresses()
+
+    Fucking windows uses wide strings for "friendly name" for network interfaces.
+
+    I don't want to deal with unicode in my library, so stripped back to just addresses without names.
+
+    Client and server work on windows. Also, with Toredo tunnelling it seems that I can test out IPv6 stuff.
+
+    Seems like I should definitely add two addresses per-interface, eg. IPv6 address and IPv4 address.
+
+    Maybe combine the function to get the IPv4 and IPv6 addresses into one function, and then pass *both*
+    into the interface, so it can create two sockets, one for IPv6 and another for IPv4... if the addresses
+    are valid. (pass in invalid addresses to disable...) ?
+
+    Make sure both the client and server can compile and run on Windows.
+
+    Fix up the mac/linux to only use addresses not names.
+
+    Now test on linux.
+
 
 Saturday June 11th, 2016
 ========================
