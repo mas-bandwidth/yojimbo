@@ -54,6 +54,20 @@ Sunday June 12th, 2016
     should there be two interfaces managed by the client/server? Hard to say. Seems to me that 
     there should probably be only one address per-interface.
 
+    Client needs to know their client index.
+
+    To implement this, stick it in the heartbeat packet.
+
+    Add an accessor and print it out on client connect.
+
+    Works in client/server testbed.
+
+    Now test with multiple clients connecting to linux server.
+
+    Fixed some bugs where the heartbeat packet was getting created with 0 client index.
+
+    To avoid having this problem again, created a function on the server to create a heartbeat packet that requires a client index passed in.
+
 
 Saturday June 11th, 2016
 ========================
