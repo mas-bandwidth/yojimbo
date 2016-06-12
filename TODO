@@ -3,23 +3,10 @@ DONE
 TODO
 
     -------------------
-
-    Verify cross connects, eg. windows -> mac client, mac -> windows connect. both -> linux.
-
-    -------------------
-
-    Clean up the simulator and create a network interface around the simulator (or implement that interface directly...)
-
-    This is important for tests because even over loopback occasionally packets don't get through (due to thread race)
-    which is breaking my functional tests 1/10 runs or so.
-
-    The simulator needs to *back* an interface, eg. a network simulator is created, and a simulator interface works on top of it.
-
+    
     Move the tests over to use network simulator interfaces instead of sockets.
 
-    Verify that the tests can run in soak mode, eg. reps and don't break. 
-
-    Make sure all tests pass with ridiculous packet loss as well (90%). Probably need to extend the # of iterations...
+    Bump up the packet loss and network conditions to ridiculous levels and make sure all tests pass.
 
     -------------------
 

@@ -15,29 +15,29 @@ namespace yojimbo
     NetworkSimulator::NetworkSimulator( int numPackets )
     {
         assert( numPackets > 0 );
-        m_currentTime = 0.0;
+        m_time = 0.0;
         m_latency = 0.0f;
         m_jitter = 0.0f;
         m_packetLoss = 0.0f;
         m_duplicates = 0.0f;
         m_currentIndex = 0;
-        m_numEntries = numPackets;
-        m_entries = new Entry[numPackets];
-        memset( m_entries, 0, sizeof( Entry ) * numPackets );
+        m_numPacketEntries = numPackets;
+        m_packetEntries = new PacketEntry[numPackets];
+        memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
     }
 
     NetworkSimulator::~NetworkSimulator()
     {
-        assert( m_entries );
-        assert( m_numEntries > 0 );
-        for ( int i = 0; i < m_numEntries; ++i )
+        assert( m_packetEntries );
+        assert( m_numPacketEntries > 0 );
+        for ( int i = 0; i < m_numPacketEntries; ++i )
         {
-            if ( m_entries[i].packetData )
-                delete [] m_entries[i].packetData;
+            if ( m_packetEntries[i].packetData )
+                delete [] m_packetEntries[i].packetData;
         }
-        delete [] m_entries;
-        m_entries = NULL;
-        m_numEntries = 0;
+        delete [] m_packetEntries;
+        m_packetEntries = NULL;
+        m_numPacketEntries = 0;
     }
 
     void NetworkSimulator::SetLatency( float milliseconds )
@@ -74,84 +74,87 @@ namespace yojimbo
             return;
         }
 
-        Entry & entry = m_entries[m_currentIndex];
+        PacketEntry & packetEntry = m_packetEntries[m_currentIndex];
 
-        if ( entry.packetData )
+        if ( packetEntry.packetData )
         {
-            delete [] entry.packetData;
-            entry = Entry();
+            delete [] packetEntry.packetData;
+            packetEntry = PacketEntry();
         }
 
         double delay = m_latency / 1000.0;
 
         delay += random_float( -m_jitter, +m_jitter ) / 1000.0;
 
-        entry.from = from;
-        entry.to = to;
-        entry.packetData = packetData;
-        entry.packetSize = packetSize;
-        entry.deliveryTime = m_currentTime + delay;
+        packetEntry.from = from;
+        packetEntry.to = to;
+        packetEntry.packetData = packetData;
+        packetEntry.packetSize = packetSize;
+        packetEntry.deliveryTime = m_time + delay;
 
-        m_currentIndex = ( m_currentIndex + 1 ) % m_numEntries;
+        m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
 
         if ( random_float( 0.0f, 100.0f ) <= m_duplicates )
         {
-            uint8_t *duplicatePacketData = new uint8_t[packetSize];
+            uint8_t * duplicatePacketData = new uint8_t[packetSize];
 
             memcpy( duplicatePacketData, packetData, packetSize );
 
-            Entry & nextEntry = m_entries[m_currentIndex];
+            PacketEntry & nextPacketEntry = m_packetEntries[m_currentIndex];
 
-            nextEntry.from = from;
-            nextEntry.to = to;
-            nextEntry.packetData = duplicatePacketData;
-            nextEntry.packetSize = packetSize;
-            nextEntry.deliveryTime = m_currentTime + delay + random_float( -1.0, +1.0 );
+            nextPacketEntry.from = from;
+            nextPacketEntry.to = to;
+            nextPacketEntry.packetData = duplicatePacketData;
+            nextPacketEntry.packetSize = packetSize;
+            nextPacketEntry.deliveryTime = m_time + delay + random_float( -1.0, +1.0 );
 
-            m_currentIndex = ( m_currentIndex + 1 ) % m_numEntries;
+            m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
         }
     }
 
-    uint8_t * NetworkSimulator::ReceivePacket( Address & from, Address & to, int & packetSize )
+    uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )
     { 
         int oldestEntryIndex = -1;
         double oldestEntryTime = 0;
 
-        for ( int i = 0; i < m_numEntries; ++i )
+        for ( int i = 0; i < m_numPacketEntries; ++i )
         {
-            const Entry & entry = m_entries[i];
+            const PacketEntry & packetEntry = m_packetEntries[i];
 
-            if ( !entry.packetData )
+            if ( packetEntry.to != to )
                 continue;
 
-            if ( oldestEntryIndex == -1 || m_entries[i].deliveryTime < oldestEntryTime )
+            if ( !packetEntry.packetData )
+                continue;
+
+            if ( oldestEntryIndex == -1 || m_packetEntries[i].deliveryTime < oldestEntryTime )
             {
                 oldestEntryIndex = i;
-                oldestEntryTime = entry.deliveryTime;
+                oldestEntryTime = packetEntry.deliveryTime;
             }
         }
 
-        Entry & entry = m_entries[oldestEntryIndex];
+        PacketEntry & packetEntry = m_packetEntries[oldestEntryIndex];
 
-        if ( oldestEntryIndex == -1 || entry.deliveryTime > m_currentTime )
+        if ( oldestEntryIndex == -1 || packetEntry.deliveryTime > m_time )
             return NULL;
 
-        assert( entry.packetData );
+        assert( packetEntry.packetData );
 
-        uint8_t *packetData = entry.packetData;
+        uint8_t *packetData = packetEntry.packetData;
 
-        to = entry.to;
-        from = entry.from;
-        packetSize = entry.packetSize;
+        from = packetEntry.from;
+        packetSize = packetEntry.packetSize;
 
-        entry = Entry();
+        packetEntry = PacketEntry();
 
         return packetData;
     }
 
-    void NetworkSimulator::Update( double t )
+    void NetworkSimulator::AdvanceTime( double time )
     {
-        m_currentTime = t;
+        assert( time >= m_time );
+        m_time = time;
     }
 }
 

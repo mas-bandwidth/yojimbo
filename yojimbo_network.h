@@ -144,7 +144,7 @@ namespace yojimbo
 
         int GetError() const;
 
-        bool SendPacket( const Address & address, const void * packetData, size_t packetBytes );
+        bool SendPacket( const Address & to, const void * packetData, size_t packetBytes );
     
         int ReceivePacket( Address & from, void * packetData, int maxPacketSize );
 

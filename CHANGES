@@ -95,7 +95,30 @@ Sunday June 12th, 2016
 
     Fix up the mac/linux to only use addresses not names.
 
-    Now test on linux.
+    Now test on linux. Works fine.
+
+    Verify cross connects: eg. windows -> linux, mac -> linux.
+
+    Passes. Time for a break!
+
+    Clean up the simulator a bit.
+
+    Make it so you can read back packets only to a specific address, this is required to wrap an interface around the simulator.
+
+    Wrap an interface around the simulator.
+
+    Note that there is a lot of logic still in the simulator interface that I'd actually like to have moved out to something else
+    so it can easily be shared. How about a base interface implementation shared between simulator and socket?
+
+    OK. There is soooo much common functionality between simulator and socket interface it must be moved to a base class.
+
+    Moved the counters into the network interface in prep.
+
+    Next, move the bulk of the socket interface implementation into yojimbo_network_implementation.*
+
+    Now derive only the packet send/receive and m_sockets bit into SocketInterface.
+
+    Done. Seems to work.
 
 
 Saturday June 11th, 2016
