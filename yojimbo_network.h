@@ -148,7 +148,9 @@ namespace yojimbo
     {
     public:
 
-        Socket( uint16_t port, SocketType type = SOCKET_TYPE_IPV6 );
+        // todo: pass in the address to bind to, and from that address infer the correct socket type
+
+        Socket( uint16_t port, SocketType type = SOCKET_TYPE_IPV4 );
 
         ~Socket();
 
@@ -159,6 +161,8 @@ namespace yojimbo
         bool SendPacket( const Address & address, const void * packetData, size_t packetBytes );
     
         int ReceivePacket( Address & from, void * packetData, int maxPacketSize );
+
+        // todo: get the port from the socket, in the case where the port passed in is zero on create
 
     private:
 
