@@ -273,6 +273,8 @@ namespace yojimbo
             {
                 packet->clientIndex = i;
 
+                printf( "send heartbeat: %d\n", i );
+
                 SendPacketToConnectedClient( i, packet );
             }
         }
@@ -1244,6 +1246,8 @@ namespace yojimbo
 
         if ( m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
         {
+            printf( "packet.clientIndex = %d\n", packet.clientIndex );
+
             m_clientIndex = packet.clientIndex;
 
             memset( m_connectTokenData, 0, ConnectTokenBytes );
@@ -1258,6 +1262,8 @@ namespace yojimbo
 
         if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT )
         {
+            printf( "packet.clientIndex = %d\n", packet.clientIndex );
+
             m_clientIndex = packet.clientIndex;
 
             SetClientState( CLIENT_STATE_CONNECTED );
