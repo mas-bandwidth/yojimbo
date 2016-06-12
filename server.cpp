@@ -28,6 +28,8 @@ int ServerMain()
 
     GamePacketFactory packetFactory;
 
+//    Address serverAddress( "::1", ServerPort );
+
     Address serverAddress = GetFirstLocalAddress_IPV4();
 
     if ( !serverAddress.IsValid() )
@@ -38,7 +40,9 @@ int ServerMain()
 
     serverAddress.SetPort( ServerPort );
 
-//    Address serverAddress( "::1", ServerPort );
+    char serverAddressString[64];
+    serverAddress.ToString( serverAddressString, sizeof( serverAddressString ) );
+    printf( "server started on %s\n", serverAddressString );
 
     GameNetworkInterface serverInterface( packetFactory, serverAddress );
 
@@ -47,10 +51,6 @@ int ServerMain()
         printf( "error: failed to initialize server socket\n" );
         return 1;
     }
-
-    char serverAddressString[64];
-    serverAddress.ToString( serverAddressString, sizeof( serverAddressString ) );
-    printf( "server started on %s\n", serverAddressString );
     
     GameServer server( serverInterface );
 

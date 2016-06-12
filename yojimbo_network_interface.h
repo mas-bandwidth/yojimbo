@@ -59,6 +59,8 @@ namespace yojimbo
         virtual void SetFlags( uint64_t flags ) = 0;
 
         virtual uint64_t GetFlags() const = 0;
+
+        virtual const Address & GetAddress() const = 0;
     };
 }
 
