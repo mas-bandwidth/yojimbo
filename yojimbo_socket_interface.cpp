@@ -433,4 +433,10 @@ namespace yojimbo
     {
         return m_flags;
     }
+
+    const Address & SocketInterface::GetAddress() const
+    {
+        assert( m_socket );
+        return m_socket->GetAddress();
+    }
 }
