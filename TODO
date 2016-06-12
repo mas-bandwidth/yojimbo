@@ -39,6 +39,16 @@ DONE
     Added a bunch of functions, eg. get network interface info. get first IPv4 address, get first IPv6
     address...
 
+    Now, IPv6 addresses prefixed with f8e0 are "link local" and cannot be routed.
+
+    This means I believe that I should filter these out... if the are listed in the network interfaces,
+    they are not actualy IPv6 addresses that I can share with the rest of the world to connect to.
+
+    So they should be filtered out.
+
+    This way, if you ask for the first local address, and only a link local IPv6 address is specified,
+    then that address will be ignored.
+
 TODO
 
 
