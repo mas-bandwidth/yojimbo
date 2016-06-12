@@ -93,6 +93,8 @@ namespace yojimbo
 
         bool IsMulticast() const;
 
+		bool IsLoopback() const;
+
         bool IsGlobalUnicast() const;
 
         bool operator ==( const Address & other ) const;
@@ -106,21 +108,11 @@ namespace yojimbo
 
 #if YOJIMBO_SOCKETS
 
-    const int MaxNetworkInterfaceNameLength = 256;
+    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses );
 
-    struct NetworkInterfaceInfo
-    {
-        char name[MaxNetworkInterfaceNameLength];
-        Address address;
-    };
+    Address GetFirstNetworkAddress_IPV4();
 
-    void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, int maxInterfaces );
-
-    Address GetFirstLocalAddress_IPV4();
-
-    Address GetFirstLocalAddress_IPV6();
-
-    Address GetFirstLocalAddress();
+    Address GetFirstNetworkAddress_IPV6();
 
     enum SocketError
     {

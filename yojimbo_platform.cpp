@@ -86,15 +86,21 @@ namespace yojimbo
 // Windows platform
 // ===========================================================================================================================================
 
+#include <windows.h>
+#include <assert.h>
+
 namespace yojimbo
 {
 	void platform_sleep( double time )
 	{
-		// todo
+		const int milliseconds = time * 1000;
+		Sleep( milliseconds );
 	}
 
 	double platform_time()
 	{
+		// todo
+		assert( false );
 		return 0.0;
 	}
 }
