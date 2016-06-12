@@ -1,6 +1,16 @@
 DONE
 
+    Client needs to know their client index.
+
+    To implement this, stick it in the heartbeat packet.
+
+    Add an accessor and print it out on client connect.
+
+    Works in client/server testbed.
+
 TODO
+
+    Now test with multiple clients connecting to linux server.
 
     -------------------
 
