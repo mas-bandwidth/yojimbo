@@ -379,7 +379,6 @@ namespace yojimbo
         SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_DECRYPT,
         SERVER_COUNTER_CHALLENGE_PACKETS_SENT,
         SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED,
-        SERVER_COUNTER_CHALLENGE_RESPONSE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT,
         SERVER_COUNTER_CLIENT_CONNECTS,
         SERVER_COUNTER_CLIENT_DISCONNECTS,
         SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS,
@@ -535,6 +534,8 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
+
+        ConnectionHeartBeatPacket * CreateHeartBeatPacket( int clientIndex );
     };
 
     enum ClientState

@@ -267,12 +267,10 @@ namespace yojimbo
             if ( m_clientData[i].lastPacketSendTime + ConnectionHeartBeatRate > time )
                 return;
 
-            ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+            ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( i );
 
             if ( packet )
             {
-                packet->clientIndex = i;
-
                 SendPacketToConnectedClient( i, packet );
             }
         }
@@ -522,12 +520,10 @@ namespace yojimbo
 
         OnClientConnect( clientIndex );
 
-        ConnectionHeartBeatPacket * connectionHeartBeatPacket = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+        ConnectionHeartBeatPacket * connectionHeartBeatPacket = CreateHeartBeatPacket( clientIndex );
 
         if ( connectionHeartBeatPacket )
         {
-            connectionHeartBeatPacket->clientIndex = clientIndex;
-
             SendPacketToConnectedClient( clientIndex, connectionHeartBeatPacket );
         }
     }
@@ -711,15 +707,11 @@ namespace yojimbo
 
             if ( m_clientData[existingClientIndex].lastPacketSendTime + ConnectionConfirmSendRate < time )
             {
-                ConnectionHeartBeatPacket * connectionHeartBeatPacket = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+                ConnectionHeartBeatPacket * connectionHeartBeatPacket = CreateHeartBeatPacket( existingClientIndex );
 
                 if ( connectionHeartBeatPacket )
                 {
-                    connectionHeartBeatPacket->clientIndex = existingClientIndex;
-
                     SendPacketToConnectedClient( existingClientIndex, connectionHeartBeatPacket );
-
-                    m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT]++;
                 }
             }
 
@@ -805,12 +797,10 @@ namespace yojimbo
         {
             if ( m_clientData[clientIndex].clientSalt == clientSalt )
             {
-                ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+                ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( clientIndex );
 
                 if ( packet )
                 {
-                    packet->clientIndex = clientIndex;
-
                     SendPacketToConnectedClient( clientIndex, packet );
                 }
             }
@@ -882,6 +872,18 @@ namespace yojimbo
             return;
 
         m_clientData[clientIndex].lastPacketReceiveTime = GetTime();
+    }
+
+    ConnectionHeartBeatPacket * Server::CreateHeartBeatPacket( int clientIndex )
+    {
+        ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+
+        if ( packet )
+        {
+            packet->clientIndex = clientIndex;
+        }
+
+        return packet;
     }
 
     // =============================================================
@@ -1254,8 +1256,6 @@ namespace yojimbo
 
         if ( m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
         {
-            printf( "packet.clientIndex = %d\n", packet.clientIndex );
-
             m_clientIndex = packet.clientIndex;
 
             memset( m_connectTokenData, 0, ConnectTokenBytes );
@@ -1270,8 +1270,6 @@ namespace yojimbo
 
         if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT )
         {
-            printf( "packet.clientIndex = %d\n", packet.clientIndex );
-
             m_clientIndex = packet.clientIndex;
 
             SetClientState( CLIENT_STATE_CONNECTED );
