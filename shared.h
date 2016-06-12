@@ -28,7 +28,7 @@ const int ServerPort = 50000;
 
 static uint8_t private_key[KeyBytes];
 
-static bool verbose_logging = true; //false;
+static bool verbose_logging = false;
 
 #if MATCHER
 
