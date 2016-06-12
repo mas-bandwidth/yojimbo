@@ -1,14 +1,33 @@
 DONE
 
-TODO
-
-    Server compiles and runs on linux but obviously its hardcoded address is wrong.
+    Server compiles and runs on linux but obviously its hardcoded address is wrong...
 
     Need a way to get the address of a network interface after the fact
 
     And then that address can be automatically passed to the server, so it knows its address.
 
     No need for "SetServerAddress" anymore, but leave it in in case the user wants to override.
+
+TODO
+
+    Update. You can't query the local IP address from a socket. Instead you need to walk the set of
+    network interfaces using platform specific APIs, and then you can bind a socket to 0.0.0.0 *or*
+    bind it to a specific IP address in that list of interface IP addresses.
+
+    Windows:
+
+        GetAdaptersInfo()
+        GetAdaptersAddresses()
+
+    MacOSX:
+
+        ?
+
+    Linux:
+
+        getifaddrs
+
+    More info: http://linux.die.net/man/2/bind
 
     -------------------
     
