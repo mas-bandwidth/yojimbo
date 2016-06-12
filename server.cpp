@@ -91,6 +91,8 @@ int ServerMain()
 
     printf( "\nserver stopped\n" );
 
+    server.DisconnectAllClients();
+
     ShutdownNetwork();
 
     return 0;
