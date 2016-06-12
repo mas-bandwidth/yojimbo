@@ -28,43 +28,32 @@ int main()
         exit( 1 );
     }
 
-    const int MaxInterfaces = 64;
+    const int MaxAddresses = 64;
+    int numAddresses;
+    Address networkAddresses[MaxAddresses];
+    GetNetworkAddresses( networkAddresses, numAddresses, MaxAddresses );    
 
-    int numInterfaces;
-    NetworkInterfaceInfo interfaceInfo[MaxInterfaces];
-    GetNetworkInterfaceInfo( interfaceInfo, numInterfaces, MaxInterfaces );    
+    printf( "\nnetwork addresses:\n" );
 
-    printf( "\navailable network interfaces:\n" );
-
-    for ( int i = 0; i < numInterfaces; ++i )
+    for ( int i = 0; i < numAddresses; ++i )
     {
         char addressString[64];
-        interfaceInfo[i].address.ToString( addressString, sizeof( addressString) );
-        printf( " + %s => %s\n", interfaceInfo[i].name, addressString );
+        networkAddresses[i].ToString( addressString, sizeof( addressString) );
+        printf( " + %s\n", addressString );
     }
 
     {
-        Address address = GetFirstLocalAddress_IPV4();
-        char addressString[64];
-        address.ToString( addressString, sizeof( addressString) );
-        printf( "\nfirst local IPV4 address: %s\n", addressString );
-    }
-
-    {
-        Address address = GetFirstLocalAddress_IPV6();
-        if ( address.IsValid() )
-        {
-            char addressString[64];
-            address.ToString( addressString, sizeof( addressString) );
-            printf( "\nfirst local IPV6 address: %s\n", addressString );
-        }
-    }
-
-    {
-        Address address = GetFirstLocalAddress();
+        Address address = GetFirstNetworkAddress_IPV4();
         char addressString[64];
         address.ToString( addressString, sizeof( addressString) );
-        printf( "\nfirst local address (prefer IPV6): %s\n", addressString );
+        printf( "\nfirst IPV4 network address: %s\n", addressString );
+    }
+
+    {
+        Address address = GetFirstNetworkAddress_IPV6();
+        char addressString[64];
+        address.ToString( addressString, sizeof( addressString) );
+        printf( "\nfirst IPV6 network address: %s\n", addressString );
     }
 
     printf( "\n" );
