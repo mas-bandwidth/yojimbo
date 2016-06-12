@@ -91,7 +91,7 @@ namespace yojimbo
                          PacketFactory & packetFactory, 
                          uint32_t protocolId,
                          uint16_t socketPort, 
-                         SocketType socketType = SOCKET_TYPE_IPV6, 
+                         SocketType socketType = SOCKET_TYPE_IPV4, 
                          int maxPacketSize = 4 * 1024,
                          int sendQueueSize = 1024,
                          int receiveQueueSize = 1024 );
