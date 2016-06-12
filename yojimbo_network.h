@@ -32,7 +32,7 @@ namespace yojimbo
 
     enum AddressType
     {
-        ADDRESS_UNDEFINED,
+        ADDRESS_INVALID,
         ADDRESS_IPV4,
         ADDRESS_IPV6
     };

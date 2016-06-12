@@ -1097,9 +1097,6 @@ void test_unencrypted_packets()
 {
     printf( "test_unencrypted_packets\n" );
 
-    const int ClientPort = 30000;
-    const int ServerPort = 40000;
-
     GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
