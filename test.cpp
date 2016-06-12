@@ -3071,7 +3071,7 @@ void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, 
     freeifaddrs( ifaddr );
 }
 
-Address GetFirstLocalAddress_IPV6()
+Address GetFirstLocalAddress_IPV4()
 {
     struct ifaddrs *ifaddr, *ifa;
 
@@ -3105,7 +3105,7 @@ Address GetFirstLocalAddress_IPV6()
     return Address();
 }
 
-Address GetFirstLocalAddress_IPV4()
+Address GetFirstLocalAddress_IPV6()
 {
     struct ifaddrs *ifaddr, *ifa;
 
