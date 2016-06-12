@@ -3013,227 +3013,10 @@ void test_client_server_insecure_connect_timeout()
 
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <ifaddrs.h>
-#include <net/if.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-
-const int MaxNetworkInterfaceNameLength = 256;
-
-struct NetworkInterfaceInfo
-{
-    char name[MaxNetworkInterfaceNameLength];
-    Address address;
-};
-
-void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, int maxInterfaces )
-{
-    assert( info );
-    assert( maxInterfaces >= 0 );
-
-    struct ifaddrs *ifaddr, *ifa;
-
-    numInterfaces = 0;
-
-    if ( getifaddrs( &ifaddr ) == -1 )
-        return;
-
-    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-    {
-        if ( numInterfaces >= maxInterfaces )
-            break;
-
-        if ( ifa->ifa_addr == NULL || ( ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6 ) ) 
-            continue;
-
-        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-            continue;
-
-        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
-            continue;
-
-        Address address( (sockaddr_storage*) ifa->ifa_addr );
-        if ( !address.IsValid() )
-            continue;
-
-        strncpy( info[numInterfaces].name, ifa->ifa_name, MaxNetworkInterfaceNameLength );
-        info[numInterfaces].name[MaxNetworkInterfaceNameLength-1] = '\0';
-
-        info[numInterfaces].address = address;
-
-        numInterfaces++;
-    }
-
-    freeifaddrs( ifaddr );
-}
-
-Address GetFirstLocalAddress_IPV4()
-{
-    struct ifaddrs *ifaddr, *ifa;
-
-    if ( getifaddrs( &ifaddr ) == -1 )
-        return Address();
-
-    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-    {
-        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
-            continue;
-
-        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-            continue;
-
-        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
-            continue;
-
-        Address address( (sockaddr_storage*) ifa->ifa_addr );
-        if ( !address.IsValid() )
-            continue;
-
-        assert( address.GetType() == ADDRESS_IPV4 );
-
-        freeifaddrs( ifaddr );
-
-        return address;
-    }
-
-    freeifaddrs( ifaddr );
-
-    return Address();
-}
-
-Address GetFirstLocalAddress_IPV6()
-{
-    struct ifaddrs *ifaddr, *ifa;
-
-    if ( getifaddrs( &ifaddr ) == -1 )
-        return Address();
-
-    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-    {
-        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ) 
-            continue;
-
-        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-            continue;
-
-        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
-            continue;
-
-        Address address( (sockaddr_storage*) ifa->ifa_addr );
-        if ( !address.IsValid() )
-            continue;
-
-        assert( address.GetType() == ADDRESS_IPV6 );
-
-        freeifaddrs( ifaddr );
-
-        return address;
-    }
-
-    freeifaddrs( ifaddr );
-
-    return Address();
-}
-
-Address GetFirstLocalAddress()
-{
-    struct ifaddrs *ifaddr, *ifa;
-
-    if ( getifaddrs( &ifaddr ) == -1 )
-        return Address();
-
-    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-    {
-        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ) 
-            continue;
-
-        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-            continue;
-
-        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
-            continue;
-
-        Address address( (sockaddr_storage*) ifa->ifa_addr );
-        if ( !address.IsValid() )
-            continue;
-
-        assert( address.GetType() == ADDRESS_IPV6 );
-
-        freeifaddrs( ifaddr );
-
-        return address;
-    }
-
-    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-    {
-        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
-            continue;
-
-        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-            continue;
-
-        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
-            continue;
-
-        Address address( (sockaddr_storage*) ifa->ifa_addr );
-        if ( !address.IsValid() )
-            continue;
-
-        assert( address.GetType() == ADDRESS_IPV4 );
-
-        freeifaddrs( ifaddr );
-
-        return address;
-    }
-
-    freeifaddrs( ifaddr );
-
-    return Address();
-}
-
-void test_interfaces()
-{
-    const int MaxInterfaces = 32;
-
-    int numInterfaces;
-    NetworkInterfaceInfo interfaceInfo[MaxInterfaces];
-    GetNetworkInterfaceInfo( interfaceInfo, numInterfaces, MaxInterfaces );    
-
-    for ( int i = 0; i < numInterfaces; ++i )
-    {
-        char addressString[64];
-        interfaceInfo[i].address.ToString( addressString, sizeof( addressString) );
-        printf( "%d: %s - %s\n", i, interfaceInfo[i].name, addressString );
-    }
-
-    {
-        Address address = GetFirstLocalAddress_IPV4();
-        char addressString[64];
-        address.ToString( addressString, sizeof( addressString) );
-        printf( "first local IPV4 address: %s\n", addressString );
-    }
-
-    {
-        Address address = GetFirstLocalAddress_IPV6();
-        char addressString[64];
-        address.ToString( addressString, sizeof( addressString) );
-        printf( "first local IPV6 address: %s\n", addressString );
-    }
-
-    {
-        Address address = GetFirstLocalAddress();
-        char addressString[64];
-        address.ToString( addressString, sizeof( addressString) );
-        printf( "first local address (prefer IPV6): %s\n", addressString );
-    }
-}
-
 int main()
 {
+    memory_initialize();
+
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize yojimbo\n" );
@@ -3246,44 +3029,40 @@ int main()
         exit( 1 );
     }
 
-    memory_initialize();
-    {
-        test_bitpacker();
-        test_stream();
-        test_packets();
-        test_address_ipv4();
-        test_address_ipv6();
-        test_packet_sequence();
-        test_encrypt_and_decrypt();
-        test_encryption_manager();
-        test_unencrypted_packets();
-        test_client_server_tokens();
-        test_client_server_connect();
-        test_client_server_reconnect();
-        test_client_server_client_side_disconnect();
-        test_client_server_server_side_disconnect();
-        test_client_server_connection_request_timeout();
-        test_client_server_connection_response_timeout();
-        test_client_server_client_side_timeout();
-        test_client_server_server_side_timeout();
-        test_client_server_server_is_full();
-        test_client_server_connect_token_reuse();
-        test_client_server_connect_token_expiry();
-        test_client_server_connect_token_whitelist();
-        test_client_server_connect_token_invalid();
-        test_client_server_game_packets();
+    test_bitpacker();
+    test_stream();
+    test_packets();
+    test_address_ipv4();
+    test_address_ipv6();
+    test_packet_sequence();
+    test_encrypt_and_decrypt();
+    test_encryption_manager();
+    test_unencrypted_packets();
+    test_client_server_tokens();
+    test_client_server_connect();
+    test_client_server_reconnect();
+    test_client_server_client_side_disconnect();
+    test_client_server_server_side_disconnect();
+    test_client_server_connection_request_timeout();
+    test_client_server_connection_response_timeout();
+    test_client_server_client_side_timeout();
+    test_client_server_server_side_timeout();
+    test_client_server_server_is_full();
+    test_client_server_connect_token_reuse();
+    test_client_server_connect_token_expiry();
+    test_client_server_connect_token_whitelist();
+    test_client_server_connect_token_invalid();
+    test_client_server_game_packets();
 #if YOJIMBO_INSECURE_CONNECT
-        test_client_server_insecure_connect();
-        test_client_server_insecure_connect_timeout();
+    test_client_server_insecure_connect();
+    test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
-        test_interfaces();
-    }
-
-    memory_shutdown();
 
     ShutdownNetwork();
 
     ShutdownYojimbo();
+
+    memory_shutdown();
 
     return 0;
 }
