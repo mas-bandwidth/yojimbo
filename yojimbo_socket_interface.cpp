@@ -17,6 +17,8 @@ namespace yojimbo
 {
     typedef Socket NetworkSocket;
 
+    // todo: socket interface should infer type based on the address passed in (eg. the interface addr)
+
     SocketInterface::SocketInterface( Allocator & allocator, 
                                       PacketFactory & packetFactory, 
                                       uint32_t protocolId,
