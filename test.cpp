@@ -3022,39 +3022,214 @@ void test_client_server_insecure_connect_timeout()
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
-void test_interfaces()
+const int MaxNetworkInterfaceNameLength = 256;
+
+struct NetworkInterfaceInfo
 {
+    char name[MaxNetworkInterfaceNameLength];
+    Address address;
+};
+
+void GetNetworkInterfaceInfo( NetworkInterfaceInfo * info, int & numInterfaces, int maxInterfaces )
+{
+    assert( info );
+    assert( maxInterfaces >= 0 );
+
     struct ifaddrs *ifaddr, *ifa;
 
+    numInterfaces = 0;
+
     if ( getifaddrs( &ifaddr ) == -1 )
-    {
-        printf( "error: getifaddrs failed\n" );
-        exit( 1 );
-    }
+        return;
 
     for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
     {
+        if ( numInterfaces >= maxInterfaces )
+            break;
+
         if ( ifa->ifa_addr == NULL || ( ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6 ) ) 
             continue;
 
         if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
             continue;
 
-        if ( strncmp( ifa->ifa_name, "lo", 2 )==0 )
+        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
             continue;
-
-        printf( "interface %s\n", ifa->ifa_name );
 
         Address address( (sockaddr_storage*) ifa->ifa_addr );
         if ( !address.IsValid() )
             continue;
 
-        char addressString[64];
-        address.ToString( addressString, sizeof( addressString) );
-        printf( "address: %s\n", addressString );        
+        strncpy( info[numInterfaces].name, ifa->ifa_name, MaxNetworkInterfaceNameLength );
+        info[numInterfaces].name[MaxNetworkInterfaceNameLength-1] = '\0';
+
+        info[numInterfaces].address = address;
+
+        numInterfaces++;
     }
 
     freeifaddrs( ifaddr );
+}
+
+Address GetFirstLocalAddress_IPV6()
+{
+    struct ifaddrs *ifaddr, *ifa;
+
+    if ( getifaddrs( &ifaddr ) == -1 )
+        return Address();
+
+    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+    {
+        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
+            continue;
+
+        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+            continue;
+
+        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+            continue;
+
+        Address address( (sockaddr_storage*) ifa->ifa_addr );
+        if ( !address.IsValid() )
+            continue;
+
+        assert( address.GetType() == ADDRESS_IPV4 );
+
+        freeifaddrs( ifaddr );
+
+        return address;
+    }
+
+    freeifaddrs( ifaddr );
+
+    return Address();
+}
+
+Address GetFirstLocalAddress_IPV4()
+{
+    struct ifaddrs *ifaddr, *ifa;
+
+    if ( getifaddrs( &ifaddr ) == -1 )
+        return Address();
+
+    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+    {
+        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ) 
+            continue;
+
+        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+            continue;
+
+        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+            continue;
+
+        Address address( (sockaddr_storage*) ifa->ifa_addr );
+        if ( !address.IsValid() )
+            continue;
+
+        assert( address.GetType() == ADDRESS_IPV6 );
+
+        freeifaddrs( ifaddr );
+
+        return address;
+    }
+
+    freeifaddrs( ifaddr );
+
+    return Address();
+}
+
+Address GetFirstLocalAddress()
+{
+    struct ifaddrs *ifaddr, *ifa;
+
+    if ( getifaddrs( &ifaddr ) == -1 )
+        return Address();
+
+    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+    {
+        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ) 
+            continue;
+
+        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+            continue;
+
+        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+            continue;
+
+        Address address( (sockaddr_storage*) ifa->ifa_addr );
+        if ( !address.IsValid() )
+            continue;
+
+        assert( address.GetType() == ADDRESS_IPV6 );
+
+        freeifaddrs( ifaddr );
+
+        return address;
+    }
+
+    for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
+    {
+        if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
+            continue;
+
+        if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
+            continue;
+
+        if ( strncmp( ifa->ifa_name, "lo", 2 ) ==0 )
+            continue;
+
+        Address address( (sockaddr_storage*) ifa->ifa_addr );
+        if ( !address.IsValid() )
+            continue;
+
+        assert( address.GetType() == ADDRESS_IPV4 );
+
+        freeifaddrs( ifaddr );
+
+        return address;
+    }
+
+    freeifaddrs( ifaddr );
+
+    return Address();
+}
+
+void test_interfaces()
+{
+    const int MaxInterfaces = 32;
+
+    int numInterfaces;
+    NetworkInterfaceInfo interfaceInfo[MaxInterfaces];
+    GetNetworkInterfaceInfo( interfaceInfo, numInterfaces, MaxInterfaces );    
+
+    for ( int i = 0; i < numInterfaces; ++i )
+    {
+        char addressString[64];
+        interfaceInfo[i].address.ToString( addressString, sizeof( addressString) );
+        printf( "%d: %s - %s\n", i, interfaceInfo[i].name, addressString );
+    }
+
+    {
+        Address address = GetFirstLocalAddress_IPV4();
+        char addressString[64];
+        address.ToString( addressString, sizeof( addressString) );
+        printf( "first local IPV4 address: %s\n", addressString );
+    }
+
+    {
+        Address address = GetFirstLocalAddress_IPV6();
+        char addressString[64];
+        address.ToString( addressString, sizeof( addressString) );
+        printf( "first local IPV6 address: %s\n", addressString );
+    }
+
+    {
+        Address address = GetFirstLocalAddress();
+        char addressString[64];
+        address.ToString( addressString, sizeof( addressString) );
+        printf( "first local address (prefer IPV6): %s\n", addressString );
+    }
 }
 
 int main()

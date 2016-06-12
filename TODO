@@ -8,8 +8,6 @@ DONE
 
     No need for "SetServerAddress" anymore, but leave it in in case the user wants to override.
 
-TODO
-
     Update. You can't query the local IP address from a socket. Instead you need to walk the set of
     network interfaces using platform specific APIs, and then you can bind a socket to 0.0.0.0 *or*
     bind it to a specific IP address in that list of interface IP addresses.
@@ -28,6 +26,21 @@ TODO
         getifaddrs
 
     More info: http://linux.die.net/man/2/bind
+
+    Seems that I need to extend network interfaces so they can be bound to a specific IP address.
+
+    If you have multiple network interfaces, especially for dedicated servers, you're going to only
+    want the packets sent to particular IP (eg. the interface you are running your dedi on)
+
+    Since localhost connections are going to be, by definition, insecure... as long as non-secure
+    connections work to the localhost it's fine. Don't sweat too much the whole ::1 vs. 127.0.0.1 vs
+    real IP thing that sometimes happens.
+
+    Added a bunch of functions, eg. get network interface info. get first IPv4 address, get first IPv6
+    address...
+
+TODO
+
 
     -------------------
     
