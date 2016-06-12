@@ -273,8 +273,6 @@ namespace yojimbo
             {
                 packet->clientIndex = i;
 
-                printf( "send heartbeat: %d\n", i );
-
                 SendPacketToConnectedClient( i, packet );
             }
         }
@@ -528,6 +526,8 @@ namespace yojimbo
 
         if ( connectionHeartBeatPacket )
         {
+            connectionHeartBeatPacket = clientIndex;
+
             SendPacketToConnectedClient( clientIndex, connectionHeartBeatPacket );
         }
     }
@@ -715,8 +715,11 @@ namespace yojimbo
 
                 if ( connectionHeartBeatPacket )
                 {
-                    m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT]++;
+                    connectionHeartBeatPacket.clientIndex = existingClientIndex;
+
                     SendPacketToConnectedClient( existingClientIndex, connectionHeartBeatPacket );
+
+                    m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_CLIENT_ALREADY_CONNECTED_REPLY_WITH_HEARTBEAT]++;
                 }
             }
 
@@ -804,7 +807,12 @@ namespace yojimbo
             {
                 ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
-                SendPacketToConnectedClient( clientIndex, packet );
+                if ( packet )
+                {
+                    packet->clientIndex = clientIndex;
+
+                    SendPacketToConnectedClient( clientIndex, packet );
+                }
             }
 
             return;            
