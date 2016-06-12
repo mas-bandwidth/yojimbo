@@ -1,4 +1,29 @@
 
+Sunday June 12th, 2016
+======================
+
+    Setup the socket interface so that it can bind to a specific IP address, not just a port.
+
+    Modify the linux server program to get the first local address and bind the server network interface to that (IPV4...)
+
+    Set this address on the server.
+
+    Now on the client, modify so it connects to the linux server IP address: 173.255.195.190
+
+    Verify that the MacOSX client is able to connect to the linux server IP address.
+
+    Nope! Doesn't connect. Don't know why.
+
+    Possibly because wrong socket type...?
+
+    Really want to make it so the local address is passed in to the socket interface for binding,
+    so the correct socket type can be inferred from the address.
+
+    This is the most flexible. Will allow IPV4 addresses and IPV6 addresses to coexist in the same program.
+
+    OK. It works now. Almost certainly incorrect socket type.
+
+
 Saturday June 11th, 2016
 ========================
 

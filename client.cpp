@@ -28,7 +28,9 @@ int ClientMain()
 
     GamePacketFactory packetFactory;
 
-    GameNetworkInterface clientInterface( packetFactory, 0 );
+    Address clientAddress( "0.0.0.0", 0 );
+
+    GameNetworkInterface clientInterface( packetFactory, clientAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -63,7 +65,7 @@ int ClientMain()
 
         client.CheckForTimeOut();
 
-        if ( client.ConnectionFailed() )
+        if ( client.IsDisconnected() )
             break;
 
         time += deltaTime;
@@ -71,6 +73,9 @@ int ClientMain()
         client.AdvanceTime( time );
 
         clientInterface.AdvanceTime( time );
+
+        if ( client.ConnectionFailed() )
+            break;
 
         platform_sleep( deltaTime );
     }

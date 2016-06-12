@@ -1080,7 +1080,7 @@ class TestNetworkInterface : public SocketInterface
 {   
 public:
 
-    TestNetworkInterface( GamePacketFactory & packetFactory, uint16_t port ) : SocketInterface( memory_default_allocator(), packetFactory, ProtocolId, port )
+    TestNetworkInterface( GamePacketFactory & packetFactory, const Address & address ) : SocketInterface( memory_default_allocator(), packetFactory, address, ProtocolId )
     {
         EnablePacketEncryption();
         DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
@@ -1105,8 +1105,8 @@ void test_unencrypted_packets()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -1191,8 +1191,8 @@ void test_client_server_connect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -1278,8 +1278,8 @@ void test_client_server_reconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -1455,8 +1455,8 @@ void test_client_server_client_side_disconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -1585,8 +1585,8 @@ void test_client_server_server_side_disconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -1721,7 +1721,7 @@ void test_client_server_connection_request_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -1795,8 +1795,8 @@ void test_client_server_connection_response_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -1885,8 +1885,8 @@ void test_client_server_client_side_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2002,8 +2002,8 @@ void test_client_server_server_side_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2141,7 +2141,7 @@ void test_client_server_server_is_full()
 
         Address clientAddress( "::1", ClientPort + i );
 
-        clientData[i].networkInterface = new TestNetworkInterface( packetFactory, ClientPort + i );
+        clientData[i].networkInterface = new TestNetworkInterface( packetFactory, clientAddress );
 
         if ( clientData[i].networkInterface->GetError() != SOCKET_ERROR_NONE )
         {
@@ -2165,7 +2165,7 @@ void test_client_server_server_is_full()
 
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2359,8 +2359,8 @@ void test_client_server_connect_token_reuse()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2423,7 +2423,7 @@ void test_client_server_connect_token_reuse()
 
     Address clientAddress2( "::1", ClientPort + 1 );
 
-    TestNetworkInterface clientInterface2( packetFactory, ClientPort + 1 );
+    TestNetworkInterface clientInterface2( packetFactory, clientAddress2 );
 
     if ( clientInterface2.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2508,8 +2508,8 @@ void test_client_server_connect_token_expiry()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2605,8 +2605,8 @@ void test_client_server_connect_token_whitelist()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2685,8 +2685,8 @@ void test_client_server_connect_token_invalid()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2774,8 +2774,8 @@ void test_client_server_game_packets()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2888,8 +2888,8 @@ void test_client_server_insecure_connect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
-    TestNetworkInterface serverInterface( packetFactory, ServerPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -2965,7 +2965,7 @@ void test_client_server_insecure_connect_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, ClientPort );
+    TestNetworkInterface clientInterface( packetFactory, clientAddress );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
     {

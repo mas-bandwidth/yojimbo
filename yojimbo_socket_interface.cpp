@@ -15,15 +15,12 @@
 
 namespace yojimbo
 {
-    typedef Socket NetworkSocket;
-
     // todo: socket interface should infer type based on the address passed in (eg. the interface addr)
 
     SocketInterface::SocketInterface( Allocator & allocator, 
                                       PacketFactory & packetFactory, 
+                                      const Address & address,
                                       uint32_t protocolId,
-                                      uint16_t socketPort, 
-                                      SocketType socketType, 
                                       int maxPacketSize, 
                                       int sendQueueSize, 
                                       int receiveQueueSize )
@@ -42,7 +39,7 @@ namespace yojimbo
 
         m_allocator = &allocator;
         
-        m_socket = YOJIMBO_NEW( *m_allocator, NetworkSocket, socketPort, socketType );
+        m_socket = new Socket( address );//YOJIMBO_NEW( *m_allocator, address, Socket );
         
         m_protocolId = protocolId;
 
@@ -61,11 +58,16 @@ namespace yojimbo
 
 		assert( numPacketTypes > 0 );
 
+#if YOJIMBO_INSECURE_CONNECT
         m_allPacketTypes = (uint8_t*) m_allocator->Allocate( numPacketTypes );
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
         m_packetTypeIsEncrypted = (uint8_t*) m_allocator->Allocate( numPacketTypes );
         m_packetTypeIsUnencrypted = (uint8_t*) m_allocator->Allocate( numPacketTypes );
 
+#if YOJIMBO_INSECURE_CONNECT
         memset( m_allPacketTypes, 1, m_packetFactory->GetNumPacketTypes() );
+#endif // #if YOJIMBO_INSECURE_CONNECT
         memset( m_packetTypeIsEncrypted, 0, m_packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
 
@@ -79,9 +81,11 @@ namespace yojimbo
         ClearSendQueue();
         ClearReceiveQueue();
 
-        YOJIMBO_DELETE( *m_allocator, NetworkSocket, m_socket );
+        delete m_socket;
 
+#if YOJIMBO_INSECURE_CONNECT
         m_allocator->Free( m_allPacketTypes );
+#endif // #if YOJIMBO_INSECURE_CONNECT
         m_allocator->Free( m_packetTypeIsEncrypted );
         m_allocator->Free( m_packetTypeIsUnencrypted );
 
@@ -89,7 +93,9 @@ namespace yojimbo
 
         m_socket = NULL;
         m_packetFactory = NULL;
+#if YOJIMBO_INSECURE_CONNECT
         m_allPacketTypes = NULL;
+#endif // #if YOJIMBO_INSECURE_CONNECT
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
         m_packetProcessor = NULL;

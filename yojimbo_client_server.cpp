@@ -967,6 +967,11 @@ namespace yojimbo
         return m_clientState == CLIENT_STATE_CONNECTED;
     }
 
+    bool Client::IsDisconnected() const
+    {
+        return m_clientState <= CLIENT_STATE_DISCONNECTED;
+    }
+
     bool Client::ConnectionFailed() const
     {
         return m_clientState < CLIENT_STATE_DISCONNECTED;

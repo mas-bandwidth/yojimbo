@@ -1,37 +1,34 @@
 DONE
 
-    Setup the socket interface so that it can bind to a specific IP address, not just a port.
+    Fix up socket and socket interface to accept an address instead of just a port.
 
-    Modify the linux server program to get the first local address and bind the server network interface to that (IPV4...)
+    This is important so that the socket interface can infer the correct socket type from the address.
 
-    Set this address on the server.
+    Otherwise, it will be extremely difficult to mix IPv4 and IPv6 functionality in the same library.
 
-    Now on the client, modify so it connects to the linux server IP address: 173.255.195.190
+    Ideally, *everything* should just work, whether IPv4 or IPv6.    
 
-    Verify that the MacOSX client is able to connect to the linux server IP address.
+    To do this, the socket must adapt to the address it is bound to.
 
-    Nope! Doesn't connect. Don't know why.
+    Seems to work.
+
+    Now actually pass in the correct address in bind.
+
+    See how sendto gets the address. Do the same.
+
+    Done. Seems to work fine.
 
 TODO
 
-    Possibly because wrong socket type...?
-
-    Really want to make it so the local address is passed in to the socket interface for binding,
-    so the correct socket type can be inferred from the address.
-
-    This is the most flexible. Will allow IPV4 addresses and IPV6 addresses to coexist in the same program.
+    Update the socket to get its port # after bind to 0 port.
 
     -------------------
-    
-    Setup the client so it can accept an IP address or port on the command line.
 
-    Run the server on my linux box and verify I can connect to it from my macbook.
+    Port the network interface code to windows.
 
-    -------------------
+    Port the platform_time and platform_sleep to windows. (must have some old code around for this...)
 
     Make sure both the client and server can compile and run on Windows.
-
-    eg. Need to implement platform_* functions for windows. I must have implementations somewhere.
 
     Verify cross connects, eg. windows -> mac client, mac -> windows connect. both -> linux.
 

@@ -620,6 +620,8 @@ namespace yojimbo
 
         bool IsConnected() const;
 
+        bool IsDisconnected() const;
+
         bool ConnectionFailed() const;
 
         ClientState GetClientState() const;

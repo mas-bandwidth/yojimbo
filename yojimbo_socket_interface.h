@@ -69,7 +69,9 @@ namespace yojimbo
         Queue<PacketEntry> m_sendQueue;
         Queue<PacketEntry> m_receiveQueue;
 
+#if YOJIMBO_INSECURE_CONNECT
         uint8_t * m_allPacketTypes;
+#endif // #if YOJIMBO_INSECURE_CONNECT
         uint8_t * m_packetTypeIsEncrypted;
         uint8_t * m_packetTypeIsUnencrypted;
 
@@ -89,9 +91,8 @@ namespace yojimbo
 
         SocketInterface( Allocator & allocator,
                          PacketFactory & packetFactory, 
+                         const Address & address,
                          uint32_t protocolId,
-                         uint16_t socketPort, 
-                         SocketType socketType = SOCKET_TYPE_IPV4, 
                          int maxPacketSize = 4 * 1024,
                          int sendQueueSize = 1024,
                          int receiveQueueSize = 1024 );

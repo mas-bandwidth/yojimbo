@@ -32,7 +32,7 @@ int ServerMain()
 
     if ( !serverAddress.IsValid() )
     {
-        printf( "error: no valid local IPV4 address found\n" );
+        printf( "error: no valid local IPV4 address\n" );
         return 1;
     }
 
@@ -40,7 +40,7 @@ int ServerMain()
 
 //    Address serverAddress( "::1", ServerPort );
 
-    GameNetworkInterface serverInterface( packetFactory, ServerPort );
+    GameNetworkInterface serverInterface( packetFactory, serverAddress );
 
     if ( serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
