@@ -55,6 +55,16 @@ Monday June 13th, 2016
 
     Fixing this issue makes the reconnect work properly under soak.
 
+    There is now a bug in test_client_server_server_is_full
+
+    Sometimes the client is not getting the server full response, and instead is getting a timeout on connection request.
+
+    It was a time problem, because that client was not advancing time forward, so it immediately timed out post connect.
+
+    Ok. All tests pass in soak now. Good stuff
+
+    Done for tonight. Take a break.
+
 
 Sunday June 12th, 2016
 ======================
