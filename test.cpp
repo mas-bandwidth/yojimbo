@@ -964,7 +964,7 @@ struct GamePacket : public Packet
     YOJIMBO_SERIALIZE_FUNCTIONS();
 };
 
-static bool verbose_logging = true; //false;
+static bool verbose_logging = false;
 
 class GameServer : public Server
 {
@@ -1391,7 +1391,7 @@ void test_client_server_connect()
             exit( 1 );
         }
 
-        time += 0.1f;
+        time += 0.1;
 
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
@@ -1449,8 +1449,6 @@ void test_client_server_reconnect()
 
     // connect client to the server
 
-    printf( "**** connect client to server ****\n" );
-
     if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
@@ -1482,7 +1480,7 @@ void test_client_server_reconnect()
             exit( 1 );
         }
 
-        time += 0.1f;
+        time += 0.1;
 
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
@@ -1497,8 +1495,6 @@ void test_client_server_reconnect()
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
     // disconnect the client
-
-    printf( "**** disconnect client ****\n" );
 
     client.Disconnect();
 
@@ -1519,7 +1515,7 @@ void test_client_server_reconnect()
         client.CheckForTimeOut();
         server.CheckForTimeOut();
 
-        time += 0.1f;
+        time += 0.1;
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
@@ -1534,11 +1530,6 @@ void test_client_server_reconnect()
     check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
 
     // now verify the client is able to reconnect to the same server with a new connect token
-
-    // seems that some packets are leaking across from the previous session... simulator bug?!
-//    networkSimulator.Reset();
-
-    printf( "**** client reconnect ****\n" );
 
     if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
     {
@@ -1617,8 +1608,6 @@ void test_client_server_client_side_disconnect()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -1639,7 +1628,7 @@ void test_client_server_client_side_disconnect()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1680,7 +1669,7 @@ void test_client_server_client_side_disconnect()
 
     client.Disconnect();
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1743,8 +1732,6 @@ void test_client_server_server_side_disconnect()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -1765,7 +1752,7 @@ void test_client_server_server_side_disconnect()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1806,7 +1793,7 @@ void test_client_server_server_side_disconnect()
 
     server.DisconnectAllClients();
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1945,8 +1932,6 @@ void test_client_server_connection_response_timeout()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -1961,7 +1946,7 @@ void test_client_server_connection_response_timeout()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1981,7 +1966,7 @@ void test_client_server_connection_response_timeout()
         if ( client.ConnectionFailed() )
             break;
 
-        time += 1.0;
+        time += 0.1f;
 
         client.AdvanceTime( time );
         server.AdvanceTime( time );
@@ -2031,8 +2016,6 @@ void test_client_server_client_side_timeout()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -2045,7 +2028,7 @@ void test_client_server_client_side_timeout()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -2082,7 +2065,7 @@ void test_client_server_client_side_timeout()
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         server.SendPackets();
 
@@ -2144,8 +2127,6 @@ void test_client_server_server_side_timeout()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -2158,7 +2139,7 @@ void test_client_server_server_side_timeout()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -2195,7 +2176,7 @@ void test_client_server_server_side_timeout()
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
 
@@ -2297,8 +2278,6 @@ void test_client_server_server_is_full()
 
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameServer server( serverInterface );
@@ -2318,7 +2297,7 @@ void test_client_server_server_is_full()
                                        clientData[i].serverToClientKey );
     }
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         for ( int j = 0; j < NumClients; ++j )
             clientData[j].client->SendPackets();
@@ -2393,13 +2372,15 @@ void test_client_server_server_is_full()
 
     // try to connect one more client and verify that its connection attempt is rejected
 
+    clientData[NumClients].client->AdvanceTime( time );
+
     clientData[NumClients].client->Connect( serverAddress, 
                                             clientData[NumClients].connectTokenData, 
                                             clientData[NumClients].connectTokenNonce, 
                                             clientData[NumClients].clientToServerKey, 
                                             clientData[NumClients].serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         for ( int j = 0; j <= NumClients; ++j )
             clientData[j].client->SendPackets();
@@ -2428,7 +2409,7 @@ void test_client_server_server_is_full()
 
         time += 0.1f;
 
-        if ( clientData[NumClients].client->GetClientState() == CLIENT_STATE_CONNECTION_DENIED )
+        if ( clientData[NumClients].client->ConnectionFailed() )
             break;
 
         for ( int j = 0; j <= NumClients; ++j )
@@ -2488,8 +2469,6 @@ void test_client_server_connect_token_reuse()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -2502,7 +2481,7 @@ void test_client_server_connect_token_reuse()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -2547,9 +2526,11 @@ void test_client_server_connect_token_reuse()
     
     GameClient client2( clientInterface2 );
 
+    client2.AdvanceTime( time );
+
     client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         client2.SendPackets();
@@ -2571,7 +2552,7 @@ void test_client_server_connect_token_reuse()
         client2.CheckForTimeOut();
         server.CheckForTimeOut();
 
-        time += 1.0;
+        time += 0.1;
 
         if ( client2.ConnectionFailed() )
             break;
@@ -2881,8 +2862,6 @@ void test_client_server_game_packets()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -2895,7 +2874,7 @@ void test_client_server_game_packets()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -2938,9 +2917,9 @@ void test_client_server_game_packets()
 
     check( clientIndex != -1 );
 
-    const int NumGamePackets = NumIterations / 4;
+    const int NumGamePackets = 32;
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendGamePacketToServer();
         server.SendGamePacketToClient( clientIndex );
@@ -2991,8 +2970,6 @@ void test_client_server_insecure_connect()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -3010,7 +2987,7 @@ void test_client_server_insecure_connect()
 
     client.InsecureConnect( serverAddress );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -3063,8 +3040,6 @@ void test_client_server_insecure_connect_timeout()
 
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( clientInterface );
@@ -3073,7 +3048,7 @@ void test_client_server_insecure_connect_timeout()
 
     client.InsecureConnect( serverAddress );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
 
@@ -3085,7 +3060,7 @@ void test_client_server_insecure_connect_timeout()
 
         client.CheckForTimeOut();
 
-        time += 1.0f;
+        time += 0.1;
 
         if ( !client.IsConnecting() && client.ConnectionFailed() )
             break;
@@ -3125,7 +3100,6 @@ int main()
 
     while ( true )
     {
-        /*
         test_bitpacker();
         test_stream();
         test_packets();
@@ -3137,11 +3111,7 @@ int main()
         test_unencrypted_packets();
         test_client_server_tokens();
         test_client_server_connect();
-        */
-
         test_client_server_reconnect();
-
-        /*
         test_client_server_client_side_disconnect();
         test_client_server_server_side_disconnect();
         test_client_server_connection_request_timeout();
@@ -3158,7 +3128,6 @@ int main()
         test_client_server_insecure_connect();
         test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
-        */
 
         iter++;
 

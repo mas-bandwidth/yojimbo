@@ -1,34 +1,12 @@
 DONE
 
 TODO
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     -------------------
 
     Implement packet aggregation in the base interface (packet processor?)
+
+    -------------------
 
     Implement packet fragmentation and reassembly in the base interface (packet processor?)
 
