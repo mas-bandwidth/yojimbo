@@ -15,15 +15,14 @@ namespace yojimbo
     NetworkSimulator::NetworkSimulator( int numPackets )
     {
         assert( numPackets > 0 );
+        m_numPacketEntries = numPackets;
+        m_packetEntries = new PacketEntry[numPackets];
         m_time = 0.0;
         m_latency = 0.0f;
         m_jitter = 0.0f;
         m_packetLoss = 0.0f;
         m_duplicates = 0.0f;
         m_currentIndex = 0;
-        m_numPacketEntries = numPackets;
-        m_packetEntries = new PacketEntry[numPackets];
-        memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
     }
 
     NetworkSimulator::~NetworkSimulator()
@@ -122,10 +121,10 @@ namespace yojimbo
         {
             const PacketEntry & packetEntry = m_packetEntries[i];
 
-            if ( packetEntry.to != to )
+            if ( !packetEntry.packetData )
                 continue;
 
-            if ( !packetEntry.packetData )
+            if ( packetEntry.to != to )
                 continue;
 
             if ( oldestEntryIndex == -1 || m_packetEntries[i].deliveryTime < oldestEntryTime )
@@ -150,6 +149,24 @@ namespace yojimbo
         packetEntry = PacketEntry();
 
         return packetData;
+    }
+
+    void NetworkSimulator::DiscardPackets( const Address & address )
+    {
+        for ( int i = 0; i < m_numPacketEntries; ++i )
+        {
+            PacketEntry & packetEntry = m_packetEntries[i];
+
+            if ( !packetEntry.packetData )
+                continue;
+
+            if ( packetEntry.to != address & packetEntry.from != address )
+                continue;
+
+            delete [] packetEntry.packetData;
+
+            packetEntry = PacketEntry();
+        }
     }
 
     void NetworkSimulator::AdvanceTime( double time )
