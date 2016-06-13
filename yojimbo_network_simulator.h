@@ -12,6 +12,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_common.h"
 #include "yojimbo_network.h"
+#include "yojimbo_allocator.h"
 
 namespace yojimbo
 {
@@ -21,7 +22,7 @@ namespace yojimbo
     {
     public:
 
-        NetworkSimulator( int numPackets = 4096 );
+        NetworkSimulator( Allocator & allocator, int numPackets = 4096 );
 
         ~NetworkSimulator();
 
@@ -43,7 +44,11 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
+        Allocator & GetAllocator() { assert( m_allocator ); return *m_allocator; }
+
     private:
+
+        Allocator * m_allocator;
 
         float m_latency;                                // latency in milliseconds
 

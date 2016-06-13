@@ -44,7 +44,7 @@ namespace yojimbo
     {        
     public:
 
-        PacketFactory( int numTypes );
+        PacketFactory( class Allocator & allocator, int numTypes );
 
         ~PacketFactory();
 
@@ -60,6 +60,8 @@ namespace yojimbo
 
         virtual void Destroy( Packet * packet ) = 0;
 
+        Allocator & GetAllocator();
+
     private:
 
         int m_numPacketTypes;
@@ -67,6 +69,7 @@ namespace yojimbo
 #if YOJIMBO_DEBUG_PACKET_LEAKS
         std::map<void*,int> allocated_packets;
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
+        Allocator * m_allocator;
     };
 
     struct PacketInfo

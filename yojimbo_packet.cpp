@@ -497,10 +497,11 @@ cleanup:
 
 #endif // #if PROTOCOL2_PACKET_AGGREGATION
 
-    PacketFactory::PacketFactory( int numPacketTypes )
+    PacketFactory::PacketFactory( Allocator & allocator, int numPacketTypes )
     {
         m_numPacketTypes = numPacketTypes;
         m_numAllocatedPackets = 0;
+        m_allocator = &allocator;
     }
 
     PacketFactory::~PacketFactory()
@@ -564,5 +565,11 @@ cleanup:
     int PacketFactory::GetNumPacketTypes() const
     {
         return m_numPacketTypes;
+    }
+
+    Allocator & PacketFactory::GetAllocator()
+    {
+        assert( m_allocator );
+        return *m_allocator;
     }
 }

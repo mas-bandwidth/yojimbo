@@ -13,7 +13,7 @@
 #include "yojimbo_queue.h"
 #include "yojimbo_common.h"
 #include "yojimbo_packet.h"
-#include "yojimbo_network.h"            // todo: annoying! split address out of yojimbo_network.h
+#include "yojimbo_network.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"

@@ -12,11 +12,16 @@
 
 namespace yojimbo
 {
-    NetworkSimulator::NetworkSimulator( int numPackets )
+    NetworkSimulator::NetworkSimulator( Allocator & allocator, int numPackets )
     {
+        m_allocator = &allocator;
+
         assert( numPackets > 0 );
+
         m_numPacketEntries = numPackets;
-        m_packetEntries = new PacketEntry[numPackets];
+
+        m_packetEntries = YOJIMBO_NEW_ARRAY( allocator, PacketEntry, numPackets );
+
         m_time = 0.0;
         m_latency = 0.0f;
         m_jitter = 0.0f;
@@ -29,15 +34,17 @@ namespace yojimbo
     {
         assert( m_packetEntries );
         assert( m_numPacketEntries > 0 );
+
         for ( int i = 0; i < m_numPacketEntries; ++i )
         {
             if ( m_packetEntries[i].packetData )
             {
-                delete [] m_packetEntries[i].packetData;
+                m_allocator->Free( m_packetEntries[i].packetData );
             }
         }
-        delete [] m_packetEntries;
-        m_packetEntries = NULL;
+
+        YOJIMBO_DELETE_ARRAY( *m_allocator, m_packetEntries, m_numPacketEntries );
+        
         m_numPacketEntries = 0;
     }
 
@@ -48,7 +55,7 @@ namespace yojimbo
         {
             if ( m_packetEntries[i].packetData )
             {
-                delete [] m_packetEntries[i].packetData;
+                m_allocator->Free( m_packetEntries[i].packetData );
                 m_packetEntries[i] = PacketEntry();
             }
         }
@@ -84,7 +91,7 @@ namespace yojimbo
 
         if ( random_float( 0.0f, 100.0f ) <= m_packetLoss )
         {
-            delete [] packetData;
+            m_allocator->Free( packetData );
             return;
         }
 
@@ -92,7 +99,7 @@ namespace yojimbo
 
         if ( packetEntry.packetData )
         {
-            delete [] packetEntry.packetData;
+            m_allocator->Free( packetEntry.packetData );
             packetEntry = PacketEntry();
         }
 
@@ -111,7 +118,7 @@ namespace yojimbo
 
         if ( random_float( 0.0f, 100.0f ) <= m_duplicates )
         {
-            uint8_t * duplicatePacketData = new uint8_t[packetSize];
+            uint8_t * duplicatePacketData = (uint8_t*) m_allocator->Allocate( packetSize );
 
             memcpy( duplicatePacketData, packetData, packetSize );
 
@@ -178,7 +185,7 @@ namespace yojimbo
             if ( packetEntry.to != address && packetEntry.from != address )
                 continue;
 
-            delete [] packetEntry.packetData;
+            m_allocator->Free( packetEntry.packetData );
 
             packetEntry = PacketEntry();
         }

@@ -301,20 +301,22 @@ namespace yojimbo
 
     struct ClientServerPacketFactory : public PacketFactory
     {
-        ClientServerPacketFactory( int numPackets ) : PacketFactory( numPackets ) {}
+        ClientServerPacketFactory( Allocator & allocator, int numPackets ) : PacketFactory( allocator, numPackets ) {}
 
         Packet * Create( int type )
         {
+            Allocator & allocator = GetAllocator();
+
             switch ( type )
             {
-                case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         return new ConnectionRequestPacket();
-                case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          return new ConnectionDeniedPacket();
-                case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       return new ConnectionChallengePacket();
-                case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        return new ConnectionResponsePacket();
-                case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       return new ConnectionHeartBeatPacket();
-                case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      return new ConnectionDisconnectPacket();
+                case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         return YOJIMBO_NEW( allocator, ConnectionRequestPacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          return YOJIMBO_NEW( allocator, ConnectionDeniedPacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       return YOJIMBO_NEW( allocator, ConnectionChallengePacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        return YOJIMBO_NEW( allocator, ConnectionResponsePacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       return YOJIMBO_NEW( allocator, ConnectionHeartBeatPacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      return YOJIMBO_NEW( allocator, ConnectionDisconnectPacket );
 #if YOJIMBO_INSECURE_CONNECT
-                case CLIENT_SERVER_PACKET_INSECURE_CONNECT:           return new InsecureConnectPacket();
+                case CLIENT_SERVER_PACKET_INSECURE_CONNECT:           return YOJIMBO_NEW( allocator, InsecureConnectPacket );
 #endif // #if YOJIMBO_INSECURE_CONNECT
                 default:
                     return NULL;
@@ -323,7 +325,7 @@ namespace yojimbo
 
         void Destroy( Packet * packet )
         {
-            delete packet;
+            YOJIMBO_DELETE( GetAllocator(), Packet, packet );
         }
     };
 
