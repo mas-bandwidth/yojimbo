@@ -1,41 +1,23 @@
 DONE
 
-    Need to make a decision about allocators.
+    Pass across all remaining allocations and convert them to use the allocator.
 
-    I like the basic allocator approach, and it would be a shame to remove in and rewrite it from scratch
+    Converted queue over to use allocator.
 
-    There is some value in it, but the core allocator is actually extremely simple. Keep just the malloc allocator?
+    Any other news or deletes? 
 
-    But I don't like the array, queue, hash data structures... and I don't trust the implementation of the scratch allocator.
+    Yes. There are a bunch of news and deletes. Mostly in test programs, but be consistent now and convert everything to use the allocator.
 
-    To remove these, write a replacement queue, and then cut down as much as possible just to the malloc allocator.
+    Switching to the allocator is important because it provides memory leak detection. You don't want to be leaking memory.
 
 TODO
 
-    Queue replacement was actually trivial to write. 5 minutes...
+    Convert remaining new/deletes over to allocator.
 
-    -------------------
+    Convert malloc inside windows network address iteration over to alloca
 
-    Implement packet aggregation in the base interface (packet processor?)
+    Implement signal break for test, so it can be broken out of when tests are soaking
 
-    -------------------
+    Test under windows, mac and linux.
 
-    Implement packet fragmentation and reassembly in the base interface (packet processor?)
-
-    -------------------
-
-    Bring across the reliable ordered event system and large block sender.
-
-    Store this reliability level system inside the client/server, have one of these endpoints per-client slot.
-
-    Consider how the ack system is going to integrate. Custom ack header with bits and so on per-packet? (aggregate packet header?)
-
-    Acks on a message id level instead of acks on a packet level? Who knows. A packet id that increases for each *message*
-    packet sent, with packet header just for that packet type? Sure. This is it. This way I don't need to send message
-    packets unless there are actually messages to be sent.
-
-    The whole message packet system can be self contained with no bullshit. Awesome. 
-
-    Combine the ack system and the message packet into one system!
-
-    -------------------
+    Should be no memory leaks!!!

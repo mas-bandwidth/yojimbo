@@ -65,6 +65,30 @@ Monday June 13th, 2016
 
     Done for tonight. Take a break.
 
+    Need to make a decision about allocators.
+
+    I like the basic allocator approach, and it would be a shame to remove in and rewrite it from scratch
+
+    There is some value in it, but the core allocator is actually extremely simple. Keep just the malloc allocator?
+
+    But I don't like the array, queue, hash data structures... and I don't trust the implementation of the scratch allocator.
+
+    To remove these, write a replacement queue, and then cut down as much as possible just to the malloc allocator.
+
+    Queue replacement was actually trivial to write. 5 minutes...
+
+    OK. All good.
+
+    Now do my best to strip down and rewrite the allocators.
+
+    Done. It's much nicer.
+
+    Now, there is no need to have separate initialization for the network from initialize libyojimbo, is there?
+
+    No there isn't. Combining.
+
+    OK. Converted across and everything looks good. Turned on memory leak checking by default as well.
+
 
 Sunday June 12th, 2016
 ======================

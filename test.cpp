@@ -1247,7 +1247,7 @@ class TestNetworkInterface : public SimulatorInterface
 public:
 
     TestNetworkInterface( GamePacketFactory & packetFactory, NetworkSimulator & networkSimulator, const Address & address ) 
-        : SimulatorInterface( memory_default_allocator(), networkSimulator, packetFactory, address, ProtocolId )
+        : SimulatorInterface( GetDefaultAllocator(), networkSimulator, packetFactory, address, ProtocolId )
     {
         EnablePacketEncryption();
         DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
@@ -3082,17 +3082,9 @@ int main()
 {
     srand( time( NULL ) );
 
-    memory_initialize();
-
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize yojimbo\n" );
-        exit( 1 );
-    }
-
-    if ( !InitializeNetwork() )
-    {
-        printf( "error: failed to initialize network\n" );
         exit( 1 );
     }
 
@@ -3139,11 +3131,7 @@ int main()
             iter = 0;
     }
 
-    ShutdownNetwork();
-
     ShutdownYojimbo();
-
-    memory_shutdown();
 
     return 0;
 }

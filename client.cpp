@@ -20,12 +20,6 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientMain()
 {
-    if ( !InitializeNetwork() )
-    {
-        printf( "error: failed to initialize network\n" );
-        return 1;
-    }
-
     GamePacketFactory packetFactory;
 
 //    Address serverAddress( "::1", ServerPort );
@@ -98,8 +92,6 @@ int ClientMain()
     if ( client.IsConnected() )
         client.Disconnect();
 
-    ShutdownNetwork();
-
     return 0;
 }
 
@@ -115,11 +107,7 @@ int main()
 
     srand( (unsigned int) time( NULL ) );
 
-    memory_initialize();
-
     int result = ClientMain();
-
-    memory_shutdown();
 
     ShutdownYojimbo();
 
