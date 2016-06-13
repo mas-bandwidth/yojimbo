@@ -11,7 +11,6 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_queue.h"
-#include "yojimbo_memory.h"
 #include "yojimbo_common.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_network.h"            // todo: annoying! split address out of yojimbo_network.h

@@ -12,23 +12,10 @@
 
 using namespace yojimbo;
 
-int main()
+int NetworkInfoMain()
 {
-    memory_initialize();
-    
-    if ( !InitializeYojimbo() )
-    {
-        printf( "error: failed to initialize yojimbo\n" );
-        exit( 1 );
-    }
-
-    if ( !InitializeNetwork() )
-    {
-        printf( "error: failed to initialize network\n" );
-        exit( 1 );
-    }
-
     const int MaxAddresses = 64;
+
     int numAddresses;
     Address networkAddresses[MaxAddresses];
     GetNetworkAddresses( networkAddresses, numAddresses, MaxAddresses );    
@@ -58,11 +45,20 @@ int main()
 
     printf( "\n" );
 
-    ShutdownNetwork();
+    return 0;
+}
+
+int main()
+{
+    if ( !InitializeYojimbo() )
+    {
+        printf( "error: failed to initialize yojimbo\n" );
+        exit( 1 );
+    }
+
+    int result = NetworkInfoMain();
 
     ShutdownYojimbo();
 
-    memory_shutdown();
-
-    return 0;
+    return result;
 }
