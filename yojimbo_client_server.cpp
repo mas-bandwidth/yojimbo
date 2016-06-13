@@ -443,6 +443,42 @@ namespace yojimbo
         return -1;
     }
 
+    inline void PrintBytes( const uint8_t * data, int data_bytes )
+    {
+        for ( int i = 0; i < data_bytes; ++i )
+        {
+            printf( "%02x", (int) data[i] );
+            if ( i != data_bytes - 1 )
+                printf( "-" );
+        }
+        printf( "\n" );
+    }
+
+    bool Server::FindConnectTokenEntry( const uint8_t * mac )
+    {
+        for ( int i = 0; i < MaxConnectTokenEntries; ++i )
+        {
+            if ( memcmp( mac, m_connectTokenEntries[i].mac, MacBytes ) == 0 )
+                return true;
+        }
+
+        printf( "could not find connect token entry\n" );
+        PrintBytes( mac, MacBytes );
+        printf( "===============================================\n" );
+        uint8_t zero[MacBytes];
+        memset( zero, 0, MacBytes );
+        for ( int i = 0; i < MaxConnectTokenEntries; ++i )
+        {
+            if ( memcmp( m_connectTokenEntries[i].mac, zero, MacBytes ) != 0 )
+            {
+                PrintBytes( m_connectTokenEntries[i].mac, MacBytes );
+            }
+        }
+        printf( "===============================================\n" );
+
+        return false;
+    }
+
     bool Server::FindOrAddConnectTokenEntry( const Address & address, const uint8_t * mac )
     {
         // find the matching entry for the token mac, and the oldest token. constant time worst case O(1) at all times. This is intentional!
@@ -463,7 +499,7 @@ namespace yojimbo
                 matchingTokenIndex = i;
             }
 
-            if ( oldestTokenIndex == -1 || oldestTokenTime < m_connectTokenEntries[i].time )
+            if ( oldestTokenIndex == -1 || m_connectTokenEntries[i].time < oldestTokenTime )
             {
                 oldestTokenTime = m_connectTokenEntries[i].time;
                 oldestTokenIndex = i;
@@ -617,7 +653,7 @@ namespace yojimbo
 
         if ( connectToken.clientId == 0 )
         {
-            printf( "clint id is zero\n" );
+            printf( "client id is zero\n" );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_IS_ZERO]++;
             return;
         }
@@ -638,11 +674,15 @@ namespace yojimbo
             return;
         }
 
-        if ( !m_networkInterface->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
+        if ( !FindConnectTokenEntry( packet.connectTokenData ) )
         {
-            printf( "failed to add encryption mapping\n" );
-            m_counters[SERVER_COUNTER_ENCRYPTION_MAPPING_CANNOT_ADD]++;
-            return;
+            // IMPORTANT: Only setup the encryption mapping the first time this connect token is received
+            if ( !m_networkInterface->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
+            {
+                printf( "failed to add encryption mapping\n" );
+                m_counters[SERVER_COUNTER_ENCRYPTION_MAPPING_CANNOT_ADD]++;
+                return;
+            }
         }
 
         assert( m_numConnectedClients >= 0 );

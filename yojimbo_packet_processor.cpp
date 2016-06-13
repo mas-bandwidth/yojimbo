@@ -136,6 +136,7 @@ namespace yojimbo
         {
             if ( !key )
             {
+                printf( "decrypt key is null\n" );
                 m_error = PACKET_PROCESSOR_ERROR_KEY_IS_NULL;
                 return NULL;
             }
@@ -156,6 +157,7 @@ namespace yojimbo
 
             if ( !Decrypt( packetData + prefixBytes, packetBytes - prefixBytes, m_scratchBuffer, decryptedPacketBytes, (uint8_t*)&sequence, key ) )
             {
+                printf( "decrypt failed\n" );
                 m_error = PACKET_PROCESSOR_ERROR_DECRYPT_FAILED;
                 return NULL;
             }

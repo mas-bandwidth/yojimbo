@@ -1,16 +1,30 @@
 DONE
 
 TODO
+    
 
-    Fix it!    
 
-    Seems there is a bunch of stuff getting stuck here.
 
-    High packet loss is exposing some not quite correct stuff...
 
-    There seems to be some sort of rogue "disconnect" packet getting through after the client is disconnected.
 
-    This should not be possible, because the client disconnects are sent encrypted, and the encryption mapping should block them post disconnect.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     -------------------
 
