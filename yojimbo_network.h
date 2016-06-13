@@ -24,12 +24,6 @@ struct sockaddr_storage;
 
 namespace yojimbo
 {
-    bool InitializeNetwork();
-
-    void ShutdownNetwork();
-
-    bool IsNetworkInitialized();
-
     enum AddressType
     {
         ADDRESS_NONE,
@@ -158,6 +152,12 @@ namespace yojimbo
     };
 
 #endif // #if YOJIMBO_SOCKETS
+
+    bool InitializeNetwork();
+
+    void ShutdownNetwork();
+
+    bool IsNetworkInitialized();
 }
 
 #endif // #ifndef YOJIMBO_NETWORK_H

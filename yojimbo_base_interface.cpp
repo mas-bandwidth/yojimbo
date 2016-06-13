@@ -20,8 +20,8 @@ namespace yojimbo
                                   int maxPacketSize, 
                                   int sendQueueSize, 
                                   int receiveQueueSize )
-        : m_sendQueue( sendQueueSize ),
-          m_receiveQueue( receiveQueueSize )
+        : m_sendQueue( allocator, sendQueueSize ),
+          m_receiveQueue( allocator, receiveQueueSize )
     {
         assert( protocolId != 0 );
         assert( sendQueueSize > 0 );

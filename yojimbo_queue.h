@@ -10,13 +10,17 @@
 #define YOJIMBO_QUEUE_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_allocator.h"
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 namespace yojimbo
 {
     template <typename T> class Queue
     {
+        Allocator * m_allocator;
+
         T * m_entries;
         int m_arraySize;
         int m_startIndex;
@@ -24,21 +28,26 @@ namespace yojimbo
 
     public:
 
-        Queue( int size )
+        Queue( Allocator & allocator, int size )
         {
             assert( size > 0 );
-            m_entries = new T[size];
             m_arraySize = size;
             m_startIndex = 0;
             m_numEntries = 0;
+            m_allocator = &allocator;
+            m_entries = AllocateArray( allocator, size, m_entries );
         }
 
         ~Queue()
         {
-            delete [] m_entries;
+            assert( m_allocator );
+            assert( m_entries );
+            DeleteArray( *m_allocator, m_entries, m_arraySize );
             m_arraySize = 0;
             m_startIndex = 0;
             m_numEntries = 0;
+            m_entries = NULL;
+            m_allocator = NULL;
         }
 
         void Clear()
@@ -85,7 +94,7 @@ namespace yojimbo
 
         bool IsEmpty() const
         {
-            return m_arraySize == 0;
+            return m_numEntries == 0;
         }
     };
 }

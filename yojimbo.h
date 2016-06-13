@@ -11,7 +11,6 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_common.h"
-#include "yojimbo_memory.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_network.h"
 #include "yojimbo_platform.h"
@@ -26,5 +25,10 @@
 bool InitializeYojimbo();
 
 void ShutdownYojimbo();
+
+namespace yojimbo
+{
+    Allocator & GetDefaultAllocator();
+}
 
 #endif // #ifndef YOJIMBO_H

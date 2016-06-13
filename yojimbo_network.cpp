@@ -399,6 +399,8 @@ namespace yojimbo
 
 		do
 		{
+            // todo: switch to alloca
+
 			pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
 			if ( pAddresses == NULL ) 
 				return;
@@ -483,6 +485,8 @@ namespace yojimbo
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
 
 	    outBufLen = WORKING_BUFFER_SIZE;
+
+        // todo: switch to alloca
 
 		do
 		{
@@ -569,6 +573,8 @@ namespace yojimbo
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
 
 	    outBufLen = WORKING_BUFFER_SIZE;
+
+        // todo: switch to alloca
 
 		do
 		{
