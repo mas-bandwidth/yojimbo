@@ -107,8 +107,26 @@ namespace yojimbo
         ResetEncryptionMappings();
     }
 
+    inline void PrintBytes( const char * label, const uint8_t * data, int data_bytes )
+    {
+        printf( "%s: ", label );
+        for ( int i = 0; i < data_bytes; ++i )
+        {
+            printf( "%02x", (int) data[i] );
+            if ( i != data_bytes - 1 )
+                printf( "-" );
+        }
+        printf( " (%d bytes)\n", data_bytes );
+    }
+
     bool EncryptionManager::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time )
     {
+        char addressString[64];
+        address.ToString( addressString, sizeof( addressString ) );
+        printf( "add encryption mapping: %s\n", addressString );
+
+        PrintBytes( "receiveKey", receiveKey, KeyBytes );
+
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
             if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
@@ -139,14 +157,22 @@ namespace yojimbo
 
     bool EncryptionManager::RemoveEncryptionMapping( const Address & address, double time )
     {
+        char addressString[64];
+        address.ToString( addressString, sizeof( addressString ) );
+        printf( "remove encryption mapping: %s\n", addressString );
+
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
             if ( m_address[i] == address )
             {
+                printf( "actually removed encryption mapping\n" );
+
                 m_address[i] = Address();
                 m_lastAccessTime[i] = -1000.0;
+
                 memset( m_sendKey + i*KeyBytes, 0, KeyBytes );
                 memset( m_receiveKey + i*KeyBytes, 0, KeyBytes );
+
                 if ( i + 1 == m_numEncryptionMappings )
                 {
                     int index = i - 1;
@@ -158,20 +184,28 @@ namespace yojimbo
                     }
                     m_numEncryptionMappings = index + 1;
                 }
+
                 return true;
             }
         }
+
+        printf( "could not remove encryption mapping\n" );
+
         return false;
     }
 
     void EncryptionManager::ResetEncryptionMappings()
     {
+        printf( "reset encryption mappings\n" );
+
         m_numEncryptionMappings = 0;
+        
         for ( int i = 0; i < MaxEncryptionMappings; ++i )
         {
             m_lastAccessTime[i] = -1000.0;
             m_address[i] = Address();
         }
+        
         memset( m_sendKey, 0, sizeof( m_sendKey ) );
         memset( m_receiveKey, 0, sizeof( m_receiveKey ) );
     }

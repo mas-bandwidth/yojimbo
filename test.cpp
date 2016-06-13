@@ -1535,6 +1535,9 @@ void test_client_server_reconnect()
 
     // now verify the client is able to reconnect to the same server with a new connect token
 
+    // seems that some packets are leaking across from the previous session... simulator bug?!
+//    networkSimulator.Reset();
+
     printf( "**** client reconnect ****\n" );
 
     if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
