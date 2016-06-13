@@ -29,7 +29,7 @@ namespace yojimbo
     {
     public:
 
-        PacketProcessor( PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize, void * context = NULL );
+        PacketProcessor( Allocator & allocator, PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize, void * context = NULL );
 
         ~PacketProcessor();
 
@@ -43,6 +43,8 @@ namespace yojimbo
         int GetError() const { return m_error; }
 
     private:
+
+        Allocator * m_allocator;
 
         uint32_t m_protocolId;
 

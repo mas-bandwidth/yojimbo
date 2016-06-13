@@ -20,6 +20,7 @@ namespace yojimbo
                                   int maxPacketSize, 
                                   int sendQueueSize, 
                                   int receiveQueueSize )
+    
         : m_sendQueue( allocator, sendQueueSize ),
           m_receiveQueue( allocator, receiveQueueSize )
     {
@@ -41,7 +42,7 @@ namespace yojimbo
 
         m_packetFactory = &packetFactory;
         
-        m_packetProcessor = new PacketProcessor( packetFactory, m_protocolId, maxPacketSize );
+        m_packetProcessor = YOJIMBO_NEW( allocator, PacketProcessor, allocator, packetFactory, m_protocolId, maxPacketSize );
         
         const int numPacketTypes = m_packetFactory->GetNumPacketTypes();
 
@@ -74,7 +75,7 @@ namespace yojimbo
         m_allocator->Free( m_packetTypeIsEncrypted );
         m_allocator->Free( m_packetTypeIsUnencrypted );
 
-        delete m_packetProcessor;
+        YOJIMBO_DELETE( GetAllocator(), PacketProcessor, m_packetProcessor );
 
         m_packetFactory = NULL;
 #if YOJIMBO_INSECURE_CONNECT
@@ -82,7 +83,6 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
-        m_packetProcessor = NULL;
         m_allocator = NULL;
     }
 

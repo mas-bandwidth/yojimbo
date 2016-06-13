@@ -1,23 +1,6 @@
 DONE
 
-    Pass across all remaining allocations and convert them to use the allocator.
-
-    Converted queue over to use allocator.
-
-    Any other news or deletes? 
-
-    Yes. There are a bunch of news and deletes. Mostly in test programs, but be consistent now and convert everything to use the allocator.
-
-    Switching to the allocator is important because it provides memory leak detection. You don't want to be leaking memory.
-
 TODO
 
-    Convert remaining new/deletes over to allocator.
+    Test under windows and linux.
 
-    Convert malloc inside windows network address iteration over to alloca
-
-    Implement signal break for test, so it can be broken out of when tests are soaking
-
-    Test under windows, mac and linux.
-
-    Should be no memory leaks!!!

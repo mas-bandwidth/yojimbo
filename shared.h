@@ -248,7 +248,7 @@ public:
 class GamePacketFactory : public ClientServerPacketFactory
 {
 public:
-    GamePacketFactory() : ClientServerPacketFactory( CLIENT_SERVER_NUM_PACKETS ) {}
+    GamePacketFactory() : ClientServerPacketFactory( GetDefaultAllocator(), CLIENT_SERVER_NUM_PACKETS ) {}
 };
 
 class GameNetworkInterface : public SocketInterface
