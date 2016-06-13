@@ -10,7 +10,7 @@
 #define YOJIMBO_BASE_INTERFACE_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_types.h"
+#include "yojimbo_queue.h"
 #include "yojimbo_memory.h"
 #include "yojimbo_common.h"
 #include "yojimbo_packet.h"
@@ -27,12 +27,12 @@ namespace yojimbo
     public:
 
         BaseInterface( Allocator & allocator,
-                               PacketFactory & packetFactory, 
-                               const Address & address,
-                               uint32_t protocolId,
-                               int maxPacketSize = 4 * 1024,
-                               int sendQueueSize = 1024,
-                               int receiveQueueSize = 1024 );
+                       PacketFactory & packetFactory, 
+                       const Address & address,
+                       uint32_t protocolId,
+                       int maxPacketSize = 4 * 1024,
+                       int sendQueueSize = 1024,
+                       int receiveQueueSize = 1024 );
 
         ~BaseInterface();
 
@@ -101,8 +101,6 @@ namespace yojimbo
         void * m_context;
 
         uint32_t m_protocolId;
-        int m_sendQueueSize;
-        int m_receiveQueueSize;
 
         Allocator * m_allocator;
         PacketFactory * m_packetFactory;
