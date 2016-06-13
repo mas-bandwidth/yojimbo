@@ -32,11 +32,26 @@ namespace yojimbo
         for ( int i = 0; i < m_numPacketEntries; ++i )
         {
             if ( m_packetEntries[i].packetData )
+            {
                 delete [] m_packetEntries[i].packetData;
+            }
         }
         delete [] m_packetEntries;
         m_packetEntries = NULL;
         m_numPacketEntries = 0;
+    }
+
+    // hack test
+    void NetworkSimulator::Reset()
+    {
+        for ( int i = 0; i < m_numPacketEntries; ++i )
+        {
+            if ( m_packetEntries[i].packetData )
+            {
+                delete [] m_packetEntries[i].packetData;
+                m_packetEntries[i] = PacketEntry();
+            }
+        }
     }
 
     void NetworkSimulator::SetLatency( float milliseconds )

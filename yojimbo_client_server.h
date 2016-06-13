@@ -358,7 +358,7 @@ namespace yojimbo
 
         ConnectTokenEntry()
         {
-            time = 0.0;
+            time = -1000.0;
             memset( mac, 0, MacBytes );
         }
     };
@@ -509,6 +509,8 @@ namespace yojimbo
 
         int FindExistingClientIndex( const Address & address, uint64_t clientId ) const;
 
+        bool FindConnectTokenEntry( const uint8_t * mac );
+        
         bool FindOrAddConnectTokenEntry( const Address & address, const uint8_t * mac );
 
         int FindClientId( uint64_t clientId ) const;

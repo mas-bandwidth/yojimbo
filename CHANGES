@@ -1,4 +1,61 @@
 
+Monday June 13th, 2016
+======================
+
+    Fix it!    
+
+    Seems there is a bunch of stuff getting stuck here.
+
+    High packet loss is exposing some not quite correct stuff...
+
+    There seems to be some sort of rogue "disconnect" packet getting through after the client is disconnected.
+
+    This should not be possible, because the client disconnects are sent encrypted, and the encryption mapping should block them post disconnect.
+
+    I think there are some bugs in the network simulator where old packets are coming back for a second round, somehow.
+
+    Sure enough, "Resetting" the simulator before the reconnect makes the bug go away.
+
+    So there is some way that packets are getting across from the previous session, even though there should 
+    be an encryption mapping that blocks this from happening...
+
+    What is going on?!
+
+    Confirmed that it's the "duplicate" code with +/- 10 seconds in delivery.
+
+    But I would expect that old duplicates put into the simulator would not decode without the correct encryption mapping...
+
+    So how is it that old duplicates are decrypting?!
+
+    I think that the bad encryption mapping is setup by the client getting an old (duplicate) connection request
+    from the prior session.
+
+    This connection request is not properly being ignored (as it has already been used!) and appears to be setting up the
+    encryption mapping for *old* packets, so old packets get through for a short period until the client times out.
+
+    So the question really is why is the stale connection request (with an old connect token) being let through?!
+
+    Some progress made, it seems best for a connect token to only be allowed to open an encryption mapping *once*
+
+    This way if an old connection request gets through, it will not put a new encryption mapping in, and the
+    encryption mapping in the normal case gets maintained by encrypted packets being sent and received across
+    it.
+
+    So now the old packets seem to have "decrypt failed" and "null key" and I'm not getting phantom disconnect packets.
+
+    But for some reason, still, the reconnect still fucks up unless I reset the simulator.
+
+    What's going on?!
+
+    What I think is going on is that the token expiry is not working, because the unit tests are not in
+    real time, so the older token is not expiring, *but* the entry for it is going away (timing out).
+
+    The bug was that the oldest token was not getting properly overwritten, and in fact it was always
+    deleting the first token mac in the array meant to stop mac reuse.
+
+    Fixing this issue makes the reconnect work properly under soak.
+
+
 Sunday June 12th, 2016
 ======================
 
