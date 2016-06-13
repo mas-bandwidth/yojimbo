@@ -89,6 +89,24 @@ Monday June 13th, 2016
 
     OK. Converted across and everything looks good. Turned on memory leak checking by default as well.
 
+    Pass across all remaining allocations and convert them to use the allocator.
+
+    Converted queue over to use allocator.
+
+    Any other news or deletes? 
+
+    Yes. There are a bunch of news and deletes. Mostly in test programs, but be consistent now and convert everything to use the allocator.
+
+    Switching to the allocator is important because it provides memory leak detection. You don't want to be leaking memory.
+
+    Convert remaining new/deletes over to allocator.
+
+    Implement signal break for test, so it can be broken out of when tests are soaking
+
+    Marked all allocator stuff with // todo
+
+    Converted all allocator stuff over. Left the windows address walking stuff alone (malloc)
+
 
 Sunday June 12th, 2016
 ======================

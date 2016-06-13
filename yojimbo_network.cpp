@@ -310,8 +310,6 @@ namespace yojimbo
         return m_type != ADDRESS_NONE;
     }
 
-	// todo: can process these into flags on address creation and store
-
     bool Address::IsLinkLocal() const
     {
         return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xfe80 );
@@ -399,8 +397,6 @@ namespace yojimbo
 
 		do
 		{
-            // todo: switch to alloca
-
 			pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
 			if ( pAddresses == NULL ) 
 				return;
@@ -485,8 +481,6 @@ namespace yojimbo
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
 
 	    outBufLen = WORKING_BUFFER_SIZE;
-
-        // todo: switch to alloca
 
 		do
 		{
@@ -573,8 +567,6 @@ namespace yojimbo
 		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
 
 	    outBufLen = WORKING_BUFFER_SIZE;
-
-        // todo: switch to alloca
 
 		do
 		{

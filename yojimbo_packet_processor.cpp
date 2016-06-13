@@ -8,6 +8,7 @@
 
 #include "yojimbo_packet_processor.h"
 #include "yojimbo_encryption.h"
+#include "yojimbo_allocator.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_common.h"
 #include <stdio.h>
@@ -19,8 +20,10 @@ namespace yojimbo
 
     const int CryptoOverhead = MacBytes;
 
-    PacketProcessor::PacketProcessor( PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize, void * context )
+    PacketProcessor::PacketProcessor( Allocator & allocator, PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize, void * context )
     {
+        m_allocator = &allocator;
+
         m_packetFactory = &packetFactory;
 
         m_protocolId = protocolId;
@@ -36,14 +39,15 @@ namespace yojimbo
 
         m_context = context;
 
-        m_packetBuffer = new uint8_t[m_absoluteMaxPacketSize];
-        m_scratchBuffer = new uint8_t[m_absoluteMaxPacketSize];
+        m_packetBuffer = (uint8_t*) allocator.Allocate( m_absoluteMaxPacketSize );
+
+        m_scratchBuffer = (uint8_t*) allocator.Allocate( m_absoluteMaxPacketSize );
     }
 
     PacketProcessor::~PacketProcessor()
     {
-        delete [] m_packetBuffer;
-        delete [] m_scratchBuffer;
+        m_allocator->Free( m_packetBuffer );
+        m_allocator->Free( m_scratchBuffer );
 
         m_packetBuffer = NULL;
         m_scratchBuffer = NULL;

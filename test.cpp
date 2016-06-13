@@ -13,6 +13,17 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#define SOAK_TEST 1
+
+#if SOAK_TEST
+#include <signal.h>
+static volatile int quit = 0;
+void interrupt_handler( int /*dummy*/ )
+{
+    quit = 1;
+}
+#endif // #if SOAK_TEST
+
 using namespace yojimbo;
 
 static void CheckHandler( const char * condition, 
@@ -315,22 +326,24 @@ struct TestPacketC : public Packet
 
 struct TestPacketFactory : public PacketFactory
 {
-    TestPacketFactory() : PacketFactory( TEST_PACKET_NUM_TYPES ) {}
+    TestPacketFactory( Allocator & allocator ) : PacketFactory( allocator, TEST_PACKET_NUM_TYPES ) {}
 
     Packet * Create( int type )
     {
+        Allocator & allocator = GetAllocator();
+
         switch ( type )
         {
-            case TEST_PACKET_A: return new TestPacketA();
-            case TEST_PACKET_B: return new TestPacketB();
-            case TEST_PACKET_C: return new TestPacketC();
+            case TEST_PACKET_A: return YOJIMBO_NEW( allocator, TestPacketA );
+            case TEST_PACKET_B: return YOJIMBO_NEW( allocator, TestPacketB );
+            case TEST_PACKET_C: return YOJIMBO_NEW( allocator, TestPacketC );
         }
         return NULL;
     }
 
     void Destroy( Packet * packet )
     {
-        delete packet;
+        YOJIMBO_DELETE( GetAllocator(), Packet, packet );
     }
 };
 
@@ -338,7 +351,7 @@ void test_packets()
 {
     printf( "test_packets\n" );
 
-    TestPacketFactory packetFactory;
+    TestPacketFactory packetFactory( GetDefaultAllocator() );
 
     TestPacketA * a = (TestPacketA*) packetFactory.CreatePacket( TEST_PACKET_A );
     TestPacketB * b = (TestPacketB*) packetFactory.CreatePacket( TEST_PACKET_B );
@@ -1214,7 +1227,7 @@ class GamePacketFactory : public ClientServerPacketFactory
 {
 public:
 
-    GamePacketFactory() : ClientServerPacketFactory( GAME_NUM_PACKETS ) {}
+    GamePacketFactory() : ClientServerPacketFactory( GetDefaultAllocator(), GAME_NUM_PACKETS ) {}
 
     Packet * Create( int type )
     {
@@ -1222,8 +1235,10 @@ public:
         if ( packet )
             return packet;
 
+        Allocator & allocator = GetAllocator();
+
         if ( type == GAME_PACKET )
-            return new GamePacket();
+            return YOJIMBO_NEW( allocator, GamePacket );
 
         return NULL;
     }
@@ -1233,7 +1248,7 @@ class TestNetworkSimulator : public NetworkSimulator
 {
 public:
 
-    TestNetworkSimulator()
+    TestNetworkSimulator() : NetworkSimulator( GetDefaultAllocator() )
     {
         SetLatency( 1000 );
         SetJitter( 250 );
@@ -2204,6 +2219,7 @@ void test_client_server_server_side_timeout()
 
 struct ClientData
 {
+    Allocator * allocator;
     uint64_t clientId;
     int numServerAddresses;
     Address serverAddresses[MaxServersPerConnectToken];
@@ -2216,6 +2232,7 @@ struct ClientData
 
     ClientData()
     {
+        allocator = NULL;
         clientId = 0;
         numServerAddresses = 0;
         networkInterface = NULL;
@@ -2228,10 +2245,8 @@ struct ClientData
 
     ~ClientData()
     {
-        delete networkInterface;
-        delete client;
-        networkInterface = NULL;
-        client = NULL;
+        YOJIMBO_DELETE( *allocator, TestNetworkInterface, networkInterface );
+        YOJIMBO_DELETE( *allocator, GameClient, client );
     }
 };
 
@@ -2251,13 +2266,17 @@ void test_client_server_server_is_full()
 
     TestNetworkSimulator networkSimulator;
 
+    Allocator & allocator = GetDefaultAllocator();
+
     for ( int i = 0; i < NumClients + 1; ++i )
     {
+        clientData[i].allocator = &allocator;
+
         clientData[i].clientId = i + 1;
 
         Address clientAddress( "::1", ClientPort + i );
 
-        clientData[i].networkInterface = new TestNetworkInterface( packetFactory, networkSimulator, clientAddress );
+        clientData[i].networkInterface = YOJIMBO_NEW( allocator, TestNetworkInterface, packetFactory, networkSimulator, clientAddress );
 
         if ( !matcher.RequestMatch( clientData[i].clientId, 
                                     clientData[i].connectTokenData, 
@@ -2271,7 +2290,7 @@ void test_client_server_server_is_full()
             exit( 1 );
         }
 
-        clientData[i].client = new GameClient( *clientData[i].networkInterface );
+        clientData[i].client = YOJIMBO_NEW( allocator, GameClient, *clientData[i].networkInterface );
     }
 
     Address serverAddress( "::1", ServerPort );
@@ -3088,9 +3107,11 @@ int main()
         exit( 1 );
     }
 
+#if SOAK_TEST
+    signal( SIGINT, interrupt_handler );    
     int iter = 0;
-
-    while ( true )
+    while ( !quit )
+#endif // #if SOAK_TEST
     {
         test_bitpacker();
         test_stream();
@@ -3121,15 +3142,19 @@ int main()
         test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
+#if SOAK_TEST
         iter++;
-
         for ( int i = 0; i < iter; ++i )
             printf( "." );
         printf( "\n" );
-
         if ( iter > 10 )
             iter = 0;
+#endif // #if SOAK_TEST
     }
+
+#if SOAK_TEST
+    printf( "\ntest stopped\n\n" );
+#endif // #if SOAK_TEST
 
     ShutdownYojimbo();
 

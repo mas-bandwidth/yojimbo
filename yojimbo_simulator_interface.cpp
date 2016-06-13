@@ -51,7 +51,9 @@ namespace yojimbo
     {
         assert( m_networkSimulator );
 
-        uint8_t * packetDataCopy = new uint8_t[packetBytes];
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
 
         if ( !packetDataCopy )
             return false;
@@ -79,7 +81,9 @@ namespace yojimbo
 
         memcpy( packetData, simulatorPacketData, maxPacketSize );
 
-        delete [] simulatorPacketData;
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        allocator.Free( simulatorPacketData );
 
         return packetSize;
     }

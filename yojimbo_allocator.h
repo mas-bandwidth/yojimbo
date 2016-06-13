@@ -67,7 +67,7 @@ namespace yojimbo
 	}
 
 	#define YOJIMBO_NEW_ARRAY( a, T, count ) AllocateArray( a, count, (T*)NULL )
-	#define YOJIMBO_DELETE_ARRAY( a, array, count ) DeleteArray( a, array, count )
+	#define YOJIMBO_DELETE_ARRAY( a, array, count ) do { DeleteArray( a, array, count ); array = NULL; } while (0)
 }
 
 #endif
