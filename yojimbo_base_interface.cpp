@@ -7,8 +7,6 @@
 */
 
 #include "yojimbo_base_interface.h"
-#include "yojimbo_array.h"
-#include "yojimbo_queue.h"
 #include "yojimbo_common.h"
 #include <stdint.h>
 #include <inttypes.h>
@@ -22,8 +20,8 @@ namespace yojimbo
                                   int maxPacketSize, 
                                   int sendQueueSize, 
                                   int receiveQueueSize )
-        : m_sendQueue( allocator ),
-          m_receiveQueue( allocator )
+        : m_sendQueue( sendQueueSize ),
+          m_receiveQueue( receiveQueueSize )
     {
         assert( protocolId != 0 );
         assert( sendQueueSize > 0 );
@@ -41,17 +39,10 @@ namespace yojimbo
                 
         m_protocolId = protocolId;
 
-        m_sendQueueSize = sendQueueSize;
-
-        m_receiveQueueSize = receiveQueueSize;
-
         m_packetFactory = &packetFactory;
         
         m_packetProcessor = new PacketProcessor( packetFactory, m_protocolId, maxPacketSize );
         
-        queue_reserve( m_sendQueue, sendQueueSize );
-        queue_reserve( m_receiveQueue, receiveQueueSize );
-
         const int numPacketTypes = m_packetFactory->GetNumPacketTypes();
 
 		assert( numPacketTypes > 0 );
@@ -97,7 +88,7 @@ namespace yojimbo
 
     void BaseInterface::ClearSendQueue()
     {
-        for ( int i = 0; i < (int) queue_size( m_sendQueue ); ++i )
+        for ( int i = 0; i < m_sendQueue.GetSize(); ++i )
         {
             PacketEntry & entry = m_sendQueue[i];
             assert( entry.packet );
@@ -105,12 +96,12 @@ namespace yojimbo
             m_packetFactory->DestroyPacket( entry.packet );
         }
 
-        queue_clear( m_sendQueue );
+        m_sendQueue.Clear();
     }
 
     void BaseInterface::ClearReceiveQueue()
     {
-        for ( int i = 0; i < (int) queue_size( m_receiveQueue ); ++i )
+        for ( int i = 0; i < m_receiveQueue.GetSize(); ++i )
         {
             PacketEntry & entry = m_receiveQueue[i];
             assert( entry.packet );
@@ -118,7 +109,7 @@ namespace yojimbo
             m_packetFactory->DestroyPacket( entry.packet );
         }
 
-        queue_clear( m_receiveQueue );
+        m_receiveQueue.Clear();
     }
 
     Packet * BaseInterface::CreatePacket( int type )
@@ -154,14 +145,14 @@ namespace yojimbo
             entry.address = address;
             entry.packet = packet;
 
-            if ( queue_size( m_sendQueue ) >= (size_t)m_sendQueueSize )
+            if ( m_sendQueue.IsFull() )
             {
                 m_counters[NETWORK_INTERFACE_COUNTER_SEND_QUEUE_OVERFLOW]++;
                 m_packetFactory->DestroyPacket( packet );
                 return;
             }
 
-            queue_push_back( m_sendQueue, entry );
+            m_sendQueue.Push( entry );
         }
 
         m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_SENT]++;
@@ -172,12 +163,10 @@ namespace yojimbo
         assert( m_allocator );
         assert( m_packetFactory );
 
-        if ( queue_size( m_receiveQueue ) == 0 )
+        if ( m_receiveQueue.IsEmpty() )
             return NULL;
 
-        const PacketEntry & entry = m_receiveQueue[0];
-
-        queue_consume( m_receiveQueue, 1 );
+        PacketEntry entry = m_receiveQueue.Pop();
 
         assert( entry.packet );
         assert( entry.address.IsValid() );
@@ -198,14 +187,12 @@ namespace yojimbo
         assert( m_packetFactory );
         assert( m_packetProcessor );
 
-        while ( queue_size( m_sendQueue ) )
+        while ( !m_sendQueue.IsEmpty() )
         {
-            const PacketEntry & entry = m_sendQueue[0];
+            PacketEntry entry = m_sendQueue.Pop();
 
             assert( entry.packet );
             assert( entry.address.IsValid() );
-
-            queue_consume( m_sendQueue, 1 );
 
             WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
 
@@ -273,7 +260,7 @@ namespace yojimbo
 
             assert( packetBytes > 0 );
 
-            if ( queue_size( m_receiveQueue ) == (size_t) m_receiveQueueSize )
+            if ( m_receiveQueue.IsFull() )
             {
                 m_counters[NETWORK_INTERFACE_COUNTER_RECEIVE_QUEUE_OVERFLOW]++;
                 break;
@@ -319,7 +306,7 @@ namespace yojimbo
             entry.packet = packet;
             entry.address = address;
 
-            queue_push_back( m_receiveQueue, entry );
+            m_receiveQueue.Push( entry );
 
             m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_READ]++;
 

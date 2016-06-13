@@ -1,6 +1,18 @@
 DONE
 
+    Need to make a decision about allocators.
+
+    I like the basic allocator approach, and it would be a shame to remove in and rewrite it from scratch
+
+    There is some value in it, but the core allocator is actually extremely simple. Keep just the malloc allocator?
+
+    But I don't like the array, queue, hash data structures... and I don't trust the implementation of the scratch allocator.
+
+    To remove these, write a replacement queue, and then cut down as much as possible just to the malloc allocator.
+
 TODO
+
+    Queue replacement was actually trivial to write. 5 minutes...
 
     -------------------
 
