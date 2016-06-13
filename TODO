@@ -2,14 +2,15 @@ DONE
 
 TODO
 
-    Idea: when a simulator interface shuts down, it should flush anything to or from its address out of the simulator,
-    so packets are not buffered in the shared network simulator across different simulator interface instances.
+    Fix it!    
 
-    -------------------
-    
-    Move the tests over to use network simulator interfaces instead of sockets.
+    Seems there is a bunch of stuff getting stuck here.
 
-    Bump up the packet loss and network conditions to ridiculous levels and make sure all tests pass.
+    High packet loss is exposing some not quite correct stuff...
+
+    There seems to be some sort of rogue "disconnect" packet getting through after the client is disconnected.
+
+    This should not be possible, because the client disconnects are sent encrypted, and the encryption mapping should block them post disconnect.
 
     -------------------
 

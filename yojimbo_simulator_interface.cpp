@@ -33,7 +33,18 @@ namespace yojimbo
 
     SimulatorInterface::~SimulatorInterface()
     {
+        assert( m_networkSimulator );
+
+        m_networkSimulator->DiscardPackets( GetAddress() );
+
         m_networkSimulator = NULL;
+    }
+
+    void SimulatorInterface::AdvanceTime( double time )
+    {
+        BaseInterface::AdvanceTime( time );
+
+        m_networkSimulator->AdvanceTime( time );
     }
 
     bool SimulatorInterface::InternalSendPacket( const Address & to, const void * packetData, size_t packetBytes )
