@@ -89,6 +89,8 @@ namespace yojimbo
     
         virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize ) = 0;
 
+        Allocator & GetAllocator() { assert( m_allocator ); return *m_allocator; }
+
     private:
 
         Address m_address;

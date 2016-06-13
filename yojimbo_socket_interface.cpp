@@ -25,43 +25,31 @@ namespace yojimbo
                          sendQueueSize,
                          receiveQueueSize )
     {
-        m_socket = new Socket( address );
+        m_socket = YOJIMBO_NEW( allocator, Socket, address );
     }
 
     SocketInterface::~SocketInterface()
     {
-        assert( m_socket );
-
-        delete m_socket;
-
-        m_socket = NULL;
+        YOJIMBO_DELETE( GetAllocator(), Socket, m_socket );
     }
 
     bool SocketInterface::IsError() const
     {
-        assert( m_socket );
-
         return m_socket->IsError();
     }
 
     int SocketInterface::GetError() const
     {
-        assert( m_socket );
-
         return m_socket->GetError();
     }
 
     bool SocketInterface::InternalSendPacket( const Address & to, const void * packetData, size_t packetBytes )
     {
-        assert( m_socket );
-
         return m_socket->SendPacket( to, packetData, packetBytes );
     }
 
     int SocketInterface::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
     {
-        assert( m_socket );
-        
         return m_socket->ReceivePacket( from, packetData, maxPacketSize );
     }
 }
