@@ -31,6 +31,8 @@ namespace yojimbo
 
         ~SimulatorInterface();
 
+        void AdvanceTime( double time );
+
     protected:
 
         virtual bool InternalSendPacket( const Address & to, const void * packetData, size_t packetBytes );

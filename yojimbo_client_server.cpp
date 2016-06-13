@@ -234,6 +234,8 @@ namespace yojimbo
             }
         }
 
+        m_networkInterface->RemoveEncryptionMapping( m_clientData[clientIndex].address );
+
         ResetClientState( clientIndex );
 
         m_counters[SERVER_COUNTER_CLIENT_DISCONNECTS]++;
@@ -590,6 +592,7 @@ namespace yojimbo
         ConnectToken connectToken;
         if ( !DecryptConnectToken( packet.connectTokenData, connectToken, NULL, 0, packet.connectTokenNonce, m_privateKey ) )
         {
+            printf( "failed to decrypt connect token\n" );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_FAILED_TO_DECRYPT]++;
             return;
         }
@@ -607,18 +610,21 @@ namespace yojimbo
 
         if ( !serverAddressInConnectTokenWhiteList )
         {
+            printf( "server address not in connect token whitelist\n" );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_SERVER_ADDRESS_NOT_IN_WHITELIST]++;
             return;
         }
 
         if ( connectToken.clientId == 0 )
         {
+            printf( "clint id is zero\n" );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_IS_ZERO]++;
             return;
         }
 
         if ( FindAddressAndClientId( address, connectToken.clientId ) >= 0 )
         {
+            printf( "client id already connected\n" );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_ALREADY_CONNECTED]++;
             return;
         }
@@ -627,12 +633,14 @@ namespace yojimbo
 
         if ( connectToken.expiryTimestamp <= timestamp )
         {
+            printf( "connect token expired\n" );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_EXPIRED]++;
             return;
         }
 
         if ( !m_networkInterface->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
         {
+            printf( "failed to add encryption mapping\n" );
             m_counters[SERVER_COUNTER_ENCRYPTION_MAPPING_CANNOT_ADD]++;
             return;
         }
@@ -642,6 +650,7 @@ namespace yojimbo
 
         if ( m_numConnectedClients == m_maxClients )
         {
+            printf( "server is full\n" );
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
@@ -653,6 +662,7 @@ namespace yojimbo
 
         if ( !FindOrAddConnectTokenEntry( address, packet.connectTokenData ) )
         {
+            printf( "find or add connect token entry failed\n" );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED]++;
             return;
         }
@@ -660,6 +670,7 @@ namespace yojimbo
         ChallengeToken challengeToken;
         if ( !GenerateChallengeToken( connectToken, packet.connectTokenData, challengeToken ) )
         {
+            printf( "failed to generate challenge token\n" );
             m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_GENERATE]++;
             return;
         }

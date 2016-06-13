@@ -7,6 +7,7 @@
 */
 
 #include "yojimbo.h"
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -963,6 +964,8 @@ struct GamePacket : public Packet
     YOJIMBO_SERIALIZE_FUNCTIONS();
 };
 
+static bool verbose_logging = true; //false;
+
 class GameServer : public Server
 {
     uint32_t m_gamePacketSequence;
@@ -982,6 +985,79 @@ public:
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
         m_numGamePacketsReceived[clientIndex] = 0;
+
+        if ( verbose_logging )
+        {
+            char addressString[256];
+            GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
+            printf( "client %d connected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+        }
+    }
+
+    void OnClientDisconnect( int clientIndex )
+    {
+        if ( verbose_logging )
+        {
+            char addressString[256];
+            GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
+            printf( "client %d disconnected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+        }
+    }
+
+    void OnClientTimedOut( int clientIndex )
+    {
+        if ( verbose_logging )
+        {
+            char addressString[256];
+            GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
+            printf( "client %d timed out (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+        }
+    }
+
+    void OnPacketSent( int packetType, const Address & to, bool immediate )
+    {
+        const char * packetTypeString = NULL;
+
+        switch ( packetType )
+        {
+            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
+            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+
+            default:
+                return;
+        }
+
+        if ( verbose_logging )
+        {
+            char addressString[256];
+            to.ToString( addressString, sizeof( addressString ) );
+            printf( "server sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
+        }
+    }
+
+    void OnPacketReceived( int packetType, const Address & from, uint64_t /*sequence*/ )
+    {
+        const char * packetTypeString = NULL;
+
+        switch ( packetType )
+        {
+            case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
+            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+
+            default:
+                return;
+        }
+
+        if ( verbose_logging )
+        {
+            char addressString[256];
+            from.ToString( addressString, sizeof( addressString ) );
+            printf( "server received '%s' packet from %s\n", packetTypeString, addressString );
+        }
     }
 
     uint64_t GetNumGamePacketsReceived( int clientIndex ) const
@@ -1035,9 +1111,86 @@ public:
         SendPacketToServer( packet );
     }
 
-    void OnConnect( const Address & /*address*/ )
+    void OnConnect( const Address & address )
     {
         m_numGamePacketsReceived = 0;
+
+        if ( verbose_logging )
+        {
+            char addressString[256];
+            address.ToString( addressString, sizeof( addressString ) );
+            printf( "client connecting to %s\n", addressString );
+        }
+    }
+
+    void OnClientStateChange( int previousState, int currentState )
+    {
+        if ( verbose_logging )
+        {
+            assert( previousState != currentState );
+            const char * previousStateString = GetClientStateName( previousState );
+            const char * currentStateString = GetClientStateName( currentState );
+            printf( "client changed state from '%s' to '%s'\n", previousStateString, currentStateString );
+
+            if ( currentState == CLIENT_STATE_CONNECTED )
+            {
+                printf( "client connected as client %d\n", GetClientIndex() );
+            }
+        }
+    }
+
+    void OnDisconnect()
+    {
+        if ( verbose_logging )
+        {
+            printf( "client disconnected\n" );
+        }
+    }
+
+    void OnPacketSent( int packetType, const Address & to, bool immediate )
+    {
+        const char * packetTypeString = NULL;
+
+        switch ( packetType )
+        {
+            case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
+            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+
+            default:
+                return;
+        }
+
+        if ( verbose_logging )
+        {
+            char addressString[256];
+            to.ToString( addressString, sizeof( addressString ) );
+            printf( "client sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
+        }
+    }
+
+    void OnPacketReceived( int packetType, const Address & from, uint64_t /*sequence*/ )
+    {
+        const char * packetTypeString = NULL;
+
+        switch ( packetType )
+        {
+            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
+            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+
+            default:
+                return;
+        }
+
+        if ( verbose_logging )
+        {
+            char addressString[256];
+            from.ToString( addressString, sizeof( addressString ) );
+            printf( "client received %s packet from %s\n", packetTypeString, addressString );
+        }
     }
 
     uint64_t GetNumGamePacketsReceived() const
@@ -1076,13 +1229,25 @@ public:
     }
 };
 
-NetworkSimulator networkSimulator;
+class TestNetworkSimulator : public NetworkSimulator
+{
+public:
+
+    TestNetworkSimulator()
+    {
+        SetLatency( 1000 );
+        SetJitter( 250 );
+        SetDuplicates( 10 );
+        SetPacketLoss( 10 );
+    }   
+};
 
 class TestNetworkInterface : public SimulatorInterface
 {   
 public:
 
-    TestNetworkInterface( GamePacketFactory & packetFactory, const Address & address ) : SimulatorInterface( memory_default_allocator(), networkSimulator, packetFactory, address, ProtocolId )
+    TestNetworkInterface( GamePacketFactory & packetFactory, NetworkSimulator & networkSimulator, const Address & address ) 
+        : SimulatorInterface( memory_default_allocator(), networkSimulator, packetFactory, address, ProtocolId )
     {
         EnablePacketEncryption();
         DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
@@ -1104,8 +1269,10 @@ void test_unencrypted_packets()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     // make sure that encrypted packet types will *not* be received if they are sent as unencrypted
 
@@ -1184,10 +1351,10 @@ void test_client_server_connect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
 
-    const int NumIterations = 20;
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
@@ -1201,7 +1368,7 @@ void test_client_server_connect()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1265,10 +1432,10 @@ void test_client_server_reconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
 
-    const int NumIterations = 20;
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
@@ -1282,6 +1449,8 @@ void test_client_server_reconnect()
 
     // connect client to the server
 
+    printf( "**** connect client to server ****\n" );
+
     if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
@@ -1290,7 +1459,7 @@ void test_client_server_reconnect()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1329,9 +1498,11 @@ void test_client_server_reconnect()
 
     // disconnect the client
 
+    printf( "**** disconnect client ****\n" );
+
     client.Disconnect();
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1364,6 +1535,8 @@ void test_client_server_reconnect()
 
     // now verify the client is able to reconnect to the same server with a new connect token
 
+    printf( "**** client reconnect ****\n" );
+
     if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed (2)\n" );
@@ -1372,7 +1545,7 @@ void test_client_server_reconnect()
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         client.SendPackets();
         server.SendPackets();
@@ -1436,8 +1609,10 @@ void test_client_server_client_side_disconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -1560,8 +1735,10 @@ void test_client_server_server_side_disconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -1690,7 +1867,9 @@ void test_client_server_connection_request_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
 
     const int NumIterations = 20;
 
@@ -1758,8 +1937,10 @@ void test_client_server_connection_response_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -1842,8 +2023,10 @@ void test_client_server_client_side_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -1953,8 +2136,10 @@ void test_client_server_server_side_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -2080,13 +2265,15 @@ void test_client_server_server_is_full()
 
     GamePacketFactory packetFactory;
 
+    TestNetworkSimulator networkSimulator;
+
     for ( int i = 0; i < NumClients + 1; ++i )
     {
         clientData[i].clientId = i + 1;
 
         Address clientAddress( "::1", ClientPort + i );
 
-        clientData[i].networkInterface = new TestNetworkInterface( packetFactory, clientAddress );
+        clientData[i].networkInterface = new TestNetworkInterface( packetFactory, networkSimulator, clientAddress );
 
         if ( !matcher.RequestMatch( clientData[i].clientId, 
                                     clientData[i].connectTokenData, 
@@ -2105,7 +2292,7 @@ void test_client_server_server_is_full()
 
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -2293,8 +2480,10 @@ void test_client_server_connect_token_reuse()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -2351,7 +2540,7 @@ void test_client_server_connect_token_reuse()
 
     Address clientAddress2( "::1", ClientPort + 1 );
 
-    TestNetworkInterface clientInterface2( packetFactory, clientAddress2 );
+    TestNetworkInterface clientInterface2( packetFactory, networkSimulator, clientAddress2 );
     
     GameClient client2( clientInterface2 );
 
@@ -2430,8 +2619,10 @@ void test_client_server_connect_token_expiry()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -2521,8 +2712,10 @@ void test_client_server_connect_token_whitelist()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -2595,8 +2788,10 @@ void test_client_server_connect_token_invalid()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -2678,8 +2873,10 @@ void test_client_server_game_packets()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -2786,8 +2983,10 @@ void test_client_server_insecure_connect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, serverAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 20;
 
@@ -2857,7 +3056,9 @@ void test_client_server_insecure_connect_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface clientInterface( packetFactory, clientAddress );
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
 
     const int NumIterations = 20;
 
@@ -2901,6 +3102,8 @@ void test_client_server_insecure_connect_timeout()
 
 int main()
 {
+    srand( time( NULL ) );
+
     memory_initialize();
 
     if ( !InitializeYojimbo() )
@@ -2915,34 +3118,54 @@ int main()
         exit( 1 );
     }
 
-    test_bitpacker();
-    test_stream();
-    test_packets();
-    test_address_ipv4();
-    test_address_ipv6();
-    test_packet_sequence();
-    test_encrypt_and_decrypt();
-    test_encryption_manager();
-    test_unencrypted_packets();
-    test_client_server_tokens();
-    test_client_server_connect();
-    test_client_server_reconnect();
-    test_client_server_client_side_disconnect();
-    test_client_server_server_side_disconnect();
-    test_client_server_connection_request_timeout();
-    test_client_server_connection_response_timeout();
-    test_client_server_client_side_timeout();
-    test_client_server_server_side_timeout();
-    test_client_server_server_is_full();
-    test_client_server_connect_token_reuse();
-    test_client_server_connect_token_expiry();
-    test_client_server_connect_token_whitelist();
-    test_client_server_connect_token_invalid();
-    test_client_server_game_packets();
+    int iter = 0;
+
+    while ( true )
+    {
+        /*
+        test_bitpacker();
+        test_stream();
+        test_packets();
+        test_address_ipv4();
+        test_address_ipv6();
+        test_packet_sequence();
+        test_encrypt_and_decrypt();
+        test_encryption_manager();
+        test_unencrypted_packets();
+        test_client_server_tokens();
+        test_client_server_connect();
+        */
+
+        test_client_server_reconnect();
+
+        /*
+        test_client_server_client_side_disconnect();
+        test_client_server_server_side_disconnect();
+        test_client_server_connection_request_timeout();
+        test_client_server_connection_response_timeout();
+        test_client_server_client_side_timeout();
+        test_client_server_server_side_timeout();
+        test_client_server_server_is_full();
+        test_client_server_connect_token_reuse();
+        test_client_server_connect_token_expiry();
+        test_client_server_connect_token_whitelist();
+        test_client_server_connect_token_invalid();
+        test_client_server_game_packets();
 #if YOJIMBO_INSECURE_CONNECT
-    test_client_server_insecure_connect();
-    test_client_server_insecure_connect_timeout();
+        test_client_server_insecure_connect();
+        test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
+        */
+
+        iter++;
+
+        for ( int i = 0; i < iter; ++i )
+            printf( "." );
+        printf( "\n" );
+
+        if ( iter > 10 )
+            iter = 0;
+    }
 
     ShutdownNetwork();
 

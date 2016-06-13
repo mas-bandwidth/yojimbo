@@ -139,6 +139,31 @@ Sunday June 12th, 2016
 
     Amazing. Switched over the tests to the simulator interface and everything just worked.
 
+    Idea: when a simulator interface shuts down, it should flush anything to or from its address out of the simulator,
+    so packets are not buffered in the shared network simulator across different simulator interface instances.
+
+    Seems like a good idea. Implemented.
+
+    Bump up the packet loss and network conditions to ridiculous levels and make sure all tests pass.
+
+    Looks like there is a bug where the challenge response is not resent back if the initial one is lost.
+
+    It should be replied back to the client each time the client sends a connection request...
+
+    No it was a bug because the simulator wasn't advancing time forward.
+
+    Next, there was a bug because simulator time was going backwards. Changed it so there is one simulator instance per-test.
+
+    Passes now.
+
+    Seems there are some edge cases that need to be caught in client connect and especially reconnect.
+
+    This will be quite painful...
+
+    Made some progress by ensuring that the encryption mapping for a client is cleared immediately on client disconnect.
+
+    Now it is getting quite a bit further before failing...
+
 
 Saturday June 11th, 2016
 ========================

@@ -25,6 +25,8 @@ namespace yojimbo
 
         ~NetworkSimulator();
 
+        void Reset();
+
         void SetLatency( float milliseconds );
 
         void SetJitter( float milliseconds );
@@ -36,6 +38,8 @@ namespace yojimbo
         void SendPacket( const Address & from, const Address & to, uint8_t * packetData, int packetSize );
 
         uint8_t * ReceivePacket( Address & from, const Address & to, int & packetSize );
+
+        void DiscardPackets( const Address & address );
 
         void AdvanceTime( double time );
 
