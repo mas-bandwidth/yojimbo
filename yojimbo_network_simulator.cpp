@@ -175,7 +175,7 @@ namespace yojimbo
             if ( !packetEntry.packetData )
                 continue;
 
-            if ( packetEntry.to != address & packetEntry.from != address )
+            if ( packetEntry.to != address && packetEntry.from != address )
                 continue;
 
             delete [] packetEntry.packetData;
