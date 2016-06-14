@@ -43,7 +43,7 @@ namespace yojimbo
         return m_socket->GetError();
     }
 
-    bool SocketInterface::InternalSendPacket( const Address & to, const void * packetData, size_t packetBytes )
+    bool SocketInterface::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
         return m_socket->SendPacket( to, packetData, packetBytes );
     }

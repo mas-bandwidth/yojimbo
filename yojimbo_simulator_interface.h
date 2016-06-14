@@ -35,7 +35,7 @@ namespace yojimbo
 
     protected:
 
-        virtual bool InternalSendPacket( const Address & to, const void * packetData, size_t packetBytes );
+        virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
     
         virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
 
