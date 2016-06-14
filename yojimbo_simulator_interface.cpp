@@ -47,7 +47,7 @@ namespace yojimbo
         m_networkSimulator->AdvanceTime( time );
     }
 
-    bool SimulatorInterface::InternalSendPacket( const Address & to, const void * packetData, size_t packetBytes )
+    bool SimulatorInterface::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
         assert( m_networkSimulator );
 
@@ -79,7 +79,7 @@ namespace yojimbo
         assert( packetSize > 0 );
         assert( packetSize <= maxPacketSize );
 
-        memcpy( packetData, simulatorPacketData, maxPacketSize );
+        memcpy( packetData, simulatorPacketData, packetSize );
 
         Allocator & allocator = m_networkSimulator->GetAllocator();
 
