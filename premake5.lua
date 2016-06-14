@@ -76,6 +76,7 @@ if _ACTION == "clean" then
         os.execute "del /F /Q *.opendb"
         os.execute "del /F /Q *.vcproj"
         os.execute "del /F /Q *.vcxproj"
+        os.execute "del /F /Q *.vcxproj.user"
         os.execute "del /F /Q *.sln"
     end
 end
