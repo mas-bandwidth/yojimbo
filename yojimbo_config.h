@@ -14,7 +14,7 @@
 #endif
 
 #define YOJIMBO_MAJOR_VERSION 0
-#define YOJIMBO_MINOR_VERSION 1
+#define YOJIMBO_MINOR_VERSION 2
 
 #if YOJIMBO_DEBUG_PACKET_LEAKS
 #include <stdio.h>
@@ -52,22 +52,18 @@
 #define YOJIMBO_PLATFORM YOJIMBO_PLATFORM_UNIX
 #endif
 
-#define YOJIMBO_DEBUG_PACKET_LEAKS              0
+#define YOJIMBO_SOCKETS                         1
 
-#define YOJIMBO_DEBUG_MEMORY_LEAKS              1
-    
-#define YOJIMBO_SCRATCH_ALLOCATOR               0
-
-#define YOJIMBO_SERIALIZE_CHECKS                1
-
-#define YOJIMBO_DEBUG_PACKET_LEAKS              0
+#define YOJIMBO_NETWORK_SIMULATOR               1
 
 #define YOJIMBO_PACKET_AGGREGATION              1
 
-#define YOJIMBO_SOCKETS                         1
-    
-#define YOJIMBO_NETWORK_SIMULATOR               1
+#define YOJIMBO_INSECURE_CONNECT                1           // IMPORTANT: Disable this in retail build
 
-#define YOJIMBO_INSECURE_CONNECT                1                   // best to disable this in retail build
+#define YOJIMBO_DEBUG_PACKET_LEAKS              0
+
+#define YOJIMBO_DEBUG_MEMORY_LEAKS              1    
+
+#define YOJIMBO_SERIALIZE_CHECKS                1
 
 #endif // #ifndef YOJIMBO_CONFIG_H

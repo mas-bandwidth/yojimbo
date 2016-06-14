@@ -107,6 +107,14 @@ Monday June 13th, 2016
 
     Converted all allocator stuff over. Left the windows address walking stuff alone (malloc)
 
+    Works fine on linux.
+
+    Test under windows and linux.
+
+    Works great under windows, mac and linux.
+
+    All platforms connect to linux just fine.
+
 
 Sunday June 12th, 2016
 ======================
