@@ -8,7 +8,9 @@ The library is under active development and is is being extended to provide all 
 
 The library is currently in pre-release and provides cryptographically secure authentication, connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for sending and receiving custom packet types.
 
-The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with 15 years experience working in the AAA game industry as a network programmer. His credits include Freedom Force, SWAT 4, Mercenaries 2, God of War 3, God of War: Ascension, Playstation: All Stars, Journey and Titanfall. 
+## Author
+
+The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with 15 years experience working in the AAA game industry as a network programmer. His credits include Freedom Force, SWAT 4, L.A. Noire, Mercenaries 2, God of War 3, God of War: Ascension, Playstation: All Stars, Journey and Titanfall. 
 
 Glenn is currently writing an article series on [gafferongames.com](http://gafferongames.com) about the development of this library called [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/).
 
