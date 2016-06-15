@@ -1,43 +1,13 @@
-[libyojimbo]
-============
+## libyojimbo
+==========
 
-Yojimbo is a new, easy-to-use software library for creating client/server network protocols in C++.
+libyojimbo is a new, easy-to-use software library for creating secure client/server network protocols over UDP.
 
-The library is currently in active development and in early access release.
+The library is designed around the networking requirements of realtime multiplayer games such as first person shooters and action games like MOBAs. It is suitable for networking games with 2-64 players that require dedicated servers, rather than servers which are hosted on player's machines or peer-to-peer network topologies.
 
-It currently provides authentication, connection management and encryption for packets sent over UDP. 
+It's current functionality is to provide provides cryptographically secure authentication, client/server connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for sending and receiving custom game packets.
 
-In the future it will be extended to support packet fragmentation and reassembly, packet aggregation, and time critical reliable-ordered messages and data blocks.
-
-It's goal is to provide all the functionality required to create a secure client/server game with dedicated servers, 
-as well as non-game applications that could learn a thing or two from how the game industry does things.
-
-It currently supports 
-as well as core functionality needed to create your protocol such as packet fragmentation and reassembly, 
-support for sending large data blocks, a bitpacker and a reliable-ordered message system.
-
-It is designed for games written in C++ that 
-
-Its goal is to provide all of the core functionatily you need to implement a secure client/server game protocol with dedicated servers.
-
-Yojimbo supports a variety of compilers and operating systems, including Windows (with MingW or Visual Studio, x86 and x64), iOS and Android.
-
-## Documentation
-
-The documentation is a work-in-progress, and is being written using
-Gitbook:
-
-* [libsodium documentation](https://download.libsodium.org/doc/) -
-online, requires Javascript.
-* [offline documentation](https://www.gitbook.com/book/jedisct1/libsodium/details)
-in PDF, MOBI and ePUB formats.
-
-## Integrity Checking
-
-The integrity checking instructions (including the signing key for libsodium)
-are available in the [installation](https://download.libsodium.org/doc/installation/index.html#integrity-checking)
-section of the documentation.
-
+The library is under active development and is is being extended to provide all the standard functionality expected from a client/server network protocols in the game industry such as time-critical reliable-ordered messages, ability to send large blocks of data quickly and reliably over UDP while staying under MTU, packet aggregation, packet fragmentation and reassembly, 
 ## License
 
 [BSD 3-Clause license](https://opensource.org/licenses/BSD-3-Clause).
