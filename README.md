@@ -6,7 +6,7 @@ It is designed around the networking requirements of realtime multiplayer games 
 
 The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol in the game industry such as: time-critical reliable-ordered messages, sending large blocks of data quickly and reliably over UDP, compressed packets, packet aggregation, packet fragmentation and reassembly.
 
-The library is currently in pre-release and provides support for cryptographically secure authentication, client/server connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for extending the protocol to send send and receive custom packet types.
+The library is currently in pre-release and provides support for cryptographically secure authentication, client/server connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for extending the protocol with custom packet types.
 
 ## Author
 
