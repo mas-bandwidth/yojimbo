@@ -12,7 +12,7 @@ The library is currently in pre-release and provides cryptographically secure au
 
 The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with 15 years experience working in the game industry as a network programmer. His credits include: Freedom Force, SWAT 4, L.A. Noire, Mercenaries 2, God of War 3, God of War: Ascension, Playstation: All Stars, Journey and Titanfall.
 
-Glenn is currently writing an article series on [gafferongames.com](http://gafferongames.com) about the development of this library called [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/).
+Glenn is currently writing an article series about the development of this library: [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/).
 
 You can support Glenn's work writing articles and open source code on [Patreon](http://www.patreon.com/gafferongames).
 
