@@ -8,7 +8,7 @@ It's current functionality is to provide provides cryptographically secure authe
 
 The library is under active development and is is being extended to provide all the standard functionality expected from a client/server network protocols in the game industry such as time-critical reliable-ordered messages, ability to send large blocks of data quickly and reliably over UDP while staying under MTU, packet aggregation, packet fragmentation and reassembly.
 
-The author Glenn Fiedler has over 15 years of experience working in the game industry as a game network programmer and is currently writing an article series on [gafferongames.com](http://gafferongames.com) called [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/) about the development of this library.
+The author of this library is Glenn Fiedler, a recognized expert in the field of game network programming with over 15 years of experience working in the game industry  network programmer. He is currently writing an article series on [gafferongames.com](http://gafferongames.com) about the development of this library called [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/).
 
 ## License
 
