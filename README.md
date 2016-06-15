@@ -1,5 +1,4 @@
 ## libyojimbo
-==========
 
 libyojimbo is a new, easy-to-use software library for creating secure client/server network protocols over UDP.
 
