@@ -33,6 +33,7 @@
 
 #define YOJIMBO_MAJOR_VERSION 0
 #define YOJIMBO_MINOR_VERSION 1
+#define YOJIMBO_PATCH_VERSION 0
 
 #if YOJIMBO_DEBUG_PACKET_LEAKS
 #include <stdio.h>
@@ -76,7 +77,7 @@
 
 #define YOJIMBO_PACKET_AGGREGATION              1
 
-#define YOJIMBO_INSECURE_CONNECT                1           // IMPORTANT: Disable this in retail build
+#define YOJIMBO_INSECURE_CONNECT                1           // IMPORTANT: Please disable this in retail build
 
 #define YOJIMBO_DEBUG_PACKET_LEAKS              0
 
