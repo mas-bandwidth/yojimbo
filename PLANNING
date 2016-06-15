@@ -25,3 +25,9 @@ PLANNING
     Combine the ack system and the message packet into one system!
 
     -------------------
+
+    If I ever need NAT punchthrough, libjingle looks awesome
+
+    https://developers.google.com/talk/libjingle/developer_guide#organization-of-the-sdk
+
+    -------------------
