@@ -4,9 +4,9 @@ libyojimbo is a new, easy-to-use library for creating secure client/server netwo
 
 It is designed around the networking requirements of realtime multiplayer games such as first person shooters and MOBAs and is suitable for networking games with 2-64 players. It requires games to host servers in the cloud or in data centers. It does not support player hosted servers or peer-to-peer networking.
 
-The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol in the game industry such as: time-critical reliable-ordered messages, ability to send large blocks of data quickly and reliably over UDP, packet aggregation, and packet fragmentation and reassembly.
+The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol in the game industry such as: time-critical reliable-ordered messages, sending large blocks of data quickly and reliably over UDP, compressed packets, packet aggregation, packet fragmentation and reassembly.
 
-The library is currently in pre-release and provides support for cryptographically secure authentication, connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for sending and receiving custom packet types.
+The library is currently in pre-release and provides support for cryptographically secure authentication, client/server connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for extending the protocol to send send and receive custom packet types.
 
 ## Author
 
