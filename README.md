@@ -14,7 +14,7 @@ The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennf
 
 Glenn is currently writing an article series about the development of this library: [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/).
 
-You can support Glenn's work writing articles and open source code on [Patreon](http://www.patreon.com/gafferongames).
+You can support Glenn's work writing articles and open source code via [Patreon](http://www.patreon.com/gafferongames).
 
 ## License
 
