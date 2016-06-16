@@ -717,7 +717,6 @@
 		"/Users/gaffer/git/libyojimbo/client_server.cpp",
 		"/Users/gaffer/git/libyojimbo/client.cpp",
 		"/Users/gaffer/git/libyojimbo/network_info.cpp",
-		"/Users/gaffer/git/libyojimbo/premake5.lua",
 		"/Users/gaffer/git/libyojimbo/server.cpp",
 		"/Users/gaffer/git/libyojimbo/shared.h",
 		"/Users/gaffer/git/libyojimbo/test.cpp",
@@ -752,6 +751,9 @@
 		"/Users/gaffer/git/libyojimbo/yojimbo_stream.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo.h",
+		"/Users/gaffer/git/libyojimbo/sodium.h",
+		"/Users/gaffer/git/libyojimbo/BUILDING",
+		"/Users/gaffer/git/libyojimbo/premake5.lua",
 		"/Users/gaffer/git/protocol2/yojimbo.h",
 		"/Users/gaffer/git/libyojimbo/TODO",
 		"/Users/gaffer/git/protocol2/yojimbo_config.h",
@@ -839,9 +841,7 @@
 		"/Users/gaffer/git/protocol/src/ClientServer/ClientServerPackets.h",
 		"/Users/gaffer/Documents/BIZDEV",
 		"/Users/gaffer/Documents/INDIE DISCOUNT",
-		"/Users/gaffer/Desktop/bcrypt.c",
-		"/Users/gaffer/git/protocol/src/Network/Network.cpp",
-		"/Users/gaffer/Documents/PLANNING"
+		"/Users/gaffer/Desktop/bcrypt.c"
 	],
 	"find":
 	{
@@ -1124,8 +1124,24 @@
 		"selected_items":
 		[
 			[
+				"sodium",
+				"sodium.h"
+			],
+			[
+				"client.cpp",
+				"client.cpp"
+			],
+			[
+				"server",
+				"server.cpp"
+			],
+			[
 				"todo",
 				"TODO"
+			],
+			[
+				"config.h",
+				"yojimbo_config.h"
 			],
 			[
 				"con",
@@ -1134,10 +1150,6 @@
 			[
 				"planning",
 				"PLANNING"
-			],
-			[
-				"config.h",
-				"yojimbo_config.h"
 			],
 			[
 				"changes",
@@ -1178,10 +1190,6 @@
 			[
 				"packet",
 				"yojimbo_packet.cpp"
-			],
-			[
-				"client.cpp",
-				"client.cpp"
 			],
 			[
 				"baseinterface.h",
@@ -1366,10 +1374,6 @@
 			[
 				"socketinterface.cpp",
 				"yojimbo_socket_interface.cpp"
-			],
-			[
-				"server",
-				"server.cpp"
 			],
 			[
 				"serv",
@@ -1630,10 +1634,6 @@
 			[
 				"config",
 				"yojimbo_config.h"
-			],
-			[
-				"network2.h",
-				"network2.h"
 			]
 		],
 		"width": 0.0
