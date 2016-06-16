@@ -94,7 +94,7 @@ if not os.is "windows" then
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
-            os.execute "zip -9r Yojimbo.zip *.cpp *.h premake5.lua sodium sodium.lib"
+            os.execute "zip -9r Yojimbo.zip BUILDING *.cpp *.h premake5.lua sodium sodium.lib"
         end
     }
 

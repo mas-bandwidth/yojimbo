@@ -16,6 +16,8 @@ Which builds makefiles that you can use to build the source via "make all", or v
 
     premake5 test       // build and run unit tests (loops forever until CTRL-C)
 
+    premake5 info       // build and run network info (prints list of local IP address)
+
     premake5 cs         // build and run the local client/server testbed with secure connect tokens
 
     premake5 client     // build and run the client that connects to a yojimbo server I'm running on 173.255.195.190:5000
