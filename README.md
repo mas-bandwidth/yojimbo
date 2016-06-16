@@ -10,7 +10,7 @@ The library is currently in pre-release and provides support for cryptographical
 
 ## Author
 
-The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with almost 20 years experience working in the game industry. His credits include: Freedom Force, SWAT 4, L.A. Noire, Mercenaries 2, God of War 3, God of War: Ascension, Playstation: All Stars, Journey and Titanfall.
+The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with 20 years experience working in the game industry. His credits include: Freedom Force, SWAT 4, L.A. Noire, Mercenaries 2, God of War 3, God of War: Ascension, Playstation: All Stars, Journey and Titanfall.
 
 Glenn is currently writing an article series about the development of this library: [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/).
 
