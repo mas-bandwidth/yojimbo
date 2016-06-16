@@ -1,0 +1,39 @@
+
+libyojimbo v0.1.0
+=================
+
+Welcome to the first pre-release of libyojimbo!
+
+Yojimbo is a C++ library for creating secure client/server network protocols.
+
+To build libyojimbo from source you need premake 5.0 from: https://premake.github.io/download.html
+
+If you are running under MacOSX or Linux, go to the command line under libyojimbo directory and type
+
+    premake5 gmake
+
+Which builds makefiles that you can use to build the source via "make all", or via premake with shortcuts:
+
+    premake5 test       // build and run unit tests (loops forever until CTRL-C)
+
+    premake5 cs         // build and run the local client/server testbed with secure connect tokens
+
+    premake5 client     // build and run the client that connects to a yojimbo server I'm running on 173.255.195.190:5000
+
+    premake5 server     // build run your own copy of the server. modify client.cpp to point to your server IP address.
+
+To build on Windows, go to the command line under the libyojimbo directory and type:
+
+    premake5 vs2015
+
+Which creates Yojimbo.sln and a bunch of project files. Double click Yojimbo.sln to open it in Visual Studio.
+
+You can now build and run individual test programs and the library as you would for any other visual studio solution.
+
+This is early release software. Please email any feedback you have to glenn@thenetworkprotocolcompany.com
+
+I hope you find libyojimbo useful!
+
+cheers
+
+ - Glenn
