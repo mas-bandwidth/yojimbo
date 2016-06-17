@@ -2,4 +2,10 @@ DONE
 
 TODO
 
+    Migrate to organization
+
+    Update to 0.2.0 version
+
+    Split out yojimbo_socket.h and yojimbo_address.h from yojimbo_network.h
+
     
