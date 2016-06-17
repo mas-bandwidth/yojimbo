@@ -714,6 +714,13 @@
 	],
 	"file_history":
 	[
+		"/Users/gaffer/git/libyojimbo/TODO",
+		"/Users/gaffer/git/libyojimbo/CHANGES",
+		"/Users/gaffer/git/libyojimbo/yojimbo_socket_interface.cpp",
+		"/Users/gaffer/source code/passwords.txt",
+		"/Users/gaffer/git/libyojimbo/premake5.lua",
+		"/Users/gaffer/git/libyojimbo/README.md",
+		"/Users/gaffer/git/libyojimbo/BUILDING",
 		"/Users/gaffer/git/libyojimbo/client_server.cpp",
 		"/Users/gaffer/git/libyojimbo/client.cpp",
 		"/Users/gaffer/git/libyojimbo/network_info.cpp",
@@ -746,20 +753,15 @@
 		"/Users/gaffer/git/libyojimbo/yojimbo_serialize.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_simulator_interface.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_simulator_interface.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_socket_interface.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_socket_interface.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_stream.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo.h",
 		"/Users/gaffer/git/libyojimbo/sodium.h",
-		"/Users/gaffer/git/libyojimbo/BUILDING",
-		"/Users/gaffer/git/libyojimbo/premake5.lua",
 		"/Users/gaffer/git/protocol2/yojimbo.h",
-		"/Users/gaffer/git/libyojimbo/TODO",
 		"/Users/gaffer/git/protocol2/yojimbo_config.h",
 		"/Users/gaffer/git/libyojimbo/PLANNING",
 		"/Users/gaffer/git/libyojimbo/WOULD BE NICE",
-		"/Users/gaffer/git/libyojimbo/CHANGES",
 		"/Users/gaffer/git/libyojimbo/sodium/crypto_sign_edwards25519sha512batch.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_memory.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_types.h",
@@ -839,9 +841,7 @@
 		"/Users/gaffer/Documents/EXERCISE",
 		"/Users/gaffer/git/protocol/src/ClientServer/Server.h",
 		"/Users/gaffer/git/protocol/src/ClientServer/ClientServerPackets.h",
-		"/Users/gaffer/Documents/BIZDEV",
-		"/Users/gaffer/Documents/INDIE DISCOUNT",
-		"/Users/gaffer/Desktop/bcrypt.c"
+		"/Users/gaffer/Documents/BIZDEV"
 	],
 	"find":
 	{
@@ -892,6 +892,7 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"zip",
 			"new ",
 			"new",
 			"// todo",
@@ -1018,8 +1019,7 @@
 			"guid",
 			"guidsalt",
 			"INSECURE",
-			"INSECURE_CONNECT",
-			"InsecureConnect"
+			"INSECURE_CONNECT"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1124,6 +1124,26 @@
 		"selected_items":
 		[
 			[
+				"chang",
+				"CHANGES"
+			],
+			[
+				"todo",
+				"TODO"
+			],
+			[
+				"",
+				"yojimbo_socket_interface.cpp"
+			],
+			[
+				"pre",
+				"premake5.lua"
+			],
+			[
+				"building",
+				"BUILDING"
+			],
+			[
 				"sodium",
 				"sodium.h"
 			],
@@ -1134,10 +1154,6 @@
 			[
 				"server",
 				"server.cpp"
-			],
-			[
-				"todo",
-				"TODO"
 			],
 			[
 				"config.h",
@@ -1324,10 +1340,6 @@
 				"yojimbo_client_server.cpp"
 			],
 			[
-				"",
-				"yojimbo_network_simulator.cpp"
-			],
-			[
 				"sim",
 				"yojimbo_simulator_interface.h"
 			],
@@ -1410,10 +1422,6 @@
 			[
 				"yojimbo_network.h",
 				"yojimbo_network.h"
-			],
-			[
-				"pre",
-				"premake5.lua"
 			],
 			[
 				"cliet",
@@ -1626,14 +1634,6 @@
 			[
 				"pr",
 				"premake5.lua"
-			],
-			[
-				"netw",
-				"yojimbo_network.h"
-			],
-			[
-				"config",
-				"yojimbo_config.h"
 			]
 		],
 		"width": 0.0
