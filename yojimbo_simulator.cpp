@@ -22,7 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "yojimbo_network_simulator.h"
+#include "yojimbo_simulator.h"
 
 #if YOJIMBO_NETWORK_SIMULATOR
 
@@ -211,6 +211,84 @@ namespace yojimbo
     {
         assert( time >= m_time );
         m_time = time;
+    }
+
+    SimulatorInterface::SimulatorInterface( Allocator & allocator, 
+                                            NetworkSimulator & networkSimulator,
+                                            PacketFactory & packetFactory, 
+                                            const Address & address,
+                                            uint32_t protocolId,
+                                            int maxPacketSize, 
+                                            int sendQueueSize, 
+                                            int receiveQueueSize )
+        : BaseInterface( allocator, 
+                         packetFactory, 
+                         address,
+                         protocolId,
+                         maxPacketSize,
+                         sendQueueSize,
+                         receiveQueueSize )
+    {
+        assert( address.IsValid() );
+
+        m_networkSimulator = &networkSimulator;
+    }
+
+    SimulatorInterface::~SimulatorInterface()
+    {
+        assert( m_networkSimulator );
+
+        m_networkSimulator->DiscardPackets( GetAddress() );
+
+        m_networkSimulator = NULL;
+    }
+
+    void SimulatorInterface::AdvanceTime( double time )
+    {
+        BaseInterface::AdvanceTime( time );
+
+        m_networkSimulator->AdvanceTime( time );
+    }
+
+    bool SimulatorInterface::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
+    {
+        assert( m_networkSimulator );
+
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
+
+        if ( !packetDataCopy )
+            return false;
+
+        memcpy( packetDataCopy, packetData, packetBytes );
+
+        m_networkSimulator->SendPacket( GetAddress(), to, packetDataCopy, packetBytes );
+
+        return true;
+    }
+
+    int SimulatorInterface::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
+    {
+        assert( m_networkSimulator );
+
+        int packetSize = 0;
+
+        uint8_t * simulatorPacketData = m_networkSimulator->ReceivePacket( from, GetAddress(), packetSize );
+
+        if ( !simulatorPacketData )
+            return 0;
+
+        assert( packetSize > 0 );
+        assert( packetSize <= maxPacketSize );
+
+        memcpy( packetData, simulatorPacketData, packetSize );
+
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        allocator.Free( simulatorPacketData );
+
+        return packetSize;
     }
 }
 

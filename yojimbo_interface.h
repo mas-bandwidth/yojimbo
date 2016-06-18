@@ -22,8 +22,8 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef YOJIMBO_BASE_INTERFACE_H
-#define YOJIMBO_BASE_INTERFACE_H
+#ifndef YOJIMBO_INTERFACE_H
+#define YOJIMBO_INTERFACE_H
 
 #include "yojimbo_config.h"
 #include "yojimbo_queue.h"
@@ -33,10 +33,81 @@
 #include "yojimbo_allocator.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
-#include "yojimbo_network_interface.h"
 
 namespace yojimbo
 {
+    enum NetworkInterfaceFlags
+    {
+        NETWORK_INTERFACE_FLAG_INSECURE_MODE = (1<<0)
+    };
+
+    enum NetworkInterfaceCounters
+    {
+        NETWORK_INTERFACE_COUNTER_PACKETS_SENT,
+        NETWORK_INTERFACE_COUNTER_PACKETS_RECEIVED,
+        NETWORK_INTERFACE_COUNTER_PACKETS_READ,
+        NETWORK_INTERFACE_COUNTER_PACKETS_WRITTEN,
+        NETWORK_INTERFACE_COUNTER_SEND_QUEUE_OVERFLOW,
+        NETWORK_INTERFACE_COUNTER_RECEIVE_QUEUE_OVERFLOW,
+        NETWORK_INTERFACE_COUNTER_READ_PACKET_FAILURES,
+        NETWORK_INTERFACE_COUNTER_WRITE_PACKET_FAILURES,
+        NETWORK_INTERFACE_COUNTER_ENCRYPT_PACKET_FAILURES,
+        NETWORK_INTERFACE_COUNTER_DECRYPT_PACKET_FAILURES,
+        NETWORK_INTERFACE_COUNTER_ENCRYPTED_PACKETS_READ,
+        NETWORK_INTERFACE_COUNTER_ENCRYPTED_PACKETS_WRITTEN,
+        NETWORK_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_READ,
+        NETWORK_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_WRITTEN,
+        NETWORK_INTERFACE_COUNTER_ENCRYPTION_MAPPING_FAILURES,
+        NETWORK_INTERFACE_COUNTER_NUM_COUNTERS
+    };
+
+    class NetworkInterface
+    {
+    public:
+
+        virtual ~NetworkInterface() {}
+
+        virtual Packet * CreatePacket( int type ) = 0;
+
+        virtual void DestroyPacket( Packet * packet ) = 0;
+
+        virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
+
+        virtual Packet * ReceivePacket( Address & from, uint64_t * sequence = NULL ) = 0;
+
+        virtual void WritePackets() = 0;
+
+        virtual void ReadPackets() = 0;
+
+        virtual int GetMaxPacketSize() const = 0;
+
+        virtual void SetContext( void * context ) = 0;
+
+        virtual void EnablePacketEncryption() = 0;
+
+        virtual void DisableEncryptionForPacketType( int type ) = 0;
+
+        virtual bool IsEncryptedPacketType( int type ) const = 0;
+
+        virtual bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey ) = 0;
+
+        virtual bool RemoveEncryptionMapping( const Address & address ) = 0;
+
+        virtual void ResetEncryptionMappings() = 0;
+
+        virtual void AdvanceTime( double time ) = 0;
+
+        virtual double GetTime() const = 0;
+
+        virtual uint64_t GetCounter( int index ) const = 0;
+
+        virtual void SetFlags( uint64_t flags ) = 0;
+
+        virtual uint64_t GetFlags() const = 0;
+
+        virtual const Address & GetAddress() const = 0;
+    };
+
     class BaseInterface : public NetworkInterface
     {
     public:
@@ -145,4 +216,4 @@ namespace yojimbo
     };
 }
 
-#endif // #ifndef YOJIMBO_NETWORK_IMPLEMENTATION_H
+#endif // #ifndef YOJIMBO_INTERFACE_H

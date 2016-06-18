@@ -29,13 +29,12 @@
 #include "yojimbo_common.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_network.h"
+#include "yojimbo_sockets.h"
 #include "yojimbo_platform.h"
+#include "yojimbo_simulator.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
-#include "yojimbo_network_interface.h"
-#include "yojimbo_socket_interface.h"
-#include "yojimbo_simulator_interface.h"
 #include "yojimbo_client_server.h"
 
 bool InitializeYojimbo();
