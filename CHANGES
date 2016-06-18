@@ -1,4 +1,16 @@
 
+Friday June 17th, 2016
+======================
+
+    Migrate to github organization
+
+    Update to 0.2.0 version
+
+    Split out yojimbo_socket.h and yojimbo_address.h from yojimbo_network.h
+
+    Bunch of file shuffling and clean up.
+
+
 Monday June 13th, 2016
 ======================
 

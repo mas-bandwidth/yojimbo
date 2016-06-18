@@ -22,12 +22,10 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef YOJIMBO_NETWORK_H
-#define YOJIMBO_NETWORK_H
+#ifndef YOJIMBO_ADDRESS_H
+#define YOJIMBO_ADDRESS_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_address.h"
-#include "yojimbo_packet.h"
 
 #include <stdint.h>
 #include <assert.h>
@@ -36,19 +34,87 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+struct addrinfo;
+struct sockaddr_in6;
+struct sockaddr_storage;
+
 namespace yojimbo
 {
-    bool InitializeNetwork();
+    enum AddressType
+    {
+        ADDRESS_NONE,
+        ADDRESS_IPV4,
+        ADDRESS_IPV6
+    };
 
-    void ShutdownNetwork();
+    class Address
+    {
+        AddressType m_type;
 
-    bool IsNetworkInitialized();
+        union
+        {
+            uint32_t m_address_ipv4;
+            uint16_t m_address_ipv6[8];
+        };
 
-    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses );
+        uint16_t m_port;
 
-    Address GetFirstNetworkAddress_IPV4();
+   public:
 
-    Address GetFirstNetworkAddress_IPV6();
+        Address();
+
+        Address( uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint16_t port = 0 );
+
+        explicit Address( uint32_t address, int16_t port = 0 );
+
+        explicit Address( uint16_t a, uint16_t b, uint16_t c, uint16_t d,
+                          uint16_t e, uint16_t f, uint16_t g, uint16_t h,
+                          uint16_t port = 0 );
+
+        explicit Address( const uint16_t address[], uint16_t port = 0 );
+
+        explicit Address( const sockaddr_storage * addr );
+
+        explicit Address( addrinfo * p );
+
+        explicit Address( const char * address );
+
+        explicit Address( const char * address, uint16_t port );
+
+        void Clear();
+
+        uint32_t GetAddress4() const;
+
+        const uint16_t * GetAddress6() const;
+
+        void SetPort( uint16_t port );
+
+        uint16_t GetPort() const;
+
+        AddressType GetType() const;
+
+        const char * ToString( char buffer[], int bufferSize ) const;
+
+        bool IsValid() const;
+
+        bool IsLinkLocal() const;
+
+        bool IsSiteLocal() const;
+
+        bool IsMulticast() const;
+
+		bool IsLoopback() const;
+
+        bool IsGlobalUnicast() const;
+
+        bool operator ==( const Address & other ) const;
+
+        bool operator !=( const Address & other ) const;
+
+    protected:
+
+        void Parse( const char * address );
+    };
 }
 
-#endif // #ifndef YOJIMBO_NETWORK_H
+#endif // #ifndef YOJIMBO_ADDRESS_H

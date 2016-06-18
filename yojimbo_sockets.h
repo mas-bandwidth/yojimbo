@@ -1,6 +1,6 @@
 /*
     Yojimbo Client/Server Network Library.
-
+    
     Copyright © 2016, The Network Protocol Company, Inc.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -22,32 +22,84 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef YOJIMBO_SIMULATOR_INTERFACE_H
-#define YOJIMBO_SIMULATOR_INTERFACE_H
+#ifndef YOJIMBO_SOCKETS_H
+#define YOJIMBO_SOCKETS_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_network.h"
-#include "yojimbo_base_interface.h"
-#include "yojimbo_network_simulator.h"
+#include "yojimbo_address.h"
+#include "yojimbo_interface.h"
+
+#include <stdint.h>
+#include <assert.h>
+#include <math.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 namespace yojimbo
 {
-    class SimulatorInterface : public BaseInterface
+#if YOJIMBO_SOCKETS
+
+    enum SocketError
+    {
+        SOCKET_ERROR_NONE,
+        SOCKET_ERROR_CREATE_FAILED,
+        SOCKET_ERROR_SET_NON_BLOCKING_FAILED,
+        SOCKET_ERROR_SOCKOPT_IPV6_ONLY_FAILED,
+        SOCKET_ERROR_BIND_IPV4_FAILED,
+        SOCKET_ERROR_BIND_IPV6_FAILED,
+        SOCKET_ERROR_GET_SOCKNAME_IPV4_FAILED,
+        SOCKET_ERROR_GET_SOCKNAME_IPV6_FAILED
+    };
+
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+	typedef uint64_t SocketHandle;
+#else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+	typedef int SocketHandle;
+#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+						   
+    class Socket
     {
     public:
 
-        SimulatorInterface( Allocator & allocator,
-                            NetworkSimulator & networkSimulator,
-                            PacketFactory & packetFactory, 
-                            const Address & address,
-                            uint32_t protocolId,
-                            int maxPacketSize = 4 * 1024,
-                            int sendQueueSize = 1024,
-                            int receiveQueueSize = 1024 );
+        Socket( const Address & address );
 
-        ~SimulatorInterface();
+        ~Socket();
 
-        void AdvanceTime( double time );
+        bool IsError() const;
+
+        int GetError() const;
+
+        bool SendPacket( const Address & to, const void * packetData, size_t packetBytes );
+    
+        int ReceivePacket( Address & from, void * packetData, int maxPacketSize );
+
+        const Address & GetAddress() const;
+
+    private:
+
+        int m_error;
+        Address m_address;
+        SocketHandle m_socket;
+    };
+
+    class SocketInterface : public BaseInterface
+    {
+    public:
+
+        SocketInterface( Allocator & allocator,
+                         PacketFactory & packetFactory, 
+                         const Address & address,
+                         uint32_t protocolId,
+                         int maxPacketSize = 4 * 1024,
+                         int sendQueueSize = 1024,
+                         int receiveQueueSize = 1024 );
+
+        ~SocketInterface();
+
+        bool IsError() const;
+
+        int GetError() const;
 
     protected:
 
@@ -57,8 +109,10 @@ namespace yojimbo
 
     private:
 
-        NetworkSimulator * m_networkSimulator;
+        Socket * m_socket;
     };
+
+#endif // #if YOJIMBO_SOCKETS
 }
 
-#endif // #ifndef YOJIMBO_SOCKET_INTERFACE_H
+#endif // #ifndef YOJIMBO_SOCKETS_H

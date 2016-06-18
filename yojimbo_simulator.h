@@ -22,13 +22,14 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef YOJIMBO_NETWORK_SIMULATOR_H
-#define YOJIMBO_NETWORK_SIMULATOR_H
+#ifndef YOJIMBO_SIMULATOR_H
+#define YOJIMBO_SIMULATOR_H
 
 #include "yojimbo_config.h"
 #include "yojimbo_common.h"
-#include "yojimbo_network.h"
+#include "yojimbo_address.h"
 #include "yojimbo_allocator.h"
+#include "yojimbo_interface.h"
 
 namespace yojimbo
 {
@@ -97,6 +98,34 @@ namespace yojimbo
         int m_numPacketEntries;                         // number of elements in the packet entry array.
 
         PacketEntry * m_packetEntries;                  // pointer to dynamically allocated packet entries. this is where buffered packets are stored.
+    };
+
+    class SimulatorInterface : public BaseInterface
+    {
+    public:
+
+        SimulatorInterface( Allocator & allocator,
+                            NetworkSimulator & networkSimulator,
+                            PacketFactory & packetFactory, 
+                            const Address & address,
+                            uint32_t protocolId,
+                            int maxPacketSize = 4 * 1024,
+                            int sendQueueSize = 1024,
+                            int receiveQueueSize = 1024 );
+
+        ~SimulatorInterface();
+
+        void AdvanceTime( double time );
+
+    protected:
+
+        virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
+    
+        virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
+
+    private:
+
+        NetworkSimulator * m_networkSimulator;
     };
 
 #endif // #if YOJIMBO_NETWORK_SIMULATOR

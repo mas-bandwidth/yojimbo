@@ -715,6 +715,10 @@
 	"file_history":
 	[
 		"/Users/gaffer/git/libyojimbo/TODO",
+		"/Users/gaffer/git/libyojimbo/yojimbo_network.h",
+		"/Users/gaffer/patreon/github.txt",
+		"/Users/gaffer/git/libyojimbo/yojimbo_serialize.h",
+		"/Users/gaffer/git/libyojimbo/test.cpp",
 		"/Users/gaffer/git/libyojimbo/CHANGES",
 		"/Users/gaffer/git/libyojimbo/yojimbo_socket_interface.cpp",
 		"/Users/gaffer/source code/passwords.txt",
@@ -726,7 +730,6 @@
 		"/Users/gaffer/git/libyojimbo/network_info.cpp",
 		"/Users/gaffer/git/libyojimbo/server.cpp",
 		"/Users/gaffer/git/libyojimbo/shared.h",
-		"/Users/gaffer/git/libyojimbo/test.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_allocator.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_base_interface.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_base_interface.h",
@@ -742,7 +745,6 @@
 		"/Users/gaffer/git/libyojimbo/yojimbo_network_simulator.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_network_simulator.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_network.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_network.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_packet_processor.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_packet_processor.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_packet.cpp",
@@ -750,7 +752,6 @@
 		"/Users/gaffer/git/libyojimbo/yojimbo_platform.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_platform.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_queue.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_serialize.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_simulator_interface.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_simulator_interface.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_socket_interface.h",
@@ -840,8 +841,7 @@
 		"/Users/gaffer/Documents/CHORES",
 		"/Users/gaffer/Documents/EXERCISE",
 		"/Users/gaffer/git/protocol/src/ClientServer/Server.h",
-		"/Users/gaffer/git/protocol/src/ClientServer/ClientServerPackets.h",
-		"/Users/gaffer/Documents/BIZDEV"
+		"/Users/gaffer/git/protocol/src/ClientServer/ClientServerPackets.h"
 	],
 	"find":
 	{
@@ -1124,12 +1124,24 @@
 		"selected_items":
 		[
 			[
-				"chang",
-				"CHANGES"
-			],
-			[
 				"todo",
 				"TODO"
+			],
+			[
+				"net",
+				"yojimbo_network.h"
+			],
+			[
+				"seria",
+				"yojimbo_serialize.h"
+			],
+			[
+				"test.cpp",
+				"test.cpp"
+			],
+			[
+				"chang",
+				"CHANGES"
 			],
 			[
 				"",
@@ -1170,10 +1182,6 @@
 			[
 				"changes",
 				"CHANGES"
-			],
-			[
-				"test.cpp",
-				"test.cpp"
 			],
 			[
 				"would",
@@ -1349,10 +1357,6 @@
 			],
 			[
 				"network_simulator.h",
-				"yojimbo_network_simulator.h"
-			],
-			[
-				"net",
 				"yojimbo_network_simulator.h"
 			],
 			[
@@ -1630,10 +1634,6 @@
 			[
 				"protocol.cpp",
 				"yojimbo_protocol.cpp"
-			],
-			[
-				"pr",
-				"premake5.lua"
 			]
 		],
 		"width": 0.0

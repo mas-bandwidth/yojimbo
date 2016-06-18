@@ -22,7 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "yojimbo_base_interface.h"
+#include "yojimbo_interface.h"
 #include "yojimbo_common.h"
 #include <stdint.h>
 #include <inttypes.h>
