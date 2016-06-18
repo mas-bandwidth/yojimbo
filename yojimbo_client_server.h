@@ -27,11 +27,10 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_packet.h"
-#include "yojimbo_network.h"
+#include "yojimbo_allocator.h"
+#include "yojimbo_interface.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
-#include "yojimbo_network_interface.h"
-#include "yojimbo_socket_interface.h"
 
 namespace yojimbo
 {
@@ -192,7 +191,9 @@ namespace yojimbo
         CLIENT_SERVER_PACKET_CONNECTION_RESPONSE,                     // client response to server connection challenge.
         CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT,                    // heartbeat packet sent at some low rate (once per-second) to keep the connection alive.
         CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT,                   // courtesy packet to indicate that the other side has disconnected. better than a timeout.
+#if YOJIMBO_INSECURE_CONNECT
         CLIENT_SERVER_PACKET_INSECURE_CONNECT,                        // client requests an insecure connection (dev only!)
+#endif // #if YOJIMBO_INSECURE_CONNECT
         CLIENT_SERVER_NUM_PACKETS
     };
 
