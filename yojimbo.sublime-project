@@ -3,6 +3,9 @@
 	[
 		{
 			"path": "."
+		},
+		{
+			"path": "/Users/gaffer/git/libyojimbo-fucked"
 		}
 	]
 }
