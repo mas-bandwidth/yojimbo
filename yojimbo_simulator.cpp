@@ -270,6 +270,8 @@ namespace yojimbo
 
     int SimulatorInterface::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
     {
+        (void) maxPacketSize;
+
         assert( m_networkSimulator );
 
         int packetSize = 0;
