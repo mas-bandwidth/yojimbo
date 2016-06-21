@@ -34,7 +34,7 @@ void interrupt_handler( int /*dummy*/ )
     quit = 1;
 }
 
-int ClientMain()
+int ClientMain( int argc, char * argv[] )
 {
     (void) private_key;
     
@@ -64,8 +64,18 @@ int ClientMain()
 
     GameClient client( clientInterface );
 
-    Address serverAddress( "173.255.195.190", ServerPort );
-    //Address serverAddress( "::1", ServerPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    if ( argc == 2 )
+    {
+        Address commandLineAddress( argv[1] );
+        if ( commandLineAddress.IsValid() )
+        {
+            if ( commandLineAddress.GetPort() == 0 )
+                commandLineAddress.SetPort( ServerPort );
+            serverAddress = commandLineAddress;
+        }
+    }
 
     client.InsecureConnect( serverAddress );
 
@@ -111,7 +121,7 @@ int ClientMain()
     return 0;
 }
 
-int main()
+int main( int argc, char * argv[] )
 {
     printf( "\n" );
 
@@ -123,7 +133,7 @@ int main()
 
     srand( (unsigned int) time( NULL ) );
 
-    int result = ClientMain();
+    int result = ClientMain( argc, argv );
 
     ShutdownYojimbo();
 
