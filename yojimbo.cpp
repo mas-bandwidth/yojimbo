@@ -139,9 +139,7 @@ namespace yojimbo
             if ( !p )
                 return;
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-            typedef std::map<void*,int>::iterator itor_type;
-            itor_type itor = m_alloc_map.find( p );
-            assert( itor != m_alloc_map.end() );
+            assert( m_alloc_map.find( p ) != m_alloc_map.end() );
             m_alloc_map.erase( p );
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
             Header * h = header( p );

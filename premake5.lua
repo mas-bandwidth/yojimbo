@@ -6,7 +6,7 @@ solution "Yojimbo"
         targetdir "bin/"
     end
     configurations { "Debug", "Release" }
-    flags { "ExtraWarnings", "FloatFast" }
+    flags { "ExtraWarnings", "FatalWarnings", "FloatFast" }
     rtti "Off"
     configuration "Debug"
         flags { "Symbols" }
@@ -64,6 +64,7 @@ if _ACTION == "clean" then
         os.execute "rm -f client"
         os.execute "rm -f server"
         os.execute "rm -f client_server"
+        os.execute "rm rf docker/libyojimbo"
         os.execute "find . -name .DS_Store -delete"
     else
         os.rmdir "ipch"
@@ -156,6 +157,13 @@ if not os.is "windows" then
         end
     }
 
+    newoption 
+    {
+        trigger     = "serverAddress",
+        value       = "IP[:port]",
+        description = "Specify the server address that the client should connect to",
+    }
+
     newaction
     {
         trigger     = "client",
@@ -166,7 +174,11 @@ if not os.is "windows" then
      
         execute = function ()
             if os.execute "make -j4 client" == 0 then
-                os.execute "./bin/client"
+                if _OPTIONS["serverAddress"] then
+                    os.execute( "./bin/client " .. _OPTIONS["serverAddress"] )
+                else
+                    os.execute "./bin/client"
+                end
             end
         end
     }
@@ -183,6 +195,19 @@ if not os.is "windows" then
             if os.execute "make -j4 server" == 0 then
                 os.execute "./bin/server"
             end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "docker",
+        description = "Build linux binaries via Docker and run the container as an instance",
+        valid_kinds = premake.action.get("gmake").valid_kinds,
+        valid_languages = premake.action.get("gmake").valid_languages,
+        valid_tools = premake.action.get("gmake").valid_tools,
+
+        execute = function ()
+            os.execute "mkdir -p docker/libyojimbo && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 127.0.0.1:50000:50000/udp networkprotocol:yojimbo-server"
         end
     }
 

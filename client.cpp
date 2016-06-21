@@ -36,6 +36,8 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientMain()
 {
+    (void) private_key;
+    
     GamePacketFactory packetFactory;
 
     Address clientAddress = GetFirstNetworkAddress_IPV4();

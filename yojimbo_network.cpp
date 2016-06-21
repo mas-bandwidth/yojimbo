@@ -370,7 +370,7 @@ namespace yojimbo
 		return Address();
     }
 
-#elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == UNIX // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+#elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
     void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses )
     {
@@ -487,7 +487,7 @@ namespace yojimbo
 
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
-    void GetNetworkAddresses( Address * /*addresses*/, int & /*numAddresses*/, int /*maxAddresses*/ )
+    void GetNetworkAddresses( Address * /*addresses*/, int & numAddresses, int /*maxAddresses*/ )
     {
         numAddresses = 0;
     }

@@ -3126,7 +3126,7 @@ int main()
 #if SOAK_TEST
     signal( SIGINT, interrupt_handler );    
     int iter = 0;
-    while ( !quit )
+    for ( int i = 0; i < 100; ++i )
 #endif // #if SOAK_TEST
     {
         test_bitpacker();
@@ -3159,6 +3159,8 @@ int main()
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
 #if SOAK_TEST
+        if ( quit ) 
+            break;
         iter++;
         for ( int i = 0; i < iter; ++i )
             printf( "." );
@@ -3169,7 +3171,9 @@ int main()
     }
 
 #if SOAK_TEST
-    printf( "\ntest stopped\n\n" );
+    if ( quit )
+        printf( "\ntest stopped\n" );
+    printf( "\n" );
 #endif // #if SOAK_TEST
 
     ShutdownYojimbo();
