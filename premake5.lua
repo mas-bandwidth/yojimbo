@@ -232,7 +232,7 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "docker-server",
+        trigger     = "docker",
         description = "Build and run a yojimbo server inside a docker container",
         valid_kinds = premake.action.get("gmake").valid_kinds,
         valid_languages = premake.action.get("gmake").valid_languages,

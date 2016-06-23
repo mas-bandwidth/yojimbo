@@ -20,8 +20,6 @@ Which builds makefiles that you can use to build the source via "make all", or v
 
     premake5 server     // build run your own copy of the server. modify client.cpp to point to your server IP address.
 
-    premake5 docker     // build and run a docker container with a game server instance inside it. Install docker first (http://docker.com)
-
 To build on Windows, go to the command line under the libyojimbo directory and type:
 
     premake5 vs2015
@@ -32,7 +30,53 @@ You can now build and run individual test programs and the library as you would 
 
 This is early release software. Please email any feedback you have to glenn@thenetworkprotocolcompany.com
 
-I hope you find libyojimbo useful!
+
+=========================================
+NEW IN 0.2.0 pre-release, Docker support!
+=========================================
+
+First install Docker from http://www.docker.com, you will need Linux, MacOS X or 64bit Windows 10.
+
+Then in the command line at the yojimbo directory, enter:
+
+    premake5 docker
+
+This builds and runs a Docker container with a yojimbo server inside it (the same as if you went "premake5 server" on a Linux box)
+
+You can then connect to this server by running a client which connects to 127.0.0.0:5000 (default behavior) eg: "premake5 client" on Mac or Linux.
+
+The docker premake command works like this:
+
+    1. Start a new docker image from a prebuilt Ubuntu derived base linux
+
+    2. apt-get update, apt-get install wget, g++
+
+    3. Download, build and install premake5
+
+    4. Download, build and install libsodium
+
+    5. Build debug version of libyojimbo, run tests
+
+    6. Build release version of libyojimbo, run tests
+
+    7. If all tests pass, clean everything and copy the libyojimbo server to /home dir
+
+    8. When the Docker container is run, execute /home/server, which runs a yojimbo server on UDP port 50000.
+
+For details see docker/Dockerfile and the premake5.lua file with commands that build and run the container instance.
+
+What's most impressive is that if no dependencies have changed, numbered steps above are precached as intermediate
+Docker instances and not rebuilt, eg. if you have already downloaded and installed wget, g++, libsodium and premake5
+and you run premake5 docker again, these steps are skipped and the cached docker images for these steps are reused.
+
+Try it yourself by running "premake5 docker" once (it should build everything), and run it again, it will go straight
+to the server running on port 50000. Similarly, if you change some libyojimbo source it will automatically rebuild
+libyojimbo server and run tests. Quite impressive.
+
+Docker is awesome! :D
+
+http://www.docker.com
+
 
 cheers
 
