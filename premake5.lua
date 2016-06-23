@@ -1,12 +1,20 @@
 
+if os.is "windows" then
+    sodium_debug = "sodium-debug"
+    sodium_release = "sodium-release"
+else
+    sodium_debug = "sodium"
+    sodium_release = "sodium"
+end
+
 solution "Yojimbo"
     platforms { "x64" }
     includedirs { "." }
     if not os.is "windows" then
-        targetdir "bin/"
+        targetdir "bin/"  
     end
     configurations { "Debug", "Release" }
-    flags { "ExtraWarnings", "FatalWarnings", "FloatFast" }
+    flags { "ExtraWarnings", "FatalWarnings", "StaticRuntime", "FloatFast" }
     rtti "Off"
     configuration "Debug"
         flags { "Symbols" }
@@ -19,37 +27,61 @@ project "test"
     language "C++"
     kind "ConsoleApp"
     files { "test.cpp" }
-    links { "yojimbo", "sodium" }
+    links { "yojimbo" }
+    configuration "Debug"
+		links { sodium_debug }
+	configuration "Release"
+	    links { sodium_release }
 
 project "network_info"
     language "C++"
     kind "ConsoleApp"
     files { "network_info.cpp" }
-    links { "yojimbo", "sodium" }
+    links { "yojimbo" }
+    configuration "Debug"
+		links { sodium_debug }
+	configuration "Release"
+	    links { sodium_release }
 
 project "yojimbo"
     language "C++"
     kind "StaticLib"
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp" }
     links { "sodium" }
+    configuration "Debug"
+		links { sodium_debug }
+	configuration "Release"
+	    links { sodium_release }
 
 project "client"
     language "C++"
     kind "ConsoleApp"
     files { "client.cpp", "shared.h" }
-    links { "yojimbo", "sodium" }
+    links { "yojimbo" }
+    configuration "Debug"
+		links { sodium_debug }
+	configuration "Release"
+	    links { sodium_release }
 
 project "server"
     language "C++"
     kind "ConsoleApp"
     files { "server.cpp", "shared.h" }
-    links { "yojimbo", "sodium" }
+    links { "yojimbo" }
+    configuration "Debug"
+		links { sodium_debug }
+	configuration "Release"
+	    links { sodium_release }
 
 project "client_server"
     language "C++"
     kind "ConsoleApp"
     files { "client_server.cpp", "shared.h" }
-    links { "yojimbo", "sodium" }
+    links { "yojimbo" }
+    configuration "Debug"
+		links { sodium_debug }
+	configuration "Release"
+	    links { sodium_release }
 
 if _ACTION == "clean" then
     os.rmdir "obj"
