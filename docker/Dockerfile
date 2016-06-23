@@ -23,9 +23,7 @@ RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha9
 
 ADD libyojimbo /home/libyojimbo
 
-RUN cd libyojimbo && premake5 gmake && make all config=debug_x64 && ./bin/test && \
-    make clean && make all config=release_x64 && ./bin/test && cp /home/libyojimbo/bin/server /home && \
-    rm -rf libyojimbo
+RUN cd libyojimbo && premake5 gmake && make all config=release_x64 && ./bin/test && cp /home/libyojimbo/bin/server /home && rm -rf libyojimbo
 
 CMD ./server
 

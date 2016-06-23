@@ -40,15 +40,7 @@ int ClientMain( int argc, char * argv[] )
     
     GamePacketFactory packetFactory;
 
-    Address clientAddress = GetFirstNetworkAddress_IPV4();
-
-    if ( !clientAddress.IsValid() )
-    {
-        printf( "error: no valid IPV4 address\n" );
-        return 1;
-    }
-
-    GameNetworkInterface clientInterface( packetFactory, clientAddress );
+    GameNetworkInterface clientInterface( packetFactory );
 
     if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
     {
