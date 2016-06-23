@@ -2,9 +2,9 @@
 
 libyojimbo is a new, easy-to-use library for creating secure client/server network protocols over UDP.
 
-It is designed around the networking requirements of realtime multiplayer games such as first person shooters and MOBAs and is suitable for networking games with 2-64 players. It requires games to host servers in the cloud or in data centers. It does not support player hosted servers or peer-to-peer networking.
+It is designed around the networking requirements of realtime multiplayer games such as first person shooters and MOBAs. It requires games to host servers and support up to 64 players per-server. It does not support peer-to-peer or player hosted servers in retail environments.
 
-The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol in the game industry such as: time-critical reliable-ordered messages, sending large blocks of data quickly and reliably over UDP, compressed packets, packet aggregation, packet fragmentation and reassembly.
+The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol in the game industry such as reliable-ordered messages and data blocks, compressed packets, packet aggregation, packet fragmentation and reassembly.
 
 The library is currently in pre-release and provides support for cryptographically secure authentication, client/server connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for extending the protocol with custom packet types.
 
@@ -12,9 +12,25 @@ The library is currently in pre-release and provides support for cryptographical
 
 The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with over 15 years experience working in the game industry. His credits include: Freedom Force, SWAT 4, L.A. Noire, Mercenaries 2, God of War 3, God of War: Ascension, Playstation: All Stars, Journey and Titanfall.
 
-Glenn is currently writing an article series about the development of this library: [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/).
+Glenn is currently writing an article series about the development of libyojimbo: [Building a Game Network Protocol](http://gafferongames.com/2016/05/10/building-a-game-network-protocol/).
 
 You can support Glenn's work writing articles and open source code via [Patreon](http://www.patreon.com/gafferongames).
+
+## Sponsors
+
+*libyojimbo* is generously sponsored by:
+
+* Gold Sponsors
+ - [Cloud Imperium Games](https://cloudimperiumgames.com)
+ 
+* Silver Sponsors
+ - ...
+
+* Bronze Sponsors
+ - [Kite & Lightning](http://kiteandlightning.la/)
+ - [Data Realms](http://datarealms.com)
+ 
+And all my supporters on [Patreon](http://www.patreon.com/gafferongames). Thank you. You make this possible!
 
 ## License
 
