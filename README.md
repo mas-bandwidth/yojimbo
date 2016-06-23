@@ -1,8 +1,8 @@
 ## libyojimbo
 
-libyojimbo is a new, easy-to-use library for creating secure client/server network protocols over UDP.
+**libyojimbo** is a new, easy-to-use library for creating secure client/server network protocols over UDP.
 
-It is designed around the networking requirements of realtime multiplayer games such as first person shooters and MOBAs. It requires games to host servers and support up to 64 players per-server. It does not support peer-to-peer or player hosted servers in retail environments.
+It is designed around the networking requirements of realtime multiplayer games such as first person shooters and MOBAs. It requires games to host servers and supports up to 64 players per game server instance. It does not support peer-to-peer or player hosted servers in retail environments.
 
 The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol in the game industry such as reliable-ordered messages and data blocks, compressed packets, packet aggregation, packet fragmentation and reassembly.
 
@@ -18,13 +18,13 @@ You can support Glenn's work writing articles and open source code via [Patreon]
 
 ## Sponsors
 
-*libyojimbo* is generously sponsored by:
+**libyojimbo** is generously sponsored by:
 
 * Gold Sponsors
  - [Cloud Imperium Games](https://cloudimperiumgames.com)
  
 * Silver Sponsors
- - ...
+ - [The Network Protocol Company](http://www.thenetworkprotocolcompany.com)
 
 * Bronze Sponsors
  - [Kite & Lightning](http://kiteandlightning.la/)
