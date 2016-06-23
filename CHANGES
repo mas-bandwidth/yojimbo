@@ -1,4 +1,14 @@
 
+Thursday June 23rd, 2016
+========================
+
+    Cleaning up for a 0.2.0 release with preliminary docker support, eg. run a server inside docker.
+
+    Some fixes on Windows by moving to static msvc runtime and having separate debug and release sodium libraries.
+
+    Made test output nicer by adding "*** ALL TESTS PASS ***" at the bottom.
+
+
 Tuesday June 21st, 2016
 =======================
 
