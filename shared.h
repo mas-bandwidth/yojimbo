@@ -271,7 +271,7 @@ class GameNetworkInterface : public SocketInterface
 {   
 public:
 
-    GameNetworkInterface( GamePacketFactory & packetFactory, const Address & address ) : SocketInterface( GetDefaultAllocator(), packetFactory, address, ProtocolId )
+    GameNetworkInterface( GamePacketFactory & packetFactory, const Address & address = Address( "0.0.0.0" ) ) : SocketInterface( GetDefaultAllocator(), packetFactory, address, ProtocolId )
     {
         EnablePacketEncryption();
         DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
