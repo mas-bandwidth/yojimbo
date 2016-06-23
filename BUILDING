@@ -55,13 +55,11 @@ The docker premake command works like this:
 
     4. Download, build and install libsodium
 
-    5. Build debug version of libyojimbo, run tests
+    5. Build release version of libyojimbo, run tests
 
-    6. Build release version of libyojimbo, run tests
+    6. If all tests pass, clean everything and copy the libyojimbo server to /home dir
 
-    7. If all tests pass, clean everything and copy the libyojimbo server to /home dir
-
-    8. When the Docker container is run, execute /home/server, which runs a yojimbo server on UDP port 50000.
+    7. When the Docker container is run, execute /home/server, which runs a yojimbo server on UDP port 50000.
 
 For details see docker/Dockerfile and the premake5.lua file with commands that build and run the container instance.
 
@@ -75,9 +73,10 @@ libyojimbo server and run tests. Quite impressive.
 
 Docker is awesome! :D
 
-http://www.docker.com
-
 
 cheers
 
  - Glenn
+
+ps. If you are running on windows it is necessary to check "Expose container ports on localhost" in Docker network settings
+in order to connect a client to the server running inside the docker container via loopback address 127.0.0.1
