@@ -3162,16 +3162,16 @@ int main()
         if ( quit ) 
             break;
         iter++;
-        for ( int i = 0; i < iter; ++i )
+        for ( int j = 0; j < iter; ++j )
             printf( "." );
-        printf( "\n" );
+        printf( "\n" );				 
         if ( iter > 10 )
             iter = 0;
 #endif // #if SOAK_TEST
     }
 
 #if SOAK_TEST
-    if ( quit )
+    if ( quit )					  
         printf( "\ntest stopped\n" );
     printf( "\n" );
 #endif // #if SOAK_TEST
