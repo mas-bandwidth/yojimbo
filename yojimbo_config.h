@@ -75,7 +75,7 @@
 
 #define YOJIMBO_PACKET_AGGREGATION              1
 
-#define YOJIMBO_INSECURE_CONNECT                1           // IMPORTANT: Please disable this in retail build
+#define YOJIMBO_INSECURE_CONNECT                1           // IMPORTANT: You should disable this in retail build
 
 #define YOJIMBO_DEBUG_PACKET_LEAKS              0
 
