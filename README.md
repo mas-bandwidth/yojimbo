@@ -2,9 +2,9 @@
 
 **libyojimbo** is a new, easy-to-use library for creating secure client/server network protocols over UDP.
 
-It is designed around the networking requirements of competitive realtime multiplayer games such as first person shooters and action games. As such it provides the absolute fastest, most time critical networking layer over UDP, supports client/server architecture with dedicated game servers up to 64 players per-server.
+It is designed around the networking requirements of competitive realtime multiplayer games such as first person shooters and action games. As such it provides the absolute fastest, most time critical networking layer over UDP, supports client/server architecture with up to 64 players per-dedicated game server.
 
-The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol in the game industry such as reliable-ordered messages and data blocks, compressed packets, packet aggregation, packet fragmentation and reassembly.
+The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol such as: reliable-ordered messages and data blocks, compressed packets, packet aggregation, packet fragmentation and reassembly.
 
 The library is currently in pre-release and provides support for cryptographically secure authentication, client/server connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for extending the protocol with custom packet types.
 
