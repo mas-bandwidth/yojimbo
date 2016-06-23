@@ -30,7 +30,7 @@ You can support Glenn's work writing articles and open source code via [Patreon]
  - [Kite & Lightning](http://kiteandlightning.la/)
  - [Data Realms](http://datarealms.com)
  
-And all my supporters on [Patreon](http://www.patreon.com/gafferongames). Thank you. You make this possible!
+... and all my supporters on [Patreon](http://www.patreon.com/gafferongames). Thank you. You make this possible!
 
 ## License
 
