@@ -85,9 +85,13 @@ project "client_server"
 
 if _ACTION == "clean" then
     os.rmdir "obj"
+    os.rmdir "ipch"
+	os.rmdir "bin"
+	os.rmdir ".vs"
+    os.rmdir "Debug"
+    os.rmdir "Release"
+    os.rmdir "docker/libyojimbo"
     if not os.is "windows" then
-        os.execute "rm -rf bin"
-        os.execute "rm -rf obj"
         os.execute "rm -f Makefile"
         os.execute "rm -f *.zip"
         os.execute "rm -f *.make"
@@ -96,15 +100,12 @@ if _ACTION == "clean" then
         os.execute "rm -f client"
         os.execute "rm -f server"
         os.execute "rm -f client_server"
-        os.execute "rm rf docker/libyojimbo"
+        os.execute "rm -rf docker/libyojimbo"
         os.execute "find . -name .DS_Store -delete"
     else
-        os.rmdir "ipch"
-		os.rmdir "bin"
-		os.rmdir ".vs"
-        os.rmdir "Debug"
-        os.rmdir "Release"
+        os.execute "del /F /Q Makefile"
         os.execute "del /F /Q *.zip"
+        os.execute "del /F /Q *.make"
         os.execute "del /F /Q *.db"
         os.execute "del /F /Q *.opendb"
         os.execute "del /F /Q *.vcproj"
@@ -230,17 +231,26 @@ if not os.is "windows" then
         end
     }
 
-    newaction
-    {
-        trigger     = "docker",
-        description = "Build and run a yojimbo server inside a docker container",
-        valid_kinds = premake.action.get("gmake").valid_kinds,
-        valid_languages = premake.action.get("gmake").valid_languages,
-        valid_tools = premake.action.get("gmake").valid_tools,
+	newaction
+	{
+		trigger     = "docker",
+		description = "Build and run a yojimbo server inside a docker container",
 
-        execute = function ()
-            os.execute "mkdir -p docker/libyojimbo && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 127.0.0.1:50000:50000/udp networkprotocol:yojimbo-server"
-        end
-    }
+		execute = function ()
+			os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 127.0.0.1:50000:50000/udp networkprotocol:yojimbo-server"
+		end
+	}
+
+else
+
+	newaction
+	{
+		trigger     = "docker",
+		description = "Build and run a yojimbo server inside a docker container",
+		execute = function ()
+			os.execute "cd docker && copyFiles.bat && buildServer.bat && runServer.bat"
+		end
+	}
 
 end
+
