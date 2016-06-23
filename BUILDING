@@ -1,43 +1,93 @@
 
-How to build libyojimbo
-=======================
+Building libyojimbo
+===================
 
-To build libyojimbo from source you need premake 5.0 from: https://premake.github.io/download.html
 
-If you are running under MacOSX or Linux, go to the command line under libyojimbo directory and type
 
-    premake5 gmake
+1. Install dependencies
+-----------------------
 
-Which builds makefiles that you can use to build the source via "make all", or via premake with shortcuts:
+To build libyojimbo from source you need premake 5.0 
 
-    premake5 test       // build and run unit tests (loops forever until CTRL-C)
+    https://premake.github.io/download.html
 
-    premake5 info       // build and run network info (prints list of local IP address)
+If you are building under MacOSX or Linux, you also need to install libsodium
 
-    premake5 cs         // build and run the local client/server testbed with secure connect tokens
+    https://github.com/jedisct1/libsodium
 
-    premake5 client     // build and run the client that connects to a yojimbo server I'm running on 173.255.195.190:5000
+On MacOSX this is most easily done via "brew install libsodium". If you don't have Brew, you can install it from http://brew.sh
 
-    premake5 server     // build run your own copy of the server. modify client.cpp to point to your server IP address.
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium, or you may need to build from source. 
 
-To build on Windows, go to the command line under the libyojimbo directory and type:
+Windows users do not need to install libsodium because libyojimbo includes prebuilt sodium libraries for your convenience.
+
+
+
+
+2. Building on Windows
+----------------------
+
+If you don't have Visual Studio 2015 you can download the community edition for free:
+
+    https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
+
+Once you have Visual Studio 2015 and premake5 installed, go to the command line under the libyojimbo directory and type:
 
     premake5 vs2015
 
-Which creates Yojimbo.sln and a bunch of project files. Double click Yojimbo.sln to open it in Visual Studio.
+This creates Yojimbo.sln and a bunch of project files. Double click Yojimbo.sln to open it in Visual Studio.
 
-You can now build and run individual test programs and the library as you would for any other visual studio solution.
-
-This is early release software. Please email any feedback you have to glenn@thenetworkprotocolcompany.com
+Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
 
-=========================================
-NEW IN 0.2.0 pre-release, Docker support!
-=========================================
 
-First install Docker from http://www.docker.com, you will need Linux, MacOS X or 64bit Windows 10.
 
-Then in the command line at the yojimbo directory, enter:
+3. Building on MacOSX and Linux
+-------------------------------
+
+Go to the command line under libyojimbo directory and type
+
+    premake5 gmake
+
+This builds makefiles that you can use to build the source via "make all", or if you prefer via premake with shortcuts:
+
+    premake5 test           // build and run unit tests
+
+    premake5 info           // build and run network info (prints list of local network interface IP addresses)
+
+    premake5 cs             // build and run the local client/server testbed with secure connect tokens
+
+    premake5 server         // build run your own yojimbo server on localhost on UDP port 50000
+
+    premake5 client         // build and run the client that connects to the server running on localhost (127.0.0.1:50000)
+
+ps. To make this more convenient I like to alias "pm" to "premake5" in bash, so building and running test programs becomes:
+
+    pm test
+
+    pm client
+
+And so on, which is a lot less typing.
+
+
+
+
+4. Install Docker
+-----------------
+
+Install Docker from http://www.docker.com
+
+You will need to be running Linux, MacOSX or Windows 10 64bit.
+
+
+
+
+5. Run a libyojimbo server inside Docker
+----------------------------------------
+
+libyojimbo 0.2.0 supports Docker on Windows and MacOSX and Linux.
+
+At the command line at the yojimbo directory, type:
 
     premake5 docker
 
@@ -45,7 +95,7 @@ This builds and runs a Docker container with a yojimbo server inside it (the sam
 
 You can then connect to this server by running a client which connects to 127.0.0.0:5000 (default behavior) eg: "premake5 client" on Mac or Linux.
 
-The docker premake command works like this:
+This takes a long time initiall, because the premake action works like this:
 
     1. Start a new docker image from a prebuilt Ubuntu derived base linux
 
@@ -59,7 +109,7 @@ The docker premake command works like this:
 
     6. If all tests pass, clean everything and copy the libyojimbo server to /home dir
 
-    7. When the Docker container is run, execute /home/server, which runs a yojimbo server on UDP port 50000.
+    7. When the Docker container is run, execute /home/server, to run a yojimbo server on UDP port 50000.
 
 For details see docker/Dockerfile and the premake5.lua file with commands that build and run the container instance.
 
@@ -69,14 +119,17 @@ and you run premake5 docker again, these steps are skipped and the cached docker
 
 Try it yourself by running "premake5 docker" once (it should build everything), and run it again, it will go straight
 to the server running on port 50000. Similarly, if you change some libyojimbo source it will automatically rebuild
-libyojimbo server and run tests. Quite impressive.
+libyojimbo server and run tests. Quite impressive!
 
-Docker is awesome! :D
+ps. If you are running on windows it is necessary to check "Expose container ports on localhost" in Docker network 
+settings in order to connect a client to the server running inside the docker container via 127.0.0.1:50000
 
 
-cheers
+
+This is pre-release software. Please email me with any feedback you have: 
+
+    Glenn Fiedler <glenn.fiedler@gmail.com>
+
+Thanks!
 
  - Glenn
-
-ps. If you are running on windows it is necessary to check "Expose container ports on localhost" in Docker network settings
-in order to connect a client to the server running inside the docker container via loopback address 127.0.0.1
