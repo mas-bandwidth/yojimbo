@@ -1,10 +1,6 @@
 
-libyojimbo v0.1.0
-=================
-
-Welcome to the first pre-release of libyojimbo!
-
-Yojimbo is a C++ library for creating secure client/server network protocols.
+How to build libyojimbo
+=======================
 
 To build libyojimbo from source you need premake 5.0 from: https://premake.github.io/download.html
 
@@ -23,6 +19,8 @@ Which builds makefiles that you can use to build the source via "make all", or v
     premake5 client     // build and run the client that connects to a yojimbo server I'm running on 173.255.195.190:5000
 
     premake5 server     // build run your own copy of the server. modify client.cpp to point to your server IP address.
+
+    premake5 docker     // build and run a docker container with a game server instance inside it. Install docker first (http://docker.com)
 
 To build on Windows, go to the command line under the libyojimbo directory and type:
 
