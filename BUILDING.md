@@ -4,23 +4,17 @@ Building libyojimbo
 
 
 
-1. Install dependencies
+1. Install dependencies 
 
-To build libyojimbo from source you need premake 5.0 
+To build libyojimbo from source you need [premake 5.0](https://premake.github.io/download.html)
 
-    https://premake.github.io/download.html
+If you are building under MacOSX or Linux, you also need to install [libsodium](https://github.com/jedisct1/libsodium)
 
-If you are building under MacOSX or Linux, you also need to install libsodium
-
-    https://github.com/jedisct1/libsodium
-
-On MacOSX this is most easily done via "brew install libsodium". If you don't have Brew, you can install it from http://brew.sh
+On MacOSX this is most easily done via "brew install libsodium". If you don't have Brew, you can install it from <http://brew.sh>
 
 On Linux, depending on your particular distribution there may be prebuilt packages for libsodium, or you may need to build from source. 
 
 Windows users do not need to install libsodium because libyojimbo includes prebuilt sodium libraries for your convenience.
-
-
 
 
 2. Building on Windows
@@ -29,14 +23,13 @@ If you don't have Visual Studio 2015 you can download the community edition for 
 
     https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
 
-Once you have Visual Studio 2015 and premake5 installed, go to the command line under the libyojimbo directory and type:
+    Once you have Visual Studio 2015 and premake5 installed, go to the command line under the libyojimbo directory and type:
 
     premake5 vs2015
 
-This creates Yojimbo.sln and a bunch of project files. Double click Yojimbo.sln to open it in Visual Studio.
+    This creates Yojimbo.sln and a bunch of project files. Double click Yojimbo.sln to open it in Visual Studio.
 
-Now you can build the library and run individual test programs as you would for any other visual studio solution.
-
+    Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
 
 
