@@ -1,7 +1,0 @@
-WOULD BE NICE
-
-    Move address queries like IsLoopback, IsGlobalUnicast etc to flags and precalculate on address creation
-
-    Split address out of yojmibo_network.h so addresses can be used without including sockets
-
-    Implement windows platform_time and convert client and server across to absolute time updating (eg. detect dropped frames etc.)
