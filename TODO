@@ -2,11 +2,8 @@ DONE
 
 TODO
 
-    Now to get started with https://github.com/vstakhov/libucl
+    Next: Add ucl code to actually build up an equivalent JSON-like structure and emit.
 
-    Write code to can serialize read and write a connect token to JSON such that tokens can easily be created in golang 
-    or any other web lang that would implement a REST API for the backend.
+    The emmision part is easy, but I don't see how to build up a complex structure just yet.
 
-    Documentation is here: https://github.com/vstakhov/libucl/blob/master/doc/api.md
-
-    Study the API and see if it's worth using.
+    Once again, time to study the header...
