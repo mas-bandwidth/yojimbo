@@ -29,7 +29,7 @@ Now go to the command line under libyojimbo directory and enter:
 
     premake5 gmake
 
-This builds makefiles to build the source via "make all", or if you prefer, with the following shortcuts:
+This creates makefiles which you can use to build the source via "make all", or if you prefer, via the following shortcuts:
 
     premake5 test           // build and run unit tests
 
