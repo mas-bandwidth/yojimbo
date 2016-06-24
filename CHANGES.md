@@ -1,5 +1,6 @@
 
-# Thursday June 23rd, 2016
+Thursday June 23rd, 2016
+========================
 
 Cleaning up for a 0.2.0 release with preliminary docker support, eg. run a server inside docker.
 
@@ -59,36 +60,27 @@ Once again, time to study the header...
 
 Actually, first check that I can reasonably install ucl on Debian.
 
-Seems really hard to build and install from source. Fucking Cmake. I hate it.
-
-Shitty. I had to build from source using CMake and then manually copy the header and lib across to /usr/local/[lib/include]
-
-Lame.
-
 Created an issue on github about this. Hopefully the author can fix it and create a release that actually builds.
 
 
 Tuesday June 21st, 2016
-=======================
+========================
 
-    Bunch of docker work. Managed to get a docker instance setup that builds libsodium from source, runs tests,
-    deletes the source code and leaves with just a binary containing the server to run.
+Bunch of docker work. Managed to get a docker instance setup that builds libsodium from source, runs tests, deletes the source code and leaves with just a binary containing the server to run.
 
-    It's pretty cool, and certainly points the way as to how I can build and distribute a web application
-    demonstrating the secure client connect. Now I should trivially with docker be able to set this up
-    and distribute it in a runnable form to yojimbo users as part of the source. Awesome!
+It's pretty cool, and certainly points the way as to how I can build and distribute a web application demonstrating the secure client connect. Now I should trivially with docker be able to set this up and distribute it in a runnable form to yojimbo users as part of the source. Awesome!
 
 
 Friday June 17th, 2016
 ======================
 
-    Migrate to github organization
+Migrate to github organization
 
-    Update to 0.2.0 version
+Update to 0.2.0 version
 
-    Split out yojimbo_socket.h and yojimbo_address.h from yojimbo_network.h
+Split out yojimbo_socket.h and yojimbo_address.h from yojimbo_network.h
 
-    Bunch of file shuffling and clean up.
+Bunch of file shuffling and clean up.
 
 
 Monday June 13th, 2016
