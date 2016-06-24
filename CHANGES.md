@@ -58,7 +58,7 @@ The emmision part is easy, but I don't see how to build up a complex structure j
 
 Once again, time to study the header...
 
-Actually, first check that I can reasonably install ucl on Debian.
+Actually, first check that I can reasonably install ucl on Debian. make -f Makefile.unix does not build out of the box. 
 
 Created an issue on github about this. Hopefully the author can fix it and create a release that actually builds.
 
@@ -86,498 +86,456 @@ Bunch of file shuffling and clean up.
 Monday June 13th, 2016
 ======================
 
-    Fix it!    
+Seems there is a bunch of stuff getting stuck here.
 
-    Seems there is a bunch of stuff getting stuck here.
+High packet loss is exposing some not quite correct stuff...
 
-    High packet loss is exposing some not quite correct stuff...
+There seems to be some sort of rogue "disconnect" packet getting through after the client is disconnected.
 
-    There seems to be some sort of rogue "disconnect" packet getting through after the client is disconnected.
+This should not be possible, because the client disconnects are sent encrypted, and the encryption mapping should block them post disconnect.
 
-    This should not be possible, because the client disconnects are sent encrypted, and the encryption mapping should block them post disconnect.
+I think there are some bugs in the network simulator where old packets are coming back for a second round, somehow.
 
-    I think there are some bugs in the network simulator where old packets are coming back for a second round, somehow.
+Sure enough, "Resetting" the simulator before the reconnect makes the bug go away.
 
-    Sure enough, "Resetting" the simulator before the reconnect makes the bug go away.
+So there is some way that packets are getting across from the previous session, even though there should 
+be an encryption mapping that blocks this from happening...
 
-    So there is some way that packets are getting across from the previous session, even though there should 
-    be an encryption mapping that blocks this from happening...
+What is going on?!
 
-    What is going on?!
+Confirmed that it's the "duplicate" code with +/- 10 seconds in delivery.
 
-    Confirmed that it's the "duplicate" code with +/- 10 seconds in delivery.
+But I would expect that old duplicates put into the simulator would not decode without the correct encryption mapping...
 
-    But I would expect that old duplicates put into the simulator would not decode without the correct encryption mapping...
+So how is it that old duplicates are decrypting?!
 
-    So how is it that old duplicates are decrypting?!
+I think that the bad encryption mapping is setup by the client getting an old (duplicate) connection request from the prior session.
 
-    I think that the bad encryption mapping is setup by the client getting an old (duplicate) connection request
-    from the prior session.
+This connection request is not properly being ignored (as it has already been used!) and appears to be setting up the encryption mapping for *old* packets, so old packets get through for a short period until the client times out.
 
-    This connection request is not properly being ignored (as it has already been used!) and appears to be setting up the
-    encryption mapping for *old* packets, so old packets get through for a short period until the client times out.
+So the question really is why is the stale connection request (with an old connect token) being let through?!
 
-    So the question really is why is the stale connection request (with an old connect token) being let through?!
+Some progress made, it seems best for a connect token to only be allowed to open an encryption mapping *once*
 
-    Some progress made, it seems best for a connect token to only be allowed to open an encryption mapping *once*
+This way if an old connection request gets through, it will not put a new encryption mapping in, and the encryption mapping in the normal case gets maintained by encrypted packets being sent and received across it.
 
-    This way if an old connection request gets through, it will not put a new encryption mapping in, and the
-    encryption mapping in the normal case gets maintained by encrypted packets being sent and received across
-    it.
+So now the old packets seem to have "decrypt failed" and "null key" and I'm not getting phantom disconnect packets.
 
-    So now the old packets seem to have "decrypt failed" and "null key" and I'm not getting phantom disconnect packets.
+But for some reason, still, the reconnect still fucks up unless I reset the simulator.
 
-    But for some reason, still, the reconnect still fucks up unless I reset the simulator.
+What's going on?!
 
-    What's going on?!
+What I think is going on is that the token expiry is not working, because the unit tests are not in
+real time, so the older token is not expiring, *but* the entry for it is going away (timing out).
 
-    What I think is going on is that the token expiry is not working, because the unit tests are not in
-    real time, so the older token is not expiring, *but* the entry for it is going away (timing out).
+The bug was that the oldest token was not getting properly overwritten, and in fact it was always
+deleting the first token mac in the array meant to stop mac reuse.
 
-    The bug was that the oldest token was not getting properly overwritten, and in fact it was always
-    deleting the first token mac in the array meant to stop mac reuse.
+Fixing this issue makes the reconnect work properly under soak.
 
-    Fixing this issue makes the reconnect work properly under soak.
+There is now a bug in test_client_server_server_is_full
 
-    There is now a bug in test_client_server_server_is_full
+Sometimes the client is not getting the server full response, and instead is getting a timeout on connection request.
 
-    Sometimes the client is not getting the server full response, and instead is getting a timeout on connection request.
+It was a time problem, because that client was not advancing time forward, so it immediately timed out post connect.
 
-    It was a time problem, because that client was not advancing time forward, so it immediately timed out post connect.
+Ok. All tests pass in soak now. Good stuff
 
-    Ok. All tests pass in soak now. Good stuff
+Done for tonight. Take a break.
 
-    Done for tonight. Take a break.
+Need to make a decision about allocators.
 
-    Need to make a decision about allocators.
+I like the basic allocator approach, and it would be a shame to remove in and rewrite it from scratch
 
-    I like the basic allocator approach, and it would be a shame to remove in and rewrite it from scratch
+There is some value in it, but the core allocator is actually extremely simple. Keep just the malloc allocator?
 
-    There is some value in it, but the core allocator is actually extremely simple. Keep just the malloc allocator?
+But I don't like the array, queue, hash data structures... and I don't trust the implementation of the scratch allocator.
 
-    But I don't like the array, queue, hash data structures... and I don't trust the implementation of the scratch allocator.
+To remove these, write a replacement queue, and then cut down as much as possible just to the malloc allocator.
 
-    To remove these, write a replacement queue, and then cut down as much as possible just to the malloc allocator.
+Queue replacement was actually trivial to write. 5 minutes...
 
-    Queue replacement was actually trivial to write. 5 minutes...
+OK. All good.
 
-    OK. All good.
+Now do my best to strip down and rewrite the allocators.
 
-    Now do my best to strip down and rewrite the allocators.
+Done. It's much nicer.
 
-    Done. It's much nicer.
+Now, there is no need to have separate initialization for the network from initialize libyojimbo, is there?
 
-    Now, there is no need to have separate initialization for the network from initialize libyojimbo, is there?
+No there isn't. Combining.
 
-    No there isn't. Combining.
+OK. Converted across and everything looks good. Turned on memory leak checking by default as well.
 
-    OK. Converted across and everything looks good. Turned on memory leak checking by default as well.
+Pass across all remaining allocations and convert them to use the allocator.
 
-    Pass across all remaining allocations and convert them to use the allocator.
+Converted queue over to use allocator.
 
-    Converted queue over to use allocator.
+Any other news or deletes? 
 
-    Any other news or deletes? 
+Yes. There are a bunch of news and deletes. Mostly in test programs, but be consistent now and convert everything to use the allocator.
 
-    Yes. There are a bunch of news and deletes. Mostly in test programs, but be consistent now and convert everything to use the allocator.
+Switching to the allocator is important because it provides memory leak detection. You don't want to be leaking memory.
 
-    Switching to the allocator is important because it provides memory leak detection. You don't want to be leaking memory.
+Convert remaining new/deletes over to allocator.
 
-    Convert remaining new/deletes over to allocator.
+Implement signal break for test, so it can be broken out of when tests are soaking
 
-    Implement signal break for test, so it can be broken out of when tests are soaking
+Marked all allocator stuff with // todo
 
-    Marked all allocator stuff with // todo
+Converted all allocator stuff over. Left the windows address walking stuff alone (malloc)
 
-    Converted all allocator stuff over. Left the windows address walking stuff alone (malloc)
+Works fine on linux.
 
-    Works fine on linux.
+Test under windows and linux.
 
-    Test under windows and linux.
+Works great under windows, mac and linux.
 
-    Works great under windows, mac and linux.
-
-    All platforms connect to linux just fine.
+All platforms connect to linux just fine.
 
 
 Sunday June 12th, 2016
 ======================
 
-    Setup the socket interface so that it can bind to a specific IP address, not just a port.
+Setup the socket interface so that it can bind to a specific IP address, not just a port.
 
-    Modify the linux server program to get the first local address and bind the server network interface to that (IPV4...)
+Modify the linux server program to get the first local address and bind the server network interface to that (IPV4...)
 
-    Set this address on the server.
+Set this address on the server.
 
-    Now on the client, modify so it connects to the linux server IP address: 173.255.195.190
+Now on the client, modify so it connects to the linux server IP address: 173.255.195.190
 
-    Verify that the MacOSX client is able to connect to the linux server IP address.
+Verify that the MacOSX client is able to connect to the linux server IP address.
 
-    Nope! Doesn't connect. Don't know why.
+Nope! Doesn't connect. Don't know why.
 
-    Possibly because wrong socket type...?
+Possibly because wrong socket type...?
 
-    Really want to make it so the local address is passed in to the socket interface for binding,
-    so the correct socket type can be inferred from the address.
+Really want to make it so the local address is passed in to the socket interface for binding, so the correct socket type can be inferred from the address.
 
-    This is the most flexible. Will allow IPV4 addresses and IPV6 addresses to coexist in the same program.
+This is the most flexible. Will allow IPV4 addresses and IPV6 addresses to coexist in the same program.
 
-    OK. It works now. Almost certainly incorrect socket type.
+OK. It works now. Almost certainly incorrect socket type.
 
-    Fix up socket and socket interface to accept an address instead of just a port.
+Fix up socket and socket interface to accept an address instead of just a port.
 
-    This is important so that the socket interface can infer the correct socket type from the address.
+This is important so that the socket interface can infer the correct socket type from the address.
 
-    Otherwise, it will be extremely difficult to mix IPv4 and IPv6 functionality in the same library.
+Otherwise, it will be extremely difficult to mix IPv4 and IPv6 functionality in the same library.
 
-    Ideally, *everything* should just work, whether IPv4 or IPv6.    
+Ideally, *everything* should just work, whether IPv4 or IPv6.    
 
-    To do this, the socket must adapt to the address it is bound to.
+To do this, the socket must adapt to the address it is bound to.
 
-    Seems to work.
+Seems to work.
 
-    Now actually pass in the correct address in bind.
+Now actually pass in the correct address in bind.
 
-    See how sendto gets the address. Do the same.
+See how sendto gets the address. Do the same.
 
-    Done. Seems to work fine.
+Done. Seems to work fine.
 
-    Update the socket to get its port # after bind to 0 port.
+Update the socket to get its port # after bind to 0 port.
 
-    Later on, might want to support multiple interfaces per-server.
+Later on, might want to support multiple interfaces per-server.
 
-    This way can have one socket for IPv4 and another for IPv6... supporting both in the same server.
+This way can have one socket for IPv4 and another for IPv6... supporting both in the same server.
 
-    Something to consider later, but this would be very nice, because it would transparently use IPv6 
-    when available, and fall back to IPv4 when it's not.
+Something to consider later, but this would be very nice, because it would transparently use IPv6 when available, and fall back to IPv4 when it's not.
 
-    The only question is should the socket interface handle the dual IPv4 IPv6 internally, *or*
-    should there be two interfaces managed by the client/server? Hard to say. Seems to me that 
-    there should probably be only one address per-interface.
+The only question is should the socket interface handle the dual IPv4 IPv6 internally, *or* should there be two interfaces managed by the client/server? Hard to say. Seems to me that there should probably be only one address per-interface.
 
-    Client needs to know their client index.
+Client needs to know their client index.
 
-    To implement this, stick it in the heartbeat packet.
+To implement this, stick it in the heartbeat packet.
 
-    Add an accessor and print it out on client connect.
+Add an accessor and print it out on client connect.
 
-    Works in client/server testbed.
+Works in client/server testbed.
 
-    Now test with multiple clients connecting to linux server.
+Now test with multiple clients connecting to linux server.
 
-    Fixed some bugs where the heartbeat packet was getting created with 0 client index.
+Fixed some bugs where the heartbeat packet was getting created with 0 client index.
 
-    To avoid having this problem again, created a function on the server to create a heartbeat packet that requires a client index passed in.
+To avoid having this problem again, created a function on the server to create a heartbeat packet that requires a client index passed in.
 
-    Port the network interface code to windows.
+Port the network interface code to windows.
 
-    Port the platform_time and platform_sleep to windows. (must have some old code around for this...)
+Port the platform_time and platform_sleep to windows. (must have some old code around for this...)
 
-    So far just ported platform_sleep, time is not used yet (but will be soon...)
+So far just ported platform_sleep, time is not used yet (but will be soon...)
 
-    Implement the network interface walk, find first local address on windows.
+Implement the network interface walk, find first local address on windows.
 
-        GetAdaptersInfo()
-        GetAdaptersAddresses()
+    GetAdaptersInfo()
+    GetAdaptersAddresses()
 
-    Fucking windows uses wide strings for "friendly name" for network interfaces.
+Fucking windows uses wide strings for "friendly name" for network interfaces.
 
-    I don't want to deal with unicode in my library, so stripped back to just addresses without names.
+I don't want to deal with unicode in my library, so stripped back to just addresses without names.
 
-    Client and server work on windows. Also, with Toredo tunnelling it seems that I can test out IPv6 stuff.
+Client and server work on windows. Also, with Toredo tunnelling it seems that I can test out IPv6 stuff.
 
-    Seems like I should definitely add two addresses per-interface, eg. IPv6 address and IPv4 address.
+Seems like I should definitely add two addresses per-interface, eg. IPv6 address and IPv4 address.
 
-    Maybe combine the function to get the IPv4 and IPv6 addresses into one function, and then pass *both*
-    into the interface, so it can create two sockets, one for IPv6 and another for IPv4... if the addresses
-    are valid. (pass in invalid addresses to disable...) ?
+Maybe combine the function to get the IPv4 and IPv6 addresses into one function, and then pass *both* into the interface, so it can create two sockets, one for IPv6 and another for IPv4... if the addresses are valid. (pass in invalid addresses to disable...) ?
 
-    Make sure both the client and server can compile and run on Windows.
+Make sure both the client and server can compile and run on Windows.
 
-    Fix up the mac/linux to only use addresses not names.
+Fix up the mac/linux to only use addresses not names.
 
-    Now test on linux. Works fine.
+Now test on linux. Works fine.
 
-    Verify cross connects: eg. windows -> linux, mac -> linux.
+Verify cross connects: eg. windows -> linux, mac -> linux.
 
-    Passes. Time for a break!
+Passes. Time for a break!
 
-    Clean up the simulator a bit.
+Clean up the simulator a bit.
 
-    Make it so you can read back packets only to a specific address, this is required to wrap an interface around the simulator.
+Make it so you can read back packets only to a specific address, this is required to wrap an interface around the simulator.
 
-    Wrap an interface around the simulator.
+Wrap an interface around the simulator.
 
-    Note that there is a lot of logic still in the simulator interface that I'd actually like to have moved out to something else
-    so it can easily be shared. How about a base interface implementation shared between simulator and socket?
+Note that there is a lot of logic still in the simulator interface that I'd actually like to have moved out to something else so it can easily be shared. How about a base interface implementation shared between simulator and socket?
 
-    OK. There is soooo much common functionality between simulator and socket interface it must be moved to a base class.
+OK. There is soooo much common functionality between simulator and socket interface it must be moved to a base class.
 
-    Moved the counters into the network interface in prep.
+Moved the counters into the network interface in prep.
 
-    Next, move the bulk of the socket interface implementation into yojimbo_network_implementation.*
+Next, move the bulk of the socket interface implementation into yojimbo_network_implementation.*
 
-    Now derive only the packet send/receive and m_sockets bit into SocketInterface.
+Now derive only the packet send/receive and m_sockets bit into SocketInterface.
 
-    Done. Seems to work.
+Done. Seems to work.
 
-    Now wrap a new "SimulatorInterface" around the base interface, but instead of piping packet sends through
-    a socket, pipe them through the simulator.
+Now wrap a new "SimulatorInterface" around the base interface, but instead of piping packet sends through a socket, pipe them through the simulator.
 
-    Should be easy.
+Should be easy.
 
-    OK done in theory.
+OK done in theory.
 
-    Some annoyance based on how the simulator bends over backwards to avoid packet copies.
+Some annoyance based on how the simulator bends over backwards to avoid packet copies.
 
-    In order to make the simulator match with the socket behavior I'll have to add a copy on top, which is annoying.
+In order to make the simulator match with the socket behavior I'll have to add a copy on top, which is annoying.
 
-    But the simulator is for debug only so whatever...
+But the simulator is for debug only so whatever...
 
-    OK. It adds two extra copies, one on each side... ahahah so inefficient. May want to revisit.
+OK. It adds two extra copies, one on each side... ahahah so inefficient. May want to revisit.
 
-    Should be working now. Try it on a few tests.
+Should be working now. Try it on a few tests.
 
-    Amazing. Switched over the tests to the simulator interface and everything just worked.
+Amazing. Switched over the tests to the simulator interface and everything just worked.
 
-    Idea: when a simulator interface shuts down, it should flush anything to or from its address out of the simulator,
-    so packets are not buffered in the shared network simulator across different simulator interface instances.
+Idea: when a simulator interface shuts down, it should flush anything to or from its address out of the simulator, so packets are not buffered in the shared network simulator across different simulator interface instances.
 
-    Seems like a good idea. Implemented.
+Seems like a good idea. Implemented.
+    
+Bump up the packet loss and network conditions to ridiculous levels and make sure all tests pass.
 
-    Bump up the packet loss and network conditions to ridiculous levels and make sure all tests pass.
+Looks like there is a bug where the challenge response is not resent back if the initial one is lost.
 
-    Looks like there is a bug where the challenge response is not resent back if the initial one is lost.
+It should be replied back to the client each time the client sends a connection request...
 
-    It should be replied back to the client each time the client sends a connection request...
+No it was a bug because the simulator wasn't advancing time forward.
 
-    No it was a bug because the simulator wasn't advancing time forward.
+Next, there was a bug because simulator time was going backwards. Changed it so there is one simulator instance per-test.
 
-    Next, there was a bug because simulator time was going backwards. Changed it so there is one simulator instance per-test.
+Passes now.
 
-    Passes now.
+Seems there are some edge cases that need to be caught in client connect and especially reconnect.
 
-    Seems there are some edge cases that need to be caught in client connect and especially reconnect.
+This will be quite painful...
 
-    This will be quite painful...
+Made some progress by ensuring that the encryption mapping for a client is cleared immediately on client disconnect.
 
-    Made some progress by ensuring that the encryption mapping for a client is cleared immediately on client disconnect.
-
-    Now it is getting quite a bit further before failing...
+Now it is getting quite a bit further before failing...
 
 
 Saturday June 11th, 2016
 ========================
 
-    Now implement the server-side processing of the insecure packet. Basically, take that packet, find a
-    free client slot and immediately accept or deny.
+Now implement the server-side processing of the insecure packet. Basically, take that packet, find a free client slot and immediately accept or deny.
 
-    What to do if the client is already connected?
+What to do if the client is already connected?
 
-    I think the insecure connect needs a salt.
+I think the insecure connect needs a salt.
 
-    If the same address is connected but with a different salt, ignore the connect.
+If the same address is connected but with a different salt, ignore the connect.
 
-    No need to do the challenge response tho. That's for security and we don't need that here.
+No need to do the challenge response tho. That's for security and we don't need that here.
 
-    Add insecure connect state.
+Add insecure connect state.
 
-    Add salt to the insecure connect packet.
+Add salt to the insecure connect packet.
 
-    Idea: Instead of adding salt, make the client id a random number, and then stash per-client an insecure flag.
+Idea: Instead of adding salt, make the client id a random number, and then stash per-client an insecure flag.
 
-    Why not add a concept of client flags, eg. uint32_t clientFlags[MaxClients]?
+Why not add a concept of client flags, eg. uint32_t clientFlags[MaxClients]?
 
-    Or, make insecure clients have a client id of 0 and use the salt?
+Or, make insecure clients have a client id of 0 and use the salt?
 
-    It's difficult to say what is best.
+It's difficult to say what is best.
 
-    On one hand, a random 64bit number is extremely unlikely to collide.
+On one hand, a random 64bit number is extremely unlikely to collide.
 
-    On the other, what value is a client id anyway, if it is a random number for fake clients? Why not just make it zero with salt?
+On the other, what value is a client id anyway, if it is a random number for fake clients? Why not just make it zero with salt?
 
-    What if somebody during testing wanted to connect a client with a *known* client id, but insecurely. 
+What if somebody during testing wanted to connect a client with a *known* client id, but insecurely. 
 
-    Complicated. What exactly is the use case for insecure connect?
+Complicated. What exactly is the use case for insecure connect?
 
-    For the moment, assume that insecure connect just won't establish a valid client id, eg. client id will be zero
+For the moment, assume that insecure connect just won't establish a valid client id, eg. client id will be zero
 
-    Removed client id from connect function. Not used.
+Removed client id from connect function. Not used.
 
-    Implement client "InsecureConnect" that takes just the address, and goes into insecure connect state.
+Implement client "InsecureConnect" that takes just the address, and goes into insecure connect state.
 
-    Generate a random salt on each call to insecure connect.
+Generate a random salt on each call to insecure connect.
 
-    Make sure all this is wrapped with #if YOJIMBO_INSECURE_CONNECT
+Make sure all this is wrapped with #if YOJIMBO_INSECURE_CONNECT
 
-    Get it to the point where the client sends the insecure connect packets w. the salt
+Get it to the point where the client sends the insecure connect packets w. the salt
 
-    Next on the server side process the insecure connect packets
+Next on the server side process the insecure connect packets
 
-    Look for a matching client slot with the address and salt.
+Look for a matching client slot with the address and salt.
 
-    If the address and salt match, reply with a heartbeat.
+If the address and salt match, reply with a heartbeat.
 
-    Otherwise, if the address does not exist, add it, reply with heartbeat.
+Otherwise, if the address does not exist, add it, reply with heartbeat.
 
-    If the address exists, but the salt is different, ignore the connect request.
+If the address exists, but the salt is different, ignore the connect request.
 
-    Now on the client take the heartbeat and go direct from insecure connect to connected if it's received.
+Now on the client take the heartbeat and go direct from insecure connect to connected if it's received.
 
-    Had to set both server and client/server interfaces into insecure mode in order to get this to work.
+Had to set both server and client/server interfaces into insecure mode in order to get this to work.
 
-    Good! It *should* be hard to get the insecure mode working.
+Good! It *should* be hard to get the insecure mode working.
 
-    Test passes. Ready to move on to the next stuff.
+Test passes. Ready to move on to the next stuff.
 
-    Choice as to what to work on now. It's complicated.
+Choice as to what to work on now. It's complicated.
 
-    For example, could work on getting the reliable protocol + data blocks working inside the client/server.
+For example, could work on getting the reliable protocol + data blocks working inside the client/server.
 
-    This would be a large amount of work, but it *would* transform the library into something actually useful
-    instead of just being an auth client/server layer over UDP.
+This would be a large amount of work, but it *would* transform the library into something actually useful instead of just being an auth client/server layer over UDP.
 
-    The other choice is to hack up a matchmaker web interface that distributes tokens
+The other choice is to hack up a matchmaker web interface that distributes tokens
 
-    This would allow setting up *secure* connect end-to-end demonstrating the auth.
+This would allow setting up *secure* connect end-to-end demonstrating the auth.
 
-    In reality I need both.
+In reality I need both.
 
-    But which is the most important to work on next?
+But which is the most important to work on next?
 
-    -------------------
+I think the most important is to implement the actual protocol side, even if insecure, because teams can use insecure during LAN and start using this library if it has the support for reliable-ordered messages.
 
-    I think the most important is to implement the actual protocol side, even if insecure,
-    because teams can use insecure during LAN and start using this library if it has the support
-    for reliable-ordered messages.
+But if it doesn't have reliable ordered messages, the library is basically just a wrapper over UDP packets.
 
-    But if it doesn't have reliable ordered messages, the library is basically just a wrapper
-    over UDP packets.
+Another thing that needs to be done, is setup the proper packet fragmentation and re-assembly at the packet level, otherwise this system is not useful for large delta encoded state, which is the primary network model I work with these days.
 
-    -------------------
+So the order of operations seems to be:
 
-    Another thing that needs to be done, is setup the proper packet fragmentation and re-assembly
-    at the packet level, otherwise this system is not useful for large delta encoded state,
-    which is the primary network model I work with these days.
+1. Create an insecure client.cpp and server.cpp and verify they can actually connect over sockets on all platforms
 
-    -------------------
+2. Pass over network simulator and add simulator interface on top of it
 
-    So the order of operations seems to be:
+3. Switch over all unit tests to use the network simulator instead of sockets
 
-        0. Create an insecure client.cpp and server.cpp and verify they can actually connect over sockets on all platforms
+4. Bring across the complicated message and data block code and get it working inside client/server
 
-        1. Pass over network simulator and add simulator interface on top of it
+5. Unit test and soak test the crap out of the reliable message and data block system (bring tests across)
 
-        2. Switch over all unit tests to use the network simulator instead of sockets
+6. Bring across packet fragmentation and reassembly support in such a way that it can be used across multiple network interface implementations (eg. part of packet processor)
 
-        3. Bring across the complicated message and data block code and get it working inside client/server
+7. Implement test program demonstrating lots of clients connecting via matchmaker in one C++ program
 
-        4. Unit test and soak test the crap out of the reliable message and data block system (bring tests across)
+8. Implement actual functional matchmaker backend and demonstrate secure connect (lots of work...)
 
-        5. Bring across packet fragmentation and reassembly support in such a way that it can be used
-           across multiple network interface implementations (eg. part of packet processor)
+In terms of what I can actually do this month, it seems I should be able to make good progress up to #4.
 
-        6. Implement test program demonstrating lots of clients connecting via matchmaker in one C++ program
+I think if I tried to implement the matchmaker framework as well, I would run out of time.
 
-        7. Implement actual functional matchmaker backend and demonstrate secure connect (lots of work...)
+Split out a bunch of shared code into shared.h
 
-    -------------------
-
-    In terms of what I can actually do this month, it seems I should be able to make good progress up to #4.
-
-    I think if I tried to implement the matchmaker framework as well, I would run out of time.
-
-    -------------------
-
-    Split out a bunch of shared code into shared.h
-
-    Added defines to control what gets pulled in, eg:
+Added defines to control what gets pulled in, eg:
 
     #define CLIENT 1
     #define SERVER 0
     #define MATCHER 0
 
-    This way the code can be reused in multiple contexts, which is important.
+This way the code can be reused in multiple contexts, which is important.
 
-    Brought across some old platform code I have for platform_sleep and platform_time functions.
+Brought across some old platform code I have for platform_sleep and platform_time functions.
 
-    Need to implement a Windows version of these platform functions btw!
+Need to implement a Windows version of these platform functions btw!
 
-    Now setup an actual server (insecure mode) including a sleep 0.1 seconds between update pumps.
+Now setup an actual server (insecure mode) including a sleep 0.1 seconds between update pumps.
 
-    Done. It needs to be updated to properly sleep to the next frame and detect dropped frames,
-    once an actual game simulation is running, but right now it's OK for it to just sleep 0.1.
+Done. It needs to be updated to properly sleep to the next frame and detect dropped frames, once an actual game simulation is running, but right now it's OK for it to just sleep 0.1.
 
-    Next setup an client.
+Next setup an client.
 
-    Make the client port 0 so the client can connect from any port, eg. multiple clients per-machine.
+Make the client port 0 so the client can connect from any port, eg. multiple clients per-machine.
 
-    Ahah. The client connect isn't timing out. insecure client connect isn't implemented.
+Ahah. The client connect isn't timing out. insecure client connect isn't implemented.
 
-    Added at test for insecure connect timeout, and a new client state for that.
+Added at test for insecure connect timeout, and a new client state for that.
 
-    Test fails. Now make it pass.
+Test fails. Now make it pass.
 
-    Passes. Moving on!
+Passes. Moving on!
 
-    Verify that client.cpp times out after 5 seconds with no server running.
+Verify that client.cpp times out after 5 seconds with no server running.
 
-    Now set the server into insecure mode so the client can connect to it.
+Now set the server into insecure mode so the client can connect to it.
 
-    Verify multiple clients can connect to the server
+Verify multiple clients can connect to the server
 
-    Server compiles and runs on linux but obviously its hardcoded address is wrong...
+Server compiles and runs on linux but obviously its hardcoded address is wrong...
 
-    Need a way to get the address of a network interface after the fact
+Need a way to get the address of a network interface after the fact
 
-    And then that address can be automatically passed to the server, so it knows its address.
+And then that address can be automatically passed to the server, so it knows its address.
 
-    No need for "SetServerAddress" anymore, but leave it in in case the user wants to override.
+No need for "SetServerAddress" anymore, but leave it in in case the user wants to override.
 
-    Update. You can't query the local IP address from a socket. Instead you need to walk the set of
-    network interfaces using platform specific APIs, and then you can bind a socket to 0.0.0.0 *or*
-    bind it to a specific IP address in that list of interface IP addresses.
+Update. You can't query the local IP address from a socket. Instead you need to walk the set of network interfaces using platform specific APIs, and then you can bind a socket to 0.0.0.0 *or* bind it to a specific IP address in that list of interface IP addresses.
 
-    Windows:
+Windows:
 
-        GetAdaptersInfo()
-        GetAdaptersAddresses()
+    GetAdaptersInfo()
+    GetAdaptersAddresses()
 
-    MacOSX:
+MacOSX:
 
-        ?
+    ?
 
-    Linux:
+Linux:
 
-        getifaddrs
+    getifaddrs
 
-    More info: http://linux.die.net/man/2/bind
+More info: http://linux.die.net/man/2/bind
 
-    Seems that I need to extend network interfaces so they can be bound to a specific IP address.
+Seems that I need to extend network interfaces so they can be bound to a specific IP address.
 
-    If you have multiple network interfaces, especially for dedicated servers, you're going to only
-    want the packets sent to particular IP (eg. the interface you are running your dedi on)
+If you have multiple network interfaces, especially for dedicated servers, you're going to only want the packets sent to particular IP (eg. the interface you are running your dedi on)
 
-    Since localhost connections are going to be, by definition, insecure... as long as non-secure
-    connections work to the localhost it's fine. Don't sweat too much the whole ::1 vs. 127.0.0.1 vs
-    real IP thing that sometimes happens.
+Since localhost connections are going to be, by definition, insecure... as long as non-secure connections work to the localhost it's fine. Don't sweat too much the whole ::1 vs. 127.0.0.1 vs real IP thing that sometimes happens.
 
-    Added a bunch of functions, eg. get network interface info. get first IPv4 address, get first IPv6
-    address...
+Added a bunch of functions, eg. get network interface info. get first IPv4 address, get first IPv6 address...
 
-    Now, IPv6 addresses prefixed with f8e0 are "link local" and cannot be routed.
+Now, IPv6 addresses prefixed with f8e0 are "link local" and cannot be routed.
 
-    This means I believe that I should filter these out... if the are listed in the network interfaces,
-    they are not actualy IPv6 addresses that I can share with the rest of the world to connect to.
+This means I believe that I should filter these out... if the are listed in the network interfaces, they are not actualy IPv6 addresses that I can share with the rest of the world to connect to.
 
-    So they should be filtered out.
+So they should be filtered out.
 
-    This way, if you ask for the first local address, and only a link local IPv6 address is specified,
-    then that address will be ignored.
+This way, if you ask for the first local address, and only a link local IPv6 address is specified, then that address will be ignored.
 
-    Extended to support all IPv6 address types, multicast, link local, site local, global unicast.
+Extended to support all IPv6 address types, multicast, link local, site local, global unicast.
 
-    Only global unicast addresses are relevant when searching for a valid IPv6 network interface addr.
+Only global unicast addresses are relevant when searching for a valid IPv6 network interface addr.
 
 
 Tuesday June 7th, 2016
