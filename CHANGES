@@ -55,6 +55,20 @@ Thursday June 23rd, 2016
     API seems decent. The documentation is not complete, so digging into the header is necessary to work out how to use it,
     especially on the parsing side, which seems to be deemphasized.
 
+    Next: Add ucl code to actually build up an equivalent JSON-like structure and emit.
+
+    The emmision part is easy, but I don't see how to build up a complex structure just yet.
+
+    Once again, time to study the header...
+
+    Actually, first check that I can reasonably install ucl on Debian.
+
+    Seems really hard to build and install from source. Fucking Cmake. I hate it.
+
+    Shitty. I had to build from source using CMake and then manually copy the header and lib across to /usr/local/[lib/include]
+
+    Lame.
+
 
 Tuesday June 21st, 2016
 =======================
