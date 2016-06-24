@@ -43,6 +43,18 @@ Thursday June 23rd, 2016
 
     Fixed a bug in base64 encode. It was not adding terminating '\0'. Linux picked it up.
 
+    Now to get started with https://github.com/vstakhov/libucl
+
+    Write code to can serialize read and write a connect token to JSON such that tokens can easily be created in golang 
+    or any other web lang that would implement a REST API for the backend.
+
+    Documentation is here: https://github.com/vstakhov/libucl/blob/master/doc/api.md
+
+    Study the API and see if it's worth using.
+
+    API seems decent. The documentation is not complete, so digging into the header is necessary to work out how to use it,
+    especially on the parsing side, which seems to be deemphasized.
+
 
 Tuesday June 21st, 2016
 =======================

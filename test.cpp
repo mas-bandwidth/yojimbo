@@ -73,6 +73,8 @@ void test_json()
 {
     printf( "test json\n" );
 
+    // test json parsing
+
     struct ucl_parser * parser = ucl_parser_new( UCL_PARSER_ZEROCOPY );
 
     check( parser );
@@ -85,9 +87,90 @@ void test_json()
 
     ucl_object_t * object = ucl_parser_get_object( parser );
 
+    check( object );
+
+    // test iteration over parsed json structure
+    {
+        const ucl_object_t * employees = ucl_object_lookup( object, "employees" );
+
+        check( employees );
+        check( ucl_object_type( employees ) != UCL_OBJECT );
+
+        ucl_object_iter_t employee_itor = ucl_object_iterate_new( employees );
+
+        int employeeIndex = 0;
+
+        while ( true )
+        {
+            const ucl_object_t * employee = ucl_object_iterate_safe( employee_itor, true );
+
+            if ( !employee )
+                break;
+
+            check( ucl_object_type( employee ) == UCL_OBJECT );
+
+            const ucl_object_t * firstName = ucl_object_lookup( employee, "firstName" );
+            const ucl_object_t * lastName = ucl_object_lookup( employee, "lastName" );
+
+            check( firstName );
+            check( lastName );
+
+            check( ucl_object_type( firstName ) != UCL_OBJECT );
+            check( ucl_object_type( lastName ) != UCL_OBJECT );
+
+            const char * firstNameString = ucl_object_tostring( firstName );
+            const char * lastNameString = ucl_object_tostring( lastName );
+
+            check( firstNameString );
+            check( lastNameString );
+
+            check( employeeIndex < 3 );
+            
+            switch( employeeIndex )
+            {
+                case 0:
+                {
+                    check( strcmp( firstNameString, "John" ) == 0 );
+                    check( strcmp( lastNameString, "Doe" ) == 0 );
+                }
+                break;
+
+                case 1:
+                {
+                    check( strcmp( firstNameString, "Anna" ) == 0 );
+                    check( strcmp( lastNameString, "Smith" ) == 0 );
+                }
+                break;
+
+                case 2:
+                {
+                    check( strcmp( firstNameString, "Peter" ) == 0 );
+                    check( strcmp( lastNameString, "Jones" ) == 0 );
+                }
+                break;
+            }
+
+            employeeIndex++;
+        }
+
+        ucl_object_iterate_free( employee_itor );
+    }
+
+    // test json output
+
+    char * json_output = (char*) ucl_object_emit( object, UCL_EMIT_JSON_COMPACT );
+
+    check( strcmp( json_output, json ) == 0 );
+
+    free( json_output );
+
     ucl_object_unref( object );
 
     ucl_parser_free( parser );
+
+    // test json generation and output
+
+    // ...
 }
 
 void test_base64()
