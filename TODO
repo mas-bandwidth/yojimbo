@@ -1,9 +1,3 @@
 DONE
 
 TODO
-
-    Next: Add ucl code to actually build up an equivalent JSON-like structure and emit.
-
-    The emmision part is easy, but I don't see how to build up a complex structure just yet.
-
-    Once again, time to study the header...
