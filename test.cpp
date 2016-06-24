@@ -80,7 +80,11 @@ void test_base64()
     strcpy( input, "[2001:4860:4860::8888]:50000" );
 
     const int encoded_bytes = base64_encode( input, encoded, sizeof( encoded ) );
-    
+ 
+    printf( "encoded = '%s'\n", encoded );   
+    printf( "encoded_bytes = %d\n", encoded_bytes );
+    printf( "strlen( encoded ) = %d\n", (int) strlen( encoded ) );
+
     check( encoded_bytes == (int) strlen( encoded ) );
 
     char encoded_expected[] = "WzIwMDE6NDg2MDo0ODYwOjo4ODg4XTo1MDAwMA==";
@@ -88,6 +92,9 @@ void test_base64()
     check( strcmp( encoded, encoded_expected ) == 0 );
 
     const int decoded_bytes = base64_decode( encoded, decoded, sizeof( decoded ) );
+
+    printf( "decoded_bytes = %d\n", decoded_bytes );
+    printf( "strlen( decoded ) = %d\n", (int) strlen( decoded ) );
 
     check( decoded_bytes == (int) strlen( decoded ) );
 
