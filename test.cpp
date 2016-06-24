@@ -67,6 +67,33 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
+void test_base64()
+{
+    printf( "test_base64\n" );
+
+    const int BufferSize = 256;
+
+    char input[BufferSize];
+    char encoded[BufferSize*2];
+    char decoded[BufferSize];
+
+    strcpy( input, "[2001:4860:4860::8888]:50000" );
+
+    const int encoded_bytes = base64_encode( input, encoded, sizeof( encoded ) );
+    
+    check( encoded_bytes == (int) strlen( encoded ) );
+
+    char encoded_expected[] = "WzIwMDE6NDg2MDo0ODYwOjo4ODg4XTo1MDAwMA==";
+
+    check( strcmp( encoded, encoded_expected ) == 0 );
+
+    const int decoded_bytes = base64_decode( encoded, decoded, sizeof( decoded ) );
+
+    check( decoded_bytes == (int) strlen( decoded ) );
+
+    check( strcmp( input, decoded ) == 0 );
+}
+
 void test_bitpacker()
 {
     printf( "test_bitpacker\n" );
@@ -3129,6 +3156,7 @@ int main()
     while ( true )
 #endif // #if SOAK_TEST
     {
+        test_base64();
         test_bitpacker();
         test_stream();
         test_packets();
