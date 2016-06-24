@@ -1,75 +1,71 @@
 
-Thursday June 23rd, 2016
-========================
+# Thursday June 23rd, 2016
 
-    Cleaning up for a 0.2.0 release with preliminary docker support, eg. run a server inside docker.
+Cleaning up for a 0.2.0 release with preliminary docker support, eg. run a server inside docker.
 
-    Some fixes on Windows by moving to static msvc runtime and having separate debug and release sodium libraries.
+Some fixes on Windows by moving to static msvc runtime and having separate debug and release sodium libraries.
 
-    Made test output nicer by adding "*** ALL TESTS PASS ***" at the bottom.
+Made test output nicer by adding "*** ALL TESTS PASS ***" at the bottom.
 
-    In order to move forward with the next step I need to get libyojimbo able to read JSON, and open HTTPS connections.
+In order to move forward with the next step I need to get libyojimbo able to read JSON, and open HTTPS connections.
 
-    For JSON, I am selecting: libucl
+For JSON, I am selecting: libucl
 
-    It can be installed trivially on MacOSX via:
+It can be installed trivially on MacOSX via:
 
-        brew install libucl
+    brew install libucl
 
-    It also seems to be reasonably mature, and is JSON compatible:
+It also seems to be reasonably mature, and is JSON compatible:
 
-        https://github.com/vstakhov/libucl
+https://github.com/vstakhov/libucl
 
-    For HTTPS I am going to evaluate: mbed TLS
+For HTTPS I am going to evaluate: mbed TLS
 
-        https://tls.mbed.org
+https://tls.mbed.org
 
-    First I will start with JSON, and work out how to get a connect token into JSON.
+First I will start with JSON, and work out how to get a connect token into JSON.
 
-    I think I might need some way to encode strings as base64 in order to stash data in JSON.
+I think I might need some way to encode strings as base64 in order to stash data in JSON.
 
-    Evaluating this library to rip:
+Evaluating this library to rip:
 
-        http://libb64.sourceforge.net
+http://libb64.sourceforge.net
 
-    It is public domain, which is perfect.
+It is public domain, which is perfect.
 
-    Getting on it... integrated into yojimbo_common.h/cpp
+Getting on it... integrated into yojimbo_common.h/cpp
 
-    Now to actually test it.
+Now to actually test it.
 
-    Added a test and pegged it to an external base64 string encoding so it is going to be correct
-    for base64 strings encoded by other programs.
+Added a test and pegged it to an external base64 string encoding so it is going to be correct for base64 strings encoded by other programs.
 
-    Fixed a bug in base64 encode. It was not adding terminating '\0'. Linux picked it up.
+Fixed a bug in base64 encode. It was not adding terminating '\0'. Linux picked it up.
 
-    Now to get started with https://github.com/vstakhov/libucl
+Now to get started with https://github.com/vstakhov/libucl
 
-    Write code to can serialize read and write a connect token to JSON such that tokens can easily be created in golang 
-    or any other web lang that would implement a REST API for the backend.
+Write code to can serialize read and write a connect token to JSON such that tokens can easily be created in golang or any other web lang that would implement a REST API for the backend.
 
-    Documentation is here: https://github.com/vstakhov/libucl/blob/master/doc/api.md
+Documentation is here: https://github.com/vstakhov/libucl/blob/master/doc/api.md
 
-    Study the API and see if it's worth using.
+Study the API and see if it's worth using.
 
-    API seems decent. The documentation is not complete, so digging into the header is necessary to work out how to use it,
-    especially on the parsing side, which seems to be deemphasized.
+API seems decent. The documentation is not complete, so digging into the header is necessary to work out how to use it, especially on the parsing side, which seems to be deemphasized.
 
-    Next: Add ucl code to actually build up an equivalent JSON-like structure and emit.
+Next: Add ucl code to actually build up an equivalent JSON-like structure and emit.
 
-    The emmision part is easy, but I don't see how to build up a complex structure just yet.
+The emmision part is easy, but I don't see how to build up a complex structure just yet.
 
-    Once again, time to study the header...
+Once again, time to study the header...
 
-    Actually, first check that I can reasonably install ucl on Debian.
+Actually, first check that I can reasonably install ucl on Debian.
 
-    Seems really hard to build and install from source. Fucking Cmake. I hate it.
+Seems really hard to build and install from source. Fucking Cmake. I hate it.
 
-    Shitty. I had to build from source using CMake and then manually copy the header and lib across to /usr/local/[lib/include]
+Shitty. I had to build from source using CMake and then manually copy the header and lib across to /usr/local/[lib/include]
 
-    Lame.
+Lame.
 
-    Created an issue on github about this. Hopefully the author can fix it and create a release that actually builds.
+Created an issue on github about this. Hopefully the author can fix it and create a release that actually builds.
 
 
 Tuesday June 21st, 2016
