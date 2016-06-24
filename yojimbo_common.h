@@ -263,6 +263,10 @@ namespace yojimbo
     uint64_t murmur_hash_64( const void * key, uint32_t length, uint64_t seed );
 
     void print_bytes( const char * label, const uint8_t * data, int data_bytes );
+
+    int base64_encode( const char * input, char * output, int output_size );
+
+    int base64_decode( const char * input, char * output, int output_size );
 }
 
 #endif // #ifndef YOJIMBO_COMMON_H

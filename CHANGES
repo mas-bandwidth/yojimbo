@@ -8,6 +8,39 @@ Thursday June 23rd, 2016
 
     Made test output nicer by adding "*** ALL TESTS PASS ***" at the bottom.
 
+    In order to move forward with the next step I need to get libyojimbo able to read JSON, and open HTTPS connections.
+
+    For JSON, I am selecting: libucl
+
+    It can be installed trivially on MacOSX via:
+
+        brew install libucl
+
+    It also seems to be reasonably mature, and is JSON compatible:
+
+        https://github.com/vstakhov/libucl
+
+    For HTTPS I am going to evaluate: mbed TLS
+
+        https://tls.mbed.org
+
+    First I will start with JSON, and work out how to get a connect token into JSON.
+
+    I think I might need some way to encode strings as base64 in order to stash data in JSON.
+
+    Evaluating this library to rip:
+
+        http://libb64.sourceforge.net
+
+    It is public domain, which is perfect.
+
+    Getting on it... integrated into yojimbo_common.h/cpp
+
+    Now to actually test it.
+
+    Added a test and pegged it to an external base64 string encoding so it is going to be correct
+    for base64 strings encoded by other programs.
+
 
 Tuesday June 21st, 2016
 =======================
