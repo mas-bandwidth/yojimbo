@@ -437,6 +437,8 @@ namespace yojimbo
         assert( output );
         assert( output_size );
 
+        (void)output_size;
+
         base64_encode_state encode_state;
 
         base64_init_encode_state( &encode_state );
@@ -457,6 +459,8 @@ namespace yojimbo
         assert( input );
         assert( output );
         assert( output_size );
+
+        (void)output_size;
 
         base64_decode_state decode_state;
 
