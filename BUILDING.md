@@ -25,7 +25,7 @@ On MacOS X, installing sodium is most easily done via "brew install libsodium". 
 
 On Linux, depending on your particular distribution there may be prebuilt packages for libsodium, or you may have to [build it from source](https://github.com/jedisct1/libsodium/releases).
 
-Now go to the command line under libyojimbo directory and enter:
+Now go to the command line under the libyojimbo directory and enter:
 
     premake5 gmake
 
