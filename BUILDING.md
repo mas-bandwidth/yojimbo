@@ -2,24 +2,13 @@ Building libyojimbo
 ===================
 
 
-## Dependencies 
-
-To build libyojimbo from source you need [premake 5](https://premake.github.io/download.html).
-
-If you are building under MacOSX or Linux, you also need [libsodium](https://github.com/jedisct1/libsodium).
-
-On MacOSX this is most easily done via "brew install libsodium". If you don't have Brew, you can install it from <http://brew.sh>
-
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium, or you may need to build it from source. 
-
-Windows users don't need to install libsodium because libyojimbo includes prebuilt sodium libraries.
-
-
 ## Building on Windows
+
+Download [premake 5](https://premake.github.io/download.html) and install the **premake5** executable somewhere in your path.
 
 If you don't have Visual Studio 2015 you can [download the community edition for free](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx)
 
-Once you have Visual Studio 2015 and premake5 installed, go to the command line under the libyojimbo directory and type:
+Go to the command line under the libyojimbo directory and type:
 
     premake5 vs2015
 
@@ -30,7 +19,13 @@ Now you can build the library and run individual test programs as you would for 
 
 ## Building on MacOSX and Linux
 
-Go to the command line under libyojimbo directory and type
+Download [premake 5](https://premake.github.io/download.html) then build and install from source.
+
+If you are on MacOS X, installing sodium is most easily done via "brew install libsodium". If you don't have Brew, you can install it from <http://brew.sh>
+
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium, or you may have to [build it from source](https://github.com/jedisct1/libsodium/releases).
+
+Next go to the command line under libyojimbo directory and enter:
 
     premake5 gmake
 
@@ -46,30 +41,28 @@ This builds makefiles that you can use to build the source via "make all", or if
 
     premake5 client         // build and run the client that connects to the server running on localhost (127.0.0.1:50000)
 
-ps. To make this more convenient I like to alias "pm" to "premake5" in bash, so building and running test programs becomes:
+To make this more convenient I like to alias "pm" to "premake5" in bash, so building and running test programs becomes:
 
     pm test
 
     pm client
 
-Which is much less typing. I run these programs a lot.
+Which is much less typing (I run these shortcuts a lot).
 
 
-## Run a libyojimbo server inside Docker
+## Run a yojimbo server inside Docker
 
-libyojimbo supports Docker on Windows, Mac and Linux.
+**libyojimbo** supports Docker on Windows, Mac and Linux.
 
 First install the latest version of Docker from <http://www.docker.com>
 
-Then the command line at the yojimbo directory, type:
+Then the command line at the yojimbo directory, enter:
 
     premake5 docker
 
-This builds and runs a Docker container with a yojimbo server inside it (the same as if you ran "premake5 server" on a Linux box).
+This builds and runs a Docker container with a yojimbo server inside it (the same as if you ran "premake5 server" on a Linux box). You can now connect to this server by running a client which connects to 127.0.0.0:50000. This is the default behavior of client.cpp. For example, "premake5 client" on Mac or Linux, or running the "client" project inside Yojimbo.sln in Visual Studio.
 
-You can then connect to this server by running a client which connects to 127.0.0.0:5000 (default behavior). For example, "premake5 client" on Mac or Linux, or running the "client" project inside Yojimbo.sln in Visual Studio.
-
-This takes a long time initially, because the docker action has a lot of steps:
+IMPORTANT: The premake docker action takes a long time initially, because the docker action has a lot of work to do:
 
 1. Start a new docker image from a prebuilt Ubuntu derived base linux
 
@@ -88,8 +81,7 @@ This takes a long time initially, because the docker action has a lot of steps:
 For details see docker/Dockerfile and the premake5.lua file with commands that build and run the container instance.
 
 What's most impressive is that if no dependencies have changed, the numbered steps above are precached as intermediate
-Docker instances and not rebuilt, eg. if you have already downloaded and installed wget, g++, libsodium and premake5
-and you run premake5 docker again, these steps are skipped and the cached docker images for these steps are reused.
+Docker instances and not rebuilt unless it is necessary. For example, if you have already downloaded and installed wget, g++, libsodium and premake5 and you run "premake5 docker" again, these steps are skipped and the cached docker images for these steps are reused.
 
 Try it yourself by running "premake5 docker" once (it should build everything), and run it again, it will go straight
 to the server running on port 50000. Similarly, if you change some libyojimbo source it will automatically rebuild
