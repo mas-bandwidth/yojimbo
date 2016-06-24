@@ -1,4 +1,6 @@
 
+libyojimbo_version = "0.2.0-preview2"
+
 if os.is "windows" then
     sodium_debug = "sodium-debug"
     sodium_release = "sodium-release"
@@ -120,15 +122,17 @@ if not os.is "windows" then
     newaction
     {
         trigger     = "zip",
-        description = "Zip up archive of this project",
-        valid_kinds = premake.action.get("gmake").valid_kinds,
-        valid_languages = premake.action.get("gmake").valid_languages,
-        valid_tools = premake.action.get("gmake").valid_tools,
-     
+        description = "Zip up a release of this project",
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
-            os.execute "zip -9r Yojimbo.zip BUILDING *.cpp *.h premake5.lua sodium sodium.lib"
+            files_to_zip = ".zip *.md *.cpp *.h premake5.lua sodium sodium-*.lib"
+            os.execute( "rm -rf *.zip *.tar.gz *.7z" );
+            os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. files_to_zip )
+            os.execute( "7z a -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z *.md *.cpp *.h premake5.lua sodium sodium-*.lib" )
+            os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
+            os.execute( "tar -zcvf libyojimbo-" .. libyojimbo_version .. ".tar.gz libyojimbo-" .. libyojimbo_version );
+            os.execute( "rm -rf libyojimbo-" .. libyojimbo_version );
         end
     }
 
@@ -136,10 +140,6 @@ if not os.is "windows" then
     {
         trigger     = "test",
         description = "Build and run all unit tests",
-        valid_kinds = premake.action.get("gmake").valid_kinds,
-        valid_languages = premake.action.get("gmake").valid_languages,
-        valid_tools = premake.action.get("gmake").valid_tools,
-     
         execute = function ()
             if os.execute "make -j4 test" == 0 then
                 os.execute "./bin/test"
@@ -151,10 +151,6 @@ if not os.is "windows" then
     {
         trigger     = "info",
         description = "Build and run network info utility",
-        valid_kinds = premake.action.get("gmake").valid_kinds,
-        valid_languages = premake.action.get("gmake").valid_languages,
-        valid_tools = premake.action.get("gmake").valid_tools,
-     
         execute = function ()
             if os.execute "make -j4 network_info" == 0 then
                 os.execute "./bin/network_info"
@@ -166,10 +162,6 @@ if not os.is "windows" then
     {
         trigger     = "yojimbo",
         description = "Build yojimbo client/server network protocol library",
-        valid_kinds = premake.action.get("gmake").valid_kinds,
-        valid_languages = premake.action.get("gmake").valid_languages,
-        valid_tools = premake.action.get("gmake").valid_tools,
-     
         execute = function ()
             os.execute "make -j4 yojimbo"
         end
@@ -178,11 +170,7 @@ if not os.is "windows" then
     newaction
     {
         trigger     = "cs",
-        description = "Build and run client/server testbed",
-        valid_kinds = premake.action.get("gmake").valid_kinds,
-        valid_languages = premake.action.get("gmake").valid_languages,
-        valid_tools = premake.action.get("gmake").valid_tools,
-     
+        description = "Build and run client/server testbed",     
         execute = function ()
             if os.execute "make -j4 client_server" == 0 then
                 os.execute "./bin/client_server"
@@ -219,11 +207,7 @@ if not os.is "windows" then
     newaction
     {
         trigger     = "server",
-        description = "Build and run server",
-        valid_kinds = premake.action.get("gmake").valid_kinds,
-        valid_languages = premake.action.get("gmake").valid_languages,
-        valid_tools = premake.action.get("gmake").valid_tools,
-     
+        description = "Build and run server",     
         execute = function ()
             if os.execute "make -j4 server" == 0 then
                 os.execute "./bin/server"
@@ -235,7 +219,6 @@ if not os.is "windows" then
 	{
 		trigger     = "docker",
 		description = "Build and run a yojimbo server inside a docker container",
-
 		execute = function ()
 			os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 127.0.0.1:50000:50000/udp networkprotocol:yojimbo-server"
 		end
@@ -253,4 +236,3 @@ else
 	}
 
 end
-
