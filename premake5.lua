@@ -123,18 +123,21 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "zip",
-        description = "Zip up a release of this project",
+        trigger     = "release",
+        description = "Create up a release of this project",
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
             files_to_zip = ".zip *.md *.cpp *.h premake5.lua sodium sodium-*.lib"
             os.execute( "rm -rf *.zip *.tar.gz *.7z" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. files_to_zip )
-            os.execute( "7z a -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z *.md *.cpp *.h premake5.lua sodium sodium-*.lib" )
+            os.execute( "7z a -mx=9 -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z *.md *.cpp *.h premake5.lua sodium sodium-*.lib" )
             os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
             os.execute( "tar -zcvf libyojimbo-" .. libyojimbo_version .. ".tar.gz libyojimbo-" .. libyojimbo_version );
             os.execute( "rm -rf libyojimbo-" .. libyojimbo_version );
+            os.execute( "echo" );
+            os.execute( "echo \"*** SUCCESSFULLY CREATED RELEASE - libyojimbo-" .. libyojimbo_version .. " *** \"" );
+            os.execute( "echo" );
         end
     }
 
