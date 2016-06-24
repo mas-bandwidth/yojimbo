@@ -541,417 +541,378 @@ Only global unicast addresses are relevant when searching for a valid IPv6 netwo
 Tuesday June 7th, 2016
 ======================
 
-    Added test for token being sent to a different server than the one initially sent to.
+Added test for token being sent to a different server than the one initially sent to.
 
-    Removing any and all complexity from challenge token.
+Removing any and all complexity from challenge token.
 
-    The client has already authenticated. The encryption mapping means that only that particular address/port
-    can respond with that challenge token, there was no timeout in the challenge token, so the encryption
-    mapping timeout was the thing that would expire the challenge response.
+The client has already authenticated. The encryption mapping means that only that particular address/port can respond with that challenge token, there was no timeout in the challenge token, so the encryption mapping timeout was the thing that would expire the challenge response.
 
-    Point is all the challenge response does is say, OK, I'm the client, I actually got the data you
-    sent to me, and here is my response that can't really be authenticated.
+Point is all the challenge response does is say, OK, I'm the client, I actually got the data you sent to me, and here is my response that can't really be authenticated.
 
-    You can never go wide on a challenge response because it needs a setup of the encryption mapping.
+You can never go wide on a challenge response because it needs a setup of the encryption mapping.
 
-    Encryption mapping setup can *only* happen with a connect token.
+Encryption mapping setup can *only* happen with a connect token.
 
-    So any going wide hack with challenge token would necessitate an attack at the connect token level first.
+So any going wide hack with challenge token would necessitate an attack at the connect token level first.
 
-    So removing all this complexity, it doesn't add any security at all!
+So removing all this complexity, it doesn't add any security at all!
 
-    Extend the packet factory so additional packet types above the client/server packet set can be sent and received.
+Extend the packet factory so additional packet types above the client/server packet set can be sent and received.
 
-    This needs to be tested, and easy to do, as this is the common situation, extend the client/server
-    packet types with your own that must be processed.
+This needs to be tested, and easy to do, as this is the common situation, extend the client/server packet types with your own that must be processed.
 
-    What needs to be done to client and server classes so they can let derived classes handle custom packet types?
+What needs to be done to client and server classes so they can let derived classes handle custom packet types?
 
-    To get started there must be a base set of packet enums, packet factory in yojimbo_client_server.h/cpp
+To get started there must be a base set of packet enums, packet factory in yojimbo_client_server.h/cpp
 
-    After this is going it must be possible to *extend* this packet factory to add new user packets.
+After this is going it must be possible to *extend* this packet factory to add new user packets.
 
-    Get this working with existing client/server harness and tests.
+Get this working with existing client/server harness and tests.
 
-    There is already a ClientServerPacketFactory inside yojimbo_client_server.h
+There is already a ClientServerPacketFactory inside yojimbo_client_server.h
 
-    Derive a GamePacketFactory inside test.cpp and add "game packet".
+Derive a GamePacketFactory inside test.cpp and add "game packet".
 
-    Rename PACKET_* in yojimbo client server to CLIENT_SERVER_PACKET_* so they cannot conflict with user packet types.
+Rename PACKET_* in yojimbo client server to CLIENT_SERVER_PACKET_* so they cannot conflict with user packet types.
 
-    Made ClientServerPacketFactory ctor take in # of packet types, so the user can add more packet types.
+Made ClientServerPacketFactory ctor take in # of packet types, so the user can add more packet types.
 
-    Now add a test that verifies game packet payload gets through in both directions (eg. send 10 packets each way)
+Now add a test that verifies game packet payload gets through in both directions (eg. send 10 packets each way)
 
-    Extended game packet so it has sequence and 3 dependent variables that can be checked vs. that sequence
-    this way I know that the game packets are actaully getting through uncorrupted.
+Extended game packet so it has sequence and 3 dependent variables that can be checked vs. that sequence this way I know that the game packets are actaully getting through uncorrupted.
 
-    Added function to look up connected client by address
+Added function to look up connected client by address
 
-    Extended GameClient and GameServer in test.cpp to have framework for sending and receiving game packets and counting # received.
+Extended GameClient and GameServer in test.cpp to have framework for sending and receiving game packets and counting # received.
 
-    Added code to actually send game packets from client -> server and server -> client.
+Added code to actually send game packets from client -> server and server -> client.
 
-    Now need to implement a process packet for client and server, which return false if the packet is to be rejected.
+Now need to implement a process packet for client and server, which return false if the packet is to be rejected.
 
-    This way if it returns false, don't consider that packet towards any timeout credits (eg. time last packet recv'd)
+This way if it returns false, don't consider that packet towards any timeout credits (eg. time last packet recv'd)
 
-    Call the base process packet for all packets inside yojimbo client/server and adjust so all the timeout stuff is done
-    on the return code for that process packet function.
+Call the base process packet for all packets inside yojimbo client/server and adjust so all the timeout stuff is done on the return code for that process packet function.
 
-    Next add a ProcessGamePacket for both, that is an override, returns false by default. Override it and return true
-    for any packets the game recognizes, but only call it for packet types not recognized by base client/server.
+Next add a ProcessGamePacket for both, that is an override, returns false by default. Override it and return true for any packets the game recognizes, but only call it for packet types not recognized by base client/server.
 
-    Implement client and server side and now test passes. Game packets are getting across.
+Implement client and server side and now test passes. Game packets are getting across.
 
-    When receiving game packets in the test make sure all encrypted packets have sequence > 0 when received. eg. correct nonce.
+When receiving game packets in the test make sure all encrypted packets have sequence > 0 when received. eg. correct nonce.
 
-    Added a test for unencrypted packets not getting through if encrypted.
+Added a test for unencrypted packets not getting through if encrypted.
 
-    Implement own htons - test_htons, so I don't have to include a bunch of stuff in test.cpp for manipulating addresses.
+Implement own htons - test_htons, so I don't have to include a bunch of stuff in test.cpp for manipulating addresses.
 
-    Added concept of server flags. Now can easily set custom behavior with a flag. Added flags to ignore connection requests
-    and another to ignore challenge responses.
+Added concept of server flags. Now can easily set custom behavior with a flag. Added flags to ignore connection requests and another to ignore challenge responses.
 
-    Implemented test for connection response timeout.
+Implemented test for connection response timeout.
 
-    Design in the concept of both secure and insecure connects at the same time.
+Design in the concept of both secure and insecure connects at the same time.
 
-    Eg. should be secure by default, but the server can be switched into insecure mode.
+Eg. should be secure by default, but the server can be switched into insecure mode.
 
-    In this mode, packets that are normally encrypted are globally allowed to be received unencrypted.
+In this mode, packets that are normally encrypted are globally allowed to be received unencrypted.
 
-    Does the network interface also need to be put into an insecure mode?
+Does the network interface also need to be put into an insecure mode?
 
-    I think it would need it, in order to know to always send packets insecure, otherwise it could get weird.
+I think it would need it, in order to know to always send packets insecure, otherwise it could get weird.
 
-    Start here.
+Start here.
 
-    Implement network interface flags, easy to extend for additional behavior.
+Implement network interface flags, easy to extend for additional behavior.
 
-    Added flag for insecure mode: NETWORK_INTERFACE_FLAG_INSECURE_MODE
+Added flag for insecure mode: NETWORK_INTERFACE_FLAG_INSECURE_MODE
 
-    Now implement the insecure mode on the client and server.
+Now implement the insecure mode on the client and server.
 
-    I think the client should switch into insecure mode automatically on calling insecure connect.
+I think the client should switch into insecure mode automatically on calling insecure connect.
 
-    But the server needs to explicitly enable insecure connects. via a flag?
+But the server needs to explicitly enable insecure connects. via a flag?
 
-    Yes via a flag, but also needs to be completely compiled out of retail servers.
+Yes via a flag, but also needs to be completely compiled out of retail servers.
 
-    Make sure insecure connects are a separate packet, so they can be completely removed
-    and also so they have zero impact on normal connection codepath.
+Make sure insecure connects are a separate packet, so they can be completely removed and also so they have zero impact on normal connection codepath.
 
 
 Monday June 6th, 2016
 =====================
 
-    test client can't connect because full (eg. connect 4/4 clients, try to connect another...)
+test client can't connect because full (eg. connect 4/4 clients, try to connect another...)
 
-    test was incorrect because it tried to call "connect" again on an already connected client,
-    with the same token.
+test was incorrect because it tried to call "connect" again on an already connected client, with the same token.
 
-    should this be supported? not really. each connect requires a new token.
+should this be supported? not really. each connect requires a new token.
 
-    It's a fact however that you can kick off an undefined reconnect with the same token
-    already grabbed, but that connect will risk having a client join into an state that is
-    undefined, eg. the client will have to indicate to the server that it wants to start again
-    from the lowest defined state, eg. build up from state 0.
+It's a fact however that you can kick off an undefined reconnect with the same token already grabbed, but that connect will risk having a client join into an state that is undefined, eg. the client will have to indicate to the server that it wants to start again from the lowest defined state, eg. build up from state 0.
 
-    So it could be supported at the high level if necessary.
+So it could be supported at the high level if necessary.
 
-    It may also have some implications on reliable ordered events though, so perhaps it's
-    *not* worth supporting.
+It may also have some implications on reliable ordered events though, so perhaps it's *not* worth supporting.
 
-    Added test for detecting connect token reuse.
+Added test for detecting connect token reuse.
 
-    Added test for client connect token expiry.
+Added test for client connect token expiry.
 
-    Added test for server address being in connect token whitelist.
+Added test for server address being in connect token whitelist.
 
-    Added test for client connect token being invalid (random data).
+Added test for client connect token being invalid (random data).
 
-    Add tests for typical challenge token exploits.
+Add tests for typical challenge token exploits.
 
-    To do this I will need to be able to create a modified version of the client
-    that gets the challenge token and then saves it off, so it can be stored
-    and then reused by another client with a different address.
+To do this I will need to be able to create a modified version of the client that gets the challenge token and then saves it off, so it can be stored and then reused by another client with a different address.
 
-    Attacks to protect against are:
+Attacks to protect against are:
 
-    reuse of the same challenge token, from a different client address (impersonation)
+1. reuse of the same challenge token, from a different client address (impersonation)
 
-    reuse of the same challenge token, on a different server (going wide and trying to join servers)
+2. reuse of the same challenge token, on a different server (going wide and trying to join servers)
 
-    using an expired challenge token
+3. using an expired challenge token
 
-    getting through with an invalid challenge token.
+4. getting through with an invalid challenge token.
 
-    It's really difficult to see how I can keep the client/server code clean in Yojimbo,
-    while still provide enough flexibility to override behavior and test these cases above.
+It's really difficult to see how I can keep the client/server code clean in Yojimbo, while still provide enough flexibility to override behavior and test these cases above.
 
-    Need to think about this for a while!  
+Need to think about this for a while!  
 
-    ...
+It seems that the least disruptive way to handle this is for the derived client and server to be able to access data members of the parent class, so it can be inspected, modified and messed with, allowing the derived classes to read data and changed behavior.
 
-    It seems that the least disruptive way to handle this is for the derived client and server
-    to be able to access data members of the parent class, so it can be inspected, modified
-    and messed with, allowing the derived classes to read data and changed behavior.
+Two key pieces of tech are needed:
 
-    Two key pieces of tech are needed:
+1. a client needs to try to connect, stash the challenge token when it receives it, and stop connect (without clearing connect token)
 
-    1. a client needs to try to connect, stash the challenge token when it receives it, and stop connect (without clearing connect token)
+2. a client needs to be *forced* into a connection challenge response state with a specified server address and challenge token
 
-    2. a client needs to be *forced* into a connection challenge response state with a specified server address and challenge token
+3. a way for the server to construct an older challenge token, eg. with an already expired timestamp
 
-    3. a way for the server to construct an older challenge token, eg. with an already expired timestamp
+If I can implement these, I should be able to implement all the tests required for challenge token.
 
-    If I can implement these, I should be able to implement all the tests required for challenge token.
+Made data members in yojimbo client/server protected rather than private.
 
-    Made data members in yojimbo client/server protected rather than private.
+Implement client connect, stash token and abort.
 
-    Implement client connect, stash token and abort.
+Add accessor to grab challenge token.
 
-    Add accessor to grab challenge token.
+Add function "ForceIntoConnectionChallengeResponse" that takes challenge token, server address etc.
 
-    Add function "ForceIntoConnectionChallengeResponse" that takes challenge token, server address etc.
+Did all this, but the challenge response token doesn't get through because the server doesn't have an encryption mapping added for the address.
 
-    Did all this, but the challenge response token doesn't get through because the server doesn't have an
-    encryption mapping added for the address.
+The only way to get a valid encryption mapping setup is to have a valid connect token for your address and the server...
 
-    The only way to get a valid encryption mapping setup is to have a valid connect token for your
-    address and the server...
+So I don't actually think it is possible in the real world to do challenge token attacks, because the challenge token must follow a gated connect token...
 
-    So I don't actually think it is possible in the real world to do challenge token attacks,
-    because the challenge token must follow a gated connect token...
+Is this worth testing futher given this fact?!
 
-    Is this worth testing futher given this fact?!
+It seems I would need to actually hack up the server so that for some reason it has an encryption mapping for the second client.
 
-    It seems I would need to actually hack up the server so that for some reason it has an encryption mapping
-    for the second client.
+I guess it's worth testing, but really practically I don't think this makes stuff any more secure
 
-    I guess it's worth testing, but really practically I don't think this makes stuff any more secure
+It is just like another layer of security if somehow the connect tokens are broken...
 
-    It is just like another layer of security if somehow the connect tokens are broken...
+But if connect tokens are broken, the whole system breaks down....
 
-    But if connect tokens are broken, the whole system breaks down....
-
-    OK. Hacked up an encryption mapping on the server interface somehow. Now the codepath is exercised,
-    but this is still I think not actually a valid attack vector in the wild.
+OK. Hacked up an encryption mapping on the server interface somehow. Now the codepath is exercised, but this is still I think not actually a valid attack vector in the wild.
 
 
 Sunday June 5th, 2016
 =====================
 
-    Added test for client reconnect 
+Added test for client reconnect 
 
-    Added tests for client side disconnect and server side disconnect
+Added tests for client side disconnect and server side disconnect
 
-    Renamed "IsConnected" functions in the server to "FindClientId" and "FindAddressAndClientId"
-    because it had already created a bug where I thought "IsConnected" meant "IsConnected( int clientIndex )"
+Renamed "IsConnected" functions in the server to "FindClientId" and "FindAddressAndClientId" because it had already created a bug where I thought "IsConnected" meant "IsConnected( int clientIndex )"
 
-    Added code to check client slots and iterate across only up to m_maxClients rather than MaxClients
+Added code to check client slots and iterate across only up to m_maxClients rather than MaxClients
 
-    This allows the server start to spocify a max clients less than MaxClients (64), which would 
-    allow for a subclassed server to restrict allocation of expensive per-client data to smaller
-    client counts on start/stop life cycle.
+This allows the server start to spocify a max clients less than MaxClients (64), which would allow for a subclassed server to restrict allocation of expensive per-client data to smaller client counts on start/stop life cycle.
 
-    Extended OnStart so it accepts int maxClients to make stuff easy for allocation on start.
+Extended OnStart so it accepts int maxClients to make stuff easy for allocation on start.
 
-    Made sure OnStart and OnStop are called (they weren't...)
+Made sure OnStart and OnStop are called (they weren't...)
 
-    Added tests for client and server-side timeout after connection established
+Added tests for client and server-side timeout after connection established
 
 
 Saturday June 4th, 2016
 =======================
 
-    added tests:
+added tests:
 
-        1. client connect
+1. client connect
 
-        2. client connection request timeout
+2. client connection request timeout
 
-    extended client/server to have start/stop concept.
+extended client/server to have start/stop concept.
 
-    Most importantly, start allows you to specify the # of clients you want.
+Most importantly, start allows you to specify the # of clients you want.
 
-    Added a bunch of checks "assert( IsRunning() )" where appropriate in server.
+Added a bunch of checks "assert( IsRunning() )" where appropriate in server.
 
-    Now get test working with new start as well.
+Now get test working with new start as well.
 
-    Standardized passing in time in first parameter to function in client/server (public) where required.
+Standardized passing in time in first parameter to function in client/server (public) where required.
 
-    I like keeping time separate because you'll probably wrap the client/server with your own struct or class,
-    and probably have separate global concepts of time. The client/server don't OWN time. You want the time
-    somewhere up above and passed in.
+I like keeping time separate because you'll probably wrap the client/server with your own struct or class, and probably have separate global concepts of time. The client/server don't OWN time. You want the time somewhere up above and passed in.
 
-    Add callbacks for OnStart and OnStop
+Add callbacks for OnStart and OnStop
 
-    Added time to all callbacks because if you want it, how else will you get it?!
+Added time to all callbacks because if you want it, how else will you get it?!
 
-    OK. The time thing is annoying. Adding cached copy of time in client/server.
+OK. The time thing is annoying. Adding cached copy of time in client/server.
 
-    "AdvanceTime" function sets it. You must advance time!
+"AdvanceTime" function sets it. You must advance time!
 
-    This cleans up stuff nicely. I think I want this in the network interface as well. It's annoying to pass in time redundantly.
+This cleans up stuff nicely. I think I want this in the network interface as well. It's annoying to pass in time redundantly.
 
-    Yes. Adjusted client interface as well and everything has cleared up nicely.
+Yes. Adjusted client interface as well and everything has cleared up nicely.
 
 
 Tuesday 31st May, 2016
 ======================
 
-    Idea: maybe a flag on send packet, "immediate"?
+Idea: maybe a flag on send packet, "immediate"?
 
-    eg. as an alternative to complicated queue rewrite with packets being sent out of order, eg. flush all for this address.
+eg. as an alternative to complicated queue rewrite with packets being sent out of order, eg. flush all for this address.
 
-    Just send some packets and marke their sends as *immediate*, = no queue, serialize this and send it right away.
+Just send some packets and marke their sends as *immediate*, = no queue, serialize this and send it right away.
 
-    Sounds like a good feature to add.
+Sounds like a good feature to add.
 
-    Found some bugs in the client/server connection. They were not increasing the sequence number for client/server packets on sends.
+Found some bugs in the client/server connection. They were not increasing the sequence number for client/server packets on sends.
 
-    This means they were not encrypting with nonce, hence the code was broken from a security point of view. Fixed.
+This means they were not encrypting with nonce, hence the code was broken from a security point of view. Fixed.
 
-    This fix should be brought across to the open source example source code for the article series.
+This fix should be brought across to the open source example source code for the article series.
 
-    Added the interface, now need to restructure the socket interface to be able to write and send a single packet at a time when necessary.
+Added the interface, now need to restructure the socket interface to be able to write and send a single packet at a time when necessary.
 
-    Done works well.
+Done works well.
 
-    It's annoying that the server when procesing a client side disconnect sends a disconnect packet to the client that has already disconnected.
+It's annoying that the server when procesing a client side disconnect sends a disconnect packet to the client that has already disconnected.
 
-    So I extended DisconnectClient to take a bool parameter, true by default, to send a disconnect packet to the client.
+So I extended DisconnectClient to take a bool parameter, true by default, to send a disconnect packet to the client.
 
-    And then I pass false into DisconnectClient for timeouts and when processing a disconnect packet sent from that client, because it is redundant.
+And then I pass false into DisconnectClient for timeouts and when processing a disconnect packet sent from that client, because it is redundant.
 
-    Make the same change vice versa for the client, so if a server-side connect happens, or the client times out, the client does not send a redundant 
-    disconnect packet to the server.
+Make the same change vice versa for the client, so if a server-side connect happens, or the client times out, the client does not send a redundant disconnect packet to the server.
 
-    Implement encryption manager.
+Implement encryption manager.
 
-    Hook up the socket interface to use it.
+Hook up the socket interface to use it.
 
-    It needs time passed in to do timeouts for encryption mappings, so extended send/receive packets to take time parameters.
+It needs time passed in to do timeouts for encryption mappings, so extended send/receive packets to take time parameters.
 
-    (This will come in super handy when implementing a network interface wrapper around the network simulator)
+(This will come in super handy when implementing a network interface wrapper around the network simulator)
 
-    Start with something simple that is O(n) but hot/cold split so it is reasonably efficient, eg. array with holes and max.
+Start with something simple that is O(n) but hot/cold split so it is reasonably efficient, eg. array with holes and max.
 
-    Consider. How does the encryption mapping deal with connection requests that setup an encryption mapping
-    but don't complete all the way to connect. Do encryption mappings have timeouts? eg. 10 seconds?
+Consider. How does the encryption mapping deal with connection requests that setup an encryption mapping but don't complete all the way to connect. Do encryption mappings have timeouts? eg. 10 seconds?
 
-    Each time a packet is sent or received on the encryption mapping, the encryption mapping is updated
-    so the MRU time is the current time.
+Each time a packet is sent or received on the encryption mapping, the encryption mapping is updated so the MRU time is the current time.
 
-    Then if an encryption mapping is old, or if we are looking for an empty encryption mapping slot, the old slots
-    are thrown out and reused automatically, which should fill holes. Works well.
+Then if an encryption mapping is old, or if we are looking for an empty encryption mapping slot, the old slots are thrown out and reused automatically, which should fill holes. Works well.
 
-    Implement a basic timeout, eg. if an entry is older than 15 seconds, it will be reused for another address.
+Implement a basic timeout, eg. if an entry is older than 15 seconds, it will be reused for another address.
 
-    Now need to implement encryption mapping remove.
+Now need to implement encryption mapping remove.
 
-    The only tricky part of this is that it has to be smart enough when it is the last entry
-    to search to the left and find the next valid entry which has not already expired (time).
+The only tricky part of this is that it has to be smart enough when it is the last entry to search to the left and find the next valid entry which has not already expired (time).
 
-    This means that remove encryption mapping also needs time passed in.
+This means that remove encryption mapping also needs time passed in.
 
-    Extended interface to add this.
+Extended interface to add this.
 
-    Now to implement the function. Do it.
+Now to implement the function. Do it.
 
-    Verify basic client/server test still passes.
+Verify basic client/server test still passes.
 
-    All good.
+All good.
 
 
 Sunday 29th May, 2016
 =====================
 
-    Convert protocol2.h
+Convert protocol2.h
 
-    Convert network2.h
+Convert network2.h
 
-    Split out parts of yojimbo_protocol.h / network.h to other files
+Split out parts of yojimbo_protocol.h / network.h to other files
 
-    Especially, generally useful functions into yojimbo_util.h or yojimbo_common.h
+Especially, generally useful functions into yojimbo_util.h or yojimbo_common.h
 
-    I like yojimbo_common.h better. Fuck util.
+I like yojimbo_common.h better. Fuck util.
 
-    Finish conversion of yojimbo_common.h inlines into yojimbo_common.cpp
+Finish conversion of yojimbo_common.h inlines into yojimbo_common.cpp
 
-    Move bitpacker into yojimbo_bitpack.h
+Move bitpacker into yojimbo_bitpack.h
 
-    Move stream into yojimbo_stream.h
+Move stream into yojimbo_stream.h
 
-    Move serialization functions into yojimbo_serialize.h
+Move serialization functions into yojimbo_serialize.h
 
-    Now repurpose yojimbo_protocol.h into yojimbo_packet.h - packet header, packet class, packet factory, read/write packet functions.
+Now repurpose yojimbo_protocol.h into yojimbo_packet.h - packet header, packet class, packet factory, read/write packet functions.
 
-    Split up network into multiple headers.
+Split up network into multiple headers.
 
-    yojimbo_network.h is good for address and sockets. Great. Leave that.
+yojimbo_network.h is good for address and sockets. Great. Leave that.
 
-    Move the network simulator out to yojimbo_network_simulator.h
+Move the network simulator out to yojimbo_network_simulator.h
 
-    Remove InitCrypto, instead put it inside InitializeYojimbo / ShutdownYojimbo instead.
+Remove InitCrypto, instead put it inside InitializeYojimbo / ShutdownYojimbo instead.
 
-    Move the token stuff into yojimbo_client_server.h
+Move the token stuff into yojimbo_client_server.h
 
-    Unit test the token stuff (based on 008 starter...)
+Unit test the token stuff (based on 008 starter...)
 
-    Remove the testing harness stuff from client_server.cpp
+Remove the testing harness stuff from client_server.cpp
 
-    Move the rest of the client/server stuff into yojimbo_client_server.h/cpp
+Move the rest of the client/server stuff into yojimbo_client_server.h/cpp
 
-    Eventually, going to want to make a bunch of this stuff more *configurable*
+Eventually, going to want to make a bunch of this stuff more *configurable*
 
-    eg. let the server restrict the number of clients he wants to allow to connect.
+eg. let the server restrict the number of clients he wants to allow to connect.
 
-    even though the maximum of 64 is enforced statically at compile time...
+even though the maximum of 64 is enforced statically at compile time...
 
-    But for now, keep it static, and focus on implementing enough callbacks to extend the base class.
+But for now, keep it static, and focus on implementing enough callbacks to extend the base class.
 
-    eg. you extend the client/server to create your own versions, and demonstrate this by adding
-    new packet types, implementing all client/server logs I want via callbacks (not the base class)
-    etc.
+eg. you extend the client/server to create your own versions, and demonstrate this by adding new packet types, implementing all client/server logs I want via callbacks (not the base class) etc.
 
-    Inherited custom GameClient and GameServer classes from base client and server.
+Inherited custom GameClient and GameServer classes from base client and server.
 
-    Did the same for GameNetworkInterface and GamePacketFactory.
+Did the same for GameNetworkInterface and GamePacketFactory.
 
-    There seems to be some sort of weirdness with the disconnect packet set from client -> server?
+There seems to be some sort of weirdness with the disconnect packet set from client -> server?
 
-    Ah. There was a packet leak if the packet failed to decrypt (eg. broken encryption mapping)
+Ah. There was a packet leak if the packet failed to decrypt (eg. broken encryption mapping)
 
-    Look for interesting counters to add on the server, eg. a counter for each invisible thing that could happen,
-    but indicates something maybe going wrong, eg. connect token reject etc.
+Look for interesting counters to add on the server, eg. a counter for each invisible thing that could happen, but indicates something maybe going wrong, eg. connect token reject etc.
 
-    Done. A bunch of counters. Will be more.
+Done. A bunch of counters. Will be more.
 
-    Comment out logs that don't make sense to become callbacks.
+Comment out logs that don't make sense to become callbacks.
 
-    Commented out logs that I might want to bring back (#if CLIENT_SERVER_DEBUG_LOGS or something)
+Commented out logs that I might want to bring back (#if CLIENT_SERVER_DEBUG_LOGS or something)
 
-    Add callbacks for packets sent on server (by type)
+Add callbacks for packets sent on server (by type)
 
-    Unified all packet send to go through one function, don't directly call on the interface (keep it internal)
+Unified all packet send to go through one function, don't directly call on the interface (keep it internal)
 
-    Implement logs so I can see the traffic going back and forth for debugging. Works well!
+Implement logs so I can see the traffic going back and forth for debugging. Works well!
 
-    Now implement callbacks for packet receive on server.
+Now implement callbacks for packet receive on server.
 
-    Same treatment for client:
+Same treatment for client:
 
-    1. Replace logs with callbacks where possible 
+1. Replace logs with callbacks where possible 
 
-    2. Callback for state changes
+2. Callback for state changes
 
-    3. Add callback for packet send
+3. Add callback for packet send
 
-    4. Add callback for packet receive
+4. Add callback for packet receive
 
-    Verify logs are now acceptable. Yes.
+Verify logs are now acceptable. Yes.
 
-    Just need to add client state names, and it's all good.
+Just need to add client state names, and it's all good.
