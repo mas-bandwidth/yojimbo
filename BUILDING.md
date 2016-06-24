@@ -6,7 +6,7 @@ Building libyojimbo
 
 Download [premake 5](https://premake.github.io/download.html) and install the **premake5** executable somewhere in your path.
 
-If you don't have Visual Studio 2015 you can [download the community edition for free](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx)
+If you don't have Visual Studio 2015 you can [download the community edition for free](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx).
 
 Go to the command line under the libyojimbo directory and type:
 
@@ -64,7 +64,7 @@ This builds and runs a Docker container with a yojimbo server inside it (exactly
 
 IMPORTANT: The premake docker action takes a long time initially, because it has a lot of work to do:
 
-1. Start a new docker image from a prebuilt Ubuntu derived base image
+1. Start a new docker image from an [ubuntu derived base image](https://github.com/phusion/baseimage-docker)
 
 2. apt-get update, apt-get install wget, g++
 
