@@ -41,6 +41,8 @@ Thursday June 23rd, 2016
     Added a test and pegged it to an external base64 string encoding so it is going to be correct
     for base64 strings encoded by other programs.
 
+    Fixed a bug in base64 encode. It was not adding terminating '\0'. Linux picked it up.
+
 
 Tuesday June 21st, 2016
 =======================

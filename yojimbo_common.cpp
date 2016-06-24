@@ -347,8 +347,12 @@ namespace yojimbo
         case step_A:
             break;
         }
-        
-        return codechar - code_out;
+     
+        const int length = codechar - code_out;
+
+        code_out[length] = '\0';
+
+        return length;
     }
 
     int base64_decode_value( char value_in )
