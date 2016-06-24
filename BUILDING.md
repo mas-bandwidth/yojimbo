@@ -4,7 +4,7 @@ Building libyojimbo
 
 
 
-# Install dependencies 
+## 1. Install dependencies 
 
 To build libyojimbo from source you need [premake 5.0](https://premake.github.io/download.html)
 
@@ -17,7 +17,7 @@ On Linux, depending on your particular distribution there may be prebuilt packag
 Windows users do not need to install libsodium because libyojimbo includes prebuilt sodium libraries for your convenience.
 
 
-# Building on Windows
+## 2. Building on Windows
 
 If you don't have Visual Studio 2015 you can download the community edition for free:
 
@@ -32,7 +32,7 @@ If you don't have Visual Studio 2015 you can download the community edition for 
     Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
 
-# Building on MacOSX and Linux
+## 3. Building on MacOSX and Linux
 
 Go to the command line under libyojimbo directory and type
 
@@ -59,18 +59,14 @@ ps. To make this more convenient I like to alias "pm" to "premake5" in bash, so 
 Which is a lot less typing.
 
 
-
-
-4. Install Docker
+## 4. Install Docker
 
 Install Docker from http://www.docker.com
 
 To run the latest version of Docker need to Linux, MacOS X or Windows 10 (64bit)
 
 
-
-
-5. Run a libyojimbo server inside Docker
+## 5. Run a libyojimbo server inside Docker
 
 libyojimbo 0.2.0 supports Docker on Windows and MacOSX and Linux.
 
@@ -112,8 +108,9 @@ ps. If you are running on windows it is necessary to check "Expose container por
 settings in order to connect a client to the server running inside the docker container via 127.0.0.1:50000
 
 
+## Feedback
 
-This is pre-release software. Please email me with any feedback you have: 
+This is pre-release software so please email me with any feedback you have: 
 
     Glenn Fiedler <glenn.fiedler@gmail.com>
 
