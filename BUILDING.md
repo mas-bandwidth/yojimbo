@@ -81,11 +81,11 @@ IMPORTANT: The premake docker action takes a long time initially, because it has
 For details see docker/Dockerfile and the premake5.lua file with commands that build and run the container instance.
 
 What's most impressive is that if no dependencies have changed, the numbered steps above are precached as intermediate
-Docker instances and not rebuilt unless necessary. For example, if you have already downloaded and installed wget, g++, libsodium and premake5 and you run "premake5 docker" again, these steps are skipped and the cached docker images for these steps are automatically reused.
+Docker instances and not rebuilt unless necessary. For example, if you have already downloaded and installed wget, g++, libsodium and premake5 and you run "premake5 docker" again, these steps are skipped.
 
-Try it yourself by running "premake5 docker" once (it should build everything), and run it again, it will go straight
-to the server running on port 50000. Similarly, if you change some libyojimbo source it will automatically rebuild
-libyojimbo server and run tests before starting the server. Impressive!
+Try it yourself by running "premake5 docker" once (it should build everything), then run it again. It will go straight
+to the server running on port 50000. Similarly, if you change some libyojimbo source it automatically rebuilds
+libyojimbo server and runs tests before starting the server. Impressive!
 
 ps. If you are running on windows it is necessary to check "Expose container ports on localhost" in Docker Network settings in order to get the client connecting to 127.0.0.1:50000
 
