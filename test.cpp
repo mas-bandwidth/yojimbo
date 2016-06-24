@@ -67,6 +67,29 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
+#include <ucl.h>
+
+void test_json()
+{
+    printf( "test json\n" );
+
+    struct ucl_parser * parser = ucl_parser_new( UCL_PARSER_ZEROCOPY );
+
+    check( parser );
+
+    const char json[] = "{\"employees\":[{\"firstName\":\"John\",\"lastName\":\"Doe\"},{\"firstName\":\"Anna\",\"lastName\":\"Smith\"},{\"firstName\":\"Peter\",\"lastName\":\"Jones\"}]}";
+
+    check( ucl_parser_add_string( parser, json, strlen( json ) ) );
+
+    check( !ucl_parser_get_error( parser ) );
+
+    ucl_object_t * object = ucl_parser_get_object( parser );
+
+    ucl_object_unref( object );
+
+    ucl_parser_free( parser );
+}
+
 void test_base64()
 {
     printf( "test_base64\n" );
@@ -3156,6 +3179,7 @@ int main()
     while ( true )
 #endif // #if SOAK_TEST
     {
+        test_json();
         test_base64();
         test_bitpacker();
         test_stream();
