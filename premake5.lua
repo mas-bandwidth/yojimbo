@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.2.0-preview2"
+libyojimbo_version = "0.2.0-preview3"
 
 if os.is "windows" then
     sodium_debug = "sodium-debug"
@@ -29,7 +29,7 @@ project "test"
     language "C++"
     kind "ConsoleApp"
     files { "test.cpp" }
-    links { "yojimbo", "ucl" }
+    links { "yojimbo" } --, "ucl" }
     configuration "Debug"
 		links { sodium_debug }
 	configuration "Release"
@@ -128,7 +128,7 @@ if not os.is "windows" then
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
-            files_to_zip = ".zip *.md *.cpp *.h premake5.lua sodium sodium-*.lib"
+            files_to_zip = ".zip *.md *.cpp *.h premake5.lua sodium sodium-*.lib docker"
             os.execute( "rm -rf *.zip *.tar.gz *.7z" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. files_to_zip )
             os.execute( "7z a -mx=9 -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z *.md *.cpp *.h premake5.lua sodium sodium-*.lib" )

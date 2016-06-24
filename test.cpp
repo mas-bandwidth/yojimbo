@@ -67,6 +67,10 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
+#define WITH_UCL 0
+
+#if WITH_UCL
+
 #include <ucl.h>
 
 void test_json()
@@ -172,6 +176,8 @@ void test_json()
 
     // ...
 }
+
+#endif // #if WITH_UCL
 
 void test_base64()
 {
@@ -3262,7 +3268,9 @@ int main()
     while ( true )
 #endif // #if SOAK_TEST
     {
+#if WITH_UCL
         test_json();
+#endif // #if WITH_UCL
         test_base64();
         test_bitpacker();
         test_stream();
