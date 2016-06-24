@@ -6,7 +6,7 @@ Building libyojimbo
 
 ## 1. Install dependencies 
 
-To build libyojimbo from source you need to install [premake 5](https://premake.github.io/download.html).
+To build libyojimbo from source you need [premake 5](https://premake.github.io/download.html).
 
 If you are building under MacOSX or Linux, you also need [libsodium](https://github.com/jedisct1/libsodium).
 
