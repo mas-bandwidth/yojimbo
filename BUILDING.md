@@ -68,7 +68,7 @@ The latest version of Docker supports MacOS X or Windows 10 (64bit) and Linux.
 
 ## 5. Run a libyojimbo server inside Docker
 
-libyojimbo 0.2.0 supports Docker on Windows and MacOSX and Linux.
+libyojimbo supports Docker on Windows, Mac and Linux.
 
 At the command line at the yojimbo directory, type:
 
@@ -110,9 +110,7 @@ settings in order to connect a client to the server running inside the docker co
 
 ## Feedback
 
-This is pre-release software so please email me with any feedback you have: 
-
-Glenn Fiedler <glenn.fiedler@gmail.com>
+This is pre-release software so please email me with any feedback you have <glenn.fiedler@gmail.com>
 
 Thanks!
 
