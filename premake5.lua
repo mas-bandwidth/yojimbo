@@ -130,6 +130,7 @@ if not os.is "windows" then
             premake.action.call( "clean" )
             files_to_zip = ".zip *.md *.cpp *.h premake5.lua sodium sodium-*.lib docker"
             os.execute( "rm -rf *.zip *.tar.gz *.7z" );
+            os.execute( "rm -rf docker/libyojimbo" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. files_to_zip )
             os.execute( "7z a -mx=9 -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z *.md *.cpp *.h premake5.lua sodium sodium-*.lib" )
             os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
