@@ -14,7 +14,19 @@ People basically say that JSON + bin64 is really the way to go. Lingua franca.
 
 I tried out a simple library for JSON, but it doesn't really seem right to take some random unmaintained crap to read secure JSON tokens.
 
-So I have pestered the author of libucl to fix various issues that are stopping me from adopting libucl and hopefully he will fix them.
+I have pestered the author of libucl to fix various issues that are stopping me from adopting libucl and hopefully he will fix them.
+
+Seems like critical libucl APIs for building structures are:
+
+    ucl_object_typed_new
+    ucl_object_insert_key
+    ucl_array_append
+
+Looks like I should be able to cobble this together now.
+
+OK. Got a JSON test passing. Don't really want to leave this test in, but it's a good start for the connect token JSON read/write.
+
+Should be unblocked now.
 
 
 Thursday June 23rd, 2016
