@@ -435,7 +435,7 @@ namespace yojimbo
         return plainchar - plaintext_out;
     }
 
-    int base64_encode( const char * input, char * output, int output_size )
+    int base64_encode_string( const char * input, char * output, int output_size )
     {
         assert( input );
         assert( output );
@@ -458,7 +458,7 @@ namespace yojimbo
         return output_body + output_tail;
     }
 
-    int base64_decode( const char * input, char * output, int output_size )
+    int base64_decode_string( const char * input, char * output, int output_size )
     {
         assert( input );
         assert( output );

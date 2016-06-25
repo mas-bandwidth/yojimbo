@@ -24,8 +24,10 @@
 
 #include "yojimbo_client_server.h"
 #include <stdint.h>
+#include <stdint.h>
 #include <inttypes.h>
 #include <time.h>
+#include <ucl.h>
 
 namespace yojimbo
 {
@@ -93,6 +95,77 @@ namespace yojimbo
             return false;
 
         return true;
+    }
+
+    static void insert_number_as_string( ucl_object_t * object, const char * key, uint64_t number )
+    {
+        char buffer[256];
+        sprintf( buffer, "%" PRId64, number );
+        ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
+    }
+
+    bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize )
+    {
+        ucl_object_t * root = ucl_object_typed_new( UCL_OBJECT );
+
+        insert_number_as_string( root, "protocolId", connectToken.protocolId );
+
+        insert_number_as_string( root, "clientId", connectToken.clientId );
+
+        insert_number_as_string( root, "expiryTimestamp", connectToken.expiryTimestamp );
+
+        insert_number_as_string( root, "numServerAddresses", connectToken.numServerAddresses );
+
+        ucl_object_t * serverAddresses = ucl_object_typed_new( UCL_ARRAY );
+
+        ucl_object_insert_key( root, serverAddresses, "serverAddresses", 0, false );
+
+        for ( int i = 0; i < connectToken.numServerAddresses; ++i )
+        {
+            char serverAddress[64];
+            assert( connectToken.serverAddresses[i].IsValid() );
+            connectToken.serverAddresses[i].ToString( serverAddress, sizeof( serverAddress ) );
+
+            char serverAddressBase64[128];
+            base64_encode_string( serverAddress, serverAddressBase64, sizeof( serverAddressBase64 ) );
+
+            ucl_array_append( serverAddresses, ucl_object_fromstring( serverAddressBase64 ) );
+        }
+
+        // todo: need base64 encode data function
+
+        /*
+        insert_buffer_as_base64_string( root, "clientToServerKey", clientToServerKey, KeyBytes );
+
+        insert_buffer_as_base64_string( root, "serverToClientKey", serverToClientKey, KeyBytes );
+
+        insert_buffer_as_base64_string( root, "random", random, KeyBytes );
+        */
+
+        char * json_output = (char*) ucl_object_emit( root, UCL_EMIT_JSON_COMPACT );
+
+        const int json_bytes = (int) strlen( json_output ) + 1;
+
+        if ( json_bytes > outputSize )
+        {
+            free( json_output );
+            return false;
+        }
+
+        free( json_output );
+
+        memcpy( output, json_output, json_bytes );
+
+        ucl_object_unref( root );
+
+        return true;
+    }
+
+    bool ReadConnectTokenFromJSON( char * json, ConnectToken & connectToken )
+    {
+        (void)json;
+        (void)connectToken;
+        return false;
     }
 
     bool GenerateChallengeToken( const ConnectToken & connectToken, const uint8_t * connectTokenMac, ChallengeToken & challengeToken )
