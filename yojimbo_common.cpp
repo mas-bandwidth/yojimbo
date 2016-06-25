@@ -347,12 +347,12 @@ namespace yojimbo
         case step_A:
             break;
         }
-     
-        const int length = codechar - code_out;
+
+        int length = codechar - code_out;
 
         code_out[length] = '\0';
 
-        return length;
+        return length + 1;
     }
 
     int base64_decode_value( char value_in )
@@ -439,7 +439,7 @@ namespace yojimbo
     {
         assert( input );
         assert( output );
-        assert( output_size );
+        assert( output_size > 0 );
 
         (void)output_size;
 
@@ -462,7 +462,7 @@ namespace yojimbo
     {
         assert( input );
         assert( output );
-        assert( output_size );
+        assert( output_size > 0 );
 
         (void)output_size;
 
@@ -475,6 +475,51 @@ namespace yojimbo
         assert( output_size >= input_length / 2 );
 
         const int decoded_bytes = base64_decode_block( input, input_length, output, &decode_state );
+
+        output[decoded_bytes] = '\0';
+
+        return decoded_bytes + 1;
+    }
+
+    int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size )
+    {
+        assert( input );
+        assert( input_length > 0 );
+        assert( output );
+        assert( output_size > 0 );
+
+        (void)output_size;
+
+        base64_encode_state encode_state;
+
+        base64_init_encode_state( &encode_state );
+
+        assert( output_size >= input_length * 2 );
+
+        const int output_body = base64_encode_block( (const char*) input, input_length, output, &encode_state );
+
+        const int output_tail = base64_encode_block_end( output + output_body, &encode_state );
+
+        return output_body + output_tail;
+    }
+
+    int base64_decode_data( const char * input, uint8_t * output, int output_size )
+    {
+        assert( input );
+        assert( output );
+        assert( output_size > 0 );
+
+        (void)output_size;
+
+        base64_decode_state decode_state;
+
+        base64_init_decode_state( &decode_state );
+
+        const int input_length = strlen( input );
+
+        assert( output_size >= input_length / 2 );
+
+        const int decoded_bytes = base64_decode_block( input, input_length, (char*) output, &decode_state );
 
         return decoded_bytes;
     }

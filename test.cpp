@@ -203,7 +203,7 @@ void test_base64()
 
     const int encoded_bytes = base64_encode_string( input, encoded, sizeof( encoded ) );
  
-    check( encoded_bytes == (int) strlen( encoded ) );
+    check( encoded_bytes == (int) strlen( encoded ) + 1 );
 
     char encoded_expected[] = "WzIwMDE6NDg2MDo0ODYwOjo4ODg4XTo1MDAwMA==";
 
@@ -211,11 +211,20 @@ void test_base64()
 
     const int decoded_bytes = base64_decode_string( encoded, decoded, sizeof( decoded ) );
 
-    check( decoded_bytes == (int) strlen( decoded ) );
+    check( decoded_bytes == (int) strlen( decoded ) + 1 );
 
     check( strcmp( input, decoded ) == 0 );
 
-    // todo: test base64 encode of non-string data, eg. randomly generated key
+    uint8_t key[KeyBytes];
+    GenerateKey( key );
+
+    char base64_key[KeyBytes*2];
+    base64_encode_data( key, KeyBytes, base64_key, (int) sizeof( base64_key ) );
+
+    uint8_t decoded_key[KeyBytes];
+    base64_decode_data( base64_key, decoded_key, KeyBytes );
+
+    check( memcmp( key, decoded_key, KeyBytes ) == 0 );
 }
 
 void test_bitpacker()
