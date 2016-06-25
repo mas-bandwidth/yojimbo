@@ -8,6 +8,10 @@ Finish writing connect token to JSON.
 
 Added tests for base64 encode/decode data in test.cpp
 
+Now implement the code to parse the connect token from JSON.
+
+Add test for read/write connect token to JSON. Make sure it reads back identically.
+
 
 Friday June 24th, 2016
 ======================
