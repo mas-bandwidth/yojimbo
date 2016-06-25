@@ -264,9 +264,9 @@ namespace yojimbo
 
     void print_bytes( const char * label, const uint8_t * data, int data_bytes );
 
-    int base64_encode( const char * input, char * output, int output_size );
+    int base64_encode_string( const char * input, char * output, int output_size );
 
-    int base64_decode( const char * input, char * output, int output_size );
+    int base64_decode_string( const char * input, char * output, int output_size );
 }
 
 #endif // #ifndef YOJIMBO_COMMON_H
