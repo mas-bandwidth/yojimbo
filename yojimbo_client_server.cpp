@@ -104,6 +104,13 @@ namespace yojimbo
         ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
     }
 
+    static void insert_data_as_base64_string( ucl_object_t * object, const char * key, const uint8_t * data, int data_length )
+    {
+        char * buffer = (char*) alloca( data_length * 2 );
+        base64_encode_data( data, data_length, buffer, data_length * 2 );
+        ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
+    }
+
     bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize )
     {
         ucl_object_t * root = ucl_object_typed_new( UCL_OBJECT );
@@ -132,15 +139,11 @@ namespace yojimbo
             ucl_array_append( serverAddresses, ucl_object_fromstring( serverAddressBase64 ) );
         }
 
-        // todo: need base64 encode data function
+        insert_data_as_base64_string( root, "clientToServerKey", connectToken.clientToServerKey, KeyBytes );
 
-        /*
-        insert_buffer_as_base64_string( root, "clientToServerKey", clientToServerKey, KeyBytes );
+        insert_data_as_base64_string( root, "serverToClientKey", connectToken.serverToClientKey, KeyBytes );
 
-        insert_buffer_as_base64_string( root, "serverToClientKey", serverToClientKey, KeyBytes );
-
-        insert_buffer_as_base64_string( root, "random", random, KeyBytes );
-        */
+        insert_data_as_base64_string( root, "random", connectToken.random, KeyBytes );
 
         char * json_output = (char*) ucl_object_emit( root, UCL_EMIT_JSON_COMPACT );
 

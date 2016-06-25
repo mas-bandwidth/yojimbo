@@ -267,6 +267,10 @@ namespace yojimbo
     int base64_encode_string( const char * input, char * output, int output_size );
 
     int base64_decode_string( const char * input, char * output, int output_size );
+
+    int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size );
+
+    int base64_decode_data( const char * input, uint8_t * output, int output_size );
 }
 
 #endif // #ifndef YOJIMBO_COMMON_H
