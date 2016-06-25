@@ -28,8 +28,8 @@ solution "Yojimbo"
 project "test"
     language "C++"
     kind "ConsoleApp"
-    files { "test.cpp" }
-    links { "yojimbo" } --, "ucl" }
+    files { "test.cpp " }
+    links { "yojimbo", "ucl" }
     configuration "Debug"
 		links { sodium_debug }
 	configuration "Release"
