@@ -225,7 +225,7 @@ if not os.is "windows" then
 		trigger     = "docker",
 		description = "Build and run a yojimbo server inside a docker container",
 		execute = function ()
-			os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 50000:50000/udp networkprotocol:yojimbo-server"
+			os.execute "cd docker && ./copyFiles.sh && ./buildServer.sh && ./runServer.sh"
 		end
 	}
 
