@@ -31,6 +31,43 @@
 
 namespace yojimbo
 {
+    bool ConnectToken::operator == ( const ConnectToken & other )
+    {
+        if ( protocolId != other.protocolId )
+            return false;
+        
+        if ( clientId != other.clientId )
+            return false;
+            
+        if ( expiryTimestamp != other.expiryTimestamp )
+            return false;
+            
+        if ( numServerAddresses != other.numServerAddresses )
+            return false;
+            
+        for ( int i = 0; i < numServerAddresses; ++i )
+        {
+            if ( serverAddresses[i] != other.serverAddresses[i] )
+                return false;
+        }
+
+        if ( memcmp( clientToServerKey, other.clientToServerKey, KeyBytes ) != 0 )
+            return false;
+
+        if ( memcmp( serverToClientKey, other.serverToClientKey, KeyBytes ) != 0 )
+            return false;
+
+        if ( memcmp( random, other.random, KeyBytes ) != 0 )
+            return false;
+
+        return true;
+    }
+
+    bool ConnectToken::operator != ( const ConnectToken & other )
+    {
+        return ! ( (*this) == other );
+    }
+
     void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId )
     {
         uint64_t timestamp = (uint64_t) time( NULL );
@@ -164,11 +201,130 @@ namespace yojimbo
         return true;
     }
 
+    static bool read_int_from_string( ucl_object_t * object, const char * key, int & value )
+    {
+        (void)object;
+        (void)key;
+        (void)value;
+        return false;
+    }
+
+    static bool read_uint32_from_string( ucl_object_t * object, const char * key, uint32_t & value )
+    {
+        (void)object;
+        (void)key;
+        (void)value;
+        return false;
+    }
+
+    static bool read_uint64_from_string( ucl_object_t * object, const char * key, uint64_t & value )
+    {
+        (void)object;
+        (void)key;
+        (void)value;
+        return false;
+    }
+
+    static bool read_address_from_base64_string( const ucl_object_t * object, Address & address )
+    {
+        (void)object;
+        (void)address;
+
+        if ( !object || ucl_object_type( object ) != UCL_STRING )
+            return false;
+
+        // ...
+
+        return false;
+    }
+
+    static bool read_data_from_base64_string( const ucl_object_t * object, const char * key, uint8_t * data, int data_bytes )
+    {
+        (void)object;
+        (void)key;
+        (void)data;
+        (void)data_bytes;
+
+        // ...
+
+        return false;        
+    }
+
     bool ReadConnectTokenFromJSON( char * json, ConnectToken & connectToken )
     {
-        (void)json;
-        (void)connectToken;
-        return false;
+        assert( json );
+
+        bool result = false;
+
+        ucl_parser * parser = NULL;
+        ucl_object_t * root = NULL;
+        const ucl_object_t * serverAddresses = NULL;
+
+        parser = ucl_parser_new( UCL_PARSER_ZEROCOPY );
+
+        if ( !parser )
+            return false;
+
+        if ( !ucl_parser_add_string( parser, json, strlen( json ) ) )
+            goto cleanup;
+
+        if ( ucl_parser_get_error( parser ) )
+            goto cleanup;
+
+        root = ucl_parser_get_object( parser );
+
+        if ( root )
+            goto cleanup;
+
+        if ( !read_uint32_from_string( root, "protocolId", connectToken.protocolId ) )
+            goto cleanup;
+
+        if ( !read_uint64_from_string( root, "clientId", connectToken.clientId ) )
+            goto cleanup;
+
+        if ( !read_uint64_from_string( root, "expiryTimestamp", connectToken.expiryTimestamp ) )
+            goto cleanup;
+
+        if ( !read_int_from_string( root, "numServerAddresses", connectToken.numServerAddresses ) )
+            goto cleanup;
+
+        serverAddresses = ucl_object_lookup( root, "serverAddresses" );
+
+        if ( !serverAddresses || ucl_object_type( serverAddresses ) != UCL_ARRAY )
+            goto cleanup;
+
+        for ( int i = 0; i < connectToken.numServerAddresses; ++i )
+        {
+            const ucl_object_t * serverAddress = ucl_array_find_index( serverAddresses, i );
+
+            if ( !read_address_from_base64_string( serverAddress, connectToken.serverAddresses[i] ) )
+                goto cleanup;
+        }
+
+        if ( !read_data_from_base64_string( root, "clientToServerKey", connectToken.clientToServerKey, KeyBytes ) )
+            goto cleanup;
+
+        if ( !read_data_from_base64_string( root, "serverToClientKey", connectToken.serverToClientKey, KeyBytes ) )
+            goto cleanup;
+
+        if ( !read_data_from_base64_string( root, "random", connectToken.random, KeyBytes ) )
+            goto cleanup;
+
+        result = true;
+
+    cleanup:
+
+        if ( root )
+        {
+            ucl_object_unref( root );
+        }
+
+        if ( parser )
+        {
+            ucl_parser_free( parser );
+        }
+
+        return result;
     }
 
     bool GenerateChallengeToken( const ConnectToken & connectToken, const uint8_t * connectTokenMac, ChallengeToken & challengeToken )

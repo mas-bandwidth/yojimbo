@@ -1001,11 +1001,16 @@ void test_client_server_tokens()
         ConnectToken token;
         GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
 
-        // temporary
         char json[2048];
+
         WriteConnectTokenToJSON( token, json, sizeof( json ) );
+
+        // temp
         printf( "json: %s\n", json );
-        // temporary
+
+        ConnectToken readToken;
+        check( ReadConnectTokenFromJSON( json, readToken ) );
+        check( token == readToken );
 
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
         memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
