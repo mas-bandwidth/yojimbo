@@ -201,7 +201,7 @@ void test_base64()
 
     strcpy( input, "[2001:4860:4860::8888]:50000" );
 
-    const int encoded_bytes = base64_encode( input, encoded, sizeof( encoded ) );
+    const int encoded_bytes = base64_encode_string( input, encoded, sizeof( encoded ) );
  
     check( encoded_bytes == (int) strlen( encoded ) );
 
@@ -209,11 +209,13 @@ void test_base64()
 
     check( strcmp( encoded, encoded_expected ) == 0 );
 
-    const int decoded_bytes = base64_decode( encoded, decoded, sizeof( decoded ) );
+    const int decoded_bytes = base64_decode_string( encoded, decoded, sizeof( decoded ) );
 
     check( decoded_bytes == (int) strlen( decoded ) );
 
     check( strcmp( input, decoded ) == 0 );
+
+    // todo: test base64 encode of non-string data, eg. randomly generated key
 }
 
 void test_bitpacker()
@@ -989,6 +991,12 @@ void test_client_server_tokens()
     {
         ConnectToken token;
         GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
+
+        // temporary
+        char json[2048];
+        WriteConnectTokenToJSON( token, json, sizeof( json ) );
+        printf( "json: %s\n", json );
+        // temporary
 
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
         memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
