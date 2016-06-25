@@ -1003,10 +1003,9 @@ void test_client_server_tokens()
 
         char json[2048];
 
-        WriteConnectTokenToJSON( token, json, sizeof( json ) );
+        check( WriteConnectTokenToJSON( token, json, sizeof( json ) ) );
 
-        // temp
-        printf( "json: %s\n", json );
+        check( strlen( json ) > 0 );
 
         ConnectToken readToken;
         check( ReadConnectTokenFromJSON( json, readToken ) );
