@@ -1,4 +1,22 @@
 
+Friday June 24th, 2016
+======================
+
+Investigating whether to continue using JSON or to switch to something else
+
+MsgPack looks nice, and has support for a lot of languages out there.
+
+http://msgpack.org
+
+Meanwhile, there is a small JSON library that could be hacked to do simple JSON, but seems shitty to take some JSON code an adapt it.
+
+People basically say that JSON + bin64 is really the way to go. Lingua franca.
+
+I tried out a simple library for JSON, but it doesn't really seem right to take some random unmaintained crap to read secure JSON tokens.
+
+So I have pestered the author of libucl to fix various issues that are stopping me from adopting libucl and hopefully he will fix them.
+
+
 Thursday June 23rd, 2016
 ========================
 
