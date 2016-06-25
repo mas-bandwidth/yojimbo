@@ -1,5 +1,5 @@
 /*
-    Test Server
+    Client/Server Testbed
 
     Copyright © 2016, The Network Protocol Company, Inc.
 
@@ -23,85 +23,101 @@
 */
 
 #define SERVER 1
+#define CLIENT 1
+#define MATCHER 1
 
 #include "shared.h"
-#include <signal.h>
 
-static volatile int quit = 0;
-
-void interrupt_handler( int /*dummy*/ )
+int ClientServerMain()
 {
-    quit = 1;
-}
+    Matcher matcher;
 
-int ServerMain()
-{
-    GamePacketFactory packetFactory;
+    uint64_t clientId = 1;
 
-    //Address serverAddress( "127.0.0.1", ServerPort );
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
 
-    Address serverAddress = GetFirstNetworkAddress_IPV4();
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
 
-    if ( !serverAddress.IsValid() )
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
     {
-        printf( "error: no valid IPV4 address\n" );
+        printf( "error: request match failed\n" );
         return 1;
     }
 
-    serverAddress.SetPort( ServerPort );
+    GamePacketFactory packetFactory;
 
-    char serverAddressString[64];
-    serverAddress.ToString( serverAddressString, sizeof( serverAddressString ) );
-    printf( "server started on %s\n", serverAddressString );
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
 
+    GameNetworkInterface clientInterface( packetFactory, clientAddress );
     GameNetworkInterface serverInterface( packetFactory, serverAddress );
 
-    if ( serverInterface.GetError() != SOCKET_ERROR_NONE )
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
-        printf( "error: failed to initialize server socket\n" );
+        printf( "error: failed to initialize sockets\n" );
         return 1;
     }
     
+    const int NumIterations = 20;
+
+    double time = 0.0;
+
+    GameClient client( clientInterface );
+
     GameServer server( serverInterface );
 
     server.SetServerAddress( serverAddress );
 
-    server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
-
-    serverInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
-
     server.Start();
+    
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
-    double time = 0.0;
-
-    const double deltaTime = 0.1;
-
-    signal( SIGINT, interrupt_handler );    
-
-    while ( !quit )
+    for ( int i = 0; i < NumIterations; ++i )
     {
+        client.SendPackets();
         server.SendPackets();
 
+        clientInterface.WritePackets();
         serverInterface.WritePackets();
 
+        clientInterface.ReadPackets();
         serverInterface.ReadPackets();
 
+        client.ReceivePackets();
         server.ReceivePackets();
 
+        client.CheckForTimeOut();
         server.CheckForTimeOut();
 
-        time += deltaTime;
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            break;
+        }
 
+        if ( client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            client.Disconnect();
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && !client.IsConnected() && server.GetNumConnectedClients() == 0 )
+            break;
+
+        client.AdvanceTime( time );
         server.AdvanceTime( time );
 
+        clientInterface.AdvanceTime( time );
         serverInterface.AdvanceTime( time );
-
-        platform_sleep( deltaTime );
     }
-
-    printf( "\nserver stopped\n" );
-
-    server.DisconnectAllClients();
 
     return 0;
 }
@@ -109,6 +125,8 @@ int ServerMain()
 int main()
 {
     printf( "\n" );
+
+    verbose_logging = true;
 
     if ( !InitializeYojimbo() )
     {
@@ -118,7 +136,7 @@ int main()
 
     srand( (unsigned int) time( NULL ) );
 
-    int result = ServerMain();
+    int result = ClientServerMain();
 
     ShutdownYojimbo();
 
