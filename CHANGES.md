@@ -1,4 +1,14 @@
 
+Saturday June 25th, 2016
+========================
+
+Implement base64_encode_data and base64_decode_data
+
+Finish writing connect token to JSON.
+
+Added tests for base64 encode/decode data in test.cpp
+
+
 Friday June 24th, 2016
 ======================
 
