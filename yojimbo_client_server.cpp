@@ -89,22 +89,16 @@ namespace yojimbo
         GenerateKey( token.random );
     }
 
-    bool EncryptConnectToken( ConnectToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
+    bool EncryptConnectToken( const ConnectToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
     {
-        uint8_t message[ConnectTokenBytes];
+        char message[ConnectTokenBytes];
         memset( message, 0, ConnectTokenBytes );
-        WriteStream stream( message, ConnectTokenBytes );
-        if ( !token.Serialize( stream ) )
-            return false;
-
-        stream.Flush();
-        
-        if ( stream.GetError() )
+        if ( !WriteConnectTokenToJSON( token, message, ConnectTokenBytes ) )
             return false;
 
         uint64_t encryptedLength;
 
-        if ( !Encrypt_AEAD( message, ConnectTokenBytes - AuthBytes, encryptedMessage, encryptedLength, additional, additionalLength, nonce, key ) )
+        if ( !Encrypt_AEAD( (const uint8_t*)message, ConnectTokenBytes - AuthBytes, encryptedMessage, encryptedLength, additional, additionalLength, nonce, key ) )
             return false;
 
         assert( encryptedLength == ConnectTokenBytes );
@@ -124,14 +118,7 @@ namespace yojimbo
 
         assert( decryptedMessageLength == ConnectTokenBytes - AuthBytes );
 
-        ReadStream stream( decryptedMessage, ConnectTokenBytes - AuthBytes );
-        if ( !decryptedToken.Serialize( stream ) )
-            return false;
-
-        if ( stream.GetError() )
-            return false;
-
-        return true;
+        return ReadConnectTokenFromJSON( (const char*) decryptedMessage, decryptedToken );
     }
 
     static bool insert_number_as_string( ucl_object_t * object, const char * key, uint64_t number )
@@ -210,7 +197,9 @@ namespace yojimbo
         json_bytes = (int) strlen( json_output ) + 1;
 
         if ( json_bytes > outputSize )
+        {
             goto cleanup;
+        }
 
         result = true;
 
@@ -332,7 +321,7 @@ namespace yojimbo
         return true;
     }
 
-    bool ReadConnectTokenFromJSON( char * json, ConnectToken & connectToken )
+    bool ReadConnectTokenFromJSON( const char * json, ConnectToken & connectToken )
     {
         assert( json );
 
