@@ -15,8 +15,8 @@ Features implemented for this release:
 7. Unit tests for all of the functionality above
 8. Integrated client/server test program that demonstrates secure connect with tokens
 9. Separate client/server test programs that connect insecure connection (dev mode)
-10. Socket network interface implementation
-11. Simulator network interface implementation
+10. Network simulator support with latency, packet loss, jitter and duplicate packets.
+11. Socket network interface (send packets over UDP)
 
 ## 0.2.0 - Docker integration
 
