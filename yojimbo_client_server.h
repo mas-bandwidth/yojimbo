@@ -132,6 +132,9 @@ namespace yojimbo
 
             return true;
         }
+
+        bool operator == ( const ConnectToken & other );
+        bool operator != ( const ConnectToken & other );
     };
 
     struct ChallengeToken
