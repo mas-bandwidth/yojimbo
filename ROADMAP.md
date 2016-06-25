@@ -43,13 +43,13 @@ Once this feature set stabilizes libyojimbo will be ready for public release.
 
 ## 0.4.0 - Initial public release
 
-The estimated time for initial public release is early November 2016.
-
-At this time I intend to get more people using this library and build a community to determine which features should be implemented next.
+The estimated time for initial public release is early November 2016. At this time I intend to get more people using this library and build a community to determine which features should be implemented next.
 
 One possibility is to continue to extend this system to support entity synchronization, client-side prediction as per-FPS networking models, although it is quite likely that I would create a *new* network library build on top libyojimbo to implement that aspect, so as to not lock people using libyojimbo into one particular network model.
 
-Your feedback is welcome! Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
+Your feedback is most welcome! 
+
+Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 
 cheers
 
