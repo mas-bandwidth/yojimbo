@@ -176,13 +176,13 @@ namespace yojimbo
 
     void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId );
 
-    bool EncryptConnectToken( ConnectToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
+    bool EncryptConnectToken( const ConnectToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
 
     bool DecryptConnectToken( const uint8_t * encryptedMessage, ConnectToken & decryptedToken, const uint8_t * additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
 
     bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize );
 
-    bool ReadConnectTokenFromJSON( char * json, ConnectToken & connectToken );
+    bool ReadConnectTokenFromJSON( const char * json, ConnectToken & connectToken );
 
     bool GenerateChallengeToken( const ConnectToken & connectToken, const uint8_t * connectTokenMac, ChallengeToken & challengeToken );
 
