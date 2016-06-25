@@ -1,7 +1,6 @@
 Building libyojimbo
 ===================
 
-
 ## Building on Windows
 
 Download [premake 5](https://premake.github.io/download.html) and install the **premake5** executable somewhere in your path.
