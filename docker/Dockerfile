@@ -4,7 +4,7 @@ CMD ["/sbin/my_init"]
 
 WORKDIR /home
 
-RUN apt-get -y update && apt-get install -y wget make g++
+RUN apt-get -y update && apt-get install -y wget make g++ dh-autoreconf pkg-config
 
 RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodium-1.0.10.tar.gz && \
     tar -zxvf libsodium-1.0.10.tar.gz && \
@@ -14,6 +14,17 @@ RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodiu
     make install && \
     cd .. && \
     rm -rf libsodium* && \
+    ldconfig
+
+RUN wget https://github.com/vstakhov/libucl/archive/0.8.0.tar.gz && \
+    tar -zxvf 0.8.0.tar.gz && \
+    cd libucl-0.8.0 && \
+    ./autogen.sh && \
+    ./configure && \
+    make && make install && \
+    cd .. && \
+    rm -rf libucl* && \
+    rm 0.8.0.tar.gz && \
     ldconfig
 
 RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha9/premake-5.0.0-alpha9-linux.tar.gz && \ 
