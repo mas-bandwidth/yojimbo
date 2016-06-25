@@ -67,20 +67,11 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
-#include "yojimbo_json.h"
+#include <ucl.h>
 
 void test_json()
 {
     printf( "test json\n" );
-
-    // ...
-}
-
-#include <ucl.h>
-
-void test_ucl()
-{
-    printf( "test ucl\n" );
 
     // test json parsing
 
@@ -99,87 +90,103 @@ void test_ucl()
     check( object );
 
     // test iteration over parsed json structure
+
+    const ucl_object_t * employees = ucl_object_lookup( object, "employees" );
+
+    check( employees );
+    check( ucl_object_type( employees ) != UCL_OBJECT );
+
+    ucl_object_iter_t employee_itor = ucl_object_iterate_new( employees );
+
+    int employeeIndex = 0;
+
+    while ( true )
     {
-        const ucl_object_t * employees = ucl_object_lookup( object, "employees" );
+        const ucl_object_t * employee = ucl_object_iterate_safe( employee_itor, true );
 
-        check( employees );
-        check( ucl_object_type( employees ) != UCL_OBJECT );
+        if ( !employee )
+            break;
 
-        ucl_object_iter_t employee_itor = ucl_object_iterate_new( employees );
+        check( ucl_object_type( employee ) == UCL_OBJECT );
 
-        int employeeIndex = 0;
+        const ucl_object_t * firstName = ucl_object_lookup( employee, "firstName" );
+        const ucl_object_t * lastName = ucl_object_lookup( employee, "lastName" );
 
-        while ( true )
+        check( firstName );
+        check( lastName );
+
+        check( ucl_object_type( firstName ) != UCL_OBJECT );
+        check( ucl_object_type( lastName ) != UCL_OBJECT );
+
+        const char * firstNameString = ucl_object_tostring( firstName );
+        const char * lastNameString = ucl_object_tostring( lastName );
+
+        check( firstNameString );
+        check( lastNameString );
+
+        check( employeeIndex < 3 );
+        
+        switch( employeeIndex )
         {
-            const ucl_object_t * employee = ucl_object_iterate_safe( employee_itor, true );
-
-            if ( !employee )
-                break;
-
-            check( ucl_object_type( employee ) == UCL_OBJECT );
-
-            const ucl_object_t * firstName = ucl_object_lookup( employee, "firstName" );
-            const ucl_object_t * lastName = ucl_object_lookup( employee, "lastName" );
-
-            check( firstName );
-            check( lastName );
-
-            check( ucl_object_type( firstName ) != UCL_OBJECT );
-            check( ucl_object_type( lastName ) != UCL_OBJECT );
-
-            const char * firstNameString = ucl_object_tostring( firstName );
-            const char * lastNameString = ucl_object_tostring( lastName );
-
-            check( firstNameString );
-            check( lastNameString );
-
-            check( employeeIndex < 3 );
-            
-            switch( employeeIndex )
+            case 0:
             {
-                case 0:
-                {
-                    check( strcmp( firstNameString, "John" ) == 0 );
-                    check( strcmp( lastNameString, "Doe" ) == 0 );
-                }
-                break;
-
-                case 1:
-                {
-                    check( strcmp( firstNameString, "Anna" ) == 0 );
-                    check( strcmp( lastNameString, "Smith" ) == 0 );
-                }
-                break;
-
-                case 2:
-                {
-                    check( strcmp( firstNameString, "Peter" ) == 0 );
-                    check( strcmp( lastNameString, "Jones" ) == 0 );
-                }
-                break;
+                check( strcmp( firstNameString, "John" ) == 0 );
+                check( strcmp( lastNameString, "Doe" ) == 0 );
             }
+            break;
 
-            employeeIndex++;
+            case 1:
+            {
+                check( strcmp( firstNameString, "Anna" ) == 0 );
+                check( strcmp( lastNameString, "Smith" ) == 0 );
+            }
+            break;
+
+            case 2:
+            {
+                check( strcmp( firstNameString, "Peter" ) == 0 );
+                check( strcmp( lastNameString, "Jones" ) == 0 );
+            }
+            break;
         }
 
-        ucl_object_iterate_free( employee_itor );
+        employeeIndex++;
     }
 
-    // test json output
-
-    char * json_output = (char*) ucl_object_emit( object, UCL_EMIT_JSON_COMPACT );
-
-    check( strcmp( json_output, json ) == 0 );
-
-    free( json_output );
+    ucl_object_iterate_free( employee_itor );
 
     ucl_object_unref( object );
 
     ucl_parser_free( parser );
 
-    // test json generation and output
+    // test ucl object structure generation and json output
 
-    // ...
+    ucl_object_t * root = ucl_object_typed_new( UCL_OBJECT );
+
+    ucl_object_t * array = ucl_object_typed_new( UCL_ARRAY );
+
+    ucl_object_insert_key( root, array, "employees", 0, false );    
+
+    const char * firstNames[] = { "John", "Anna", "Peter" };
+    const char * lastNames[] = { "Doe", "Smith", "Jones" };
+
+    for ( int i = 0; i < 3; ++i )
+    {
+        ucl_object_t * entry = ucl_object_typed_new( UCL_OBJECT );
+
+        ucl_object_insert_key( entry, ucl_object_fromstring( firstNames[i] ), "firstName", 0, false );
+        ucl_object_insert_key( entry, ucl_object_fromstring( lastNames[i] ), "lastName", 0, false );
+
+        ucl_array_append( array, entry );
+    }
+
+    char * json_output = (char*) ucl_object_emit( root, UCL_EMIT_JSON_COMPACT );
+
+    check( strcmp( json_output, json ) == 0 );
+
+    free( json_output );
+
+    ucl_object_unref( root );
 }
 
 void test_base64()
@@ -3258,7 +3265,7 @@ void test_client_server_insecure_connect_timeout()
 int main()
 {
     srand( time( NULL ) );
-
+ 
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize yojimbo\n" );
@@ -3272,7 +3279,6 @@ int main()
 #endif // #if SOAK_TEST
     {
         test_json();
-        test_ucl();
         test_base64();
         test_bitpacker();
         test_stream();
