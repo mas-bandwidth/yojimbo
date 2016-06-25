@@ -24,7 +24,7 @@
 
 #include "yojimbo_client_server.h"
 #include <stdint.h>
-#include <stdint.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include <time.h>
 #include <ucl.h>
@@ -134,33 +134,50 @@ namespace yojimbo
         return true;
     }
 
-    static void insert_number_as_string( ucl_object_t * object, const char * key, uint64_t number )
+    static bool insert_number_as_string( ucl_object_t * object, const char * key, uint64_t number )
     {
         char buffer[256];
         sprintf( buffer, "%" PRId64, number );
-        ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
+        return ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
     }
 
-    static void insert_data_as_base64_string( ucl_object_t * object, const char * key, const uint8_t * data, int data_length )
+    static bool insert_data_as_base64_string( ucl_object_t * object, const char * key, const uint8_t * data, int data_length )
     {
         char * buffer = (char*) alloca( data_length * 2 );
         base64_encode_data( data, data_length, buffer, data_length * 2 );
-        ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
+        return ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
     }
 
     bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize )
     {
-        ucl_object_t * root = ucl_object_typed_new( UCL_OBJECT );
+        bool result = false;
 
-        insert_number_as_string( root, "protocolId", connectToken.protocolId );
+        ucl_object_t * root = NULL;
+        ucl_object_t * serverAddresses = NULL;
+        char * json_output = NULL;
+        int json_bytes = 0;
 
-        insert_number_as_string( root, "clientId", connectToken.clientId );
+        root = ucl_object_typed_new( UCL_OBJECT );
 
-        insert_number_as_string( root, "expiryTimestamp", connectToken.expiryTimestamp );
+        if ( !root )
+            goto cleanup;
 
-        insert_number_as_string( root, "numServerAddresses", connectToken.numServerAddresses );
+        if ( !insert_number_as_string( root, "protocolId", connectToken.protocolId ) )
+            goto cleanup;
 
-        ucl_object_t * serverAddresses = ucl_object_typed_new( UCL_ARRAY );
+        if ( !insert_number_as_string( root, "clientId", connectToken.clientId ) )
+            goto cleanup;
+
+        if ( !insert_number_as_string( root, "expiryTimestamp", connectToken.expiryTimestamp ) )
+            goto cleanup;
+
+        if ( !insert_number_as_string( root, "numServerAddresses", connectToken.numServerAddresses ) )
+            goto cleanup;
+
+        serverAddresses = ucl_object_typed_new( UCL_ARRAY );
+
+        if ( !serverAddresses )
+            goto cleanup;
 
         ucl_object_insert_key( root, serverAddresses, "serverAddresses", 0, false );
 
@@ -173,81 +190,146 @@ namespace yojimbo
             char serverAddressBase64[128];
             base64_encode_string( serverAddress, serverAddressBase64, sizeof( serverAddressBase64 ) );
 
-            ucl_array_append( serverAddresses, ucl_object_fromstring( serverAddressBase64 ) );
+            if ( !ucl_array_append( serverAddresses, ucl_object_fromstring( serverAddressBase64 ) ) )
+                goto cleanup;
         }
 
-        insert_data_as_base64_string( root, "clientToServerKey", connectToken.clientToServerKey, KeyBytes );
+        if ( !insert_data_as_base64_string( root, "clientToServerKey", connectToken.clientToServerKey, KeyBytes ) )
+            goto cleanup;
 
-        insert_data_as_base64_string( root, "serverToClientKey", connectToken.serverToClientKey, KeyBytes );
+        if ( !insert_data_as_base64_string( root, "serverToClientKey", connectToken.serverToClientKey, KeyBytes ) )
+            goto cleanup;
 
-        insert_data_as_base64_string( root, "random", connectToken.random, KeyBytes );
+        if ( !insert_data_as_base64_string( root, "random", connectToken.random, KeyBytes ) )
+            goto cleanup;
 
-        char * json_output = (char*) ucl_object_emit( root, UCL_EMIT_JSON_COMPACT );
+        json_output = (char*) ucl_object_emit( root, UCL_EMIT_JSON_COMPACT );
 
-        const int json_bytes = (int) strlen( json_output ) + 1;
+        assert( json_output );
+
+        json_bytes = (int) strlen( json_output ) + 1;
 
         if ( json_bytes > outputSize )
+            goto cleanup;
+
+        result = true;
+
+    cleanup:
+
+        if ( json_output )
         {
+            if ( result )
+            {
+                memcpy( output, json_output, json_bytes );
+            }
+
             free( json_output );
-            return false;
         }
 
-        free( json_output );
+        if ( root )
+        {
+            ucl_object_unref( root );
+        }
 
-        memcpy( output, json_output, json_bytes );
-
-        ucl_object_unref( root );
-
-        return true;
+        return result;
     }
 
-    static bool read_int_from_string( ucl_object_t * object, const char * key, int & value )
+    static bool read_int_from_string( ucl_object_t * parent, const char * key, int & value )
     {
-        (void)object;
-        (void)key;
-        (void)value;
-        return false;
-    }
-
-    static bool read_uint32_from_string( ucl_object_t * object, const char * key, uint32_t & value )
-    {
-        (void)object;
-        (void)key;
-        (void)value;
-        return false;
-    }
-
-    static bool read_uint64_from_string( ucl_object_t * object, const char * key, uint64_t & value )
-    {
-        (void)object;
-        (void)key;
-        (void)value;
-        return false;
-    }
-
-    static bool read_address_from_base64_string( const ucl_object_t * object, Address & address )
-    {
-        (void)object;
-        (void)address;
+        const ucl_object_t * object = ucl_object_lookup( parent, key );
 
         if ( !object || ucl_object_type( object ) != UCL_STRING )
             return false;
 
-        // ...
+        const char * string = ucl_object_tostring( object );
+        if ( !string )
+            return false;
 
-        return false;
+        value = atoi( string );
+
+        return true;
     }
 
-    static bool read_data_from_base64_string( const ucl_object_t * object, const char * key, uint8_t * data, int data_bytes )
+    static bool read_uint32_from_string( ucl_object_t * parent, const char * key, uint32_t & value )
     {
-        (void)object;
-        (void)key;
-        (void)data;
-        (void)data_bytes;
+        const ucl_object_t * object = ucl_object_lookup( parent, key );
 
-        // ...
+        if ( !object || ucl_object_type( object ) != UCL_STRING )
+            return false;
 
-        return false;        
+        const char * string = ucl_object_tostring( object );
+        if ( !string )
+            return false;
+
+        value = (uint32_t) strtoull( string, NULL, 10 );
+
+        return true;
+    }
+
+    static bool read_uint64_from_string( ucl_object_t * parent, const char * key, uint64_t & value )
+    {
+        const ucl_object_t * object = ucl_object_lookup( parent, key );
+
+        if ( !object || ucl_object_type( object ) != UCL_STRING )
+            return false;
+
+        const char * string = ucl_object_tostring( object );
+        if ( !string )
+            return false;
+
+        value = (uint64_t) strtoull( string, NULL, 10 );
+
+        return true;
+    }
+
+    static bool read_address_from_base64_string( const ucl_object_t * object, Address & address )
+    {
+        if ( !object || ucl_object_type( object ) != UCL_STRING )
+            return false;
+
+        const char * string = ucl_object_tostring( object );
+        if ( !string )
+            return false;
+
+        const int string_length = strlen( string );
+
+        const int MaxStringLength = 128;
+
+        if ( string_length > 128 )
+            return false;
+
+        char buffer[MaxStringLength*2];
+
+        base64_decode_string( string, buffer, sizeof( buffer ) );
+
+        address = Address( buffer );
+
+        return address.IsValid();
+    }
+
+    static bool read_data_from_base64_string( const ucl_object_t * parent, const char * key, uint8_t * data, int data_bytes )
+    {
+        const ucl_object_t * object = ucl_object_lookup( parent, key );
+
+        if ( !object || ucl_object_type( object ) != UCL_STRING )
+            return false;
+
+        const char * string = ucl_object_tostring( object );
+        if ( !string )
+            return false;
+
+        int string_length = strlen( string );
+
+        uint8_t * buffer = (uint8_t*) alloca( string_length );
+
+        int read_data_bytes = base64_decode_data( string, buffer, string_length );
+
+        if ( read_data_bytes != data_bytes )
+            return false;
+
+        memcpy( data, buffer, data_bytes );
+
+        return true;
     }
 
     bool ReadConnectTokenFromJSON( char * json, ConnectToken & connectToken )
@@ -273,7 +355,7 @@ namespace yojimbo
 
         root = ucl_parser_get_object( parser );
 
-        if ( root )
+        if ( !root )
             goto cleanup;
 
         if ( !read_uint32_from_string( root, "protocolId", connectToken.protocolId ) )
