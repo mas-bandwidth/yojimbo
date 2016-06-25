@@ -1,5 +1,5 @@
 /*
-    Test Server
+    Client/Server Testbed
 
     Copyright © 2016, The Network Protocol Company, Inc.
 
@@ -22,7 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define SERVER 1
+#define CLIENT 1
 
 #include "shared.h"
 #include <signal.h>
@@ -34,43 +34,44 @@ void interrupt_handler( int /*dummy*/ )
     quit = 1;
 }
 
-int ServerMain()
+int ClientMain( int argc, char * argv[] )
 {
+    (void) private_key;
+    
     GamePacketFactory packetFactory;
 
-    //Address serverAddress( "127.0.0.1", ServerPort );
+    GameNetworkInterface clientInterface( packetFactory );
 
-    Address serverAddress = GetFirstNetworkAddress_IPV4();
-
-    if ( !serverAddress.IsValid() )
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
     {
-        printf( "error: no valid IPV4 address\n" );
-        return 1;
-    }
-
-    serverAddress.SetPort( ServerPort );
-
-    char serverAddressString[64];
-    serverAddress.ToString( serverAddressString, sizeof( serverAddressString ) );
-    printf( "server started on %s\n", serverAddressString );
-
-    GameNetworkInterface serverInterface( packetFactory, serverAddress );
-
-    if ( serverInterface.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize server socket\n" );
+        printf( "error: failed to initialize client socket\n" );
         return 1;
     }
     
-    GameServer server( serverInterface );
+    char clientAddressString[64];
+    clientInterface.GetAddress().ToString( clientAddressString, sizeof( clientAddressString ) );
+    printf( "client started on %s\n", clientAddressString );
 
-    server.SetServerAddress( serverAddress );
+    clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
 
-    server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
+    GameClient client( clientInterface );
 
-    serverInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+    Address serverAddress( "192.168.1.153", ServerPort );
+    
+    //Address serverAddress( "127.0.0.1", ServerPort );
 
-    server.Start();
+    if ( argc == 2 )
+    {
+        Address commandLineAddress( argv[1] );
+        if ( commandLineAddress.IsValid() )
+        {
+            if ( commandLineAddress.GetPort() == 0 )
+                commandLineAddress.SetPort( ServerPort );
+            serverAddress = commandLineAddress;
+        }
+    }
+
+    client.InsecureConnect( serverAddress );
 
     double time = 0.0;
 
@@ -80,33 +81,41 @@ int ServerMain()
 
     while ( !quit )
     {
-        server.SendPackets();
+        client.SendPackets();
 
-        serverInterface.WritePackets();
+        clientInterface.WritePackets();
 
-        serverInterface.ReadPackets();
+        clientInterface.ReadPackets();
 
-        server.ReceivePackets();
+        client.ReceivePackets();
 
-        server.CheckForTimeOut();
+        client.CheckForTimeOut();
+
+        if ( client.IsDisconnected() )
+            break;
 
         time += deltaTime;
 
-        server.AdvanceTime( time );
+        client.AdvanceTime( time );
 
-        serverInterface.AdvanceTime( time );
+        clientInterface.AdvanceTime( time );
+
+        if ( client.ConnectionFailed() )
+            break;
 
         platform_sleep( deltaTime );
     }
 
-    printf( "\nserver stopped\n" );
+    if ( quit )
+        printf( "\nclient stopped\n" );
 
-    server.DisconnectAllClients();
+    if ( client.IsConnected() )
+        client.Disconnect();
 
     return 0;
 }
 
-int main()
+int main( int argc, char * argv[] )
 {
     printf( "\n" );
 
@@ -118,7 +127,7 @@ int main()
 
     srand( (unsigned int) time( NULL ) );
 
-    int result = ServerMain();
+    int result = ClientMain( argc, argv );
 
     ShutdownYojimbo();
 

@@ -14,7 +14,27 @@ Add test for read/write connect token to JSON. Make sure it reads back identical
 
 Convert the client/server token generation to use the JSON serialization of the token, instead of the C++ specific binary serialization (which is not compatible with web backends...)
 
-Alright that's enough for now. Taking a break.
+Removed old json test. Not required now
+
+Switched server to run on 127.0.0.1 so local client can connect. Previously, was not working unless you used docker.
+
+Plan: going need to setup an insecure example on 127.0.0.1 or an insecure mode for running client/server example.
+
+Then the secure mode will go through the matchmaker to find, so it won't matter that servers are running on docker instances on 127.0.0.1 or real addresses.
+
+Update BUILDING.md with instructions on how to build libucl
+
+Integrate libucl with Docker image. 
+
+Update description of container build steps for docker to include libucl.
+
+Seem to now have some problems connecting to the docker server from outside the container. Trying --net=host
+
+Nope. Need to level up my understanding of how Docker netorking works. Something is weird.
+
+Still can't get host networking working. Falling back to -p 50000:50000/udp. OK looks good.
+
+Good info about Docker networking commands here: https://www.ctl.io/developers/blog/post/docker-networking-rules/
 
 
 Friday June 24th, 2016
