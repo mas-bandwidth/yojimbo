@@ -15,22 +15,22 @@ Features implemented for this release:
 7. Unit tests for all of the functionality above
 8. Integrated client/server test program that demonstrates secure connect with tokens
 9. Separate client/server test programs that connect insecure connection (dev mode)
-10. Socket network interface implementation
-11. Simulator network interface implementation
+10. Network simulator support with latency, packet loss, jitter and duplicate packets.
+11. Socket network interface (send packets over UDP)
 
 ## 0.2.0 - Docker integration
 
 The goal of this release is to extend libyojimbo to support a web backend for clients who want to connect to servers securely with "connect tokens". The connect token and packet encryption feature has already been implemented in 0.1.0, but it is necessary to setup a backend matchmaker and dedicated server infrastruture to show how this would be used in production. 
 
-The goal of this release is to demonstrate how to do setup and inspect this backend using Docker and probably Docker Swarm from version 1.12 to run dedicated servers. The point is not to tie usage of libyojimbo to Docker based environments. You will be able to use it with whatever backend you wish, Docker is a means to an end because it is a convenient way to spin up an example backend on Windows, MacOSX or Unix.
+This release will use Docker to demonstrate how to do setup and run such an example backend. The point is not to tie usage of libyojimbo to Docker based environments. You will be able to use it with whatever backend you wish. Docker is a means to an end.
 
 So far this release has implemented support for running a libyojimbo server inside a container.
 
-I am currently working on extending libyojimbo connect tokens to be based around JSON so that they can be generated from other web languages such as JavaScript, Go, Python, Ruby and so on. Once this is done, I will implement a simple web backend, most likely in Go that provides clients with connect tokens on request. On receiving these tokens, clients will be able to securely connect to dedicated server instances running in a Docker Swarm. There will also be some communication from dedicated server instances back to the matchmaker over HTTPS, so the matchmaker is aware of the set of servers available for clients to connect to, and which servers have free slots to join and directs clients towards instances that have client slots that need to be filled.
+I am currently working on extending libyojimbo connect tokens to be based around JSON so that they can be generated from other web languages such as JavaScript, Go, Python, Ruby and so on. Once this is done, I will implement a simple web backend, most likely in Go that provides clients with connect tokens on request. On receiving these tokens, clients will be able to securely connect to dedicated server instances running in a Docker Swarm with encrypted packets. There will also be some communication from dedicated server instances back to the matchmaker over HTTPS, so the matchmaker is aware of the set of servers available for clients to connect to and which servers have free slots to join.
 
 ## 0.3.0 - Reliable messages
 
-Now that a demonstration of backend infrastructure and matchmaking is in place, the focus for this release returns to the network protocol. The goal with this release is to get the internal protocol to a stable API and feature set.
+Now that a demonstration of backend infrastructure and matchmaking is in place, the focus for this release returns to the network protocol. The goal with this release is to get the internal network protocol to a stable API and feature set.
 
 This release will extend the internal UDP-based network protocol to support: 
 
