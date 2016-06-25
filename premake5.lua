@@ -28,7 +28,7 @@ solution "Yojimbo"
 project "test"
     language "C++"
     kind "ConsoleApp"
-    files { "test.cpp " }
+    files { "test.cpp" }
     links { "yojimbo", "ucl" }
     configuration "Debug"
 		links { sodium_debug }
