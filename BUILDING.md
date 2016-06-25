@@ -69,7 +69,7 @@ IMPORTANT: The premake docker action takes a long time initially, because it has
 
 3. Download, build and install premake5
 
-4. Download, build and install libsodium
+4. Download, build and install libsodium and libucl
 
 5. Build release version of libyojimbo, run tests
 
@@ -85,8 +85,6 @@ Docker instances and not rebuilt unless necessary. For example, if you have alre
 Try it yourself by running "premake5 docker" once (it should build everything), then run it again. It will go straight
 to the server running on port 50000. Similarly, if you change some libyojimbo source it automatically rebuilds
 libyojimbo server and runs tests before starting the server. Impressive!
-
-ps. If you are running on windows it is necessary to check "Expose container ports on localhost" in Docker Network settings so the client can connect to 127.0.0.1:50000
 
 ## Feedback
 
