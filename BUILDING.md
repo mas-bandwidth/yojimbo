@@ -1,7 +1,6 @@
 Building libyojimbo
 ===================
 
-
 ## Building on Windows
 
 Download [premake 5](https://premake.github.io/download.html) and install the **premake5** executable somewhere in your path.
@@ -16,14 +15,15 @@ This creates Yojimbo.sln and a bunch of project files. Double click Yojimbo.sln 
 
 Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
-
 ## Building on MacOSX and Linux
 
 Download [premake 5](https://premake.github.io/download.html) then build and install from source.
 
-On MacOS X, installing sodium is most easily done via "brew install libsodium". If you don't have Brew, you can install it from <http://brew.sh>
+Next you need to install libsodium and libucl.
 
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium, or you may have to [build from source](https://github.com/jedisct1/libsodium/releases).
+On MacOS X, installing is most easily done via "brew install libsodium libucl". If you don't have Brew, you can install it from <http://brew.sh>.
+
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and libucl, or you may have to build from source from here: [libsodium](https://github.com/jedisct1/libsodium/releases) and [libucl](https://github.com/vstakhov/libucl).
 
 Next go to the command line under the libyojimbo directory and enter:
 
@@ -49,7 +49,6 @@ To make this more convenient I like to alias "pm" to "premake5" in bash, so buil
 
 And so on, which is much less typing (I run these shortcuts a lot!)
 
-
 ## Run a yojimbo server inside Docker
 
 **libyojimbo** supports Docker on Windows, Mac and Linux.
@@ -70,7 +69,7 @@ IMPORTANT: The premake docker action takes a long time initially, because it has
 
 3. Download, build and install premake5
 
-4. Download, build and install libsodium
+4. Download, build and install libsodium and libucl
 
 5. Build release version of libyojimbo, run tests
 
@@ -86,9 +85,6 @@ Docker instances and not rebuilt unless necessary. For example, if you have alre
 Try it yourself by running "premake5 docker" once (it should build everything), then run it again. It will go straight
 to the server running on port 50000. Similarly, if you change some libyojimbo source it automatically rebuilds
 libyojimbo server and runs tests before starting the server. Impressive!
-
-ps. If you are running on windows it is necessary to check "Expose container ports on localhost" in Docker Network settings so the client can connect to 127.0.0.1:50000
-
 
 ## Feedback
 
