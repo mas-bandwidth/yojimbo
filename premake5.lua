@@ -91,7 +91,6 @@ if _ACTION == "clean" then
 	os.rmdir ".vs"
     os.rmdir "Debug"
     os.rmdir "Release"
-    os.rmdir "docker/libyojimbo"
     if not os.is "windows" then
         os.execute "rm -f Makefile"
         os.execute "rm -f *.7z"
