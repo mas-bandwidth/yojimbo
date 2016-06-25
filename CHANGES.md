@@ -28,6 +28,16 @@ OK. Got a JSON test passing. Don't really want to leave this test in, but it's a
 
 Should be unblocked now.
 
+Sketched out functions:
+
+    bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize );
+
+    bool ReadConnectTokenFromJSON( char * json, ConnectToken & connectToken );
+
+Mostly implemented write connect token to JSON, but I need versions of encode/decode base64 that operate on data blocks, not on strings.
+
+This is necessary to send the keys over JSON, as they are not NULL terminated.
+
 
 Thursday June 23rd, 2016
 ========================
