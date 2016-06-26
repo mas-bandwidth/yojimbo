@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.2.0-preview3"
+libyojimbo_version = "0.2.0-preview4"
 
 if os.is "windows" then
     sodium_debug = "sodium-debug"
@@ -91,12 +91,12 @@ if _ACTION == "clean" then
 	os.rmdir ".vs"
     os.rmdir "Debug"
     os.rmdir "Release"
+    os.rmdir "release"
     if not os.is "windows" then
         os.execute "rm -f Makefile"
         os.execute "rm -f *.7z"
         os.execute "rm -f *.zip"
         os.execute "rm -f *.tar.gz"
-        os.execute "rm -f *.zip"
         os.execute "rm -f *.make"
         os.execute "rm -f test"
         os.execute "rm -f network_info"
@@ -105,6 +105,7 @@ if _ACTION == "clean" then
         os.execute "rm -f client_server"
         os.execute "rm -rf docker/libyojimbo"
         os.execute "find . -name .DS_Store -delete"
+        os.execute "cd docker/matcher && go clean"
     else
         os.execute "del /F /Q Makefile"
         os.execute "del /F /Q *.make"
@@ -122,18 +123,22 @@ if not os.is "windows" then
     newaction
     {
         trigger     = "release",
-        description = "Create up a release of this project",
+        description = "Create a release of this project",
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
-            files_to_zip = ".zip *.md *.cpp *.h premake5.lua sodium sodium-*.lib docker"
+            files_to_zip = "*.md *.cpp *.h *.lib premake5.lua sodium docker"
             os.execute( "rm -rf *.zip *.tar.gz *.7z" );
             os.execute( "rm -rf docker/libyojimbo" );
-            os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. files_to_zip )
-            os.execute( "7z a -mx=9 -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z *.md *.cpp *.h premake5.lua sodium sodium-*.lib" )
+            os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )
+            os.execute( "7z a -y -mx=9 -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z " .. files_to_zip )
             os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
             os.execute( "tar -zcvf libyojimbo-" .. libyojimbo_version .. ".tar.gz libyojimbo-" .. libyojimbo_version );
             os.execute( "rm -rf libyojimbo-" .. libyojimbo_version );
+            os.execute( "mkdir -p release" );
+            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".7z release" );
+            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".zip release" );
+            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".tar.gz release" );
             os.execute( "echo" );
             os.execute( "echo \"*** SUCCESSFULLY CREATED RELEASE - libyojimbo-" .. libyojimbo_version .. " *** \"" );
             os.execute( "echo" );
@@ -227,6 +232,15 @@ if not os.is "windows" then
 			os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 50000:50000/udp networkprotocol:yojimbo-server"
 		end
 	}
+
+    newaction
+    {
+        trigger     = "matcher",
+        description = "Build and run the matchmaker web service inside a docker container",
+        execute = function ()
+            os.execute "cd docker/matcher && docker build -t \"networkprotocol:yojimbo-matcher\" . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
+        end
+    }
 
 else
 
