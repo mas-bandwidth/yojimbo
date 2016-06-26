@@ -1,4 +1,30 @@
 
+Sunday June 26th, 2016
+======================
+
+Tracked down why releases were missing Docker directory. Stupid mistake in the premake5 release action. I must have been too tired.
+
+Added a simple matcher in golang that returns some JSON on HTTP request. To run "premake5 matcher".
+
+Will want to run this matcher *inside* Docker, not natively, so find out how to do this before moving any further.
+
+Created a simple go docker instance that builds and runs the matcher.go
+
+This is *not* an ideal deployment, just like the server, because the docker instances are fat (they contain SDK, building and so on... not just the end result application). But it is the easiest way to demonstrate and get everything up and running for people who want to try out libyojimbo backend matcher.
+
+For example, for distributing go applications, this is better approach: http://blog.dimroc.com/2015/08/20/cross-compiled-go-with-docker/
+
+Install libsodium in the docker container for the matcher. We're going to need it.
+
+Update go web server to use: http://www.gorillatoolkit.org/pkg/mux
+
+Hack up a dummy connect token and marshall it to json in the web response
+
+Now get a correct timestamp for expiry in the token.
+
+Continued filling out the connect token JSON. Now everything is filled in, and I need to start integrating with libsodium.
+
+
 Saturday June 25th, 2016
 ========================
 
@@ -35,6 +61,10 @@ Nope. Need to level up my understanding of how Docker netorking works. Something
 Still can't get host networking working. Falling back to -p 50000:50000/udp. OK looks good.
 
 Good info about Docker networking commands here: https://www.ctl.io/developers/blog/post/docker-networking-rules/
+
+Looks like libucl is poorly maintained and does not compile clean under Visual Studio. Shame.
+
+I am thinking of switching to jsmn for parsing, and just pooping out the format with sprintf and strcat on write.
 
 
 Friday June 24th, 2016

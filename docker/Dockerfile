@@ -2,7 +2,7 @@ FROM phusion/baseimage:0.9.18
 
 CMD ["/sbin/my_init"]
 
-WORKDIR /home
+WORKDIR /app
 
 RUN apt-get -y update && apt-get install -y wget make g++ dh-autoreconf pkg-config
 
@@ -32,9 +32,9 @@ RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha9
     rm premake-5.0.0-alpha9-linux.tar.gz && \
     mv premake5 /usr/local/bin
 
-ADD libyojimbo /home/libyojimbo
+ADD libyojimbo /app/libyojimbo
 
-RUN cd libyojimbo && premake5 gmake && make all config=release_x64 && ./bin/test && cp /home/libyojimbo/bin/server /home && rm -rf libyojimbo
+RUN cd libyojimbo && premake5 gmake && make all config=release_x64 && ./bin/test && cp /app/libyojimbo/bin/server /app && rm -rf libyojimbo
 
 CMD ./server
 
