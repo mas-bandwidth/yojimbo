@@ -364,6 +364,9 @@ namespace yojimbo
         if ( !serverAddresses || ucl_object_type( serverAddresses ) != UCL_ARRAY )
             goto cleanup;
 
+        if ( connectToken.numServerAddresses <= 0 || connectToken.numServerAddresses > MaxServersPerConnectToken )
+            goto cleanup;
+
         for ( int i = 0; i < connectToken.numServerAddresses; ++i )
         {
             const ucl_object_t * serverAddress = ucl_array_find_index( serverAddresses, i );

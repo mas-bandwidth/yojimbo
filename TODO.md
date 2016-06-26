@@ -1,13 +1,22 @@
 # TODO
 
--------------
+Server addresses array in matcher should be passed in as raw strings and then base64'd inside GenerateConnectToken
 
-Download libucl on windows for pre-build libraries and store header.
+Now work out how to integrate with libsodium in go
 
-Make sure everything works on Windows, including Docker, and connect to docker server from windows client.
+Implement "GenerateKey" function
 
--------------
+Encrypt the connect token with the private key via libsodium.
 
-Switch to golang and write a simple webservice to provide a connect token on request, initially just to one server running on 127.0.0.1:50000
+Base64 this token.
 
-Switch back to C++ and integrate a HTTPS library to talk to this web service and request a match.
+Update web app to generate a response with JSON for data, with a base64 encoding of the encrypted connect token,
+and then JSON fields for all the other bits of data the client needs to have returned to them.
+
+Now work out how to get the client passing in the parameters of what they want for the match, eg. their clientId
+and the protocolId they are looking for.
+
+Update the web response to be on a different URI, eg. /match
+
+What to return if no match can be found? JSON with no servers to connect to, failure error code? no connect token?
+
