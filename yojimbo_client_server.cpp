@@ -91,9 +91,9 @@ namespace yojimbo
 
     bool EncryptConnectToken( const ConnectToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
     {
-        char message[ConnectTokenBytes];
-        memset( message, 0, ConnectTokenBytes );
-        if ( !WriteConnectTokenToJSON( token, message, ConnectTokenBytes ) )
+        char message[ConnectTokenBytes-AuthBytes];
+        memset( message, 0, ConnectTokenBytes - AuthBytes );
+        if ( !WriteConnectTokenToJSON( token, message, ConnectTokenBytes - AuthBytes ) )
             return false;
 
         uint64_t encryptedLength;
@@ -421,9 +421,9 @@ namespace yojimbo
 
     bool EncryptChallengeToken( ChallengeToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
     {
-        uint8_t message[ChallengeTokenBytes];
-        memset( message, 0, ChallengeTokenBytes );
-        WriteStream stream( message, ChallengeTokenBytes );
+        uint8_t message[ChallengeTokenBytes - AuthBytes];
+        memset( message, 0, ChallengeTokenBytes - AuthBytes );
+        WriteStream stream( message, ChallengeTokenBytes - AuthBytes );
         if ( !token.Serialize( stream ) )
             return false;
 
