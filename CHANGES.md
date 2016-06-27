@@ -24,6 +24,25 @@ Now get a correct timestamp for expiry in the token.
 
 Continued filling out the connect token JSON. Now everything is filled in, and I need to start integrating with libsodium.
 
+Updated the web response to be on /match so I can put something else on / (eg. a stats web page or something)
+
+Working out how to get access to libsodium in go.
+
+Wow. It's really easy to call into C from golang: http://akrennmair.github.io/golang-cgo-slides/#1 https://github.com/golang/go/wiki/cgo
+
+Got sodium initialize working from inside the matcher. Fantastic.
+
+Now to call the libsodium function to generate a random key. Working!
+
+Spotted a potential buffer truncation in EncryptConnectToken and EncryptChallengeToken. Fixed.
+
+I need the ability to create a nonce and then increase it with each web request. Done. Global uint64
+
+Implemented the equivalent in Go of my Encrypt_AEAD function
+
+Added a MatcherResponse struct in Go which contains the stuff which should JSON in the http://localhost:8080/match response.
+
+
 
 Saturday June 25th, 2016
 ========================

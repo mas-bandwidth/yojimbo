@@ -14,8 +14,9 @@ RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodiu
 
 ADD matcher.go matcher.go
 
-RUN go get github.com/gorilla/mux && \
-    go build -o /go/bin/matcher matcher.go
+RUN go get github.com/gorilla/mux
+
+RUN go build -o /go/bin/matcher matcher.go
 
 ENTRYPOINT /go/bin/matcher
 
