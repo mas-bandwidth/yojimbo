@@ -35,9 +35,7 @@ void interrupt_handler( int /*dummy*/ )
 }
 
 int ClientMain( int argc, char * argv[] )
-{
-    (void) private_key;
-    
+{   
     GamePacketFactory packetFactory;
 
     GameNetworkInterface clientInterface( packetFactory );
@@ -48,9 +46,7 @@ int ClientMain( int argc, char * argv[] )
         return 1;
     }
     
-    char clientAddressString[64];
-    clientInterface.GetAddress().ToString( clientAddressString, sizeof( clientAddressString ) );
-    printf( "client started on %s\n", clientAddressString );
+    printf( "client started on port %d\n", clientInterface.GetAddress().GetPort() );
 
     clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
 

@@ -2,7 +2,6 @@ package main
 
 // #cgo pkg-config: libsodium
 // #include <sodium.h>
-// #include <stdlib.h>
 import "C"
 
 import (
@@ -14,6 +13,7 @@ import (
     "net/http"
     "encoding/json"
     "encoding/base64"
+    "encoding/binary"
     "github.com/gorilla/mux"
 )
 
@@ -22,9 +22,10 @@ const NonceBytes = 8
 const KeyBytes = 32
 const AuthBytes = 16
 const MacBytes = 16
+const ConnectTokenBytes = 1024
 const MaxServersPerConnectToken = 8
 const ConnectTokenExpirySeconds = 10
-const ServerAddress = "127.0.0.1:5000"
+const ServerAddress = "127.0.0.1:50000"
 
 type ConnectToken struct {
     ProtocolId         string `json:"protocolId"`
@@ -42,18 +43,20 @@ func GenerateKey() [] byte {
     return key[:]
 }
 
-func EncryptAEAD( message [] byte, additional [] byte, nonce [] byte, key [] byte ) ( []byte, bool ) {
-    encrypted := make( [] byte, len( message ) + AuthBytes )
+func Encrypt( message [] byte, nonce uint64, key [] byte ) ( []byte, bool ) {
+    nonceBytes := make( []byte, 8 )
+    binary.LittleEndian.PutUint64( nonceBytes, nonce )
+    encrypted := make( []byte, len(message) + AuthBytes )
     encryptedLengthLongLong := ( C.ulonglong( len( encrypted ) ) )
-    ok := int( C.crypto_aead_aes256gcm_encrypt(
-        (*C.uchar) ( &encrypted[0]),
+    ok := int( C.crypto_aead_chacha20poly1305_encrypt(
+        (*C.uchar) ( &encrypted[0] ),
         &encryptedLengthLongLong,
         (*C.uchar) ( &message[0] ),
         (C.ulonglong) ( len( message ) ),
-        (*C.uchar) ( &additional[0] ),
-        (C.ulonglong) ( len( additional ) ),
         (*C.uchar) ( nil ),
-        (*C.uchar) ( &nonce[0]),
+        (C.ulonglong) ( 0 ),
+        (*C.uchar) ( nil ),
+        (*C.uchar) ( &nonceBytes[0] ),
         (*C.uchar) ( &key[0] ) ) ) == 0
     return encrypted, ok
 }
@@ -72,20 +75,23 @@ func GenerateConnectToken( protocolId uint32, clientId uint64, serverAddresses [
 
 func EncryptConnectToken( connectToken ConnectToken, nonce uint64 ) ( []byte, bool ) {
     connectTokenJSON, error := json.Marshal( connectToken )
+    tokenData := make( []byte, ConnectTokenBytes - AuthBytes )
+    for i := 0; i < len( connectTokenJSON ); i++ { tokenData[i] = connectTokenJSON[i] }
     if ( error != nil ) { return []byte(nil), false }
-    // ...
-    return []byte( connectTokenJSON ), true
+    return Encrypt( tokenData, nonce, PrivateKey )
 }
 
 type MatchResponse struct {
     ConnectToken       string `json:"connectToken"`
+    ConnectNonce       string `json:"connectNonce"`
     ServerAddresses [] string `json:"serverAddresses"`
-    ClientToServerKey  string `json:"clientToServerKey"`     // IMPORTANT: Make sure you send this over HTTPS!
+    ClientToServerKey  string `json:"clientToServerKey"`
     ServerToClientKey  string `json:"serverToClientKey"`
 }
 
 func GenerateMatchResponse( connectToken ConnectToken, nonce uint64 ) ( MatchResponse, bool ) {
     matchResponse := MatchResponse {}
+    matchResponse.ConnectNonce = strconv.FormatUint( nonce, 10 )
     encryptedConnectToken, ok := EncryptConnectToken( connectToken, nonce )
     if ( ok ) { matchResponse.ConnectToken = base64.StdEncoding.EncodeToString( encryptedConnectToken ) }
     matchResponse.ServerAddresses = connectToken.ServerAddresses
@@ -112,7 +118,7 @@ func MatchHandler( w http.ResponseWriter, r * http.Request ) {
 
 func main() {
     result := int( C.sodium_init() )
-    if result != 0 { panic( "failed to initiliaze sodium" ) }
+    if result != 0 { panic( "failed to initialize sodium" ) }
     fmt.Printf( "\nstarted matchmaker on port %d\n\n", Port )
     r := mux.NewRouter()
     r.HandleFunc( "/match", MatchHandler )

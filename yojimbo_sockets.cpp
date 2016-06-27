@@ -326,6 +326,11 @@ namespace yojimbo
         return m_socket->GetError();
     }
 
+    const Address & SocketInterface::GetAddress() const
+    {
+        return m_socket->GetAddress();
+    }
+
     bool SocketInterface::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
         return m_socket->SendPacket( to, packetData, packetBytes );
