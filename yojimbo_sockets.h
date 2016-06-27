@@ -101,6 +101,8 @@ namespace yojimbo
 
         int GetError() const;
 
+        const Address & GetAddress() const;
+
     protected:
 
         virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );

@@ -3161,6 +3161,29 @@ void test_client_server_insecure_connect_timeout()
 
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
+void test_matcher()
+{
+    char serverAddress[64];
+
+    const char serverAddressBase64[] = "MTI3LjAuMC4xOjUwMDAw";
+
+    base64_decode_string( serverAddressBase64, serverAddress, sizeof( serverAddress ) );
+
+    check( strcmp( serverAddress, "127.0.0.1:50000" ) == 0 );
+
+    const char encryptedConnectTokenBase64[] = "jjArwMgsZZtzkrcpXet9IRxTGidZk4a+0sGUV6XGa0jbE/SBFJbmAtQeYo+56o5GVPmEhrj5Gzj+V4jfpNgQ2s3Mgvh4l8B/VJqmktR3ETmuIsJGLrnl5O/04otUS5+cZhonUvkY3QqsgSANjAg0aGJ1ggnFVUSwifoZC//1URGN7cgNFBpOoJhAH3AZYPBUjaIgsZew/ZhlOYEj1KKu2w9jQVzuzi1tdryB0xSNSa3B+dAexlnd2HDduhw3psxMtthSi32gzXeUk9ORt5Gkd64WqqHR+Bt6ID6kZYZeTENT6Hz2izTqGEUYB2dR+pHZYxsykLKaEE2oEn60fw/pFVUyXw4qXjmEzl9IlFvD+kNpnGVgGgWIcwa5NWFpltAx4Ag+Q7ZbXk1I6/2AzK9mn1tK36reBQssyGbS2Kzys3dXG3RVnmqLbF+Su894NP+4vJJTNUmgdaZslx3aTe2Xk0nWSHQTyTCOeYXPNZ2Y91xMZkiymANfcbx7A8qxwxU8NzgGkB3FmyVlGYeJLjEMXXj3et/h6Q2a/emFLlcNTis+WB12ogLGac6OQONPrn7j3FrFeIArRUNhYB834YJhOg0VVSF6EKIidD0tvjOxGawrKzQFtbMR9Y/h6IwhBJa6o0kFHhh+mxgY3DoEdZVAxDDmbnk67B5fnALNsdc8GuZoRCnckazF/4KlhigKWjdwzvNO6OSbU7Fb44XSIgnZ2IyUovKDarjH7ib+k3+Nmkm0kYe7W0UZ4zgGG2cr4g2bfEwXJ/3khiYmxnMndVwieC/SQuXkiTomlOVRV7FdtUwYSUuJ0VyhhdY1OjtCji5HhpECWPIdJeKhCVgoMlYo4Ulg0y/s/oOGHVSBQtxdT1Ii5p3+HTwEJV5u5nrCHBIUXQQajq9oLUoHB7C/elxwQn+KNvFEjEiSeUHIaoELyxJ0ujS9YVToqyA3p1CqOkOASUwtdgkZuEXNDzmkpuffIy/jNQK4bn7mck9wgS/yx9WkOTzyosfAvsL1w2CdAR8kya3sAehCCe+kRz1ZnWOeipNbgkZ6PF4qkCrsOIvYFgTzZy6gyQRsxaZ7cGvDeH4Vw4R60sjqFFImn6uZZsGWJXdvi4H40xOk5+u0O7OwqE72zWId/4VfS+77OkVwPQYq+S+KAARnsbx0FPgi77FnEDfbL+3fmARmSVUVyk4JOEkTwS+FnvVKyD1Ih/DexiH1W1G9T4OFGyByesjmh5F984CAtf9HI6WI+VFxRFUVab4HsQthvBkCc5Lxc37SePC99Nne1HJAbsPZEz7ebnl7FJvX/G0QqTW2UWhrK82FgK4X8MRyeC68xu1Gxms3JQh6inbiQlr/kclz4qF1pb5LeQ==";
+
+    uint8_t encryptedConnectToken[ConnectTokenBytes];
+
+    int encryptedLength = base64_decode_data( encryptedConnectTokenBase64, encryptedConnectToken, ConnectTokenBytes );
+
+    printf( "encrypted length = %d\n", encryptedLength );
+
+    const uint64_t nonce = 0;
+    ConnectToken connectToken;
+    check( DecryptConnectToken( encryptedConnectToken, connectToken, NULL, 0, (const uint8_t*) &nonce, private_key ) );
+}
+
 int main()
 {
     srand( time( NULL ) );
@@ -3170,11 +3193,6 @@ int main()
         printf( "error: failed to initialize yojimbo\n" );
         exit( 1 );
     }
-
-    uint8_t key[KeyBytes];
-    GenerateKey( key );
-    print_bytes( "key", key, KeyBytes );
-    exit(0);
 
 #if SOAK_TEST
     signal( SIGINT, interrupt_handler );    
@@ -3211,6 +3229,7 @@ int main()
         test_client_server_insecure_connect();
         test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
+        test_matcher();
 
 #if SOAK_TEST
         if ( quit || iter == 100 ) 

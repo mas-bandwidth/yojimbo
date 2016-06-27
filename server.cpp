@@ -38,21 +38,9 @@ int ServerMain()
 {
     GamePacketFactory packetFactory;
 
-    //Address serverAddress( "127.0.0.1", ServerPort );
+    printf( "server started on port %d\n", ServerPort );
 
-    Address serverAddress = GetFirstNetworkAddress_IPV4();
-
-    if ( !serverAddress.IsValid() )
-    {
-        printf( "error: no valid IPV4 address\n" );
-        return 1;
-    }
-
-    serverAddress.SetPort( ServerPort );
-
-    char serverAddressString[64];
-    serverAddress.ToString( serverAddressString, sizeof( serverAddressString ) );
-    printf( "server started on %s\n", serverAddressString );
+    Address serverAddress( "0.0.0.0", ServerPort );
 
     GameNetworkInterface serverInterface( packetFactory, serverAddress );
 
