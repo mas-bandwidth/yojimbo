@@ -3171,6 +3171,11 @@ int main()
         exit( 1 );
     }
 
+    uint8_t key[KeyBytes];
+    GenerateKey( key );
+    print_bytes( "key", key, KeyBytes );
+    exit(0);
+
 #if SOAK_TEST
     signal( SIGINT, interrupt_handler );    
     int iter = 0;

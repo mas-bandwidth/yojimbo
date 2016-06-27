@@ -42,6 +42,9 @@ Implemented the equivalent in Go of my Encrypt_AEAD function
 
 Added a MatcherResponse struct in Go which contains the stuff which should JSON in the http://localhost:8080/match response.
 
+Need to store a private key in a global somewhere.
+
+Save the same private key in the shared.h so C++ has it in common.
 
 
 Saturday June 25th, 2016
