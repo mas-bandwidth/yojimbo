@@ -46,6 +46,12 @@ Need to store a private key in a global somewhere.
 
 Save the same private key in the shared.h so C++ has it in common.
 
+Client was having trouble connecting to server outside of docker or within, solution was to not bind the server socket to any particular address.
+
+Encrypt the connect token with the private key via libsodium before it is base64'd
+
+Added nonce to the match response. It needs to be passed back to the client, because the server needs it to decrypt the connect token.
+
 
 Saturday June 25th, 2016
 ========================
