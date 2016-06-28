@@ -118,10 +118,11 @@ var PrivateKey = [] byte { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea,
                            0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1 };
 
 func MatchHandler( w http.ResponseWriter, r * http.Request ) {
-    clientId := uint64(1)
-    protocolId := uint32(0x12341561)
+    vars := mux.Vars( r )
+    clientId, _ := strconv.ParseUint( vars["clientId"], 10, 64 )
+    protocolId, _ := strconv.ParseUint( vars["protocolId"], 10, 32 )
     serverAddresses := []string { base64.StdEncoding.EncodeToString( []byte( ServerAddress ) ) }
-    connectToken := GenerateConnectToken( protocolId, clientId, serverAddresses[:] )
+    connectToken := GenerateConnectToken( uint32( protocolId ), clientId, serverAddresses[:] )
     matchResponse, ok := GenerateMatchResponse( connectToken, MatchNonce )
     if ( ok ) { json.NewEncoder(w).Encode( matchResponse ); MatchNonce++ }
 }
@@ -131,6 +132,6 @@ func main() {
     if result != 0 { panic( "failed to initialize sodium" ) }
     fmt.Printf( "\nstarted matchmaker on port %d\n\n", Port )
     r := mux.NewRouter()
-    r.HandleFunc( "/match", MatchHandler )
+    r.HandleFunc( "/match/{protocolId:[0-9]+}/{clientId:[0-9]+}", MatchHandler )
     log.Fatal( http.ListenAndServe( ":" + strconv.Itoa(Port), r ) )
 }
