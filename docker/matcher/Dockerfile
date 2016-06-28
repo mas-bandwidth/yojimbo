@@ -15,9 +15,9 @@ RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodiu
 RUN go get github.com/gorilla/mux
 
 RUN cd /go/bin && \
-    openssl genrsa -out server.key 2048 && \
+    openssl genrsa -out server.key 4096 && \
     openssl ecparam -genkey -name secp384r1 -out server.key && \
-    openssl req -new -x509 -sha256 -key server.key -out server.pem -days 3650 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com"
+    openssl req -new -x509 -sha256 -key server.key -out server.pem -days 3650 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=localhost"
 
 ADD matcher.go matcher.go
 
