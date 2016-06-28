@@ -16,6 +16,14 @@ Found the bug. The private_key static global var as getting clobbered with a dif
 
 Encrypted connect token now properly base64's, decrypts in C++. Ready to go to the next step.
 
+Now work out how to get the client passing in the parameters of what they want for the match, eg. their clientId
+and the protocolId they are looking for.
+
+URL is now: curl http://localhost:8080/match/123125151/2
+
+For a protocol id of 123125151 and a client id of 2
+
+
 
 Sunday June 26th, 2016
 ======================
