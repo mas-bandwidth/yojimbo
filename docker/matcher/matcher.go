@@ -124,6 +124,7 @@ func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     serverAddresses := []string { base64.StdEncoding.EncodeToString( []byte( ServerAddress ) ) }
     connectToken := GenerateConnectToken( uint32( protocolId ), clientId, serverAddresses[:] )
     matchResponse, ok := GenerateMatchResponse( connectToken, MatchNonce )
+    w.Header().Set( "Content-Type", "application/json" )
     if ( ok ) { json.NewEncoder(w).Encode( matchResponse ); MatchNonce++ }
 }
 
@@ -133,5 +134,5 @@ func main() {
     fmt.Printf( "\nstarted matchmaker on port %d\n\n", Port )
     r := mux.NewRouter()
     r.HandleFunc( "/match/{protocolId:[0-9]+}/{clientId:[0-9]+}", MatchHandler )
-    log.Fatal( http.ListenAndServe( ":" + strconv.Itoa(Port), r ) )
+    log.Fatal( http.ListenAndServeTLS( ":" + strconv.Itoa(Port), "server.pem", "server.key", r ) )
 }
