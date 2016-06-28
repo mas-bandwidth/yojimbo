@@ -228,9 +228,11 @@ namespace yojimbo
         printf( "%s: ", label );
         for ( int i = 0; i < data_bytes; ++i )
         {
-            printf( "%02x", (int) data[i] );
+            printf( "0x%02x,", (int) data[i] );
+            /*
             if ( i != data_bytes - 1 )
                 printf( "-" );
+                */
         }
         printf( " (%d bytes)\n", data_bytes );
     }
