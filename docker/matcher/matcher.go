@@ -31,6 +31,7 @@ type ConnectToken struct {
     ProtocolId         string `json:"protocolId"`
     ClientId           string `json:"clientId"`
     ExpiryTimestamp    string `json:"expiryTimestamp"`
+    NumServerAddresses string `json:"numServerAddresses"`
     ServerAddresses [] string `json:"serverAddresses"`
     ClientToServerKey  string `json:"clientToServerKey"`
     ServerToClientKey  string `json:"serverToClientKey"`
@@ -41,6 +42,12 @@ func GenerateKey() [] byte {
     key := [KeyBytes]byte {}
     C.randombytes_buf( unsafe.Pointer(&key), KeyBytes )
     return key[:]
+}
+
+func PrintBytes( label string, data [] byte ) {
+    fmt.Printf( "%s: ", label )
+    for i := 0; i < len( data ); i++ { fmt.Printf( "0x%02x,", data[i] ) }
+    fmt.Printf( "\n" )
 }
 
 func Encrypt( message [] byte, nonce uint64, key [] byte ) ( []byte, bool ) {
@@ -58,6 +65,8 @@ func Encrypt( message [] byte, nonce uint64, key [] byte ) ( []byte, bool ) {
         (*C.uchar) ( nil ),
         (*C.uchar) ( &nonceBytes[0] ),
         (*C.uchar) ( &key[0] ) ) ) == 0
+//    PrintBytes( "nonce", nonceBytes )
+//    PrintBytes( "encrypted", encrypted )
     return encrypted, ok
 }
 
@@ -66,6 +75,7 @@ func GenerateConnectToken( protocolId uint32, clientId uint64, serverAddresses [
     connectToken.ProtocolId = strconv.FormatUint( uint64(protocolId), 10 )
     connectToken.ClientId = strconv.FormatUint( clientId, 10 )
     connectToken.ExpiryTimestamp = strconv.FormatUint( uint64( time.Now().Unix() + ConnectTokenExpirySeconds ), 10 )
+    connectToken.NumServerAddresses = strconv.Itoa( len( serverAddresses ) )
     connectToken.ServerAddresses = serverAddresses
     connectToken.ClientToServerKey = base64.StdEncoding.EncodeToString( GenerateKey() )
     connectToken.ServerToClientKey = base64.StdEncoding.EncodeToString( GenerateKey() )

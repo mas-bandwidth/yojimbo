@@ -45,8 +45,6 @@ int ClientServerMain()
 
     memset( connectTokenNonce, 0, NonceBytes );
 
-    GenerateKey( private_key );
-
     if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
