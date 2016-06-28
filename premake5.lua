@@ -39,7 +39,7 @@ project "connect"
     language "C++"
     kind "ConsoleApp"
     files { "connect.cpp" }
-    links { "yojimbo", "ucl", "mbedtls", "mbedcrypto", "mbedx509" }
+    links { "yojimbo", "ucl", "mbedtls", "mbedx509", "mbedcrypto" }
     configuration "Debug"
         links { sodium_debug }
     configuration "Release"
@@ -49,7 +49,7 @@ project "network_info"
     language "C++"
     kind "ConsoleApp"
     files { "network_info.cpp" }
-    links { "yojimbo", "ucl" }
+    links { "yojimbo", "ucl", "mbedtls", "mbedx509", "mbedcrypto" }
     configuration "Debug"
 		links { sodium_debug }
 	configuration "Release"
@@ -59,6 +59,7 @@ project "yojimbo"
     language "C++"
     kind "StaticLib"
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp" }
+    links { "ucl", "mbedtls", "mbedx509", "mbedcrypto" }
     configuration "Debug"
 		links { sodium_debug }
 	configuration "Release"
@@ -68,7 +69,7 @@ project "client"
     language "C++"
     kind "ConsoleApp"
     files { "client.cpp", "shared.h" }
-    links { "yojimbo", "ucl" }
+    links { "yojimbo", "ucl", "mbedtls", "mbedx509", "mbedcrypto" }
     configuration "Debug"
 		links { sodium_debug }
 	configuration "Release"
@@ -78,7 +79,7 @@ project "server"
     language "C++"
     kind "ConsoleApp"
     files { "server.cpp", "shared.h" }
-    links { "yojimbo", "ucl" }
+    links { "yojimbo", "ucl", "mbedtls", "mbedx509", "mbedcrypto" }
     configuration "Debug"
 		links { sodium_debug }
 	configuration "Release"
@@ -88,7 +89,7 @@ project "client_server"
     language "C++"
     kind "ConsoleApp"
     files { "client_server.cpp", "shared.h" }
-    links { "yojimbo", "ucl" }
+    links { "yojimbo", "ucl", "mbedtls", "mbedx509", "mbedcrypto" }
     configuration "Debug"
 		links { sodium_debug }
 	configuration "Release"
