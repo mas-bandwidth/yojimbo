@@ -35,6 +35,16 @@ project "test"
 	configuration "Release"
 	    links { sodium_release }
 
+project "connect"
+    language "C++"
+    kind "ConsoleApp"
+    files { "connect.cpp" }
+    links { "yojimbo", "ucl" }
+    configuration "Debug"
+        links { sodium_debug }
+    configuration "Release"
+        links { sodium_release }
+
 project "network_info"
     language "C++"
     kind "ConsoleApp"
@@ -163,6 +173,17 @@ if not os.is "windows" then
         execute = function ()
             if os.execute "make -j4 network_info" == 0 then
                 os.execute "./bin/network_info"
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "connect",
+        description = "Build and run connect test program",
+        execute = function ()
+            if os.execute "make -j4 connect" == 0 then
+                os.execute "./bin/connect"
             end
         end
     }
