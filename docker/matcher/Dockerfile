@@ -1,6 +1,6 @@
 FROM golang
 
-RUN apt-get -y update && apt-get install -y wget make g++ dh-autoreconf pkg-config
+RUN apt-get -y update && apt-get install -y wget make g++ dh-autoreconf pkg-config openssl
 
 RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodium-1.0.10.tar.gz && \
     tar -zxvf libsodium-1.0.10.tar.gz && \
@@ -12,11 +12,18 @@ RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodiu
     rm -rf libsodium* && \
     ldconfig
 
-ADD matcher.go matcher.go
-
 RUN go get github.com/gorilla/mux
 
+RUN cd /go/bin && \
+    openssl genrsa -out server.key 2048 && \
+    openssl ecparam -genkey -name secp384r1 -out server.key && \
+    openssl req -new -x509 -sha256 -key server.key -out server.pem -days 3650 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com"
+
+ADD matcher.go matcher.go
+
 RUN go build -o /go/bin/matcher matcher.go
+
+WORKDIR /go/bin
 
 ENTRYPOINT /go/bin/matcher
 
