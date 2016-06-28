@@ -39,7 +39,7 @@ project "connect"
     language "C++"
     kind "ConsoleApp"
     files { "connect.cpp" }
-    links { "yojimbo", "ucl" }
+    links { "yojimbo", "ucl", "mbedtls", "mbedcrypto", "mbedx509" }
     configuration "Debug"
         links { sodium_debug }
     configuration "Release"

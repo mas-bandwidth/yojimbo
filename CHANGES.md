@@ -31,6 +31,38 @@ OK quickly setup an example connect.cpp from mbedtls example
 
 Switched the http response to application/json
 
+How to setup the golang web server to serve over https?
+
+Start here, curl should still work, then once curl works over https, get the mbedtls working over ssl
+
+Seems to be pretty easy to server HTTP over TLS in go: https://gist.github.com/denji/12b3a568f092ab951456
+
+OK so curl is able to connect now, but I think I need to get a real certificate, because I need to run curl in insecure mode: 
+
+    curl https://localhost:8080/match/12314/1 --insecure
+
+Where can I get a free real certificate?
+
+letsencrypt
+
+https://letsencrypt.org/getting-started/
+
+Need to install "certbot"
+
+Should work against staging, otherwise may hit rate limiting: https://acme-staging.api.letsencrypt.org/directory
+
+Looks like this is more like what I want:
+
+https://github.com/kuba/simp_le
+
+Seems like lets encrypt requires actually connecting to the website in order to work, so this rules it out for localhost.
+
+What is the standard process for TLS to localhost during development?
+
+OK. It seems you just used self-signed during development.
+
+Got the TLS connect working from within mbedtls with example. This library is great!
+
 
 Sunday June 26th, 2016
 ======================
