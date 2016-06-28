@@ -23,6 +23,13 @@ URL is now: curl http://localhost:8080/match/123125151/2
 
 For a protocol id of 123125151 and a client id of 2
 
+Time to start integrating HTTP in C++ so we can talk to the matcher
+
+Excellent, I can install mbedtls on mac with: "brew install mbedtls"
+
+OK quickly setup an example connect.cpp from mbedtls example
+
+Switched the http response to application/json
 
 
 Sunday June 26th, 2016
