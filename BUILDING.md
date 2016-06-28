@@ -15,15 +15,17 @@ This creates Yojimbo.sln and a bunch of project files. Double click Yojimbo.sln 
 
 Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
+IMPORTANT: Windows is currently broken because libucl does not compile cleanly under Visual Studio. I'm working on switching out to a different JSON library ASAP.
+
 ## Building on MacOSX and Linux
 
 Download [premake 5](https://premake.github.io/download.html) then build and install from source.
 
-Next you need to install libsodium and libucl.
+Next you need to install libsodium, libucl and mbedtls.
 
-On MacOS X, installing is most easily done via "brew install libsodium libucl". If you don't have Brew, you can install it from <http://brew.sh>.
+On MacOS X, installing is most easily done via "brew install libsodium libucl mbedtls". If you don't have Brew, you can install it from <http://brew.sh>.
 
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and libucl, or you may have to build from source from here: [libsodium](https://github.com/jedisct1/libsodium/releases) and [libucl](https://github.com/vstakhov/libucl).
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and libucl, or you may have to build from source from here: [libsodium](https://github.com/jedisct1/libsodium/releases) and [libucl](https://github.com/vstakhov/libucl) and here [mbedtls](https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.1.5.tar.gz)
 
 Next go to the command line under the libyojimbo directory and enter:
 
