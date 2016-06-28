@@ -114,11 +114,7 @@ namespace yojimbo
         uint8_t decryptedMessage[ConnectTokenBytes];
 
         if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, additional, additionalLength, nonce, key ) )
-        {
-            // todo: why
-            printf( "failed to decrypt\n" );
             return false;
-        }
 
         assert( decryptedMessageLength == ConnectTokenBytes - AuthBytes );
 
