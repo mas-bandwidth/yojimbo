@@ -4,7 +4,7 @@ CMD ["/sbin/my_init"]
 
 WORKDIR /app
 
-RUN apt-get -y update && apt-get install -y wget make g++ dh-autoreconf pkg-config
+RUN apt-get -y update && apt-get install -y wget make g++ dh-autoreconf pkg-config cmake
 
 RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodium-1.0.10.tar.gz && \
     tar -zxvf libsodium-1.0.10.tar.gz && \
@@ -32,10 +32,19 @@ RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha9
     rm premake-5.0.0-alpha9-linux.tar.gz && \
     mv premake5 /usr/local/bin
 
+RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.1.5.tar.gz && \
+    tar -zxvf mbedtls-2.1.5.tar.gz && \
+    cd mbedtls-mbedtls-2.1.5 && \
+    cmake . && \
+    make && make install && \
+    ldconfig
+
 ADD libyojimbo /app/libyojimbo
 
 RUN cd libyojimbo && premake5 gmake && make all config=release_x64 && ./bin/test && cp /app/libyojimbo/bin/server /app && rm -rf libyojimbo
 
-CMD ./server
+#ENTRYPOINT /bin/bash
+
+ENTRYPOINT ./server
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

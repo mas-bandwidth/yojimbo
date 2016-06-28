@@ -63,6 +63,14 @@ OK. It seems you just used self-signed during development.
 
 Got the TLS connect working from within mbedtls with example. This library is great!
 
+Sketched out matcher interface. For the moment, I will implement on main thread, but the design of the interface is such that it can easily have the HTTPS request done off the main thread and wait until it has finished.
+
+Now extend libyojimbo to have a dependency on mbedtls
+
+Done. For some reason mbedtls headers are found correctly on my own linux box, macosx, but not in ubuntu docker image. No idea what's going on here.
+
+Fixed it by switching to another version. There seems to be two versions released up there. I think the older one is compatible with PolarSSL interfaces.
+
 
 Sunday June 26th, 2016
 ======================
