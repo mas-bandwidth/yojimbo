@@ -39,15 +39,19 @@ This release will extend the internal UDP-based network protocol to support:
 3. Packet aggregation
 4. Support for compressed packets and data blocks
 
+There is lots of work to do in this release so it is likely this release will take some time. I estimate 2-3 months.
+
 ## 0.4.0 - Matchmaker
 
 In this release I will extend matcher.go to support multiple dedicated servers reporting to it via HTTPS.
 
 Then I will and setup a docker swarm of libyojimbo servers, all reporting to the web backend, and now clients can connect to this swarm of instances.
 
-The matcher will then track the set of all servers registered with it and satisfy client requests to join matches by directing clients towards servers with empty slots, sorting servers in the order of servers with the least free slots (1) to the most free slots (maxClients)
+The matcher will satisfy client requests to join matches by directing clients towards servers with empty slots, sorting servers in the order of servers with the least free slots (1) to the most free slots (maxClients) so clients tend to cluster.
 
-I may even setup a swarm of fake clients as well for stress test behavior, this could be very interesting. As a stretch goal, it would be cool to implement a web backend showing the behavior of clients and servers in this simulated system so you can see everything that is going on.
+I may even setup a swarm of fake clients as well for stress test behavior, this could be very interesting. As a stretch goal, it would be cool to implement a web visualization showing the behavior of clients and servers in this simulated system so you can see everything that is going on.
+
+This release sounds like a lot of fun. I'm looking forward to it! Estimate: 2 months.
 
 ## 0.5.0 - Initial public release
 
