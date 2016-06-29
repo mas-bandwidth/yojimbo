@@ -1,4 +1,28 @@
 
+Wednesday June 29th, 2016
+=========================
+
+I wake up today and connect.cpp is failing on MacOSX. I'm pretty 100% sure it worked last night.
+
+It still works today on Linux.
+
+What is going on? 
+
+The error is in mbedtls: 
+
+    MBEDTLS_ERR_CTR_DRBG_ENTROPY_SOURCE_FAILED
+
+But why is it suddenly failing on MacOSX and no other platforms? What is different?
+
+I tried rebooting my machine. Tried reinstalling mbedtls... same error. But still, it works on Linux.
+
+What is going on?!
+
+Found it. Mismatched headers on macosx. Mac was including the headers from the mbedtls directory for windows.
+
+To fix this I am going to have to move windows headers and libs specifically under a windows directory, so they do not conflict.
+
+
 Tuesday June 28th, 2016
 =======================
 

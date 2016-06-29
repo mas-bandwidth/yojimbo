@@ -947,13 +947,13 @@ const int ServerPort = 50000;
 
 static uint8_t private_key[KeyBytes];
 
-class Matcher
+class TestMatcher
 {
     uint64_t m_nonce;
 
 public:
 
-    Matcher()
+    TestMatcher()
     {
         m_nonce = 0;
     }
@@ -1402,7 +1402,7 @@ void test_client_server_connect()
 {
     printf( "test_client_server_connect\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -1489,7 +1489,7 @@ void test_client_server_reconnect()
 {
     printf( "test_client_server_reconnect\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -1660,7 +1660,7 @@ void test_client_server_client_side_disconnect()
 {
     printf( "test_client_server_client_side_disconnect\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -1784,7 +1784,7 @@ void test_client_server_server_side_disconnect()
 {
     printf( "test_client_server_server_side_disconnect\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -1908,7 +1908,7 @@ void test_client_server_connection_request_timeout()
 {
     printf( "test_client_server_connection_request_timeout\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -1978,7 +1978,7 @@ void test_client_server_connection_response_timeout()
 {
     printf( "test_client_server_connection_response_timeout\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -2062,7 +2062,7 @@ void test_client_server_client_side_timeout()
 {
     printf( "test_client_server_client_side_timeout\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -2173,7 +2173,7 @@ void test_client_server_server_side_timeout()
 {
     printf( "test_client_server_server_side_timeout\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -2318,7 +2318,7 @@ void test_client_server_server_is_full()
 {
     printf( "test_client_server_server_is_full\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     GenerateKey( private_key );
 
@@ -2519,7 +2519,7 @@ void test_client_server_connect_token_reuse()
 {
     printf( "test_client_server_connect_token_reuse\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -2658,7 +2658,7 @@ void test_client_server_connect_token_expiry()
 {
     printf( "test_client_server_connect_token_expiry\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -2743,7 +2743,7 @@ void test_client_server_connect_token_whitelist()
 {
     printf( "test_client_server_connect_token_whitelist\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 
@@ -2912,7 +2912,7 @@ void test_client_server_game_packets()
 {
     printf( "test_client_server_game_packets\n" );
 
-    Matcher matcher;
+    TestMatcher matcher;
 
     uint64_t clientId = 1;
 

@@ -31,7 +31,9 @@ int ConnectMain( int argc, char * argv[] )
     (void)argc;
     (void)argv;
 
-    Matcher matcher;
+    Allocator & allocator = GetDefaultAllocator();
+
+    Matcher matcher( allocator );
 
     if ( !matcher.Initialize() )
     {
