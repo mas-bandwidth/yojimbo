@@ -71,6 +71,8 @@ Done. For some reason mbedtls headers are found correctly on my own linux box, m
 
 Fixed it by switching to another version. There seems to be two versions released up there. I think the older one is compatible with PolarSSL interfaces.
 
+Implemented a small bit of code to parse the HTTP response and get the JSON.
+
 
 Sunday June 26th, 2016
 ======================
