@@ -1,9 +1,7 @@
 # TODO
 
-Continue writing code in yojimbo_matcher.cpp to grab the response, parse it, extract the connect token.
+Time to switch over to another JSON lib. No point writing more code in libucl when I'm going to replace it.
 
-Fill out the match data structure.
+Remedy guys suggested rapidjson
 
-Grab the match data structure and use it to connect to the set of server addresses in turn.
-
-...
+https://github.com/miloyip/rapidjson
