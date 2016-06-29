@@ -38,19 +38,20 @@ namespace yojimbo
         MATCHER_FAILED
     };
 
-    struct Match
+    struct MatchResponse
     {
-        Match()
+        MatchResponse()
         {
+            connectNonce = 0;
             numServerAddresses = 0;
-            memset( nonce, 0, sizeof( nonce ) );
+            memset( connectToken, 0, sizeof( connectToken ) );
             memset( clientToServerKey, 0, sizeof( clientToServerKey ) );
             memset( serverToClientKey, 0, sizeof( serverToClientKey ) );
         }
 
-        ConnectToken connectToken;
-        uint8_t nonce[NonceBytes];
+        uint64_t connectNonce;
         int numServerAddresses;
+        uint8_t connectToken[ConnectTokenBytes];
         Address serverAddresses[MaxServersPerConnectToken];
         uint8_t clientToServerKey[KeyBytes];
         uint8_t serverToClientKey[KeyBytes];
@@ -69,15 +70,18 @@ namespace yojimbo
 
         MatcherStatus GetStatus();
 
-        void GetMatch( Match & match );
+        void GetMatchResponse( MatchResponse & matchResponse );
+
+    protected:
+
+        bool ParseMatchResponse( const char * json, MatchResponse & matchResponse );
 
     private:
 
-        MatcherStatus m_status;
-
         bool m_initialized;
-
-        struct MatcherImpl * m_impl;
+        MatcherStatus m_status;
+        MatchResponse m_matchResponse;
+        struct MatcherInternal * m_internal;
     };
 }
 
