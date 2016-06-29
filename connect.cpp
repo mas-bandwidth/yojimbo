@@ -45,13 +45,9 @@ int ConnectMain( int argc, char * argv[] )
 
     matcher.RequestMatch( ProtocolId, ClientId );
 
-    if ( matcher.GetStatus() == MATCHER_READY )
+    if ( matcher.GetStatus() == MATCHER_FAILED )
     {
-        printf( "\nmatcher succeeded\n\n" );
-    }
-    else
-    {
-        printf( "\nmatcher failed\n\n" );
+        printf( "\nrequest match failed. is the matcher running?\n\n" );
     }
 
     return 0;
