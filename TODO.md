@@ -1,19 +1,17 @@
 # TODO
 
-Work out how to install mbedtls on windows.
+I wake up today and connect.cpp is failing on MacOSX. I'm pretty 100% sure it worked last night.
 
-Once this is working, windows platform should be working again.
+It still works today on Linux.
 
-OK. Got cmake building with x64. Headers working fine, linking OK, but CMake by default is going to the wrong c standard libraries. Annoying!
+What is going on? 
 
-How to make CMake generate a solution with the correct debug and release runtime lib?
+The error is in mbedtls: 
 
-The trick is to add this to the CMakeLists.txt
+    MBEDTLS_ERR_CTR_DRBG_ENTROPY_SOURCE_FAILED
 
-	if(MSVC)
-	    set(CMAKE_C_FLAGS_DEBUG_INIT "/D_DEBUG /MTd /Zi /Ob0 /Od /RTC1")
-	    set(CMAKE_C_FLAGS_MINSIZEREL_INIT     "/MT /O1 /Ob1 /D NDEBUG")
-	    set(CMAKE_C_FLAGS_RELEASE_INIT        "/MT /O2 /Ob2 /D NDEBUG")
-	    set(CMAKE_C_FLAGS_RELWITHDEBINFO_INIT "/MT /Zi /O2 /Ob1 /D NDEBUG")
-	endif()
+But why is it suddenly failing on MacOSX and no other platforms? What is different?
 
+I tried rebooting my machine. Tried reinstalling mbedtls... same error. But still, it works on Linux.
+
+What is going on?!
