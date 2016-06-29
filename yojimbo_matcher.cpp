@@ -60,7 +60,6 @@ namespace yojimbo
     Matcher::~Matcher()
     {
         mbedtls_net_free( &m_impl->server_fd );
-
         mbedtls_x509_crt_free( &m_impl->cacert );
         mbedtls_ssl_free( &m_impl->ssl );
         mbedtls_ssl_config_free( &m_impl->conf );
@@ -75,7 +74,7 @@ namespace yojimbo
     {
         int ret;
 
-        const char *pers = "ssl_client1";
+        const char *pers = "yojimbo_client";
 
         mbedtls_net_init( &m_impl->server_fd );
         mbedtls_ssl_init( &m_impl->ssl );
@@ -84,20 +83,12 @@ namespace yojimbo
         mbedtls_ctr_drbg_init( &m_impl->ctr_drbg );
         mbedtls_entropy_init( &m_impl->entropy );
 
-        if ( ( ret = mbedtls_ctr_drbg_seed( &m_impl->ctr_drbg, mbedtls_entropy_func, &m_impl->entropy,
-                                            (const unsigned char *) pers,
-                                            strlen( pers ) ) ) != 0 )
-        {
-            printf( " failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret );
+        if ( ( ret = mbedtls_ctr_drbg_seed( &m_impl->ctr_drbg, mbedtls_entropy_func, &m_impl->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
             return false;
-        }
 
         ret = mbedtls_x509_crt_parse( &m_impl->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len );
-        if( ret < 0 )
-        {
-            mbedtls_printf( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n", -ret );
+        if ( ret < 0 )
             return false;
-        }
 
         m_initialized = true;
 
@@ -111,132 +102,70 @@ namespace yojimbo
         (void)protocolId;
         (void)clientId;
         
-        /*
-         * 1. Start the connection
-         */
-        mbedtls_printf( "  . Connecting to tcp/%s/%s...", SERVER_NAME, SERVER_PORT );
-        fflush( stdout );
-
         int ret;
 
-        if( ( ret = mbedtls_net_connect( &m_impl->server_fd, SERVER_NAME,
-                                         SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
+        if ( ( ret = mbedtls_net_connect( &m_impl->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_net_connect returned %d\n\n", ret );
             m_status = MATCHER_FAILED;
             return;
         }
 
-        mbedtls_printf( " ok\n" );
-
-        /*
-         * 2. Setup stuff
-         */
-        mbedtls_printf( "  . Setting up the SSL/TLS structure..." );
-        fflush( stdout );
-
-        if( ( ret = mbedtls_ssl_config_defaults( &m_impl->conf,
+        if ( ( ret = mbedtls_ssl_config_defaults( &m_impl->conf,
                         MBEDTLS_SSL_IS_CLIENT,
                         MBEDTLS_SSL_TRANSPORT_STREAM,
                         MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_config_defaults returned %d\n\n", ret );
             m_status = MATCHER_FAILED;
             return;
         }
 
-        mbedtls_printf( " ok\n" );
-
-        /* OPTIONAL is not optimal for security,
-         * but makes interop easier in this simplified example */
         mbedtls_ssl_conf_authmode( &m_impl->conf, MBEDTLS_SSL_VERIFY_OPTIONAL );
         mbedtls_ssl_conf_ca_chain( &m_impl->conf, &m_impl->cacert, NULL );
         mbedtls_ssl_conf_rng( &m_impl->conf, mbedtls_ctr_drbg_random, &m_impl->ctr_drbg );
-        //mbedtls_ssl_conf_dbg( &m_impl->conf, m_impl->my_debug, stdout );
 
         if( ( ret = mbedtls_ssl_setup( &m_impl->ssl, &m_impl->conf ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_setup returned %d\n\n", ret );
             m_status = MATCHER_FAILED;
             return;
         }
 
-        if( ( ret = mbedtls_ssl_set_hostname( &m_impl->ssl, "mbed TLS Server 1" ) ) != 0 )
+        if ( ( ret = mbedtls_ssl_set_hostname( &m_impl->ssl, "mbed TLS Server 1" ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n", ret );
             m_status = MATCHER_FAILED;
             return;
         }
 
         mbedtls_ssl_set_bio( &m_impl->ssl, &m_impl->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
 
-        /*
-         * 4. Handshake
-         */
-        mbedtls_printf( "  . Performing the SSL/TLS handshake..." );
-        fflush( stdout );
-
-        while( ( ret = mbedtls_ssl_handshake( &m_impl->ssl ) ) != 0 )
+        while ( ( ret = mbedtls_ssl_handshake( &m_impl->ssl ) ) != 0 )
         {
             if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n", -ret );
                 m_status = MATCHER_FAILED;
                 return;
             }
         }
 
-        mbedtls_printf( " ok\n" );
-
-        /*
-         * 5. Verify the server certificate
-         */
-        mbedtls_printf( "  . Verifying peer X.509 certificate..." );
-
         uint32_t flags;
-
-        /* In real life, we probably want to bail out when ret != 0 */
-        if( ( flags = mbedtls_ssl_get_verify_result( &m_impl->ssl ) ) != 0 )
+        if ( ( flags = mbedtls_ssl_get_verify_result( &m_impl->ssl ) ) != 0 )
         {
-            char vrfy_buf[512];
-
-            mbedtls_printf( " failed\n" );
-
-            mbedtls_x509_crt_verify_info( vrfy_buf, sizeof( vrfy_buf ), "  ! ", flags );
-
-            mbedtls_printf( "%s\n", vrfy_buf );
+            // note: could not verify certificate (eg. it is self-signed)
         }
-        else
-            mbedtls_printf( " ok\n" );
-
-        /*
-         * 3. Write the GET request
-         */
-        mbedtls_printf( "  > Write to server:" );
-        fflush( stdout );
 
         unsigned char buf[4*1024];
 
         int len = sprintf( (char *) buf, GET_REQUEST );
 
-        while( ( ret = mbedtls_ssl_write( &m_impl->ssl, buf, len ) ) <= 0 )
+        while ( ( ret = mbedtls_ssl_write( &m_impl->ssl, buf, len ) ) <= 0 )
         {
-            if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
+            if ( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_write returned %d\n\n", ret );
                 m_status = MATCHER_FAILED;
                 return;
             }
         }
 
         len = ret;
-        mbedtls_printf( " %d bytes written\n\n%s", len, (char *) buf );
-
-        /*
-         * 7. Read the HTTP response
-         */
-        mbedtls_printf( "  < Read from server:" );
-        fflush( stdout );
 
         do
         {
@@ -244,32 +173,31 @@ namespace yojimbo
             memset( buf, 0, sizeof( buf ) );
             ret = mbedtls_ssl_read( &m_impl->ssl, buf, len );
 
-            if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
+            if ( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
                 continue;
 
-            if( ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
+            if ( ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
                 break;
 
-            if( ret < 0 )
-            {
-                //mbedtls_printf( "failed\n  ! mbedtls_ssl_read returned %d\n\n", ret );
+            if ( ret <= 0 )
                 break;
-            }
-
-            if( ret == 0 )
-            {
-                mbedtls_printf( "\n\nEOF\n\n" );
-                break;
-            }
 
             len = ret;
-            mbedtls_printf( " %d bytes read\n\n%s\n", len, (char *) buf );
+
+            const char * json = strstr( (const char*)buf, "\r\n\r\n" ) + 4;
+
+            if ( !json )
+                break;
+
+            printf( "\n%s\n", json );
+
+            m_status = MATCHER_READY;
         }
         while( 1 );
 
         mbedtls_ssl_close_notify( &m_impl->ssl );
 
-        m_status = MATCHER_READY;
+        m_status = MATCHER_FAILED;
     }
 
     MatcherStatus Matcher::GetStatus()

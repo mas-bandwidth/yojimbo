@@ -67,6 +67,65 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+#include <iostream>
+
+using namespace rapidjson;
+
+void test_json()
+{
+    printf( "test_json\n" );
+
+    const char * json = "{\"connectToken\":\"4raGxrBbXTyY3MgxsEoB45L8zIdrYy2RGgvfklNvq1MvhEDoPLfi22Ei3XWo/EvvZ3PSU6KV2Vumr8EVh8xyYOkNqvDOhjrcF/7kg8U9QWlp1de8ntlGpPOz6FjuoNJ8y/8CHPqjhDGlw3Vg1EdViNujdJ9tH6613BJCr2lzgldCtfMe6TRGr9wJbki8sKFPsktt/n8ZAGcoari/IHvM1usvepLqCKVrSHtHqGuEcp9PZNICN/vc9mW5B0k/hdtOalvXSAUWTtI9mh6Q6jqe9/J6kLA0m/WvWYo4eLJXe2YAeGZ8Z1KbPQdswO0zXJYMwoCor1IOzRYi7PtRY2D74362ZI1KAOUej/uPx83PzjCl5wZJBOM8kH3YuVYZB8I1i4GBIDgoZ50j+lK/aXnSN+9Dd1nk5xz0+QE+YVWx8k824eUeLbFlz8N0jBQ4CFKoK6aXE8dm9QiIyPTSo8OUOpIa4ucaBYZRzz7mQwTx6c0MS0tDniAXzEMV8mgHlMp+IroqRLq5YK7TrrkyUDqceL8hvcQ3ASIAyHYiUiskDxKSOzW+sYHEFdag0iFUmlIRs92DyqEWR2RQhmIFTvZTFIskVBl8NSm/llICGd+StfstcAtqe0CsWdQRZnG505ZUstEef1UmvpFgfVljhbfwsC5ipwfpDICN2xMF93nazePBYoKvHw56EcCfhzeASdiXNtzARAK9nzsCv6f9sI9sUIFIiaV34S/7KKnrXvw1l+a608oc+t9nkBBWS5VcX7bC2ORmrLLbNyct5VoNa8mwA+7Ce2Amf9ReQWDC1Ud6znRLJ2s2HcBVBMM66SVuToYRkv7zv41g3EDPqYMf10zL0MfT1zQl7hSI30evS15w+HWcKJP+UIoZpxBZ7plLNFSY/emt6+rcQYesoOOH7ObNdyNdnlsUxzZcM9XTt4VP7OpcyWfrMUzY9sybCR6F0Ds+dNYHYRyp7iyjfMrQanX2TnN4o3Kd0uGAtx8275ovMRqLArbAgfHez7JvRiqF/dN2MikzYndQrz0Pu+8Hu1SboE3So7aahVfAhFJkrzQOJpf2n9etnljNTVHr3zpzbn4GVci96D2Z8h231h3LybsYq3m/OzcPTlyw0YTITpEPbUjE4kp0Nx4nUSIun+/5x7VIpFeTPrd3y7IfttL1+Aoj8ew6F9hfmAp24CzBENvADi3zxHTlrZn5Hrp29pN5bm02UPCJYOXcB2FAnoydup6RdF0vWMCUAdgIs2odoRMUiYw6ljOOQgImqPCqI79mmtzScaR6SjJoUk4gUMCI9MFZhEEnZ5L+gGM8CmXf3oS2QM1b3+mA2M4vxlJx7facMZfNY39zx6cWq12SC1dL0YQR2w==\",\"connectNonce\":\"28\",\"serverAddresses\":[\"MTI3LjAuMC4xOjUwMDAw\"],\"clientToServerKey\":\"UBh4peeaPJ4fNepsqL/NE8YBck9HBwX6n8qnJdoPMZo=\",\"serverToClientKey\":\"OvgcPP/TUtvOoYVJsA5KV9sPAnPCMAjTpvplSbwfyRg=\"}";
+
+    Document doc;
+    doc.Parse( json );
+    check( !doc.HasParseError() );
+
+    check( doc.HasMember( "connectToken" ) );
+    check( doc["connectToken"].IsString() );
+    Value & connectToken = doc["connectToken"];
+    check( strcmp( connectToken.GetString(), "4raGxrBbXTyY3MgxsEoB45L8zIdrYy2RGgvfklNvq1MvhEDoPLfi22Ei3XWo/EvvZ3PSU6KV2Vumr8EVh8xyYOkNqvDOhjrcF/7kg8U9QWlp1de8ntlGpPOz6FjuoNJ8y/8CHPqjhDGlw3Vg1EdViNujdJ9tH6613BJCr2lzgldCtfMe6TRGr9wJbki8sKFPsktt/n8ZAGcoari/IHvM1usvepLqCKVrSHtHqGuEcp9PZNICN/vc9mW5B0k/hdtOalvXSAUWTtI9mh6Q6jqe9/J6kLA0m/WvWYo4eLJXe2YAeGZ8Z1KbPQdswO0zXJYMwoCor1IOzRYi7PtRY2D74362ZI1KAOUej/uPx83PzjCl5wZJBOM8kH3YuVYZB8I1i4GBIDgoZ50j+lK/aXnSN+9Dd1nk5xz0+QE+YVWx8k824eUeLbFlz8N0jBQ4CFKoK6aXE8dm9QiIyPTSo8OUOpIa4ucaBYZRzz7mQwTx6c0MS0tDniAXzEMV8mgHlMp+IroqRLq5YK7TrrkyUDqceL8hvcQ3ASIAyHYiUiskDxKSOzW+sYHEFdag0iFUmlIRs92DyqEWR2RQhmIFTvZTFIskVBl8NSm/llICGd+StfstcAtqe0CsWdQRZnG505ZUstEef1UmvpFgfVljhbfwsC5ipwfpDICN2xMF93nazePBYoKvHw56EcCfhzeASdiXNtzARAK9nzsCv6f9sI9sUIFIiaV34S/7KKnrXvw1l+a608oc+t9nkBBWS5VcX7bC2ORmrLLbNyct5VoNa8mwA+7Ce2Amf9ReQWDC1Ud6znRLJ2s2HcBVBMM66SVuToYRkv7zv41g3EDPqYMf10zL0MfT1zQl7hSI30evS15w+HWcKJP+UIoZpxBZ7plLNFSY/emt6+rcQYesoOOH7ObNdyNdnlsUxzZcM9XTt4VP7OpcyWfrMUzY9sybCR6F0Ds+dNYHYRyp7iyjfMrQanX2TnN4o3Kd0uGAtx8275ovMRqLArbAgfHez7JvRiqF/dN2MikzYndQrz0Pu+8Hu1SboE3So7aahVfAhFJkrzQOJpf2n9etnljNTVHr3zpzbn4GVci96D2Z8h231h3LybsYq3m/OzcPTlyw0YTITpEPbUjE4kp0Nx4nUSIun+/5x7VIpFeTPrd3y7IfttL1+Aoj8ew6F9hfmAp24CzBENvADi3zxHTlrZn5Hrp29pN5bm02UPCJYOXcB2FAnoydup6RdF0vWMCUAdgIs2odoRMUiYw6ljOOQgImqPCqI79mmtzScaR6SjJoUk4gUMCI9MFZhEEnZ5L+gGM8CmXf3oS2QM1b3+mA2M4vxlJx7facMZfNY39zx6cWq12SC1dL0YQR2w==" ) == 0 );
+
+    Value::MemberIterator connectNonce = doc.FindMember( "connectNonce" );
+    check( connectNonce != doc.MemberEnd() );
+    check( connectNonce->value.IsString() );
+    check( strcmp( connectNonce->value.GetString(), "28" ) == 0 );
+
+    const Value & serverAddresses = doc["serverAddresses"];
+    check( serverAddresses.IsArray() );
+    for ( SizeType i = 0; i < serverAddresses.Size(); ++i )
+    {
+        check( serverAddresses[i].IsString() );
+        printf( "serverAddresses[%d] = %s\n", i, serverAddresses[i].GetString() );
+    }
+
+    Value::MemberIterator clientToServerKey = doc.FindMember( "clientToServerKey" );
+    check( clientToServerKey != doc.MemberEnd() );
+    check( clientToServerKey->value.IsString() );
+    check( strcmp( clientToServerKey->value.GetString(), "UBh4peeaPJ4fNepsqL/NE8YBck9HBwX6n8qnJdoPMZo=" ) == 0 );
+
+    Value::MemberIterator serverToClientKey = doc.FindMember( "serverToClientKey" );
+    check( serverToClientKey != doc.MemberEnd() );
+    check( serverToClientKey->value.IsString() );
+    check( strcmp( serverToClientKey->value.GetString(), "OvgcPP/TUtvOoYVJsA5KV9sPAnPCMAjTpvplSbwfyRg=" ) == 0 );
+
+    /*
+    Value& s = doc["stars"];
+    s.SetInt( s.GetInt() + 1 );
+    */
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    doc.Accept( writer );
+
+    printf( "%s\n", buffer.GetString() );
+
+    exit(0);
+}
+
 void test_base64()
 {
     printf( "test_base64\n" );
@@ -3228,6 +3287,7 @@ int main()
     while ( true )
 #endif // #if SOAK_TEST
     {
+        test_json();
         test_base64();
         test_bitpacker();
         test_stream();

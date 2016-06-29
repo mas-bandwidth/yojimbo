@@ -43,8 +43,6 @@ ADD libyojimbo /app/libyojimbo
 
 RUN cd libyojimbo && premake5 gmake && make all config=release_x64 && ./bin/test && cp /app/libyojimbo/bin/server /app && rm -rf libyojimbo
 
-#ENTRYPOINT /bin/bash
-
 ENTRYPOINT ./server
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
