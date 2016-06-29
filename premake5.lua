@@ -114,6 +114,7 @@ if _ACTION == "clean" then
     os.rmdir "Debug"
     os.rmdir "Release"
     os.rmdir "release"
+    os.rmdir "docker/libyojimbo"
     if not os.is "windows" then
         os.execute "rm -f Makefile"
         os.execute "rm -f *.7z"
@@ -125,9 +126,7 @@ if _ACTION == "clean" then
         os.execute "rm -f client"
         os.execute "rm -f server"
         os.execute "rm -f client_server"
-        os.execute "rm -rf docker/libyojimbo"
         os.execute "find . -name .DS_Store -delete"
-        os.execute "cd docker/matcher && go clean"
     else
         os.execute "del /F /Q Makefile"
         os.execute "del /F /Q *.make"
