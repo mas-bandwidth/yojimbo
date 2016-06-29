@@ -24,6 +24,7 @@
 
 #include "yojimbo_common.h"
 #include <stdint.h>
+#include <malloc.h>
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -472,7 +473,7 @@ namespace yojimbo
 
         base64_init_decode_state( &decode_state );
 
-        const int input_length = strlen( input );
+        const int input_length = (int) strlen( input );
 
         assert( output_size >= input_length / 2 );
 
@@ -517,11 +518,16 @@ namespace yojimbo
 
         base64_init_decode_state( &decode_state );
 
-        const int input_length = strlen( input );
+        const int input_length = (int) strlen( input );
 
-        assert( output_size >= input_length / 2 );
+		// IMPORTANT: Visual Studio says there is a buffer overrun in base64_decode_block. This is a workaround!
+		char * buffer = (char*) alloca( output_size * 2 );
 
-        const int decoded_bytes = base64_decode_block( input, input_length, (char*) output, &decode_state );
+        const int decoded_bytes = base64_decode_block( input, input_length, (char*) buffer, &decode_state );
+
+		assert( decoded_bytes <= output_size );
+
+		memcpy( output, buffer, decoded_bytes );
 
         return decoded_bytes;
     }

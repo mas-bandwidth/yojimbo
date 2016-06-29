@@ -4,9 +4,21 @@ libyojimbo_version = "0.2.0-preview4"
 if os.is "windows" then
     sodium_debug = "sodium-debug"
     sodium_release = "sodium-release"
+    mbedtls_debug = "mbedtls-debug"
+    mbedtls_release = "mbedtls-release"
+    mbedx509_debug = "mbedx509-debug"
+    mbedx509_release = "mbedx509-release"
+    mbedcrypto_debug = "mbedcrypto-debug"
+    mbedcrypto_release = "mbedcrypto-release"
 else
     sodium_debug = "sodium"
     sodium_release = "sodium"
+    mbedtls_debug = "mbedtls"
+    mbedtls_release = "mbedtls"
+    mbedx509_debug = "mbedx509"
+    mbedx509_release = "mbedx509"
+    mbedcrypto_debug = "mbedcrypto"
+    mbedcrypto_release = "mbedcrypto"
 end
 
 solution "Yojimbo"
@@ -31,69 +43,68 @@ project "test"
     files { "test.cpp" }
     links { "yojimbo" }
     configuration "Debug"
-		links { sodium_debug }
+		links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
 	configuration "Release"
-	    links { sodium_release }
+	    links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
 project "connect"
     language "C++"
     kind "ConsoleApp"
     files { "connect.cpp" }
-    links { "yojimbo", "mbedtls", "mbedx509", "mbedcrypto" }
+    links { "yojimbo" }
     configuration "Debug"
-        links { sodium_debug }
+        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
     configuration "Release"
-        links { sodium_release }
+        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
 project "network_info"
     language "C++"
     kind "ConsoleApp"
     files { "network_info.cpp" }
-    links { "yojimbo", "mbedtls", "mbedx509", "mbedcrypto" }
+    links { "yojimbo" }
     configuration "Debug"
-		links { sodium_debug }
-	configuration "Release"
-	    links { sodium_release }
+        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+    configuration "Release"
+        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
 project "yojimbo"
     language "C++"
     kind "StaticLib"
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp" }
-    links { "mbedtls", "mbedx509", "mbedcrypto" }
     configuration "Debug"
-		links { sodium_debug }
-	configuration "Release"
-	    links { sodium_release }
+        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+    configuration "Release"
+        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
 project "client"
     language "C++"
     kind "ConsoleApp"
     files { "client.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "mbedx509", "mbedcrypto" }
+    links { "yojimbo" }
     configuration "Debug"
-		links { sodium_debug }
-	configuration "Release"
-	    links { sodium_release }
+        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+    configuration "Release"
+        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
 project "server"
     language "C++"
     kind "ConsoleApp"
     files { "server.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "mbedx509", "mbedcrypto" }
+    links { "yojimbo" }
     configuration "Debug"
-		links { sodium_debug }
-	configuration "Release"
-	    links { sodium_release }
+        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+    configuration "Release"
+        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
 project "client_server"
     language "C++"
     kind "ConsoleApp"
     files { "client_server.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "mbedx509", "mbedcrypto" }
+    links { "yojimbo" }
     configuration "Debug"
-		links { sodium_debug }
-	configuration "Release"
-	    links { sodium_release }
+        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+    configuration "Release"
+        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
 if _ACTION == "clean" then
     os.rmdir "obj"
@@ -103,6 +114,7 @@ if _ACTION == "clean" then
     os.rmdir "Debug"
     os.rmdir "Release"
     os.rmdir "release"
+    os.rmdir "docker/libyojimbo"
     if not os.is "windows" then
         os.execute "rm -f Makefile"
         os.execute "rm -f *.7z"
@@ -114,9 +126,7 @@ if _ACTION == "clean" then
         os.execute "rm -f client"
         os.execute "rm -f server"
         os.execute "rm -f client_server"
-        os.execute "rm -rf docker/libyojimbo"
         os.execute "find . -name .DS_Store -delete"
-        os.execute "cd docker/matcher && go clean"
     else
         os.execute "del /F /Q Makefile"
         os.execute "del /F /Q *.make"
@@ -260,7 +270,7 @@ if not os.is "windows" then
         trigger     = "matcher",
         description = "Build and run the matchmaker web service inside a docker container",
         execute = function ()
-            os.execute "cd docker/matcher && docker build -t \"networkprotocol:yojimbo-matcher\" . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
+            os.execute "cd docker/matcher && docker build -t networkprotocol:yojimbo-matcher . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
         end
     }
 
@@ -274,5 +284,14 @@ else
 			os.execute "cd docker && copyFiles.bat && buildServer.bat && runServer.bat"
 		end
 	}
+
+    newaction
+    {
+        trigger     = "matcher",
+        description = "Build and run the matchmaker web service inside a docker container",
+        execute = function ()
+            os.execute "cd docker\\matcher && docker build -t networkprotocol:yojimbo-matcher . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
+        end
+    }
 
 end
