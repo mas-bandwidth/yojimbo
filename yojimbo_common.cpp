@@ -24,9 +24,9 @@
 
 #include "yojimbo_common.h"
 #include <stdint.h>
-#include <malloc.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 namespace yojimbo
