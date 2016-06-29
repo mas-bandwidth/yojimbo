@@ -23,10 +23,12 @@
 */
 
 #include "yojimbo_common.h"
+#ifdef _MSC_VER
+#include <malloc.h>
+#endif // #ifdef _MSC_VER
 #include <stdint.h>
-#include <assert.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <assert.h>
 #include <string.h>
 
 namespace yojimbo
@@ -230,10 +232,6 @@ namespace yojimbo
         for ( int i = 0; i < data_bytes; ++i )
         {
             printf( "0x%02x,", (int) data[i] );
-            /*
-            if ( i != data_bytes - 1 )
-                printf( "-" );
-                */
         }
         printf( " (%d bytes)\n", data_bytes );
     }
