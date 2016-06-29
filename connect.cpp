@@ -22,9 +22,17 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "yojimbo.h"
+#define CLIENT 1
 
-using namespace yojimbo;
+#include "shared.h"
+#include <signal.h>
+
+static volatile int quit = 0;
+
+void interrupt_handler( int /*dummy*/ )
+{
+    quit = 1;
+}
 
 int ConnectMain( int argc, char * argv[] )
 {
@@ -32,6 +40,11 @@ int ConnectMain( int argc, char * argv[] )
     (void)argv;
 
     Allocator & allocator = GetDefaultAllocator();
+
+    uint64_t clientId = 0;
+    RandomBytes( (uint8_t*) &clientId, 8 );
+
+    printf( "\n[%"PRIx64 "]\n", clientId );
 
     Matcher matcher( allocator );
 
@@ -41,23 +54,99 @@ int ConnectMain( int argc, char * argv[] )
         return 1;
     }
 
-    const uint64_t ClientId = 1;
-
-    const uint32_t ProtocolId = 0x12342141;
-
-    matcher.RequestMatch( ProtocolId, ClientId );
+    matcher.RequestMatch( ProtocolId, clientId );
 
     if ( matcher.GetStatus() == MATCHER_FAILED )
     {
-        printf( "\nrequest match failed. is the matcher running?\n\n" );
+        printf( "\nerror: request match failed. is the matcher running?\n\n" );
+        return 1;
     }
+
+    printf( "requesting match\n" );
+
+    MatchResponse matchResponse;
+
+    matcher.GetMatchResponse( matchResponse );
+
+    if ( matchResponse.numServerAddresses == 0 )
+    {
+        printf( "error: could not find a match\n" );
+        return 1;
+    }
+
+    printf( "received match response\n" );
+
+    GamePacketFactory packetFactory;
+
+    GameNetworkInterface clientInterface( packetFactory );
+
+    if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
+    {
+        printf( "error: failed to initialize client socket\n" );
+        return 1;
+    }
+    
+    printf( "client started on port %d\n", clientInterface.GetAddress().GetPort() );
+
+    GameClient client( clientInterface );
+
+    client.Connect( matchResponse.serverAddresses[0],
+                    matchResponse.connectTokenData, 
+                    matchResponse.connectTokenNonce, 
+                    matchResponse.clientToServerKey,
+                    matchResponse.serverToClientKey );
+
+    double time = 0.0;
+
+    const double deltaTime = 0.1;
+
+    signal( SIGINT, interrupt_handler );    
+
+    while ( !quit )
+    {
+        client.SendPackets();
+
+        clientInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+
+        client.ReceivePackets();
+
+        client.CheckForTimeOut();
+
+        if ( client.IsDisconnected() )
+            break;
+
+        time += deltaTime;
+
+        client.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        platform_sleep( deltaTime );
+    }
+
+    if ( quit )
+        printf( "\nclient stopped\n" );
+
+    printf( "\n" );
+
+    if ( client.IsConnected() )
+        client.Disconnect();
 
     return 0;
 }
 
 int main( int argc, char * argv[] )
 {
-    InitializeYojimbo();
+    if ( !InitializeYojimbo() )
+    {
+        printf( "error: failed to initialize Yojimbo!\n" );
+        return 1;
+    }
 
     int result = ConnectMain( argc, argv );
 

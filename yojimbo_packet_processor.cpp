@@ -156,6 +156,7 @@ namespace yojimbo
         {
             if ( !key )
             {
+//                printf( "packet processor: key is null\n" );
                 m_error = PACKET_PROCESSOR_ERROR_KEY_IS_NULL;
                 return NULL;
             }
@@ -166,6 +167,7 @@ namespace yojimbo
 
             if ( packetBytes <= prefixBytes + MacBytes )
             {
+//                printf( "packet processor: packet too small\n" );
                 m_error = PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL;
                 return NULL;
             }
@@ -176,6 +178,7 @@ namespace yojimbo
 
             if ( !Decrypt( packetData + prefixBytes, packetBytes - prefixBytes, m_scratchBuffer, decryptedPacketBytes, (uint8_t*)&sequence, key ) )
             {
+//                printf( "packet processor: decrypt failed\n" );
                 m_error = PACKET_PROCESSOR_ERROR_DECRYPT_FAILED;
                 return NULL;
             }
@@ -193,10 +196,11 @@ namespace yojimbo
 
             if ( !packet )
             {
+//                printf( "packet processor: read packet failed\n" );
                 m_error = PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED;
                 return NULL;
             }
-            
+
             return packet;
         }
         else
@@ -216,6 +220,7 @@ namespace yojimbo
 
             if ( !packet )
             {
+//                printf( "packet processor: read packet failed (unencrypted)\n" );
                 m_error = PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED;
                 return NULL;
             }
