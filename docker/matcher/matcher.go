@@ -11,6 +11,7 @@ import (
     "unsafe"
     "strconv"
     "net/http"
+    "sync/atomic"
     "encoding/json"
     "encoding/base64"
     "encoding/binary"
@@ -123,9 +124,9 @@ func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     protocolId, _ := strconv.ParseUint( vars["protocolId"], 10, 32 )
     serverAddresses := []string { base64.StdEncoding.EncodeToString( []byte( ServerAddress ) ) }
     connectToken := GenerateConnectToken( uint32( protocolId ), clientId, serverAddresses[:] )
-    matchResponse, ok := GenerateMatchResponse( connectToken, MatchNonce )
+    matchResponse, ok := GenerateMatchResponse( connectToken, atomic.AddUint64( &MatchNonce, 1 ) )
     w.Header().Set( "Content-Type", "application/json" )
-    if ( ok ) { json.NewEncoder(w).Encode( matchResponse ); MatchNonce++ }
+    if ( ok ) { json.NewEncoder(w).Encode( matchResponse ); }
 }
 
 func main() {
