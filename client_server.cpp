@@ -30,7 +30,7 @@
 
 int ClientServerMain()
 {
-    Matcher matcher;
+    LocalMatcher matcher;
 
     uint64_t clientId = 1;
 

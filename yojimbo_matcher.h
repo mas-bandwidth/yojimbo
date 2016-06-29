@@ -26,6 +26,7 @@
 #define YOJIMBO_MATCHER_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_allocator.h"
 #include "yojimbo_client_server.h"
 
 namespace yojimbo
@@ -61,7 +62,7 @@ namespace yojimbo
     {
     public:
 
-        Matcher();
+        Matcher( Allocator & allocator );
         ~Matcher();
 
         bool Initialize();
@@ -78,6 +79,7 @@ namespace yojimbo
 
     private:
 
+        Allocator * m_allocator;
         bool m_initialized;
         MatcherStatus m_status;
         MatchResponse m_matchResponse;
