@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <time.h>
-#include <ucl.h>
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -127,52 +126,38 @@ namespace yojimbo
         return ReadConnectTokenFromJSON( (const char*) decryptedMessage, decryptedToken );
     }
 
-    static bool insert_number_as_string( ucl_object_t * object, const char * key, uint64_t number )
+    static void insert_number_as_string( Writer<StringBuffer> & writer, const char * key, uint64_t number )
     {
         char buffer[256];
         sprintf( buffer, "%" PRId64, number );
-        return ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
+        writer.Key( key ); writer.String( buffer );
     }
 
-    static bool insert_data_as_base64_string( ucl_object_t * object, const char * key, const uint8_t * data, int data_length )
+    static void insert_data_as_base64_string( Writer<StringBuffer> & writer, const char * key, const uint8_t * data, int data_length )
     {
         char * buffer = (char*) alloca( data_length * 2 );
         base64_encode_data( data, data_length, buffer, data_length * 2 );
-        return ucl_object_insert_key( object, ucl_object_fromstring( buffer ), key, 0, false );
+        writer.Key( key ); writer.String( buffer );
     }
 
     bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize )
     {
-        bool result = false;
+        StringBuffer s;
+        Writer<StringBuffer> writer(s);
+    
+        writer.StartObject();
+    
+        insert_number_as_string( writer, "protocolId", connectToken.protocolId );
 
-        ucl_object_t * root = NULL;
-        ucl_object_t * serverAddresses = NULL;
-        char * json_output = NULL;
-        int json_bytes = 0;
+        insert_number_as_string( writer, "clientId", connectToken.clientId );
 
-        root = ucl_object_typed_new( UCL_OBJECT );
+        insert_number_as_string( writer, "expiryTimestamp", connectToken.expiryTimestamp );
 
-        if ( !root )
-            goto cleanup;
+        insert_number_as_string( writer, "numServerAddresses", connectToken.numServerAddresses );
 
-        if ( !insert_number_as_string( root, "protocolId", connectToken.protocolId ) )
-            goto cleanup;
+        writer.Key( "serverAddresses" );
 
-        if ( !insert_number_as_string( root, "clientId", connectToken.clientId ) )
-            goto cleanup;
-
-        if ( !insert_number_as_string( root, "expiryTimestamp", connectToken.expiryTimestamp ) )
-            goto cleanup;
-
-        if ( !insert_number_as_string( root, "numServerAddresses", connectToken.numServerAddresses ) )
-            goto cleanup;
-
-        serverAddresses = ucl_object_typed_new( UCL_ARRAY );
-
-        if ( !serverAddresses )
-            goto cleanup;
-
-        ucl_object_insert_key( root, serverAddresses, "serverAddresses", 0, false );
+        writer.StartArray();
 
         for ( int i = 0; i < connectToken.numServerAddresses; ++i )
         {
@@ -183,50 +168,29 @@ namespace yojimbo
             char serverAddressBase64[128];
             base64_encode_string( serverAddress, serverAddressBase64, sizeof( serverAddressBase64 ) );
 
-            if ( !ucl_array_append( serverAddresses, ucl_object_fromstring( serverAddressBase64 ) ) )
-                goto cleanup;
+            writer.String( serverAddressBase64 );
         }
 
-        if ( !insert_data_as_base64_string( root, "clientToServerKey", connectToken.clientToServerKey, KeyBytes ) )
-            goto cleanup;
+        writer.EndArray();
 
-        if ( !insert_data_as_base64_string( root, "serverToClientKey", connectToken.serverToClientKey, KeyBytes ) )
-            goto cleanup;
+        insert_data_as_base64_string( writer, "clientToServerKey", connectToken.clientToServerKey, KeyBytes );
 
-        if ( !insert_data_as_base64_string( root, "random", connectToken.random, KeyBytes ) )
-            goto cleanup;
+        insert_data_as_base64_string( writer, "serverToClientKey", connectToken.serverToClientKey, KeyBytes );
 
-        json_output = (char*) ucl_object_emit( root, UCL_EMIT_JSON_COMPACT );
+        insert_data_as_base64_string( writer, "random", connectToken.random, KeyBytes );
+    
+        writer.EndObject();
 
-        assert( json_output );
+        const char * json_output = s.GetString();
 
-        json_bytes = (int) strlen( json_output ) + 1;
+        int json_bytes = (int) strlen( json_output ) + 1;
 
         if ( json_bytes > outputSize )
-        {
-            goto cleanup;
-        }
+            return false;
 
-        result = true;
+        memcpy( output, json_output, json_bytes );
 
-    cleanup:
-
-        if ( json_output )
-        {
-            if ( result )
-            {
-                memcpy( output, json_output, json_bytes );
-            }
-
-            free( json_output );
-        }
-
-        if ( root )
-        {
-            ucl_object_unref( root );
-        }
-
-        return result;
+        return true;
     }
 
     static bool read_int_from_string( Document & doc, const char * key, int & value )
