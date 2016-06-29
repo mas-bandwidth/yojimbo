@@ -148,7 +148,7 @@ if not os.is "windows" then
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
-            files_to_zip = "*.md *.cpp *.h *.lib premake5.lua sodium docker"
+            files_to_zip = "*.md *.cpp *.h *.lib *.pdb premake5.lua sodium docker rapidjson mbedtls"
             os.execute( "rm -rf *.zip *.tar.gz *.7z" );
             os.execute( "rm -rf docker/libyojimbo" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )

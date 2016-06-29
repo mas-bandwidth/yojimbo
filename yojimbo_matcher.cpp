@@ -55,6 +55,16 @@ namespace yojimbo
         mbedtls_x509_crt cacert;
     };
 
+    static void my_debug( void *ctx, int level,
+                          const char *file, int line,
+                          const char *str )
+    {
+        ((void) level);
+        fprintf( (FILE *) ctx, "%s:%04d: %s", file, line, str );
+        fflush(  (FILE *) ctx  );
+    }
+
+
     Matcher::Matcher()
     {
         m_initialized = false;
@@ -77,23 +87,31 @@ namespace yojimbo
 
     bool Matcher::Initialize()
     {
-        int ret;
-
         const char *pers = "yojimbo_client";
+
+        mbedtls_debug_set_threshold( 2 );
 
         mbedtls_net_init( &m_internal->server_fd );
         mbedtls_ssl_init( &m_internal->ssl );
         mbedtls_ssl_config_init( &m_internal->conf );
+        mbedtls_ssl_conf_dbg( &m_internal->conf, my_debug, stdout );
         mbedtls_x509_crt_init( &m_internal->cacert );
         mbedtls_ctr_drbg_init( &m_internal->ctr_drbg );
         mbedtls_entropy_init( &m_internal->entropy );
 
-        if ( ( ret = mbedtls_ctr_drbg_seed( &m_internal->ctr_drbg, mbedtls_entropy_func, &m_internal->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
-            return false;
+        int result;
 
-        ret = mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len );
-        if ( ret < 0 )
+        if ( ( result = mbedtls_ctr_drbg_seed( &m_internal->ctr_drbg, mbedtls_entropy_func, &m_internal->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
+        {
+            printf( "mbedtls_ctr_drbg_seed failed: %d\n", result );
             return false;
+        }
+
+        if ( mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len ) < 0 )
+        {
+            printf( "mbedtls_x509_crt_parse failed\n" );
+            return false;
+        }
 
         m_initialized = true;
 
