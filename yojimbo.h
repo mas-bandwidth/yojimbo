@@ -30,6 +30,7 @@
 #include "yojimbo_packet.h"
 #include "yojimbo_network.h"
 #include "yojimbo_sockets.h"
+#include "yojimbo_matcher.h"
 #include "yojimbo_platform.h"
 #include "yojimbo_simulator.h"
 #include "yojimbo_allocator.h"
