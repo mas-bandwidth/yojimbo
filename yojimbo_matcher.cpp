@@ -232,8 +232,6 @@ namespace yojimbo
 
     bool Matcher::ParseMatchResponse( const char * json, MatchResponse & matchResponse )
     {
-        (void)matchResponse;
-
         Document doc;
         doc.Parse( json );
         if ( doc.HasParseError() )
@@ -256,16 +254,19 @@ namespace yojimbo
 
         const char * encryptedConnectTokenBase64 = doc["connectToken"].GetString();
 
-        int encryptedLength = base64_decode_data( encryptedConnectTokenBase64, m_matchResponse.connectToken, ConnectTokenBytes );
+        int encryptedLength = base64_decode_data( encryptedConnectTokenBase64, matchResponse.connectToken, ConnectTokenBytes );
 
         if ( encryptedLength != ConnectTokenBytes )
             return false;        
 
-        m_matchResponse.connectNonce = atoll( doc["connectToken"].GetString() );
+        matchResponse.connectNonce = atoll( doc["connectToken"].GetString() );
 
-        m_matchResponse.numServerAddresses = 0;
+        matchResponse.numServerAddresses = 0;
 
         const Value & serverAddresses = doc["serverAddresses"];
+
+        if ( !serverAddresses.IsArray() )
+            return false;
 
         for ( SizeType i = 0; i < serverAddresses.Size(); ++i )
         {
@@ -279,22 +280,22 @@ namespace yojimbo
 
             base64_decode_string( serverAddresses[i].GetString(), serverAddress, sizeof( serverAddress ) );
 
-            m_matchResponse.serverAddresses[i] = Address( serverAddress );
+            matchResponse.serverAddresses[i] = Address( serverAddress );
 
-            if ( !m_matchResponse.serverAddresses[i].IsValid() )
+            if ( !matchResponse.serverAddresses[i].IsValid() )
                 return false;
 
-            m_matchResponse.numServerAddresses++;
+            matchResponse.numServerAddresses++;
         }
 
         const char * clientToServerKeyBase64 = doc["clientToServerKey"].GetString();
 
         const char * serverToClientKeyBase64 = doc["serverToClientKey"].GetString();
 
-        if ( base64_decode_data( clientToServerKeyBase64, m_matchResponse.clientToServerKey, KeyBytes ) != KeyBytes )
+        if ( base64_decode_data( clientToServerKeyBase64, matchResponse.clientToServerKey, KeyBytes ) != KeyBytes )
             return false;
 
-        if ( base64_decode_data( serverToClientKeyBase64, m_matchResponse.serverToClientKey, KeyBytes ) != KeyBytes )
+        if ( base64_decode_data( serverToClientKeyBase64, matchResponse.serverToClientKey, KeyBytes ) != KeyBytes )
             return false;
 
         return true;

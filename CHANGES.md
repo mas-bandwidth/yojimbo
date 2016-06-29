@@ -273,6 +273,20 @@ Actually, first check that I can reasonably install ucl on Debian. make -f Makef
 
 Created an issue on github about this. Hopefully the author can fix it and create a release that actually builds.
 
+Time to switch over to another JSON lib. No point writing more code in libucl when I'm going to replace it.
+
+Remedy guys suggested rapidjson
+
+https://github.com/miloyip/rapidjson
+
+It's pretty good. Very quickly implemented the match reponse parse with it.
+
+Also it is a header only library, so it can just be included in the source tree for windows with no hassle.
+
+Now to remove the rest of the code using libucl and get rid of it.
+
+Now replace the connect token read from JSON with an implementation written in rapidjson.
+
 
 Tuesday June 21st, 2016
 ========================
