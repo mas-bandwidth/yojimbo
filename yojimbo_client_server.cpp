@@ -29,6 +29,12 @@
 #include <time.h>
 #include <ucl.h>
 
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
+using namespace rapidjson;    
+
 namespace yojimbo
 {
     bool ConnectToken::operator == ( const ConnectToken & other )
@@ -223,89 +229,54 @@ namespace yojimbo
         return result;
     }
 
-    static bool read_int_from_string( ucl_object_t * parent, const char * key, int & value )
+    static bool read_int_from_string( Document & doc, const char * key, int & value )
     {
-        const ucl_object_t * object = ucl_object_lookup( parent, key );
-
-        if ( !object || ucl_object_type( object ) != UCL_STRING )
+        if ( !doc.HasMember( key ) )
             return false;
 
-        const char * string = ucl_object_tostring( object );
-        if ( !string )
+        if ( !doc[key].IsString() )
             return false;
 
-        value = atoi( string );
+        value = atoi( doc[key].GetString() );
 
         return true;
     }
 
-    static bool read_uint32_from_string( ucl_object_t * parent, const char * key, uint32_t & value )
+    static bool read_uint32_from_string( Document & doc, const char * key, uint32_t & value )
     {
-        const ucl_object_t * object = ucl_object_lookup( parent, key );
-
-        if ( !object || ucl_object_type( object ) != UCL_STRING )
+        if ( !doc.HasMember( key ) )
             return false;
 
-        const char * string = ucl_object_tostring( object );
-        if ( !string )
+        if ( !doc[key].IsString() )
             return false;
 
-        value = (uint32_t) strtoull( string, NULL, 10 );
+        value = (uint32_t) strtoull( doc[key].GetString(), NULL, 10 );
 
         return true;
     }
 
-    static bool read_uint64_from_string( ucl_object_t * parent, const char * key, uint64_t & value )
+    static bool read_uint64_from_string( Document & doc, const char * key, uint64_t & value )
     {
-        const ucl_object_t * object = ucl_object_lookup( parent, key );
-
-        if ( !object || ucl_object_type( object ) != UCL_STRING )
+        if ( !doc.HasMember( key ) )
             return false;
 
-        const char * string = ucl_object_tostring( object );
-        if ( !string )
+        if ( !doc[key].IsString() )
             return false;
 
-        value = (uint64_t) strtoull( string, NULL, 10 );
+        value = (uint64_t) strtoull( doc[key].GetString(), NULL, 10 );
 
         return true;
     }
 
-    static bool read_address_from_base64_string( const ucl_object_t * object, Address & address )
+    static bool read_data_from_base64_string( Document & doc, const char * key, uint8_t * data, int data_bytes )
     {
-        if ( !object || ucl_object_type( object ) != UCL_STRING )
+        if ( !doc.HasMember( key ) )
             return false;
 
-        const char * string = ucl_object_tostring( object );
-        if ( !string )
+        if ( !doc[key].IsString() )
             return false;
 
-        const int string_length = strlen( string );
-
-        const int MaxStringLength = 128;
-
-        if ( string_length > 128 )
-            return false;
-
-        char buffer[MaxStringLength*2];
-
-        base64_decode_string( string, buffer, sizeof( buffer ) );
-
-        address = Address( buffer );
-
-        return address.IsValid();
-    }
-
-    static bool read_data_from_base64_string( const ucl_object_t * parent, const char * key, uint8_t * data, int data_bytes )
-    {
-        const ucl_object_t * object = ucl_object_lookup( parent, key );
-
-        if ( !object || ucl_object_type( object ) != UCL_STRING )
-            return false;
-
-        const char * string = ucl_object_tostring( object );
-        if ( !string )
-            return false;
+        const char * string = doc[key].GetString();
 
         int string_length = strlen( string );
 
@@ -325,80 +296,68 @@ namespace yojimbo
     {
         assert( json );
 
-        bool result = false;
-
-        ucl_parser * parser = NULL;
-        ucl_object_t * root = NULL;
-        const ucl_object_t * serverAddresses = NULL;
-
-        parser = ucl_parser_new( UCL_PARSER_ZEROCOPY );
-
-        if ( !parser )
+        Document doc;
+        doc.Parse( json );
+        if ( doc.HasParseError() )
             return false;
 
-        if ( !ucl_parser_add_string( parser, json, strlen( json ) ) )
-            goto cleanup;
+        if ( !read_uint32_from_string( doc, "protocolId", connectToken.protocolId ) )
+            return false;
 
-        if ( ucl_parser_get_error( parser ) )
-            goto cleanup;
+        if ( !read_uint64_from_string( doc, "clientId", connectToken.clientId ) )
+            return false;
 
-        root = ucl_parser_get_object( parser );
+        if ( !read_uint64_from_string( doc, "expiryTimestamp", connectToken.expiryTimestamp ) )
+            return false;
 
-        if ( !root )
-            goto cleanup;
+        if ( !read_int_from_string( doc, "numServerAddresses", connectToken.numServerAddresses ) )
+            return false;
 
-        if ( !read_uint32_from_string( root, "protocolId", connectToken.protocolId ) )
-            goto cleanup;
+        if ( connectToken.numServerAddresses < 0 || connectToken.numServerAddresses > MaxServersPerConnectToken )
+            return false;
 
-        if ( !read_uint64_from_string( root, "clientId", connectToken.clientId ) )
-            goto cleanup;
+        const Value & serverAddresses = doc["serverAddresses"];
 
-        if ( !read_uint64_from_string( root, "expiryTimestamp", connectToken.expiryTimestamp ) )
-            goto cleanup;
+        if ( !serverAddresses.IsArray() )
+            return false;
 
-        if ( !read_int_from_string( root, "numServerAddresses", connectToken.numServerAddresses ) )
-            goto cleanup;
+        if ( (int) serverAddresses.Size() != connectToken.numServerAddresses )
+            return false;
 
-        serverAddresses = ucl_object_lookup( root, "serverAddresses" );
-
-        if ( !serverAddresses || ucl_object_type( serverAddresses ) != UCL_ARRAY )
-            goto cleanup;
-
-        if ( connectToken.numServerAddresses <= 0 || connectToken.numServerAddresses > MaxServersPerConnectToken )
-            goto cleanup;
-
-        for ( int i = 0; i < connectToken.numServerAddresses; ++i )
+        for ( SizeType i = 0; i < serverAddresses.Size(); ++i )
         {
-            const ucl_object_t * serverAddress = ucl_array_find_index( serverAddresses, i );
+            if ( !serverAddresses[i].IsString() )
+                return false;
 
-            if ( !read_address_from_base64_string( serverAddress, connectToken.serverAddresses[i] ) )
-                goto cleanup;
+            const char * string = serverAddresses[i].GetString();
+
+            const int string_length = strlen( string );
+
+            const int MaxStringLength = 128;
+
+            if ( string_length > 128 )
+                return false;
+
+            char buffer[MaxStringLength*2];
+
+            base64_decode_string( string, buffer, sizeof( buffer ) );
+
+            connectToken.serverAddresses[i] = Address( buffer );
+
+            if ( !connectToken.serverAddresses[i].IsValid() )
+                return false;
         }
 
-        if ( !read_data_from_base64_string( root, "clientToServerKey", connectToken.clientToServerKey, KeyBytes ) )
-            goto cleanup;
+        if ( !read_data_from_base64_string( doc, "clientToServerKey", connectToken.clientToServerKey, KeyBytes ) )
+            return false;
 
-        if ( !read_data_from_base64_string( root, "serverToClientKey", connectToken.serverToClientKey, KeyBytes ) )
-            goto cleanup;
+        if ( !read_data_from_base64_string( doc, "serverToClientKey", connectToken.serverToClientKey, KeyBytes ) )
+            return false;
 
-        if ( !read_data_from_base64_string( root, "random", connectToken.random, KeyBytes ) )
-            goto cleanup;
+        if ( !read_data_from_base64_string( doc, "random", connectToken.random, KeyBytes ) )
+            return false;
 
-        result = true;
-
-    cleanup:
-
-        if ( root )
-        {
-            ucl_object_unref( root );
-        }
-
-        if ( parser )
-        {
-            ucl_parser_free( parser );
-        }
-
-        return result;
+        return true;
     }
 
     bool GenerateChallengeToken( const ConnectToken & connectToken, const uint8_t * connectTokenMac, ChallengeToken & challengeToken )
