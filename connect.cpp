@@ -47,11 +47,11 @@ int ConnectMain( int argc, char * argv[] )
 
     if ( matcher.GetStatus() == MATCHER_READY )
     {
-        printf( "matcher succeeded\n\n" );
+        printf( "\nmatcher succeeded\n\n" );
     }
     else
     {
-        printf( "matcher failed\n\n" );
+        printf( "\nmatcher failed\n\n" );
     }
 
     return 0;
