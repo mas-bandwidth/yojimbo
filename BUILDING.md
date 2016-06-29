@@ -86,6 +86,28 @@ Try it yourself by running "premake5 docker" once (it should build everything), 
 to the server running on port 50000. Similarly, if you change some libyojimbo source it automatically rebuilds
 libyojimbo server and runs tests before starting the server. Impressive!
 
+## Run a yojimbo matcher inside Docker
+
+In order to support authentication and a secure connection between client and server, yojimbo provides a backend written in golang.
+
+The purpose of this backend is to take a client request for connection and provide a connection token which the client uses to securely connect to a dedicated server.
+
+To run this matchmaker backend, run this command:
+
+    premake5 matcher
+
+This builds and runs a linux docker instance with matcher.go running on port 8080.
+
+You can verify the matcher instance is working correctly as follows:
+
+    curl https://localhost:8080/match/12341/1 --insecure
+
+Next, you can run the connect program to HTTPS to the matcher and print the JSON result from inside C++:
+
+    premake5 connect
+
+Very shortly, this connect program will be extended to decode the match response and connect a client to the server returned.
+
 ## Feedback
 
 This is pre-release software so please email me with any feedback you have <glenn.fiedler@gmail.com>
