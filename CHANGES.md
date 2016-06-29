@@ -2,6 +2,8 @@
 Wednesday June 29th, 2016
 =========================
 
+Fixed race condition in matcher.go found by Egon Elbre. Now use atomic.AddUint64( &MatchNonce, 1 ) to increment nonce.
+
 I wake up today and connect.cpp is failing on MacOSX. I'm pretty 100% sure it worked last night.
 
 It still works today on Linux.
@@ -19,6 +21,8 @@ I tried rebooting my machine. Tried reinstalling mbedtls... same error. But stil
 What is going on?!
 
 Found it. Mismatched headers on macosx. Mac was including the headers from the mbedtls directory for windows.
+
+This happened after I backported to windows. I must not have tested the connect program using mbedtls after adding the mbedtls headers and libs for windows.
 
 To fix this I am going to have to move windows headers and libs specifically under a windows directory, so they do not conflict.
 
