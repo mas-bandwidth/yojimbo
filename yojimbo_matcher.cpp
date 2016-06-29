@@ -24,19 +24,21 @@
 
 #include "yojimbo_matcher.h"
 
-#include "mbedtls/config.h"
-#include "mbedtls/platform.h"
-#include "mbedtls/net.h"
-#include "mbedtls/debug.h"
-#include "mbedtls/ssl.h"
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
-#include "mbedtls/error.h"
-#include "mbedtls/certs.h"
+#include <mbedtls/config.h>
+#include <mbedtls/platform.h>
+#include <mbedtls/net.h>
+#include <mbedtls/debug.h>
+#include <mbedtls/ssl.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
+#include <mbedtls/error.h>
+#include <mbedtls/certs.h>
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+
+#include "sodium.h"
 
 using namespace rapidjson;
 
@@ -55,21 +57,12 @@ namespace yojimbo
         mbedtls_x509_crt cacert;
     };
 
-    static void my_debug( void *ctx, int level,
-                          const char *file, int line,
-                          const char *str )
+    Matcher::Matcher( Allocator & allocator )
     {
-        ((void) level);
-        fprintf( (FILE *) ctx, "%s:%04d: %s", file, line, str );
-        fflush(  (FILE *) ctx  );
-    }
-
-
-    Matcher::Matcher()
-    {
+        m_allocator = &allocator;
         m_initialized = false;
         m_status = MATCHER_IDLE;
-        m_internal = new MatcherInternal();     // todo: convert to allocator
+        m_internal = YOJIMBO_NEW( allocator, MatcherInternal );
     }
 
     Matcher::~Matcher()
@@ -81,20 +74,18 @@ namespace yojimbo
         mbedtls_ctr_drbg_free( &m_internal->ctr_drbg );
         mbedtls_entropy_free( &m_internal->entropy );
 
-        delete m_internal;
-        m_internal = NULL;
+        YOJIMBO_DELETE( *m_allocator, MatcherInternal, m_internal );
     }
 
     bool Matcher::Initialize()
     {
-        const char *pers = "yojimbo_client";
+        const char * pers = "yojimbo_client";
 
-        mbedtls_debug_set_threshold( 2 );
+        mbedtls_debug_set_threshold( 2000 );
 
         mbedtls_net_init( &m_internal->server_fd );
         mbedtls_ssl_init( &m_internal->ssl );
         mbedtls_ssl_config_init( &m_internal->conf );
-        mbedtls_ssl_conf_dbg( &m_internal->conf, my_debug, stdout );
         mbedtls_x509_crt_init( &m_internal->cacert );
         mbedtls_ctr_drbg_init( &m_internal->ctr_drbg );
         mbedtls_entropy_init( &m_internal->entropy );
@@ -103,13 +94,11 @@ namespace yojimbo
 
         if ( ( result = mbedtls_ctr_drbg_seed( &m_internal->ctr_drbg, mbedtls_entropy_func, &m_internal->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
         {
-            printf( "mbedtls_ctr_drbg_seed failed: %d\n", result );
             return false;
         }
 
         if ( mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len ) < 0 )
         {
-            printf( "mbedtls_x509_crt_parse failed\n" );
             return false;
         }
 
@@ -122,12 +111,15 @@ namespace yojimbo
     {
         assert( m_initialized );
 
-        int ret;
+        int ret, len;
+        uint32_t flags;
+        char buf[4*1024];
+        char request[1024];
 
         if ( ( ret = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
             m_status = MATCHER_FAILED;
-            return;
+            goto cleanup;
         }
 
         if ( ( ret = mbedtls_ssl_config_defaults( &m_internal->conf,
@@ -146,35 +138,32 @@ namespace yojimbo
         if( ( ret = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
         {
             m_status = MATCHER_FAILED;
-            return;
+            goto cleanup;
         }
 
         if ( ( ret = mbedtls_ssl_set_hostname( &m_internal->ssl, "yojimbo" ) ) != 0 )
         {
             m_status = MATCHER_FAILED;
-            return;
+            goto cleanup;
         }
 
         mbedtls_ssl_set_bio( &m_internal->ssl, &m_internal->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
 
         while ( ( ret = mbedtls_ssl_handshake( &m_internal->ssl ) ) != 0 )
         {
-            if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
+            if ( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
                 m_status = MATCHER_FAILED;
-                return;
+                goto cleanup;
             }
         }
 
-        uint32_t flags;
         if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
         {
             // note: could not verify certificate (eg. it is self-signed)
+
+            // todo: this should be locked down #if YOJIMBO_SECURE
         }
-
-        char buf[4*1024];
-
-        char request[1024];
 
         sprintf( request, "GET /match/%d/%" PRIx64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
 
@@ -183,11 +172,11 @@ namespace yojimbo
             if ( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
                 m_status = MATCHER_FAILED;
-                return;
+                goto cleanup;
             }
         }
 
-        int len = ret;
+        len = ret;
 
         do
         {
@@ -216,16 +205,20 @@ namespace yojimbo
             if ( !ParseMatchResponse( json, m_matchResponse ) )
             {
                 m_status = MATCHER_FAILED;
-                return;
+                goto cleanup;
             }
 
             m_status = MATCHER_READY;
+
+            goto cleanup;
         }
         while( 1 );
 
-        mbedtls_ssl_close_notify( &m_internal->ssl );
-
         m_status = MATCHER_FAILED;
+
+    cleanup:
+
+        mbedtls_ssl_close_notify( &m_internal->ssl );
     }
 
     MatcherStatus Matcher::GetStatus()
