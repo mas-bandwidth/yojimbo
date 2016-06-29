@@ -34,13 +34,18 @@
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
 
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+
+using namespace rapidjson;
+
 #define SERVER_PORT "8080"
 #define SERVER_NAME "localhost"
-#define GET_REQUEST "GET /match/123141/1 HTTP/1.0\r\n\r\n"
 
 namespace yojimbo
 {
-    struct MatcherImpl
+    struct MatcherInternal
     {
         mbedtls_net_context server_fd;
         mbedtls_entropy_context entropy;
@@ -54,20 +59,20 @@ namespace yojimbo
     {
         m_initialized = false;
         m_status = MATCHER_IDLE;
-        m_impl = new MatcherImpl();     // todo: convert to allocator
+        m_internal = new MatcherInternal();     // todo: convert to allocator
     }
 
     Matcher::~Matcher()
     {
-        mbedtls_net_free( &m_impl->server_fd );
-        mbedtls_x509_crt_free( &m_impl->cacert );
-        mbedtls_ssl_free( &m_impl->ssl );
-        mbedtls_ssl_config_free( &m_impl->conf );
-        mbedtls_ctr_drbg_free( &m_impl->ctr_drbg );
-        mbedtls_entropy_free( &m_impl->entropy );
+        mbedtls_net_free( &m_internal->server_fd );
+        mbedtls_x509_crt_free( &m_internal->cacert );
+        mbedtls_ssl_free( &m_internal->ssl );
+        mbedtls_ssl_config_free( &m_internal->conf );
+        mbedtls_ctr_drbg_free( &m_internal->ctr_drbg );
+        mbedtls_entropy_free( &m_internal->entropy );
 
-        delete m_impl;
-        m_impl = NULL;
+        delete m_internal;
+        m_internal = NULL;
     }
 
     bool Matcher::Initialize()
@@ -76,17 +81,17 @@ namespace yojimbo
 
         const char *pers = "yojimbo_client";
 
-        mbedtls_net_init( &m_impl->server_fd );
-        mbedtls_ssl_init( &m_impl->ssl );
-        mbedtls_ssl_config_init( &m_impl->conf );
-        mbedtls_x509_crt_init( &m_impl->cacert );
-        mbedtls_ctr_drbg_init( &m_impl->ctr_drbg );
-        mbedtls_entropy_init( &m_impl->entropy );
+        mbedtls_net_init( &m_internal->server_fd );
+        mbedtls_ssl_init( &m_internal->ssl );
+        mbedtls_ssl_config_init( &m_internal->conf );
+        mbedtls_x509_crt_init( &m_internal->cacert );
+        mbedtls_ctr_drbg_init( &m_internal->ctr_drbg );
+        mbedtls_entropy_init( &m_internal->entropy );
 
-        if ( ( ret = mbedtls_ctr_drbg_seed( &m_impl->ctr_drbg, mbedtls_entropy_func, &m_impl->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
+        if ( ( ret = mbedtls_ctr_drbg_seed( &m_internal->ctr_drbg, mbedtls_entropy_func, &m_internal->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
             return false;
 
-        ret = mbedtls_x509_crt_parse( &m_impl->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len );
+        ret = mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len );
         if ( ret < 0 )
             return false;
 
@@ -99,18 +104,15 @@ namespace yojimbo
     {
         assert( m_initialized );
 
-        (void)protocolId;
-        (void)clientId;
-        
         int ret;
 
-        if ( ( ret = mbedtls_net_connect( &m_impl->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
+        if ( ( ret = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
             m_status = MATCHER_FAILED;
             return;
         }
 
-        if ( ( ret = mbedtls_ssl_config_defaults( &m_impl->conf,
+        if ( ( ret = mbedtls_ssl_config_defaults( &m_internal->conf,
                         MBEDTLS_SSL_IS_CLIENT,
                         MBEDTLS_SSL_TRANSPORT_STREAM,
                         MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
@@ -119,25 +121,25 @@ namespace yojimbo
             return;
         }
 
-        mbedtls_ssl_conf_authmode( &m_impl->conf, MBEDTLS_SSL_VERIFY_OPTIONAL );
-        mbedtls_ssl_conf_ca_chain( &m_impl->conf, &m_impl->cacert, NULL );
-        mbedtls_ssl_conf_rng( &m_impl->conf, mbedtls_ctr_drbg_random, &m_impl->ctr_drbg );
+        mbedtls_ssl_conf_authmode( &m_internal->conf, MBEDTLS_SSL_VERIFY_OPTIONAL );
+        mbedtls_ssl_conf_ca_chain( &m_internal->conf, &m_internal->cacert, NULL );
+        mbedtls_ssl_conf_rng( &m_internal->conf, mbedtls_ctr_drbg_random, &m_internal->ctr_drbg );
 
-        if( ( ret = mbedtls_ssl_setup( &m_impl->ssl, &m_impl->conf ) ) != 0 )
+        if( ( ret = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
         {
             m_status = MATCHER_FAILED;
             return;
         }
 
-        if ( ( ret = mbedtls_ssl_set_hostname( &m_impl->ssl, "mbed TLS Server 1" ) ) != 0 )
+        if ( ( ret = mbedtls_ssl_set_hostname( &m_internal->ssl, "yojimbo" ) ) != 0 )
         {
             m_status = MATCHER_FAILED;
             return;
         }
 
-        mbedtls_ssl_set_bio( &m_impl->ssl, &m_impl->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
+        mbedtls_ssl_set_bio( &m_internal->ssl, &m_internal->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
 
-        while ( ( ret = mbedtls_ssl_handshake( &m_impl->ssl ) ) != 0 )
+        while ( ( ret = mbedtls_ssl_handshake( &m_internal->ssl ) ) != 0 )
         {
             if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
@@ -147,16 +149,18 @@ namespace yojimbo
         }
 
         uint32_t flags;
-        if ( ( flags = mbedtls_ssl_get_verify_result( &m_impl->ssl ) ) != 0 )
+        if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
         {
             // note: could not verify certificate (eg. it is self-signed)
         }
 
-        unsigned char buf[4*1024];
+        char buf[4*1024];
 
-        int len = sprintf( (char *) buf, GET_REQUEST );
+        char request[1024];
 
-        while ( ( ret = mbedtls_ssl_write( &m_impl->ssl, buf, len ) ) <= 0 )
+        sprintf( request, "GET /match/%d/%" PRIx64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
+
+        while ( ( ret = mbedtls_ssl_write( &m_internal->ssl, (uint8_t*) request, strlen( request ) ) ) <= 0 )
         {
             if ( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
@@ -165,13 +169,13 @@ namespace yojimbo
             }
         }
 
-        len = ret;
+        int len = ret;
 
         do
         {
             len = sizeof( buf ) - 1;
             memset( buf, 0, sizeof( buf ) );
-            ret = mbedtls_ssl_read( &m_impl->ssl, buf, len );
+            ret = mbedtls_ssl_read( &m_internal->ssl, (uint8_t*) buf, len );
 
             if ( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
                 continue;
@@ -191,11 +195,17 @@ namespace yojimbo
 
             printf( "\n%s\n", json );
 
+            if ( !ParseMatchResponse( json, m_matchResponse ) )
+            {
+                m_status = MATCHER_FAILED;
+                return;
+            }
+
             m_status = MATCHER_READY;
         }
         while( 1 );
 
-        mbedtls_ssl_close_notify( &m_impl->ssl );
+        mbedtls_ssl_close_notify( &m_internal->ssl );
 
         m_status = MATCHER_FAILED;
     }
@@ -205,8 +215,88 @@ namespace yojimbo
         return m_status;
     }
 
-    void Matcher::GetMatch( Match & match )
+    void Matcher::GetMatchResponse( MatchResponse & matchResponse )
     {
-        match = Match();
+        matchResponse = ( m_status == MATCHER_READY ) ? m_matchResponse : MatchResponse();
+    }
+
+    static bool exists_and_is_string( Document & doc, const char * key )
+    {
+        return doc.HasMember( key ) && doc[key].IsString();
+    }
+
+    static bool exists_and_is_array( Document & doc, const char * key )
+    {
+        return doc.HasMember( key ) && doc[key].IsArray();
+    }
+
+    bool Matcher::ParseMatchResponse( const char * json, MatchResponse & matchResponse )
+    {
+        (void)matchResponse;
+
+        Document doc;
+        doc.Parse( json );
+        if ( doc.HasParseError() )
+            return false;
+
+        if ( !exists_and_is_string( doc, "connectToken" ) )
+            return false;
+
+        if ( !exists_and_is_string( doc, "connectNonce" ) )
+            return false;
+
+        if ( !exists_and_is_array( doc, "serverAddresses" ) )
+            return false;
+
+        if ( !exists_and_is_string( doc, "clientToServerKey" ) )
+            return false;
+
+        if ( !exists_and_is_string( doc, "serverToClientKey" ) )
+            return false;
+
+        const char * encryptedConnectTokenBase64 = doc["connectToken"].GetString();
+
+        int encryptedLength = base64_decode_data( encryptedConnectTokenBase64, m_matchResponse.connectToken, ConnectTokenBytes );
+
+        if ( encryptedLength != ConnectTokenBytes )
+            return false;        
+
+        m_matchResponse.connectNonce = atoll( doc["connectToken"].GetString() );
+
+        m_matchResponse.numServerAddresses = 0;
+
+        const Value & serverAddresses = doc["serverAddresses"];
+
+        for ( SizeType i = 0; i < serverAddresses.Size(); ++i )
+        {
+            if ( i >= MaxServersPerConnectToken )
+                return false;
+
+            if ( !serverAddresses[i].IsString() )
+                return false;
+
+            char serverAddress[256];
+
+            base64_decode_string( serverAddresses[i].GetString(), serverAddress, sizeof( serverAddress ) );
+
+            m_matchResponse.serverAddresses[i] = Address( serverAddress );
+
+            if ( !m_matchResponse.serverAddresses[i].IsValid() )
+                return false;
+
+            m_matchResponse.numServerAddresses++;
+        }
+
+        const char * clientToServerKeyBase64 = doc["clientToServerKey"].GetString();
+
+        const char * serverToClientKeyBase64 = doc["serverToClientKey"].GetString();
+
+        if ( base64_decode_data( clientToServerKeyBase64, m_matchResponse.clientToServerKey, KeyBytes ) != KeyBytes )
+            return false;
+
+        if ( base64_decode_data( serverToClientKeyBase64, m_matchResponse.serverToClientKey, KeyBytes ) != KeyBytes )
+            return false;
+
+        return true;
     }
 }
