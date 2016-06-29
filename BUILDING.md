@@ -23,7 +23,7 @@ Next install libsodium and mbedtls.
 
 On MacOS X, this can be done "brew install libsodium mbedtls". If you don't have Brew, you can install it from <http://brew.sh>.
 
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here: [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls/).
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here: [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls).
 
 Next go to the command line under the libyojimbo directory and enter:
 
@@ -106,7 +106,7 @@ Next, you can run the connect program to HTTPS to the matcher and print the JSON
 
     premake5 connect
 
-Very shortly, this connect program will be extended to decode the match response and connect a client to the server returned.
+Very shortly, this connect program will be extended to decode the match response and connect a client to the server returned by the matcher.
 
 ## Feedback
 
