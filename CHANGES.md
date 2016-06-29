@@ -26,6 +26,48 @@ This happened after I backported to windows. I must not have tested the connect 
 
 To fix this I am going to have to move windows headers and libs specifically under a windows directory, so they do not conflict.
 
+Extended connect.cpp to use the match response to run a secure connect.
+
+Working on getting the actual client connecting through via "connect".
+
+Some issues with server address mismatch potentially. Perhaps it's best to encode a 64bit salt value that only the client knows,
+that way the server can replay back, hey, it's me. Sorry if my address looks different to what you expect, but, here is the salt
+you are expecting, so you know I'm the real server.
+
+^--- but does this really makes sense when the encryption mapping is based on address? Not really. Hmmm.
+
+There also seems to be a bug in the code to get the socket port from a socket after bind to 0 port. Possible endian swap issue?
+
+I think what is going on now is that the client and server have a different idea of the encryption keys.
+
+This would explain the client not getting packets back from the server after the initial connection request (they are encrypted past that point).
+
+Add some logs to print out the encryption mapping on server and client, and compare? I think the keys are different and it's the backend's fault, maybe I did something stupid like copy paste error somewhere. Checking...
+
+On the client:
+
+    0xc5,0x0c,0x34,0x7d,0x36,0x7b,0x03,0xaf,0x85,0x4f,0x1f,0xd3,0xca,0x7c,0x76,0xf7,
+    0x14,0xe8,0x5b,0xb2,0x52,0x49,0x4b,0x09,0x73,0xcb,0xab,0x8a,0xb9,0xea,0x2e,0x06,
+    0xed,0x2d,0x2c,0x38,0x46,0x59,0xb1,0x18,0xbb,0x6b,0x14,0x8d,0x3e,0x88,0x6a,0xe7,
+    0x5b,0xc9,0x27,0x5c,0xc8,0x5b,0xd0,0x31,0xdf,0x50,0x0c,0x95,0xae,0x38,0x43,0xd5
+
+On the server:
+
+    0xc5,0x0c,0x34,0x7d,0x36,0x7b,0x03,0xaf,0x85,0x4f,0x1f,0xd3,0xca,0x7c,0x76,0xf7,
+    0x14,0xe8,0x5b,0xb2,0x52,0x49,0x4b,0x09,0x73,0xcb,0xab,0x8a,0xb9,0xea,0x2e,0x06,
+    0xed,0x2d,0x2c,0x38,0x46,0x59,0xb1,0x18,0xbb,0x6b,0x14,0x8d,0x3e,0x88,0x6a,0xe7,
+    0x5b,0xc9,0x27,0x5c,0xc8,0x5b,0xd0,0x31,0xdf,0x50,0x0c,0x95,0xae,0x38,0x43,0xd5,
+
+Looks the same to me. What's going on?
+
+I think it's failing because the server is set in insecure mode, and therefore is sending all the packets that should be sent securely, as insecure packets.
+
+In order for secure and insecure mode to coexist on the same server, the server needs to be flexible, and support sending packets as both insecure and secure from the same server instance.
+
+Yes, that's it. As soon as the server is adjusted to not set insecure mode, the secure connect works fine.
+
+I need to fix this. Yojimbo servers set to insecure mode must still allow secure connections.
+
 
 Tuesday June 28th, 2016
 =======================
@@ -989,6 +1031,10 @@ It is just like another layer of security if somehow the connect tokens are brok
 But if connect tokens are broken, the whole system breaks down....
 
 OK. Hacked up an encryption mapping on the server interface somehow. Now the codepath is exercised, but this is still I think not actually a valid attack vector in the wild.
+
+Ok. I think I have the fix.
+
+Yes, also confirming the port endian swap thing is real. Fixing that as well. Fixed.
 
 
 Sunday June 5th, 2016

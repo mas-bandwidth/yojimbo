@@ -841,7 +841,10 @@ namespace yojimbo
         assert( IsRunning() );
 
         if ( m_flags & SERVER_FLAG_IGNORE_CONNECTION_REQUESTS )
+        {
+//            printf( "ignore connection requests\n" );
             return;
+        }
 
         m_counters[SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED]++;
 
@@ -929,18 +932,23 @@ namespace yojimbo
         ChallengeToken challengeToken;
         if ( !GenerateChallengeToken( connectToken, packet.connectTokenData, challengeToken ) )
         {
+//            printf( "failed to generate challenge token\n" );
             m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_GENERATE]++;
             return;
         }
 
         ConnectionChallengePacket * connectionChallengePacket = (ConnectionChallengePacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE );
         if ( !connectionChallengePacket )
+        {
+//            printf( "null connection challenge packet\n" );
             return;
+        }
 
         memcpy( connectionChallengePacket->challengeTokenNonce, (uint8_t*) &m_challengeTokenNonce, NonceBytes );
 
         if ( !EncryptChallengeToken( challengeToken, connectionChallengePacket->challengeTokenData, NULL, 0, connectionChallengePacket->challengeTokenNonce, m_privateKey ) )
         {
+//            printf( "failed to encrypt challenge token\n" );
             m_counters[SERVER_COUNTER_CHALLENGE_TOKEN_FAILED_TO_ENCRYPT]++;
             return;
         }
@@ -1091,17 +1099,6 @@ namespace yojimbo
 
     void Server::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
     {
-#if DEBUG
-        if ( m_networkInterface->IsEncryptedPacketType( packet->GetType() ) && ( m_networkInterface->GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) == 0 )
-        {
-            assert( sequence > 0 );
-        }
-        else
-        {
-            assert( sequence == 0 );
-        }
-#endif // #if DEBUG
-
         OnPacketReceived( packet->GetType(), address, sequence );
         
         switch ( packet->GetType() )
@@ -1564,17 +1561,6 @@ namespace yojimbo
 
     void Client::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
     {
-#if DEBUG
-        if ( m_networkInterface->IsEncryptedPacketType( packet->GetType() ) && ( m_networkInterface->GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) == 0 )
-        {
-            assert( sequence > 0 );
-        }
-        else
-        {
-            assert( sequence == 0 );
-        }
-#endif // #if DEBUG
-
         OnPacketReceived( packet->GetType(), address, sequence );
         
         switch ( packet->GetType() )

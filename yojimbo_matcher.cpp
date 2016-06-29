@@ -81,8 +81,6 @@ namespace yojimbo
     {
         const char * pers = "yojimbo_client";
 
-        mbedtls_debug_set_threshold( 2000 );
-
         mbedtls_net_init( &m_internal->server_fd );
         mbedtls_ssl_init( &m_internal->ssl );
         mbedtls_ssl_config_init( &m_internal->conf );
@@ -165,7 +163,7 @@ namespace yojimbo
             // todo: this should be locked down #if YOJIMBO_SECURE
         }
 
-        sprintf( request, "GET /match/%d/%" PRIx64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
+        sprintf( request, "GET /match/%d/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
 
         while ( ( ret = mbedtls_ssl_write( &m_internal->ssl, (uint8_t*) request, strlen( request ) ) ) <= 0 )
         {
@@ -199,8 +197,6 @@ namespace yojimbo
 
             if ( !json )
                 break;
-
-            printf( "\n%s\n", json );
 
             if ( !ParseMatchResponse( json, m_matchResponse ) )
             {
@@ -248,10 +244,10 @@ namespace yojimbo
         if ( doc.HasParseError() )
             return false;
 
-        if ( !exists_and_is_string( doc, "connectToken" ) )
+        if ( !exists_and_is_string( doc, "connectTokenData" ) )
             return false;
 
-        if ( !exists_and_is_string( doc, "connectNonce" ) )
+        if ( !exists_and_is_string( doc, "connectTokenNonce" ) )
             return false;
 
         if ( !exists_and_is_array( doc, "serverAddresses" ) )
@@ -263,14 +259,16 @@ namespace yojimbo
         if ( !exists_and_is_string( doc, "serverToClientKey" ) )
             return false;
 
-        const char * encryptedConnectTokenBase64 = doc["connectToken"].GetString();
+        const char * encryptedConnectTokenBase64 = doc["connectTokenData"].GetString();
 
-        int encryptedLength = base64_decode_data( encryptedConnectTokenBase64, matchResponse.connectToken, ConnectTokenBytes );
+        int encryptedLength = base64_decode_data( encryptedConnectTokenBase64, matchResponse.connectTokenData, ConnectTokenBytes );
 
         if ( encryptedLength != ConnectTokenBytes )
             return false;        
 
-        matchResponse.connectNonce = atoll( doc["connectToken"].GetString() );
+        uint64_t connectTokenNonce = atoll( doc["connectTokenNonce"].GetString() );
+
+        memcpy( &matchResponse.connectTokenNonce, &connectTokenNonce, 8 );
 
         matchResponse.numServerAddresses = 0;
 

@@ -43,17 +43,17 @@ namespace yojimbo
     {
         MatchResponse()
         {
-            connectNonce = 0;
             numServerAddresses = 0;
-            memset( connectToken, 0, sizeof( connectToken ) );
+            memset( connectTokenData, 0, sizeof( connectTokenData ) );
+            memset( connectTokenNonce, 0, sizeof( connectTokenNonce ) );
             memset( clientToServerKey, 0, sizeof( clientToServerKey ) );
             memset( serverToClientKey, 0, sizeof( serverToClientKey ) );
         }
 
-        uint64_t connectNonce;
         int numServerAddresses;
-        uint8_t connectToken[ConnectTokenBytes];
         Address serverAddresses[MaxServersPerConnectToken];
+        uint8_t connectTokenData[ConnectTokenBytes];
+        uint8_t connectTokenNonce[NonceBytes];
         uint8_t clientToServerKey[KeyBytes];
         uint8_t serverToClientKey[KeyBytes];
     };
@@ -63,6 +63,7 @@ namespace yojimbo
     public:
 
         Matcher( Allocator & allocator );
+       
         ~Matcher();
 
         bool Initialize();
