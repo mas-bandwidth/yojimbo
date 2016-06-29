@@ -242,7 +242,7 @@ namespace yojimbo
 
         const char * string = doc[key].GetString();
 
-        int string_length = strlen( string );
+        const int string_length = (int) strlen( string );
 
         uint8_t * buffer = (uint8_t*) alloca( string_length );
 
@@ -295,7 +295,7 @@ namespace yojimbo
 
             const char * string = serverAddresses[i].GetString();
 
-            const int string_length = strlen( string );
+            const int string_length = (int) strlen( string );
 
             const int MaxStringLength = 128;
 
