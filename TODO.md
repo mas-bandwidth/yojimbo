@@ -1,9 +1,5 @@
 # TODO
 
-Now replace the connect token read from JSON with an implementation written in rapidjson.
+Work out how to install mbedtls on windows.
 
-Then replace the connect token write.
-
-Once this is done, remove libucl entirely.
-
-Test on windows. Everything should work again.
+Once this is working, windows platform should be working again.

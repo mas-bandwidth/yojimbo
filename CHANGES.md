@@ -287,6 +287,10 @@ Now to remove the rest of the code using libucl and get rid of it.
 
 Now replace the connect token read from JSON with an implementation written in rapidjson.
 
+Now replace the connect token write.
+
+Once this is done, remove libucl entirely.
+
 
 Tuesday June 21st, 2016
 ========================
