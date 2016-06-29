@@ -143,7 +143,7 @@ namespace yojimbo
                     m_error = SOCKET_ERROR_GET_SOCKNAME_IPV6_FAILED;
                     return;
                 }
-                m_address.SetPort( sin.sin6_port );
+                m_address.SetPort( ntohs( sin.sin6_port ) );
             }
             else
             {
@@ -154,7 +154,7 @@ namespace yojimbo
                     m_error = SOCKET_ERROR_GET_SOCKNAME_IPV4_FAILED;
                     return;
                 }
-                m_address.SetPort( sin.sin_port );
+                m_address.SetPort( ntohs( sin.sin_port ) );
             }
         }
 

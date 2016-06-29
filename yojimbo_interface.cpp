@@ -222,13 +222,13 @@ namespace yojimbo
 
         int packetBytes;
 
+        const uint8_t * key = m_encryptionManager.GetSendKey( address, time );
+
 #if YOJIMBO_INSECURE_CONNECT
-        const bool encrypt = IsEncryptedPacketType( packet->GetType() ) && ( GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) == 0;
+        const bool encrypt = ( GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packet->GetType() ) && key : IsEncryptedPacketType( packet->GetType() );
 #else // #if YOJIMBO_INSECURE_CONNECT
         const bool encrypt = IsEncryptedPacketType( packet->GetType() );
 #endif // #if YOJIMBO_INSECURE_CONNECT
-
-        const uint8_t * key = encrypt ? m_encryptionManager.GetSendKey( address, time ) : NULL;
 
         const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key );
 

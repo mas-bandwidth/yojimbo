@@ -40,9 +40,11 @@ int ServerMain()
 
     printf( "server started on port %d\n", ServerPort );
 
-    Address serverAddress( "0.0.0.0", ServerPort );
+    Address serverBindAddress( "0.0.0.0", ServerPort );
 
-    GameNetworkInterface serverInterface( packetFactory, serverAddress );
+    Address serverPublicAddress( "127.0.0.1", ServerPort );
+
+    GameNetworkInterface serverInterface( packetFactory, serverBindAddress );
 
     if ( serverInterface.GetError() != SOCKET_ERROR_NONE )
     {
@@ -52,11 +54,15 @@ int ServerMain()
     
     GameServer server( serverInterface );
 
-    server.SetServerAddress( serverAddress );
+    server.SetServerAddress( serverPublicAddress );
+
+#if YOJIMBO_INSECURE_CONNECT
 
     server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
 
     serverInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
     server.Start();
 

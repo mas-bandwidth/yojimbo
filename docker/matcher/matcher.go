@@ -93,8 +93,8 @@ func EncryptConnectToken( connectToken ConnectToken, nonce uint64 ) ( []byte, bo
 }
 
 type MatchResponse struct {
-    ConnectToken       string `json:"connectToken"`
-    ConnectNonce       string `json:"connectNonce"`
+    ConnectTokenData   string `json:"connectTokenData"`
+    ConnectTokenNonce  string `json:"connectTokenNonce"`
     ServerAddresses [] string `json:"serverAddresses"`
     ClientToServerKey  string `json:"clientToServerKey"`
     ServerToClientKey  string `json:"serverToClientKey"`
@@ -102,9 +102,9 @@ type MatchResponse struct {
 
 func GenerateMatchResponse( connectToken ConnectToken, nonce uint64 ) ( MatchResponse, bool ) {
     matchResponse := MatchResponse {}
-    matchResponse.ConnectNonce = strconv.FormatUint( nonce, 10 )
+    matchResponse.ConnectTokenNonce = strconv.FormatUint( nonce, 10 )
     encryptedConnectToken, ok := EncryptConnectToken( connectToken, nonce )
-    if ( ok ) { matchResponse.ConnectToken = base64.StdEncoding.EncodeToString( encryptedConnectToken ) }
+    if ( ok ) { matchResponse.ConnectTokenData = base64.StdEncoding.EncodeToString( encryptedConnectToken ) }
     matchResponse.ServerAddresses = connectToken.ServerAddresses
     matchResponse.ClientToServerKey = connectToken.ClientToServerKey
     matchResponse.ServerToClientKey = connectToken.ServerToClientKey
