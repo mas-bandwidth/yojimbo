@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.2.0-preview4"
+libyojimbo_version = "0.2.0-preview5"
 
 if os.is "windows" then
     sodium_debug = "sodium-debug"
@@ -23,7 +23,12 @@ end
 
 solution "Yojimbo"
     platforms { "x64" }
-    includedirs { "." }
+    if os.is "windows" then
+        includedirs { ".", "./windows" }
+        libdirs { "./windows" }
+    else
+        includedirs { "." }
+    end
     if not os.is "windows" then
         targetdir "bin/"  
     end
