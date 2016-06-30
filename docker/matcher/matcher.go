@@ -118,11 +118,17 @@ var PrivateKey = [] byte { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea,
                            0x43, 0x71, 0xd6, 0x2c, 0xd1, 0x99, 0x27, 0x26,
                            0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1 };
 
+func Base64EncodeString( s string ) string {
+    stringAsBytes := []byte( s )
+    stringAsBytes = append( stringAsBytes, 0 )
+    return base64.StdEncoding.EncodeToString( stringAsBytes )
+}
+
 func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     vars := mux.Vars( r )
     clientId, _ := strconv.ParseUint( vars["clientId"], 10, 64 )
     protocolId, _ := strconv.ParseUint( vars["protocolId"], 10, 32 )
-    serverAddresses := []string { base64.StdEncoding.EncodeToString( []byte( ServerAddress ) ) }
+    serverAddresses := []string { Base64EncodeString( ServerAddress ) }
     connectToken := GenerateConnectToken( uint32( protocolId ), clientId, serverAddresses[:] )
     matchResponse, ok := GenerateMatchResponse( connectToken, atomic.AddUint64( &MatchNonce, 1 ) )
     w.Header().Set( "Content-Type", "application/json" )
