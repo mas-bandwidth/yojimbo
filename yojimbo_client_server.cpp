@@ -540,14 +540,8 @@ namespace yojimbo
             if ( !packet )
                 break;
 
-            printf( " received packet %p\n", packet );
-            fflush( stdout );
-
             if ( IsRunning() )
                 ProcessPacket( packet, address, sequence );
-
-            printf( "processed packet %p\n", packet );
-            fflush( stdout );
 
             m_networkInterface->DestroyPacket( packet );
         }
