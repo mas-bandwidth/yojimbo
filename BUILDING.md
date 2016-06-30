@@ -137,6 +137,8 @@ Connect tokens cannot be decrypted or forged by clients because they are encrypt
 
 This is why libyojimbo is designed only for use for games that host dedicated servers. It may not be used (securely) for games that support player hosted game instances, because that would expose the private key to clients, allowing clients to decrypt and generate their own connect tokens. If a client can generate their own connect token, then the authentication and security model of yojimbo completely breaks down. It is essential to keep the private key out of the hands of clients. This is easily done if you host dedicated servers in data centers you control.
 
+You can strip out insecure connect support entirely by commenting out #define YOJIMBO_INSECURE_CONNECT in yojimbo_config.h. This is a good idea for a retail build of any game using libyojimbo.
+
 ## Feedback
 
 This is pre-release software so please email me with any feedback you have <glenn.fiedler@gmail.com>

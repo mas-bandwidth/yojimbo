@@ -20,6 +20,23 @@ Added a new "premake5 secure_server" option to demonstrate that the client conne
 
 Added information in BUILDING.md about how to run secure server and test it.
 
+Cleaned up logging for connect.cpp to clearly print out client id, requesting match from https://localhost:8080 and so on.
+
+Matcher now logs each time it matches somebody to a server, eg:
+
+    matched client 813ceef4f593ac93 to 127.0.0.1:50000
+    matched client f46691038ea667a0 to 127.0.0.1:50000
+    matched client 7965cc68d59a2831 to 127.0.0.1:50000
+    matched client 5fb2c6ff01c5a11c to 127.0.0.1:50000
+    matched client 21368d23955c7346 to 127.0.0.1:50000
+    matched client d28c72043d40975c to 127.0.0.1:50000
+    matched client e380d13b78d53bff to 127.0.0.1:50000
+    matched client 9481d208564f7732 to 127.0.0.1:50000
+    matched client ababf0c5e1c78e12 to 127.0.0.1:50000
+    matched client 8207bbac50e9866f to 127.0.0.1:50000
+
+Standardized logging of client ids to be 16 wide, eg. so zero padding for client ids is applied, lining up the matcher logs nicely.
+
 
 Wednesday June 29th, 2016
 =========================
