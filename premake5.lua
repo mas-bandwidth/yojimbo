@@ -122,15 +122,11 @@ if _ACTION == "clean" then
     os.rmdir "docker/libyojimbo"
     if not os.is "windows" then
         os.execute "rm -f Makefile"
+        os.execute "rm -f *.make"
+        os.execute "rm -f *.txt"
         os.execute "rm -f *.7z"
         os.execute "rm -f *.zip"
         os.execute "rm -f *.tar.gz"
-        os.execute "rm -f *.make"
-        os.execute "rm -f test"
-        os.execute "rm -f network_info"
-        os.execute "rm -f client"
-        os.execute "rm -f server"
-        os.execute "rm -f client_server"
         os.execute "find . -name .DS_Store -delete"
     else
         os.execute "del /F /Q Makefile"
