@@ -1,0 +1,9 @@
+DONE
+
+TODO
+
+    First start by adding a magic value in the base packet (debug build only) which is set only if the object is created through the packet factory. That way if somehow a packet is getting passed into free which has not been created via the packet factory, I will pick it up. Also, bad pointers and so on.
+
+    Really going to have to go to town with validation and runtime checks to catch this one I think, if it's a memory trash.
+
+    Should also make the magic random rolled and specific to the particular factory, that way it'll pick up packets from one packet factory being passed to another to delete, which could be very bad, because the allocator could be different.
