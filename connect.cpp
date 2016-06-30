@@ -47,7 +47,7 @@ int ConnectMain( int argc, char * argv[] )
     uint64_t clientId = 0;
     RandomBytes( (uint8_t*) &clientId, 8 );
 
-    printf( "\n[%" PRIx64 "]\n", clientId );
+    printf( "\nclient id is %.16" PRIx64 "\n", clientId );
 
     Matcher matcher( allocator );
 
@@ -65,7 +65,7 @@ int ConnectMain( int argc, char * argv[] )
         return 1;
     }
 
-    printf( "requesting match\n" );
+    printf( "requesting match from https://localhost:8080\n" );
 
     MatchResponse matchResponse;
 

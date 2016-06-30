@@ -104,21 +104,21 @@ protected:
     {
         char addressString[256];
         GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
-        printf( "client %d connected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+        printf( "client %d connected (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
     void OnClientDisconnect( int clientIndex )
     {
         char addressString[256];
         GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
-        printf( "client %d disconnected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+        printf( "client %d disconnected (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
     void OnClientTimedOut( int clientIndex )
     {
         char addressString[256];
         GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
-        printf( "client %d timed out (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
+        printf( "client %d timed out (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
     void OnPacketSent( int packetType, const Address & to, bool immediate )

@@ -133,7 +133,7 @@ func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     matchResponse, ok := GenerateMatchResponse( connectToken, atomic.AddUint64( &MatchNonce, 1 ) )
     w.Header().Set( "Content-Type", "application/json" )
     if ( ok ) { 
-        fmt.Printf( "matched client %x to %s\n", clientId, ServerAddress )
+        fmt.Printf( "matched client %.16x to %s\n", clientId, ServerAddress )
         json.NewEncoder(w).Encode( matchResponse ); 
     }
 }
