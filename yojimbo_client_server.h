@@ -457,7 +457,7 @@ namespace yojimbo
 
     public:
 
-        Server( NetworkInterface & networkInterface );
+        explicit Server( NetworkInterface & networkInterface );
 
         virtual ~Server();
 
@@ -584,65 +584,13 @@ namespace yojimbo
         CLIENT_STATE_CONNECTED
     };
 
-    inline const char * GetClientStateName( int clientState )
-    {
-        switch ( clientState )
-        {
-#if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT: return "insecure connect timed out";
-#endif // #if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT: return "connection request timed out";
-            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT: return "challenge response timed out";
-            case CLIENT_STATE_CONNECTION_TIMED_OUT: return "connection timed out";
-            case CLIENT_STATE_CONNECTION_DENIED: return "connection denied";
-            case CLIENT_STATE_DISCONNECTED: return "disconnected";
-#if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_SENDING_INSECURE_CONNECT: return "sending insecure connect";
-#endif // #if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_SENDING_CONNECTION_REQUEST: return "sending connection request";
-            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE: return "sending challenge response";
-            case CLIENT_STATE_CONNECTED: return "connected";
-            default:
-                assert( false );
-                return "???";
-        }
-    }
+    const char * GetClientStateName( int clientState );
 
     class Client
     {
-    protected:
-
-        int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
-
-        ClientState m_clientState;                                          // current client state
-
-        Address m_serverAddress;                                            // server address we are connecting or connected to.
-
-        double m_lastPacketSendTime;                                        // time we last sent a packet to the server.
-
-        double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
-
-        NetworkInterface * m_networkInterface;                              // network interface the client uses to send and receive packets.
-
-        double m_time;                                                      // current client time (see "AdvanceTime")
-
-#if YOJIMBO_INSECURE_CONNECT
-        uint64_t m_clientSalt;                                              // client salt for insecure connect
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-        uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
-
-        uint8_t m_connectTokenData[ConnectTokenBytes];                      // encrypted connect token data for connection request packet
-
-        uint8_t m_connectTokenNonce[NonceBytes];                            // nonce required to send to server so it can decrypt connect token
-
-        uint8_t m_challengeTokenData[ChallengeTokenBytes];                  // encrypted challenge token data for challenge response packet
-
-        uint8_t m_challengeTokenNonce[NonceBytes];                          // nonce required to send to server so it can decrypt challenge token
-
     public:
 
-        Client( NetworkInterface & networkInterface );
+        explicit Client( NetworkInterface & networkInterface );
 
         virtual ~Client();
 
@@ -711,6 +659,37 @@ namespace yojimbo
         void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address );
 
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
+
+    protected:
+
+        int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
+
+        ClientState m_clientState;                                          // current client state
+
+        Address m_serverAddress;                                            // server address we are connecting or connected to.
+
+        double m_lastPacketSendTime;                                        // time we last sent a packet to the server.
+
+        double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
+
+        NetworkInterface * m_networkInterface;                              // network interface the client uses to send and receive packets.
+
+        double m_time;                                                      // current client time (see "AdvanceTime")
+
+#if YOJIMBO_INSECURE_CONNECT
+        uint64_t m_clientSalt;                                              // client salt for insecure connect
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+        uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
+
+        uint8_t m_connectTokenData[ConnectTokenBytes];                      // encrypted connect token data for connection request packet
+
+        uint8_t m_connectTokenNonce[NonceBytes];                            // nonce required to send to server so it can decrypt connect token
+
+        uint8_t m_challengeTokenData[ChallengeTokenBytes];                  // encrypted challenge token data for challenge response packet
+
+        uint8_t m_challengeTokenNonce[NonceBytes];                          // nonce required to send to server so it can decrypt challenge token
+
     };
 }
 

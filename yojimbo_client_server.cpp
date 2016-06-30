@@ -135,9 +135,10 @@ namespace yojimbo
 
     static void insert_data_as_base64_string( Writer<StringBuffer> & writer, const char * key, const uint8_t * data, int data_length )
     {
-        char * buffer = (char*) alloca( data_length * 2 );
+        char * buffer = (char*) malloc( data_length * 2 );
         base64_encode_data( data, data_length, buffer, data_length * 2 );
         writer.Key( key ); writer.String( buffer );
+        free( buffer );
     }
 
     bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize )
@@ -244,14 +245,19 @@ namespace yojimbo
 
         const int string_length = (int) strlen( string );
 
-        uint8_t * buffer = (uint8_t*) alloca( string_length );
+        uint8_t * buffer = (uint8_t*) malloc( string_length );
 
         int read_data_bytes = base64_decode_data( string, buffer, string_length );
 
         if ( read_data_bytes != data_bytes )
+        {
+            free( buffer );
             return false;
+        }
 
         memcpy( data, buffer, data_bytes );
+
+        free( buffer );
 
         return true;
     }
@@ -530,11 +536,14 @@ namespace yojimbo
             Address address;
             uint64_t sequence;
             Packet * packet = m_networkInterface->ReceivePacket( address, &sequence );
+            Packet * original = packet;
             if ( !packet )
                 break;
 
             if ( IsRunning() )
                 ProcessPacket( packet, address, sequence );
+
+            assert( packet == original );
 
             m_networkInterface->DestroyPacket( packet );
         }
@@ -1153,6 +1162,30 @@ namespace yojimbo
     }
 
     // =============================================================
+
+    const char * GetClientStateName( int clientState )
+    {
+        switch ( clientState )
+        {
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT:       return "insecure connect timed out";
+#endif // #if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT:     return "connection request timed out";
+            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT:     return "challenge response timed out";
+            case CLIENT_STATE_CONNECTION_TIMED_OUT:             return "connection timed out";
+            case CLIENT_STATE_CONNECTION_DENIED:                return "connection denied";
+            case CLIENT_STATE_DISCONNECTED:                     return "disconnected";
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_SENDING_INSECURE_CONNECT:         return "sending insecure connect";
+#endif // #if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:       return "sending connection request";
+            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:       return "sending challenge response";
+            case CLIENT_STATE_CONNECTED:                        return "connected";
+            default:
+                assert( false );
+                return "???";
+        }
+    }
 
     Client::Client( NetworkInterface & networkInterface )
     {

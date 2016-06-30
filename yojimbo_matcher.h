@@ -62,7 +62,7 @@ namespace yojimbo
     {
     public:
 
-        Matcher( Allocator & allocator );
+        explicit Matcher( Allocator & allocator );
        
         ~Matcher();
 

@@ -265,7 +265,7 @@ namespace yojimbo
 
         const int maxPacketSize = GetMaxPacketSize();
 
-        uint8_t * packetBuffer = (uint8_t*) alloca( maxPacketSize );
+        uint8_t * packetBuffer = (uint8_t*) malloc( maxPacketSize );
 
         while ( true )
         {
@@ -331,6 +331,8 @@ namespace yojimbo
             else
                 m_counters[NETWORK_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_READ]++;
         }
+
+        free( packetBuffer );
     }
 
     int BaseInterface::GetMaxPacketSize() const 

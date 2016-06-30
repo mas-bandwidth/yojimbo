@@ -69,11 +69,11 @@ namespace yojimbo
     {         
         assert( !s_networkInitialized );
 
-        bool result = true;
-
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
         WSADATA WsaData;         
-        result = WSAStartup( MAKEWORD(2,2), &WsaData ) == NO_ERROR;
+        const bool result = WSAStartup( MAKEWORD(2,2), &WsaData ) == NO_ERROR;
+#else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+        const bool result = true;
 #endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
         if ( result )

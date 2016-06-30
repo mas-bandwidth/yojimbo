@@ -37,7 +37,7 @@ namespace yojimbo
     {
     public:
         
-        Packet( int _type ) : type(_type) {}
+        explicit Packet( int _type ) : type(_type) {}
 
         virtual ~Packet() {}
 
