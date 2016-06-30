@@ -23,7 +23,7 @@ Next install libsodium and mbedtls.
 
 On MacOS X, this can be done "brew install libsodium mbedtls". If you don't have Brew, you can install it from <http://brew.sh>.
 
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here: [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls).
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here: [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 2.x version of mbedtls. The 1.x version will not work with libyojimbo.
 
 Next go to the command line under the libyojimbo directory and enter:
 
@@ -39,7 +39,7 @@ This creates makefiles which you can use to build the source via "make all", or 
 
     premake5 server         // build run your own yojimbo server on localhost on UDP port 50000
 
-    premake5 client         // build and run the client that connects to the server running on localhost (127.0.0.1:50000)
+    premake5 client         // build and run the client that connects to the server running on localhost
 
 To make this more convenient I like to alias "pm" to "premake5" in bash, so building and running test programs becomes:
 
