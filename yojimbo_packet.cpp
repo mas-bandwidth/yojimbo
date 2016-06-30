@@ -255,7 +255,7 @@ cleanup:
 
         if ( aggregatePacketHeader )
         {
-            uint8_t *scratch = (uint8_t*) alloca( bufferSize );
+            uint8_t * scratch = (uint8_t*) malloc( bufferSize );
 
             typedef WriteStream Stream;
 
@@ -264,7 +264,10 @@ cleanup:
             stream.SetContext( info.context );
 
             if ( !aggregatePacketHeader->SerializeWrite( stream ) )
+            {
+                free( scratch );
                 return 0;
+            }
 
             stream.SerializeCheck( "aggregate packet header" );
 
@@ -273,11 +276,16 @@ cleanup:
             stream.Flush();
 
             if ( stream.GetError() )
+            {
+                free( scratch );
                 return 0;
+            }
 
             int packetSize = stream.GetBytesProcessed();
 
             memcpy( buffer + aggregatePacketBytes, scratch, packetSize );
+
+            free( scratch );
 
             aggregatePacketBytes += packetSize;
         }
@@ -286,13 +294,13 @@ cleanup:
 
         for ( int i = 0; i < numPackets; ++i )
         {
-            uint8_t *scratch = (uint8_t*) alloca( bufferSize );
+            uint8_t * scratch = (uint8_t*) malloc( bufferSize );
 
             typedef WriteStream Stream;
 
             Stream stream( scratch, bufferSize );
 
-            Packet *packet = packets[i];
+            Packet * packet = packets[i];
 
             int packetTypePlusOne = packet->GetType() + 1;
 
@@ -307,11 +315,17 @@ cleanup:
                 assert( packetHeaders[i] );
 
                 if ( !packetHeaders[i]->SerializeWrite( stream ) )
+                {
+                    free( scratch );
                     return 0;
+                }
             }
 
             if ( !packet->SerializeWrite( stream ) )
+            {
+                free( scratch );
                 return 0;
+            }
 
             stream.SerializeCheck( "end of packet" );
 
@@ -320,14 +334,22 @@ cleanup:
             stream.Flush();
 
             if ( stream.GetError() )
+            {
+                free( scratch );
                 return 0;
+            }
 
             int packetSize = stream.GetBytesProcessed();
 
             if ( aggregatePacketBytes + packetSize >= bufferSize + packetTypeBytes )
+            {
+                free( scratch );
                 break;
+            }
 
             memcpy( buffer + aggregatePacketBytes, scratch, packetSize );
+
+            free( scratch );
 
             aggregatePacketBytes += packetSize;
 

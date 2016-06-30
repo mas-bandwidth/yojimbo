@@ -172,6 +172,24 @@ const int MaxItems = 11;
 
 struct TestData
 {
+    TestData()
+    {
+        a = 0;
+        b = 0;
+        c = 0;
+        d = 0;
+        e = 0;
+        f = 0;
+        g = false;
+        numItems = 0;
+        float_value = 0.0f;
+        double_value = 0.0;
+        uint64_value = 0;
+        memset( items, 0, sizeof( items ) );
+        memset( bytes, 0, sizeof( bytes ) );
+        memset( string, 0, sizeof( string ) );
+    }
+
     int a,b,c;
     uint32_t d : 8;
     uint32_t e : 8;
@@ -195,11 +213,6 @@ struct TestContext
 struct TestObject : public Serializable
 {
     TestData data;
-
-    TestObject()
-    {
-        memset( &data, 0, sizeof( data ) );
-    }
 
     void Init()
     {
@@ -380,7 +393,7 @@ struct TestPacketC : public Packet
 
 struct TestPacketFactory : public PacketFactory
 {
-    TestPacketFactory( Allocator & allocator ) : PacketFactory( allocator, TEST_PACKET_NUM_TYPES ) {}
+    explicit TestPacketFactory( Allocator & allocator ) : PacketFactory( allocator, TEST_PACKET_NUM_TYPES ) {}
 
     Packet * Create( int type )
     {
@@ -1050,7 +1063,7 @@ class GameServer : public Server
 
 public:
 
-    GameServer( NetworkInterface & networkInterface ) : Server( networkInterface )
+    explicit GameServer( NetworkInterface & networkInterface ) : Server( networkInterface )
     {
         SetPrivateKey( private_key );
         m_gamePacketSequence = 0;
@@ -1174,7 +1187,7 @@ class GameClient : public Client
 
 public:
 
-    GameClient( NetworkInterface & networkInterface ) : Client( networkInterface )
+    explicit GameClient( NetworkInterface & networkInterface ) : Client( networkInterface )
     {
         m_numGamePacketsReceived = 0;
         m_gamePacketSequence = 0;

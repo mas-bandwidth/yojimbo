@@ -279,6 +279,28 @@ if not os.is "windows" then
         end
     }
 
+    newaction
+    {
+        trigger     = "stress",
+        description = "Launch 64 client instances to stress the server",
+        execute = function ()
+            if os.execute "make -j4 connect" == 0 then
+                for i = 0, 64 do
+                    os.execute "./bin/connect &"
+                end
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "cppcheck",
+        description = "Run cppcheck over the source code and write to cppcheck.txt",
+        execute = function ()
+            os.execute "cppcheck *.h *.cpp --force --std=c++03 --language=c++ --quiet -U min -U max 2>&1 --config-exclude=rapidjson --suppress=cstyleCast --suppress=unusedFunction --suppress=unusedStructMember --suppress=variableScope --enable=warning --enable=performance --enable=style --platform=native -j 32 | tee -a cppcheck.txt"
+        end
+    }
+
 else
 
 	newaction

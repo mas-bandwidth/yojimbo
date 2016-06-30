@@ -103,6 +103,7 @@ namespace yojimbo
 // Windows platform
 // ===========================================================================================================================================
 
+#define NOMINMAX
 #include <windows.h>
 
 namespace yojimbo

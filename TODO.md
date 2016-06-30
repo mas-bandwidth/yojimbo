@@ -32,4 +32,16 @@ Yes, it reliably crashes with lots of clients:
     client 24 connected (client address = 127.0.0.1:53555, client id = 1a17200267a2cbac)
     Assertion failed: (m_alloc_map.find( p ) != m_alloc_map.end()), function Free, file yojimbo.cpp, line 142.
 
-Got to track this down. Looks like a memory leak or maybe a bad free?
+Got to track this down. Looks like a memory leak or maybe a bad free somewhere?
+
+I think it's a stack trash.
+
+Yeah. There's definitely a trash going on somewhere.
+
+Alternatively it shows up like this:
+
+    Assertion failed: (type < m_packetFactory->GetNumPacketTypes()), function IsEncryptedPacketType, file yojimbo_interface.cpp, line 363.
+
+Strategy. Replace instances of alloca with malloc and see if I can catch it in valgrind or some other debugger, eg. boundschecker on Windows.
+
+Trying cppcheck. Check runs clean. Found some small bugs, but not the memory trash.
