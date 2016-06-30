@@ -278,7 +278,7 @@ if not os.is "windows" then
     newaction
     {
         trigger     = "stress",
-        description = "Launch 64 client instances to stress the server",
+        description = "Launch 64 connect instances to stress the matcher and server",
         execute = function ()
             if os.execute "make -j4 connect" == 0 then
                 for i = 0, 64 do
@@ -314,6 +314,17 @@ else
         description = "Build and run the matchmaker web service inside a docker container",
         execute = function ()
             os.execute "cd docker\\matcher && docker build -t networkprotocol:yojimbo-matcher . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
+        end
+    }
+
+    newaction
+    {
+        trigger     = "stress",
+        description = "Launch 64 connect instances to stress the matcher and server",
+        execute = function ()
+            for i = 0, 64 do
+                os.execute "start /B bin\\x64\\Debug\\connect"
+            end
         end
     }
 
