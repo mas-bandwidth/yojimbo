@@ -83,7 +83,7 @@ void test_base64()
  
     check( encoded_bytes == (int) strlen( encoded ) + 1 );
 
-    char encoded_expected[] = "WzIwMDE6NDg2MDo0ODYwOjo4ODg4XTo1MDAwMA==";
+    char encoded_expected[] = "WzIwMDE6NDg2MDo0ODYwOjo4ODg4XTo1MDAwMAA=";
 
     check( strcmp( encoded, encoded_expected ) == 0 );
 
@@ -174,20 +174,7 @@ struct TestData
 {
     TestData()
     {
-        a = 0;
-        b = 0;
-        c = 0;
-        d = 0;
-        e = 0;
-        f = 0;
-        g = false;
-        numItems = 0;
-        float_value = 0.0f;
-        double_value = 0.0;
-        uint64_value = 0;
-        memset( items, 0, sizeof( items ) );
-        memset( bytes, 0, sizeof( bytes ) );
-        memset( string, 0, sizeof( string ) );
+        memset( this, 0, sizeof( TestData ) );
     }
 
     int a,b,c;

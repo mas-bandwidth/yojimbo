@@ -536,14 +536,18 @@ namespace yojimbo
             Address address;
             uint64_t sequence;
             Packet * packet = m_networkInterface->ReceivePacket( address, &sequence );
-            Packet * original = packet;
+
             if ( !packet )
                 break;
+
+            printf( " received packet %p\n", packet );
+            fflush( stdout );
 
             if ( IsRunning() )
                 ProcessPacket( packet, address, sequence );
 
-            assert( packet == original );
+            printf( "processed packet %p\n", packet );
+            fflush( stdout );
 
             m_networkInterface->DestroyPacket( packet );
         }
