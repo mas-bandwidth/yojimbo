@@ -97,7 +97,7 @@ This builds and runs a linux docker instance with matcher.go running on port 808
 
 You can verify the matcher instance is working correctly as follows:
 
-    curl https://localhost:8080/match/12341/1 --insecure
+    curl https://localhost:8080/match/12345/1 --insecure
 
 Where 12345 is the protocolId and 1 is the client id. This should return the match response in JSON which looks like this:
 
@@ -107,11 +107,13 @@ Next, you can run the "connect" program to HTTPS to the matcher directly from C+
 
     premake5 connect
 
-If you are building under Visual Studio, run the "connect" project from the IDE.
+Or if you are building under Visual Studio, run the "connect" project from the IDE.
 
-You should now see the same match response JSON.
+The connect program requests a match from the macher over HTTPS, parses this JSON, extracts the data and uses it to securely connect to the server with encrypted traffic. This is secure because the matcher and the dedicated server instances share a private key that the client does not know, so the client can receive the encrypted connect token, but cannot read its contents or create connect tokens to pass to servers.
 
-Very shortly this match response will be parsed and used to establish a secure connection between client and server.
+This with libyojimbo, you can deploy dedicated server instances that integrate with your own matchmaker backend by passing connect tokens.
+
+If a client doesn't have a connect token, a client **cannot connect to your dedicated servers**.
 
 ## Feedback
 
