@@ -293,7 +293,7 @@ if not os.is "windows" then
         trigger     = "cppcheck",
         description = "Run cppcheck over the source code and write to cppcheck.txt",
         execute = function ()
-            os.execute "cppcheck *.h *.cpp --force --std=c++03 --language=c++ --quiet -U min -U max 2>&1 --config-exclude=rapidjson --suppress=cstyleCast --suppress=unusedFunction --suppress=unusedStructMember --suppress=variableScope --enable=warning --enable=performance --enable=style --platform=native -j 32 | tee -a cppcheck.txt"
+            os.execute "cppcheck *.h *.cpp --force --std=c++03 --language=c++ --quiet -U min -U max 2>&1 --config-exclude=rapidjson --suppress=cstyleCast --suppress=unusedFunction --suppress=unusedStructMember --suppress=variableScope --suppress=memsetClassFloat --enable=warning --enable=performance --enable=style --platform=native -j 32 | tee -a cppcheck.txt"
         end
     }
 

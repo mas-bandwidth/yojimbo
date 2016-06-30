@@ -45,3 +45,20 @@ Alternatively it shows up like this:
 Strategy. Replace instances of alloca with malloc and see if I can catch it in valgrind or some other debugger, eg. boundschecker on Windows.
 
 Trying cppcheck. Check runs clean. Found some small bugs, but not the memory trash.
+
+Trying clang static analysis. Found a bug that I had suspected in the base64 public domain code I copied. Ripping it out and replacing with calls to proper functions inside mbedtls library now that it's a dependency, why not. Probably faster too.
+
+Fixed. Bug still occurs though:
+
+    * thread #1: tid = 0x8816a, 0x000000010000182d server`yojimbo::ClientServerPacketFactory::Destroy(this=0x00007fff5fbd9d18, packet=0x0000000102001008) + 93 at yojimbo_client_server.h:352, queue = 'com.apple.main-thread', stop reason = EXC_BAD_ACCESS (code=1, address=0x0)
+      * frame #0: 0x000000010000182d server`yojimbo::ClientServerPacketFactory::Destroy(this=0x00007fff5fbd9d18, packet=0x0000000102001008) + 93 at yojimbo_client_server.h:352
+        frame #1: 0x000000010001de65 server`yojimbo::PacketFactory::DestroyPacket(this=0x00007fff5fbd9d18, packet=0x0000000102001008) + 133 at yojimbo_packet.cpp:600
+        frame #2: 0x000000010001b6c4 server`yojimbo::BaseInterface::DestroyPacket(this=0x00007fff5fbe7878, packet=0x0000000102001008) + 100 at yojimbo_interface.cpp:140
+        frame #3: 0x000000010000d843 server`yojimbo::Server::ReceivePackets(this=0x00007fff5fbd9d38) + 227 at yojimbo_client_server.cpp:548
+        frame #4: 0x0000000100001243 server`ServerMain() + 579 at server.cpp:83
+        frame #5: 0x0000000100001441 server`main + 97 at server.cpp:115
+        frame #6: 0x00007fff9c3bd5ad libdyld.dylib`start + 1
+
+What is going on here?! It looks like the packet pointer is incorrectly pointing to a stack location. But I don't think a packet pointer can ever get allocated on the stack.
+
+So how is this happening?!
