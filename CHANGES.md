@@ -131,9 +131,15 @@ What is going on here?! It looks like the packet pointer is incorrectly pointing
 
 So how is this happening?!
 
-Switched out and radically cut down the allocator. Nothing complicated here just malloc.
+Got clang static analysis working:
 
-Still happens.
+    scan-build make all -j4
+
+Found a few things. Something suspicious in the allocator...
+
+Switched out and radically cut down the allocator. Nothing complicated here just malloc. Everything passes now.
+
+Still happens! !@#($!@($*@!($*!(*))))
 
 It's definitely a memory trash of some kind.
 
