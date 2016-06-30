@@ -101,6 +101,17 @@ project "server"
     configuration "Release"
         links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
+project "secure_server"
+    language "C++"
+    kind "ConsoleApp"
+    files { "server.cpp", "shared.h" }
+    links { "yojimbo" }
+    defines { "SECURE_SERVER=1" }
+    configuration "Debug"
+        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+    configuration "Release"
+        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+
 project "client_server"
     language "C++"
     kind "ConsoleApp"
@@ -149,7 +160,7 @@ if not os.is "windows" then
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
-            files_to_zip = "*.md *.cpp *.h premake5.lua docker rapidjson windows"
+            files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker rapidjson windows"
             os.execute( "rm -rf *.zip *.tar.gz *.7z" );
             os.execute( "rm -rf docker/libyojimbo" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )
@@ -253,6 +264,17 @@ if not os.is "windows" then
         execute = function ()
             if os.execute "make -j4 server" == 0 then
                 os.execute "./bin/server"
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "secure_server",
+        description = "Build and run secure server",     
+        execute = function ()
+            if os.execute "make -j4 secure_server" == 0 then
+                os.execute "./bin/secure_server"
             end
         end
     }

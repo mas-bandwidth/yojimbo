@@ -2,7 +2,23 @@
 Thursday June 30th, 2016
 ========================
 
+matcher.go was encoding strings as base64 without including the terminating null character, because go strings aren't null terminated. Fixed this, and then also added a check to the base64 decode string to abort the decode if the last character in the decoded string isn't '\0'. This fixes an attack vector for crashing out the C++ code that parses base64 strings in JSON.
 
+Implemented a windows version of "premake5 stress". It does reproduce the same crash in the server. Something is definitely wrong here.
+
+Time to install an evaluation copy of Boundschecker to see what's going on?
+
+Wow. Doesn't seem like boundschecker really exists anymore. Everythings seems acquired a few times by multiple companies and way too expensive. No free eval anymore either. Whatever.
+
+Looks like I'm going to be tracking this one down with open source tools. I'll need to add my own instrumentation. Note that it could also be a logic error. There is no guarantee that it is a memory trash.
+
+Moving back to Mac...
+
+Need to add a mention of "premake5 stress" to the BUILDING.md to show how to connect a bunch of clients. Once it's working of course.
+
+Added a new "premake5 secure_server" option to demonstrate that the client connect going through the matcher is secure, and clients connecting directly (not going through matcher) can't connect to a secure server.
+
+Added information in BUILDING.md about how to run secure server and test it.
 
 
 Wednesday June 29th, 2016
