@@ -3187,7 +3187,7 @@ void test_matcher()
     {
         char serverAddress[64];
 
-        const char serverAddressBase64[] = "MTI3LjAuMC4xOjUwMDAw";
+        const char serverAddressBase64[] = "MTI3LjAuMC4xOjUwMDAwAA==";
 
         base64_decode_string( serverAddressBase64, serverAddress, sizeof( serverAddress ) );
 
@@ -3197,7 +3197,7 @@ void test_matcher()
     // test base64 encoded connect token from matcher.go
 
     {
-        const char encryptedConnectTokenBase64[] = "AtCdLYoFWOfrsoN0i0nAYenhqFTHo5LnSZG1jmDOvlH1+5lW3SxhdYytrqO8Lk5N+AAguP3+fu5EVC5G5QBXPZpeCTTqpSebHdO32scZA5ylQWHuzawiETWwMrvNPhnJQTJTOnhou8h2/lJrHJf+pJ6p+mOC/qGkpst9dOg0nNfW/993HhJ3lWGOQutZoVwU6OFkQ8DSepYn0Vi0h0DI/RpBTYIZ883PSqywFihnGCqW77FRdwYYpkFuAznu4iLj4xncOX9GVzg2AKOdXMQXB5UDiu1df0OdtREsD1mzv4aStidp1ghIzlTgl6enhVzo0rYw/kn/m06cZuEPmVMzlKou5GMlv8tC8UgoNCRb0fxOK9ySwb+Xxz/qiGmNEwH7bQMJJ+ZqNp72cp4fMsBT0rH/qZkM6OUec9IMHUJ2pjb5aP3/UtPhG4r+xsN8kZk9bDdQUb6L+ltZgqUWTc2CfSxpmCEm+SGYnsOfHKYzPkASs8q06rBIft++KcBbMsimC+dTqoJqBIUU+7lqb2PfRoULDJm0GgG3jeZSZBNRLr2yxIBoW4fDu6zXUAcT3ksmcNlUfdJ/FeuxuCs0uUKjthC9/7ov9kdwCSmdSgSR0Ww0PJZvmoxTFbilBYAroiSqDJ3eBrb4A6Rf65y8nx26OU4BqgGi3kmGwBexsqm4mt67CbAXB9GccaxcT/EOChcF0p+MEOa/yd+nuh0fR98RWclhlGZpTT3l+OxkXs096f6l+y6TUr0WlYoAAxmzTrNGMXy0lv2QG3zAtYJADIZU6ec3IHdOg+OoXD+EQS0W7n99+Fnwtww4xzSKLh+HfbyaDIbyD/PlPS7fOHJo5W0kn6CrPf0aJT/PtXitTeMFbVPxJPNA706wKae1RDeNPqFHOkUs1xdD7Pk3PViZPHDOI7qdBS2+WkZS4mNV9bvbRGMCN8y/4mGJBQ5wbrwn7rnIxK1P5KNT3rsT4WZIAad8g1tuhGMXg7aNZ8eOsPay3RaABeVFIrd1BFxPfm16e4u0AU8zEFCDxH4SGKP4tqPI9SCgdLHF/3Id2aatEGAL6+WiNS4t52qvZlY1bGP+fko8FyvjMuqFpS8joNsZcO+kLXAWSBo4Iwn+vR3NCFeANRqyiMzEx9IsQftHzo05eo8RbeX6+YEXOqB5PPDKuLL8VjrCj23npi9Pj2P2sOCh+cqh9XqK1zVYTsrNToD0AKiTMorqT+vGgQv3HNRPhLI8Aqr6s2DG+PMp13NGptluB4MMCsX5ZU7eU4RNJlOG526UX1472xL5PGjvXCZs2ML5KAyMJHAWjBBrxSahd+uc4U3OCID/zacbIW9HS3UKgANQl7FsRxYIoQXhRqp2ZqDuHA==";
+        const char encryptedConnectTokenBase64[] = "OWzOydfX0WL1XEloMJf9sTze71OEL0jThWbyMzbPL9n9vgXH6c66kUnLBWgG03fmEy1iT+fcrKeEQEFBP7797JH3Dtr7UOSm7aNydTffB6rk9TASQ284+h9IxwliuMH33e+sGYM+KrvmDnOsmtw7ovDaBpMPwgscZVhFrGAh0dkiGtoft/PEEHakkE9cZ5O2g4pVpbbQVOslZl5ns80Gq3T6b/49935OZ/fuRPSX8dzExs0MG1Qwab1atJ5OMFml+mg+KhdNxv6Nl/kyTDEgHjba9IMceupy2MLsMU7rrMm2DuPKwVeBmqRogzk7b2mfO516VSb/EOb9/dQUYWN576IiDOX0QnsVxm8FemQpoGZ3k0I8V5tYW3T1lfZ6MLo9RYSOEp6a6idb90JgVxdATB2kFxAtQnqYfoLE1inRMNfQuTF9L9/sycsV/msStJza6iYi6iD+gM3mSVcesNrv0HEr3xizjlkCC5EYmv0BttriP4rs9RrQlrywC+fkyeVQ0QGVTDKOVXi4YZV92rTQGIkCXwp/4YHwzrLgMzwNILa+sRpog7rypxaAwIazT51oxPRfd8Iu2bNn24fsqXk6jT6i2iIwwcuEib20PsjMY1r72dZ9Tqs4xySmCxJfXKh4FtNum38TqdispikjVPdqI/c4BICPT21MAl7K2rxRQhwE3Fghgt6J5s+7xfTeyfKGYtuoqktzyQXZxGjTDiEFIHEzIhvSz/tUBUHzzhNQiIi2QGYX1sABv8KEOWdX1h06iIGF8YTudJK4ASL/yNdq4X48wC7oofS/k3qRXU8gOcA56pzPhieNKt/qQCKxel6DvCqOS3pqmkpbEXemTUK8Y071vyAkuyYVfRfZEn7n6AEtkAJntElfUfnCn44X3O8+XAHYFxJIGdGi9gdRd3vmVdvnYyeYR2Aa78ztYVFsWgStipM711tZqBo91819wzR5sWgdDPZmHdDqaPylFqJtofZLKuv1CnAyejNVJlh1gmF2p5SZ3fWrZ+FOpNX81NZHI3AxBJaSnsomEoxDe66Y1r3inHqUH2TNqg1iBHspU1aCxK0bh/eYjhqHursDRyAoFloFWGaYD1FX5t5VfmlWmbkFtXGFSmssbqPscRjMLEzj3iZppK6lcCWQu1qFgbUqPxQ0RW8IpWEsbLKRsxGntw73bYfG8xJZtilMM0mK51Tu9KU6GSOrDnUvSY2gvQDbWQomz4jDSk56IadZyvCtBUD5oH0Na0Y8UJn3f2WX0BPiHokoMd1aru1BauFL1490pcf46vswhAS/WYN7WgXwuaLMNd0dLeuCX1rG6F1s31SpaR9FZXzk0WSTyy2B0edLn1B7q46pUppEJUdduNMWTQ==";
 
         uint8_t encryptedConnectToken[ConnectTokenBytes];
 
@@ -3205,7 +3205,7 @@ void test_matcher()
 
         check( encryptedLength == ConnectTokenBytes );
 
-        uint8_t nonce[] = { 0x09,0x00,0x00,0x00,0x00,0x00,0x00,0x00  };
+        uint8_t nonce[] = { 0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00  };
 
         ConnectToken connectToken;
         check( DecryptConnectToken( encryptedConnectToken, connectToken, NULL, 0, (const uint8_t*) &nonce, key ) );

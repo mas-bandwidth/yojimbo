@@ -194,6 +194,8 @@ namespace yojimbo
             if ( !json )
                 break;
 
+			printf( "json: %s\n", json );
+
             if ( !ParseMatchResponse( json, m_matchResponse ) )
             {
                 m_status = MATCHER_FAILED;
@@ -282,6 +284,8 @@ namespace yojimbo
                 return false;
 
             char serverAddress[256];
+
+			printf( "address json: %s\n", serverAddresses[i].GetString() );
 
             base64_decode_string( serverAddresses[i].GetString(), serverAddress, sizeof( serverAddress ) );
 

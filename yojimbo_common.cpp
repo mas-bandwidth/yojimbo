@@ -245,7 +245,7 @@ namespace yojimbo
 
         size_t output_length = 0;
 
-        const int input_length = strlen( input ) + 1;
+        const int input_length = (int) ( strlen( input ) + 1 );
 
         int result = mbedtls_base64_encode( (unsigned char*) output, output_size, &output_length, (unsigned char*) input, input_length );
 
@@ -262,7 +262,13 @@ namespace yojimbo
 
         int result = mbedtls_base64_decode( (unsigned char*) output, output_size, &output_length, (const unsigned char*) input, strlen( input ) );
 
-        return ( result == 0 ) ? (int) output_length : -1;
+		if ( result != 0 || output[output_length-1] != '\0' )
+		{
+			output[0] = '\0';
+			return -1;
+		}
+
+        return (int) output_length;
     }
 
     int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size )
