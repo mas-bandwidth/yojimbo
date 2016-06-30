@@ -27,7 +27,7 @@ solution "Yojimbo"
         includedirs { ".", "./windows" }
         libdirs { "./windows" }
     else
-        includedirs { "." }
+        includedirs { ".", "/usr/local/include" }       -- for clang scan-build only. for some reason it needs it to work
     end
     if not os.is "windows" then
         targetdir "bin/"  
