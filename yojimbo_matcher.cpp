@@ -174,8 +174,6 @@ namespace yojimbo
             }
         }
 
-        len = ret;
-
         do
         {
             len = sizeof( buf ) - 1;
@@ -190,8 +188,6 @@ namespace yojimbo
 
             if ( ret <= 0 )
                 break;
-
-            len = ret;
 
             const char * json = strstr( (const char*)buf, "\r\n\r\n" ) + 4;
 

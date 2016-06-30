@@ -39,97 +39,43 @@ static yojimbo::Allocator * g_defaultAllocator = NULL;
 
 namespace yojimbo
 {
-    struct Header 
+    class DefaultAllocator : public Allocator
     {
-        uint32_t size;
-    };
-
-    const uint32_t HEADER_PAD_VALUE = 0xffffffff;
-
-    inline void * align_forward( void * p, uint32_t align )
-    {
-        uintptr_t pi = uintptr_t( p );
-        const uint32_t mod = pi % align;
-        if ( mod )
-            pi += align - mod;
-        return (void*) pi;
-    }
-
-    inline void * data_pointer( Header * header, uint32_t align )
-    {
-        void * p = header + 1;
-        return align_forward( p, align );
-    }
-
-    inline Header * header( void * data )
-    {
-        uint32_t * p = (uint32_t*) data;
-        while ( p[-1] == HEADER_PAD_VALUE )
-            --p;
-        return (Header*)p - 1;
-    }
-
-    inline void fill( Header * header, void * data, uint32_t size )
-    {
-        header->size = size;
-        uint32_t * p = (uint32_t*) ( header + 1 );
-        while ( p < data )
-            *p++ = HEADER_PAD_VALUE;
-    }
-
-    class MallocAllocator : public Allocator
-    {
-        int64_t m_total_allocated;
-
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        std::map<void*,int> m_alloc_map;
+        std::map<void*,uint32_t> m_alloc_map;
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
-
-        static inline uint32_t size_with_padding( uint32_t size, uint32_t align ) 
-        {
-            return size + align + sizeof( Header );
-        }
 
     public:
 
-        MallocAllocator() : m_total_allocated(0) {}
+        DefaultAllocator() 
+        {
+            // ...
+        }
 
-        ~MallocAllocator()
+        ~DefaultAllocator()
         {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
             if ( m_alloc_map.size() )
             {
                 printf( "you leaked memory!\n" );
-                printf( "%d blocks still allocated\n", (int) m_alloc_map.size() );
-                printf( "%d bytes still allocated\n", (uint32_t) m_total_allocated );
-                typedef std::map<void*,int>::iterator itor_type;
+                typedef std::map<void*,uint32_t>::iterator itor_type;
                 for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i ) 
                 {
                     void *p = i->first;
-                    printf( "leaked block %p\n", p );
+                    printf( "leaked block %p (%d bytes)\n", p, i->second );
                 }
                 exit(1);
             }
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
-
-            if ( m_total_allocated != 0 )
-            {
-                printf( "you leaked memory! %d bytes still allocated\n", (uint32_t) m_total_allocated );
-                assert( !"leaked memory" );
-            }
-
-            assert( m_total_allocated == 0 );
         }
 
-        void * Allocate( uint32_t size, uint32_t align )
+        void * Allocate( uint32_t size )
         {
-            const uint32_t ts = size_with_padding( size, align );
-            Header * h = (Header*) malloc( ts );
-            void * p = data_pointer( h, align );
-            fill( h, p, ts );
-            m_total_allocated += ts;
+            void * p = malloc( size );
+            if ( !p )
+                return NULL;
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-            m_alloc_map[p] = 1;
+            m_alloc_map[p] = size;
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
             return p;
         }
@@ -142,20 +88,7 @@ namespace yojimbo
             assert( m_alloc_map.find( p ) != m_alloc_map.end() );
             m_alloc_map.erase( p );
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
-            Header * h = header( p );
-            m_total_allocated -= h->size;
-            assert( m_total_allocated >= 0 );
-            free( h );
-        }
-
-        virtual uint32_t GetAllocatedSize( void * p )
-        {
-            return header(p)->size;
-        }
-
-        virtual uint32_t GetTotalAllocated() 
-        {
-            return (uint32_t) m_total_allocated;
+            free( p );
         }
     };
 
@@ -168,7 +101,7 @@ namespace yojimbo
 
 bool InitializeYojimbo()
 {
-    g_defaultAllocator = new yojimbo::MallocAllocator();
+    g_defaultAllocator = new yojimbo::DefaultAllocator();
 
     assert( yojimbo::NonceBytes == crypto_aead_chacha20poly1305_NPUBBYTES );
     assert( yojimbo::KeyBytes == crypto_aead_chacha20poly1305_KEYBYTES );
