@@ -518,14 +518,15 @@ namespace yojimbo
 
         const int input_length = (int) strlen( input );
 
-		// IMPORTANT: Visual Studio says there is a buffer overrun in base64_decode_block. This is a workaround!
-		char * buffer = (char*) alloca( output_size * 2 );
+		char * buffer = (char*) malloc( output_size * 2 );
 
         const int decoded_bytes = base64_decode_block( input, input_length, (char*) buffer, &decode_state );
 
 		assert( decoded_bytes <= output_size );
 
 		memcpy( output, buffer, decoded_bytes );
+
+        free( buffer );
 
         return decoded_bytes;
     }

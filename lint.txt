@@ -1,0 +1,157 @@
+
+Compiler Errors:
+(please be aware that these errors will prevent OCLint from analyzing this source code)
+
+:216:17: use of undeclared identifier 'm_numWords'
+:314:13: use of undeclared identifier 'value'
+:315:13: use of undeclared identifier 'value'
+/Users/gaffer/libyojimbo/yojimbo_allocator.h:29:10: 'new' file not found
+/Users/gaffer/libyojimbo/yojimbo_common.h:34:1: unknown type name 'namespace'
+/Users/gaffer/libyojimbo/yojimbo_common.h:34:18: expected ';' after top level declarator
+/Users/gaffer/libyojimbo/yojimbo_bitpack.h:32:1: unknown type name 'namespace'
+/Users/gaffer/libyojimbo/yojimbo_bitpack.h:32:18: expected ';' after top level declarator
+/Users/gaffer/libyojimbo/yojimbo_address.h:41:1: unknown type name 'namespace'
+/Users/gaffer/libyojimbo/yojimbo_address.h:41:18: expected ';' after top level declarator
+/Users/gaffer/libyojimbo/yojimbo_network.h:39:1: unknown type name 'namespace'
+/Users/gaffer/libyojimbo/yojimbo_network.h:39:18: expected ';' after top level declarator
+/Users/gaffer/libyojimbo/yojimbo_platform.h:30:1: unknown type name 'namespace'
+/Users/gaffer/libyojimbo/yojimbo_platform.h:30:18: expected ';' after top level declarator
+
+
+OCLint Report
+
+Summary: TotalFiles=4 FilesWithViolations=4 P1=0 P2=34 P3=97 
+
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:85:26: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:94:29: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:95:29: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:96:29: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:97:29: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:98:29: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:99:29: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:100:29: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:101:29: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:109:33: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:122:22: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:129:22: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:133:13: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:296:63: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:301:63: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:306:63: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:311:56: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:320:38: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:325:63: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:326:63: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:327:63: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:149:5: high cyclomatic complexity [size|P2] Cyclomatic Complexity Number 11 exceeds limit of 10
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:309:2: high cyclomatic complexity [size|P2] Cyclomatic Complexity Number 13 exceeds limit of 10
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:261:18: inverted logic [convention|P3] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:6:1: long line [size|P3] Line with 146 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:8:1: long line [size|P3] Line with 135 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:10:1: long line [size|P3] Line with 138 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:13:1: long line [size|P3] Line with 137 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:16:1: long line [size|P3] Line with 119 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:17:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:18:1: long line [size|P3] Line with 119 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:19:1: long line [size|P3] Line with 116 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:20:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:21:1: long line [size|P3] Line with 116 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:85:1: long line [size|P3] Line with 109 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:167:1: long line [size|P3] Line with 122 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:194:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:339:1: long line [size|P3] Line with 123 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:149:5: long method [size|P3] Method with 68 lines exceeds limit of 50
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:149:5: high ncss method [size|P2] Method of 38 non-commenting source statements exceeds limit of 30
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:339:14: redundant if statement [redundant|P3] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:75:23: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:75:34: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:75:45: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:75:56: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:89:23: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:89:35: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:89:47: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:89:59: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:90:23: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:90:35: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:90:47: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:90:59: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:257:13: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:258:13: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:259:13: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:260:13: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:283:9: unnecessary else statement [redundant|P3] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:275:13: unnecessary else statement [redundant|P3] 
+/Users/gaffer/libyojimbo/yojimbo_address.cpp:342:13: unnecessary else statement [redundant|P3] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:63:9: bitwise operator in conditional [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:74:18: bitwise operator in conditional [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:93:18: bitwise operator in conditional [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:329:9: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:435:9: constant conditional operator [basic|P2] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:374:5: high cyclomatic complexity [size|P2] Cyclomatic Complexity Number 15 exceeds limit of 10
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:6:1: long line [size|P3] Line with 146 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:8:1: long line [size|P3] Line with 135 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:10:1: long line [size|P3] Line with 138 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:13:1: long line [size|P3] Line with 137 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:16:1: long line [size|P3] Line with 119 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:17:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:18:1: long line [size|P3] Line with 119 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:19:1: long line [size|P3] Line with 116 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:20:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:21:1: long line [size|P3] Line with 116 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:36:1: long line [size|P3] Line with 129 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:38:1: long line [size|P3] Line with 114 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:39:1: long line [size|P3] Line with 117 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:271:1: long line [size|P3] Line with 106 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:276:1: long line [size|P3] Line with 120 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:361:1: long line [size|P3] Line with 273 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:374:1: long line [size|P3] Line with 126 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:485:1: long line [size|P3] Line with 101 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:500:1: long line [size|P3] Line with 112 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:523:1: long line [size|P3] Line with 108 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:176:5: long method [size|P3] Method with 51 lines exceeds limit of 50
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:276:5: long method [size|P3] Method with 55 lines exceeds limit of 50
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:374:5: long method [size|P3] Method with 63 lines exceeds limit of 50
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:51:13: long variable name [naming|P3] Variable name with 21 characters is longer than the threshold of 20
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:210:9: missing break in switch statement [convention|P2] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:176:5: high ncss method [size|P2] Method of 34 non-commenting source statements exceeds limit of 30
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:276:5: high ncss method [size|P2] Method of 40 non-commenting source statements exceeds limit of 30
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:374:5: high ncss method [size|P2] Method of 47 non-commenting source statements exceeds limit of 30
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:43:9: parameter reassignment [convention|P3] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:45:9: parameter reassignment [convention|P3] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:145:13: parameter reassignment [convention|P3] 
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:166:13: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:178:9: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:179:9: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:181:9: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:189:13: short variable name [naming|P3] Variable name with 1 characters is shorter than the threshold of 3
+/Users/gaffer/libyojimbo/yojimbo_common.cpp:210:9: switch statements should have default [convention|P3] 
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:6:1: long line [size|P3] Line with 146 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:8:1: long line [size|P3] Line with 135 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:10:1: long line [size|P3] Line with 138 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:13:1: long line [size|P3] Line with 137 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:16:1: long line [size|P3] Line with 119 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:17:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:18:1: long line [size|P3] Line with 119 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:19:1: long line [size|P3] Line with 116 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:20:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:21:1: long line [size|P3] Line with 116 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:30:1: long line [size|P3] Line with 142 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:32:1: long line [size|P3] Line with 142 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:61:1: long line [size|P3] Line with 124 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:67:1: long line [size|P3] Line with 142 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:69:1: long line [size|P3] Line with 142 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:102:1: long line [size|P3] Line with 142 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_platform.cpp:104:1: long line [size|P3] Line with 142 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:6:1: long line [size|P3] Line with 146 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:8:1: long line [size|P3] Line with 135 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:10:1: long line [size|P3] Line with 138 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:13:1: long line [size|P3] Line with 137 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:16:1: long line [size|P3] Line with 119 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:17:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:18:1: long line [size|P3] Line with 119 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:19:1: long line [size|P3] Line with 116 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:20:1: long line [size|P3] Line with 118 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:21:1: long line [size|P3] Line with 116 characters exceeds limit of 100
+/Users/gaffer/libyojimbo/yojimbo_config.h:78:1: long line [size|P3] Line with 113 characters exceeds limit of 100
+
+[OCLint (http://oclint.org) v0.10.3]

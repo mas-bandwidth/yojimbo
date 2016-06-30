@@ -73,15 +73,16 @@ namespace yojimbo
     }
 
     Address::Address( uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint16_t port )
+        : m_type( ADDRESS_IPV4 )
     {
-        m_type = ADDRESS_IPV4;
+        
         m_address_ipv4 = uint32_t(a) | (uint32_t(b)<<8) | (uint32_t(c)<<16) | (uint32_t(d)<<24);
         m_port = port;
     }
 
     Address::Address( uint32_t address, int16_t port )
+        : m_type( ADDRESS_IPV4 )
     {
-        m_type = ADDRESS_IPV4;
         m_address_ipv4 = htonl( address );        // IMPORTANT: stored in network byte order. eg. big endian!
         m_port = port;
     }
@@ -89,8 +90,8 @@ namespace yojimbo
     Address::Address( uint16_t a, uint16_t b, uint16_t c, uint16_t d,
                       uint16_t e, uint16_t f, uint16_t g, uint16_t h,
                       uint16_t port )
+        : m_type( ADDRESS_IPV6 )
     {
-        m_type = ADDRESS_IPV6;
         m_address_ipv6[0] = htons( a );
         m_address_ipv6[1] = htons( b );
         m_address_ipv6[2] = htons( c );
@@ -103,8 +104,8 @@ namespace yojimbo
     }
 
     Address::Address( const uint16_t address[], uint16_t port )
+        : m_type( ADDRESS_IPV6 )
     {
-        m_type = ADDRESS_IPV6;
         for ( int i = 0; i < 8; ++i )
             m_address_ipv6[i] = htons( address[i] );
         m_port = port;

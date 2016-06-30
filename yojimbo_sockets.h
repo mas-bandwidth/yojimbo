@@ -62,7 +62,7 @@ namespace yojimbo
     {
     public:
 
-        Socket( const Address & address );
+        explicit Socket( const Address & address );
 
         ~Socket();
 

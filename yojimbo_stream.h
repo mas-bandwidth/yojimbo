@@ -302,7 +302,7 @@ namespace yojimbo
         enum { IsWriting = 1 };
         enum { IsReading = 0 };
 
-        MeasureStream( int bytes ) : m_context( NULL ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_totalBytes( bytes ), m_bitsWritten(0) {}
+        explicit MeasureStream( int bytes ) : m_context( NULL ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_totalBytes( bytes ), m_bitsWritten(0) {}
 
 #ifdef DEBUG
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )

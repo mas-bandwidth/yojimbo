@@ -80,7 +80,11 @@ namespace yojimbo
 
         m_socket = socket( ( address.GetType() == ADDRESS_IPV6 ) ? AF_INET6 : AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+        if ( m_socket == INVALID_SOCKET )
+#else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
         if ( m_socket <= 0 )
+#endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
         {
             m_error = SOCKET_ERROR_CREATE_FAILED;
             return;
