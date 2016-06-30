@@ -38,7 +38,11 @@ int ServerMain()
 {
     GamePacketFactory packetFactory;
 
+#if SECURE_SERVER 
+    printf( "secure server started on port %d\n", ServerPort );
+#else // #if SECURE_SERVER
     printf( "server started on port %d\n", ServerPort );
+#endif // #if SECURE_SERVER
 
     Address serverBindAddress( "0.0.0.0", ServerPort );
 
@@ -56,13 +60,13 @@ int ServerMain()
 
     server.SetServerAddress( serverPublicAddress );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !SECURE_SERVER && YOJIMBO_INSECURE_CONNECT
 
     server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
-
+    
     serverInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
-
-#endif // #if YOJIMBO_INSECURE_CONNECT
+    
+#endif // #if !SECURE_SERVER && YOJIMBO_INSECURE_CONNECT
 
     server.Start();
 
