@@ -26,6 +26,9 @@
 
 #include "shared.h"
 #include <signal.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 static volatile int quit = 0;
 
@@ -44,7 +47,7 @@ int ConnectMain( int argc, char * argv[] )
     uint64_t clientId = 0;
     RandomBytes( (uint8_t*) &clientId, 8 );
 
-    printf( "\n[%"PRIx64 "]\n", clientId );
+    printf( "\n[%" PRIx64 "]\n", clientId );
 
     Matcher matcher( allocator );
 
