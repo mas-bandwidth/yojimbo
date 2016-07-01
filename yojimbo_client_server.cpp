@@ -531,7 +531,16 @@ namespace yojimbo
             printf( "receive packet %p [type=%d, magic=%" PRIu64 "]\n", packet, packet->GetType(), packet->GetMagic() );
             fflush( stdout );
 
-            assert( packet > (Packet*)0xFFFFFFFFLL );
+            assert( packet->IsValid() );
+
+            const int packetType = packet->GetType();
+
+            PacketFactory * packetFactory = m_networkInterface->GetPacketFactory();
+
+            assert( packetType >= 0 );
+            assert( packetType < packetFactory->GetNumPacketTypes() );
+
+            assert( packet->GetMagic() == packetFactory->GetMagic() );
 
             if ( IsRunning() )
                 ProcessPacket( packet, address, sequence );

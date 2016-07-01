@@ -84,7 +84,8 @@ namespace yojimbo
         void Push( const T & entry )
         {
             assert( !IsFull() );
-            m_entries[m_startIndex+m_numEntries] = entry;
+            const int index = ( m_startIndex + m_numEntries ) % m_arraySize;
+            m_entries[index] = entry;
             m_numEntries++;
         }
 
