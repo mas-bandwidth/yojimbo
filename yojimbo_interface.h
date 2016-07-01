@@ -106,6 +106,8 @@ namespace yojimbo
         virtual uint64_t GetFlags() const = 0;
 
         virtual const Address & GetAddress() const = 0;
+
+        virtual PacketFactory * GetPacketFactory() = 0;
     };
 
     class BaseInterface : public NetworkInterface
@@ -162,6 +164,8 @@ namespace yojimbo
 
         const Address & GetAddress() const;
 
+        PacketFactory * GetPacketFactory();
+
     protected:
 
         void ClearSendQueue();
@@ -180,6 +184,8 @@ namespace yojimbo
 
     private:
 
+        char safety_begin[256];
+
         Address m_address;
 
         double m_time;
@@ -196,6 +202,12 @@ namespace yojimbo
 
         struct PacketEntry
         {
+            PacketEntry()
+            {
+                sequence = 0;
+                packet = NULL;
+            }
+
             uint64_t sequence;
             Address address;
             Packet * packet;
@@ -213,6 +225,8 @@ namespace yojimbo
         uint64_t m_counters[NETWORK_INTERFACE_COUNTER_NUM_COUNTERS];
 
         EncryptionManager m_encryptionManager;
+
+        char safety_end[256];
     };
 }
 

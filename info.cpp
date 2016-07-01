@@ -28,7 +28,7 @@
 
 using namespace yojimbo;
 
-int NetworkInfoMain()
+int InfoMain()
 {
     const int MaxAddresses = 64;
 
@@ -72,7 +72,7 @@ int main()
         exit( 1 );
     }
 
-    int result = NetworkInfoMain();
+    int result = InfoMain();
 
     ShutdownYojimbo();
 

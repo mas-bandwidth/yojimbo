@@ -15,7 +15,9 @@ Now rolling a random uint64_t in the packet factory, I'll stash this on packets 
 then trivially looking at the packet on destroy, I can complain if it looks like the packet wasn't created by that factory,
 eg. if it is 0 then it is a manually created packet, and if it is a different non-zero value, it was created by another factory.
 
+OK. I keep adding stuff and it gets stranger. It's definitely a memory trash. It's quite a random one too because the location of the trash shifts around.
 
+I have a crash in the debugger now that indicates that the last variable in the packet processor m_scratchBuffer was overwritten with 0xCC, that's 204 decimal.
 
 
 
