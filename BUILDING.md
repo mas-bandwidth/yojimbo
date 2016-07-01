@@ -41,14 +41,6 @@ This creates makefiles which you can use to build the source via "make all", or 
 
     premake5 client         // build and run the client that connects to the server running on localhost
 
-To make this more convenient I like to alias "pm" to "premake5" in bash, so building and running test programs becomes:
-
-    pm test
-
-    pm client
-
-And so on, which is much less typing (I run these shortcuts a lot!)
-
 ## Run a yojimbo server inside Docker
 
 **libyojimbo** supports Docker on Windows, Mac and Linux.
