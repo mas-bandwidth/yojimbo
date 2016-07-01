@@ -15,8 +15,9 @@ Now rolling a random uint64_t in the packet factory, I'll stash this on packets 
 then trivially looking at the packet on destroy, I can complain if it looks like the packet wasn't created by that factory,
 eg. if it is 0 then it is a manually created packet, and if it is a different non-zero value, it was created by another factory.
 
+Goddamn it. It's the fucking send queue. That's the root cause of the bullshit packets?
 
-
+Confirmed. The trash is in the send queue. It's not properly handling wrapping. Confirmed by dropping the send queue array size down, and the crashes occur faster. This is definitely it. Fantastic!
 
 
 
@@ -33,4 +34,3 @@ NOTES
     Need to remember to switch the mallocs back to alloca once I'm finished with the memory debug stomp tracking.
 
     Check over code for todos
-    
