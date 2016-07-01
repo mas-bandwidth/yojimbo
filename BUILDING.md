@@ -47,7 +47,9 @@ This creates makefiles which you can use to build the source via "make all", or 
 
 First, install the latest version of Docker from <http://www.docker.com>
 
-Once Docker is installed, go to the command line at the yojimbo directory and enter:
+If you are running on Windows go into Docker network settings and enable "Expose container ports on localhost".
+
+Now go to the command line at the yojimbo directory and enter:
 
     premake5 docker
 
