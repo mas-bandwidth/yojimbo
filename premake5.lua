@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.2.0-preview5"
+libyojimbo_version = "0.2.0"
 
 if os.is "windows" then
     sodium_debug = "sodium-debug"
@@ -122,61 +122,7 @@ project "client_server"
     configuration "Release"
         links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
 
-if _ACTION == "clean" then
-    os.rmdir "obj"
-    os.rmdir "ipch"
-	os.rmdir "bin"
-	os.rmdir ".vs"
-    os.rmdir "Debug"
-    os.rmdir "Release"
-    os.rmdir "release"
-    os.rmdir "docker/libyojimbo"
-    if not os.is "windows" then
-        os.execute "rm -f Makefile"
-        os.execute "rm -f *.make"
-        os.execute "rm -f *.txt"
-        os.execute "rm -f *.7z"
-        os.execute "rm -f *.zip"
-        os.execute "rm -f *.tar.gz"
-        os.execute "find . -name .DS_Store -delete"
-    else
-        os.execute "del /F /Q Makefile"
-        os.execute "del /F /Q *.make"
-        os.execute "del /F /Q *.db"
-        os.execute "del /F /Q *.opendb"
-        os.execute "del /F /Q *.vcproj"
-        os.execute "del /F /Q *.vcxproj"
-        os.execute "del /F /Q *.vcxproj.user"
-        os.execute "del /F /Q *.sln"
-    end
-end
-
 if not os.is "windows" then
-
-    newaction
-    {
-        trigger     = "release",
-        description = "Create a release of this project",
-        execute = function ()
-            _ACTION = "clean"
-            premake.action.call( "clean" )
-            files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker rapidjson windows"
-            os.execute( "rm -rf *.zip *.tar.gz *.7z" );
-            os.execute( "rm -rf docker/libyojimbo" );
-            os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )
-            os.execute( "7z a -y -mx=9 -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z " .. files_to_zip )
-            os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
-            os.execute( "tar -zcvf libyojimbo-" .. libyojimbo_version .. ".tar.gz libyojimbo-" .. libyojimbo_version );
-            os.execute( "rm -rf libyojimbo-" .. libyojimbo_version );
-            os.execute( "mkdir -p release" );
-            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".7z release" );
-            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".zip release" );
-            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".tar.gz release" );
-            os.execute( "echo" );
-            os.execute( "echo \"*** SUCCESSFULLY CREATED RELEASE - libyojimbo-" .. libyojimbo_version .. " *** \"" );
-            os.execute( "echo" );
-        end
-    }
 
     newaction
     {
@@ -319,6 +265,31 @@ if not os.is "windows" then
         end
     }
 
+    newaction
+    {
+        trigger     = "release",
+        description = "Create a release of this project",
+        execute = function ()
+            _ACTION = "clean"
+            premake.action.call( "clean" )
+            files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker rapidjson windows"
+            os.execute( "rm -rf *.zip *.tar.gz *.7z" );
+            os.execute( "rm -rf docker/libyojimbo" );
+            os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )
+            os.execute( "7z a -y -mx=9 -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z " .. files_to_zip )
+            os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
+            os.execute( "tar -zcvf libyojimbo-" .. libyojimbo_version .. ".tar.gz libyojimbo-" .. libyojimbo_version );
+            os.execute( "rm -rf libyojimbo-" .. libyojimbo_version );
+            os.execute( "mkdir -p release" );
+            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".7z release" );
+            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".zip release" );
+            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".tar.gz release" );
+            os.execute( "echo" );
+            os.execute( "echo \"*** SUCCESSFULLY CREATED RELEASE - libyojimbo-" .. libyojimbo_version .. " *** \"" );
+            os.execute( "echo" );
+        end
+    }
+
 else
 
 	newaction
@@ -351,3 +322,56 @@ else
     }
 
 end
+
+newaction
+{
+    trigger     = "clean",
+    description = "Clean all yojimbo build files and output",
+
+    execute = function ()
+
+        files_to_delete = 
+        {
+            "Makefile",
+            "*.make",
+            "*.txt",
+            "*.7z",
+            "*.zip",
+            "*.tar.gz",
+            "*.db",
+            "*.opendb",
+            "*.vcproj",
+            "*.vcxproj",
+            "*.vcxproj.user",
+            "*.sln"
+        }
+
+        directories_to_delete = 
+        {
+            "obj",
+            "ipch",
+            "bin",
+            ".vs",
+            "Debug",
+            "Release",
+            "release",
+            "docker/libyojimbo"
+        }
+
+        for i,v in ipairs( directories_to_delete ) do
+          os.rmdir( v )
+        end
+
+        if not os.is "windows" then
+            os.execute "find . -name .DS_Store -delete"
+            for i,v in ipairs( files_to_delete ) do
+              os.execute( "rm -f " .. v )
+            end
+        else
+            for i,v in ipairs( files_to_delete ) do
+              os.execute( "del /F /Q  " .. v )
+            end
+        end
+
+    end
+}
