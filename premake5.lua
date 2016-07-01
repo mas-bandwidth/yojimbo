@@ -148,26 +148,6 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "connect",
-        description = "Build and run connect test program",
-        execute = function ()
-            if os.execute "make -j4 connect" == 0 then
-                os.execute "./bin/connect"
-            end
-        end
-    }
-
-    newaction
-    {
-        trigger     = "yojimbo",
-        description = "Build yojimbo client/server network protocol library",
-        execute = function ()
-            os.execute "make -j4 yojimbo"
-        end
-    }
-
-    newaction
-    {
         trigger     = "cs",
         description = "Build and run client/server testbed",     
         execute = function ()
@@ -240,6 +220,17 @@ if not os.is "windows" then
         description = "Build and run the matchmaker web service inside a docker container",
         execute = function ()
             os.execute "cd docker/matcher && docker build -t networkprotocol:yojimbo-matcher . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
+        end
+    }
+
+    newaction
+    {
+        trigger     = "connect",
+        description = "Build and run connect test program",
+        execute = function ()
+            if os.execute "make -j4 connect" == 0 then
+                os.execute "./bin/connect"
+            end
         end
     }
 
