@@ -540,6 +540,11 @@ namespace yojimbo
             if ( !packet )
                 break;
 
+            printf( "receive packet %p [type=%d, magic=%" PRIu64 "]\n", packet, packet->GetType(), packet->GetMagic() );
+            fflush( stdout );
+
+            assert( packet > (Packet*)0xFFFFFFFFLL );
+
             if ( IsRunning() )
                 ProcessPacket( packet, address, sequence );
 

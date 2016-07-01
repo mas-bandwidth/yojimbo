@@ -1,9 +1,36 @@
-DONE
 
-TODO
+Really going to have to go to town with validation and runtime checks to catch this one I think, if it's a memory trash.
 
-    First start by adding a magic value in the base packet (debug build only) which is set only if the object is created through the packet factory. That way if somehow a packet is getting passed into free which has not been created via the packet factory, I will pick it up. Also, bad pointers and so on.
+First start by adding a magic value in the base packet (debug build only) which is set only if the object is created through the packet factory. That way if somehow a packet is getting passed into free which has not been created via the packet factory, I will pick it up. Also, bad pointers and so on.
 
-    Really going to have to go to town with validation and runtime checks to catch this one I think, if it's a memory trash.
+Turned on YOJIMBO_DEBUG_PACKET_LEAKS in yojimbo_config.h
 
-    Should also make the magic random rolled and specific to the particular factory, that way it'll pick up packets from one packet factory being passed to another to delete, which could be very bad, because the allocator could be different.
+Make it store the type as the hash value too, which could be useful.
+
+Added a new feature, #define YOJIMBO_PACKET_MAGIC 1
+
+Packet magic!!!!!one
+
+Now rolling a random uint64_t in the packet factory, I'll stash this on packets that are created from that factory,
+then trivially looking at the packet on destroy, I can complain if it looks like the packet wasn't created by that factory,
+eg. if it is 0 then it is a manually created packet, and if it is a different non-zero value, it was created by another factory.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NOTES
+
+    Need to remember to switch the mallocs back to alloca once I'm finished with the memory debug stomp tracking.
+
+    Check over code for todos
+    

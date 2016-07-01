@@ -69,18 +69,33 @@
 #define YOJIMBO_PLATFORM YOJIMBO_PLATFORM_UNIX
 #endif
 
-#define YOJIMBO_SOCKETS                         1
+#define YOJIMBO_SOCKETS                             1
 
-#define YOJIMBO_NETWORK_SIMULATOR               1
+#define YOJIMBO_NETWORK_SIMULATOR                   1
 
-#define YOJIMBO_PACKET_AGGREGATION              1
+#define YOJIMBO_PACKET_AGGREGATION                  1
 
-#define YOJIMBO_INSECURE_CONNECT                1           // IMPORTANT: You should disable this in retail build
+#define YOJIMBO_INSECURE_CONNECT                    1           // IMPORTANT: You should disable this in retail build
 
-#define YOJIMBO_DEBUG_PACKET_LEAKS              0
+#define YOJIMBO_SERIALIZE_CHECKS                    1
 
-#define YOJIMBO_DEBUG_MEMORY_LEAKS              1    
+#if DEBUG
 
-#define YOJIMBO_SERIALIZE_CHECKS                1
+    #define YOJIMBO_DEBUG_PACKET_LEAKS              1
+
+    #define YOJIMBO_DEBUG_MEMORY_LEAKS              1    
+
+    #define YOJIMBO_PACKET_MAGIC                    1
+
+#else // #if DEBUG
+
+    #define YOJIMBO_DEBUG_PACKET_LEAKS              0
+
+    #define YOJIMBO_DEBUG_MEMORY_LEAKS              0    
+
+    #define YOJIMBO_PACKET_MAGIC                    0
+
+#endif // #if DEBUG
+
 
 #endif // #ifndef YOJIMBO_CONFIG_H
