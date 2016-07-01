@@ -2,23 +2,11 @@
 libyojimbo_version = "0.2.0"
 
 if os.is "windows" then
-    sodium_debug = "sodium-debug"
-    sodium_release = "sodium-release"
-    mbedtls_debug = "mbedtls-debug"
-    mbedtls_release = "mbedtls-release"
-    mbedx509_debug = "mbedx509-debug"
-    mbedx509_release = "mbedx509-release"
-    mbedcrypto_debug = "mbedcrypto-debug"
-    mbedcrypto_release = "mbedcrypto-release"
+    debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
+    release_libs = { "sodium-release", "mbedtls-release", "mbedx509-release", "mbedcrypto-release" }
 else
-    sodium_debug = "sodium"
-    sodium_release = "sodium"
-    mbedtls_debug = "mbedtls"
-    mbedtls_release = "mbedtls"
-    mbedx509_debug = "mbedx509"
-    mbedx509_release = "mbedx509"
-    mbedcrypto_debug = "mbedcrypto"
-    mbedcrypto_release = "mbedcrypto"
+    debug_libs = { "sodium", "mbedtls", "mbedx509", "mbedcrypto" }
+    release_libs = debug_libs
 end
 
 solution "Yojimbo"
@@ -48,9 +36,9 @@ project "test"
     files { "test.cpp" }
     links { "yojimbo" }
     configuration "Debug"
-		links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+		links { debug_libs }
 	configuration "Release"
-	    links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+        links { release_libs }
 
 project "connect"
     language "C++"
@@ -58,9 +46,9 @@ project "connect"
     files { "connect.cpp" }
     links { "yojimbo" }
     configuration "Debug"
-        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+        links { debug_libs }
     configuration "Release"
-        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+        links { release_libs }
 
 project "network_info"
     language "C++"
@@ -68,18 +56,18 @@ project "network_info"
     files { "network_info.cpp" }
     links { "yojimbo" }
     configuration "Debug"
-        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+        links { debug_libs }
     configuration "Release"
-        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+        links { release_libs }
 
 project "yojimbo"
     language "C++"
     kind "StaticLib"
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp" }
     configuration "Debug"
-        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+        links { debug_libs }
     configuration "Release"
-        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+        links { release_libs }
 
 project "client"
     language "C++"
@@ -87,9 +75,9 @@ project "client"
     files { "client.cpp", "shared.h" }
     links { "yojimbo" }
     configuration "Debug"
-        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+        links { debug_libs }
     configuration "Release"
-        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+        links { release_libs }
 
 project "server"
     language "C++"
@@ -97,9 +85,9 @@ project "server"
     files { "server.cpp", "shared.h" }
     links { "yojimbo" }
     configuration "Debug"
-        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+        links { debug_libs }
     configuration "Release"
-        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+        links { release_libs }
 
 project "secure_server"
     language "C++"
@@ -108,9 +96,9 @@ project "secure_server"
     links { "yojimbo" }
     defines { "SECURE_SERVER=1" }
     configuration "Debug"
-        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+        links { debug_libs }
     configuration "Release"
-        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+        links { release_libs }
 
 project "client_server"
     language "C++"
@@ -118,9 +106,9 @@ project "client_server"
     files { "client_server.cpp", "shared.h" }
     links { "yojimbo" }
     configuration "Debug"
-        links { sodium_debug, mbedtls_debug, mbedx509_debug, mbedcrypto_debug }
+        links { debug_libs }
     configuration "Release"
-        links { sodium_release, mbedtls_release, mbedx509_release, mbedcrypto_release }
+        links { release_libs }
 
 if not os.is "windows" then
 
@@ -129,7 +117,7 @@ if not os.is "windows" then
         trigger     = "test",
         description = "Build and run all unit tests",
         execute = function ()
-            if os.execute "make -j4 test" == 0 then
+            if os.execute "make -j32 test" == 0 then
                 os.execute "./bin/test"
             end
         end
@@ -140,7 +128,7 @@ if not os.is "windows" then
         trigger     = "info",
         description = "Build and run network info utility",
         execute = function ()
-            if os.execute "make -j4 network_info" == 0 then
+            if os.execute "make -j32 network_info" == 0 then
                 os.execute "./bin/network_info"
             end
         end
@@ -151,7 +139,7 @@ if not os.is "windows" then
         trigger     = "cs",
         description = "Build and run client/server testbed",     
         execute = function ()
-            if os.execute "make -j4 client_server" == 0 then
+            if os.execute "make -j32 client_server" == 0 then
                 os.execute "./bin/client_server"
             end
         end
@@ -173,7 +161,7 @@ if not os.is "windows" then
         valid_tools = premake.action.get("gmake").valid_tools,
      
         execute = function ()
-            if os.execute "make -j4 client" == 0 then
+            if os.execute "make -j32 client" == 0 then
                 if _OPTIONS["serverAddress"] then
                     os.execute( "./bin/client " .. _OPTIONS["serverAddress"] )
                 else
@@ -188,7 +176,7 @@ if not os.is "windows" then
         trigger     = "server",
         description = "Build and run server",     
         execute = function ()
-            if os.execute "make -j4 server" == 0 then
+            if os.execute "make -j32 server" == 0 then
                 os.execute "./bin/server"
             end
         end
@@ -199,7 +187,7 @@ if not os.is "windows" then
         trigger     = "secure_server",
         description = "Build and run secure server",     
         execute = function ()
-            if os.execute "make -j4 secure_server" == 0 then
+            if os.execute "make -j32 secure_server" == 0 then
                 os.execute "./bin/secure_server"
             end
         end
@@ -228,7 +216,7 @@ if not os.is "windows" then
         trigger     = "connect",
         description = "Build and run connect test program",
         execute = function ()
-            if os.execute "make -j4 connect" == 0 then
+            if os.execute "make -j32 connect" == 0 then
                 os.execute "./bin/connect"
             end
         end
@@ -239,7 +227,7 @@ if not os.is "windows" then
         trigger     = "stress",
         description = "Launch 64 connect instances to stress the matcher and server",
         execute = function ()
-            if os.execute "make -j4 connect" == 0 then
+            if os.execute "make -j32 connect" == 0 then
                 for i = 0, 64 do
                     os.execute "./bin/connect &"
                 end
