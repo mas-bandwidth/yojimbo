@@ -30,6 +30,10 @@
 #include <alloca.h>
 #endif
 
+#if YOJIMBO_PACKET_MAGIC
+#include "yojimbo_encryption.h"
+#endif // #if YOJIMBO_PACKET_MAGIC
+
 namespace yojimbo
 {
     int WritePacket( const PacketInfo & info, Packet * packet, uint8_t * buffer, int bufferSize, PacketHeader * header )
@@ -538,7 +542,6 @@ cleanup:
     PacketFactory::PacketFactory( Allocator & allocator, int numPacketTypes )
     {
 #if YOJIMBO_PACKET_MAGIC
-        extern void RandomBytes( uint8_t * data, int bytes );
         RandomBytes( (uint8_t*) &m_magic, sizeof( m_magic ) );
 #endif // #if YOJIMBO_PACKET_MAGIC
         m_numPacketTypes = numPacketTypes;
