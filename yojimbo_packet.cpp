@@ -259,7 +259,7 @@ cleanup:
 
         if ( aggregatePacketHeader )
         {
-            uint8_t * scratch = (uint8_t*) malloc( bufferSize );
+            uint8_t * scratch = (uint8_t*) alloca( bufferSize );
 
             typedef WriteStream Stream;
 
@@ -268,10 +268,7 @@ cleanup:
             stream.SetContext( info.context );
 
             if ( !aggregatePacketHeader->SerializeWrite( stream ) )
-            {
-                free( scratch );
                 return 0;
-            }
 
             stream.SerializeCheck( "aggregate packet header" );
 
@@ -280,16 +277,11 @@ cleanup:
             stream.Flush();
 
             if ( stream.GetError() )
-            {
-                free( scratch );
                 return 0;
-            }
 
             int packetSize = stream.GetBytesProcessed();
 
             memcpy( buffer + aggregatePacketBytes, scratch, packetSize );
-
-            free( scratch );
 
             aggregatePacketBytes += packetSize;
         }
@@ -298,7 +290,7 @@ cleanup:
 
         for ( int i = 0; i < numPackets; ++i )
         {
-            uint8_t * scratch = (uint8_t*) malloc( bufferSize );
+            uint8_t * scratch = (uint8_t*) alloca( bufferSize );
 
             typedef WriteStream Stream;
 
@@ -319,17 +311,11 @@ cleanup:
                 assert( packetHeaders[i] );
 
                 if ( !packetHeaders[i]->SerializeWrite( stream ) )
-                {
-                    free( scratch );
                     return 0;
-                }
             }
 
             if ( !packet->SerializeWrite( stream ) )
-            {
-                free( scratch );
                 return 0;
-            }
 
             stream.SerializeCheck( "end of packet" );
 
@@ -338,22 +324,14 @@ cleanup:
             stream.Flush();
 
             if ( stream.GetError() )
-            {
-                free( scratch );
                 return 0;
-            }
 
             int packetSize = stream.GetBytesProcessed();
 
             if ( aggregatePacketBytes + packetSize >= bufferSize + packetTypeBytes )
-            {
-                free( scratch );
                 break;
-            }
 
             memcpy( buffer + aggregatePacketBytes, scratch, packetSize );
-
-            free( scratch );
 
             aggregatePacketBytes += packetSize;
 
@@ -583,7 +561,6 @@ cleanup:
 #endif // #if YOJIMBO_PACKET_MAGIC
         
 #if YOJIMBO_DEBUG_PACKET_LEAKS
-//        printf( "create packet %p\n", packet );
         allocated_packets[packet] = type;
         assert( allocated_packets.find( packet ) != allocated_packets.end() );
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
@@ -605,7 +582,6 @@ cleanup:
 #endif // #if YOJIMBO_PACKET_MAGIC
 
 #if YOJIMBO_DEBUG_PACKET_LEAKS
-//        printf( "destroy packet %p\n", packet );
         assert( allocated_packets.find( packet ) != allocated_packets.end() );
         allocated_packets.erase( packet );
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS

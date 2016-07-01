@@ -158,9 +158,9 @@ namespace yojimbo
 
         if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
         {
-            // note: could not verify certificate (eg. it is self-signed)
+            // could not verify certificate (eg. it is self-signed)
 
-            // todo: this should be locked down #if YOJIMBO_SECURE
+            // IMPORTANT: this should be locked down #if YOJIMBO_SECURE
         }
 
         sprintf( request, "GET /match/%d/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
