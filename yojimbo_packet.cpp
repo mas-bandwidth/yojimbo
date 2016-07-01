@@ -533,10 +533,14 @@ cleanup:
         numPacketsRead = 0;
     }
 
-#endif // #if PROTOCOL2_PACKET_AGGREGATION
+#endif // #if YOJIMBO_PACKET_AGGREGATION
 
     PacketFactory::PacketFactory( Allocator & allocator, int numPacketTypes )
     {
+#if YOJIMBO_PACKET_MAGIC
+        extern void RandomBytes( uint8_t * data, int bytes );
+        RandomBytes( (uint8_t*) &m_magic, sizeof( m_magic ) );
+#endif // #if YOJIMBO_PACKET_MAGIC
         m_numPacketTypes = numPacketTypes;
         m_numAllocatedPackets = 0;
         m_allocator = &allocator;
@@ -544,60 +548,68 @@ cleanup:
 
     PacketFactory::~PacketFactory()
     {
-#if PROTOCOL2_DEBUG_PACKET_LEAKS
+#if YOJIMBO_DEBUG_PACKET_LEAKS
         if ( allocated_packets.size() )
         {
             printf( "you leaked packets!\n" );
             printf( "%d packets leaked\n", m_numAllocatedPackets );
-            for ( auto itor : allocated_packets )
+            typedef std::map<void*,int>::iterator itor_type;
+            for ( itor_type i = allocated_packets.begin(); i != allocated_packets.end(); ++i ) 
             {
-                auto p = itor.first;
-                printf( "leaked packet %p\n", p );
+                printf( "leaked packet %p (type %d)\n", i->first, i->second );
             }
+            exit(1);
         }
-#endif // #if PROTOCOL2_DEBUG_PACKET_LEAKS
+#endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
 
         assert( m_numAllocatedPackets == 0 );
     }
 
-    Packet* PacketFactory::CreatePacket( int type )
+    Packet * PacketFactory::CreatePacket( int type )
     {
         assert( type >= 0 );
         assert( type < m_numPacketTypes );
 
-        Packet * packet = Create( type );
+        Packet * packet = CreateInternal( type );
         if ( !packet )
             return NULL;
+
+#if YOJIMBO_PACKET_MAGIC
+        assert( packet->m_magic == 0 );
+        packet->m_magic = m_magic;
+#endif // #if YOJIMBO_PACKET_MAGIC
         
-#if PROTOCOL2_DEBUG_PACKET_LEAKS
-        printf( "create packet %p\n", packet );
-        allocated_packets[packet] = 1;
-        auto itor = allocated_packets.find( packet );
-        assert( itor != allocated_packets.end() );
-#endif // #if PROTOCOL2_DEBUG_PACKET_LEAKS
+#if YOJIMBO_DEBUG_PACKET_LEAKS
+//        printf( "create packet %p\n", packet );
+        allocated_packets[packet] = type;
+        assert( allocated_packets.find( packet ) != allocated_packets.end() );
+#endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
         
         m_numAllocatedPackets++;
 
         return packet;
     }
 
-    void PacketFactory::DestroyPacket( Packet* packet )
+    void PacketFactory::DestroyPacket( Packet * packet )
     {
         if ( !packet )
             return;
 
-#if PROTOCOL2_DEBUG_PACKET_LEAKS
-        printf( "destroy packet %p\n", packet );
-        auto itor = allocated_packets.find( packet );
-        assert( itor != allocated_packets.end() );
+#if YOJIMBO_PACKET_MAGIC
+        assert( packet->m_magic == m_magic );
+#endif // #if YOJIMBO_PACKET_MAGIC
+
+#if YOJIMBO_DEBUG_PACKET_LEAKS
+//        printf( "destroy packet %p\n", packet );
+        assert( allocated_packets.find( packet ) != allocated_packets.end() );
         allocated_packets.erase( packet );
-#endif // #if PROTOCOL2_DEBUG_PACKET_LEAKS
+#endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
 
         assert( m_numAllocatedPackets > 0 );
 
         m_numAllocatedPackets--;
 
-        Destroy( packet );
+        DestroyInternal( packet );
     }
 
     int PacketFactory::GetNumPacketTypes() const

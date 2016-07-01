@@ -327,7 +327,7 @@ namespace yojimbo
     {
         ClientServerPacketFactory( Allocator & allocator, int numPackets ) : PacketFactory( allocator, numPackets ) {}
 
-        Packet * Create( int type )
+        Packet * CreateInternal( int type )
         {
             Allocator & allocator = GetAllocator();
 
@@ -347,9 +347,13 @@ namespace yojimbo
             }
         }
 
-        void Destroy( Packet * packet )
+        void DestroyInternal( Packet * packet )
         {
-            YOJIMBO_DELETE( GetAllocator(), Packet, packet );
+            assert( packet );
+
+            Allocator & allocator = GetAllocator();
+
+            YOJIMBO_DELETE( allocator, Packet, packet );
         }
     };
 

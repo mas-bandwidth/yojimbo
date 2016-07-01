@@ -382,7 +382,7 @@ struct TestPacketFactory : public PacketFactory
 {
     explicit TestPacketFactory( Allocator & allocator ) : PacketFactory( allocator, TEST_PACKET_NUM_TYPES ) {}
 
-    Packet * Create( int type )
+    Packet * CreateInternal( int type )
     {
         Allocator & allocator = GetAllocator();
 
@@ -395,7 +395,7 @@ struct TestPacketFactory : public PacketFactory
         return NULL;
     }
 
-    void Destroy( Packet * packet )
+    void DestroyInternal( Packet * packet )
     {
         YOJIMBO_DELETE( GetAllocator(), Packet, packet );
     }
@@ -1293,9 +1293,9 @@ public:
 
     GamePacketFactory() : ClientServerPacketFactory( GetDefaultAllocator(), GAME_NUM_PACKETS ) {}
 
-    Packet * Create( int type )
+    Packet * CreateInternal( int type )
     {
-        Packet * packet = ClientServerPacketFactory::Create( type );
+        Packet * packet = ClientServerPacketFactory::CreateInternal( type );
         if ( packet )
             return packet;
 
@@ -1314,10 +1314,10 @@ public:
 
     TestNetworkSimulator() : NetworkSimulator( GetDefaultAllocator() )
     {
-        SetLatency( 1000 );
-        SetJitter( 250 );
-        SetDuplicates( 10 );
-        SetPacketLoss( 10 );
+        SetJitter( 250 );           // +/- 250ms jitter
+        SetLatency( 1000 );         // +1000ms delay
+        SetDuplicates( 10 );        // 10% duplicate packets
+        SetPacketLoss( 10 );        // 10% packet loss
     }   
 };
 
