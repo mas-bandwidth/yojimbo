@@ -11,7 +11,7 @@ Go to the command line under the libyojimbo directory and type:
 
     premake5 solution
 
-This creates Yojimbo.sln and a bunch of project files then opens the solution in Visual Studio for you.
+This creates Yojimbo.sln and a bunch of project files then opens them in Visual Studio for you.
 
 Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
