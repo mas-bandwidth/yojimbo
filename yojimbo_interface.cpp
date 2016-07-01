@@ -108,8 +108,11 @@ namespace yojimbo
         {
             PacketEntry & entry = m_sendQueue[i];
             assert( entry.packet );
+            assert( entry.packet->IsValid() );
             assert( entry.address.IsValid() );
             m_packetFactory->DestroyPacket( entry.packet );
+            entry.address = Address();
+            entry.packet = NULL;
         }
 
         m_sendQueue.Clear();
@@ -121,8 +124,11 @@ namespace yojimbo
         {
             PacketEntry & entry = m_receiveQueue[i];
             assert( entry.packet );
+            assert( entry.packet->IsValid() );
             assert( entry.address.IsValid() );
             m_packetFactory->DestroyPacket( entry.packet );
+            entry.address = Address();
+            entry.packet = NULL;
         }
 
         m_receiveQueue.Clear();
@@ -146,29 +152,39 @@ namespace yojimbo
         assert( m_packetFactory );
 
         assert( packet );
+        assert( packet->IsValid() );
         assert( address.IsValid() );
+
+        const int packetType = packet->GetType();
+
+        assert( packetType >= 0 );
+        assert( packetType < m_packetFactory->GetNumPacketTypes() );
 
         if ( immediate )
         {
+            m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_SENT]++;
+
             WriteAndFlushPacket( address, packet, sequence );
 
             m_packetFactory->DestroyPacket( packet );
         }
         else
         {
-            PacketEntry entry;
-            entry.sequence = sequence;
-            entry.address = address;
-            entry.packet = packet;
+            if ( !m_sendQueue.IsFull() )
+            {
+                PacketEntry entry;
+                entry.sequence = sequence;
+                entry.address = address;
+                entry.packet = packet;
 
-            if ( m_sendQueue.IsFull() )
+                m_sendQueue.Push( entry );
+            }
+            else
             {
                 m_counters[NETWORK_INTERFACE_COUNTER_SEND_QUEUE_OVERFLOW]++;
                 m_packetFactory->DestroyPacket( packet );
                 return;
             }
-
-            m_sendQueue.Push( entry );
         }
 
         m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_SENT]++;
@@ -185,7 +201,13 @@ namespace yojimbo
         PacketEntry entry = m_receiveQueue.Pop();
 
         assert( entry.packet );
+		assert( entry.packet->IsValid() );
         assert( entry.address.IsValid() );
+
+		const int packetType = entry.packet->GetType();
+
+		assert( packetType >= 0 );
+		assert( packetType < m_packetFactory->GetNumPacketTypes() );
 
         from = entry.address;
 
@@ -208,7 +230,13 @@ namespace yojimbo
             PacketEntry entry = m_sendQueue.Pop();
 
             assert( entry.packet );
+            assert( entry.packet->IsValid() );
             assert( entry.address.IsValid() );
+
+			const int packetType = entry.packet->GetType();
+
+			assert( packetType >= 0 );
+			assert( packetType < m_packetFactory->GetNumPacketTypes() );
 
             WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
 
@@ -218,6 +246,15 @@ namespace yojimbo
 
     void BaseInterface::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
     {
+        assert( packet );
+        assert( packet->IsValid() );
+        assert( address.IsValid() );
+
+        const int packetType = packet->GetType();
+
+        assert( packetType >= 0 );
+        assert( packetType < m_packetFactory->GetNumPacketTypes() );
+
         const double time = GetTime();
 
         int packetBytes;
@@ -225,7 +262,7 @@ namespace yojimbo
         const uint8_t * key = m_encryptionManager.GetSendKey( address, time );
 
 #if YOJIMBO_INSECURE_CONNECT
-        const bool encrypt = ( GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packet->GetType() ) && key : IsEncryptedPacketType( packet->GetType() );
+        const bool encrypt = ( GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packetType ) && key : IsEncryptedPacketType( packetType );
 #else // #if YOJIMBO_INSECURE_CONNECT
         const bool encrypt = IsEncryptedPacketType( packet->GetType() );
 #endif // #if YOJIMBO_INSECURE_CONNECT
@@ -412,5 +449,10 @@ namespace yojimbo
     const Address & BaseInterface::GetAddress() const
     {
         return m_address;
+    }
+
+    PacketFactory * BaseInterface::GetPacketFactory()
+    {
+        return m_packetFactory;
     }
 }
