@@ -184,8 +184,6 @@ namespace yojimbo
 
     private:
 
-        char safety_begin[256];
-
         Address m_address;
 
         double m_time;
@@ -225,8 +223,6 @@ namespace yojimbo
         uint64_t m_counters[NETWORK_INTERFACE_COUNTER_NUM_COUNTERS];
 
         EncryptionManager m_encryptionManager;
-
-        char safety_end[256];
     };
 }
 
