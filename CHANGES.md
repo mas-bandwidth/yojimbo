@@ -69,6 +69,8 @@ Now to clean up the mess...
 
 Need to remember to switch the mallocs back to alloca once I'm finished with the memory debug stomp tracking.
 
+OK. Everything is cleaned up and we're back to normal.
+
 
 Wednesday June 29th, 2016
 =========================
