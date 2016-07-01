@@ -9,9 +9,9 @@ If you don't have Visual Studio 2015 you can [download the community edition for
 
 Go to the command line under the libyojimbo directory and type:
 
-    premake5 vs2015
+    premake5 solution
 
-This creates Yojimbo.sln and a bunch of project files. Double click Yojimbo.sln to open it in Visual Studio.
+This creates Yojimbo.sln and a bunch of project files and opens it in Visual Studio for you automatically.
 
 Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
