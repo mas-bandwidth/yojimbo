@@ -60,6 +60,8 @@ namespace yojimbo
 
     private:
 
+        char safety_begin[256];
+
         Allocator * m_allocator;
 
         uint32_t m_protocolId;
@@ -74,6 +76,8 @@ namespace yojimbo
         void * m_context;
 
         PacketFactory * m_packetFactory;
+
+        char safety_end[256];
     };
 }
 
