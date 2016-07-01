@@ -42,18 +42,26 @@ namespace yojimbo
     public:        
         
 #if YOJIMBO_PACKET_MAGIC
+
         explicit Packet( int type ) : m_type( type ), m_magic( 0 ) {}
+
+		virtual ~Packet() { m_type = -1; m_magic = 0; }
+
+		uint64_t GetMagic() const { return m_magic; }
+    
+        bool IsValid() const { return m_magic != 0 && m_type >= 0; }
+
 #else // #if YOJIMBO_PACKET_MAGIC
+
         explicit Packet( int type ) : m_type( type ) {}
+
+		virtual ~Packet() { m_type = -1; }
+
+        bool IsValid() const { return m_type >= 0; }
+
 #endif // #if YOJIMBO_PACKET_MAGIC
 
-        virtual ~Packet() {}
-
         int GetType() const { return m_type; }
-
-#if YOJIMBO_PACKET_MAGIC
-        uint64_t GetMagic() const { return m_magic; }
-#endif // #if YOJIMBO_PACKET_MAGIC        
 
     protected:
 
@@ -87,6 +95,10 @@ namespace yojimbo
         void DestroyPacket( Packet * packet );
 
         int GetNumPacketTypes() const;
+
+#if YOJIMBO_PACKET_MAGIC
+        uint64_t GetMagic() const { return m_magic; }
+#endif // #if YOJIMBO_PACKET_MAGIC
 
     protected:
 

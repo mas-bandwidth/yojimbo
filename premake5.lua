@@ -50,10 +50,10 @@ project "connect"
     configuration "Release"
         links { release_libs }
 
-project "network_info"
+project "info"
     language "C++"
     kind "ConsoleApp"
-    files { "network_info.cpp" }
+    files { "info.cpp" }
     links { "yojimbo" }
     configuration "Debug"
         links { debug_libs }
@@ -128,8 +128,8 @@ if not os.is "windows" then
         trigger     = "info",
         description = "Build and run network info utility",
         execute = function ()
-            if os.execute "make -j32 network_info" == 0 then
-                os.execute "./bin/network_info"
+            if os.execute "make -j32 info" == 0 then
+                os.execute "./bin/info"
             end
         end
     }
@@ -228,7 +228,7 @@ if not os.is "windows" then
         description = "Launch 64 connect instances to stress the matcher and server",
         execute = function ()
             if os.execute "make -j32 connect" == 0 then
-                for i = 0, 64 do
+                for i = 0, 63 do
                     os.execute "./bin/connect &"
                 end
             end
@@ -294,7 +294,7 @@ else
         trigger     = "stress",
         description = "Launch 64 connect instances to stress the matcher and server",
         execute = function ()
-            for i = 0, 64 do
+            for i = 0, 63 do
                 os.execute "start /B bin\\x64\\Debug\\connect"
             end
         end
