@@ -3228,6 +3228,8 @@ int main()
     while ( true )
 #endif // #if SOAK_TEST
     {
+        // todo: there needs to be a test_queue --- NEVER AGAIN!!!!
+
         test_base64();
         test_bitpacker();
         test_stream();

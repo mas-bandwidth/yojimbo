@@ -135,10 +135,9 @@ namespace yojimbo
 
     static void insert_data_as_base64_string( Writer<StringBuffer> & writer, const char * key, const uint8_t * data, int data_length )
     {
-        char * buffer = (char*) malloc( data_length * 2 );
+        char * buffer = (char*) alloca( data_length * 2 );
         base64_encode_data( data, data_length, buffer, data_length * 2 );
         writer.Key( key ); writer.String( buffer );
-        free( buffer );
     }
 
     bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize )
@@ -527,20 +526,6 @@ namespace yojimbo
 
             if ( !packet )
                 break;
-
-            printf( "receive packet %p [type=%d, magic=%" PRIu64 "]\n", packet, packet->GetType(), packet->GetMagic() );
-            fflush( stdout );
-
-            assert( packet->IsValid() );
-
-            const int packetType = packet->GetType();
-
-            PacketFactory * packetFactory = m_networkInterface->GetPacketFactory();
-
-            assert( packetType >= 0 );
-            assert( packetType < packetFactory->GetNumPacketTypes() );
-
-            assert( packet->GetMagic() == packetFactory->GetMagic() );
 
             if ( IsRunning() )
                 ProcessPacket( packet, address, sequence );

@@ -79,21 +79,13 @@
 
 #define YOJIMBO_SERIALIZE_CHECKS                    1
 
-#if DEBUG
+#define YOJIMBO_DEBUG_PACKET_LEAKS                  1
 
-    #define YOJIMBO_DEBUG_PACKET_LEAKS              1
+#if DEBUG
 
     #define YOJIMBO_DEBUG_MEMORY_LEAKS              1    
 
     #define YOJIMBO_PACKET_MAGIC                    1
-
-#else // #if DEBUG
-
-    #define YOJIMBO_DEBUG_PACKET_LEAKS              0
-
-    #define YOJIMBO_DEBUG_MEMORY_LEAKS              0    
-
-    #define YOJIMBO_PACKET_MAGIC                    0
 
 #endif // #if DEBUG
 
