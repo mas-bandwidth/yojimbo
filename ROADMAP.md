@@ -20,15 +20,21 @@ Features implemented for this release:
 
 ## 0.2.0 - Docker integration
 
-The goal of this release is to extend libyojimbo to support a web backend for clients who need to securely connect to dedicated servers with "connect tokens". The connect token and packet encryption feature has already been implemented in 0.1.0, but it is necessary to setup a backend matchmaker and dedicated server infrastructure to show how this would be used in production. 
+This release extended libyojimbo to support a web backend for clients who need to securely connect to dedicated servers with 'connect tokens'. The connect token and packet encryption feature has already been implemented in 0.1.0, but it is necessary to setup a backend matchmaker and dedicated server infrastructure to show how this would be used in production. 
 
-Docker is being used in this release as an example, not to tie libyojimbo to any particular architecture, but because it is a really convenient way to distribute and run a web backend across Mac, Windows and Linux. It's super convenient for this purpose.
+Docker is being used in this release as an example, not to tie libyojimbo to any particular architecture (Docker is not required to use libyojimbo) but because it is a really convenient way to distribute and run a web application across Mac, Windows and Linux. This lets me share example web backends in libyojimbo now and trust that they'll work for people using libyojimbo on different platforms thanks to Docker.
 
-So far this release has added support for running a libyojimbo server inside a container "premake5 docker", as well as a simple matcher web service in golang: "premake5 matcher".
+This release added support for: 
 
-This release is very close to being finished, just as soon as the connect example hits the matcher service and uses the match response JSON to securely connect to the running server, I'm calling this release done.
+1. Running a libyojimbo server inside a container "premake5 docker"
+2. A simple matcher web service in golang: "premake5 matcher"
+3. An example showing how to connect a client to the server via the matcher: "premake5 connect"
+4. A way to run a secure server: "premake5 secure_server"
+5. A way to spawn 64 clients and connect to the server via the matcher to stress test the system: "premake5 stress"
 
-## 0.3.0 - Reliable messages
+Some pretty good progress. Stopping now and calling this release done!
+
+## 0.3.0 - Reliable messages (current)
 
 Now that a demonstration of backend infrastructure is in place, the focus for this release returns to the network protocol. The goal with this release is to get the internal network protocol to a stable API and feature set.
 
