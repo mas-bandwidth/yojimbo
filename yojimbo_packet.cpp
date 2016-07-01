@@ -592,6 +592,8 @@ cleanup:
 
     void PacketFactory::DestroyPacket( Packet * packet )
     {
+        assert( packet );
+
         if ( !packet )
             return;
 

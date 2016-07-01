@@ -245,21 +245,9 @@ namespace yojimbo
 
         const int string_length = (int) strlen( string );
 
-        uint8_t * buffer = (uint8_t*) malloc( string_length );
+        int read_data_bytes = base64_decode_data( string, data, string_length );
 
-        int read_data_bytes = base64_decode_data( string, buffer, string_length );
-
-        if ( read_data_bytes != data_bytes )
-        {
-            free( buffer );
-            return false;
-        }
-
-        memcpy( data, buffer, data_bytes );
-
-        free( buffer );
-
-        return true;
+        return read_data_bytes == data_bytes;
     }
 
     bool ReadConnectTokenFromJSON( const char * json, ConnectToken & connectToken )
