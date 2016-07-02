@@ -19,6 +19,18 @@ Now bring across existing tests for these classes.
 
 All tests pass. Great stuff.
 
+So now need to extract out the core ack protocol into a system.
+
+OK so the code to bring across is the "Connection" class. But I want to strip out the channel stuff from that, because I want to do things differently this time. I think.
+
+I think I want to split out the ack system from "Connection" as "AckSystem". This will make it more reusable.
+
+Nah, it's just so simple. There is nothing to split out!
+
+Cleaned up the connection and it seems to be working fine.
+
+Now to clean up the connection config. Remove the allocator and packet factory from there.
+
 
 Thursday June 30th, 2016
 ========================
