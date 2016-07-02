@@ -3212,6 +3212,355 @@ void test_matcher()
     }
 }
 
+void test_bit_array()
+{
+    printf( "test_bit_array\n" );
+
+    const int Size = 300;
+
+    BitArray bit_array( GetDefaultAllocator(), Size );
+
+    // verify initial conditions
+
+    check( bit_array.GetSize() == Size );
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        check( bit_array.GetBit(i) == 0 );
+    }
+
+    // set every third bit and verify correct bits are set on read
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 3 ) == 0 )
+            bit_array.SetBit( i );
+    }
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 3 ) == 0 )
+        {
+            check( bit_array.GetBit( i ) == 1 );
+        }
+        else
+        {
+            check( bit_array.GetBit( i ) == 0 );
+        }
+    }
+
+    // now clear every third bit to zero and verify all bits are zero
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 3 ) == 0 )
+            bit_array.ClearBit( i );
+    }
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        check( bit_array.GetBit(i) == 0 );
+    }
+
+    // now set some more bits
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 10 ) == 0 )
+            bit_array.SetBit( i );
+    }
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 10 ) == 0 )
+        {
+            check( bit_array.GetBit( i ) == 1 );
+        }
+        else
+        {
+            check( bit_array.GetBit( i ) == 0 );
+        }
+    }
+
+    // clear and verify all bits are zero
+
+    bit_array.Clear();
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        check( bit_array.GetBit(i) == 0 );
+    }
+}
+
+struct TestEntry
+{
+    TestEntry() { sequence = 0xFFFF; }
+    TestEntry( uint16_t s ) { sequence = s; }
+    uint16_t sequence;
+};
+
+void test_sliding_window()
+{
+    printf( "test_sliding_window\n" );
+
+    const int Size = 256;
+
+    SlidingWindow<TestEntry> sliding_window( GetDefaultAllocator(), Size );
+
+    // verify initial conditions
+
+    check( sliding_window.GetSize() == Size );
+    check( sliding_window.GetNumEntries() == 0 );
+    check( sliding_window.GetAck() == 0xFFFF );
+    check( sliding_window.GetSequence() == 0 );
+    check( sliding_window.IsEmpty() );
+    check( !sliding_window.IsFull() );
+    check( !sliding_window.IsValid( 0xFFFF ) );
+    check( !sliding_window.IsValid( 0 ) );
+    check( !sliding_window.IsValid( 1 ) );
+
+    {
+        TestEntry array[Size];
+        int array_length;
+        sliding_window.GetArray( array, array_length );
+        check( array_length == 0 );
+    }
+
+    // verify insert one entry
+
+    sliding_window.Insert( TestEntry(0) );        
+
+    check( sliding_window.GetSize() == Size );
+    check( sliding_window.GetNumEntries() == 1 );
+    check( sliding_window.GetAck() == 0xFFFF );
+    check( sliding_window.GetSequence() == 1 );
+    check( sliding_window.GetBegin() == 0 );
+    check( sliding_window.GetEnd() == 1 );
+    check( !sliding_window.IsEmpty() );
+    check( !sliding_window.IsFull() );
+    check( !sliding_window.IsValid( 0xFFFF ) );
+    check( sliding_window.IsValid( 0 ) );
+    check( !sliding_window.IsValid( 1 ) );
+
+    {
+        TestEntry array[Size];
+        int array_length;
+        sliding_window.GetArray( array, array_length );
+        check( array[0].sequence == 0 );
+        check( array_length == 1 );
+    }
+
+    // ack that one entry and make sure everything is correct
+
+    sliding_window.Ack( 0 );
+
+    check( sliding_window.GetSize() == Size );
+    check( sliding_window.GetNumEntries() == 0 );
+    check( sliding_window.GetAck() == 0 );
+    check( sliding_window.GetSequence() == 1 );
+    check( sliding_window.IsEmpty() );
+    check( !sliding_window.IsFull() );
+    check( !sliding_window.IsValid( 0xFFFF ) );
+    check( !sliding_window.IsValid( 0 ) );
+    check( !sliding_window.IsValid( 1 ) );
+    check( !sliding_window.IsValid( 2 ) );
+
+    {
+        TestEntry array[Size];
+        int array_length;
+        sliding_window.GetArray( array, array_length );
+        check( array_length == 0 );
+    }
+
+    // add 200 more entries and verify everything is correct
+
+    for ( int i = 0; i < 200; ++i )
+        sliding_window.Insert( TestEntry(i+1) );        
+
+    check( sliding_window.GetSize() == Size );
+    check( sliding_window.GetNumEntries() == 200 );
+    check( sliding_window.GetAck() == 0 );
+    check( sliding_window.GetSequence() == 1+200 );
+    check( sliding_window.GetBegin() == 1 );
+    check( sliding_window.GetEnd() == 201 );
+    check( !sliding_window.IsEmpty() );
+    check( !sliding_window.IsFull() );
+
+    {
+        TestEntry array[Size];
+        int array_length;
+        sliding_window.GetArray( array, array_length );
+        check( array_length == 200 );
+        for ( int i = 0; i < 200; ++i )
+            check( array[i].sequence == i + 1 );
+    }
+
+    // ack 200 entries in a row and check at each iteration that everything is correct
+
+    for ( int i = 0; i < 200; ++i )
+    {
+        sliding_window.Ack( i + 1 );
+
+        check( sliding_window.GetSize() == Size );
+        check( sliding_window.GetNumEntries() == 200 - (i+1) );
+        check( sliding_window.GetAck() == i+1 );
+        check( sliding_window.GetSequence() == 1+200 );
+        check( sliding_window.GetBegin() == i+2 );
+        check( sliding_window.GetEnd() == 201 );
+        check( sliding_window.IsEmpty() == ( i == 199 ) );
+        check( !sliding_window.IsFull() );
+
+        {
+            TestEntry array[Size];
+            int array_length;
+            sliding_window.GetArray( array, array_length );
+            check( array_length == 200 - (i+1) );
+            for ( int j = 0; j < array_length; ++j )
+                check( array[j].sequence == 2 + i + j );
+        }
+    }
+
+    // add 100 entries across the sliding window array wrap and check that everything is OK
+
+    for ( int i = 0; i < 100; ++i )
+        sliding_window.Insert( TestEntry(200+i+1) );        
+
+    check( sliding_window.GetSize() == Size );
+    check( sliding_window.GetNumEntries() == 100 );
+    check( sliding_window.GetAck() == 200 );
+    check( sliding_window.GetSequence() == 1+200+100 );
+    check( sliding_window.GetBegin() == 201 );
+    check( sliding_window.GetEnd() == 301 );
+    check( !sliding_window.IsEmpty() );
+    check( !sliding_window.IsFull() );
+
+    {
+        TestEntry array[Size];
+        int array_length;
+        sliding_window.GetArray( array, array_length );
+        check( array_length == 100 );
+        for ( int i = 0; i < 100; ++i )
+            check( array[i].sequence == i + 1 + 200 );
+    }
+
+    // now ack everything and verify it's empty again
+
+    sliding_window.Ack( 300 );
+
+    check( sliding_window.GetSize() == Size );
+    check( sliding_window.GetNumEntries() == 0 );
+    check( sliding_window.GetAck() == 300 );
+    check( sliding_window.GetSequence() == 301 );
+    check( sliding_window.IsEmpty() );
+    check( !sliding_window.IsFull() );
+
+    {
+        TestEntry array[Size];
+        int array_length;
+        sliding_window.GetArray( array, array_length );
+        check( array_length == 0 );
+    }
+
+    // now insert size - 1 entries and verify it's full at the end
+
+    for ( int i = 0; i < Size - 1; ++i )
+        sliding_window.Insert( TestEntry(i) );
+
+    check( sliding_window.GetSize() == Size );
+    check( sliding_window.GetNumEntries() == Size - 1 );
+    check( sliding_window.GetAck() == 300 );
+    check( sliding_window.GetSequence() == 301 + Size - 1 );
+    check( !sliding_window.IsEmpty() );
+    check( sliding_window.IsFull() );
+}
+
+struct TestPacketData
+{
+    TestPacketData()
+        : sequence(0xFFFF) {}
+
+    TestPacketData( uint16_t _sequence )
+        : sequence( _sequence ) {}
+
+    uint32_t sequence : 16;                 // packet sequence #
+};
+
+void test_sequence_buffer()
+{
+    printf( "test_sequence_buffer\n" );
+
+    const int Size = 256;
+
+    SequenceBuffer<TestPacketData> sequence_buffer( GetDefaultAllocator(), Size );
+
+    for ( int i = 0; i < Size; ++i )
+        check( sequence_buffer.Find(i) == nullptr );
+
+    for ( int i = 0; i <= Size*4; ++i )
+    {
+        TestPacketData * entry = sequence_buffer.Insert( i );
+        entry->sequence = i;
+        check( sequence_buffer.GetSequence() == i + 1 );
+    }
+
+    for ( int i = 0; i <= Size; ++i )
+    {
+        // note: outside bounds!
+        TestPacketData * entry = sequence_buffer.Insert( i );
+        check( !entry );
+    }    
+
+    int index = Size * 4;
+    for ( int i = 0; i < Size; ++i )
+    {
+        TestPacketData * entry = sequence_buffer.Find( index );
+        check( entry );
+        check( entry->sequence == uint32_t( index ) );
+        index--;
+    }
+
+    sequence_buffer.Reset();
+
+    check( sequence_buffer.GetSequence() == 0 );
+
+    for ( int i = 0; i < Size; ++i )
+        check( sequence_buffer.Find(i) == nullptr );
+}
+
+void test_generate_ack_bits()
+{
+    printf( "test_generate_ack_bits\n" );
+
+    const int Size = 256;
+
+    SequenceBuffer<TestPacketData> received_packets( GetDefaultAllocator(), Size );
+
+    uint16_t ack = 0xFFFF;
+    uint32_t ack_bits = 0xFFFF;
+
+    GenerateAckBits( received_packets, ack, ack_bits );
+    check( ack == 0xFFFF );
+    check( ack_bits == 0 );
+
+    for ( int i = 0; i <= Size; ++i )
+        received_packets.Insert( i );
+
+    GenerateAckBits( received_packets, ack, ack_bits );
+    check( ack == Size );
+    check( ack_bits == 0xFFFFFFFF );
+
+    received_packets.Reset();
+    uint16_t input_acks[] = { 1, 5, 9, 11 };
+    int input_num_acks = sizeof( input_acks ) / sizeof( uint16_t );
+    for ( int i = 0; i < input_num_acks; ++i )
+        received_packets.Insert( input_acks[i] );
+
+    GenerateAckBits( received_packets, ack, ack_bits );
+
+    check( ack == 11 );
+    check( ack_bits == ( 1 | (1<<(11-9)) | (1<<(11-5)) | (1<<(11-1)) ) );
+}
+
 int main()
 {
     srand( time( NULL ) );
@@ -3258,6 +3607,10 @@ int main()
         test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
         test_matcher();
+        test_bit_array();
+        test_sliding_window();
+        test_sequence_buffer();
+        test_generate_ack_bits();
 
 #if SOAK_TEST
         if ( quit || iter == 100 ) 

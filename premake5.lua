@@ -257,7 +257,7 @@ if not os.is "windows" then
             os.execute( "rm -rf *.zip *.tar.gz *.7z" );
             os.execute( "rm -rf docker/libyojimbo" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )
-            os.execute( "7z a -y -mx=9 -p\"information wants to be free\" libyojimbo-" .. libyojimbo_version .. ".7z " .. files_to_zip )
+            os.execute( "7z a -y -mx=9 -p\"panther moderns\" libyojimbo-" .. libyojimbo_version .. ".7z " .. files_to_zip )
             os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
             os.execute( "tar -zcvf libyojimbo-" .. libyojimbo_version .. ".tar.gz libyojimbo-" .. libyojimbo_version );
             os.execute( "rm -rf libyojimbo-" .. libyojimbo_version );
