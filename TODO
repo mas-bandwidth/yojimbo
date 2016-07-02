@@ -1,2 +1,7 @@
 TODO
 
+So now need to extract out the core ack protocol into a system.
+
+OK so the code to bring across is the "Connection" class. But I want to strip out the channel stuff from that, because I want to do things differently this time. I think.
+
+I think I want to split out the ack system from "Connection" as "AckSystem". This will make it more reusable.
