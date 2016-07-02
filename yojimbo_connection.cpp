@@ -76,8 +76,10 @@ namespace yojimbo
         if ( m_error != CONNECTION_ERROR_NONE )
             return NULL;
 
-        // todo
-        ConnectionPacket * packet = NULL; // (ConnectionPacket*) m_packetFactory->Create( CONNECTION_PACKET );
+        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->CreatePacket( CONNECTION_PACKET );
+
+        if ( !packet )
+            return NULL;
 
         packet->sequence = m_sentPackets->GetSequence();
 
@@ -99,8 +101,6 @@ namespace yojimbo
 
         assert( packet );
         assert( packet->GetType() == CONNECTION_PACKET );
-
-//            printf( "read packet %d\n", (int) packet->sequence );
 
         ProcessAcks( packet->ack, packet->ack_bits );
 

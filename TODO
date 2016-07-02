@@ -1,15 +1,10 @@
 TODO
 
-So now need to extract out the core ack protocol into a system.
+Next steps? Are there some existing tests for the base connection that I could bring across?
 
-OK so the code to bring across is the "Connection" class. But I want to strip out the channel stuff from that, because I want to do things differently this time. I think.
+It would be good to have a basic set of tests for acks etc.
 
-I think I want to split out the ack system from "Connection" as "AckSystem". This will make it more reusable.
+Yep. Brought across a basic connection test. Passes.
 
-Nah, it's just so simple. There is nothing to split out!
-
-Cleaned up the connection and it seems to be working fine.
-
-Now to clean up the connection config. Remove the allocator and packet factory from there.
-
+There is another connection ack test, but this requires some callbacks in order to work. Should be reasonably easy to add.
 
