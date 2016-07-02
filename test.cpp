@@ -3561,6 +3561,108 @@ void test_generate_ack_bits()
     check( ack_bits == ( 1 | (1<<(11-9)) | (1<<(11-5)) | (1<<(11-1)) ) );
 }
 
+void test_connection()
+{
+    printf( "test_connection\n" );
+
+    TestPacketFactory packetFactory( GetDefaultAllocator() );
+
+    Connection connection( GetDefaultAllocator(), &packetFactory );
+
+    const int NumAcks = 100;
+
+    for ( int i = 0; i < NumAcks * 2; ++i )
+    {
+        ConnectionPacket * packet = connection.WritePacket();
+
+        check( packet );
+
+        check( connection.ReadPacket( packet ) );
+
+        packetFactory.DestroyPacket( packet );
+        packet = nullptr;
+
+        if ( connection.GetCounter( CONNECTION_COUNTER_PACKETS_ACKED ) >= NumAcks )
+            break;
+    }
+
+    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_ACKED ) == NumAcks );
+    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_WRITTEN ) == NumAcks + 1 );
+    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_READ ) == NumAcks + 1 );
+    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_DISCARDED ) == 0 );
+}
+
+#if 0
+
+void test_acks()
+{
+    printf( "test_acks\n" );
+
+    const int NumIterations = 10 * 1024;
+
+    int receivedPackets[NumIterations];
+    int ackedPackets[NumIterations];
+
+    memset( receivedPackets, 0, sizeof( receivedPackets ) );
+    memset( ackedPackets, 0, sizeof( ackedPackets ) );
+
+    AckChannelStructure channelStructure( ackedPackets );
+
+    TestPacketFactory packetFactory( core::memory::default_allocator() );
+
+    protocol::ConnectionConfig connectionConfig;
+    connectionConfig.packetFactory = &packetFactory;
+    connectionConfig.channelStructure = &channelStructure;
+
+    protocol::Connection connection( connectionConfig );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        protocol::ConnectionPacket * packet = connection.WritePacket();
+
+        CORE_CHECK( packet );
+
+        if ( rand() % 100 == 0 )
+        {
+            connection.ReadPacket( packet );
+
+            if ( packet )
+            {
+                uint16_t sequence = packet->sequence;
+
+    //            printf( "received %d\n", (int)sequence );
+
+                receivedPackets[sequence] = true;
+            }
+        }
+
+        packetFactory.Destroy( packet );
+        packet = nullptr;
+    }
+
+    int numAckedPackets = 0;
+    int numReceivedPackets = 0;
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        if ( ackedPackets[i] )
+            numAckedPackets++;
+
+        if ( receivedPackets[i] )
+            numReceivedPackets++;
+
+        // an acked packet *must* have been received
+        if ( ackedPackets[i] && !receivedPackets[i] )
+            CORE_CHECK( false );
+    }
+
+    CORE_CHECK( numAckedPackets > 0 );
+    CORE_CHECK( numReceivedPackets >= numAckedPackets );
+
+    //    printf( "%d packets received, %d packets acked\n", numReceivedPackets, numAckedPackets );
+}
+
+#endif
+
 int main()
 {
     srand( time( NULL ) );
@@ -3611,6 +3713,7 @@ int main()
         test_sliding_window();
         test_sequence_buffer();
         test_generate_ack_bits();
+        test_connection();
 
 #if SOAK_TEST
         if ( quit || iter == 100 ) 

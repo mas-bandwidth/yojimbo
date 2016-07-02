@@ -124,7 +124,7 @@ namespace yojimbo
         ConnectionConfig()
         {
             packetType = CONNECTION_PACKET;
-            maxPacketSize = 1024;
+            maxPacketSize = 4 * 1024;
             slidingWindowSize = 256;
         }
     };
