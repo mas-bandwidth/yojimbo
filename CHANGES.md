@@ -1,4 +1,25 @@
 
+Saturday July 2nd, 2016
+=======================
+
+Next steps, start designing reliability layer.
+
+I still want to use the reliability system I have used in the past, with the ack bits, maybe widened to 64bits this time.
+
+When implemeting this reliability system, make sure it is created out of components that can be reused separately.
+
+Ideally, it should be possible to use the reliability system on its own, or to take the reliability + connection system
+and use that without necessarily needing the rest of the library.
+
+Start by bringing across useful code from my previous protocols.
+
+Sequence buffer, sliding window, bit array etc. Done.
+
+Now bring across existing tests for these classes.
+
+All tests pass. Great stuff.
+
+
 Thursday June 30th, 2016
 ========================
 
