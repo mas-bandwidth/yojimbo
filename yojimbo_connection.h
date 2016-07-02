@@ -31,41 +31,19 @@
 
 namespace yojimbo
 {
-    const int CONNECTION_PACKET = 0;        // todo
+    const int CONNECTION_PACKET = 0;
 
     struct ConnectionPacket : public Packet
     {
-        uint16_t clientId;
-        uint16_t serverId;
         uint16_t sequence;
         uint16_t ack;
         uint32_t ack_bits;
-//        ChannelData * channelData[MaxChannels];
 
         ConnectionPacket() : Packet( CONNECTION_PACKET )
         {
-            clientId = 0;
-            serverId = 0;
             sequence = 0;
             ack = 0;
             ack_bits = 0;
-//            memset( channelData, 0, sizeof( ChannelData* ) * MaxChannels );
-        }
-
-    private:
-
-        ~ConnectionPacket()
-        {
-            /*
-            for ( int i = 0; i < MaxChannels; ++i )
-            {
-                if ( channelData[i] )
-                {
-                    CORE_DELETE( core::memory::scratch_allocator(), ChannelData, channelData[i] );
-                    channelData[i] = nullptr;
-                }
-            }
-            */
         }
 
     public:
@@ -83,32 +61,6 @@ namespace yojimbo
             else
                 ack_bits = 0xFFFFFFFF;
 
-            serialize_align( stream );
-
-            /*
-            if ( Stream::IsWriting )
-            {
-                for ( int i = 0; i < numChannels; ++i )
-                {
-                    bool has_data = channelData[i] != nullptr;
-                    serialize_bool( stream, has_data );
-                }
-            }
-            else                
-            {
-                for ( int i = 0; i < numChannels; ++i )
-                {
-                    bool has_data;
-                    serialize_bool( stream, has_data );
-                    if ( has_data )
-                    {
-                        channelData[i] = channelStructure->CreateChannelData( i );
-                        CORE_ASSERT( channelData[i] );
-                    }
-                }
-            }
-            */
-
             serialize_bits( stream, sequence, 16 );
 
             int ack_delta = 0;
@@ -122,20 +74,23 @@ namespace yojimbo
                     ack_delta = (int)sequence + 65536 - ack;
 
                 assert( ack_delta > 0 );
+                assert( sequence - ack_delta == ack );
                 
-                ack_in_range = ack_delta <= 128;
+                ack_in_range = ack_delta <= 64;
             }
 
             serialize_bool( stream, ack_in_range );
     
             if ( ack_in_range )
             {
-                serialize_int( stream, ack_delta, 1, 128 );
+                serialize_int( stream, ack_delta, 1, 64 );
                 if ( Stream::IsReading )
                     ack = sequence - ack_delta;
             }
             else
                 serialize_bits( stream, ack, 16 );
+
+            serialize_align( stream );
 
             return true;
         }
@@ -162,23 +117,15 @@ namespace yojimbo
 
     struct ConnectionConfig
     {
-        Allocator * allocator;
         int packetType;
         int maxPacketSize;
         int slidingWindowSize;
-        PacketFactory * packetFactory;
-        //ChannelStructure * channelStructure;
-        const void ** context;
 
         ConnectionConfig()
         {
-            allocator = NULL;
-            packetType = 0; // todo -- protocol::CONNECTION_PACKET;
+            packetType = CONNECTION_PACKET;
             maxPacketSize = 1024;
             slidingWindowSize = 256;
-            packetFactory = NULL;
-            //channelStructure = NULL;
-            context = NULL;
         }
     };
 
@@ -190,63 +137,66 @@ namespace yojimbo
     
     typedef SequenceBuffer<ReceivedPacketData> ReceivedPackets;
 
+    enum ConnectionCounters
+    {
+        CONNECTION_COUNTER_PACKETS_READ,                        // number of packets read
+        CONNECTION_COUNTER_PACKETS_WRITTEN,                     // number of packets written
+        CONNECTION_COUNTER_PACKETS_ACKED,                       // number of packets acked
+        CONNECTION_COUNTER_PACKETS_DISCARDED,                   // number of read packets that we discarded (eg. not acked)
+        CONNECTION_COUNTER_NUM_COUNTERS
+    };
+
+    enum ConnectionError
+    {
+        CONNECTION_ERROR_NONE = 0,
+        CONNECTION_ERROR_SOME_ERROR
+    };
+
     class Connection
     {
-        //ConnectionError m_error;
-
-        const ConnectionConfig m_config;                            // const configuration data
-
-        Allocator * m_allocator;                                    // allocator for allocations matching life cycle of object.
-
-        double m_time;                                              // current connection time
-
-        SentPackets * m_sentPackets;                                // sliding window of recently sent packets
-
-        ReceivedPackets * m_receivedPackets;                        // sliding window of recently received packets
-
-        /*
-        int m_numChannels;                                          // cached number of channels
-
-        Channel * m_channels[MaxChannels];                          // array of channels created according to channel structure
-        */
-
-        //uint64_t m_counters[CONNECTION_COUNTER_NUM_COUNTERS];       // counters for unit testing, stats etc.
-
     public:
 
-        Connection( const ConnectionConfig & config );
+        Connection( Allocator & allocator, PacketFactory * packetFactory, const ConnectionConfig & config = ConnectionConfig() );
 
         ~Connection();
 
-        /*
-        Channel * GetChannel( int index );
-        */
-
         void Reset();
-
-        /*
-        void Update( const core::TimeBase & timeBase );
-        */
-
-        /*
-        ConnectionError GetError() const;
-        */
-
-        int GetChannelError( int channelIndex ) const;
-
-        /*
-        const core::TimeBase & GetTimeBase() const;
-        */
 
         ConnectionPacket * WritePacket();
 
         bool ReadPacket( ConnectionPacket * packet );
 
+        void AdvanceTime( double time );
+
+        double GetTime() const;
+
         uint64_t GetCounter( int index ) const;
+
+        ConnectionError GetError() const;
+
+    protected:
 
         void ProcessAcks( uint16_t ack, uint32_t ack_bits );
 
         void PacketAcked( uint16_t sequence );
+
+    private:
+
+        const ConnectionConfig m_config;                            // const configuration data
+
+        Allocator * m_allocator;                                    // allocator for allocations matching life cycle of object
+
+        PacketFactory * m_packetFactory;                            // packet factory for creating and destroying connection packets
+
+        SentPackets * m_sentPackets;                                // sliding window of recently sent packets
+
+        ReceivedPackets * m_receivedPackets;                        // sliding window of recently received packets
+
+        double m_time;                                              // current connection time
+
+        ConnectionError m_error;                                    // connection error level.
+
+        uint64_t m_counters[CONNECTION_COUNTER_NUM_COUNTERS];       // counters for unit testing, stats etc.
     };
 }
 
