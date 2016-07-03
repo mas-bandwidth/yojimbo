@@ -85,6 +85,8 @@
 
     #define YOJIMBO_DEBUG_PACKET_LEAKS              1
     
+    #define YOJIMBO_DEBUG_MESSAGE_LEAKS             1
+
     #define YOJIMBO_PACKET_MAGIC                    1
 
 #endif // #if DEBUG

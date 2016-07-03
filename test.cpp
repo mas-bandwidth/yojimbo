@@ -313,6 +313,7 @@ enum TestPacketTypes
     TEST_PACKET_A,
     TEST_PACKET_B,
     TEST_PACKET_C,
+    TEST_PACKET_CONNECTION,
     TEST_PACKET_NUM_TYPES
 };
 
@@ -391,6 +392,13 @@ struct TestPacketFactory : public PacketFactory
             case TEST_PACKET_A: return YOJIMBO_NEW( allocator, TestPacketA );
             case TEST_PACKET_B: return YOJIMBO_NEW( allocator, TestPacketB );
             case TEST_PACKET_C: return YOJIMBO_NEW( allocator, TestPacketC );
+
+            case TEST_PACKET_CONNECTION:
+            {
+                Packet * packet = YOJIMBO_NEW( allocator, ConnectionPacket );
+                OverridePacketType( packet, TEST_PACKET_CONNECTION );
+                return packet;
+            }
         }
         return NULL;
     }
@@ -3561,13 +3569,39 @@ void test_generate_ack_bits()
     check( ack_bits == ( 1 | (1<<(11-9)) | (1<<(11-5)) | (1<<(11-1)) ) );
 }
 
+class TestConnection : public Connection
+{
+    int * m_ackedPackets;
+
+public:
+
+    TestConnection( PacketFactory * packetFactory, ConnectionConfig & config ) : Connection( GetDefaultAllocator(), packetFactory, config )
+    {
+        m_ackedPackets = NULL;
+    }
+
+    void SetAckedPackets( int * ackedPackets )
+    {
+        m_ackedPackets = ackedPackets;
+    }
+
+    virtual void OnPacketAcked( uint16_t sequence )
+    {
+        if ( m_ackedPackets )
+            m_ackedPackets[sequence] = true;
+    }
+};
+
 void test_connection()
 {
     printf( "test_connection\n" );
 
     TestPacketFactory packetFactory( GetDefaultAllocator() );
 
-    Connection connection( GetDefaultAllocator(), &packetFactory );
+    ConnectionConfig connectionConfig;
+    connectionConfig.packetType = TEST_PACKET_CONNECTION;
+
+    TestConnection connection( &packetFactory, connectionConfig );
 
     const int NumAcks = 100;
 
@@ -3592,8 +3626,6 @@ void test_connection()
     check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_DISCARDED ) == 0 );
 }
 
-#if 0
-
 void test_acks()
 {
     printf( "test_acks\n" );
@@ -3606,21 +3638,20 @@ void test_acks()
     memset( receivedPackets, 0, sizeof( receivedPackets ) );
     memset( ackedPackets, 0, sizeof( ackedPackets ) );
 
-    AckChannelStructure channelStructure( ackedPackets );
+    TestPacketFactory packetFactory( GetDefaultAllocator() );
 
-    TestPacketFactory packetFactory( core::memory::default_allocator() );
+    ConnectionConfig connectionConfig;
+    connectionConfig.packetType = TEST_PACKET_CONNECTION;
 
-    protocol::ConnectionConfig connectionConfig;
-    connectionConfig.packetFactory = &packetFactory;
-    connectionConfig.channelStructure = &channelStructure;
+    TestConnection connection( &packetFactory, connectionConfig );
 
-    protocol::Connection connection( connectionConfig );
+    connection.SetAckedPackets( ackedPackets );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        protocol::ConnectionPacket * packet = connection.WritePacket();
+        ConnectionPacket * packet = connection.WritePacket();
 
-        CORE_CHECK( packet );
+        check( packet );
 
         if ( rand() % 100 == 0 )
         {
@@ -3636,7 +3667,7 @@ void test_acks()
             }
         }
 
-        packetFactory.Destroy( packet );
+        packetFactory.DestroyPacket( packet );
         packet = nullptr;
     }
 
@@ -3652,16 +3683,14 @@ void test_acks()
 
         // an acked packet *must* have been received
         if ( ackedPackets[i] && !receivedPackets[i] )
-            CORE_CHECK( false );
+            check( false );
     }
 
-    CORE_CHECK( numAckedPackets > 0 );
-    CORE_CHECK( numReceivedPackets >= numAckedPackets );
+    check( numAckedPackets > 0 );
+    check( numReceivedPackets >= numAckedPackets );
 
     //    printf( "%d packets received, %d packets acked\n", numReceivedPackets, numAckedPackets );
 }
-
-#endif
 
 int main()
 {
@@ -3714,6 +3743,7 @@ int main()
         test_sequence_buffer();
         test_generate_ack_bits();
         test_connection();
+        test_acks();
 
 #if SOAK_TEST
         if ( quit || iter == 100 ) 

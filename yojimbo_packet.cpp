@@ -598,6 +598,12 @@ cleanup:
         return m_numPacketTypes;
     }
 
+    void PacketFactory::OverridePacketType( Packet * packet, int type )
+    {
+        if ( packet )
+            packet->SetType( type );
+    }
+
     Allocator & PacketFactory::GetAllocator()
     {
         assert( m_allocator );
