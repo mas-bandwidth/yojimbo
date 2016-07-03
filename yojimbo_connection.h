@@ -32,83 +32,42 @@
 
 namespace yojimbo
 {
-    const int CONNECTION_PACKET = 0;
+    const int MaxMessagesPerPacket = 64; 
+
+    const int CONNECTION_DEFAULT_PACKET_TYPE = 0;
+
+    struct ConnectionContext
+    {
+        MessageFactory * messageFactory;
+    };
 
     struct ConnectionPacket : public Packet
     {
         uint16_t sequence;
         uint16_t ack;
         uint32_t ack_bits;
+        uint32_t numMessages;
+        Message * messages[MaxMessagesPerPacket];
 
-        ConnectionPacket() : Packet( CONNECTION_PACKET )
+        ConnectionPacket() : Packet( CONNECTION_DEFAULT_PACKET_TYPE )
         {
             sequence = 0;
             ack = 0;
             ack_bits = 0;
+            numMessages = 0;
         }
 
-    public:
+        template <typename Stream> bool Serialize( Stream & stream );
 
-        template <typename Stream> bool Serialize( Stream & stream )
-        {
-            bool perfect;
-            if ( Stream::IsWriting )
-                 perfect = ack_bits == 0xFFFFFFFF;
+        bool SerializeInternal( ReadStream & stream );
 
-            serialize_bool( stream, perfect );
+        bool SerializeInternal( WriteStream & stream );
 
-            if ( !perfect )
-                serialize_bits( stream, ack_bits, 32 );
-            else
-                ack_bits = 0xFFFFFFFF;
+        bool SerializeInternal( MeasureStream & stream );
 
-            serialize_bits( stream, sequence, 16 );
+        bool operator ==( const ConnectionPacket & other ) const;
 
-            int ack_delta = 0;
-            bool ack_in_range = false;
-
-            if ( Stream::IsWriting )
-            {
-                if ( ack < sequence )
-                    ack_delta = sequence - ack;
-                else
-                    ack_delta = (int)sequence + 65536 - ack;
-
-                assert( ack_delta > 0 );
-                assert( sequence - ack_delta == ack );
-                
-                ack_in_range = ack_delta <= 64;
-            }
-
-            serialize_bool( stream, ack_in_range );
-    
-            if ( ack_in_range )
-            {
-                serialize_int( stream, ack_delta, 1, 64 );
-                if ( Stream::IsReading )
-                    ack = sequence - ack_delta;
-            }
-            else
-                serialize_bits( stream, ack, 16 );
-
-            serialize_align( stream );
-
-            return true;
-        }
-
-        YOJIMBO_SERIALIZE_FUNCTIONS();
-
-        bool operator ==( const ConnectionPacket & other ) const
-        {
-            return sequence == other.sequence &&
-                        ack == other.ack &&
-                   ack_bits == other.ack_bits;
-        }
-
-        bool operator !=( const ConnectionPacket & other ) const
-        {
-            return !( *this == other );
-        }
+        bool operator !=( const ConnectionPacket & other ) const;
 
     private:
 
@@ -132,8 +91,6 @@ namespace yojimbo
 
         int messageSentPacketsSize;             // sent packets sliding window size (# of packets)
 
-        int maxMessagesPerPacket;               // maximum number of messages included in a connection packet
-
         int maxSerializedMessageSize;           // maximum size of a serialized message (bytes)
 
         /*
@@ -148,7 +105,7 @@ namespace yojimbo
 
         ConnectionConfig()
         {
-            packetType = CONNECTION_PACKET;
+            packetType = CONNECTION_DEFAULT_PACKET_TYPE;
 
             maxPacketSize = 4 * 1024;
             
@@ -161,8 +118,6 @@ namespace yojimbo
             messageReceiveQueueSize = 1024;
 
             messageSentPacketsSize = 256;
-
-            maxMessagesPerPacket = 64;
 
             maxSerializedMessageSize = 64;
         }
