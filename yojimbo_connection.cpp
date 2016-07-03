@@ -439,10 +439,27 @@ namespace yojimbo
         m_sendMessageId++;
     }
 
-    Message * ReceiveMessage()
+    Message * Connection::ReceiveMessage()
     {
-        // todo
-        return NULL;
+        if ( GetError() != CONNECTION_ERROR_NONE )
+            return NULL;
+
+        MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Find( m_receiveMessageId );
+        if ( !entry )
+            return NULL;
+
+        Message * message = entry->message;
+
+        assert( message );
+        assert( message->GetId() == m_receiveMessageId );
+
+        m_messageReceiveQueue->Remove( m_receiveMessageId );
+
+        m_counters[CONNECTION_COUNTER_MESSAGES_RECEIVED]++;
+
+        m_receiveMessageId++;
+
+        return message;
     }
 
     ConnectionPacket * Connection::WritePacket()
@@ -455,15 +472,85 @@ namespace yojimbo
         if ( !packet )
             return NULL;
 
+        // ack system
+
         packet->sequence = m_sentPackets->GetSequence();
 
         GenerateAckBits( *m_receivedPackets, packet->ack, packet->ack_bits );
 
-        ConnectionSentPacketData * entry = m_sentPackets->Insert( packet->sequence );
-        assert( entry );
-        entry->acked = 0;
+        InsertAckPacketEntry( packet->sequence );
 
-        // todo: message system
+        // message system
+
+        // todo: function - if messages to send
+        if ( m_oldestUnackedMessageId != m_sendMessageId )
+        {
+            MessageSendQueueEntry * firstEntry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+
+            assert( firstEntry );
+
+            // todo: function - get most important messages to send
+
+            int numMessageIds = 0;
+
+            uint16_t messageIds[MaxMessagesPerPacket];
+
+            int availableBits = 256 * 8; // todo - m_config.packetBudget * 8;
+            
+            for ( int i = 0; i < m_config.messageSendQueueSize; ++i )
+            {
+                if ( availableBits < 16 * 8 ) // todo - m_config.messageGiveUpBits )
+                    break;
+                
+                const uint16_t messageId = m_oldestUnackedMessageId + i;
+
+                MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
+                
+                if ( !entry )
+                    break;
+
+                if ( entry->blockMessage )
+                    break;
+
+                if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits - entry->measuredBits >= 0 )
+                {
+                    messageIds[numMessageIds++] = messageId;
+                    entry->timeLastSent = m_time;
+                    availableBits -= entry->measuredBits;
+                }
+
+                if ( numMessageIds == MaxMessagesPerPacket )
+                    break;
+            }
+
+            // todo: function - add sent packet entry for messages
+
+            MessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( packet->sequence );
+            
+            assert( sentPacket );
+            
+            sentPacket->acked = 0;
+            sentPacket->blockMessage = 0;
+            sentPacket->timeSent = m_time;
+            const int sentPacketIndex = m_sentPackets->GetIndex( packet->sequence );
+            sentPacket->messageIds = &m_sentPacketMessageIds[sentPacketIndex*MaxMessagesPerPacket];
+            sentPacket->numMessageIds = numMessageIds;
+            for ( int i = 0; i < numMessageIds; ++i )
+                sentPacket->messageIds[i] = messageIds[i];
+
+            packet->numMessages = numMessageIds;
+
+            // actually fill the packet with message data (not a function)
+
+            for ( int i = 0; i < numMessageIds; ++i )
+            {
+                MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
+                assert( entry );
+                assert( entry->message );
+                packet->messages[i] = entry->message;
+                m_messageFactory->AddRef( entry->message );
+            }
+        }
 
         m_counters[CONNECTION_COUNTER_PACKETS_WRITTEN]++;
 
@@ -516,6 +603,18 @@ namespace yojimbo
     ConnectionError Connection::GetError() const
     {
         return m_error;
+    }
+
+    void Connection::InsertAckPacketEntry( uint16_t sequence )
+    {
+        ConnectionSentPacketData * entry = m_sentPackets->Insert( sequence );
+        
+        assert( entry );
+
+        if ( entry )
+        {
+            entry->acked = 0;
+        }
     }
 
     void Connection::ProcessAcks( uint16_t ack, uint32_t ack_bits )

@@ -165,7 +165,7 @@ namespace yojimbo
         ~MessageFactory()
         {
             assert( m_allocator );
-            m_allocator = nullptr;
+            m_allocator = NULL;
 
             #if YOJIMBO_DEBUG_MESSAGE_LEAKS
             if ( allocated_messages.size() )
