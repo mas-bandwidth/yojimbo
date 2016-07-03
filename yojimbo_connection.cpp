@@ -56,29 +56,28 @@ namespace yojimbo
         
         m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
 
-        /*
-        assert( config.maxSmallBlockSize <= MaxSmallBlockSize );
-
-        m_maxBlockFragments = (int) ceil( m_config.maxLargeBlockSize / (float) m_config.blockFragmentSize );
-
-        m_sendLargeBlock.time_fragment_last_sent = CORE_NEW_ARRAY( *m_allocator, double, m_maxBlockFragments );
-        m_sendLargeBlock.acked_fragment = CORE_NEW( *m_allocator, BitArray, *m_allocator, m_maxBlockFragments );
-        m_receiveLargeBlock.received_fragment = CORE_NEW( *m_allocator, BitArray, *m_allocator, m_maxBlockFragments );
-        */
-
         Reset();
     }
 
     Connection::~Connection()
     {
+        Reset();
+
         assert( m_sentPackets );
         assert( m_receivedPackets );
 
         YOJIMBO_DELETE( *m_allocator, ConnectionSentPackets, m_sentPackets );
         YOJIMBO_DELETE( *m_allocator, ConnectionReceivedPackets, m_receivedPackets );
 
-        m_sentPackets = nullptr;
-        m_receivedPackets = nullptr;
+        assert( m_messageSendQueue );
+        assert( m_messageSentPackets );
+        assert( m_messageReceiveQueue );
+        assert( m_sentPacketMessageIds );
+
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, m_messageSendQueue );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, m_messageSentPackets );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, m_messageReceiveQueue );
+        YOJIMBO_DELETE_ARRAY( *m_allocator, m_sentPacketMessageIds, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
     }
 
     void Connection::Reset()
@@ -95,14 +94,67 @@ namespace yojimbo
 
     bool Connection::CanSendMessage() const
     {
-        // todo
-        return true;
+        assert( m_messageSendQueue );
+
+        if ( GetError() != CONNECTION_ERROR_NONE )
+            return true;
+
+        return m_messageSendQueue->IsAvailable( m_sendMessageId );
     }
 
     void Connection::SendMessage( Message * message )
     {
-        (void)message;
-        // todo
+        assert( message );
+        assert( CanSendMessage() );
+
+        if ( GetError() != CONNECTION_ERROR_NONE )
+        {
+            m_messageFactory->Release( message );
+            return;
+        }
+
+        if ( !CanSendMessage() )
+        {
+            m_error = CONNECTION_ERROR_MESSAGE_SEND_QUEUE_FULL;
+            m_messageFactory->Release( message );
+            return;
+        }
+
+        message->SetId( m_sendMessageId );
+
+        MessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
+
+        assert( entry );
+
+        const int blockMessage = message->IsBlockMessage();
+        
+        entry->message = message;
+        entry->blockMessage = blockMessage;
+        entry->measuredBits = 0;
+        entry->timeLastSent = -1.0;
+
+        if ( !blockMessage )
+        {
+            MeasureStream measureStream( m_config.maxSerializedMessageSize * 2 );
+            message->SerializeMeasure( measureStream );
+            if ( measureStream.GetError() )
+            {
+                m_error = CONNECTION_ERROR_MESSAGE_SERIALIZE_MEASURE_FAILED;
+                m_messageFactory->Release( message );
+                return;
+            }
+
+            // todo: how are we going to handle context here? context need to be the same for all connected clients as it is in the network interface right now.                        
+            //measureStream.SetContext( GetContext() );
+
+            entry->measuredBits = measureStream.GetBitsProcessed() + m_messageOverheadBits;
+
+            printf( "message %d estimates at %d bits\n", (int) m_sendMessageId, entry->measuredBits );
+        }
+
+        m_counters[CONNECTION_COUNTER_MESSAGES_SENT]++;
+
+        m_sendMessageId++;
     }
 
     Message * ReceiveMessage()
