@@ -134,6 +134,8 @@ namespace yojimbo
 
         int maxMessagesPerPacket;               // maximum number of messages included in a connection packet
 
+        int maxSerializedMessageSize;           // maximum size of a serialized message (bytes)
+
         /*
         int maxMessageSize;             // maximum message size allowed in iserialized bytes, eg. post bitpacker
         int maxSmallBlockSize;          // maximum small block size allowed. messages above this size are fragmented and reassembled.
@@ -161,6 +163,8 @@ namespace yojimbo
             messageSentPacketsSize = 256;
 
             maxMessagesPerPacket = 64;
+
+            maxSerializedMessageSize = 64;
         }
     };
 
@@ -178,13 +182,15 @@ namespace yojimbo
         CONNECTION_COUNTER_PACKETS_WRITTEN,                     // number of packets written
         CONNECTION_COUNTER_PACKETS_ACKED,                       // number of packets acked
         CONNECTION_COUNTER_PACKETS_DISCARDED,                   // number of read packets that we discarded (eg. not acked)
+        CONNECTION_COUNTER_MESSAGES_SENT,                       // number of messages sent
         CONNECTION_COUNTER_NUM_COUNTERS
     };
 
     enum ConnectionError
     {
         CONNECTION_ERROR_NONE = 0,
-        CONNECTION_ERROR_SOME_ERROR
+        CONNECTION_ERROR_MESSAGE_SEND_QUEUE_FULL,
+        CONNECTION_ERROR_MESSAGE_SERIALIZE_MEASURE_FAILED,
     };
 
     class Connection
@@ -225,7 +231,7 @@ namespace yojimbo
         {
             Message * message;
             double timeLastSent;
-            uint32_t largeBlock : 1;
+            uint32_t blockMessage : 1;
             uint32_t measuredBits : 30;
         };
 
@@ -234,10 +240,10 @@ namespace yojimbo
             double timeSent;
             uint16_t * messageIds;
             uint64_t numMessageIds : 16;                 // number of messages in this packet
-            uint64_t blockId : 16;                       // block id. valid only when sending large block.
-            uint64_t fragmentId : 16;                    // fragment id. valid only when sending large block.
+            uint64_t blockId : 16;                       // block id. valid only when sending a block message
+            uint64_t fragmentId : 16;                    // fragment id. valid only when sending a block message
             uint64_t acked : 1;                          // 1 if this sent packet has been acked
-            uint64_t largeBlock : 1;                     // 1 if this sent packet contains a large block fragment
+            uint64_t blockMessage : 1;                   // 1 if this sent packet contains a block message fragment
         };
 
         struct MessageReceiveQueueEntry
@@ -249,8 +255,8 @@ namespace yojimbo
         {
             MessageSendLargeBlockData()
             {
-                acked_fragment = nullptr;
-                time_fragment_last_sent = nullptr;
+                ackedFragment = nullptr;
+                timeFragmentLastSent = nullptr;
                 Reset();
             }
 
@@ -268,8 +274,8 @@ namespace yojimbo
             int numAckedFragments;                      // number of acked fragments in current block being sent
             int blockSize;                              // send block size in bytes
             uint16_t blockId;                           // the message id for the current large block being sent
-            BitArray * acked_fragment;                  // has fragment n been received?
-            double * time_fragment_last_sent;           // time fragment last sent in seconds.
+            BitArray * ackedFragment;                   // has fragment n been received?
+            double * timeFragmentLastSent;              // time fragment last sent in seconds.
         };
 
         struct MessageReceiveLargeBlockData

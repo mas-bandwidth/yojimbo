@@ -1,9 +1,40 @@
 TODO
 
-Now bring across member variables and config required for the reliable message system. Done.
 
-Brought across public interface for sending and receiving messages.
 
-Brought across initialization of message data structures and some config.
 
-Now need to have a test message factory for test.cpp. Bring it across from existing code...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Plan of attack:
+
+1. Port code to put the message in the send queue
+
+2. Add the necessary data to the connection packet to includes messages in each packet
+
+3. Port code to measure and determine how many messages can be put in the packet, fill the packet, fill structure mapping packet -> messages to ack.
+
+4. Port code to receive messages
+
+5. Test that messages are being sent reliably and in-order (bring across tests)
+
+6. Extend the system to support large blocks
+
+7. Bring across tests for large blocks
+
+8. Bring across soak test for messages and large blocks
+
+9. Integrate with client/server
+
+10. Implement some tests for messages inside client/server

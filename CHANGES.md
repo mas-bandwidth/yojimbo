@@ -18,6 +18,22 @@ c) frankly, it's just not that complicated that it needs to be split up everywhe
 
 If there is anything too complicated that needs to be split up, think about what data structures or helper functions and classes could be created, but keep the core of the logic inside connection I think.
 
+Now bring across member variables and config required for the reliable message system. Done.
+
+Brought across public interface for sending and receiving messages.
+
+Brought across initialization of message data structures and some config.
+
+Now need to have a test message factory for test.cpp. Bring it across from existing code... OK working.
+
+Now I need to free the allocated structures I have created in Connection, because it's reporting memory leaks.
+
+Also, fix up the whole "Reset" and initial setup. I dislike how it seems a bit fragile in the old code. I want it to be less fragile after this cleanup. For example, the way structs are "Reset" means that some logic for freeing the data is elsewhere, which is aware of what should be deleted or freed and some is in the struct itself in the "Reset" function. This is a bit rough, but what is a better option? It's basically because I'm coding this stuff C style, which makes sense because it's pretty low-level.
+
+OK. Memory leak free now.
+
+OK. Code to fill up the send queue in theory is ported. Cut out some of the large block stuff for now, so I can focus on messages first.
+
 
 Saturday July 2nd, 2016
 =======================
