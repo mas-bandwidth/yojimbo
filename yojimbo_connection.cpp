@@ -350,6 +350,28 @@ namespace yojimbo
         m_sentPackets->Reset();
         m_receivedPackets->Reset();
 
+        m_sendMessageId = 0;
+        m_receiveMessageId = 0;
+        m_oldestUnackedMessageId = 0;
+
+        for ( int i = 0; i < m_messageSendQueue->GetSize(); ++i )
+        {
+            MessageSendQueueEntry * entry = m_messageSendQueue->GetAtIndex( i );
+            if ( entry && entry->message )
+                m_messageFactory->Release( entry->message );
+        }
+
+        for ( int i = 0; i < m_messageReceiveQueue->GetSize(); ++i )
+        {
+            MessageReceiveQueueEntry * entry = m_messageReceiveQueue->GetAtIndex( i );
+            if ( entry && entry->message )
+                m_messageFactory->Release( entry->message );
+        }
+
+        m_messageSendQueue->Reset();
+        m_messageSentPackets->Reset();
+        m_messageReceiveQueue->Reset();
+
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
@@ -396,6 +418,8 @@ namespace yojimbo
 
         if ( !blockMessage )
         {
+            // todo: context
+
             MeasureStream measureStream( m_config.maxSerializedMessageSize * 2 );
             message->SerializeInternal( measureStream );
             if ( measureStream.GetError() )
@@ -404,9 +428,6 @@ namespace yojimbo
                 m_messageFactory->Release( message );
                 return;
             }
-
-            // todo: how are we going to handle context here? context need to be the same for all connected clients as it is in the network interface right now.                        
-            //measureStream.SetContext( GetContext() );
 
             entry->measuredBits = measureStream.GetBitsProcessed() + m_messageOverheadBits;
 
@@ -441,6 +462,8 @@ namespace yojimbo
         ConnectionSentPacketData * entry = m_sentPackets->Insert( packet->sequence );
         assert( entry );
         entry->acked = 0;
+
+        // todo: message system
 
         m_counters[CONNECTION_COUNTER_PACKETS_WRITTEN]++;
 
