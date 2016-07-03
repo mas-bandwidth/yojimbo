@@ -49,8 +49,8 @@ namespace yojimbo
             assert( m_entries );
             assert( m_allocator );
             m_allocator->Free( m_entries );
-            m_allocator = nullptr;
-            m_entries = nullptr;
+            m_allocator = NULL;
+            m_entries = NULL;
         }
 
         void Reset()
