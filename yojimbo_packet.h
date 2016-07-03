@@ -67,6 +67,8 @@ namespace yojimbo
 
         friend class PacketFactory;
 
+        void SetType( int type) { m_type = type; }
+
         int m_type;
 
 #if YOJIMBO_PACKET_MAGIC
@@ -102,11 +104,15 @@ namespace yojimbo
 
     protected:
 
+        void OverridePacketType( Packet * packet, int type );
+
+        Allocator & GetAllocator();
+
+    protected:
+
         virtual Packet * CreateInternal( int type ) = 0;
 
         virtual void DestroyInternal( Packet * packet ) = 0;
-
-        Allocator & GetAllocator();
 
     private:
 

@@ -1,5 +1,5 @@
 /*
-     Yojimbo Client/Server Network Library.
+    Yojimbo Client/Server Network Library.
 
     Copyright © 2016, The Network Protocol Company, Inc.
 
@@ -129,13 +129,13 @@ namespace yojimbo
         }
     };
 
-    struct SentPacketData { uint8_t acked; };
+    struct ConnectionSentPacketData { uint8_t acked; };
 
-    struct ReceivedPacketData {};
+    struct ConnectionReceivedPacketData {};
     
-    typedef SequenceBuffer<SentPacketData> SentPackets;
+    typedef SequenceBuffer<ConnectionSentPacketData> ConnectionSentPackets;
     
-    typedef SequenceBuffer<ReceivedPacketData> ReceivedPackets;
+    typedef SequenceBuffer<ConnectionReceivedPacketData> ConnectionReceivedPackets;
 
     enum ConnectionCounters
     {
@@ -176,6 +176,10 @@ namespace yojimbo
 
     protected:
 
+        virtual void OnPacketAcked( uint16_t /*sequence*/ ) {}
+
+    protected:
+
         void ProcessAcks( uint16_t ack, uint32_t ack_bits );
 
         void PacketAcked( uint16_t sequence );
@@ -188,9 +192,9 @@ namespace yojimbo
 
         PacketFactory * m_packetFactory;                            // packet factory for creating and destroying connection packets
 
-        SentPackets * m_sentPackets;                                // sliding window of recently sent packets
+        ConnectionSentPackets * m_sentPackets;                      // sliding window of recently sent packets
 
-        ReceivedPackets * m_receivedPackets;                        // sliding window of recently received packets
+        ConnectionReceivedPackets * m_receivedPackets;              // sliding window of recently received packets
 
         double m_time;                                              // current connection time
 

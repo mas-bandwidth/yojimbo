@@ -1,5 +1,5 @@
 /*
-     Yojimbo Client/Server Network Library.
+    Yojimbo Client/Server Network Library.
 
     Copyright © 2016, The Network Protocol Company, Inc.
 
@@ -40,9 +40,9 @@ namespace yojimbo
 
         m_receivedPackets = NULL;
         
-        m_sentPackets = YOJIMBO_NEW( *m_allocator, SentPackets, *m_allocator, m_config.slidingWindowSize );
+        m_sentPackets = YOJIMBO_NEW( *m_allocator, ConnectionSentPackets, *m_allocator, m_config.slidingWindowSize );
         
-        m_receivedPackets = YOJIMBO_NEW( *m_allocator, ReceivedPackets, *m_allocator, m_config.slidingWindowSize );
+        m_receivedPackets = YOJIMBO_NEW( *m_allocator, ConnectionReceivedPackets, *m_allocator, m_config.slidingWindowSize );
 
         Reset();
     }
@@ -52,8 +52,8 @@ namespace yojimbo
         assert( m_sentPackets );
         assert( m_receivedPackets );
 
-        YOJIMBO_DELETE( *m_allocator, SentPackets, m_sentPackets );
-        YOJIMBO_DELETE( *m_allocator, ReceivedPackets, m_receivedPackets );
+        YOJIMBO_DELETE( *m_allocator, ConnectionSentPackets, m_sentPackets );
+        YOJIMBO_DELETE( *m_allocator, ConnectionReceivedPackets, m_receivedPackets );
 
         m_sentPackets = nullptr;
         m_receivedPackets = nullptr;
@@ -76,7 +76,7 @@ namespace yojimbo
         if ( m_error != CONNECTION_ERROR_NONE )
             return NULL;
 
-        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->CreatePacket( CONNECTION_PACKET );
+        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->CreatePacket( m_config.packetType );
 
         if ( !packet )
             return NULL;
@@ -85,7 +85,7 @@ namespace yojimbo
 
         GenerateAckBits( *m_receivedPackets, packet->ack, packet->ack_bits );
 
-        SentPacketData * entry = m_sentPackets->Insert( packet->sequence );
+        ConnectionSentPacketData * entry = m_sentPackets->Insert( packet->sequence );
         assert( entry );
         entry->acked = 0;
 
@@ -100,7 +100,7 @@ namespace yojimbo
             return false;
 
         assert( packet );
-        assert( packet->GetType() == CONNECTION_PACKET );
+        assert( packet->GetType() == m_config.packetType );
 
         ProcessAcks( packet->ack, packet->ack_bits );
 
@@ -149,7 +149,7 @@ namespace yojimbo
             if ( ack_bits & 1 )
             {                    
                 const uint16_t sequence = ack - i;
-                SentPacketData * packetData = m_sentPackets->Find( sequence );
+                ConnectionSentPacketData * packetData = m_sentPackets->Find( sequence );
                 if ( packetData && !packetData->acked )
                 {
                     PacketAcked( sequence );
@@ -162,9 +162,7 @@ namespace yojimbo
 
     void Connection::PacketAcked( uint16_t sequence )
     {
-        (void)sequence;
-
-        // ...
+        OnPacketAcked( sequence );
 
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
     }
