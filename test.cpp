@@ -293,7 +293,7 @@ void test_stream()
     TestObject writeObject;
     writeObject.Init();
     writeStream.SetContext( &context );
-    writeObject.SerializeWrite( writeStream );
+    writeObject.Serialize( writeStream );
     writeStream.Flush();
 
     const int bytesWritten = writeStream.GetBytesProcessed();
@@ -303,7 +303,7 @@ void test_stream()
     TestObject readObject;
     ReadStream readStream( buffer, bytesWritten );
     readStream.SetContext( &context );
-    readObject.SerializeRead( readStream );
+    readObject.Serialize( readStream );
 
     check( readObject == writeObject );
 }

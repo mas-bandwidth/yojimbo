@@ -26,6 +26,267 @@
 
 namespace yojimbo
 {
+    template <typename Stream, typename T> bool serialize_int_relative( Stream & stream, T previous, T & current )
+    {
+        // todo: this can be much better. right now it is not efficiently skipping low values that the difference is known greater than
+
+        uint32_t difference;
+        if ( Stream::IsWriting )
+        {
+            assert( previous < current );
+            difference = current - previous;
+            assert( difference >= 0 );
+        }
+
+        bool oneBit;
+        if ( Stream::IsWriting )
+            oneBit = difference == 1;
+        serialize_bool( stream, oneBit );
+        if ( oneBit )
+        {
+            if ( Stream::IsReading )
+                current = previous + 1;
+            return true;
+        }
+
+        bool twoBits;
+        if ( Stream::IsWriting )
+            twoBits = difference <= 4;
+        serialize_bool( stream, twoBits );
+        if ( twoBits )
+        {
+            serialize_int( stream, difference, 1, 4 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        bool fourBits;
+        if ( Stream::IsWriting )
+            fourBits = difference <= 16;
+        serialize_bool( stream, fourBits );
+        if ( fourBits )
+        {
+            serialize_int( stream, difference, 1, 16 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        bool eightBits;
+        if ( Stream::IsWriting )
+            eightBits = difference <= 256;
+        serialize_bool( stream, eightBits );
+        if ( eightBits )
+        {
+            serialize_int( stream, difference, 1, 256 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        bool twelveBits;
+        if ( Stream::IsWriting )
+            twelveBits = difference <= 4096;
+        serialize_bool( stream, twelveBits );
+        if ( twelveBits )
+        {
+            serialize_int( stream, difference, 1, 4096 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        bool sixteenBits;
+        if ( Stream::IsWriting ) 
+            sixteenBits = difference <= 65535;
+        serialize_bool( stream, sixteenBits );
+        if ( sixteenBits )
+        {
+            serialize_int( stream, difference, 1, 65536 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        uint32_t value = current;
+        serialize_uint32( stream, value );
+        if ( Stream::IsReading )
+            current = value;
+
+        return true;
+    }
+
+    template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream )
+    {
+        ConnectionContext * context = (ConnectionContext*) stream.GetContext();
+        if ( !context )
+            return false;
+
+        // serialize ack system
+
+        serialize_check( stream, "ack system (begin)" );
+
+        bool perfect;
+        if ( Stream::IsWriting )
+             perfect = ack_bits == 0xFFFFFFFF;
+
+        serialize_bool( stream, perfect );
+
+        if ( !perfect )
+            serialize_bits( stream, ack_bits, 32 );
+        else
+            ack_bits = 0xFFFFFFFF;
+
+        serialize_bits( stream, sequence, 16 );
+
+        // todo: messy. move this off into a separate function: serialize_ack
+
+        int ack_delta = 0;
+        bool ack_in_range = false;
+
+        if ( Stream::IsWriting )
+        {
+            if ( ack < sequence )
+                ack_delta = sequence - ack;
+            else
+                ack_delta = (int)sequence + 65536 - ack;
+
+            assert( ack_delta > 0 );
+            assert( sequence - ack_delta == ack );
+            
+            ack_in_range = ack_delta <= 64;
+        }
+
+        serialize_bool( stream, ack_in_range );
+
+        if ( ack_in_range )
+        {
+            serialize_int( stream, ack_delta, 1, 64 );
+            if ( Stream::IsReading )
+                ack = sequence - ack_delta;
+        }
+        else
+        {
+            serialize_bits( stream, ack, 16 );
+        }
+
+        serialize_align( stream );
+
+        serialize_check( stream, "ack system (end)" );
+
+        // serialize messages
+
+        bool hasMessages = numMessages != 0;
+
+        serialize_bool( stream, hasMessages );
+
+        if ( hasMessages )
+        {
+            serialize_check( stream, "message system (begin)" );
+
+            serialize_int( stream, numMessages, 1, MaxMessagesPerPacket );
+
+            int messageTypes[MaxMessagesPerPacket];
+
+            uint16_t messageIds[MaxMessagesPerPacket];
+
+            if ( Stream::IsWriting )
+            {
+                for ( int i = 0; i < (int) numMessages; ++i )
+                {
+                    assert( messages[i] );
+                    messageTypes[i] = messages[i]->GetType();
+                    messageIds[i] = messages[i]->GetId();
+                }
+            }
+
+            serialize_bits( stream, messageIds[0], 16 );
+
+            for ( int i = 1; i < (int) numMessages; ++i )
+            {
+                // todo: replace this with a nice serialize sequence relative that handles this wrap around
+                if ( Stream::IsWriting )
+                {
+                    uint32_t a = messageIds[i-1];
+                    uint32_t b = messageIds[i] + ( messageIds[i-1] > messageIds[i] ? 65536 : 0 );
+                    serialize_int_relative( stream, a, b );
+                }
+                else
+                {
+                    uint32_t a = messageIds[i-1];
+                    uint32_t b;
+                    serialize_int_relative( stream, a, b );
+                    if ( b >= 65536 )
+                        b -= 65536;
+                    messageIds[i] = uint16_t( b );
+                }
+            }
+
+            for ( int i = 0; i < (int) numMessages; ++i )
+            {
+                const int maxMessageType = context->messageFactory->GetNumTypes() - 1;
+
+                serialize_int( stream, messageTypes[i], 0, maxMessageType );
+
+                if ( Stream::IsReading )
+                {
+                    messages[i] = context->messageFactory->Create( messageTypes[i] );
+
+                    assert( messages[i] );
+                    assert( messages[i]->GetType() == messageTypes[i] );
+
+                    messages[i]->AssignId( messageIds[i] );
+
+                    /*
+                    if ( Stream::IsReading && messageTypes[i] == BlockMessageType )
+                    {
+                        CORE_ASSERT( config.smallBlockAllocator );
+                        BlockMessage * blockMessage = static_cast<BlockMessage*>( messages[i] );
+                        blockMessage->SetAllocator( *config.smallBlockAllocator );
+                    }
+                    */
+                }
+
+                assert( messages[i] );
+
+                if ( !messages[i]->SerializeInternal( stream ) )
+                    return false;
+            }
+
+            serialize_check( stream, "message system (end)" );
+        }
+
+        return true;
+    }
+
+    bool ConnectionPacket::SerializeInternal( ReadStream & stream )
+    {
+        return Serialize( stream );
+    }
+
+    bool ConnectionPacket::SerializeInternal( WriteStream & stream )
+    {
+        return Serialize( stream );
+    }
+
+    bool ConnectionPacket::SerializeInternal( MeasureStream & stream )
+    {
+        return Serialize( stream );
+    }
+
+    bool ConnectionPacket::operator ==( const ConnectionPacket & other ) const
+    {
+        return sequence == other.sequence &&
+                    ack == other.ack &&
+               ack_bits == other.ack_bits;
+    }
+
+    bool ConnectionPacket::operator !=( const ConnectionPacket & other ) const
+    {
+        return !( *this == other );
+    }
+
     Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config ) : m_config( config )
     {
         m_allocator = &allocator;
@@ -54,7 +315,7 @@ namespace yojimbo
 
         m_messageOverheadBits = MessageIdBits + MessageTypeBits;
         
-        m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
+        m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, MaxMessagesPerPacket * m_config.messageSendQueueSize );
 
         Reset();
     }
@@ -77,7 +338,7 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, m_messageSendQueue );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, m_messageSentPackets );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, m_messageReceiveQueue );
-        YOJIMBO_DELETE_ARRAY( *m_allocator, m_sentPacketMessageIds, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
+        YOJIMBO_DELETE_ARRAY( *m_allocator, m_sentPacketMessageIds, MaxMessagesPerPacket * m_config.messageSendQueueSize );
     }
 
     void Connection::Reset()
@@ -120,7 +381,7 @@ namespace yojimbo
             return;
         }
 
-        message->SetId( m_sendMessageId );
+        message->AssignId( m_sendMessageId );
 
         MessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
 
@@ -136,7 +397,7 @@ namespace yojimbo
         if ( !blockMessage )
         {
             MeasureStream measureStream( m_config.maxSerializedMessageSize * 2 );
-            message->SerializeMeasure( measureStream );
+            message->SerializeInternal( measureStream );
             if ( measureStream.GetError() )
             {
                 m_error = CONNECTION_ERROR_MESSAGE_SERIALIZE_MEASURE_FAILED;

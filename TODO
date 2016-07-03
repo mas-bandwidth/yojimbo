@@ -1,9 +1,10 @@
 TODO
 
+Next step now is to extend the connection packet to have the info to serialize a set of messages over the network.
 
+Do I need to setup context for the connection packet to have access to the connection class?
 
-
-
+Simplified by making MaxMessagesPerPacket const int rather than dynamic configure. I don't want allocations within each packet just to create an array of pointers to store messages!
 
 
 
@@ -19,9 +20,9 @@ TODO
 
 Plan of attack:
 
-1. Port code to put the message in the send queue
+1. Port code to put the message in the send queue (done)
 
-2. Add the necessary data to the connection packet to includes messages in each packet
+2. Add the necessary data to the connection packet to includes messages in each packet (current...)
 
 3. Port code to measure and determine how many messages can be put in the packet, fill the packet, fill structure mapping packet -> messages to ack.
 

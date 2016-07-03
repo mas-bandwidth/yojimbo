@@ -63,7 +63,7 @@ namespace yojimbo
 
         if ( header )
         {
-            if ( !header->SerializeWrite( stream ) )
+            if ( !header->SerializeInternal( stream ) )
                 return 0;
         }
 
@@ -76,7 +76,7 @@ namespace yojimbo
             stream.SerializeInteger( packetType, 0, numPacketTypes - 1 );
         }
 
-        if ( !packet->SerializeWrite( stream ) )
+        if ( !packet->SerializeInternal( stream ) )
             return 0;
 
         stream.SerializeCheck( "end of packet" );
@@ -141,7 +141,7 @@ namespace yojimbo
 
         if ( header )
         {
-            if ( !header->SerializeRead( stream ) )
+            if ( !header->SerializeInternal( stream ) )
             {
                 if ( errorCode )
                     *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_HEADER_FAILED;
@@ -183,7 +183,7 @@ namespace yojimbo
             return NULL;
         }
 
-        if ( !packet->SerializeRead( stream ) )
+        if ( !packet->SerializeInternal( stream ) )
         {
             if ( errorCode )
                 *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_PACKET_FAILED;
@@ -267,7 +267,7 @@ cleanup:
 
             stream.SetContext( info.context );
 
-            if ( !aggregatePacketHeader->SerializeWrite( stream ) )
+            if ( !aggregatePacketHeader->SerializeInternal( stream ) )
                 return 0;
 
             stream.SerializeCheck( "aggregate packet header" );
@@ -310,11 +310,11 @@ cleanup:
             {
                 assert( packetHeaders[i] );
 
-                if ( !packetHeaders[i]->SerializeWrite( stream ) )
+                if ( !packetHeaders[i]->SerializeInternal( stream ) )
                     return 0;
             }
 
-            if ( !packet->SerializeWrite( stream ) )
+            if ( !packet->SerializeInternal( stream ) )
                 return 0;
 
             stream.SerializeCheck( "end of packet" );
@@ -416,7 +416,7 @@ cleanup:
 
         if ( aggregatePacketHeader )
         {
-            if ( !aggregatePacketHeader->SerializeRead( stream ) )
+            if ( !aggregatePacketHeader->SerializeInternal( stream ) )
             {
                 if ( errorCode )
                     *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_HEADER_FAILED;
@@ -459,7 +459,7 @@ cleanup:
             {
                 assert( packetHeaders[numPacketsRead] );
 
-                if ( !packetHeaders[numPacketsRead]->SerializeRead( stream ) )
+                if ( !packetHeaders[numPacketsRead]->SerializeInternal( stream ) )
                 {
                     if ( errorCode )
                         *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_HEADER_FAILED;
@@ -476,7 +476,7 @@ cleanup:
                 goto cleanup;
             }
 
-            if ( !packets[numPacketsRead]->SerializeRead( stream ) )
+            if ( !packets[numPacketsRead]->SerializeInternal( stream ) )
             {
                 if ( errorCode )
                     *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_PACKET_FAILED;
