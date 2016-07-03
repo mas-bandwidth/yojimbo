@@ -290,17 +290,17 @@ namespace yojimbo
 
         virtual ~Serializable() {}
 
-        virtual bool SerializeRead( class ReadStream & stream ) = 0;
+        virtual bool SerializeInternal( class ReadStream & stream ) = 0;
 
-        virtual bool SerializeWrite( class WriteStream & stream ) = 0;
+        virtual bool SerializeInternal( class WriteStream & stream ) = 0;
 
-        virtual bool SerializeMeasure( class MeasureStream & stream ) = 0;
+        virtual bool SerializeInternal( class MeasureStream & stream ) = 0;
     };
 
     #define YOJIMBO_SERIALIZE_FUNCTIONS()                                                                       \
-        bool SerializeRead( class yojimbo::ReadStream & stream ) { return Serialize( stream ); };               \
-        bool SerializeWrite( class yojimbo::WriteStream & stream ) { return Serialize( stream ); };             \
-        bool SerializeMeasure( class yojimbo::MeasureStream & stream ) { return Serialize( stream ); };         
+        bool SerializeInternal( class yojimbo::ReadStream & stream ) { return Serialize( stream ); };           \
+        bool SerializeInternal( class yojimbo::WriteStream & stream ) { return Serialize( stream ); };          \
+        bool SerializeInternal( class yojimbo::MeasureStream & stream ) { return Serialize( stream ); };         
 }
 
 #endif // #ifndef YOJIMBO_SERIALIZE_H

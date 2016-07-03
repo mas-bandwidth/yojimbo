@@ -29,8 +29,6 @@
 
 namespace yojimbo
 {
-    class MessageFactory;
-
     const int MessageMagic = 0x12345;
 
     class Message : public Serializable
@@ -39,15 +37,21 @@ namespace yojimbo
 
         Message( int type, int blockMessage = 0 ) : m_magic( MessageMagic ), m_refCount(1), m_id(0), m_type( type ), m_blockMessage( blockMessage ) {}
 
+        void AssignId( uint16_t id ) { assert( m_magic == MessageMagic ); m_id = id; }
+
         int GetId() const { assert( m_magic == MessageMagic ); return m_id; }
 
         int GetType() const { assert( m_magic == MessageMagic ); return m_type; }
 
-        void SetId( uint16_t id ) { assert( m_magic == MessageMagic ); m_id = id; }
-
         int GetRefCount() { assert( m_magic == MessageMagic ); return m_refCount; }
 
         bool IsBlockMessage() const { assert( m_magic == MessageMagic ); return m_blockMessage; }
+
+        virtual bool SerializeInternal( ReadStream & stream ) = 0;
+
+        virtual bool SerializeInternal( WriteStream & stream ) = 0;
+
+        virtual bool SerializeInternal ( MeasureStream & stream ) = 0;
 
     protected:
 
@@ -111,13 +115,7 @@ namespace yojimbo
             }
         }
 
-        template <typename Stream> bool Serialize( Stream & stream )
-        {
-            // note: serialized elsewhere
-            (void)stream;
-            assert( false );
-            return true;
-        }
+        template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return false; }
 
         YOJIMBO_SERIALIZE_FUNCTIONS();
 
