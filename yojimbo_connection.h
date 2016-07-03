@@ -290,6 +290,10 @@ namespace yojimbo
 
         void PacketAcked( uint16_t sequence );
 
+        void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds );
+
+        void AddMessagePacketEntry( const uint16_t * messageIds, int & numMessageIds, uint16_t sequence );
+
     private:
 
         const ConnectionConfig m_config;                                                // const configuration data

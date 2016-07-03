@@ -482,74 +482,22 @@ namespace yojimbo
 
         // message system
 
-        // todo: function - if messages to send
-        if ( m_oldestUnackedMessageId != m_sendMessageId )
+        int numMessageIds;
+        
+        uint16_t messageIds[MaxMessagesPerPacket];
+
+        GetMessagesToSend( messageIds, numMessageIds );
+
+        AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
+
+        packet->numMessages = numMessageIds;
+
+        for ( int i = 0; i < numMessageIds; ++i )
         {
-            MessageSendQueueEntry * firstEntry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
-
-            assert( firstEntry );
-
-            // todo: function - get most important messages to send
-
-            int numMessageIds = 0;
-
-            uint16_t messageIds[MaxMessagesPerPacket];
-
-            int availableBits = 256 * 8; // todo - m_config.packetBudget * 8;
-            
-            for ( int i = 0; i < m_config.messageSendQueueSize; ++i )
-            {
-                if ( availableBits < 16 * 8 ) // todo - m_config.messageGiveUpBits )
-                    break;
-                
-                const uint16_t messageId = m_oldestUnackedMessageId + i;
-
-                MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
-                
-                if ( !entry )
-                    break;
-
-                if ( entry->blockMessage )
-                    break;
-
-                if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits - entry->measuredBits >= 0 )
-                {
-                    messageIds[numMessageIds++] = messageId;
-                    entry->timeLastSent = m_time;
-                    availableBits -= entry->measuredBits;
-                }
-
-                if ( numMessageIds == MaxMessagesPerPacket )
-                    break;
-            }
-
-            // todo: function - add sent packet entry for messages
-
-            MessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( packet->sequence );
-            
-            assert( sentPacket );
-            
-            sentPacket->acked = 0;
-            sentPacket->blockMessage = 0;
-            sentPacket->timeSent = m_time;
-            const int sentPacketIndex = m_sentPackets->GetIndex( packet->sequence );
-            sentPacket->messageIds = &m_sentPacketMessageIds[sentPacketIndex*MaxMessagesPerPacket];
-            sentPacket->numMessageIds = numMessageIds;
-            for ( int i = 0; i < numMessageIds; ++i )
-                sentPacket->messageIds[i] = messageIds[i];
-
-            packet->numMessages = numMessageIds;
-
-            // actually fill the packet with message data (not a function)
-
-            for ( int i = 0; i < numMessageIds; ++i )
-            {
-                MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
-                assert( entry );
-                assert( entry->message );
-                packet->messages[i] = entry->message;
-                m_messageFactory->AddRef( entry->message );
-            }
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
+            assert( entry && entry->message );
+            packet->messages[i] = entry->message;
+            m_messageFactory->AddRef( entry->message );
         }
 
         m_counters[CONNECTION_COUNTER_PACKETS_WRITTEN]++;
@@ -640,5 +588,59 @@ namespace yojimbo
         OnPacketAcked( sequence );
 
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
+    }
+
+    void Connection::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds )
+    {
+        numMessageIds = 0;
+
+        MessageSendQueueEntry * firstEntry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+
+        if ( !firstEntry )
+            return;
+
+        int availableBits = 256 * 8; // todo - m_config.packetBudget * 8;
+        
+        for ( int i = 0; i < m_config.messageSendQueueSize; ++i )
+        {
+            if ( availableBits < 16 * 8 ) // todo - m_config.messageGiveUpBits )
+                break;
+            
+            const uint16_t messageId = m_oldestUnackedMessageId + i;
+
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
+            
+            if ( !entry )
+                break;
+
+            if ( entry->blockMessage )
+                break;
+
+            if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits - entry->measuredBits >= 0 )
+            {
+                messageIds[numMessageIds++] = messageId;
+                entry->timeLastSent = m_time;
+                availableBits -= entry->measuredBits;
+            }
+
+            if ( numMessageIds == MaxMessagesPerPacket )
+                break;
+        }
+    }
+
+    void Connection::AddMessagePacketEntry( const uint16_t * messageIds, int & numMessageIds, uint16_t sequence )
+    {
+        MessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( sequence );
+        
+        assert( sentPacket );
+
+        sentPacket->acked = 0;
+        sentPacket->blockMessage = 0;
+        sentPacket->timeSent = m_time;
+        const int sentPacketIndex = m_sentPackets->GetIndex( sequence );
+        sentPacket->messageIds = &m_sentPacketMessageIds[sentPacketIndex*MaxMessagesPerPacket];
+        sentPacket->numMessageIds = numMessageIds;
+        for ( int i = 0; i < numMessageIds; ++i )
+            sentPacket->messageIds[i] = messageIds[i];
     }
 }
