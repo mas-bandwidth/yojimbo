@@ -31,6 +31,37 @@ Cleaned up the connection and it seems to be working fine.
 
 Now to clean up the connection config. Remove the allocator and packet factory from there.
 
+Next steps? Are there some existing tests for the base connection that I could bring across?
+
+It would be good to have a basic set of tests for acks etc.
+
+Yep. Brought across a basic connection test. Passes.
+
+There is another connection ack test, but this requires some callbacks in order to work. Should be reasonably easy to add.
+
+Need to provide some way for the packet factory to create packets and then override their packet types. Do it within the factory, eg: protected method, "SetPacketType( int type )" called by the factory after creating a connection packet to set it to the correct type.
+
+Yes, added "OverridePacketType" and it should be quick flexible. Will allow the same packet type to masequerade as multiple different packet types if users want it (could see a use case for this...).
+
+Acked packets test passes. Yay. :D
+
+What is the next step?
+
+Seems that it is to get the reliable-ordered messages working.
+
+Dependencies of the reliable message system:
+
+1. Message.h
+2. Block.h
+3. BlockMessage.h
+4. MessageFactory.h
+
+Bring these back, then I can bring across the reliable message system.
+
+Put them in yojimbo_message.h
+
+OK. Punting on block messages for now.
+
 
 Thursday June 30th, 2016
 ========================
