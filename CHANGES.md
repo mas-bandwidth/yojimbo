@@ -1,4 +1,24 @@
 
+Sunday July 3rd, 2016
+=====================
+
+Brought across the block message.
+
+For the moment the block message directly owns the pointers to the data block. This is OK, but it's somewhat annoying that a user has to copy across the block data, block size *and* the allocator if they want to copy that block somewhere else and store it. But I guess in most cases, the block message just gets processed in-place as it comes in.
+
+Internal structs for the reliable message system stuck inside "Connection". Now to bring across logic for the reliable message system.
+
+I'd like to keep it all inside the base connection class because:
+
+a) simplicity of just having everything there
+
+b) ability to reuse the same counters, config struct and so on.
+
+c) frankly, it's just not that complicated that it needs to be split up everywhere
+
+If there is anything too complicated that needs to be split up, think about what data structures or helper functions and classes could be created, but keep the core of the logic inside connection I think.
+
+
 Saturday July 2nd, 2016
 =======================
 

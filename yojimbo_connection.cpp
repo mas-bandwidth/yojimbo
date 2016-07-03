@@ -26,23 +26,45 @@
 
 namespace yojimbo
 {
-    Connection::Connection( Allocator & allocator, PacketFactory * packetFactory, const ConnectionConfig & config ) : m_config( config )
+    Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config ) : m_config( config )
     {
-        assert( packetFactory );
-
         m_allocator = &allocator;
 
-        m_packetFactory = packetFactory;
+        m_packetFactory = &packetFactory;
+
+        m_messageFactory = &messageFactory;
         
         m_error = CONNECTION_ERROR_NONE;
 
-        m_sentPackets = NULL;
-
-        m_receivedPackets = NULL;
-        
         m_sentPackets = YOJIMBO_NEW( *m_allocator, ConnectionSentPackets, *m_allocator, m_config.slidingWindowSize );
         
         m_receivedPackets = YOJIMBO_NEW( *m_allocator, ConnectionReceivedPackets, *m_allocator, m_config.slidingWindowSize );
+
+        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
+        
+        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, *m_allocator, m_config.messageSentPacketsSize );
+        
+        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
+
+        const int maxMessageType = m_messageFactory->GetNumTypes() - 1;
+
+        const int MessageIdBits = 16;
+        
+        const int MessageTypeBits = bits_required( 0, maxMessageType );
+
+        m_messageOverheadBits = MessageIdBits + MessageTypeBits;
+        
+        m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
+
+        /*
+        assert( config.maxSmallBlockSize <= MaxSmallBlockSize );
+
+        m_maxBlockFragments = (int) ceil( m_config.maxLargeBlockSize / (float) m_config.blockFragmentSize );
+
+        m_sendLargeBlock.time_fragment_last_sent = CORE_NEW_ARRAY( *m_allocator, double, m_maxBlockFragments );
+        m_sendLargeBlock.acked_fragment = CORE_NEW( *m_allocator, BitArray, *m_allocator, m_maxBlockFragments );
+        m_receiveLargeBlock.received_fragment = CORE_NEW( *m_allocator, BitArray, *m_allocator, m_maxBlockFragments );
+        */
 
         Reset();
     }
@@ -69,6 +91,24 @@ namespace yojimbo
         m_receivedPackets->Reset();
 
         memset( m_counters, 0, sizeof( m_counters ) );
+    }
+
+    bool Connection::CanSendMessage() const
+    {
+        // todo
+        return true;
+    }
+
+    void Connection::SendMessage( Message * message )
+    {
+        (void)message;
+        // todo
+    }
+
+    Message * ReceiveMessage()
+    {
+        // todo
+        return NULL;
     }
 
     ConnectionPacket * Connection::WritePacket()
