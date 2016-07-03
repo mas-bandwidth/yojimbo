@@ -6,7 +6,9 @@ Do I need to setup context for the connection packet to have access to the conne
 
 Simplified by making MaxMessagesPerPacket const int rather than dynamic configure. I don't want allocations within each packet just to create an array of pointers to store messages!
 
+Bring across the "Reset" function for the message system.
 
+Next step now I think is to port the code in "WritePacket" that fills the connection packet with the n most important messages that fit.
 
 
 
