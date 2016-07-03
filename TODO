@@ -1,17 +1,23 @@
 DONE
-====
 
     Implemented "ReceiveMessage" function and make it safe to call if the current connection is in an error state (return NULL)
-
-
-TODO
-====
 
     Next step now I think is to port the code in "WritePacket" that fills the connection packet with the n most important messages that fit.
 
     Brought this across, but it's really hard to read. Split apart into functions so it's actually readable.
 
+    Done. It's pretty good now.
 
+
+TODO
+
+    Now need to bring across code that takes packed and inserts messages into receive queue.
+
+    This is a bit tricky, given that there is a situation when the recv queue is full that we have to ignore the packet (drop it)
+
+    Need to make this clear in the code what is going on. This code should be readable, not inscrutable.
+
+    On that related note, the serialize function is really gross still for the connection packet. It needs some clean up too.
 
 
 
@@ -23,11 +29,11 @@ Plan of attack:
 
 1. Port code to put the message in the send queue (done)
 
-2. Add the necessary data to the connection packet to includes messages in each packet (current...)
+2. Add the necessary data to the connection packet to includes messages in each packet (done)
 
-3. Port code to measure and determine how many messages can be put in the packet, fill the packet, fill structure mapping packet -> messages to ack.
+3. Port code to measure and determine how many messages can be put in the packet, fill the packet, fill structure mapping packet -> messages to ack. (done)
 
-4. Port code to receive messages
+4. Port code to receive messages (current...)
 
 5. Test that messages are being sent reliably and in-order (bring across tests)
 
