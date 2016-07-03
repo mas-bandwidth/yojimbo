@@ -138,6 +138,7 @@ namespace yojimbo
         CONNECTION_COUNTER_PACKETS_ACKED,                       // number of packets acked
         CONNECTION_COUNTER_PACKETS_DISCARDED,                   // number of read packets that we discarded (eg. not acked)
         CONNECTION_COUNTER_MESSAGES_SENT,                       // number of messages sent
+        CONNECTION_COUNTER_MESSAGES_RECEIVED,                   // number of messages received
         CONNECTION_COUNTER_NUM_COUNTERS
     };
 
@@ -210,8 +211,8 @@ namespace yojimbo
         {
             MessageSendLargeBlockData()
             {
-                ackedFragment = nullptr;
-                timeFragmentLastSent = nullptr;
+                ackedFragment = NULL;
+                timeFragmentLastSent = NULL;
                 Reset();
             }
 
@@ -283,6 +284,8 @@ namespace yojimbo
             int numReceivedFragments;
         };
 
+        void InsertAckPacketEntry( uint16_t sequence );
+
         void ProcessAcks( uint16_t ack, uint32_t ack_bits );
 
         void PacketAcked( uint16_t sequence );
@@ -309,7 +312,7 @@ namespace yojimbo
 
         // message system
 
-        int m_maxBlockFragments;                                                        // maximum number of fragments per-block
+//        int m_maxBlockFragments;                                                        // maximum number of fragments per-block
 
         int m_messageOverheadBits;                                                      // number of bits overhead per-serialized message
 

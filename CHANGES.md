@@ -34,6 +34,14 @@ OK. Memory leak free now.
 
 OK. Code to fill up the send queue in theory is ported. Cut out some of the large block stuff for now, so I can focus on messages first.
 
+Next step now is to extend the connection packet to have the info to serialize a set of messages over the network.
+
+Do I need to setup context for the connection packet to have access to the connection class?
+
+Simplified by making MaxMessagesPerPacket const int rather than dynamic configure. I don't want allocations within each packet just to create an array of pointers to store messages!
+
+Bring across the "Reset" function for the message system.
+
 
 Saturday July 2nd, 2016
 =======================

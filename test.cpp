@@ -3502,7 +3502,7 @@ void test_sequence_buffer()
     SequenceBuffer<TestPacketData> sequence_buffer( GetDefaultAllocator(), Size );
 
     for ( int i = 0; i < Size; ++i )
-        check( sequence_buffer.Find(i) == nullptr );
+        check( sequence_buffer.Find(i) == NULL );
 
     for ( int i = 0; i <= Size*4; ++i )
     {
@@ -3532,7 +3532,7 @@ void test_sequence_buffer()
     check( sequence_buffer.GetSequence() == 0 );
 
     for ( int i = 0; i < Size; ++i )
-        check( sequence_buffer.Find(i) == nullptr );
+        check( sequence_buffer.Find(i) == NULL );
 }
 
 void test_generate_ack_bits()
@@ -3631,7 +3631,7 @@ protected:
             case MESSAGE_TEST:          return YOJIMBO_NEW( allocator, TestMessage );
             case MESSAGE_BLOCK:         return YOJIMBO_NEW( allocator, BlockMessage );
             default:
-                return nullptr;
+                return NULL;
         }
     }
 };
@@ -3683,7 +3683,7 @@ void test_connection()
         check( connection.ReadPacket( packet ) );
 
         packetFactory.DestroyPacket( packet );
-        packet = nullptr;
+        packet = NULL;
 
         if ( connection.GetCounter( CONNECTION_COUNTER_PACKETS_ACKED ) >= NumAcks )
             break;
@@ -3739,7 +3739,7 @@ void test_acks()
         }
 
         packetFactory.DestroyPacket( packet );
-        packet = nullptr;
+        packet = NULL;
     }
 
     int numAckedPackets = 0;
