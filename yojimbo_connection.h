@@ -26,6 +26,7 @@
 #define PROTOCOL_CONNECTION_H
 
 #include "yojimbo_packet.h"
+#include "yojimbo_message.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_sequence_buffer.h"
 
@@ -117,15 +118,49 @@ namespace yojimbo
 
     struct ConnectionConfig
     {
-        int packetType;
-        int maxPacketSize;
-        int slidingWindowSize;
+        int packetType;                         // connect packet type (override)
+        
+        int maxPacketSize;                      // maximum connection packet size in bytes
+
+        int slidingWindowSize;                  // size of ack sliding window (in packets)
+
+        float messageResendRate;                // message max resend rate in seconds, until acked.
+
+        int messageSendQueueSize;               // message send queue size
+
+        int messageReceiveQueueSize;            // receive queue size
+
+        int messageSentPacketsSize;             // sent packets sliding window size (# of packets)
+
+        int maxMessagesPerPacket;               // maximum number of messages included in a connection packet
+
+        /*
+        int maxMessageSize;             // maximum message size allowed in iserialized bytes, eg. post bitpacker
+        int maxSmallBlockSize;          // maximum small block size allowed. messages above this size are fragmented and reassembled.
+        int maxLargeBlockSize;          // maximum large block size. these blocks are split up into fragments.
+        int blockFragmentSize;          // fragment size that large blocks are split up to for transmission.
+        int packetBudget;               // maximum number of bytes this channel may take per-packet. 
+        int giveUpBits;                 // give up trying to add more messages to packet if we have less than this # of bits available.
+        bool align;                     // if true then insert align at key points, eg. before messages etc. good for dictionary based LZ compressors
+        */
 
         ConnectionConfig()
         {
             packetType = CONNECTION_PACKET;
+
             maxPacketSize = 4 * 1024;
+            
             slidingWindowSize = 256;
+
+            messageResendRate = 0.1f;
+
+            messageSendQueueSize = 1024;
+
+            messageReceiveQueueSize = 1024;
+
+            messageSentPacketsSize = 256;
+
+            maxMessagesPerPacket = 64;
         }
     };
 
@@ -156,11 +191,17 @@ namespace yojimbo
     {
     public:
 
-        Connection( Allocator & allocator, PacketFactory * packetFactory, const ConnectionConfig & config = ConnectionConfig() );
+        Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config = ConnectionConfig() );
 
         ~Connection();
 
         void Reset();
+
+        bool CanSendMessage() const;
+
+        void SendMessage( Message * message );
+
+        Message * ReceiveMessage();
 
         ConnectionPacket * WritePacket();
 
@@ -180,27 +221,158 @@ namespace yojimbo
 
     protected:
 
+        struct MessageSendQueueEntry
+        {
+            Message * message;
+            double timeLastSent;
+            uint32_t largeBlock : 1;
+            uint32_t measuredBits : 30;
+        };
+
+        struct MessageSentPacketEntry
+        {
+            double timeSent;
+            uint16_t * messageIds;
+            uint64_t numMessageIds : 16;                 // number of messages in this packet
+            uint64_t blockId : 16;                       // block id. valid only when sending large block.
+            uint64_t fragmentId : 16;                    // fragment id. valid only when sending large block.
+            uint64_t acked : 1;                          // 1 if this sent packet has been acked
+            uint64_t largeBlock : 1;                     // 1 if this sent packet contains a large block fragment
+        };
+
+        struct MessageReceiveQueueEntry
+        {
+            Message * message;
+        };
+
+        struct MessageSendLargeBlockData
+        {
+            MessageSendLargeBlockData()
+            {
+                acked_fragment = nullptr;
+                time_fragment_last_sent = nullptr;
+                Reset();
+            }
+
+            void Reset()
+            {
+                active = false;
+                numFragments = 0;
+                numAckedFragments = 0;
+                blockId = 0;
+                blockSize = 0;
+            }
+
+            bool active;                                // true if we are currently sending a large block
+            int numFragments;                           // number of fragments in the current large block being sent
+            int numAckedFragments;                      // number of acked fragments in current block being sent
+            int blockSize;                              // send block size in bytes
+            uint16_t blockId;                           // the message id for the current large block being sent
+            BitArray * acked_fragment;                  // has fragment n been received?
+            double * time_fragment_last_sent;           // time fragment last sent in seconds.
+        };
+
+        struct MessageReceiveLargeBlockData
+        {
+            MessageReceiveLargeBlockData()
+            {
+                blockData = NULL;
+                receivedFragment = NULL;
+                Reset();
+            }
+
+            void Reset()
+            {
+                // todo: need to add code to free the block data elsewhere
+                if ( blockData )
+                    assert( false );
+
+                active = false;
+                numFragments = 0;
+                numReceivedFragments = 0;
+                blockId = 0;
+                blockSize = 0;
+                blockData = NULL;
+            }
+
+            bool active;                                // true if we are currently receiving a large block
+            int numFragments;                           // number of fragments in this block
+            int numReceivedFragments;                   // number of fragments received.
+            uint16_t blockId;                           // block id being currently received.
+            uint32_t blockSize;                         // block size in bytes.
+            uint8_t * blockData;                        // pointer to block data being received.
+            BitArray * receivedFragment;                // has fragment n been received?
+        };
+
+        struct MessageSendLargeBlockStatus
+        {
+            bool sending;
+            int blockId;
+            int blockSize;
+            int numFragments;
+            int numAckedFragments;
+        };
+
+        struct MessageReceiveLargeBlockStatus
+        {
+            bool receiving;
+            int blockId;
+            int blockSize;
+            int numFragments;
+            int numReceivedFragments;
+        };
+
         void ProcessAcks( uint16_t ack, uint32_t ack_bits );
 
         void PacketAcked( uint16_t sequence );
 
     private:
 
-        const ConnectionConfig m_config;                            // const configuration data
+        const ConnectionConfig m_config;                                                // const configuration data
 
-        Allocator * m_allocator;                                    // allocator for allocations matching life cycle of object
+        Allocator * m_allocator;                                                        // allocator for allocations matching life cycle of object
 
-        PacketFactory * m_packetFactory;                            // packet factory for creating and destroying connection packets
+        PacketFactory * m_packetFactory;                                                // packet factory for creating and destroying connection packets
 
-        ConnectionSentPackets * m_sentPackets;                      // sliding window of recently sent packets
+        MessageFactory * m_messageFactory;                                              // message factory creates and destroys messages
 
-        ConnectionReceivedPackets * m_receivedPackets;              // sliding window of recently received packets
+        double m_time;                                                                  // current connection time
 
-        double m_time;                                              // current connection time
+        ConnectionError m_error;                                                        // connection error level
 
-        ConnectionError m_error;                                    // connection error level.
+        // ack system
 
-        uint64_t m_counters[CONNECTION_COUNTER_NUM_COUNTERS];       // counters for unit testing, stats etc.
+        ConnectionSentPackets * m_sentPackets;                                          // sliding window of recently sent packets
+
+        ConnectionReceivedPackets * m_receivedPackets;                                  // sliding window of recently received packets
+
+        // message system
+
+        int m_maxBlockFragments;                                                        // maximum number of fragments per-block
+
+        int m_messageOverheadBits;                                                      // number of bits overhead per-serialized message
+
+        uint16_t m_sendMessageId;                                                       // id for next message added to send queue
+
+        uint16_t m_receiveMessageId;                                                    // id for next message to be received
+
+        uint16_t m_oldestUnackedMessageId;                                              // id for oldest unacked message in send queue
+
+        SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;                     // message send queue
+
+        SequenceBuffer<MessageSentPacketEntry> * m_messageSentPackets;                  // messages in sent packets (for acks)
+
+        SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               // message receive queue
+
+        MessageSendLargeBlockData m_sendLargeBlock;                                     // data for large block being sent
+
+        MessageReceiveLargeBlockData m_receiveLargeBlock;                               // data for large block being received
+
+        uint16_t * m_sentPacketMessageIds;                                              // array of message ids, n ids per-sent packet
+
+        // counters
+
+        uint64_t m_counters[CONNECTION_COUNTER_NUM_COUNTERS];                           // counters for unit testing, stats etc.
     };
 }
 

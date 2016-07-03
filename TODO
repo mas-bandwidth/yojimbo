@@ -1,3 +1,9 @@
 TODO
 
-Now that 
+Now bring across member variables and config required for the reliable message system. Done.
+
+Brought across public interface for sending and receiving messages.
+
+Brought across initialization of message data structures and some config.
+
+Now need to have a test message factory for test.cpp. Bring it across from existing code...

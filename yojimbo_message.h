@@ -25,6 +25,8 @@
 #ifndef YOJIMBO_MESSAGE_H
 #define YOJIMBO_MESSAGE_H
 
+#include "yojimbo_allocator.h"
+
 namespace yojimbo
 {
     class MessageFactory;
@@ -35,7 +37,7 @@ namespace yojimbo
     {
     public:
 
-        Message( int type ) : m_magic( MessageMagic ), m_refCount(1), m_id(0), m_type( type ), m_blockMessage(1) {}
+        Message( int type, int blockMessage = 0 ) : m_magic( MessageMagic ), m_refCount(1), m_id(0), m_type( type ), m_blockMessage( blockMessage ) {}
 
         int GetId() const { assert( m_magic == MessageMagic ); return m_id; }
 
@@ -54,7 +56,7 @@ namespace yojimbo
         void Release() { assert( m_magic == MessageMagic ); assert( m_refCount > 0 ); m_refCount--; }
 
         ~Message()
-        { 
+        {
             assert( m_magic == MessageMagic );
             assert( m_refCount == 0 );
             m_magic = 0;
@@ -72,6 +74,73 @@ namespace yojimbo
         uint32_t m_id : 16;
         uint32_t m_type : 15;       
         uint32_t m_blockMessage : 1;
+    };
+
+    const int BLOCK_MESSAGE_DEFAULT_TYPE = 0;
+
+    class BlockMessage : public Message
+    {
+    public:
+
+        BlockMessage() : Message( BLOCK_MESSAGE_DEFAULT_TYPE, 1 ), m_allocator(NULL), m_blockSize(0), m_blockData(NULL) {}
+
+        ~BlockMessage()
+        {
+            Disconnect();
+        }
+
+        void Connect( Allocator & allocator, uint8_t * blockData, int blockSize )
+        {
+            assert( blockData );
+            assert( blockSize > 0 );
+            assert( !m_blockData );
+
+            m_allocator = &allocator;
+            m_blockData = blockData;
+            m_blockSize = blockSize;
+        }
+
+        void Disconnect()
+        {
+            if ( m_allocator )
+            {
+                m_allocator->Free( m_blockData );
+                m_blockData = NULL;
+                m_blockSize = 0;
+                m_allocator = NULL;
+            }
+        }
+
+        template <typename Stream> bool Serialize( Stream & stream )
+        {
+            // note: serialized elsewhere
+            (void)stream;
+            assert( false );
+            return true;
+        }
+
+        YOJIMBO_SERIALIZE_FUNCTIONS();
+
+        Allocator * GetAllocator()
+        {
+            return m_allocator;
+        }
+
+        uint8_t * GetBlockData()
+        {
+            return m_blockData;
+        }
+
+        int GetBlockSize() const
+        {
+            return m_blockSize;
+        }
+
+    private:
+
+        Allocator * m_allocator;
+        int m_blockSize;
+        uint8_t * m_blockData;
     };
 
     class MessageFactory
@@ -166,6 +235,12 @@ namespace yojimbo
         int GetNumTypes() const
         {
             return m_numTypes;
+        }
+
+        Allocator & GetAllocator()
+        {
+            assert( m_allocator );
+            return *m_allocator;
         }
 
     protected:

@@ -3569,13 +3569,80 @@ void test_generate_ack_bits()
     check( ack_bits == ( 1 | (1<<(11-9)) | (1<<(11-5)) | (1<<(11-1)) ) );
 }
 
+enum MessageType
+{
+    MESSAGE_TEST,
+    MESSAGE_BLOCK,
+    NUM_MESSAGE_TYPES
+};
+
+inline int GetNumBitsForMessage( uint16_t sequence )
+{
+    static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
+    const int modulus = sizeof( messageBitsArray ) / sizeof( int );
+    const int index = sequence % modulus;
+    return messageBitsArray[index];
+}
+
+struct TestMessage : public Message
+{
+    TestMessage() : Message( MESSAGE_TEST )
+    {
+        sequence = 0;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {        
+        serialize_bits( stream, sequence, 16 );
+
+        int numBits = GetNumBitsForMessage( sequence );
+        int numWords = numBits / 32;
+        uint32_t dummy = 0;
+        for ( int i = 0; i < numWords; ++i )
+            serialize_bits( stream, dummy, 32 );
+        int numRemainderBits = numBits - numWords * 32;
+        if ( numRemainderBits > 0 )
+            serialize_bits( stream, dummy, numRemainderBits );
+
+        serialize_check( stream, "end of test message" );
+
+        return true;
+    }
+
+    YOJIMBO_SERIALIZE_FUNCTIONS();
+
+    uint16_t sequence;
+};
+
+class TestMessageFactory : public MessageFactory
+{
+public:
+
+    TestMessageFactory( Allocator & allocator ) : MessageFactory( allocator, NUM_MESSAGE_TYPES ) {}
+
+protected:
+
+    Message * CreateInternal( int type )
+    {
+        Allocator & allocator = GetAllocator();
+
+        switch ( type )
+        {
+            case MESSAGE_TEST:          return YOJIMBO_NEW( allocator, TestMessage );
+            case MESSAGE_BLOCK:         return YOJIMBO_NEW( allocator, BlockMessage );
+            default:
+                return nullptr;
+        }
+    }
+};
+
 class TestConnection : public Connection
 {
     int * m_ackedPackets;
 
 public:
 
-    TestConnection( PacketFactory * packetFactory, ConnectionConfig & config ) : Connection( GetDefaultAllocator(), packetFactory, config )
+    TestConnection( PacketFactory & packetFactory, MessageFactory & messageFactory, ConnectionConfig & config ) : Connection( GetDefaultAllocator(), packetFactory, messageFactory, config )
     {
         m_ackedPackets = NULL;
     }
@@ -3598,10 +3665,12 @@ void test_connection()
 
     TestPacketFactory packetFactory( GetDefaultAllocator() );
 
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
     ConnectionConfig connectionConfig;
     connectionConfig.packetType = TEST_PACKET_CONNECTION;
 
-    TestConnection connection( &packetFactory, connectionConfig );
+    TestConnection connection( packetFactory, messageFactory, connectionConfig );
 
     const int NumAcks = 100;
 
@@ -3640,10 +3709,12 @@ void test_acks()
 
     TestPacketFactory packetFactory( GetDefaultAllocator() );
 
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
     ConnectionConfig connectionConfig;
     connectionConfig.packetType = TEST_PACKET_CONNECTION;
 
-    TestConnection connection( &packetFactory, connectionConfig );
+    TestConnection connection( packetFactory, messageFactory, connectionConfig );
 
     connection.SetAckedPackets( ackedPackets );
 
