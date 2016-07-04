@@ -347,7 +347,6 @@ namespace yojimbo
 
     template <typename Stream> bool serialize_ack_relative_internal( Stream & stream, uint16_t sequence, uint16_t & ack )
     {
-        /*
         int ack_delta = 0;
         bool ack_in_range = false;
 
@@ -359,7 +358,7 @@ namespace yojimbo
                 ack_delta = (int)sequence + 65536 - ack;
 
             assert( ack_delta > 0 );
-            assert( sequence - ack_delta == ack );
+            assert( uint16_t( sequence - ack_delta ) == ack );
             
             ack_in_range = ack_delta <= 64;
         }
@@ -376,20 +375,15 @@ namespace yojimbo
         {
             serialize_bits( stream, ack, 16 );
         }
-        */
-
-        // todo: keep it simple for now, optimize later
-        (void)sequence;
-        serialize_bits( stream, ack, 16 );
 
         return true;
     }
 
-    #define serialize_ack_relative( stream, string, buffer_size )                           \
-        do                                                                                  \
-        {                                                                                   \
-            if ( !yojimbo::serialize_ack_relative_internal( stream, string, buffer_size ) ) \
-                return false;                                                               \
+    #define serialize_ack_relative( stream, string, buffer_size )                                   \
+        do                                                                                          \
+        {                                                                                           \
+            if ( !yojimbo::serialize_ack_relative_internal( stream, string, buffer_size ) )         \
+                return false;                                                                       \
         } while (0)
 
     template <typename Stream> bool serialize_sequence_relative_internal( Stream & stream, uint16_t messageId1, uint16_t & messageId2 )
