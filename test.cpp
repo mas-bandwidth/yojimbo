@@ -3776,7 +3776,7 @@ void test_connection_messages()
     ConnectionContext context;
     context.messageFactory = &messageFactory;
 
-    const int NumMessagesSent = 32;
+    const int NumMessagesSent = 64;
 
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
@@ -3790,8 +3790,8 @@ void test_connection_messages()
 
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
-    networkSimulator.SetDuplicates( 10 );
-    networkSimulator.SetPacketLoss( 10 );
+    networkSimulator.SetDuplicates( 50 );
+    networkSimulator.SetPacketLoss( 50 );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -3808,7 +3808,7 @@ void test_connection_messages()
     double time = 0.0;
     double deltaTime = 0.1;
 
-    const int NumIterations = 2000;
+    const int NumIterations = 1000;
 
     int numMessagesReceived = 0;
 
@@ -3838,6 +3838,8 @@ void test_connection_messages()
 
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
                 sender.ReadPacket( (ConnectionPacket*) packet );
+
+            packetFactory.DestroyPacket( packet );
         }
 
         while ( true )
@@ -3851,6 +3853,8 @@ void test_connection_messages()
             {
                 receiver.ReadPacket( (ConnectionPacket*) packet );
             }
+
+            packetFactory.DestroyPacket( packet );
         }
 
         while ( true )
@@ -3886,8 +3890,6 @@ void test_connection_messages()
         networkSimulator.AdvanceTime( time );
     }
 
-    printf( "numMessagesReceived = %d, NumMessagesSent = %d\n", numMessagesReceived, NumMessagesSent );
-
     check( numMessagesReceived == NumMessagesSent );
 }
 
@@ -3907,7 +3909,6 @@ int main()
     while ( true )
 #endif // #if SOAK_TEST
     {
-#if 0
         test_base64();
         test_bitpacker();
         test_stream();
@@ -3944,7 +3945,6 @@ int main()
         test_generate_ack_bits();
         test_connection_counters();
         test_connection_acks();
-#endif
         test_connection_messages();
 
 #if SOAK_TEST
