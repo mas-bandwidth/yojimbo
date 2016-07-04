@@ -28,6 +28,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_bitpack.h"
 #include "yojimbo_stream.h"
+#include "yojimbo_address.h"
 
 namespace yojimbo
 {
@@ -192,7 +193,7 @@ namespace yojimbo
     #define serialize_string( stream, string, buffer_size )                                 \
         do                                                                                  \
         {                                                                                   \
-            if ( !yojimbo::serialize_string_internal( stream, string, buffer_size ) )     \
+            if ( !yojimbo::serialize_string_internal( stream, string, buffer_size ) )       \
                 return false;                                                               \
         } while (0)
 
@@ -217,6 +218,132 @@ namespace yojimbo
                 return false;                                                               \
         }                                                                                   \
         while(0)
+
+    template <typename Stream> bool serialize_address_internal( Stream & stream, Address & address )
+    {
+        char buffer[MaxAddressLength];
+
+        if ( Stream::IsWriting )
+        {
+            assert( address.IsValid() );
+            address.ToString( buffer, sizeof( buffer ) );
+        }
+
+        serialize_string( stream, buffer, sizeof( buffer ) );
+
+        if ( Stream::IsReading )
+        {
+            address = Address( buffer );
+            if ( !address.IsValid() )
+                return false;
+        }
+
+        return true;
+    }
+
+    #define serialize_address( stream, value )                                              \
+        do                                                                                  \
+        {                                                                                   \
+            if ( !yojimbo::serialize_address_internal( stream, value ) )                    \
+                return false;                                                               \
+        } while (0)
+
+    template <typename Stream, typename T> bool serialize_int_relative_internal( Stream & stream, T previous, T & current )
+    {
+        uint32_t difference;
+
+        if ( Stream::IsWriting )
+        {
+            assert( previous < current );
+            difference = current - previous;
+            assert( difference >= 0 );
+        }
+
+        bool oneBit;
+        if ( Stream::IsWriting )
+            oneBit = difference == 1;
+        serialize_bool( stream, oneBit );
+        if ( oneBit )
+        {
+            if ( Stream::IsReading )
+                current = previous + 1;
+            return true;
+        }
+
+        bool twoBits;
+        if ( Stream::IsWriting )
+            twoBits = difference <= 4;
+        serialize_bool( stream, twoBits );
+        if ( twoBits )
+        {
+            serialize_int( stream, difference, 2, 6 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        bool fourBits;
+        if ( Stream::IsWriting )
+            fourBits = difference <= 16;
+        serialize_bool( stream, fourBits );
+        if ( fourBits )
+        {
+            serialize_int( stream, difference, 7, 23 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        bool eightBits;
+        if ( Stream::IsWriting )
+            eightBits = difference <= 256;
+        serialize_bool( stream, eightBits );
+        if ( eightBits )
+        {
+            serialize_int( stream, difference, 24, 280 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        bool twelveBits;
+        if ( Stream::IsWriting )
+            twelveBits = difference <= 4096;
+        serialize_bool( stream, twelveBits );
+        if ( twelveBits )
+        {
+            serialize_int( stream, difference, 281, 4377 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        bool sixteenBits;
+        if ( Stream::IsWriting ) 
+            sixteenBits = difference <= 65535;
+        serialize_bool( stream, sixteenBits );
+        if ( sixteenBits )
+        {
+            serialize_int( stream, difference, 4378, 69914 );
+            if ( Stream::IsReading )
+                current = previous + difference;
+            return true;
+        }
+
+        uint32_t value = current;
+        serialize_uint32( stream, value );
+        if ( Stream::IsReading )
+            current = value;
+
+        return true;
+    }
+
+    #define serialize_int_relative( stream, string, buffer_size )                           \
+        do                                                                                  \
+        {                                                                                   \
+            if ( !yojimbo::serialize_int_relative_internal( stream, string, buffer_size ) ) \
+                return false;                                                               \
+        } while (0)
 
     #define read_bits( stream, value, bits )                                                \
     do                                                                                      \
@@ -243,15 +370,17 @@ namespace yojimbo
 
     #define read_bool( stream, value ) read_bits( stream, value, 1 )
 
-    #define read_float     serialize_float
-    #define read_uint32    serialize_uint32
-    #define read_uint64    serialize_uint64
-    #define read_double    serialize_double
-    #define read_bytes     serialize_bytes
-    #define read_string    serialize_string
-    #define read_align     serialize_align
-    #define read_check     serialize_check
-    #define read_object    serialize_object
+    #define read_float              serialize_float
+    #define read_uint32             serialize_uint32
+    #define read_uint64             serialize_uint64
+    #define read_double             serialize_double
+    #define read_bytes              serialize_bytes
+    #define read_string             serialize_string
+    #define read_align              serialize_align
+    #define read_check              serialize_check
+    #define read_object             serialize_object
+    #define read_address            serialize_address
+    #define read_int_relative       serialize_int_relative
 
     #define write_bits( stream, value, bits )                                               \
         do                                                                                  \
@@ -274,16 +403,18 @@ namespace yojimbo
                 return false;                                                               \
         } while (0)
 
-    #define write_float    serialize_float
-    #define write_uint32   serialize_uint32
-    #define write_uint64   serialize_uint64
-    #define write_double   serialize_double
-    #define write_bytes    serialize_bytes
-    #define write_string   serialize_string
-    #define write_align    serialize_align
-    #define write_check    serialize_check
-    #define write_object   serialize_object
-
+    #define write_float             serialize_float
+    #define write_uint32            serialize_uint32
+    #define write_uint64            serialize_uint64
+    #define write_double            serialize_double
+    #define write_bytes             serialize_bytes
+    #define write_string            serialize_string
+    #define write_align             serialize_align
+    #define write_check             serialize_check
+    #define write_object            serialize_object
+    #define write_address           serialize_address
+    #define write_int_relative      serialize_int_relative
+    
     class Serializable
     {  
     public:

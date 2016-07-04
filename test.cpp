@@ -188,7 +188,7 @@ struct TestData
     double double_value;
     uint64_t uint64_value;
     uint8_t bytes[17];
-    char string[64];
+    char string[MaxAddressLength];
 };
 
 struct TestContext
@@ -436,7 +436,7 @@ void test_address_ipv4()
 {
     printf( "test_address_ipv4\n" );
 
-    char buffer[256];
+    char buffer[MaxAddressLength];
 
     {
         Address address( 127, 0, 0, 1 );
@@ -444,7 +444,7 @@ void test_address_ipv4()
         check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 0 );
         check( address.GetAddress4() == 0x100007f );
-        check( strcmp( address.ToString( buffer, 256 ), "127.0.0.1" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "127.0.0.1" ) == 0 );
     }
 
     {
@@ -453,7 +453,7 @@ void test_address_ipv4()
         check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 1000 );
         check( address.GetAddress4() == 0x100007f );
-        check( strcmp( address.ToString( buffer, 256 ), "127.0.0.1:1000" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "127.0.0.1:1000" ) == 0 );
     }
 
     {
@@ -462,7 +462,7 @@ void test_address_ipv4()
         check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 0 );
         check( address.GetAddress4() == 0x100007f );
-        check( strcmp( address.ToString( buffer, 256 ), "127.0.0.1" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "127.0.0.1" ) == 0 );
     }
 
     {
@@ -471,7 +471,7 @@ void test_address_ipv4()
         check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 65535 );
         check( address.GetAddress4() == 0x100007f );
-        check( strcmp( address.ToString( buffer, 256 ), "127.0.0.1:65535" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "127.0.0.1:65535" ) == 0 );
     }
 
     {
@@ -480,7 +480,7 @@ void test_address_ipv4()
         check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 3000 );
         check( address.GetAddress4() == 0xc0a8180a );
-        check( strcmp( address.ToString( buffer, 256 ), "10.24.168.192:3000" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "10.24.168.192:3000" ) == 0 );
     }
 
     {
@@ -489,7 +489,7 @@ void test_address_ipv4()
         check( address.GetType() == ADDRESS_IPV4 );
         check( address.GetPort() == 65535 );
         check( address.GetAddress4() == 0xffffffff );
-        check( strcmp( address.ToString( buffer, 256 ), "255.255.255.255:65535" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "255.255.255.255:65535" ) == 0 );
     }
 }
 
@@ -507,7 +507,7 @@ void test_address_ipv6()
 {
     printf( "test_address_ipv6\n" );
 
-    char buffer[256];
+    char buffer[MaxAddressLength];
 
     // without port numbers
 
@@ -524,7 +524,7 @@ void test_address_ipv6()
         for ( int i = 0; i < 8; ++i )
             check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
-        check( strcmp( address.ToString( buffer, 256 ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
     }
 
     {
@@ -539,7 +539,7 @@ void test_address_ipv6()
         for ( int i = 0; i < 8; ++i )
             check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
-        check( strcmp( address.ToString( buffer, 256 ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
     }
 
     {
@@ -554,7 +554,7 @@ void test_address_ipv6()
         for ( int i = 0; i < 8; ++i )
             check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
-        check( strcmp( address.ToString( buffer, 256 ), "::1" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "::1" ) == 0 );
     }
 
     // same addresses but with port numbers
@@ -572,7 +572,7 @@ void test_address_ipv6()
         for ( int i = 0; i < 8; ++i )
             check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
-        check( strcmp( address.ToString( buffer, 256 ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
 
     {
@@ -587,7 +587,7 @@ void test_address_ipv6()
         for ( int i = 0; i < 8; ++i )
             check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
-        check( strcmp( address.ToString( buffer, 256 ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
 
     {
@@ -602,7 +602,7 @@ void test_address_ipv6()
         for ( int i = 0; i < 8; ++i )
             check( test_htons( address6[i] ) == address.GetAddress6()[i] );
 
-        check( strcmp( address.ToString( buffer, 256 ), "[::1]:65535" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
 
     // parse addresses from strings (no ports)
@@ -612,7 +612,7 @@ void test_address_ipv6()
         check( address.IsValid() );
         check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 0 );
-        check( strcmp( address.ToString( buffer, 256 ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
     }
 
     {
@@ -620,7 +620,7 @@ void test_address_ipv6()
         check( address.IsValid() );
         check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 0 );
-        check( strcmp( address.ToString( buffer, 256 ), "::1" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "::1" ) == 0 );
     }
 
     // parse addresses from strings (with ports)
@@ -630,7 +630,7 @@ void test_address_ipv6()
         check( address.IsValid() );
         check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 65535 );
-        check( strcmp( address.ToString( buffer, 256 ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
 
     {
@@ -638,7 +638,7 @@ void test_address_ipv6()
         check( address.IsValid() );
         check( address.GetType() == ADDRESS_IPV6 );
         check( address.GetPort() == 65535 );
-        check( strcmp( address.ToString( buffer, 256 ), "[::1]:65535" ) == 0 );
+        check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
 }
 
@@ -1073,8 +1073,8 @@ public:
 
         if ( verbose_logging )
         {
-            char addressString[256];
-            GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
+            char addressString[MaxAddressLength];
+            GetClientAddress( clientIndex ).ToString( addressString, MaxAddressLength );
             printf( "client %d connected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
         }
     }
@@ -1083,8 +1083,8 @@ public:
     {
         if ( verbose_logging )
         {
-            char addressString[256];
-            GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
+            char addressString[MaxAddressLength];
+            GetClientAddress( clientIndex ).ToString( addressString, MaxAddressLength );
             printf( "client %d disconnected (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
         }
     }
@@ -1093,8 +1093,8 @@ public:
     {
         if ( verbose_logging )
         {
-            char addressString[256];
-            GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
+            char addressString[MaxAddressLength];
+            GetClientAddress( clientIndex ).ToString( addressString, MaxAddressLength );
             printf( "client %d timed out (client address = %s, client id = %" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
         }
     }
@@ -1116,8 +1116,8 @@ public:
 
         if ( verbose_logging )
         {
-            char addressString[256];
-            to.ToString( addressString, sizeof( addressString ) );
+            char addressString[MaxAddressLength];
+            to.ToString( addressString, MaxAddressLength );
             printf( "server sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
         }
     }
@@ -1139,8 +1139,8 @@ public:
 
         if ( verbose_logging )
         {
-            char addressString[256];
-            from.ToString( addressString, sizeof( addressString ) );
+            char addressString[MaxAddressLength];
+            from.ToString( addressString, MaxAddressLength );
             printf( "server received '%s' packet from %s\n", packetTypeString, addressString );
         }
     }
@@ -1202,8 +1202,8 @@ public:
 
         if ( verbose_logging )
         {
-            char addressString[256];
-            address.ToString( addressString, sizeof( addressString ) );
+            char addressString[MaxAddressLength];
+            address.ToString( addressString, MaxAddressLength );
             printf( "client connecting to %s\n", addressString );
         }
     }
@@ -1249,8 +1249,8 @@ public:
 
         if ( verbose_logging )
         {
-            char addressString[256];
-            to.ToString( addressString, sizeof( addressString ) );
+            char addressString[MaxAddressLength];
+            to.ToString( addressString, MaxAddressLength );
             printf( "client sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
         }
     }
@@ -1272,8 +1272,8 @@ public:
 
         if ( verbose_logging )
         {
-            char addressString[256];
-            from.ToString( addressString, sizeof( addressString ) );
+            char addressString[MaxAddressLength];
+            from.ToString( addressString, MaxAddressLength );
             printf( "client received %s packet from %s\n", packetTypeString, addressString );
         }
     }
@@ -3193,7 +3193,7 @@ void test_matcher()
     // test base64 decrypt from matcher.go
 
     {
-        char serverAddress[64];
+        char serverAddress[MaxAddressLength];
 
         const char serverAddressBase64[] = "MTI3LjAuMC4xOjUwMDAwAA==";
 
