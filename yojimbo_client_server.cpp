@@ -446,6 +446,8 @@ namespace yojimbo
         {
             ConnectionConfig connectionConfig = GetConnectionConfig();
 
+            connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
+
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, connectionConfig );
@@ -527,14 +529,24 @@ namespace yojimbo
             if ( !m_clientConnected[i] )
                 continue;
 
-            if ( m_clientData[i].lastPacketSendTime + ConnectionHeartBeatRate > time )
-                return;
-
-            ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( i );
-
-            if ( packet )
+            if ( m_connection[i] && m_connection[i]->HasDataToSend() )
             {
-                SendPacketToConnectedClient( i, packet );
+                ConnectionPacket * packet = m_connection[i]->WritePacket();
+
+                if ( packet )
+                {
+                    SendPacketToConnectedClient( i, packet );
+                }
+            }
+
+            if ( m_clientData[i].lastPacketSendTime + ConnectionHeartBeatRate <= time )
+            {
+                ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( i );
+
+                if ( packet )
+                {
+                    SendPacketToConnectedClient( i, packet );
+                }
             }
         }
     }
@@ -1114,6 +1126,21 @@ namespace yojimbo
     }
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
+    void Server::ProcessConnectionPacket( ConnectionPacket & packet, const Address & address )
+    {
+        const int clientIndex = FindExistingClientIndex( address );
+        if ( clientIndex == -1 )
+            return;
+
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+
+        if ( m_connection[clientIndex] )
+            m_connection[clientIndex]->ReadPacket( &packet );
+
+        m_clientData[clientIndex].lastPacketReceiveTime = GetTime();
+    }
+
     void Server::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
     {
         OnPacketReceived( packet->GetType(), address, sequence );
@@ -1141,6 +1168,10 @@ namespace yojimbo
                 ProcessInsecureConnect( *(InsecureConnectPacket*)packet, address );
                 return;
 #endif // #if YOJIMBO_INSECURE_CONNECT
+
+            case CLIENT_SERVER_PACKET_CONNECTION:
+                ProcessConnectionPacket( *(ConnectionPacket*)packet, address );
+                return;
 
             default:
                 break;
@@ -1204,6 +1235,8 @@ namespace yojimbo
         if ( messageFactory )
         {
             ConnectionConfig connectionConfig = GetConnectionConfig();
+
+            connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
 
             m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, connectionConfig );
         }
@@ -1386,14 +1419,24 @@ namespace yojimbo
 
             case CLIENT_STATE_CONNECTED:
             {
-                if ( m_lastPacketSendTime + ConnectionHeartBeatRate > time )
-                    return;
-
-                ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
-
-                if ( packet )
+                if ( m_connection && m_connection->HasDataToSend() )
                 {
-                    SendPacketToServer( packet );
+                    ConnectionPacket * packet = m_connection->WritePacket();
+
+                    if ( packet )
+                    {
+                        SendPacketToServer( packet );
+                    }
+                }
+
+                if ( m_lastPacketSendTime + ConnectionHeartBeatRate <= time )
+                {
+                    ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+
+                    if ( packet )
+                    {
+                        SendPacketToServer( packet );
+                    }
                 }
             }
             break;
@@ -1622,6 +1665,20 @@ namespace yojimbo
         Disconnect( CLIENT_STATE_DISCONNECTED, false );
     }
 
+    void Client::ProcessConnectionPacket( ConnectionPacket & packet, const Address & address )
+    {
+        if ( m_clientState != CLIENT_STATE_CONNECTED )
+            return;
+        
+        if ( address != m_serverAddress )
+            return;
+
+        if ( m_connection )
+            m_connection->ReadPacket( &packet );
+
+        m_lastPacketReceiveTime = GetTime();
+    }
+
     void Client::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
     {
         OnPacketReceived( packet->GetType(), address, sequence );
@@ -1642,6 +1699,10 @@ namespace yojimbo
 
             case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:
                 ProcessConnectionDisconnect( *(ConnectionDisconnectPacket*)packet, address );
+                return;
+
+            case CLIENT_SERVER_PACKET_CONNECTION:
+                ProcessConnectionPacket( *(ConnectionPacket*)packet, address );
                 return;
 
             default:

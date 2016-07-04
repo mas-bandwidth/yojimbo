@@ -172,6 +172,8 @@ namespace yojimbo
 
         Message * ReceiveMessage();
 
+        bool HasDataToSend() const;
+
         ConnectionPacket * WritePacket();
 
         bool ReadPacket( ConnectionPacket * packet );
