@@ -4,7 +4,11 @@ TODO
 
 Now port the code that receives messages and puts them in the receive queue. Done.
 
-Next step seems to be to get the context back and working. Seems like the context needs to be owned by the client/server?
+Next step is to get the code for processing acks working, eg. ack messages that are in packet entries that were sent.
+
+OK. Should be working now.
+
+Are there tests I can bring across now?
 
 
 

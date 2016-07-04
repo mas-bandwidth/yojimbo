@@ -3659,9 +3659,9 @@ public:
     }
 };
 
-void test_connection()
+void test_connection_counters()
 {
-    printf( "test_connection\n" );
+    printf( "test_connection_counters\n" );
 
     TestPacketFactory packetFactory( GetDefaultAllocator() );
 
@@ -3695,9 +3695,9 @@ void test_connection()
     check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_DISCARDED ) == 0 );
 }
 
-void test_acks()
+void test_connection_acks()
 {
-    printf( "test_acks\n" );
+    printf( "test_connection_acks\n" );
 
     const int NumIterations = 10 * 1024;
 
@@ -3750,16 +3750,142 @@ void test_acks()
         if ( receivedPackets[i] )
             numReceivedPackets++;
 
-        // an acked packet *must* have been received
         if ( ackedPackets[i] && !receivedPackets[i] )
             check( false );
     }
 
     check( numAckedPackets > 0 );
     check( numReceivedPackets >= numAckedPackets );
-
-    //    printf( "%d packets received, %d packets acked\n", numReceivedPackets, numAckedPackets );
 }
+
+void test_connection_messages()
+{
+    printf( "test_connection_messages\n" );
+
+    // ...
+}
+
+#if 0
+
+void test_connection_messages()
+{
+    printf( "test_reliable_message_channel_messages\n" );
+
+    core::memory::initialize();
+    {
+        TestMessageFactory messageFactory( core::memory::default_allocator() );
+
+        TestChannelStructure channelStructure( messageFactory );
+
+        TestPacketFactory packetFactory( core::memory::default_allocator() );
+
+        const void * context[protocol::MaxContexts];
+        memset( context, 0, sizeof( context ) );
+        context[protocol::CONTEXT_CONNECTION] = &channelStructure;
+
+        {
+            const int MaxPacketSize = 256;
+
+            protocol::ConnectionConfig connectionConfig;
+            connectionConfig.maxPacketSize = MaxPacketSize;
+            connectionConfig.packetFactory = &packetFactory;
+            connectionConfig.channelStructure = &channelStructure;
+
+            protocol::Connection connection( connectionConfig );
+
+            protocol::ReliableMessageChannel * messageChannel = static_cast<protocol::ReliableMessageChannel*>( connection.GetChannel( 0 ) );
+            
+            const int NumMessagesSent = 32;
+
+            for ( int i = 0; i < NumMessagesSent; ++i )
+            {
+                TestMessage * message = (TestMessage*) messageFactory.Create( MESSAGE_TEST );
+                CORE_CHECK( message );
+                message->sequence = i;
+                messageChannel->SendMessage( message );
+            }
+
+            core::TimeBase timeBase;
+            timeBase.deltaTime = 0.01f;
+
+            uint64_t numMessagesReceived = 0;
+
+            network::Address address( "::1" );
+
+            network::SimulatorConfig simulatorConfig;
+            simulatorConfig.packetFactory = &packetFactory;
+            network::Simulator simulator( simulatorConfig );
+            simulator.SetContext( context );
+            simulator.AddState( network::SimulatorState( 1.0f, 1.0f, 25 ) );
+
+            int iteration = 0;
+
+            while ( true )
+            {  
+                protocol::ConnectionPacket * writePacket = connection.WritePacket();
+                CORE_CHECK( writePacket );
+                CORE_CHECK( writePacket->GetType() == PACKET_CONNECTION );
+
+                simulator.SendPacket( address, writePacket );
+                writePacket = nullptr;
+
+                simulator.Update( timeBase );
+
+                protocol::Packet * packet = simulator.ReceivePacket();
+
+                if ( packet )
+                {
+                    CORE_CHECK( packet->GetType() == PACKET_CONNECTION );
+                    connection.ReadPacket( static_cast<protocol::ConnectionPacket*>( packet ) );
+                    packetFactory.Destroy( packet );
+                    packet = nullptr;
+                }
+
+                CORE_CHECK( connection.GetCounter( protocol::CONNECTION_COUNTER_PACKETS_READ ) <= uint64_t( iteration + 1 ) );
+                CORE_CHECK( connection.GetCounter( protocol::CONNECTION_COUNTER_PACKETS_WRITTEN ) == uint64_t( iteration + 1 ) );
+                CORE_CHECK( connection.GetCounter( protocol::CONNECTION_COUNTER_PACKETS_ACKED ) <= uint64_t( iteration + 1 ) );
+
+                while ( true )
+                {
+                    protocol::Message * message = messageChannel->ReceiveMessage();
+
+                    if ( !message )
+                        break;
+
+                    CORE_CHECK( message->GetId() == (int) numMessagesReceived );
+                    CORE_CHECK( message->GetType() == MESSAGE_TEST );
+
+                    TestMessage * testMessage = static_cast<TestMessage*>( message );
+
+                    CORE_CHECK( testMessage->sequence == numMessagesReceived );
+
+                    ++numMessagesReceived;
+
+                    messageFactory.Release( message );
+                }
+
+                if ( numMessagesReceived == NumMessagesSent )
+                    break;
+
+                connection.Update( timeBase );
+
+                CORE_CHECK( messageChannel->GetCounter( protocol::RELIABLE_MESSAGE_CHANNEL_COUNTER_MESSAGES_SENT ) == NumMessagesSent );
+                CORE_CHECK( messageChannel->GetCounter( protocol::RELIABLE_MESSAGE_CHANNEL_COUNTER_MESSAGES_RECEIVED ) == numMessagesReceived );
+                CORE_CHECK( messageChannel->GetCounter( protocol::RELIABLE_MESSAGE_CHANNEL_COUNTER_MESSAGES_EARLY ) == 0 );
+
+                timeBase.time += timeBase.deltaTime;
+
+                if ( messageChannel->GetCounter( protocol::RELIABLE_MESSAGE_CHANNEL_COUNTER_MESSAGES_RECEIVED ) == NumMessagesSent )
+                    break;
+
+                iteration++;
+            }
+        }
+    }
+    core::memory::shutdown();
+}
+
+#endif // #if 0
 
 int main()
 {
@@ -3811,8 +3937,9 @@ int main()
         test_sliding_window();
         test_sequence_buffer();
         test_generate_ack_bits();
-        test_connection();
-        test_acks();
+        test_connection_counters();
+        test_connection_acks();
+        test_connection_messages();
 
 #if SOAK_TEST
         if ( quit || iter == 100 ) 
