@@ -142,9 +142,10 @@ namespace yojimbo
         CONNECTION_COUNTER_PACKETS_ACKED,                       // number of packets acked
         CONNECTION_COUNTER_PACKETS_DISCARDED,                   // number of read packets that we discarded (eg. not acked)
         CONNECTION_COUNTER_MESSAGES_SENT,                       // number of messages sent
-        CONNECTION_COUNTER_MESSAGES_RECEIVED,                   // number of messages received
         CONNECTION_COUNTER_MESSAGES_EARLY,                      // number of messages received early (discarded)
         CONNECTION_COUNTER_MESSAGES_LATE,                       // number of messages received late (ignored)
+        CONNECTION_COUNTER_MESSAGES_REDUNDANT,                  // number of messages received redundantly (ignored)
+        CONNECTION_COUNTER_MESSAGES_RECEIVED,                   // number of messages received
         CONNECTION_COUNTER_NUM_COUNTERS
     };
 

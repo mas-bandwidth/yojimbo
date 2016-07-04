@@ -46,6 +46,22 @@ But, how does the connection packet know how to clean up messages, when it doesn
 
 Should it cache the message factory pointer? It probably has to. Wow. Fixed. I don't really have a choice here though, you need the message factory to clean up messages, and since the connection packet necessarily adds refs to messages, it needs a way to release those messages.
 
+Setup test for receive messages. It's currently failing. No messages are getting through. Need to step through with logs and work out where it's breaking.
+
+Bunch of stuff. Was forgetting to call read/write packets on the interface. Also, needed to make some fixes to make sure the context set gets through to the packet processor.
+
+I think messages are not getting acked. So the same initial 23 messages are being put in the packet over and over.
+
+Why are the acks broken? Printing on ack message shows no messages being acked.
+
+I was just not calling the "ProcessMessageAck" on the ack call.
+
+But now messages are leaking. Lots of them. Must be messages in packets...
+
+I think I am just forgetting to free the packets. The connection doesn't free the packet, it just reads it. Yeah that fixed it.
+
+Test passes now. Reliable message support is in and working. Fantastic!
+
 
 Sunday July 3rd, 2016
 =====================

@@ -2,9 +2,6 @@ DONE
 
 TODO
 
-    Setup test for receive messages. It's currently failing. No messages are getting through. Need to step through with logs and work out where it's breaking.
-
-    Bunch of stuff. Was forgetting to call read/write packets on the interface. Also, needed to make some fixes to make sure the context set gets through to the packet processor.
 
 
 
@@ -21,7 +18,7 @@ Plan of attack:
 
 5. Setup context (done)
 
-6. Test that messages are being sent reliably and in-order (current...)
+6. Test that messages are being sent reliably and in-order over high packet loss (done)
 
 7. Extend the system to support large blocks
 

@@ -198,8 +198,6 @@ namespace yojimbo
 
     Connection::~Connection()
     {
-        printf( "~Connection\n" );
-
         Reset();
 
         assert( m_sentPackets );
@@ -296,8 +294,6 @@ namespace yojimbo
 
         if ( !blockMessage )
         {
-            // todo: context?
-
             MeasureStream measureStream( m_config.maxSerializedMessageSize * 2 );
             message->SerializeInternal( measureStream );
             if ( measureStream.GetError() )
@@ -468,6 +464,8 @@ namespace yojimbo
     {
         OnPacketAcked( sequence );
 
+        ProcessMessageAck( sequence );
+
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
     }
 
@@ -543,19 +541,28 @@ namespace yojimbo
             if ( sequence_less_than( messageId, minMessageId ) )
             {
                 m_counters[CONNECTION_COUNTER_MESSAGES_LATE]++;
+                continue;
             }
-            else if ( sequence_greater_than( messageId, maxMessageId ) )
+
+            if ( sequence_greater_than( messageId, maxMessageId ) )
             {
                 m_counters[CONNECTION_COUNTER_MESSAGES_EARLY]++;
                 earlyMessage = true;
+                continue;
             }
-            else if ( !m_messageReceiveQueue->Find( messageId ) )
+
+            if ( m_messageReceiveQueue->Find( messageId ) )
             {
-                MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
-                entry->message = message;
-                m_messageFactory->AddRef( message );
+                m_counters[CONNECTION_COUNTER_MESSAGES_REDUNDANT]++;
+                continue;
             }
-            
+
+            MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+
+            entry->message = message;
+
+            m_messageFactory->AddRef( message );
+
             m_counters[CONNECTION_COUNTER_MESSAGES_RECEIVED]++;
         }
 
