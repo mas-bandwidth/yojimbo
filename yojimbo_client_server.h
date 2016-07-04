@@ -30,6 +30,7 @@
 #include "yojimbo_allocator.h"
 #include "yojimbo_interface.h"
 #include "yojimbo_encryption.h"
+#include "yojimbo_connection.h"
 #include "yojimbo_packet_processor.h"
 
 namespace yojimbo
@@ -398,7 +399,11 @@ namespace yojimbo
     {
     protected:
 
+        Allocator * m_allocator;                                            // allocator used for creating connections per-client.
+
         NetworkInterface * m_networkInterface;                              // network interface for sending and receiving packets.
+
+        MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional!
 
         uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
 
@@ -426,13 +431,15 @@ namespace yojimbo
         
         ServerClientData m_clientData[MaxClients];                          // heavier weight data per-client, eg. not for fast lookup
 
+        Connection * m_connection[MaxClients];                              // per-client connection. allocated and freed in start/stop according to max clients.
+
         ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
 
         uint64_t m_counters[SERVER_COUNTER_NUM_COUNTERS];
 
     public:
 
-        explicit Server( NetworkInterface & networkInterface );
+        Server( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL );
 
         virtual ~Server();
 
@@ -502,6 +509,10 @@ namespace yojimbo
 
     protected:
 
+        virtual ConnectionConfig GetConnectionConfig() const { return ConnectionConfig(); }
+
+    protected:
+
         void ResetClientState( int clientIndex );
 
         int FindFreeClientIndex() const;
@@ -565,7 +576,7 @@ namespace yojimbo
     {
     public:
 
-        explicit Client( NetworkInterface & networkInterface );
+        explicit Client( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL );
 
         virtual ~Client();
 
@@ -636,6 +647,16 @@ namespace yojimbo
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
 
     protected:
+
+        virtual ConnectionConfig GetConnectionConfig() const { return ConnectionConfig(); }
+
+    protected:
+
+        Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
+
+        MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional.
+
+        Connection * m_connection;                                          // the connection object for exchanging messages with the server. optional.
 
         int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
 

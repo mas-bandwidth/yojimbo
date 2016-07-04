@@ -56,7 +56,7 @@ int ServerMain()
         return 1;
     }
     
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverPublicAddress );
 

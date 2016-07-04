@@ -382,11 +382,17 @@ namespace yojimbo
 
     // =============================================================
 
-    Server::Server( NetworkInterface & networkInterface )
+    Server::Server( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory )
     {
         memset( m_privateKey, 0, KeyBytes );
 
+        m_allocator = &allocator;
+
         m_networkInterface = &networkInterface;
+
+        m_messageFactory = messageFactory;
+
+        memset( m_connection, 0, sizeof( m_connection ) );
 
         m_time = 0.0;
 
@@ -410,6 +416,8 @@ namespace yojimbo
 
     Server::~Server()
     {
+        Stop();
+
         assert( m_networkInterface );
 
         m_networkInterface = NULL;
@@ -434,6 +442,16 @@ namespace yojimbo
 
         m_maxClients = maxClients;
 
+        if ( m_messageFactory )
+        {
+            ConnectionConfig connectionConfig = GetConnectionConfig();
+
+            for ( int i = 0; i < m_maxClients; ++i )
+            {
+                m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, connectionConfig );
+            }
+        }
+
         OnStart( maxClients );
     }
 
@@ -445,6 +463,11 @@ namespace yojimbo
         OnStop();
 
         DisconnectAllClients();
+
+        for ( int i = 0; i < m_maxClients; ++i )
+        {
+            YOJIMBO_DELETE( *m_allocator, Connection, m_connection[i] );
+        }
 
         m_maxClients = -1;
     }
@@ -1172,17 +1195,39 @@ namespace yojimbo
         }
     }
 
-    Client::Client( NetworkInterface & networkInterface )
+    Client::Client( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory )
     {
+        m_allocator = &allocator;
+
+        m_messageFactory = messageFactory;
+
+        if ( messageFactory )
+        {
+            ConnectionConfig connectionConfig = GetConnectionConfig();
+
+            m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, connectionConfig );
+        }
+        else
+        {
+            m_connection = NULL;
+        }
+
         m_time = 0.0;
         m_networkInterface = &networkInterface;
         m_clientState = CLIENT_STATE_DISCONNECTED;
+
         ResetConnectionData();
     }
 
     Client::~Client()
     {
+        assert( m_allocator );
+
+        YOJIMBO_DELETE( *m_allocator, Connection, m_connection );
+
         m_networkInterface = NULL;
+        m_messageFactory = NULL;
+        m_allocator = NULL;
     }
 
 #if YOJIMBO_INSECURE_CONNECT
