@@ -53,35 +53,6 @@ namespace yojimbo
     const float InsecureConnectTimeOut = 5.0f;
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-    template <typename Stream> bool serialize_address_internal( Stream & stream, Address & address )
-    {
-        char buffer[64];
-
-        if ( Stream::IsWriting )
-        {
-            assert( address.IsValid() );
-            address.ToString( buffer, sizeof( buffer ) );
-        }
-
-        serialize_string( stream, buffer, sizeof( buffer ) );
-
-        if ( Stream::IsReading )
-        {
-            address = Address( buffer );
-            if ( !address.IsValid() )
-                return false;
-        }
-
-        return true;
-    }
-
-    #define serialize_address( stream, value )                                              \
-        do                                                                                  \
-        {                                                                                   \
-            if ( !yojimbo::serialize_address_internal( stream, value ) )                    \
-                return false;                                                               \
-        } while (0)
-
     struct ConnectToken
     {
         uint32_t protocolId;                                                // the protocol id this connect token corresponds to.

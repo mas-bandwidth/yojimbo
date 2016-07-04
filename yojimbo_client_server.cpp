@@ -161,11 +161,11 @@ namespace yojimbo
 
         for ( int i = 0; i < connectToken.numServerAddresses; ++i )
         {
-            char serverAddress[64];
+            char serverAddress[MaxAddressLength];
             assert( connectToken.serverAddresses[i].IsValid() );
-            connectToken.serverAddresses[i].ToString( serverAddress, sizeof( serverAddress ) );
+            connectToken.serverAddresses[i].ToString( serverAddress, MaxAddressLength );
 
-            char serverAddressBase64[128];
+            char serverAddressBase64[MaxAddressLength*2];
             base64_encode_string( serverAddress, serverAddressBase64, sizeof( serverAddressBase64 ) );
 
             writer.String( serverAddressBase64 );

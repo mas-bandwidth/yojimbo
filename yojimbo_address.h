@@ -40,6 +40,8 @@ struct sockaddr_storage;
 
 namespace yojimbo
 {
+    const int MaxAddressLength = 256;
+
     enum AddressType
     {
         ADDRESS_NONE,
