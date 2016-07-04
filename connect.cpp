@@ -91,7 +91,7 @@ int ConnectMain( int argc, char * argv[] )
     
     printf( "client started on port %d\n", clientInterface.GetAddress().GetPort() );
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
     client.Connect( matchResponse.serverAddresses[0],
                     matchResponse.connectTokenData, 

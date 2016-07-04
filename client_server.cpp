@@ -69,9 +69,9 @@ int ClientServerMain()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
 
