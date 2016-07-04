@@ -45,9 +45,11 @@ namespace yojimbo
     {
     public:
 
-        PacketProcessor( Allocator & allocator, PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize, void * context = NULL );
+        PacketProcessor( Allocator & allocator, PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize );
 
         ~PacketProcessor();
+
+        void SetContext( void * context );
 
         const uint8_t * WritePacket( Packet * packet, uint64_t sequence, int & packetBytes, bool encrypt = false, const uint8_t * key = NULL );
 

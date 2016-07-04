@@ -26,6 +26,26 @@ Next step is to add a function to serialize the ack relative to another sequence
 
 Cleaned up all the serialize. It's now readable. Much better. No point having something not that complicated look inscrutable when you read it.
 
+Now port the code that receives messages and puts them in the receive queue. Done.
+
+Next step is to get the code for processing acks working, eg. ack messages that are in packet entries that were sent.
+
+OK. Should be working now.
+
+Are there tests I can bring across now? Yes. Hacked up a test with messages being sent. Half done.
+
+But it seems that lots of addrefs are being called on the messages, without them being cleaned up. I think these are the messages added to the data structure for the acks. So they need to be addref'd but also, when an ack entry goes stale (eg. old) they also need to be cleaned up.
+
+Where is the mechanism for doing this?
+
+Wait, are the messages actually getting addref'd in the sent packet? I think it's just message *ids*. That would be much better.
+
+The addref is in the connection packet.
+
+But, how does the connection packet know how to clean up messages, when it doesn't know the pointer to the message factory?
+
+Should it cache the message factory pointer? It probably has to. Wow. Fixed. I don't really have a choice here though, you need the message factory to clean up messages, and since the connection packet necessarily adds refs to messages, it needs a way to release those messages.
+
 
 Sunday July 3rd, 2016
 =====================

@@ -202,10 +202,6 @@ namespace yojimbo
 
         void AddRef( Message * message )
         {
-            #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-            printf( "addref message %p (%d->%d)\n", message, message->GetRefCount(), message->GetRefCount() + 1 );
-            #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-            
             assert( message );
             
             message->AddRef();

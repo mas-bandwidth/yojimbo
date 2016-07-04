@@ -347,6 +347,7 @@ namespace yojimbo
 
     template <typename Stream> bool serialize_ack_relative_internal( Stream & stream, uint16_t sequence, uint16_t & ack )
     {
+        /*
         int ack_delta = 0;
         bool ack_in_range = false;
 
@@ -375,7 +376,12 @@ namespace yojimbo
         {
             serialize_bits( stream, ack, 16 );
         }
-        
+        */
+
+        // todo: keep it simple for now, optimize later
+        (void)sequence;
+        serialize_bits( stream, ack, 16 );
+
         return true;
     }
 
