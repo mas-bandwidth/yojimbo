@@ -325,8 +325,6 @@ namespace yojimbo
 
             if ( !packet )
             {
-                printf( "failed to read packet?!\n" );
-
                 switch ( m_packetProcessor->GetError() )
                 {
                     case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[NETWORK_INTERFACE_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;        break;
