@@ -1,14 +1,19 @@
 DONE
 
-    Server now accepts an allocator and message factory in constructor. 
-
-    If server has a valid message factory, connection objects are create per-client in Server::Start and cleaned up in Server::Stop (and in dtor now)
-
-    This makes connection allocation and setup of message factory as optional, which I think makes sense. You may not want to use messages in your client/server protocol. Connection is also quite large, it allocates to big beast, especially if you have 64 players. Users of libyojimbo need a way to avoid taking this overhead, if they don't want it.
-
 TODO
 
-    Now integrate connection with the client.
+Next steps. 
+
+a) Harden client connect so if any packet comes in that is a heartbeat packet, connection packet or any game type packet, and the client is still in a pending connection state, the connection switches to connected before processing that packet.
+
+b) Add functions for creating, sending, receiving, addref and releasing messages to client and server.
+
+c) Implement a client/server centric unit test for sending and receiving messages.
+
+d) Implement a client/server centric soak test for sending and receiving messages (base on client_server.cpp)
+
+e) Extend matcher and stress to continually be sending and receiving random test messages between the client and server.
+
 
 
 
@@ -22,6 +27,7 @@ Finish message system:
 3. Create soak test with messages exchanged between client and server.
 
 4. Back port a minimal example (soak test) showing how to implement reliable ordered messages as example source code ("Building a Game Network Protocol")
+
 
 
 

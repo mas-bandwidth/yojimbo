@@ -64,6 +64,44 @@ Test passes now. Reliable message support is in and working. Fantastic!
 
 Fixed bug in relative serialize of ack from sequence. A bit more efficient now.
 
+Server now accepts an allocator and message factory in constructor. 
+
+If server has a valid message factory, connection objects are create per-client in Server::Start and cleaned up in Server::Stop (and in dtor now)
+
+This makes connection allocation and setup of message factory as optional, which I think makes sense. You may not want to use messages in your client/server protocol. Connection is also quite large, it allocates to big beast, especially if you have 64 players. Users of libyojimbo need a way to avoid taking this overhead, if they don't want it.
+
+Now integrate connection with the client. Client writes connection packets if connection "HasDataToSend" return true.
+
+Now do the same for the server. Done.
+
+Now, client and server should process connection packets back to the connection class, if it is valid.
+
+I think there is a potential race condition server-side.
+
+a) The server needs to wait until it has received the first heartbeat packet from the client, and keep sending
+heartbeats down to the client in that case.
+
+b) The client needs to take any packet, heartbeat, connection or game packet received from the server
+and trigger it from pending connection -> connected state.
+
+It's a tough choice. I think b) is the most robust, lowest latency option, but could be hard to test.
+
+On the other hand, what happens to a) if you happen to receive other packets before "connection"
+
+I think the correct option is b) but I need to update code to allow transition of client state
+via some other function for game packets and other packet types that can trigger connection.
+
+There is also somewhat of an annoying piece of logic that a packet can come through and its processing
+is rejected, eg. returns false in process packet, but could still trigger a connect.
+
+Not sure how to handle this. If I process that packet while not connected yet, it could itself cause
+logic errors, but if I let any packet coming in trigger a connection, even if it returns false during
+processing, then it is possible that a poorly formatted packet will trigger a connection.
+
+In the end I don't think that forming a connection early is a bad thing, and is ideal, so lets go with b)
+and if the processing of a packet returns false, it still initiates the connection anyway. It should 
+time out later if the processing is truly broken for some reason. rare.
+
 
 Sunday July 3rd, 2016
 =====================
