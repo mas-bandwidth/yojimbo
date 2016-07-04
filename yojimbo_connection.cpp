@@ -334,6 +334,11 @@ namespace yojimbo
         return message;
     }
 
+    bool Connection::HasDataToSend() const
+    {
+        return m_messageSendQueue->Find( m_oldestUnackedMessageId ) != NULL;
+    }
+
     ConnectionPacket * Connection::WritePacket()
     {
         if ( m_error != CONNECTION_ERROR_NONE )

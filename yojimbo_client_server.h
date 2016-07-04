@@ -164,15 +164,19 @@ namespace yojimbo
 
     enum PacketTypes
     {
+        CLIENT_SERVER_PACKET_CONNECTION,                              // connection packet carries messages and other data once connection is established.
+
         CLIENT_SERVER_PACKET_CONNECTION_REQUEST,                      // client requests a connection.
         CLIENT_SERVER_PACKET_CONNECTION_DENIED,                       // server denies client connection request.
         CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE,                    // server response to client connection request.
         CLIENT_SERVER_PACKET_CONNECTION_RESPONSE,                     // client response to server connection challenge.
         CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT,                    // heartbeat packet sent at some low rate (once per-second) to keep the connection alive.
         CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT,                   // courtesy packet to indicate that the other side has disconnected. better than a timeout.
+
 #if YOJIMBO_INSECURE_CONNECT
         CLIENT_SERVER_PACKET_INSECURE_CONNECT,                        // client requests an insecure connection (dev only!)
 #endif // #if YOJIMBO_INSECURE_CONNECT
+
         CLIENT_SERVER_NUM_PACKETS
     };
 
@@ -305,14 +309,16 @@ namespace yojimbo
 
             switch ( type )
             {
-                case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         return YOJIMBO_NEW( allocator, ConnectionRequestPacket );
-                case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          return YOJIMBO_NEW( allocator, ConnectionDeniedPacket );
-                case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       return YOJIMBO_NEW( allocator, ConnectionChallengePacket );
-                case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        return YOJIMBO_NEW( allocator, ConnectionResponsePacket );
-                case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       return YOJIMBO_NEW( allocator, ConnectionHeartBeatPacket );
-                case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      return YOJIMBO_NEW( allocator, ConnectionDisconnectPacket );
+                case CLIENT_SERVER_PACKET_CONNECTION:                   return YOJIMBO_NEW( allocator, ConnectionPacket );
+
+                case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:           return YOJIMBO_NEW( allocator, ConnectionRequestPacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_DENIED:            return YOJIMBO_NEW( allocator, ConnectionDeniedPacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:         return YOJIMBO_NEW( allocator, ConnectionChallengePacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:          return YOJIMBO_NEW( allocator, ConnectionResponsePacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:         return YOJIMBO_NEW( allocator, ConnectionHeartBeatPacket );
+                case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:        return YOJIMBO_NEW( allocator, ConnectionDisconnectPacket );
 #if YOJIMBO_INSECURE_CONNECT
-                case CLIENT_SERVER_PACKET_INSECURE_CONNECT:           return YOJIMBO_NEW( allocator, InsecureConnectPacket );
+                case CLIENT_SERVER_PACKET_INSECURE_CONNECT:             return YOJIMBO_NEW( allocator, InsecureConnectPacket );
 #endif // #if YOJIMBO_INSECURE_CONNECT
                 default:
                     return NULL;
@@ -547,6 +553,8 @@ namespace yojimbo
         void ProcessInsecureConnect( const InsecureConnectPacket & /*packet*/, const Address & address );
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
+        void ProcessConnectionPacket( ConnectionPacket & packet, const Address & address );
+
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
 
         ConnectionHeartBeatPacket * CreateHeartBeatPacket( int clientIndex );
@@ -636,13 +644,15 @@ namespace yojimbo
 
         void SendPacketToServer( Packet * packet, bool immediate = false );
 
-        void ProcessConnectionDenied( const ConnectionDeniedPacket & /*packet*/, const Address & address );
+        void ProcessConnectionDenied( const ConnectionDeniedPacket & packet, const Address & address );
 
         void ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address );
 
-        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address );
+        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & packet, const Address & address );
 
-        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address );
+        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & packet, const Address & address );
+
+        void ProcessConnectionPacket( ConnectionPacket & packet, const Address & address );
 
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
 
