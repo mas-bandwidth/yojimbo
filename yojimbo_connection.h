@@ -48,6 +48,7 @@ namespace yojimbo
         uint32_t ack_bits;
         uint32_t numMessages;
         Message * messages[MaxMessagesPerPacket];
+        MessageFactory * messageFactory;
 
         ConnectionPacket() : Packet( CONNECTION_DEFAULT_PACKET_TYPE )
         {
@@ -55,7 +56,10 @@ namespace yojimbo
             ack = 0;
             ack_bits = 0;
             numMessages = 0;
+            messageFactory = NULL;
         }
+
+        ~ConnectionPacket();
 
         template <typename Stream> bool Serialize( Stream & stream );
 

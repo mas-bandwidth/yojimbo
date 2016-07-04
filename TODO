@@ -2,17 +2,9 @@ DONE
 
 TODO
 
-Now port the code that receives messages and puts them in the receive queue. Done.
+    Setup test for receive messages. It's currently failing. No messages are getting through. Need to step through with logs and work out where it's breaking.
 
-Next step is to get the code for processing acks working, eg. ack messages that are in packet entries that were sent.
-
-OK. Should be working now.
-
-Are there tests I can bring across now?
-
-
-
-
+    Bunch of stuff. Was forgetting to call read/write packets on the interface. Also, needed to make some fixes to make sure the context set gets through to the packet processor.
 
 
 
@@ -27,9 +19,9 @@ Plan of attack:
 
 4. Port code to receive messages (done)
 
-5. Setup context
+5. Setup context (done)
 
-6. Test that messages are being sent reliably and in-order (bring across tests)
+6. Test that messages are being sent reliably and in-order (current...)
 
 7. Extend the system to support large blocks
 
