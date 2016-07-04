@@ -40,21 +40,21 @@ int InfoMain()
 
     for ( int i = 0; i < numAddresses; ++i )
     {
-        char addressString[64];
+        char addressString[MaxAddressLength];
         networkAddresses[i].ToString( addressString, sizeof( addressString) );
         printf( " + %s\n", addressString );
     }
 
     {
         Address address = GetFirstNetworkAddress_IPV4();
-        char addressString[64];
+        char addressString[MaxAddressLength];
         address.ToString( addressString, sizeof( addressString) );
         printf( "\nfirst IPV4 network address: %s\n", addressString );
     }
 
     {
         Address address = GetFirstNetworkAddress_IPV6();
-        char addressString[64];
+        char addressString[MaxAddressLength];
         address.ToString( addressString, sizeof( addressString) );
         printf( "\nfirst IPV6 network address: %s\n", addressString );
     }

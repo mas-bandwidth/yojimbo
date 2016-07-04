@@ -8,10 +8,11 @@ DONE
 
     Done. It's pretty good now.
 
+    Cleaned up string. Any instances of ToString for address should write to a buffer of length MaxAddressLength
 
 TODO
 
-    Now need to bring across code that takes packed and inserts messages into receive queue.
+    Now need to bring across code that processes packets and inserts received messages into receive queue.
 
     This is a bit tricky, given that there is a situation when the recv queue is full that we have to ignore the packet (drop it)
 

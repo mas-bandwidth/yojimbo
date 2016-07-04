@@ -102,21 +102,21 @@ protected:
 
     void OnClientConnect( int clientIndex )
     {
-        char addressString[256];
+        char addressString[MaxAddressLength];
         GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
         printf( "client %d connected (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
     void OnClientDisconnect( int clientIndex )
     {
-        char addressString[256];
+        char addressString[MaxAddressLength];
         GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
         printf( "client %d disconnected (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
     void OnClientTimedOut( int clientIndex )
     {
-        char addressString[256];
+        char addressString[MaxAddressLength];
         GetClientAddress( clientIndex ).ToString( addressString, sizeof( addressString ) );
         printf( "client %d timed out (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
@@ -138,7 +138,7 @@ protected:
 
         if ( verbose_logging )
         {
-            char addressString[256];
+            char addressString[MaxAddressLength];
             to.ToString( addressString, sizeof( addressString ) );
             printf( "server sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
         }
@@ -161,7 +161,7 @@ protected:
 
         if ( verbose_logging )
         {
-            char addressString[256];
+            char addressString[MaxAddressLength];
             from.ToString( addressString, sizeof( addressString ) );
             printf( "server received '%s' packet from %s\n", packetTypeString, addressString );
         }
@@ -188,7 +188,7 @@ public:
 
     void OnConnect( const Address & address )
     {
-        char addressString[256];
+        char addressString[MaxAddressLength];
         address.ToString( addressString, sizeof( addressString ) );
         printf( "client connecting to %s\n", addressString );
     }
@@ -228,7 +228,7 @@ public:
 
         if ( verbose_logging )
         {
-            char addressString[256];
+            char addressString[MaxAddressLength];
             to.ToString( addressString, sizeof( addressString ) );
             printf( "client sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
         }
@@ -251,7 +251,7 @@ public:
 
         if ( verbose_logging )
         {
-            char addressString[256];
+            char addressString[MaxAddressLength];
             from.ToString( addressString, sizeof( addressString ) );
             printf( "client received %s packet from %s\n", packetTypeString, addressString );
         }
