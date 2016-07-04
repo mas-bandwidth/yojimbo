@@ -1,24 +1,11 @@
 DONE
 
-    Implemented "ReceiveMessage" function and make it safe to call if the current connection is in an error state (return NULL)
-
-    Next step now I think is to port the code in "WritePacket" that fills the connection packet with the n most important messages that fit.
-
-    Brought this across, but it's really hard to read. Split apart into functions so it's actually readable.
-
-    Done. It's pretty good now.
-
-    Cleaned up string. Any instances of ToString for address should write to a buffer of length MaxAddressLength
-
 TODO
 
-    Now need to bring across code that processes packets and inserts received messages into receive queue.
+Now port the code that receives messages and puts them in the receive queue. Done.
 
-    This is a bit tricky, given that there is a situation when the recv queue is full that we have to ignore the packet (drop it)
+Next step seems to be to get the context back and working. Seems like the context needs to be owned by the client/server?
 
-    Need to make this clear in the code what is going on. This code should be readable, not inscrutable.
-
-    On that related note, the serialize function is really gross still for the connection packet. It needs some clean up too.
 
 
 
@@ -34,16 +21,18 @@ Plan of attack:
 
 3. Port code to measure and determine how many messages can be put in the packet, fill the packet, fill structure mapping packet -> messages to ack. (done)
 
-4. Port code to receive messages (current...)
+4. Port code to receive messages (done)
 
-5. Test that messages are being sent reliably and in-order (bring across tests)
+5. Setup context
 
-6. Extend the system to support large blocks
+6. Test that messages are being sent reliably and in-order (bring across tests)
 
-7. Bring across tests for large blocks
+7. Extend the system to support large blocks
 
-8. Bring across soak test for messages and large blocks
+8. Bring across tests for large blocks
 
-9. Integrate with client/server
+9. Bring across soak test for messages and large blocks
 
-10. Implement some tests for messages inside client/server
+10. Integrate with client/server
+
+11. Implement some tests for messages inside client/server

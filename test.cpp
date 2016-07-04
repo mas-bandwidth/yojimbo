@@ -3732,8 +3732,6 @@ void test_acks()
             {
                 uint16_t sequence = packet->sequence;
 
-    //            printf( "received %d\n", (int)sequence );
-
                 receivedPackets[sequence] = true;
             }
         }
