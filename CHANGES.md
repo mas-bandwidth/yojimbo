@@ -62,6 +62,8 @@ I think I am just forgetting to free the packets. The connection doesn't free th
 
 Test passes now. Reliable message support is in and working. Fantastic!
 
+Fixed bug in relative serialize of ack from sequence. A bit more efficient now.
+
 
 Sunday July 3rd, 2016
 =====================

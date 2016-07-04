@@ -4,28 +4,22 @@ TODO
 
 
 
+Finish message system:
+
+1. Integrate messages with client/server
+
+2. Add some unit tests for client/server based messages.
+
+3. Create soak test with messages exchanged between client and server.
+
+4. Back port a minimal example (soak test) showing how to implement reliable ordered messages as example source code ("Building a Game Network Protocol")
 
 
-Plan of attack:
 
-1. Port code to put the message in the send queue (done)
+Add large block support:
 
-2. Add the necessary data to the connection packet to includes messages in each packet (done)
+1. Extend the system to support large blocks
 
-3. Port code to measure and determine how many messages can be put in the packet, fill the packet, fill structure mapping packet -> messages to ack. (done)
+2. Bring across tests for large blocks
 
-4. Port code to receive messages (done)
-
-5. Setup context (done)
-
-6. Test that messages are being sent reliably and in-order over high packet loss (done)
-
-7. Extend the system to support large blocks
-
-8. Bring across tests for large blocks
-
-9. Bring across soak test for messages and large blocks
-
-10. Integrate with client/server
-
-11. Implement some tests for messages inside client/server
+3. Bring across soak test for messages and large blocks
