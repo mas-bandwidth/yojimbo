@@ -1,4 +1,32 @@
 
+Monday July 4th, 2016
+=====================
+
+Implemented "ReceiveMessage" function and make it safe to call if the current connection is in an error state (return NULL)
+
+Next step now I think is to port the code in "WritePacket" that fills the connection packet with the n most important messages that fit.
+
+Brought this across, but it's really hard to read. Split apart into functions so it's actually readable.
+
+Done. It's pretty good now.
+
+Now need to bring across code that processes packets and inserts received messages into receive queue.
+
+This is a bit tricky, given that there is a situation when the recv queue is full that we have to ignore the packet (drop it)
+
+Need to make this clear in the code what is going on. This code should be readable, not inscrutable.
+
+On that related note, the serialize function is really gross still for the connection packet. It needs some clean up too.
+
+Cleaned up string. Any instances of ToString for address should write to a buffer of length MaxAddressLength
+
+Cleaning up the serialize function for the connection packet. It has to be readable as to what it does.
+
+Next step is to add a function to serialize the ack relative to another sequence: serialize_ack
+
+Cleaned up all the serialize. It's now readable. Much better. No point having something not that complicated look inscrutable when you read it.
+
+
 Sunday July 3rd, 2016
 =====================
 

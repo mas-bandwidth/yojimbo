@@ -345,6 +345,75 @@ namespace yojimbo
                 return false;                                                               \
         } while (0)
 
+    template <typename Stream> bool serialize_ack_relative_internal( Stream & stream, uint16_t sequence, uint16_t & ack )
+    {
+        int ack_delta = 0;
+        bool ack_in_range = false;
+
+        if ( Stream::IsWriting )
+        {
+            if ( ack < sequence )
+                ack_delta = sequence - ack;
+            else
+                ack_delta = (int)sequence + 65536 - ack;
+
+            assert( ack_delta > 0 );
+            assert( sequence - ack_delta == ack );
+            
+            ack_in_range = ack_delta <= 64;
+        }
+
+        serialize_bool( stream, ack_in_range );
+
+        if ( ack_in_range )
+        {
+            serialize_int( stream, ack_delta, 1, 64 );
+            if ( Stream::IsReading )
+                ack = sequence - ack_delta;
+        }
+        else
+        {
+            serialize_bits( stream, ack, 16 );
+        }
+        
+        return true;
+    }
+
+    #define serialize_ack_relative( stream, string, buffer_size )                           \
+        do                                                                                  \
+        {                                                                                   \
+            if ( !yojimbo::serialize_ack_relative_internal( stream, string, buffer_size ) ) \
+                return false;                                                               \
+        } while (0)
+
+    template <typename Stream> bool serialize_sequence_relative_internal( Stream & stream, uint16_t messageId1, uint16_t & messageId2 )
+    {
+        if ( Stream::IsWriting )
+        {
+            uint32_t a = messageId1;
+            uint32_t b = messageId2 + ( messageId1 > messageId2 ? 65536 : 0 );
+            serialize_int_relative( stream, a, b );
+        }
+        else
+        {
+            uint32_t a = messageId1;
+            uint32_t b;
+            serialize_int_relative( stream, a, b );
+            if ( b >= 65536 )
+                b -= 65536;
+            messageId2 = uint16_t( b );
+        }
+
+        return true;
+    }
+
+    #define serialize_sequence_relative( stream, string, buffer_size )                              \
+        do                                                                                          \
+        {                                                                                           \
+            if ( !yojimbo::serialize_sequence_relative_internal( stream, string, buffer_size ) )    \
+                return false;                                                                       \
+        } while (0)
+
     #define read_bits( stream, value, bits )                                                \
     do                                                                                      \
     {                                                                                       \
@@ -370,17 +439,19 @@ namespace yojimbo
 
     #define read_bool( stream, value ) read_bits( stream, value, 1 )
 
-    #define read_float              serialize_float
-    #define read_uint32             serialize_uint32
-    #define read_uint64             serialize_uint64
-    #define read_double             serialize_double
-    #define read_bytes              serialize_bytes
-    #define read_string             serialize_string
-    #define read_align              serialize_align
-    #define read_check              serialize_check
-    #define read_object             serialize_object
-    #define read_address            serialize_address
-    #define read_int_relative       serialize_int_relative
+    #define read_float                  serialize_float
+    #define read_uint32                 serialize_uint32
+    #define read_uint64                 serialize_uint64
+    #define read_double                 serialize_double
+    #define read_bytes                  serialize_bytes
+    #define read_string                 serialize_string
+    #define read_align                  serialize_align
+    #define read_check                  serialize_check
+    #define read_object                 serialize_object
+    #define read_address                serialize_address
+    #define read_int_relative           serialize_int_relative
+    #define read_ack_relative           serialize_ack_relative
+    #define read_sequence_relative      serialize_sequence_relative
 
     #define write_bits( stream, value, bits )                                               \
         do                                                                                  \
@@ -403,17 +474,19 @@ namespace yojimbo
                 return false;                                                               \
         } while (0)
 
-    #define write_float             serialize_float
-    #define write_uint32            serialize_uint32
-    #define write_uint64            serialize_uint64
-    #define write_double            serialize_double
-    #define write_bytes             serialize_bytes
-    #define write_string            serialize_string
-    #define write_align             serialize_align
-    #define write_check             serialize_check
-    #define write_object            serialize_object
-    #define write_address           serialize_address
-    #define write_int_relative      serialize_int_relative
+    #define write_float                 serialize_float
+    #define write_uint32                serialize_uint32
+    #define write_uint64                serialize_uint64
+    #define write_double                serialize_double
+    #define write_bytes                 serialize_bytes
+    #define write_string                serialize_string
+    #define write_align                 serialize_align
+    #define write_check                 serialize_check
+    #define write_object                serialize_object
+    #define write_address               serialize_address
+    #define write_int_relative          serialize_int_relative
+    #define write_ack_relative          serialize_ack_relative
+    #define write_sequence_relative     serialize_sequence_relative
     
     class Serializable
     {  

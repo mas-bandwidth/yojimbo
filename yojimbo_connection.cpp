@@ -28,6 +28,7 @@ namespace yojimbo
 {
     template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream )
     {
+        // todo: this should become an assertion
         ConnectionContext * context = (ConnectionContext*) stream.GetContext();
         if ( !context )
             return false;
@@ -36,49 +37,18 @@ namespace yojimbo
 
         serialize_check( stream, "ack system (begin)" );
 
-        bool perfect;
-        if ( Stream::IsWriting )
-             perfect = ack_bits == 0xFFFFFFFF;
+        bool perfect_acks = Stream::IsWriting ? ( ack_bits == 0xFFFFFFFF ) : 0;
 
-        serialize_bool( stream, perfect );
+        serialize_bool( stream, perfect_acks );
 
-        if ( !perfect )
+        if ( !perfect_acks )
             serialize_bits( stream, ack_bits, 32 );
         else
             ack_bits = 0xFFFFFFFF;
 
         serialize_bits( stream, sequence, 16 );
 
-        // todo: messy. move this off into a separate function: serialize_ack
-
-        int ack_delta = 0;
-        bool ack_in_range = false;
-
-        if ( Stream::IsWriting )
-        {
-            if ( ack < sequence )
-                ack_delta = sequence - ack;
-            else
-                ack_delta = (int)sequence + 65536 - ack;
-
-            assert( ack_delta > 0 );
-            assert( sequence - ack_delta == ack );
-            
-            ack_in_range = ack_delta <= 64;
-        }
-
-        serialize_bool( stream, ack_in_range );
-
-        if ( ack_in_range )
-        {
-            serialize_int( stream, ack_delta, 1, 64 );
-            if ( Stream::IsReading )
-                ack = sequence - ack_delta;
-        }
-        else
-        {
-            serialize_bits( stream, ack, 16 );
-        }
+        serialize_ack_relative( stream, sequence, ack );
 
         serialize_align( stream );
 
@@ -114,22 +84,7 @@ namespace yojimbo
 
             for ( int i = 1; i < (int) numMessages; ++i )
             {
-                // todo: replace this with a nice serialize sequence relative that handles this wrap around
-                if ( Stream::IsWriting )
-                {
-                    uint32_t a = messageIds[i-1];
-                    uint32_t b = messageIds[i] + ( messageIds[i-1] > messageIds[i] ? 65536 : 0 );
-                    serialize_int_relative( stream, a, b );
-                }
-                else
-                {
-                    uint32_t a = messageIds[i-1];
-                    uint32_t b;
-                    serialize_int_relative( stream, a, b );
-                    if ( b >= 65536 )
-                        b -= 65536;
-                    messageIds[i] = uint16_t( b );
-                }
+                serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
             }
 
             for ( int i = 0; i < (int) numMessages; ++i )
@@ -146,15 +101,6 @@ namespace yojimbo
                     assert( messages[i]->GetType() == messageTypes[i] );
 
                     messages[i]->AssignId( messageIds[i] );
-
-                    /*
-                    if ( Stream::IsReading && messageTypes[i] == BlockMessageType )
-                    {
-                        CORE_ASSERT( config.smallBlockAllocator );
-                        BlockMessage * blockMessage = static_cast<BlockMessage*>( messages[i] );
-                        blockMessage->SetAllocator( *config.smallBlockAllocator );
-                    }
-                    */
                 }
 
                 assert( messages[i] );
@@ -327,7 +273,7 @@ namespace yojimbo
 
         if ( !blockMessage )
         {
-            // todo: context
+            // todo: context?
 
             MeasureStream measureStream( m_config.maxSerializedMessageSize * 2 );
             message->SerializeInternal( measureStream );
@@ -422,19 +368,23 @@ namespace yojimbo
         assert( packet );
         assert( packet->GetType() == m_config.packetType );
 
-        ProcessAcks( packet->ack, packet->ack_bits );
-
         m_counters[CONNECTION_COUNTER_PACKETS_READ]++;
 
-        bool discardPacket = false;
+        if ( !ProcessPacketMessages( packet ) )
+            goto discard;
 
-        if ( discardPacket || !m_receivedPackets->Insert( packet->sequence ) )
-        {
-            m_counters[CONNECTION_COUNTER_PACKETS_DISCARDED]++;
-            return false;            
-        }
+        if ( !m_receivedPackets->Insert( packet->sequence ) )
+            goto discard;
+
+        ProcessAcks( packet->ack, packet->ack_bits );
 
         return true;
+
+    discard:
+
+        m_counters[CONNECTION_COUNTER_PACKETS_DISCARDED]++;
+
+        return false;            
     }
 
     void Connection::AdvanceTime( double time )
@@ -551,5 +501,42 @@ namespace yojimbo
         sentPacket->numMessageIds = numMessageIds;
         for ( int i = 0; i < numMessageIds; ++i )
             sentPacket->messageIds[i] = messageIds[i];
+    }
+
+    bool Connection::ProcessPacketMessages( const ConnectionPacket * packet )
+    {
+        bool earlyMessage = false;
+
+        const uint16_t minMessageId = m_receiveMessageId;
+        const uint16_t maxMessageId = m_receiveMessageId + m_config.messageReceiveQueueSize - 1;
+
+        for ( int i = 0; i < (int) packet->numMessages; ++i )
+        {
+            Message * message = packet->messages[i];
+
+            assert( message );
+
+            const uint16_t messageId = message->GetId();
+
+            if ( sequence_less_than( messageId, minMessageId ) )
+            {
+                m_counters[CONNECTION_COUNTER_MESSAGES_LATE]++;
+            }
+            else if ( sequence_greater_than( messageId, maxMessageId ) )
+            {
+                m_counters[CONNECTION_COUNTER_MESSAGES_EARLY]++;
+                earlyMessage = true;
+            }
+            else if ( !m_messageReceiveQueue->Find( messageId ) )
+            {
+                MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+                entry->message = message;
+                m_messageFactory->AddRef( message );
+            }
+            
+            m_counters[CONNECTION_COUNTER_MESSAGES_RECEIVED]++;
+        }
+
+        return !earlyMessage;
     }
 }

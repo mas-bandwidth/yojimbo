@@ -139,6 +139,8 @@ namespace yojimbo
         CONNECTION_COUNTER_PACKETS_DISCARDED,                   // number of read packets that we discarded (eg. not acked)
         CONNECTION_COUNTER_MESSAGES_SENT,                       // number of messages sent
         CONNECTION_COUNTER_MESSAGES_RECEIVED,                   // number of messages received
+        CONNECTION_COUNTER_MESSAGES_EARLY,                      // number of messages received early (discarded)
+        CONNECTION_COUNTER_MESSAGES_LATE,                       // number of messages received late (ignored)
         CONNECTION_COUNTER_NUM_COUNTERS
     };
 
@@ -293,6 +295,8 @@ namespace yojimbo
         void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds );
 
         void AddMessagePacketEntry( const uint16_t * messageIds, int & numMessageIds, uint16_t sequence );
+
+        bool ProcessPacketMessages( const ConnectionPacket * packet );
 
     private:
 
