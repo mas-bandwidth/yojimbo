@@ -248,6 +248,15 @@ if not os.is "windows" then
 
     newaction
     {
+        trigger     = "loc",
+        description = "Count lines of code",
+        execute = function ()
+            os.execute "wc -l *.h *.cpp"
+        end
+    }
+
+    newaction
+    {
         trigger     = "release",
         description = "Create a release of this project",
         execute = function ()
