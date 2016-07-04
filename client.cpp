@@ -52,7 +52,7 @@ int ClientMain( int argc, char * argv[] )
 
     clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
     Address serverAddress( "127.0.0.1", ServerPort );
 

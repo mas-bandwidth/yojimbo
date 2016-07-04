@@ -54,7 +54,7 @@ namespace yojimbo
 #endif // #if defined( _MSC_VER )
 	
 	#define YOJIMBO_NEW( a, T, ... ) ( new ((a).Allocate(sizeof(T))) T(__VA_ARGS__) )
-	#define YOJIMBO_DELETE( a, T, p ) do { assert(p); (p)->~T(); (a).Free(p); p = NULL; } while (0)	
+	#define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free(p); p = NULL; } } while (0)	
 
 	template <typename T> T * AllocateArray( Allocator & allocator, int arraySize, T * /*dummy*/ )
 	{

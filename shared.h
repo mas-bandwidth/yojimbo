@@ -93,7 +93,7 @@ class GameServer : public Server
 {
 public:
 
-    explicit GameServer( NetworkInterface & networkInterface ) : Server( networkInterface )
+    explicit GameServer( Allocator & allocator, NetworkInterface & networkInterface ) : Server( allocator, networkInterface )
     {
         SetPrivateKey( private_key );
     }
@@ -176,7 +176,7 @@ class GameClient : public Client
 {
 public:
 
-    explicit GameClient( NetworkInterface & networkInterface ) : Client( networkInterface )
+    explicit GameClient( Allocator & allocator, NetworkInterface & networkInterface ) : Client( allocator, networkInterface )
     {
         // ...
     }

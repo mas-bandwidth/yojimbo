@@ -1058,7 +1058,7 @@ class GameServer : public Server
 
 public:
 
-    explicit GameServer( NetworkInterface & networkInterface ) : Server( networkInterface )
+    explicit GameServer( Allocator & allocator, NetworkInterface & networkInterface ) : Server( allocator, networkInterface )
     {
         SetPrivateKey( private_key );
         m_gamePacketSequence = 0;
@@ -1182,7 +1182,7 @@ class GameClient : public Client
 
 public:
 
-    explicit GameClient( NetworkInterface & networkInterface ) : Client( networkInterface )
+    explicit GameClient( Allocator & allocator, NetworkInterface & networkInterface ) : Client( allocator, networkInterface )
     {
         m_numGamePacketsReceived = 0;
         m_gamePacketSequence = 0;
@@ -1445,9 +1445,9 @@ void test_client_server_connect()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1526,9 +1526,9 @@ void test_client_server_reconnect()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1697,9 +1697,9 @@ void test_client_server_client_side_disconnect()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1821,9 +1821,9 @@ void test_client_server_server_side_disconnect()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -1952,7 +1952,7 @@ void test_client_server_connection_request_timeout()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
@@ -2021,9 +2021,9 @@ void test_client_server_connection_response_timeout()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2105,9 +2105,9 @@ void test_client_server_client_side_timeout()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2216,9 +2216,9 @@ void test_client_server_server_side_timeout()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2362,7 +2362,7 @@ void test_client_server_server_is_full()
             exit( 1 );
         }
 
-        clientData[i].client = YOJIMBO_NEW( allocator, GameClient, *clientData[i].networkInterface );
+        clientData[i].client = YOJIMBO_NEW( allocator, GameClient, allocator, *clientData[i].networkInterface );
     }
 
     Address serverAddress( "::1", ServerPort );
@@ -2371,7 +2371,7 @@ void test_client_server_server_is_full()
 
     double time = 0.0;
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2562,9 +2562,9 @@ void test_client_server_connect_token_reuse()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2615,7 +2615,7 @@ void test_client_server_connect_token_reuse()
 
     TestNetworkInterface clientInterface2( packetFactory, networkSimulator, clientAddress2 );
     
-    GameClient client2( clientInterface2 );
+    GameClient client2( GetDefaultAllocator(), clientInterface2 );
 
     client2.AdvanceTime( time );
 
@@ -2703,9 +2703,9 @@ void test_client_server_connect_token_expiry()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2796,9 +2796,9 @@ void test_client_server_connect_token_whitelist()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2872,9 +2872,9 @@ void test_client_server_connect_token_invalid()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -2955,9 +2955,9 @@ void test_client_server_game_packets()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
     
@@ -3063,9 +3063,9 @@ void test_client_server_insecure_connect()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
-    GameServer server( serverInterface );
+    GameServer server( GetDefaultAllocator(), serverInterface );
 
     server.SetServerAddress( serverAddress );
 
@@ -3133,7 +3133,7 @@ void test_client_server_insecure_connect_timeout()
 
     double time = 0.0;
 
-    GameClient client( clientInterface );
+    GameClient client( GetDefaultAllocator(), clientInterface );
 
     clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
 
