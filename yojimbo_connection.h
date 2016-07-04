@@ -298,6 +298,10 @@ namespace yojimbo
 
         bool ProcessPacketMessages( const ConnectionPacket * packet );
 
+        void ProcessMessageAck( uint16_t ack );
+
+        void UpdateOldestUnackedMessageId();
+        
     private:
 
         const ConnectionConfig m_config;                                                // const configuration data

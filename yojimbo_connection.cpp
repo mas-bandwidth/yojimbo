@@ -539,4 +539,50 @@ namespace yojimbo
 
         return !earlyMessage;
     }
+
+    void Connection::ProcessMessageAck( uint16_t ack )
+    {
+        MessageSentPacketEntry * sentPacketEntry = m_messageSentPackets->Find( ack );
+
+        if ( !sentPacketEntry || sentPacketEntry->acked )
+            return;
+
+        for ( int i = 0; i < sentPacketEntry->numMessageIds; ++i )
+        {
+            const uint16_t messageId = sentPacketEntry->messageIds[i];
+
+            MessageSendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
+            
+            if ( sendQueueEntry )
+            {
+                assert( sendQueueEntry->message );
+                assert( sendQueueEntry->message->GetId() == messageId );
+
+                m_messageFactory->Release( sendQueueEntry->message );
+
+                m_messageSendQueue->Remove( messageId );
+            }
+        }
+
+        UpdateOldestUnackedMessageId();
+    }
+
+    void Connection::UpdateOldestUnackedMessageId()
+    {
+        const uint16_t stopMessageId = m_messageSendQueue->GetSequence();
+
+        while ( true )
+        {
+            if ( m_oldestUnackedMessageId == stopMessageId )
+                break;
+
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+            if ( entry )
+                break;
+           
+            ++m_oldestUnackedMessageId;
+        }
+
+        assert( !sequence_greater_than( m_oldestUnackedMessageId, stopMessageId ) );
+    }
 }
