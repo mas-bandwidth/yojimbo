@@ -36,7 +36,7 @@ namespace yojimbo
 
     const int CryptoOverhead = MacBytes;
 
-    PacketProcessor::PacketProcessor( Allocator & allocator, PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize, void * context )
+    PacketProcessor::PacketProcessor( Allocator & allocator, PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize )
     {
         m_allocator = &allocator;
 
@@ -53,7 +53,7 @@ namespace yojimbo
 
         m_absoluteMaxPacketSize = maxPacketSize + MaxPrefixBytes + CryptoOverhead;
 
-        m_context = context;
+        m_context = NULL;
 
         m_packetBuffer = (uint8_t*) allocator.Allocate( m_absoluteMaxPacketSize );
 
@@ -67,6 +67,11 @@ namespace yojimbo
 
         m_packetBuffer = NULL;
         m_scratchBuffer = NULL;
+    }
+
+    void PacketProcessor::SetContext( void * context )
+    {
+        m_context = context;
     }
 
     static const int ENCRYPTED_PACKET_FLAG = (1<<7);

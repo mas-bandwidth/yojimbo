@@ -43,8 +43,6 @@ namespace yojimbo
 
         ~NetworkSimulator();
 
-        void Reset();
-
         void SetLatency( float milliseconds );
 
         void SetJitter( float milliseconds );

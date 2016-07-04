@@ -26,12 +26,28 @@
 
 namespace yojimbo
 {
+    ConnectionPacket::~ConnectionPacket()
+    {
+        if ( messageFactory )
+        {
+            for ( int i = 0; i < (int) numMessages; ++i )
+            {
+                assert( messages[i] );
+
+                messageFactory->Release( messages[i] );
+            }
+        }
+        else
+        {
+            assert( numMessages == 0 );
+        }
+    }
+
     template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream )
     {
-        // todo: this should become an assertion
         ConnectionContext * context = (ConnectionContext*) stream.GetContext();
-        if ( !context )
-            return false;
+
+        assert( context );
 
         // serialize ack system
 
@@ -87,9 +103,14 @@ namespace yojimbo
                 serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
             }
 
+            if ( Stream::IsReading )
+            {
+                messageFactory = context->messageFactory;
+            }
+
             for ( int i = 0; i < (int) numMessages; ++i )
             {
-                const int maxMessageType = context->messageFactory->GetNumTypes() - 1;
+                const int maxMessageType = messageFactory->GetNumTypes() - 1;
 
                 serialize_int( stream, messageTypes[i], 0, maxMessageType );
 
@@ -177,6 +198,8 @@ namespace yojimbo
 
     Connection::~Connection()
     {
+        printf( "~Connection\n" );
+
         Reset();
 
         assert( m_sentPackets );
@@ -285,8 +308,6 @@ namespace yojimbo
             }
 
             entry->measuredBits = measureStream.GetBitsProcessed() + m_messageOverheadBits;
-
-            printf( "message %d estimates at %d bits\n", (int) m_sendMessageId, entry->measuredBits );
         }
 
         m_counters[CONNECTION_COUNTER_MESSAGES_SENT]++;
@@ -351,6 +372,7 @@ namespace yojimbo
         {
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
             assert( entry && entry->message );
+            packet->messageFactory = m_messageFactory;
             packet->messages[i] = entry->message;
             m_messageFactory->AddRef( entry->message );
         }
