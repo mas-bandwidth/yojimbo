@@ -465,9 +465,11 @@ namespace yojimbo
 
         void DisconnectAllClients( bool sendDisconnectPacket = true );
 
-        void SendMessageToClient( int clientIndex, Message * message );
+        bool CanSendMessage( int clientIndex ) const;
 
-        Message * ReceiveMessageFromClient( int clientIndex );
+        void SendMessage( int clientIndex, Message * message );
+
+        Message * ReceiveMessage( int clientIndex );
 
         void ReleaseMessage( Message * message );
 
@@ -620,9 +622,11 @@ namespace yojimbo
 
         void Disconnect( int clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
 
-        void SendMessageToServer( Message * message );
+        bool CanSendMessage();
 
-        Message * ReceiveMessageFromServer();
+        void SendMessage( Message * message );
+
+        Message * ReceiveMessage();
 
         void ReleaseMessage( Message * message );
 

@@ -3994,7 +3994,7 @@ void test_connection_client_server()
         TestMessage * message = (TestMessage*) messageFactory.Create( MESSAGE_TEST );
         check( message );
         message->sequence = i;
-        client.SendMessageToServer( message );
+        client.SendMessage( message );
     }
 
     for ( int i = 0; i < NumMessagesSent; ++i )
@@ -4002,7 +4002,7 @@ void test_connection_client_server()
         TestMessage * message = (TestMessage*) messageFactory.Create( MESSAGE_TEST );
         check( message );
         message->sequence = i;
-        server.SendMessageToClient( client.GetClientIndex(), message );
+        server.SendMessage( client.GetClientIndex(), message );
     }
 
     int numMessagesReceivedFromClient = 0;
@@ -4029,7 +4029,7 @@ void test_connection_client_server()
 
         while ( true )
         {
-            Message * message = client.ReceiveMessageFromServer();
+            Message * message = client.ReceiveMessage();
 
             if ( !message )
                 break;
@@ -4048,7 +4048,7 @@ void test_connection_client_server()
 
         while ( true )
         {
-            Message * message = server.ReceiveMessageFromClient( client.GetClientIndex() );
+            Message * message = server.ReceiveMessage( client.GetClientIndex() );
 
             if ( !message )
                 break;

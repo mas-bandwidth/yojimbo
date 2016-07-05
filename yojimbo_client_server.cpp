@@ -517,7 +517,21 @@ namespace yojimbo
         }
     }
 
-    void Server::SendMessageToClient( int clientIndex, Message * message )
+    bool Server::CanSendMessage( int clientIndex ) const
+    {
+        if ( !IsRunning() )
+            return false;
+
+        if ( !IsClientConnected( clientIndex ) )
+            return false;
+
+        assert( m_messageFactory );
+        assert( m_connection[clientIndex] );
+
+        return m_connection[clientIndex]->CanSendMessage();
+    }
+
+    void Server::SendMessage( int clientIndex, Message * message )
     {
         assert( m_messageFactory );
 
@@ -532,7 +546,7 @@ namespace yojimbo
         m_connection[clientIndex]->SendMessage( message );
     }
 
-    Message * Server::ReceiveMessageFromClient( int clientIndex )
+    Message * Server::ReceiveMessage( int clientIndex )
     {
         assert( m_messageFactory );
 
@@ -1408,7 +1422,18 @@ namespace yojimbo
         ResetConnectionData( clientState );
     }
 
-    void Client::SendMessageToServer( Message * message )
+    bool Client::CanSendMessage()
+    {
+        if ( !IsConnected() )
+            return false;
+
+        assert( m_messageFactory );
+        assert( m_connection );
+        
+        return m_connection->CanSendMessage();
+    }
+
+    void Client::SendMessage( Message * message )
     {
         assert( IsConnected() );
         assert( m_messageFactory );
@@ -1416,7 +1441,7 @@ namespace yojimbo
         m_connection->SendMessage( message );
     }
 
-    Message * Client::ReceiveMessageFromServer()
+    Message * Client::ReceiveMessage()
     {
         assert( m_messageFactory );
 
