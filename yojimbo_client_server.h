@@ -344,7 +344,9 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
         double connectTime;
         double lastPacketSendTime;
+        double lastHeartBeatSendTime;
         double lastPacketReceiveTime;
+        bool fullyConnected;
 
         ServerClientData()
         {
@@ -354,7 +356,9 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
             connectTime = 0.0;
             lastPacketSendTime = 0.0;
+            lastHeartBeatSendTime = 0.0;
             lastPacketReceiveTime = 0.0;
+            fullyConnected = false;
         }
     };
 
@@ -642,7 +646,13 @@ namespace yojimbo
 
         void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
 
-        void SendPacketToServer( Packet * packet, bool immediate = false );
+        void SendPacketToServer( Packet * packet );
+
+    private:
+
+        void SendPacketToServer_Internal( Packet * packet, bool immediate = false );
+
+    protected:
 
         void ProcessConnectionDenied( const ConnectionDeniedPacket & packet, const Address & address );
 
@@ -655,6 +665,10 @@ namespace yojimbo
         void ProcessConnectionPacket( ConnectionPacket & packet, const Address & address );
 
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
+
+        bool IsPendingConnect();
+
+        void CompletePendingConnect( int clientIndex );
 
     protected:
 
