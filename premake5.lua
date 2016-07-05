@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.2.0"
+libyojimbo_version = "0.3.0-Preview1"
 
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
@@ -15,7 +15,7 @@ solution "Yojimbo"
         includedirs { ".", "./windows" }
         libdirs { "./windows" }
     else
-        includedirs { ".", "/usr/local/include" }       -- for clang scan-build only. for some reason it needs it to work
+        includedirs { ".", "/usr/local/include" }       -- for clang scan-build only. for some reason it needs this to work =p
     end
     if not os.is "windows" then
         targetdir "bin/"  
@@ -349,6 +349,7 @@ end
 newaction
 {
     trigger     = "clean",
+
     description = "Clean all yojimbo build files and output",
 
     execute = function ()
