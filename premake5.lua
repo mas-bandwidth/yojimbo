@@ -110,6 +110,16 @@ project "client_server"
     configuration "Release"
         links { release_libs }
 
+project "soak"
+    language "C++"
+    kind "ConsoleApp"
+    files { "soak.cpp", "shared.h" }
+    links { "yojimbo" }
+    configuration "Debug"
+        links { debug_libs }
+    configuration "Release"
+        links { release_libs }
+
 if not os.is "windows" then
 
     -- MacOSX and Linux.
@@ -233,6 +243,17 @@ if not os.is "windows" then
                 for i = 0, 63 do
                     os.execute "./bin/connect &"
                 end
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "soak",
+        description = "Build and run soak test",
+        execute = function ()
+            if os.execute "make -j32 soak" == 0 then
+                os.execute "./bin/soak"
             end
         end
     }
