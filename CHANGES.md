@@ -140,6 +140,34 @@ Sometimes the test is failing. I think the messages are getting stuck. Confirmed
 
 Need to setup a soak test to prove/disprove this.
 
+Setup a soak test based on client_server.cpp
+
+Why is it always server -> client messages that don't always get through?
+
+Shouldn't they both behave the same? client -> server and server -> client?
+
+OK. Confirmed it does happen for both. It's most likely a conection specific message hang then.
+
+Seems to stop on message #48 a lot for some reason?
+
+Try to work out why it's hanging...
+
+Early indication so far suggests that the sender isn't advancing forward with acks, so is resending the same old messages over and over.
+
+Reduced the test to just have server -> client message stream to make log inspection easier.
+
+Basically, what is going on here is that the receiver is getting messages in a particular packet, but the sender is not seeing that packet acked.
+
+But wait, since it then continues to send the same messages over and over, the sender should eventually see an ack for one of those packets, and move forward. But it's not, so are acks totally broken here somehow?!
+
+Oh great, it's because if it's a single direction of packet, the connection packets aren't sent unless there is packet data to send.
+
+So when the packet sending completes, it stops acking, which fucks up stuff in progress of being sent = race condition.
+
+Solution: need to send connection packets all the time, even if packet data isn't there to be sent, for acks to work.
+
+That was it. Confirmed fixed!
+
 
 Sunday July 3rd, 2016
 =====================
