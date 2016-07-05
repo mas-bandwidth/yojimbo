@@ -8,15 +8,9 @@ TODO
 
 Finish message system:
 
-1. Integrate messages with client/server
+1. Extend matcher and stress to continually be sending and receiving random test messages between the client and server.
 
-2. Add some unit tests for client/server based messages.
-
-3. Create soak test with messages exchanged between client and server.
-
-4. Extend matcher and stress to continually be sending and receiving random test messages between the client and server.
-
-5. Back port a minimal example (soak test) showing how to implement reliable ordered messages as example source code ("Building a Game Network Protocol")
+2. Back port a minimal example (soak test) showing how to implement reliable ordered messages as example source code ("Building a Game Network Protocol")
 
 
 
