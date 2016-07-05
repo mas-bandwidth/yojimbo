@@ -124,15 +124,15 @@ int ClientServerMain()
                 case 3:
                     networkSimulator.SetJitter( 250 );
                     networkSimulator.SetLatency( 1000 );
-                    networkSimulator.SetDuplicates( 90 );
-                    networkSimulator.SetPacketLoss( 50 );
+                    networkSimulator.SetDuplicates( 50 );
+                    networkSimulator.SetPacketLoss( 90 );
                     break;
 
                 default:
                     networkSimulator.SetJitter( 250 );
                     networkSimulator.SetLatency( 1000 );
-                    networkSimulator.SetDuplicates( 90 );
-                    networkSimulator.SetPacketLoss( 90 );
+                    networkSimulator.SetDuplicates( 50 );
+                    networkSimulator.SetPacketLoss( 99 );
                     break;
             }
         }
@@ -158,7 +158,7 @@ int ClientServerMain()
             break;
         }
 
-        time += 0.1f;
+        time += 0.01f;
 
         if ( client.IsConnected() )
         {

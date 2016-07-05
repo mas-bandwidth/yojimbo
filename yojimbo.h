@@ -38,7 +38,6 @@
 #include "yojimbo_packet_processor.h"
 #include "yojimbo_client_server.h"
 #include "yojimbo_sequence_buffer.h"
-#include "yojimbo_sliding_window.h"
 #include "yojimbo_message.h"
 #include "yojimbo_connection.h"
 

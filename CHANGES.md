@@ -1,4 +1,24 @@
 
+Tuesday July 5th, 2016
+======================
+
+Back port to "Building a Game Network Protocol"
+
+1. Back port a minimal example (soak test) showing how to implement reliable ordered messages as example source code ("Building a Game Network Protocol")
+
+2. Clean up the source code in "Building a Game Network Protocol" as much as possible so that it isn't like a prototypical version of libyojimbo (which the client/server stuff kindof is...). Ideally, each example should only depend on protocol2.h and network2.h. Keep it clean.
+
+3. Where is the line between libyojimbo and "Building a Game Network Protocol". I think it has to become libyojimbo at the point when everything comes together in the secure server with encryption. Otherwise, it's just so much a reimplementation of libyojimbo in a single cpp file. Silly.
+
+More thought required on this one.
+
+Decision has been made. Backport stuff that makes sense and can be standalone.
+
+Stop at the example of the insecure client/server and separate encryption example.
+
+Beyond this it would basically require maintaining yojimbo as an example program -- that *is* what the secure dedicated server stuff has become.
+
+
 Monday July 4th, 2016
 =====================
 

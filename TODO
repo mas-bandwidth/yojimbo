@@ -2,19 +2,19 @@ DONE
 
 TODO
 
-Back port to "Building a Game Network Protocol"
+Bumped up soak test to have some higher packet loss (99%), and it gets this:
 
-    1. Back port a minimal example (soak test) showing how to implement reliable ordered messages as example source code ("Building a Game Network Protocol")
+    client sent message 11563
+    Assertion failed: (int64_t(difference) >= int64_t(7)), function serialize_int_relative_internal, file ./yojimbo_serialize.h, line 291.
 
-    2. Clean up the source code in "Building a Game Network Protocol" as much as possible so that it isn't like a prototypical version of libyojimbo (which the client/server stuff kindof is...). Ideally, each example should only depend on protocol2.h and network2.h. Keep it clean.
-
-    3. Where is the line between libyojimbo and "Building a Game Network Protocol". I think it has to become libyojimbo at the point when everything comes together in the secure server with encryption. Otherwise, it's just so much a reimplementation of libyojimbo in a single cpp file. Silly.
-
-    More thought required on this one.
+Need to track this down. It should work flawlessly under worst possible network conditions. It must not break.
 
 
 
 
+
+
+--------------
 
 Add large block support:
 
