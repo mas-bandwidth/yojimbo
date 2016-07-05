@@ -151,6 +151,8 @@ namespace yojimbo
 
     Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config ) : m_config( config )
     {
+        // todo: check various configs vars that they divide 65536 evenly
+
         m_allocator = &allocator;
 
         m_packetFactory = &packetFactory;
@@ -159,9 +161,9 @@ namespace yojimbo
         
         m_error = CONNECTION_ERROR_NONE;
 
-        m_sentPackets = YOJIMBO_NEW( *m_allocator, ConnectionSentPackets, *m_allocator, m_config.slidingWindowSize );
+        m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<SentPacketData>, *m_allocator, m_config.slidingWindowSize );
         
-        m_receivedPackets = YOJIMBO_NEW( *m_allocator, ConnectionReceivedPackets, *m_allocator, m_config.slidingWindowSize );
+        m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ReceivedPacketData>, *m_allocator, m_config.slidingWindowSize );
 
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
         
@@ -169,6 +171,7 @@ namespace yojimbo
         
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
 
+        // todo: function to calculate this
         const int maxMessageType = m_messageFactory->GetNumTypes() - 1;
 
         const int MessageIdBits = 16;
@@ -189,8 +192,8 @@ namespace yojimbo
         assert( m_sentPackets );
         assert( m_receivedPackets );
 
-        YOJIMBO_DELETE( *m_allocator, ConnectionSentPackets, m_sentPackets );
-        YOJIMBO_DELETE( *m_allocator, ConnectionReceivedPackets, m_receivedPackets );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<SentPacketData>, m_sentPackets );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ReceivedPacketData>, m_receivedPackets );
 
         assert( m_messageSendQueue );
         assert( m_messageSentPackets );
@@ -401,11 +404,6 @@ namespace yojimbo
         m_time = time;
     }
 
-    double Connection::GetTime() const
-    {
-        return m_time;
-    }
-
     uint64_t Connection::GetCounter( int index ) const
     {
         assert( index >= 0 );
@@ -420,7 +418,7 @@ namespace yojimbo
 
     void Connection::InsertAckPacketEntry( uint16_t sequence )
     {
-        ConnectionSentPacketData * entry = m_sentPackets->Insert( sequence );
+        SentPacketData * entry = m_sentPackets->Insert( sequence );
         
         assert( entry );
 
@@ -437,7 +435,7 @@ namespace yojimbo
             if ( ack_bits & 1 )
             {                    
                 const uint16_t sequence = ack - i;
-                ConnectionSentPacketData * packetData = m_sentPackets->Find( sequence );
+                SentPacketData * packetData = m_sentPackets->Find( sequence );
                 if ( packetData && !packetData->acked )
                 {
                     PacketAcked( sequence );
@@ -465,12 +463,15 @@ namespace yojimbo
 
         if ( !firstEntry )
             return;
-
-        int availableBits = 256 * 8; // todo - m_config.packetBudget * 8;
         
+
+        const int GiveUpBits = 8 * 8;
+
+        int availableBits = m_config.messagePacketBudget * 8;
+
         for ( int i = 0; i < m_config.messageSendQueueSize; ++i )
         {
-            if ( availableBits < 16 * 8 ) // todo - m_config.messageGiveUpBits )
+            if ( availableBits <= GiveUpBits )
                 break;
             
             const uint16_t messageId = m_oldestUnackedMessageId + i;

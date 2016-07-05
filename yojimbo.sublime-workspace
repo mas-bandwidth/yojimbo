@@ -714,21 +714,29 @@
 	],
 	"file_history":
 	[
+		"/Users/gaffer/git/libyojimbo/yojimbo_client_server.h",
+		"/Users/gaffer/git/protocol/src/Protocol/ReliableMessageChannel.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo.h",
+		"/Users/gaffer/git/libyojimbo/test.cpp",
+		"/Users/gaffer/git/libyojimbo/windows/sodium/crypto_onetimeauth_poly1305.h",
+		"/Users/gaffer/git/libyojimbo/premake5.lua",
+		"/Users/gaffer/git/libyojimbo/yojimbo_message.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_connection.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_sequence_buffer.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_bit_array.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_connection.cpp",
+		"/Users/gaffer/git/libyojimbo/soak.cpp",
 		"/Users/gaffer/git/libyojimbo/TODO",
 		"/Users/gaffer/git/libyojimbo/CHANGES.md",
-		"/Users/gaffer/git/libyojimbo/premake5.lua",
-		"/Users/gaffer/git/libyojimbo/soak.cpp",
+		"/Users/gaffer/git/protocol/src/Protocol/ReliableMessageChannel.h",
+		"/Users/gaffer/git/libyojimbo/docker/matcher/matcher.go",
 		"/Users/gaffer/git/libyojimbo/server.cpp",
 		"/Users/gaffer/git/libyojimbo/client.cpp",
 		"/Users/gaffer/git/libyojimbo/connect.cpp",
 		"/Users/gaffer/git/libyojimbo/shared.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_serialize.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_client_server.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_client_server.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_connection.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_connection.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_allocator.h",
-		"/Users/gaffer/git/libyojimbo/test.cpp",
 		"/Users/gaffer/git/libyojimbo/test.txt",
 		"/Users/gaffer/git/libyojimbo/yojimbo_interface.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_interface.h",
@@ -736,10 +744,7 @@
 		"/Users/gaffer/git/libyojimbo/yojimbo_packet_processor.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_simulator.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_simulator.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_message.h",
-		"/Users/gaffer/git/protocol/src/Protocol/ReliableMessageChannel.cpp",
 		"/Users/gaffer/git/protocol/tests/Protocol/TestReliableMessageChannel.cpp",
-		"/Users/gaffer/git/libyojimbo/docker/matcher/matcher.go",
 		"/Users/gaffer/git/libyojimbo/yojimbo_address.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_address.cpp",
 		"/Users/gaffer/git/libyojimbo/info.cpp",
@@ -757,7 +762,6 @@
 		"/Users/gaffer/git/protocol/src/Protocol/Stream.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_packet.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_packet.cpp",
-		"/Users/gaffer/git/protocol/src/Protocol/ReliableMessageChannel.h",
 		"/Users/gaffer/git/protocol/src/Protocol/ConnectionPacket.h",
 		"/Users/gaffer/git/protocol/src/Protocol/Connection.cpp",
 		"/Users/gaffer/git/protocol/src/Protocol/Connection.h",
@@ -767,7 +771,6 @@
 		"/Users/gaffer/git/protocol/src/Protocol/MessageChannel.h",
 		"/Users/gaffer/git/protocol/tests/Protocol/TestConnection.cpp",
 		"/Users/gaffer/git/protocol/src/Protocol/MessageFactory.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_config.h",
 		"/Users/gaffer/git/protocol/src/Protocol/Message.h",
 		"/Users/gaffer/git/protocol/src/Protocol/Block.h",
@@ -777,8 +780,6 @@
 		"/Users/gaffer/git/libyojimbo/.git/MERGE_MSG",
 		"/Users/gaffer/git/protocol/tests/Protocol/TestSlidingWindow.cpp",
 		"/Users/gaffer/git/protocol/tests/Protocol/TestBitArray.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_bit_array.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_sequence_buffer.h",
 		"/Users/gaffer/git/protocol/tests/Protocol/TestNetworkBuffer.cpp",
 		"/Users/gaffer/git/libyojimbo/yojimbo_encryption.cpp",
 		"/Users/gaffer/git/libyojimbo/BUILDING.md",
@@ -840,8 +841,7 @@
 		"/Users/gaffer/git/libyojimbo/yojimbo_json.h",
 		"/Users/gaffer/msgpack-c/QUICKSTART-C.md",
 		"/Users/gaffer/git/libyojimbo/CHANGES",
-		"/Users/gaffer/.Trash/libb64-1.2/src/cdecode.c",
-		"/Users/gaffer/.Trash/libb64-1.2/src/cencode.c"
+		"/Users/gaffer/.Trash/libb64-1.2/src/cdecode.c"
 	],
 	"find":
 	{
@@ -892,6 +892,14 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"test_connection_messages",
+			"test_connection",
+			"SlidingWindow",
+			"ConnectionReceivedPackets",
+			"ConnectionReceivedPacketData",
+			"ConnectionSentPacket",
+			"GetTime",
+			"(int) numMess",
 			"release_x64",
 			"x64",
 			"release64",
@@ -1011,15 +1019,7 @@
 			"ReceivePacket",
 			"::ProcessPacket",
 			"Create(",
-			"CreatePacket",
-			"directories",
-			"files_to",
-			"PRI",
-			"json:",
-			"address json",
-			"\"processed packet",
-			"Malloc",
-			"MallocA"
+			"CreatePacket"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1124,12 +1124,16 @@
 		"selected_items":
 		[
 			[
+				"changes",
+				"libyojimbo/CHANGES.md"
+			],
+			[
 				"todo",
 				"libyojimbo/TODO"
 			],
 			[
-				"chang",
-				"libyojimbo/CHANGES.md"
+				"soak",
+				"libyojimbo/soak.cpp"
 			],
 			[
 				"soak.cpp",
@@ -1138,6 +1142,42 @@
 			[
 				"test.cpp",
 				"libyojimbo/test.cpp"
+			],
+			[
+				"connection.cpp",
+				"libyojimbo/yojimbo_connection.cpp"
+			],
+			[
+				"bit_array",
+				"libyojimbo/yojimbo_bit_array.h"
+			],
+			[
+				"sequence_buffer.h",
+				"libyojimbo/yojimbo_sequence_buffer.h"
+			],
+			[
+				"matcher.go",
+				"libyojimbo/docker/matcher/matcher.go"
+			],
+			[
+				"client_server.h",
+				"libyojimbo/yojimbo_client_server.h"
+			],
+			[
+				"connection.h",
+				"libyojimbo/yojimbo_connection.h"
+			],
+			[
+				"mesage",
+				"libyojimbo/yojimbo_message.h"
+			],
+			[
+				"premake5.lua",
+				"libyojimbo/premake5.lua"
+			],
+			[
+				"chang",
+				"libyojimbo/CHANGES.md"
 			],
 			[
 				"server.cpp",
@@ -1156,28 +1196,12 @@
 				"libyojimbo/yojimbo_client_server.cpp"
 			],
 			[
-				"client_server.h",
-				"libyojimbo/yojimbo_client_server.h"
-			],
-			[
-				"premake5.lua",
-				"libyojimbo/premake5.lua"
-			],
-			[
 				"client_serve",
 				"libyojimbo/client_server.cpp"
 			],
 			[
 				"client_se",
 				"libyojimbo/yojimbo_client_server.cpp"
-			],
-			[
-				"changes",
-				"libyojimbo/CHANGES.md"
-			],
-			[
-				"connection.cpp",
-				"libyojimbo/yojimbo_connection.cpp"
 			],
 			[
 				"test.txt",
@@ -1210,10 +1234,6 @@
 			[
 				"client_sever.cpp",
 				"libyojimbo/client_server.cpp"
-			],
-			[
-				"connection.h",
-				"libyojimbo/yojimbo_connection.h"
 			],
 			[
 				"clinet_server.h",
@@ -1346,10 +1366,6 @@
 			[
 				"build",
 				"libyojimbo/BUILDING.md"
-			],
-			[
-				"matcher.go",
-				"libyojimbo/docker/matcher/matcher.go"
 			],
 			[
 				"inter",
@@ -1618,22 +1634,6 @@
 			[
 				"runserver.bat",
 				"libyojimbo/docker/runServer.bat"
-			],
-			[
-				"buildserver.bat",
-				"libyojimbo/docker/buildServer.bat"
-			],
-			[
-				"buildserver.sh",
-				"libyojimbo/docker/buildServer.sh"
-			],
-			[
-				"copyfiles.sh",
-				"libyojimbo/docker/copyFiles.sh"
-			],
-			[
-				"client_sere",
-				"libyojimbo/yojimbo_client_server.h"
 			]
 		],
 		"width": 0.0

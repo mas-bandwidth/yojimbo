@@ -89,7 +89,7 @@ namespace yojimbo
 
         int messageReceiveQueueSize;            // receive queue size
 
-        int messageSentPacketsSize;             // sent packets sliding window size (# of packets)
+        int messageSentPacketsSize;             // message sent packets sliding window size (# of packets)
 
         int messagePacketBudget;                // budget of how many bytes messages can take up in the connection packet
 
@@ -112,14 +112,6 @@ namespace yojimbo
             messagePacketBudget = 1024;
         }
     };
-
-    struct ConnectionSentPacketData { uint8_t acked; };
-
-    struct ConnectionReceivedPacketData {};
-    
-    typedef SequenceBuffer<ConnectionSentPacketData> ConnectionSentPackets;
-    
-    typedef SequenceBuffer<ConnectionReceivedPacketData> ConnectionReceivedPackets;
 
     enum ConnectionCounters
     {
@@ -164,8 +156,6 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
-        double GetTime() const;
-
         uint64_t GetCounter( int index ) const;
 
         ConnectionError GetError() const;
@@ -176,6 +166,10 @@ namespace yojimbo
 
     protected:
 
+        struct SentPacketData { uint8_t acked; };
+
+        struct ReceivedPacketData {};
+    
         struct MessageSendQueueEntry
         {
             Message * message;
@@ -198,83 +192,6 @@ namespace yojimbo
         struct MessageReceiveQueueEntry
         {
             Message * message;
-        };
-
-        struct MessageSendLargeBlockData
-        {
-            MessageSendLargeBlockData()
-            {
-                ackedFragment = NULL;
-                timeFragmentLastSent = NULL;
-                Reset();
-            }
-
-            void Reset()
-            {
-                active = false;
-                numFragments = 0;
-                numAckedFragments = 0;
-                blockId = 0;
-                blockSize = 0;
-            }
-
-            bool active;                                // true if we are currently sending a large block
-            int numFragments;                           // number of fragments in the current large block being sent
-            int numAckedFragments;                      // number of acked fragments in current block being sent
-            int blockSize;                              // send block size in bytes
-            uint16_t blockId;                           // the message id for the current large block being sent
-            BitArray * ackedFragment;                   // has fragment n been received?
-            double * timeFragmentLastSent;              // time fragment last sent in seconds.
-        };
-
-        struct MessageReceiveLargeBlockData
-        {
-            MessageReceiveLargeBlockData()
-            {
-                blockData = NULL;
-                receivedFragment = NULL;
-                Reset();
-            }
-
-            void Reset()
-            {
-                // todo: need to add code to free the block data elsewhere
-                if ( blockData )
-                    assert( false );
-
-                active = false;
-                numFragments = 0;
-                numReceivedFragments = 0;
-                blockId = 0;
-                blockSize = 0;
-                blockData = NULL;
-            }
-
-            bool active;                                // true if we are currently receiving a large block
-            int numFragments;                           // number of fragments in this block
-            int numReceivedFragments;                   // number of fragments received.
-            uint16_t blockId;                           // block id being currently received.
-            uint32_t blockSize;                         // block size in bytes.
-            uint8_t * blockData;                        // pointer to block data being received.
-            BitArray * receivedFragment;                // has fragment n been received?
-        };
-
-        struct MessageSendLargeBlockStatus
-        {
-            bool sending;
-            int blockId;
-            int blockSize;
-            int numFragments;
-            int numAckedFragments;
-        };
-
-        struct MessageReceiveLargeBlockStatus
-        {
-            bool receiving;
-            int blockId;
-            int blockSize;
-            int numFragments;
-            int numReceivedFragments;
         };
 
         void InsertAckPacketEntry( uint16_t sequence );
@@ -307,15 +224,9 @@ namespace yojimbo
 
         ConnectionError m_error;                                                        // connection error level
 
-        // ack system
+        SequenceBuffer<SentPacketData> * m_sentPackets;                                 // sequence buffer of recently sent packets
 
-        ConnectionSentPackets * m_sentPackets;                                          // sliding window of recently sent packets
-
-        ConnectionReceivedPackets * m_receivedPackets;                                  // sliding window of recently received packets
-
-        // message system
-
-//        int m_maxBlockFragments;                                                        // maximum number of fragments per-block
+        SequenceBuffer<ReceivedPacketData> * m_receivedPackets;                         // sequence buffer of recently received packets
 
         int m_messageOverheadBits;                                                      // number of bits overhead per-serialized message
 
@@ -331,13 +242,7 @@ namespace yojimbo
 
         SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               // message receive queue
 
-        MessageSendLargeBlockData m_sendLargeBlock;                                     // data for large block being sent
-
-        MessageReceiveLargeBlockData m_receiveLargeBlock;                               // data for large block being received
-
         uint16_t * m_sentPacketMessageIds;                                              // array of message ids, n ids per-sent packet
-
-        // counters
 
         uint64_t m_counters[CONNECTION_COUNTER_NUM_COUNTERS];                           // counters for unit testing, stats etc.
     };
