@@ -2,17 +2,6 @@ DONE
 
 TODO
 
-Setup a soak test on client_server.cpp
-
-
-
-
-
------
-
-Implement a client/server centric soak test for sending and receiving messages (base on client_server.cpp)
-
-
 
 
 

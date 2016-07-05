@@ -1322,10 +1322,10 @@ public:
 
     TestNetworkSimulator() : NetworkSimulator( GetDefaultAllocator() )
     {
-        SetJitter( 250 );           // +/- 250ms jitter
-        SetLatency( 1000 );         // +1000ms delay
-        SetDuplicates( 10 );        // 10% duplicate packets
-        SetPacketLoss( 10 );        // 10% packet loss
+        SetJitter( 250 );
+        SetLatency( 1000 );
+        SetDuplicates( 25 );
+        SetPacketLoss( 25 );
     }   
 };
 
@@ -4008,7 +4008,7 @@ void test_connection_client_server()
     int numMessagesReceivedFromClient = 0;
     int numMessagesReceivedFromServer = 0;
 
-    const int NumIterations = 1000;
+    const int NumIterations = 500;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -4062,7 +4062,7 @@ void test_connection_client_server()
 
             ++numMessagesReceivedFromClient;
 
-            client.ReleaseMessage( message );
+            server.ReleaseMessage( message );
         }
 
         if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
