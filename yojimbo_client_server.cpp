@@ -517,6 +517,40 @@ namespace yojimbo
         }
     }
 
+    void Server::SendMessageToClient( int clientIndex, Message * message )
+    {
+        assert( m_messageFactory );
+
+        if ( !m_clientConnected[clientIndex] )
+        {
+            m_messageFactory->Release( message );
+            return;
+        }
+
+        assert( m_connection[clientIndex] );
+
+        m_connection[clientIndex]->SendMessage( message );
+    }
+
+    Message * Server::ReceiveMessageFromClient( int clientIndex )
+    {
+        assert( m_messageFactory );
+
+        if ( !m_clientConnected[clientIndex] )
+            return NULL;
+
+        assert( m_connection[clientIndex] );
+
+        return m_connection[clientIndex]->ReceiveMessage();
+    }
+
+    void Server::ReleaseMessage( Message * message )
+    {
+        assert( message );
+        assert( m_messageFactory );
+        m_messageFactory->Release( message );
+    }
+
     void Server::SendPackets()
     {
         if ( !IsRunning() )
@@ -614,6 +648,16 @@ namespace yojimbo
         assert( time >= m_time );
 
         m_time = time;
+
+        if ( m_messageFactory )
+        {
+            for ( int i = 0; i < m_maxClients; ++i )
+            {
+                assert( m_connection[i] );
+                if ( IsClientConnected( i ) )
+                    m_connection[i]->AdvanceTime( time );
+            }
+        }
     }
 
     void Server::SetFlags( uint64_t flags )
@@ -1077,7 +1121,7 @@ namespace yojimbo
         
         m_clientData[clientIndex].lastPacketReceiveTime = time;
 
-        m_clientData[clientIndex].fullyConnected = false;
+        m_clientData[clientIndex].fullyConnected = true;
     }
 
     void Server::ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address )
@@ -1160,7 +1204,7 @@ namespace yojimbo
 
         m_clientData[clientIndex].lastPacketReceiveTime = GetTime();
 
-        m_clientData[clientIndex].fullyConnected = false;
+        m_clientData[clientIndex].fullyConnected = true;
     }
 
     void Server::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
@@ -1204,7 +1248,7 @@ namespace yojimbo
         if ( clientIndex == -1 )
             return;
 
-        m_clientData[clientIndex].fullyConnected = false;
+        m_clientData[clientIndex].fullyConnected = true;
 
         if ( !ProcessGamePacket( clientIndex, packet, sequence ) )
             return;
@@ -1254,6 +1298,8 @@ namespace yojimbo
     {
         m_allocator = &allocator;
 
+        m_networkInterface = &networkInterface;
+
         m_messageFactory = messageFactory;
 
         if ( messageFactory )
@@ -1270,7 +1316,7 @@ namespace yojimbo
         }
 
         m_time = 0.0;
-        m_networkInterface = &networkInterface;
+
         m_clientState = CLIENT_STATE_DISCONNECTED;
 
         ResetConnectionData();
@@ -1358,6 +1404,33 @@ namespace yojimbo
         }
 
         ResetConnectionData( clientState );
+    }
+
+    void Client::SendMessageToServer( Message * message )
+    {
+        assert( IsConnected() );
+        assert( m_messageFactory );
+        assert( m_connection );
+        m_connection->SendMessage( message );
+    }
+
+    Message * Client::ReceiveMessageFromServer()
+    {
+        assert( m_messageFactory );
+
+        if ( !IsConnected() )
+            return NULL;
+
+        assert( m_connection );
+
+        return m_connection->ReceiveMessage();
+    }
+
+    void Client::ReleaseMessage( Message * message )
+    {
+        assert( message );
+        assert( m_messageFactory );
+        m_messageFactory->Release( message );
     }
 
     bool Client::IsConnecting() const
@@ -1546,6 +1619,9 @@ namespace yojimbo
         assert( time >= m_time );
 
         m_time = time;
+
+        if ( m_connection )
+            m_connection->AdvanceTime( time );
     }
 
     double Client::GetTime() const

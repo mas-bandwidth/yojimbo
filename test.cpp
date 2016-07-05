@@ -1058,7 +1058,7 @@ class GameServer : public Server
 
 public:
 
-    explicit GameServer( Allocator & allocator, NetworkInterface & networkInterface ) : Server( allocator, networkInterface )
+    explicit GameServer( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL ) : Server( allocator, networkInterface, messageFactory )
     {
         SetPrivateKey( private_key );
         m_gamePacketSequence = 0;
@@ -1182,7 +1182,7 @@ class GameClient : public Client
 
 public:
 
-    explicit GameClient( Allocator & allocator, NetworkInterface & networkInterface ) : Client( allocator, networkInterface )
+    explicit GameClient( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL ) : Client( allocator, networkInterface, messageFactory )
     {
         m_numGamePacketsReceived = 0;
         m_gamePacketSequence = 0;
@@ -3893,6 +3893,197 @@ void test_connection_messages()
     check( numMessagesReceived == NumMessagesSent );
 }
 
+void test_connection_client_server()
+{
+    printf( "test_connection_client_server\n" );
+
+    TestMatcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    GamePacketFactory packetFactory;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+
+    double time = 0.0;
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionContext context;
+    context.messageFactory = &messageFactory;
+
+    clientInterface.SetContext( &context );
+    serverInterface.SetContext( &context );
+
+    GameClient client( GetDefaultAllocator(), clientInterface, &messageFactory );
+
+    GameServer server( GetDefaultAllocator(), serverInterface, &messageFactory );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+
+    while ( true )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    const int NumMessagesSent = 64;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        TestMessage * message = (TestMessage*) messageFactory.Create( MESSAGE_TEST );
+        check( message );
+        message->sequence = i;
+        client.SendMessageToServer( message );
+    }
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        TestMessage * message = (TestMessage*) messageFactory.Create( MESSAGE_TEST );
+        check( message );
+        message->sequence = i;
+        server.SendMessageToClient( client.GetClientIndex(), message );
+    }
+
+    int numMessagesReceivedFromClient = 0;
+    int numMessagesReceivedFromServer = 0;
+
+    const int NumIterations = 1000;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientInterface.WritePackets();
+        serverInterface.WritePackets();
+
+        clientInterface.ReadPackets();
+        serverInterface.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        while ( true )
+        {
+            Message * message = client.ReceiveMessageFromServer();
+
+            if ( !message )
+                break;
+
+            check( message->GetId() == (int) numMessagesReceivedFromServer );
+            check( message->GetType() == MESSAGE_TEST );
+
+            TestMessage * testMessage = (TestMessage*) message;
+
+            check( testMessage->sequence == numMessagesReceivedFromServer );
+
+            ++numMessagesReceivedFromServer;
+
+            client.ReleaseMessage( message );
+        }
+
+        while ( true )
+        {
+            Message * message = server.ReceiveMessageFromClient( client.GetClientIndex() );
+
+            if ( !message )
+                break;
+
+            check( message->GetId() == (int) numMessagesReceivedFromClient );
+            check( message->GetType() == MESSAGE_TEST );
+
+            TestMessage * testMessage = (TestMessage*) message;
+
+            check( testMessage->sequence == numMessagesReceivedFromClient );
+
+            ++numMessagesReceivedFromClient;
+
+            client.ReleaseMessage( message );
+        }
+
+        if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
+            break;
+
+        time += 0.1;
+
+        if ( !client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientInterface.AdvanceTime( time );
+        serverInterface.AdvanceTime( time );
+    }
+
+    check( numMessagesReceivedFromClient == NumMessagesSent );
+    check( numMessagesReceivedFromServer == NumMessagesSent );
+}
+
 int main()
 {
     srand( time( NULL ) );
@@ -3946,6 +4137,7 @@ int main()
         test_connection_counters();
         test_connection_acks();
         test_connection_messages();
+        test_connection_client_server();
 
 #if SOAK_TEST
         if ( quit || iter == 100 ) 

@@ -2,13 +2,16 @@ DONE
 
 TODO
 
-Add functions for creating, sending, receiving, addref and releasing messages to client and server.
+Setup a soak test on client_server.cpp
 
-Implement a client/server centric unit test for sending and receiving messages.
+
+
+
+
+-----
 
 Implement a client/server centric soak test for sending and receiving messages (base on client_server.cpp)
 
-Extend matcher and stress to continually be sending and receiving random test messages between the client and server.
 
 
 
@@ -22,7 +25,9 @@ Finish message system:
 
 3. Create soak test with messages exchanged between client and server.
 
-4. Back port a minimal example (soak test) showing how to implement reliable ordered messages as example source code ("Building a Game Network Protocol")
+4. Extend matcher and stress to continually be sending and receiving random test messages between the client and server.
+
+5. Back port a minimal example (soak test) showing how to implement reliable ordered messages as example source code ("Building a Game Network Protocol")
 
 
 
