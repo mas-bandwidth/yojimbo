@@ -30,7 +30,7 @@ namespace yojimbo
     {
         if ( messageFactory )
         {
-            for ( int i = 0; i < (int) numMessages; ++i )
+            for ( int i = 0; i < numMessages; ++i )
             {
                 assert( messages[i] );
 
@@ -68,8 +68,6 @@ namespace yojimbo
 
         serialize_align( stream );
 
-        serialize_check( stream, "ack system (end)" );
-
         // serialize messages
 
         bool hasMessages = numMessages != 0;
@@ -78,8 +76,6 @@ namespace yojimbo
 
         if ( hasMessages )
         {
-            serialize_check( stream, "message system (begin)" );
-
             serialize_int( stream, numMessages, 1, MaxMessagesPerPacket );
 
             int messageTypes[MaxMessagesPerPacket];
@@ -88,17 +84,21 @@ namespace yojimbo
 
             if ( Stream::IsWriting )
             {
-                for ( int i = 0; i < (int) numMessages; ++i )
+                for ( int i = 0; i < numMessages; ++i )
                 {
                     assert( messages[i] );
                     messageTypes[i] = messages[i]->GetType();
                     messageIds[i] = messages[i]->GetId();
                 }
             }
+            else
+            {
+                memset( messages, 0, sizeof( messages ) );
+            }
 
             serialize_bits( stream, messageIds[0], 16 );
 
-            for ( int i = 1; i < (int) numMessages; ++i )
+            for ( int i = 1; i < numMessages; ++i )
             {
                 serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
             }
@@ -108,7 +108,7 @@ namespace yojimbo
                 messageFactory = context->messageFactory;
             }
 
-            for ( int i = 0; i < (int) numMessages; ++i )
+            for ( int i = 0; i < numMessages; ++i )
             {
                 const int maxMessageType = messageFactory->GetNumTypes() - 1;
 
@@ -118,8 +118,8 @@ namespace yojimbo
                 {
                     messages[i] = context->messageFactory->Create( messageTypes[i] );
 
-                    assert( messages[i] );
-                    assert( messages[i]->GetType() == messageTypes[i] );
+                    if ( !messages[i] )
+                        return false;
 
                     messages[i]->AssignId( messageIds[i] );
                 }
@@ -129,8 +129,6 @@ namespace yojimbo
                 if ( !messages[i]->SerializeInternal( stream ) )
                     return false;
             }
-
-            serialize_check( stream, "message system (end)" );
         }
 
         return true;
@@ -149,18 +147,6 @@ namespace yojimbo
     bool ConnectionPacket::SerializeInternal( MeasureStream & stream )
     {
         return Serialize( stream );
-    }
-
-    bool ConnectionPacket::operator ==( const ConnectionPacket & other ) const
-    {
-        return sequence == other.sequence &&
-                    ack == other.ack &&
-               ack_bits == other.ack_bits;
-    }
-
-    bool ConnectionPacket::operator !=( const ConnectionPacket & other ) const
-    {
-        return !( *this == other );
     }
 
     Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config ) : m_config( config )
@@ -294,8 +280,10 @@ namespace yojimbo
 
         if ( !blockMessage )
         {
-            MeasureStream measureStream( m_config.maxSerializedMessageSize * 2 );
+            MeasureStream measureStream( m_config.messagePacketBudget / 2 );        // if a single message takes up more than 1/2 the packet budget, there will be problems.
+
             message->SerializeInternal( measureStream );
+
             if ( measureStream.GetError() )
             {
                 m_error = CONNECTION_ERROR_MESSAGE_SERIALIZE_MEASURE_FAILED;

@@ -46,7 +46,7 @@ namespace yojimbo
         uint16_t sequence;
         uint16_t ack;
         uint32_t ack_bits;
-        uint32_t numMessages;
+        int numMessages;
         Message * messages[MaxMessagesPerPacket];
         MessageFactory * messageFactory;
 
@@ -68,10 +68,6 @@ namespace yojimbo
         bool SerializeInternal( WriteStream & stream );
 
         bool SerializeInternal( MeasureStream & stream );
-
-        bool operator ==( const ConnectionPacket & other ) const;
-
-        bool operator !=( const ConnectionPacket & other ) const;
 
     private:
 
@@ -95,9 +91,7 @@ namespace yojimbo
 
         int messageSentPacketsSize;             // sent packets sliding window size (# of packets)
 
-        int maxSerializedMessageSize;           // maximum size of a serialized message (bytes)
-
-        int packetBudget;                       // budget of how many bytes messages can take up in the connection packet
+        int messagePacketBudget;                // budget of how many bytes messages can take up in the connection packet
 
         ConnectionConfig()
         {
@@ -115,9 +109,7 @@ namespace yojimbo
 
             messageSentPacketsSize = 256;
 
-            maxSerializedMessageSize = 64;
-
-            packetBudget = 1024;
+            messagePacketBudget = 1024;
         }
     };
 
