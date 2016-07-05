@@ -2,17 +2,13 @@ DONE
 
 TODO
 
-Next steps. 
+Add functions for creating, sending, receiving, addref and releasing messages to client and server.
 
-a) Harden client connect so if any packet comes in that is a heartbeat packet, connection packet or any game type packet, and the client is still in a pending connection state, the connection switches to connected before processing that packet.
+Implement a client/server centric unit test for sending and receiving messages.
 
-b) Add functions for creating, sending, receiving, addref and releasing messages to client and server.
+Implement a client/server centric soak test for sending and receiving messages (base on client_server.cpp)
 
-c) Implement a client/server centric unit test for sending and receiving messages.
-
-d) Implement a client/server centric soak test for sending and receiving messages (base on client_server.cpp)
-
-e) Extend matcher and stress to continually be sending and receiving random test messages between the client and server.
+Extend matcher and stress to continually be sending and receiving random test messages between the client and server.
 
 
 

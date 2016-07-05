@@ -102,6 +102,26 @@ In the end I don't think that forming a connection early is a bad thing, and is 
 and if the processing of a packet returns false, it still initiates the connection anyway. It should 
 time out later if the processing is truly broken for some reason. rare.
 
+Harden client connect so if any packet comes in that is a heartbeat packet, connection packet or any game type packet, and the client is still in a pending connection state, the connection switches to connected before processing that packet.
+
+^--- No this doesn't work, because the heartbeat contains the clientIndex, and the client needs to know that before considering the client connected.
+
+So the server needs to have a concept "fullyConnected". Once fully connected is true, the server stops sending heartbeat packets to the client unless no other packets have been sent. For it's part, the client must not set "IsConnected" until the client index is known, so no other packets may be sent client -> server until the client knows its client index from a heartbeat packet.
+
+Done. Separated client send packet to server into internal version for connect, which sends packets at any time, and the regular, protected function "SendPacketToServer" which can only send once connected. Now there is a guarantee that the client only sends connection packets once being connected.
+
+Now on the server, add concept of "fullyConnected" per-client, which is false initially and becomes true when the first game packet, heartbeat or connection packet is received.
+
+Now extended the server to only send connect packets to the client once fully connected.
+
+It would still be possible to send non-connect packets to the client and not have the connect complete.
+
+I think it is necessary in this case to have a mode of operation where heartbeat is sent until acked at the given rate, ignoring other packets being sent.
+
+Perhaps packets other than heartbeat are not allowed to be sent until fully connected, alternatively, have a time last heartbeat sent and only consider that. Which is best?
+
+The simplest is to just force sending of heartbeat until fully connected. Implemented. See "lastHeartBeatSendTime".
+
 
 Sunday July 3rd, 2016
 =====================
