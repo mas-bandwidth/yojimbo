@@ -97,15 +97,7 @@ namespace yojimbo
 
         int maxSerializedMessageSize;           // maximum size of a serialized message (bytes)
 
-        /*
-        int maxMessageSize;             // maximum message size allowed in iserialized bytes, eg. post bitpacker
-        int maxSmallBlockSize;          // maximum small block size allowed. messages above this size are fragmented and reassembled.
-        int maxLargeBlockSize;          // maximum large block size. these blocks are split up into fragments.
-        int blockFragmentSize;          // fragment size that large blocks are split up to for transmission.
-        int packetBudget;               // maximum number of bytes this channel may take per-packet. 
-        int giveUpBits;                 // give up trying to add more messages to packet if we have less than this # of bits available.
-        bool align;                     // if true then insert align at key points, eg. before messages etc. good for dictionary based LZ compressors
-        */
+        int packetBudget;                       // budget of how many bytes messages can take up in the connection packet
 
         ConnectionConfig()
         {
@@ -124,6 +116,8 @@ namespace yojimbo
             messageSentPacketsSize = 256;
 
             maxSerializedMessageSize = 64;
+
+            packetBudget = 1024;
         }
     };
 
@@ -171,8 +165,6 @@ namespace yojimbo
         void SendMessage( Message * message );
 
         Message * ReceiveMessage();
-
-        bool HasDataToSend() const;
 
         ConnectionPacket * WritePacket();
 
