@@ -25,7 +25,7 @@ const AuthBytes = 16
 const MacBytes = 16
 const ConnectTokenBytes = 1024
 const MaxServersPerConnectToken = 8
-const ConnectTokenExpirySeconds = 10
+const ConnectTokenExpirySeconds = 30
 const ServerAddress = "127.0.0.1:50000"
 
 type ConnectToken struct {

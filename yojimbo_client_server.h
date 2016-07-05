@@ -40,7 +40,7 @@ namespace yojimbo
     const int ConnectTokenBytes = 1024;
     const int ChallengeTokenBytes = 256;
     const int MaxServersPerConnectToken = 8;
-    const int ConnectTokenExpirySeconds = 10;
+    const int ConnectTokenExpirySeconds = 30;
     const int NumDisconnectPackets = 10;
     const float ConnectionRequestSendRate = 0.1f;
     const float ConnectionResponseSendRate = 0.1f;
