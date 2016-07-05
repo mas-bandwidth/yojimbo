@@ -565,7 +565,7 @@ namespace yojimbo
 
             if ( m_clientData[i].fullyConnected )
             {
-                if ( m_connection[i] && m_connection[i]->HasDataToSend() )
+                if ( m_connection[i] )
                 {
                     ConnectionPacket * packet = m_connection[i]->WritePacket();
 
@@ -582,6 +582,8 @@ namespace yojimbo
                     if ( packet )
                     {
                         SendPacketToConnectedClient( i, packet );
+
+                        m_clientData[i].lastHeartBeatSendTime = GetTime();
                     }
                 }
             }
@@ -1516,7 +1518,7 @@ namespace yojimbo
 
             case CLIENT_STATE_CONNECTED:
             {
-                if ( m_connection && m_connection->HasDataToSend() )
+                if ( m_connection )
                 {
                     ConnectionPacket * packet = m_connection->WritePacket();
 
