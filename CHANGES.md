@@ -122,6 +122,24 @@ Perhaps packets other than heartbeat are not allowed to be sent until fully conn
 
 The simplest is to just force sending of heartbeat until fully connected. Implemented. See "lastHeartBeatSendTime".
 
+Client and server now have messages to send and receive packets.
+
+Now implement a simple unit test
+
+Implement a client/server centric unit test for sending and receiving messages.
+
+client -> server messages are getting through, but server -> client messages are not.
+
+Missing connection packet process for client?
+
+Seems that acks are not getting through properly for the client side of the connection. Is it missing advancing time?
+
+Yes. This fixed it.
+
+Sometimes the test is failing. I think the messages are getting stuck. Confirmed.
+
+Need to setup a soak test to prove/disprove this.
+
 
 Sunday July 3rd, 2016
 =====================
