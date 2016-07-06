@@ -272,7 +272,7 @@ namespace yojimbo
 
         bool twoBits;
         if ( Stream::IsWriting )
-            twoBits = difference <= 4;
+            twoBits = difference <= 6;
         serialize_bool( stream, twoBits );
         if ( twoBits )
         {
@@ -284,7 +284,7 @@ namespace yojimbo
 
         bool fourBits;
         if ( Stream::IsWriting )
-            fourBits = difference <= 16;
+            fourBits = difference <= 23;
         serialize_bool( stream, fourBits );
         if ( fourBits )
         {
@@ -296,7 +296,7 @@ namespace yojimbo
 
         bool eightBits;
         if ( Stream::IsWriting )
-            eightBits = difference <= 256;
+            eightBits = difference <= 280;
         serialize_bool( stream, eightBits );
         if ( eightBits )
         {
@@ -308,7 +308,7 @@ namespace yojimbo
 
         bool twelveBits;
         if ( Stream::IsWriting )
-            twelveBits = difference <= 4096;
+            twelveBits = difference <= 4377;
         serialize_bool( stream, twelveBits );
         if ( twelveBits )
         {
@@ -320,7 +320,7 @@ namespace yojimbo
 
         bool sixteenBits;
         if ( Stream::IsWriting ) 
-            sixteenBits = difference <= 65535;
+            sixteenBits = difference <= 69914;
         serialize_bool( stream, sixteenBits );
         if ( sixteenBits )
         {

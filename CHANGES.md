@@ -18,6 +18,17 @@ Stop at the example of the insecure client/server and separate encryption exampl
 
 Beyond this it would basically require maintaining yojimbo as an example program -- that *is* what the secure dedicated server stuff has become.
 
+Bumped up soak test to have some higher packet loss (99%), and it gets this:
+
+    client sent message 11563
+    Assertion failed: (int64_t(difference) >= int64_t(7)), function serialize_int_relative_internal, file ./yojimbo_serialize.h, line 291.
+
+Need to track this down. It should work flawlessly under worst possible network conditions. It must not break.
+
+Wow. That took a long time. Firstly, there was a bug in the sequence buffer not cleaning up old entries from the previous sequence wrap around. This was incredibly rare, but could happen if very few packets were actually received, leading to false acks.
+
+Fixed by adding "RemoveOldEntries" to sequence buffer and calling it for sequence buffers that need it inside connection.
+
 
 Monday July 4th, 2016
 =====================
