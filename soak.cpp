@@ -63,6 +63,11 @@ int ClientServerMain()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
+    networkSimulator.SetJitter( 250 );
+    networkSimulator.SetLatency( 250 );
+    networkSimulator.SetDuplicates( 10 );
+    networkSimulator.SetPacketLoss( 50 );
+
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
@@ -96,47 +101,6 @@ int ClientServerMain()
 
     while ( !quit )
     {
-        if ( ( rand() % 10000 ) == 0 )
-        {
-            switch ( rand() % 5 )
-            {
-                case 0:
-                    networkSimulator.SetJitter( 0 );
-                    networkSimulator.SetLatency( 0 );
-                    networkSimulator.SetDuplicates( 0 );
-                    networkSimulator.SetPacketLoss( 0 );
-                    break;
-
-                case 1:
-                    networkSimulator.SetJitter( 50 );
-                    networkSimulator.SetLatency( 50 );
-                    networkSimulator.SetDuplicates( 1 );
-                    networkSimulator.SetPacketLoss( 2 );
-                    break;
-
-                case 2:
-                    networkSimulator.SetJitter( 250 );
-                    networkSimulator.SetLatency( 250 );
-                    networkSimulator.SetDuplicates( 10 );
-                    networkSimulator.SetPacketLoss( 25 );
-                    break;
-
-                case 3:
-                    networkSimulator.SetJitter( 250 );
-                    networkSimulator.SetLatency( 1000 );
-                    networkSimulator.SetDuplicates( 50 );
-                    networkSimulator.SetPacketLoss( 90 );
-                    break;
-
-                default:
-                    networkSimulator.SetJitter( 250 );
-                    networkSimulator.SetLatency( 1000 );
-                    networkSimulator.SetDuplicates( 50 );
-                    networkSimulator.SetPacketLoss( 99 );
-                    break;
-            }
-        }
-
         client.SendPackets();
         server.SendPackets();
 
@@ -149,16 +113,13 @@ int ClientServerMain()
         client.ReceivePackets();
         server.ReceivePackets();
 
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
-
         if ( client.ConnectionFailed() )
         {
             printf( "error: client connect failed!\n" );
             break;
         }
 
-        time += 0.01f;
+        time += 0.1f;
 
         if ( client.IsConnected() )
         {
@@ -175,8 +136,6 @@ int ClientServerMain()
                 {
                     message->sequence = numMessagesSentToServer;
                     
-                    printf( "client sent message %d\n", message->sequence );
-
                     client.SendMessage( message );
 
                     numMessagesSentToServer++;
@@ -199,7 +158,7 @@ int ClientServerMain()
 
                 assert( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
 
-                printf( "server received message %d\n", testMessage->sequence );
+                printf( "received message %d\n", testMessage->sequence );
 
                 server.ReleaseMessage( message );
 
@@ -217,7 +176,7 @@ int ClientServerMain()
 
     if ( quit )
     {
-        printf( "\nserver stopped\n" );
+        printf( "\nstopped\n" );
     }
 
     return 0;

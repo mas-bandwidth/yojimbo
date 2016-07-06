@@ -2,17 +2,17 @@ DONE
 
 TODO
 
-Bumped up soak test to have some higher packet loss (99%), and it gets this:
+--------------
 
-    client sent message 11563
-    Assertion failed: (int64_t(difference) >= int64_t(7)), function serialize_int_relative_internal, file ./yojimbo_serialize.h, line 291.
+Integrate OnPacketAcked in connection with client/server.
 
-Need to track this down. It should work flawlessly under worst possible network conditions. It must not break.
+Tightly integrate connection with client/server packets. I don't see any reason why it should be used without the client/server *packet set*.
 
+Otherwise it become so frustrating everytime a new feature is added to client/server protocol. It has to have a strange configuration rules that links it up to client/server...
 
+Similarly, client/server needs to have its own context automatically setup in the packet factory.
 
-
-
+Bottom line. I don't want the user to have to do *ANYTHING* to enable client/server except pass in a message factory.
 
 --------------
 
