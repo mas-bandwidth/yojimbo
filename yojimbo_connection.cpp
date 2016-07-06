@@ -49,9 +49,7 @@ namespace yojimbo
 
         assert( context );
 
-        // serialize ack system
-
-        serialize_check( stream, "ack system (begin)" );
+        // ack system
 
         bool perfect_acks = Stream::IsWriting ? ( ack_bits == 0xFFFFFFFF ) : 0;
 
@@ -112,7 +110,14 @@ namespace yojimbo
             {
                 const int maxMessageType = messageFactory->GetNumTypes() - 1;
 
-                serialize_int( stream, messageTypes[i], 0, maxMessageType );
+                if ( maxMessageType > 0 )
+                {
+                    serialize_int( stream, messageTypes[i], 0, maxMessageType );
+                }
+                else
+                {
+                    messageTypes[i] = 0;
+                }
 
                 if ( Stream::IsReading )
                 {
@@ -129,6 +134,8 @@ namespace yojimbo
                 if ( !messages[i]->SerializeInternal( stream ) )
                     return false;
             }
+
+            serialize_check( stream, "messages" );
         }
 
         return true;
@@ -151,7 +158,9 @@ namespace yojimbo
 
     Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config ) : m_config( config )
     {
-        // todo: check various configs vars that they divide 65536 evenly
+        assert( ( 65536 % config.slidingWindowSize ) == 0 );
+        assert( ( 65536 % config.messageSendQueueSize ) == 0 );
+        assert( ( 65536 % config.messageReceiveQueueSize ) == 0 );
 
         m_allocator = &allocator;
 
@@ -161,24 +170,17 @@ namespace yojimbo
         
         m_error = CONNECTION_ERROR_NONE;
 
+        m_messageOverheadBits = CalculateMessageOverheadBits();
+
         m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<SentPacketData>, *m_allocator, m_config.slidingWindowSize );
         
         m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ReceivedPacketData>, *m_allocator, m_config.slidingWindowSize );
 
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
         
-        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, *m_allocator, m_config.messageSentPacketsSize );
+        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, *m_allocator, m_config.slidingWindowSize );
         
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
-
-        // todo: function to calculate this
-        const int maxMessageType = m_messageFactory->GetNumTypes() - 1;
-
-        const int MessageIdBits = 16;
-        
-        const int MessageTypeBits = bits_required( 0, maxMessageType );
-
-        m_messageOverheadBits = MessageIdBits + MessageTypeBits;
         
         m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, MaxMessagesPerPacket * m_config.messageSendQueueSize );
 
@@ -277,7 +279,6 @@ namespace yojimbo
         const int blockMessage = message->IsBlockMessage();
         
         entry->message = message;
-        entry->blockMessage = blockMessage;
         entry->measuredBits = 0;
         entry->timeLastSent = -1.0;
 
@@ -379,21 +380,13 @@ namespace yojimbo
 
         m_counters[CONNECTION_COUNTER_PACKETS_READ]++;
 
-        if ( !ProcessPacketMessages( packet ) )
-            goto discard;
+        ProcessPacketMessages( packet );
 
-        if ( !m_receivedPackets->Insert( packet->sequence ) )
-            goto discard;
+        m_receivedPackets->Insert( packet->sequence );
 
         ProcessAcks( packet->ack, packet->ack_bits );
 
         return true;
-
-    discard:
-
-        m_counters[CONNECTION_COUNTER_PACKETS_DISCARDED]++;
-
-        return false;            
     }
 
     void Connection::AdvanceTime( double time )
@@ -402,6 +395,10 @@ namespace yojimbo
             return;
 
         m_time = time;
+
+        m_sentPackets->RemoveOldEntries();
+        m_receivedPackets->RemoveOldEntries();
+        m_messageSentPackets->RemoveOldEntries();
     }
 
     uint64_t Connection::GetCounter( int index ) const
@@ -481,9 +478,6 @@ namespace yojimbo
             if ( !entry )
                 break;
 
-            if ( entry->blockMessage )
-                break;
-
             if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits - entry->measuredBits >= 0 )
             {
                 messageIds[numMessageIds++] = messageId;
@@ -502,20 +496,19 @@ namespace yojimbo
         
         assert( sentPacket );
 
-        sentPacket->acked = 0;
-        sentPacket->blockMessage = 0;
-        sentPacket->timeSent = m_time;
-        const int sentPacketIndex = m_sentPackets->GetIndex( sequence );
-        sentPacket->messageIds = &m_sentPacketMessageIds[sentPacketIndex*MaxMessagesPerPacket];
-        sentPacket->numMessageIds = numMessageIds;
-        for ( int i = 0; i < numMessageIds; ++i )
-            sentPacket->messageIds[i] = messageIds[i];
+        if ( sentPacket )
+        {
+            sentPacket->acked = 0;
+            sentPacket->timeSent = m_time;
+            sentPacket->messageIds = &m_sentPacketMessageIds[ m_sentPackets->GetIndex( sequence ) * MaxMessagesPerPacket ];
+            sentPacket->numMessageIds = numMessageIds;            
+            for ( int i = 0; i < numMessageIds; ++i )
+                sentPacket->messageIds[i] = messageIds[i];
+        }
     }
 
-    bool Connection::ProcessPacketMessages( const ConnectionPacket * packet )
+    void Connection::ProcessPacketMessages( const ConnectionPacket * packet )
     {
-        bool earlyMessage = false;
-
         const uint16_t minMessageId = m_receiveMessageId;
         const uint16_t maxMessageId = m_receiveMessageId + m_config.messageReceiveQueueSize - 1;
 
@@ -528,23 +521,16 @@ namespace yojimbo
             const uint16_t messageId = message->GetId();
 
             if ( sequence_less_than( messageId, minMessageId ) )
-            {
-                m_counters[CONNECTION_COUNTER_MESSAGES_LATE]++;
                 continue;
-            }
 
             if ( sequence_greater_than( messageId, maxMessageId ) )
             {
-                m_counters[CONNECTION_COUNTER_MESSAGES_EARLY]++;
-                earlyMessage = true;
-                continue;
+                m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                return;
             }
 
             if ( m_messageReceiveQueue->Find( messageId ) )
-            {
-                m_counters[CONNECTION_COUNTER_MESSAGES_REDUNDANT]++;
                 continue;
-            }
 
             MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
 
@@ -554,8 +540,6 @@ namespace yojimbo
 
             m_counters[CONNECTION_COUNTER_MESSAGES_RECEIVED]++;
         }
-
-        return !earlyMessage;
     }
 
     void Connection::ProcessMessageAck( uint16_t ack )
@@ -602,5 +586,16 @@ namespace yojimbo
         }
 
         assert( !sequence_greater_than( m_oldestUnackedMessageId, stopMessageId ) );
+    }
+
+    int Connection::CalculateMessageOverheadBits()
+    {
+        const int maxMessageType = m_messageFactory->GetNumTypes() - 1;
+
+        const int MessageIdBits = 16;
+        
+        const int MessageTypeBits = bits_required( 0, maxMessageType );
+
+        return MessageIdBits + MessageTypeBits;
     }
 }

@@ -34,8 +34,6 @@ namespace yojimbo
 {
     const int MaxMessagesPerPacket = 64; 
 
-    const int CONNECTION_DEFAULT_PACKET_TYPE = 0;
-
     struct ConnectionContext
     {
         MessageFactory * messageFactory;
@@ -50,7 +48,7 @@ namespace yojimbo
         Message * messages[MaxMessagesPerPacket];
         MessageFactory * messageFactory;
 
-        ConnectionPacket() : Packet( CONNECTION_DEFAULT_PACKET_TYPE )
+        ConnectionPacket() : Packet( 0 )
         {
             sequence = 0;
             ack = 0;
@@ -77,38 +75,22 @@ namespace yojimbo
 
     struct ConnectionConfig
     {
-        int packetType;                         // connect packet type (override)
-        
-        int maxPacketSize;                      // maximum connection packet size in bytes
-
-        int slidingWindowSize;                  // size of ack sliding window (in packets)
-
-        float messageResendRate;                // message max resend rate in seconds, until acked.
-
-        int messageSendQueueSize;               // message send queue size
-
-        int messageReceiveQueueSize;            // receive queue size
-
-        int messageSentPacketsSize;             // message sent packets sliding window size (# of packets)
-
-        int messagePacketBudget;                // budget of how many bytes messages can take up in the connection packet
+        int packetType;                                         // connect packet type (override)
+        int maxPacketSize;                                      // maximum connection packet size in bytes
+        int slidingWindowSize;                                  // size of ack sliding window (in packets)
+        float messageResendRate;                                // message max resend rate in seconds, until acked.
+        int messageSendQueueSize;                               // message send queue size
+        int messageReceiveQueueSize;                            // receive queue size
+        int messagePacketBudget;                                // budget of how many bytes messages can take up in the connection packet
 
         ConnectionConfig()
         {
-            packetType = CONNECTION_DEFAULT_PACKET_TYPE;
-
+            packetType = 0;
             maxPacketSize = 4 * 1024;
-            
             slidingWindowSize = 256;
-
             messageResendRate = 0.1f;
-
             messageSendQueueSize = 1024;
-
             messageReceiveQueueSize = 1024;
-
-            messageSentPacketsSize = 256;
-
             messagePacketBudget = 1024;
         }
     };
@@ -118,11 +100,7 @@ namespace yojimbo
         CONNECTION_COUNTER_PACKETS_READ,                        // number of packets read
         CONNECTION_COUNTER_PACKETS_WRITTEN,                     // number of packets written
         CONNECTION_COUNTER_PACKETS_ACKED,                       // number of packets acked
-        CONNECTION_COUNTER_PACKETS_DISCARDED,                   // number of read packets that we discarded (eg. not acked)
         CONNECTION_COUNTER_MESSAGES_SENT,                       // number of messages sent
-        CONNECTION_COUNTER_MESSAGES_EARLY,                      // number of messages received early (discarded)
-        CONNECTION_COUNTER_MESSAGES_LATE,                       // number of messages received late (ignored)
-        CONNECTION_COUNTER_MESSAGES_REDUNDANT,                  // number of messages received redundantly (ignored)
         CONNECTION_COUNTER_MESSAGES_RECEIVED,                   // number of messages received
         CONNECTION_COUNTER_NUM_COUNTERS
     };
@@ -130,6 +108,7 @@ namespace yojimbo
     enum ConnectionError
     {
         CONNECTION_ERROR_NONE = 0,
+        CONNECTION_ERROR_MESSAGE_DESYNC,
         CONNECTION_ERROR_MESSAGE_SEND_QUEUE_FULL,
         CONNECTION_ERROR_MESSAGE_SERIALIZE_MEASURE_FAILED,
     };
@@ -174,19 +153,15 @@ namespace yojimbo
         {
             Message * message;
             double timeLastSent;
-            uint32_t blockMessage : 1;
-            uint32_t measuredBits : 30;
+            int measuredBits;
         };
 
         struct MessageSentPacketEntry
         {
             double timeSent;
             uint16_t * messageIds;
-            uint64_t numMessageIds : 16;                 // number of messages in this packet
-            uint64_t blockId : 16;                       // block id. valid only when sending a block message
-            uint64_t fragmentId : 16;                    // fragment id. valid only when sending a block message
-            uint64_t acked : 1;                          // 1 if this sent packet has been acked
-            uint64_t blockMessage : 1;                   // 1 if this sent packet contains a block message fragment
+            uint32_t numMessageIds : 16;                 // number of messages in this packet
+            uint32_t acked : 1;                          // 1 if this sent packet has been acked
         };
 
         struct MessageReceiveQueueEntry
@@ -204,11 +179,13 @@ namespace yojimbo
 
         void AddMessagePacketEntry( const uint16_t * messageIds, int & numMessageIds, uint16_t sequence );
 
-        bool ProcessPacketMessages( const ConnectionPacket * packet );
+        void ProcessPacketMessages( const ConnectionPacket * packet );
 
         void ProcessMessageAck( uint16_t ack );
 
         void UpdateOldestUnackedMessageId();
+
+        int CalculateMessageOverheadBits();
         
     private:
 

@@ -3508,7 +3508,6 @@ void test_connection_counters()
     check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_ACKED ) == NumAcks );
     check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_WRITTEN ) == NumAcks + 1 );
     check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_READ ) == NumAcks + 1 );
-    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_DISCARDED ) == 0 );
 }
 
 void test_connection_acks()
