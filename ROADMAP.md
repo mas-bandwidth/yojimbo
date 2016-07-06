@@ -40,12 +40,13 @@ Now that a demonstration of backend infrastructure is in place, the focus for th
 
 This release will extend the internal UDP-based network protocol to support: 
 
-1. Reliable-ordered time critical messages and data blocks
-2. Packet fragmentation and reassembly
-3. Packet aggregation
-4. Support for compressed packets and data blocks
+1. Reliable-ordered time critical messages
+2. Data blocks larger than MTU in the same reliable-ordered stream as messages
+3. Packet fragmentation and reassembly
+4. Packet aggregation
+5. Support for compressed packets and data blocks
 
-There is lots of work to do in this release so it is likely this release will take some time. I estimate 2-3 months.
+There is lots of work to do in this release so it is likely this release will take some time. I estimate 2 months.
 
 ## 0.4.0 - Matchmaker
 
