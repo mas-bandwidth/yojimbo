@@ -350,7 +350,7 @@ newaction
 {
     trigger     = "clean",
 
-    description = "Clean all yojimbo build files and output",
+    description = "Clean all build files and output",
 
     execute = function ()
 
