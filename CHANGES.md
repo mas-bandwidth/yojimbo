@@ -1,4 +1,18 @@
 
+Wednesday July 6th, 2016
+========================
+
+Implement listener interface? Client/Server implement connection listener? Yes.
+
+OnConnectionPackteSent, Acked, Received.
+
+Getting the listener callback working with multiple connections is going to be a bit tricky. For example, need to pass in connection instance to work out index for server per-client connections?
+
+Pass in the Connection*
+
+Added a client index to connection object. It's the safest easiest way. That way, const int clientIndex = connection->GetClientIndex()
+
+
 Tuesday July 5th, 2016
 ======================
 

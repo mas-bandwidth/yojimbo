@@ -113,6 +113,21 @@ namespace yojimbo
         CONNECTION_ERROR_MESSAGE_SERIALIZE_MEASURE_FAILED,
     };
 
+    class Connection;
+
+    class ConnectionListener
+    {
+    public:
+
+        virtual ~ConnectionListener() {}
+
+        virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+    };
+
     class Connection
     {
     public:
@@ -139,9 +154,19 @@ namespace yojimbo
 
         ConnectionError GetError() const;
 
+        void SetListener( ConnectionListener * listener ) { m_listener = listener; }
+
+        void SetClientIndex( int clientIndex ) { m_clientIndex = clientIndex; }
+
+        int GetClientIndex() const { return m_clientIndex; }
+
     protected:
 
+        virtual void OnPacketSent( uint16_t /*sequence*/ ) {}
+
         virtual void OnPacketAcked( uint16_t /*sequence*/ ) {}
+
+        virtual void OnPacketReceived( uint16_t /*sequence*/ ) {}
 
     protected:
 
@@ -197,6 +222,8 @@ namespace yojimbo
 
         MessageFactory * m_messageFactory;                                              // message factory creates and destroys messages
 
+        ConnectionListener * m_listener;                                                // connection listener
+
         double m_time;                                                                  // current connection time
 
         ConnectionError m_error;                                                        // connection error level
@@ -204,6 +231,8 @@ namespace yojimbo
         SequenceBuffer<SentPacketData> * m_sentPackets;                                 // sequence buffer of recently sent packets
 
         SequenceBuffer<ReceivedPacketData> * m_receivedPackets;                         // sequence buffer of recently received packets
+
+        int m_clientIndex;                                                              // optional client index for server client connections. 0 by default.
 
         int m_messageOverheadBits;                                                      // number of bits overhead per-serialized message
 

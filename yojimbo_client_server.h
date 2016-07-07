@@ -105,8 +105,8 @@ namespace yojimbo
             return true;
         }
 
-        bool operator == ( const ConnectToken & other );
-        bool operator != ( const ConnectToken & other );
+        bool operator == ( const ConnectToken & other ) const;
+        bool operator != ( const ConnectToken & other ) const;
     };
 
     struct ChallengeToken
@@ -405,7 +405,7 @@ namespace yojimbo
         SERVER_FLAG_ALLOW_INSECURE_CONNECT = (1<<2)
     };
 
-    class Server
+    class Server : public ConnectionListener
     {
     protected:
 
@@ -523,6 +523,12 @@ namespace yojimbo
 
         virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/, uint64_t /*sequence*/ ) {}
 
+        virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
         virtual bool ProcessGamePacket( int /*clientIndex*/, Packet * /*packet*/, uint64_t /*sequence*/ ) { return false; }
 
     protected:
@@ -592,7 +598,7 @@ namespace yojimbo
 
     const char * GetClientStateName( int clientState );
 
-    class Client
+    class Client : public ConnectionListener
     {
     public:
 
@@ -653,6 +659,12 @@ namespace yojimbo
         virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
 
         virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/, uint64_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
         virtual bool ProcessGamePacket( Packet * /*packet*/, uint64_t /*sequence*/ ) { return false; }
 
@@ -725,7 +737,6 @@ namespace yojimbo
         uint8_t m_challengeTokenData[ChallengeTokenBytes];                  // encrypted challenge token data for challenge response packet
 
         uint8_t m_challengeTokenNonce[NonceBytes];                          // nonce required to send to server so it can decrypt challenge token
-
     };
 }
 
