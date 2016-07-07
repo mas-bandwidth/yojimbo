@@ -167,8 +167,12 @@ namespace yojimbo
         m_packetFactory = &packetFactory;
 
         m_messageFactory = &messageFactory;
+
+        m_listener = NULL;
         
         m_error = CONNECTION_ERROR_NONE;
+
+        m_clientIndex = 0;
 
         m_messageOverheadBits = CalculateMessageOverheadBits();
 
@@ -365,6 +369,9 @@ namespace yojimbo
             m_messageFactory->AddRef( entry->message );
         }
 
+        if ( m_listener )
+            m_listener->OnConnectionPacketSent( this, packet->sequence );
+
         m_counters[CONNECTION_COUNTER_PACKETS_WRITTEN]++;
 
         return packet;
@@ -379,6 +386,9 @@ namespace yojimbo
         assert( packet->GetType() == m_config.packetType );
 
         m_counters[CONNECTION_COUNTER_PACKETS_READ]++;
+
+        if ( m_listener )
+            m_listener->OnConnectionPacketReceived( this, packet->sequence );
 
         ProcessPacketMessages( packet );
 

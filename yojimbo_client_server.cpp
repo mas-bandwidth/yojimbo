@@ -36,7 +36,7 @@ using namespace rapidjson;
 
 namespace yojimbo
 {
-    bool ConnectToken::operator == ( const ConnectToken & other )
+    bool ConnectToken::operator == ( const ConnectToken & other ) const
     {
         if ( protocolId != other.protocolId )
             return false;
@@ -68,7 +68,7 @@ namespace yojimbo
         return true;
     }
 
-    bool ConnectToken::operator != ( const ConnectToken & other )
+    bool ConnectToken::operator != ( const ConnectToken & other ) const
     {
         return ! ( (*this) == other );
     }
@@ -451,6 +451,10 @@ namespace yojimbo
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, connectionConfig );
+               
+                m_connection[i]->SetListener( this );
+
+                m_connection[i]->SetClientIndex( i );
             }
         }
 
@@ -1325,6 +1329,8 @@ namespace yojimbo
             connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
 
             m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, connectionConfig );
+
+            m_connection->SetListener( this );
         }
         else
         {
