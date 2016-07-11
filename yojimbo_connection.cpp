@@ -184,17 +184,21 @@ namespace yojimbo
 
         m_messageOverheadBits = CalculateMessageOverheadBits();
 
-        m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<SentPacketData>, *m_allocator, m_config.slidingWindowSize );
+        m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, *m_allocator, m_config.slidingWindowSize );
         
-        m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ReceivedPacketData>, *m_allocator, m_config.slidingWindowSize );
+        m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, *m_allocator, m_config.slidingWindowSize );
 
-        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
+        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionMessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
         
-        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, *m_allocator, m_config.slidingWindowSize );
+        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionMessageSentPacketEntry>, *m_allocator, m_config.slidingWindowSize );
         
-        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
+        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionMessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
         
         m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
+
+        m_sendBlock.Allocate( *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
+        
+        m_receiveBlock.Allocate( *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
 
         Reset();
     }
@@ -206,18 +210,23 @@ namespace yojimbo
         assert( m_sentPackets );
         assert( m_receivedPackets );
 
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<SentPacketData>, m_sentPackets );
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ReceivedPacketData>, m_receivedPackets );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, m_sentPackets );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, m_receivedPackets );
 
         assert( m_messageSendQueue );
         assert( m_messageSentPackets );
         assert( m_messageReceiveQueue );
         assert( m_sentPacketMessageIds );
 
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, m_messageSendQueue );
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, m_messageSentPackets );
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, m_messageReceiveQueue );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionMessageSendQueueEntry>, m_messageSendQueue );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionMessageSentPacketEntry>, m_messageSentPackets );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionMessageReceiveQueueEntry>, m_messageReceiveQueue );
+        
         YOJIMBO_DELETE_ARRAY( *m_allocator, m_sentPacketMessageIds, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
+
+        m_sendBlock.Free( *m_allocator );
+        
+        m_receiveBlock.Free( *m_allocator );
     }
 
     void Connection::Reset()
@@ -235,14 +244,14 @@ namespace yojimbo
 
         for ( int i = 0; i < m_messageSendQueue->GetSize(); ++i )
         {
-            MessageSendQueueEntry * entry = m_messageSendQueue->GetAtIndex( i );
+            ConnectionMessageSendQueueEntry * entry = m_messageSendQueue->GetAtIndex( i );
             if ( entry && entry->message )
                 m_messageFactory->Release( entry->message );
         }
 
         for ( int i = 0; i < m_messageReceiveQueue->GetSize(); ++i )
         {
-            MessageReceiveQueueEntry * entry = m_messageReceiveQueue->GetAtIndex( i );
+            ConnectionMessageReceiveQueueEntry * entry = m_messageReceiveQueue->GetAtIndex( i );
             if ( entry && entry->message )
                 m_messageFactory->Release( entry->message );
         }
@@ -284,7 +293,7 @@ namespace yojimbo
 
         message->AssignId( m_sendMessageId );
 
-        MessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
+        ConnectionMessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
 
         assert( entry );
 
@@ -320,7 +329,7 @@ namespace yojimbo
         if ( GetError() != CONNECTION_ERROR_NONE )
             return NULL;
 
-        MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Find( m_receiveMessageId );
+        ConnectionMessageReceiveQueueEntry * entry = m_messageReceiveQueue->Find( m_receiveMessageId );
         if ( !entry )
             return NULL;
 
@@ -424,7 +433,7 @@ namespace yojimbo
 
     void Connection::InsertAckPacketEntry( uint16_t sequence )
     {
-        SentPacketData * entry = m_sentPackets->Insert( sequence );
+        ConnectionSentPacketData * entry = m_sentPackets->Insert( sequence );
         
         assert( entry );
 
@@ -441,7 +450,7 @@ namespace yojimbo
             if ( ack_bits & 1 )
             {                    
                 const uint16_t sequence = ack - i;
-                SentPacketData * packetData = m_sentPackets->Find( sequence );
+                ConnectionSentPacketData * packetData = m_sentPackets->Find( sequence );
                 if ( packetData && !packetData->acked )
                 {
                     PacketAcked( sequence );
@@ -465,7 +474,7 @@ namespace yojimbo
     {
         numMessageIds = 0;
 
-        MessageSendQueueEntry * firstEntry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+        ConnectionMessageSendQueueEntry * firstEntry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
 
         if ( !firstEntry )
             return;
@@ -482,7 +491,7 @@ namespace yojimbo
             
             const uint16_t messageId = m_oldestUnackedMessageId + i;
 
-            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
+            ConnectionMessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
             
             if ( !entry )
                 break;
@@ -515,7 +524,7 @@ namespace yojimbo
 
         for ( int i = 0; i < numMessageIds; ++i )
         {
-            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
+            ConnectionMessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
             assert( entry && entry->message );
             packet->messages[i] = entry->message;
             m_messageFactory->AddRef( entry->message );
@@ -524,7 +533,7 @@ namespace yojimbo
 
     void Connection::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
-        MessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( sequence );
+        ConnectionMessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( sequence );
         
         assert( sentPacket );
 
@@ -564,7 +573,7 @@ namespace yojimbo
             if ( m_messageReceiveQueue->Find( messageId ) )
                 continue;
 
-            MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+            ConnectionMessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
 
             entry->message = message;
 
@@ -576,7 +585,7 @@ namespace yojimbo
 
     void Connection::ProcessMessageAck( uint16_t ack )
     {
-        MessageSentPacketEntry * sentPacketEntry = m_messageSentPackets->Find( ack );
+        ConnectionMessageSentPacketEntry * sentPacketEntry = m_messageSentPackets->Find( ack );
 
         if ( !sentPacketEntry || sentPacketEntry->acked )
             return;
@@ -585,7 +594,7 @@ namespace yojimbo
         {
             const uint16_t messageId = sentPacketEntry->messageIds[i];
 
-            MessageSendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
+            ConnectionMessageSendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
             
             if ( sendQueueEntry )
             {
@@ -610,7 +619,7 @@ namespace yojimbo
             if ( m_oldestUnackedMessageId == stopMessageId )
                 break;
 
-            MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+            ConnectionMessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
             if ( entry )
                 break;
            

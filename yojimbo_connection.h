@@ -42,6 +42,9 @@ namespace yojimbo
         int messageReceiveQueueSize;                            // receive queue size
         int messagePacketBudget;                                // budget of how many bytes messages can take up in the connection packet
         int maxMessagesPerPacket;                               // maximum number of messages per-packet
+        int maxBlockSize;                                       // maximum block size in bytes
+        int fragmentSize;                                       // size of block fragments sent in packets (bytes)
+        float fragmentResendRate;                               // min seconds to wait before resending the same fragment
 
         ConnectionConfig()
         {
@@ -53,6 +56,19 @@ namespace yojimbo
             messageReceiveQueueSize = 1024;
             messagePacketBudget = 1024;
             maxMessagesPerPacket = 64;
+            maxBlockSize = 256 * 1024;
+            fragmentSize = 1024;
+            fragmentResendRate = 0.25f;
+        }
+
+        void Validate()
+        {
+            // todo: write a validator looking for stupid shit. asserts only
+        }
+
+        int GetMaxFragmentsPerBlock() const
+        {
+            return maxBlockSize / fragmentSize;
         }
     };
 
@@ -130,6 +146,129 @@ namespace yojimbo
         virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
     };
 
+    struct ConnectionSentPacketData 
+    { 
+        uint8_t acked; 
+    };
+
+    struct ConnectionReceivedPacketData {};
+
+    struct ConnectionMessageSendQueueEntry
+    {
+        Message * message;
+        double timeLastSent;
+        int measuredBits;
+    };
+
+    struct ConnectionMessageSentPacketEntry
+    {
+        double timeSent;
+        uint16_t * messageIds;
+        uint32_t numMessageIds : 16;                 // number of messages in this packet
+        uint32_t acked : 1;                          // 1 if this sent packet has been acked
+    };
+
+    struct ConnectionMessageReceiveQueueEntry
+    {
+        Message * message;
+    };
+
+    struct ConnectionSendBlockData
+    {
+        ConnectionSendBlockData()
+        {
+            blockData = NULL;
+            ackedFragment = NULL;
+            fragmentSendTime = NULL;
+            Reset();
+        }
+
+        ~ConnectionSendBlockData()
+        {
+            assert( !blockData );
+        }
+
+        void Allocate( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
+        {
+            ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
+            fragmentSendTime = (double*) allocator.Allocate( sizeof( double) * maxFragmentsPerBlock );
+            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
+            assert( ackedFragment && blockData && fragmentSendTime );
+        }
+
+        void Free( Allocator & allocator )
+        {
+            YOJIMBO_DELETE( allocator, BitArray, ackedFragment );
+
+            allocator.Free( blockData );           blockData = NULL;
+            allocator.Free( fragmentSendTime );    fragmentSendTime = NULL;
+        }
+
+        void Reset()
+        {
+            active = false;
+            numFragments = 0;
+            numAckedFragments = 0;
+            blockMessageId = 0;
+            blockSize = 0;
+        }
+
+        bool active;                                                    // true if we are currently sending a block
+        int numFragments;                                               // number of fragments in the current block being sent
+        int numAckedFragments;                                          // number of acked fragments in current block being sent
+        int blockSize;                                                  // send block size in bytes
+        uint16_t blockMessageId;                                        // the message id of the block being sent
+        BitArray * ackedFragment;                                       // has fragment n been received?
+        double * fragmentSendTime;                                      // time fragment was last sent in seconds.
+        uint8_t * blockData;                                            // block data storage as it is received.
+    };
+
+    struct ConnectionReceiveBlockData
+    {
+        ConnectionReceiveBlockData()
+        {
+            blockData = NULL;
+            Reset();
+        }
+
+        ~ConnectionReceiveBlockData()
+        {
+            assert( !blockData );
+        }
+
+        void Allocate( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
+        {
+            receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
+            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
+            assert( receivedFragment && blockData );
+        }
+
+        void Free( Allocator & allocator )
+        {
+            YOJIMBO_DELETE( allocator, BitArray, receivedFragment );
+            allocator.Free( blockData );   blockData = NULL;
+        }
+
+        void Reset()
+        {
+            active = false;
+            numFragments = 0;
+            numReceivedFragments = 0;
+            messageId = 0;
+            messageType = 0;
+            blockSize = 0;
+        }
+
+        bool active;                                                    // true if we are currently receiving a block
+        int numFragments;                                               // number of fragments in this block
+        int numReceivedFragments;                                       // number of fragments received.
+        uint16_t messageId;                                             // message id of block being currently received.
+        int messageType;                                                // message type of the block being received.
+        uint32_t blockSize;                                             // block size in bytes.
+        BitArray * receivedFragment;                                    // has fragment n been received?
+        uint8_t * blockData;                                            // block data for receive
+    };
+
     class Connection
     {
     public:
@@ -172,30 +311,6 @@ namespace yojimbo
 
     protected:
 
-        struct SentPacketData { uint8_t acked; };
-
-        struct ReceivedPacketData {};
-    
-        struct MessageSendQueueEntry
-        {
-            Message * message;
-            double timeLastSent;
-            int measuredBits;
-        };
-
-        struct MessageSentPacketEntry
-        {
-            double timeSent;
-            uint16_t * messageIds;
-            uint32_t numMessageIds : 16;                 // number of messages in this packet
-            uint32_t acked : 1;                          // 1 if this sent packet has been acked
-        };
-
-        struct MessageReceiveQueueEntry
-        {
-            Message * message;
-        };
-
         void InsertAckPacketEntry( uint16_t sequence );
 
         void ProcessAcks( uint16_t ack, uint32_t ack_bits );
@@ -232,9 +347,9 @@ namespace yojimbo
 
         ConnectionError m_error;                                                        // connection error level
 
-        SequenceBuffer<SentPacketData> * m_sentPackets;                                 // sequence buffer of recently sent packets
+        SequenceBuffer<ConnectionSentPacketData> * m_sentPackets;                       // sequence buffer of recently sent packets
 
-        SequenceBuffer<ReceivedPacketData> * m_receivedPackets;                         // sequence buffer of recently received packets
+        SequenceBuffer<ConnectionReceivedPacketData> * m_receivedPackets;               // sequence buffer of recently received packets
 
         int m_clientIndex;                                                              // optional client index for server client connections. 0 by default.
 
@@ -246,13 +361,17 @@ namespace yojimbo
 
         uint16_t m_oldestUnackedMessageId;                                              // id for oldest unacked message in send queue
 
-        SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;                     // message send queue
+        SequenceBuffer<ConnectionMessageSendQueueEntry> * m_messageSendQueue;           // message send queue
 
-        SequenceBuffer<MessageSentPacketEntry> * m_messageSentPackets;                  // messages in sent packets (for acks)
+        SequenceBuffer<ConnectionMessageSentPacketEntry> * m_messageSentPackets;        // messages in sent packets (for acks)
 
-        SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               // message receive queue
+        SequenceBuffer<ConnectionMessageReceiveQueueEntry> * m_messageReceiveQueue;     // message receive queue
 
         uint16_t * m_sentPacketMessageIds;                                              // array of message ids, n ids per-sent packet
+
+        ConnectionSendBlockData m_sendBlock;                                            // data for block being sent
+
+        ConnectionReceiveBlockData m_receiveBlock;                                      // data for block being received
 
         uint64_t m_counters[CONNECTION_COUNTER_NUM_COUNTERS];                           // counters for unit testing, stats etc.
     };

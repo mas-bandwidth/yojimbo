@@ -1,6 +1,25 @@
 DONE
 
+    Bring across data structures for blocks from example source code.
+
+    Some work converting the send block data. Needed to add explicit "Allocate" and "Free" functions to this struct, so it can work with allocator.
+
+    Note that there is a bunch of stuff in the config for the blocks that needs to be put in the connection config. eg. MaxBlockSize, MaxFragmentsPerBlock and so on. These must be user configurable.
+
+    Next do the same for the block receive structure as well.
+
+    OK. So these data structures in theory should be ready to integrate with the connection.
+
+    Hook them up.
+
+    OK. Send and receive block data are now hooked up nicely, and I've moved the relevant block configuration into ConnectionConfig. Nice!
+
 TODO
+
+    Up next. Diff the 006 example vs. the 007 example and use that to drive additions to connection.h / cpp. This will highlight things to copy. Can do this on windows with Araxis Merge.
+
+
+
 
     --------------
 
