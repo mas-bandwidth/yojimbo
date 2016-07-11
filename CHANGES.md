@@ -1,5 +1,5 @@
 
-Saturday July 10, 2016
+Sunday July 10, 2016
 ======================
 
 Client/server now automatically sets up the connection context. User should not need to do this manually.
@@ -21,6 +21,48 @@ I think it may be best to use the same allocator, because if a large block is re
 heap or whatever, without adding the complexity of different allocators for messages and blocks.
 
 Conclusion: share the same allocator, for now.
+
+Bring across data structures for blocks from example source code.
+
+Some work converting the send block data. Needed to add explicit "Allocate" and "Free" functions to this struct, so it can work with allocator.
+
+Note that there is a bunch of stuff in the config for the blocks that needs to be put in the connection config. eg. MaxBlockSize, MaxFragmentsPerBlock and so on. These must be user configurable.
+
+Next do the same for the block receive structure as well.
+
+OK. So these data structures in theory should be ready to integrate with the connection.
+
+Hook them up.
+
+OK. Send and receive block data are now hooked up nicely, and I've moved the relevant block configuration into ConnectionConfig. Nice!
+
+Add send and receive block data to reset function.
+
+Added block related data to send queue entry, sent packet entry.
+
+Bring across changes to send message that handle blocks.
+
+Next bring across changes to "WritePacket" and all supporting functions (lots of them...)
+
+OK. Brought across the non-block specific stuff for 'WritePacket' plus supporting functions.
+
+Some more stuff to bring across for block messages being sent.
+
+OK. Brought across all of the support functions but had to comment out a bunch of stuff because I don't have the packet structure for block fragments yet. Need to bring that over next.
+
+This requires some adjustments so the blocks are allocated and freed via the packet factory allocator, vs. new and delete.
+
+Bring over connection packet changes to support sending fragments.
+
+Brought over connection packet variables. Adjusted code to free the block data via the message factory allocator.
+
+Now to bring across the adjusted serialize function. Tricky.    
+
+OK. I think I have the functionality in the connection packet that I need.
+
+Now to bring across the remaining helper functions for blocks and it should be functional.
+
+Should theoretically work now.
 
 
 Wednesday July 6th, 2016

@@ -83,9 +83,17 @@ namespace yojimbo
         uint16_t sequence;
         uint16_t ack;
         uint32_t ack_bits;
+
         int numMessages;
         Message ** messages;
         MessageFactory * messageFactory;
+
+        uint8_t * blockFragmentData;
+        uint64_t blockMessageId : 16;
+        uint64_t blockFragmentId : 16;
+        uint64_t blockFragmentSize : 16;
+        uint16_t blockNumFragments : 16;
+        int blockMessageType;
 
         ConnectionPacket() : Packet( 0 )
         {
@@ -95,6 +103,12 @@ namespace yojimbo
             numMessages = 0;
             messages = NULL;
             messageFactory = NULL;
+            blockFragmentData = NULL;
+            blockMessageId = 0;
+            blockFragmentId = 0;
+            blockFragmentSize = 0;
+            blockNumFragments = 0;
+            blockMessageType = 0;
         }
 
         ~ConnectionPacket();
@@ -129,6 +143,7 @@ namespace yojimbo
         CONNECTION_ERROR_MESSAGE_DESYNC,
         CONNECTION_ERROR_MESSAGE_SEND_QUEUE_FULL,
         CONNECTION_ERROR_MESSAGE_SERIALIZE_MEASURE_FAILED,
+        CONNECTION_ERROR_OUT_OF_MEMORY
     };
 
     class Connection;
