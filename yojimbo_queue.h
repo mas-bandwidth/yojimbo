@@ -36,7 +36,6 @@ namespace yojimbo
     template <typename T> class Queue
     {
         Allocator * m_allocator;
-
         T * m_entries;
         int m_arraySize;
         int m_startIndex;
@@ -51,14 +50,15 @@ namespace yojimbo
             m_startIndex = 0;
             m_numEntries = 0;
             m_allocator = &allocator;
-            m_entries = AllocateArray( allocator, size, m_entries );
+            m_entries = (T*) allocator.Allocate( sizeof(T) * size );
+			memset( m_entries, 0, sizeof(T) * size );
         }
 
         ~Queue()
         {
             assert( m_allocator );
             assert( m_entries );
-            DeleteArray( *m_allocator, m_entries, m_arraySize );
+			m_allocator->Free( m_entries );
             m_arraySize = 0;
             m_startIndex = 0;
             m_numEntries = 0;
@@ -91,11 +91,17 @@ namespace yojimbo
 
         T & operator [] ( int index )
         {
+            assert( !IsEmpty() );
+			assert( index >= 0 );
+			assert( index < m_numEntries );
             return m_entries[ ( m_startIndex + index ) % m_arraySize ];
         }
 
         const T & operator [] ( int index ) const
         {
+            assert( !IsEmpty() );
+			assert( index >= 0 );
+			assert( index < m_numEntries );
             return m_entries[ ( m_startIndex + index ) % m_arraySize ];
         }
 

@@ -29,16 +29,16 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#define SOAK_TEST 1
+//#define SOAK 1
 
-#if SOAK_TEST
+#if SOAK
 #include <signal.h>
 static volatile int quit = 0;
 void interrupt_handler( int /*dummy*/ )
 {
     quit = 1;
 }
-#endif // #if SOAK_TEST
+#endif // #if SOAK
 
 using namespace yojimbo;
 
@@ -670,16 +670,6 @@ void test_packet_sequence()
 
         uint64_t decoded_sequence = yojimbo::decompress_packet_sequence( prefix_byte, sequence_bytes );
 
-        check( decoded_sequence == sequence );
-    }
-
-    for ( uint64_t sequence = 0; sequence < 100000000LL; sequence += 101 )
-    {
-        uint8_t prefix_byte;
-        uint8_t sequence_bytes[8];
-        int num_sequence_bytes;
-        yojimbo::compress_packet_sequence( sequence, prefix_byte, num_sequence_bytes, sequence_bytes );
-        uint64_t decoded_sequence = yojimbo::decompress_packet_sequence( prefix_byte, sequence_bytes );
         check( decoded_sequence == sequence );
     }
 }
@@ -2699,7 +2689,7 @@ void test_client_server_connect_token_expiry()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
+    const int NumIterations = 1000;
 
     double time = 0.0;
 
@@ -2733,7 +2723,7 @@ void test_client_server_connect_token_expiry()
         if ( client.ConnectionFailed() )
             break;
 
-        time += 1.0;
+        time += 0.1;
 
         client.AdvanceTime( time );
         server.AdvanceTime( time );
@@ -2792,7 +2782,7 @@ void test_client_server_connect_token_whitelist()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
+    const int NumIterations = 1000;
 
     double time = 0.0;
 
@@ -2823,10 +2813,10 @@ void test_client_server_connect_token_whitelist()
         client.CheckForTimeOut();
         server.CheckForTimeOut();
 
-        if ( client.ConnectionFailed() )
+		if ( client.ConnectionFailed() )
             break;
 
-        time += 1.0;
+        time += 0.1;
 
         client.AdvanceTime( time );
         server.AdvanceTime( time );
@@ -2868,7 +2858,7 @@ void test_client_server_connect_token_invalid()
     TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
-    const int NumIterations = 20;
+    const int NumIterations = 1000;
 
     double time = 0.0;
 
@@ -2902,7 +2892,7 @@ void test_client_server_connect_token_invalid()
         if ( client.ConnectionFailed() )
             break;
 
-        time += 1.0;
+        time += 0.1;
 
         client.AdvanceTime( time );
         server.AdvanceTime( time );
@@ -3904,12 +3894,14 @@ int main()
         exit( 1 );
     }
 
-#if SOAK_TEST
+#if SOAK
     signal( SIGINT, interrupt_handler );    
     int iter = 0;
     while ( true )
-#endif // #if SOAK_TEST
+#endif // #if SOAK
     {
+		// todo: I really need to add test_queue
+
         test_base64();
         test_bitpacker();
         test_stream();
@@ -3948,23 +3940,23 @@ int main()
         test_connection_messages();
         test_connection_client_server();
 
-#if SOAK_TEST
-        if ( quit || iter == 100 ) 
+#if SOAK
+        if ( quit )
             break;
         iter++;
         for ( int j = 0; j < iter % 10; ++j )
             printf( "." );
         printf( "\n" );				 
-#endif // #if SOAK_TEST
+#endif // #if SOAK
     }
 
-#if SOAK_TEST
+#if SOAK
     if ( quit )					  
         printf( "\ntest stopped\n" );
     else
         printf( "\n*** ALL TESTS PASS ***\n" );
     printf( "\n" );
-#endif // #if SOAK_TEST
+#endif // #if SOAK
 
     ShutdownYojimbo();
 

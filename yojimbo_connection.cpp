@@ -265,7 +265,7 @@ namespace yojimbo
         
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionMessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
         
-        m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
+        m_sentPacketMessageIds = (uint16_t*) m_allocator->Allocate( sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
 
         m_sendBlock.Allocate( *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
         
@@ -293,7 +293,7 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionMessageSentPacketEntry>, m_messageSentPackets );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionMessageReceiveQueueEntry>, m_messageReceiveQueue );
         
-        YOJIMBO_DELETE_ARRAY( *m_allocator, m_sentPacketMessageIds, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
+		m_allocator->Free( m_sentPacketMessageIds );	m_sentPacketMessageIds = NULL;
 
         m_sendBlock.Free( *m_allocator );
 
@@ -385,11 +385,8 @@ namespace yojimbo
 
         if ( message->IsBlockMessage() )
         {
-#if _DEBUG
-            BlockMessage * blockMessage = (BlockMessage*) message;
-            assert( blockMessage->GetBlockSize() > 0 );
-            assert( blockMessage->GetBlockSize() <= MaxBlockSize );
-#endif // #if _DEBUG
+            assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
+            assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
         }
 
         MeasureStream measureStream( m_config.messagePacketBudget / 2 );
