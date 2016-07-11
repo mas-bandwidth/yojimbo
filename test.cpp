@@ -3887,6 +3887,8 @@ void test_connection_client_server()
 int main()
 {
     srand( time( NULL ) );
+
+    printf( "\n" );
  
     if ( !InitializeYojimbo() )
     {
@@ -3956,6 +3958,8 @@ int main()
     else
         printf( "\n*** ALL TESTS PASS ***\n" );
     printf( "\n" );
+#else // #if SOAK
+    printf( "\n*** ALL TESTS PASS ***\n\n" );
 #endif // #if SOAK
 
     ShutdownYojimbo();
