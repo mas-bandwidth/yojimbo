@@ -76,12 +76,6 @@ int ClientServerMain()
 
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
-    ConnectionContext context;
-    context.messageFactory = &messageFactory;
-
-    clientInterface.SetContext( &context );
-    serverInterface.SetContext( &context );
-
     double time = 0.0;
 
     GameClient client( GetDefaultAllocator(), clientInterface, &messageFactory );
