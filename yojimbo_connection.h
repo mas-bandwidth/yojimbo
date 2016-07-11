@@ -247,6 +247,7 @@ namespace yojimbo
         {
             blockData = NULL;
             blockMessage = NULL;
+            receivedFragment = NULL;
             Reset();
         }
 
@@ -338,7 +339,7 @@ namespace yojimbo
 
         void PacketAcked( uint16_t sequence );
 
-        bool HasMessagesToSend();
+        bool HasMessagesToSend() const;
 
         void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds );
 
@@ -407,6 +408,12 @@ namespace yojimbo
         ConnectionReceiveBlockData m_receiveBlock;                                      // data for block being received
 
         uint64_t m_counters[CONNECTION_COUNTER_NUM_COUNTERS];                           // counters for unit testing, stats etc.
+
+    private:
+
+        Connection( const Connection & other );
+
+        Connection & operator = ( const Connection & other );
     };
 }
 

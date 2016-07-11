@@ -87,7 +87,7 @@ namespace yojimbo
     {
     public:
 
-        BlockMessage( int type ) : Message( type, 1 ), m_allocator(NULL), m_blockSize(0), m_blockData(NULL) {}
+        explicit BlockMessage( int type ) : Message( type, 1 ), m_allocator(NULL), m_blockSize(0), m_blockData(NULL) {}
 
         ~BlockMessage()
         {
