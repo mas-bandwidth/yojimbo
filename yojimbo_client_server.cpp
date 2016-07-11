@@ -446,13 +446,13 @@ namespace yojimbo
 
         if ( m_messageFactory )
         {
-            ConnectionConfig connectionConfig = GetConnectionConfig();
+            m_connectionConfig = GetConnectionConfig();
 
-            connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
+            m_connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
 
             for ( int i = 0; i < m_maxClients; ++i )
             {
-                m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, connectionConfig );
+                m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
                
                 m_connection[i]->SetListener( this );
 
@@ -762,6 +762,7 @@ namespace yojimbo
     void Server::InitializeContext()
     {
         m_context.messageFactory = m_messageFactory;
+        m_context.connectionConfig = &m_connectionConfig;
         m_networkInterface->SetContext( &m_context );
     }
 
@@ -1332,11 +1333,11 @@ namespace yojimbo
 
         if ( messageFactory )
         {
-            ConnectionConfig connectionConfig = GetConnectionConfig();
+            m_connectionConfig = GetConnectionConfig();
 
-            connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
+            m_connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
 
-            m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, connectionConfig );
+            m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
 
             m_connection->SetListener( this );
         }
@@ -1680,6 +1681,7 @@ namespace yojimbo
     void Client::InitializeContext()
     {
         m_context.messageFactory = m_messageFactory;
+        m_context.connectionConfig = &m_connectionConfig;
         m_networkInterface->SetContext( &m_context );
     }
 

@@ -32,11 +32,34 @@
 
 namespace yojimbo
 {
-    const int MaxMessagesPerPacket = 64; 
+    struct ConnectionConfig
+    {
+        int packetType;                                         // connect packet type (override)
+        int maxPacketSize;                                      // maximum connection packet size in bytes
+        int slidingWindowSize;                                  // size of ack sliding window (in packets)
+        float messageResendRate;                                // message max resend rate in seconds, until acked.
+        int messageSendQueueSize;                               // message send queue size
+        int messageReceiveQueueSize;                            // receive queue size
+        int messagePacketBudget;                                // budget of how many bytes messages can take up in the connection packet
+        int maxMessagesPerPacket;                               // maximum number of messages per-packet
+
+        ConnectionConfig()
+        {
+            packetType = 0;
+            maxPacketSize = 4 * 1024;
+            slidingWindowSize = 256;
+            messageResendRate = 0.1f;
+            messageSendQueueSize = 1024;
+            messageReceiveQueueSize = 1024;
+            messagePacketBudget = 1024;
+            maxMessagesPerPacket = 64;
+        }
+    };
 
     struct ConnectionContext
     {
         MessageFactory * messageFactory;
+        ConnectionConfig * connectionConfig;
     };
 
     struct ConnectionPacket : public Packet
@@ -45,7 +68,7 @@ namespace yojimbo
         uint16_t ack;
         uint32_t ack_bits;
         int numMessages;
-        Message * messages[MaxMessagesPerPacket];
+        Message ** messages;
         MessageFactory * messageFactory;
 
         ConnectionPacket() : Packet( 0 )
@@ -54,6 +77,7 @@ namespace yojimbo
             ack = 0;
             ack_bits = 0;
             numMessages = 0;
+            messages = NULL;
             messageFactory = NULL;
         }
 
@@ -71,28 +95,6 @@ namespace yojimbo
 
         ConnectionPacket( const ConnectionPacket & other );
         const ConnectionPacket & operator = ( const ConnectionPacket & other );
-    };
-
-    struct ConnectionConfig
-    {
-        int packetType;                                         // connect packet type (override)
-        int maxPacketSize;                                      // maximum connection packet size in bytes
-        int slidingWindowSize;                                  // size of ack sliding window (in packets)
-        float messageResendRate;                                // message max resend rate in seconds, until acked.
-        int messageSendQueueSize;                               // message send queue size
-        int messageReceiveQueueSize;                            // receive queue size
-        int messagePacketBudget;                                // budget of how many bytes messages can take up in the connection packet
-
-        ConnectionConfig()
-        {
-            packetType = 0;
-            maxPacketSize = 4 * 1024;
-            slidingWindowSize = 256;
-            messageResendRate = 0.1f;
-            messageSendQueueSize = 1024;
-            messageReceiveQueueSize = 1024;
-            messagePacketBudget = 1024;
-        }
     };
 
     enum ConnectionCounters
@@ -202,7 +204,9 @@ namespace yojimbo
 
         void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds );
 
-        void AddMessagePacketEntry( const uint16_t * messageIds, int & numMessageIds, uint16_t sequence );
+        void AddMessagesToPacket( const uint16_t * messageIds, int numMessageIds, ConnectionPacket * packet );
+
+        void AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence );
 
         void ProcessPacketMessages( const ConnectionPacket * packet );
 

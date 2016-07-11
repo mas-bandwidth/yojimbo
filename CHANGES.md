@@ -4,6 +4,24 @@ Saturday July 10, 2016
 
 Client/server now automatically sets up the connection context. User should not need to do this manually.
 
+Planning. When is 0.3.0 finished?
+
+I need to not only add reliable ordered message and blocks, but also, I have promised packet fragmentation and reassembly and packet aggregation.
+
+So there is a bit more work remaining.
+
+I think once the initial messages and blocks integration is done it is time for the next preview release, 
+but it will take at least a month to flesh out and fully complete my vision for the rest of the protocol.
+
+Pushed compressed packets and blocks until a future release. I don't want to add that to 0.3.0
+
+I am wondering if a separate allocator for blocks is worthwhile, or if the same message factory allocator is to be used?
+
+I think it may be best to use the same allocator, because if a large block is requested, you could shunt it off to a separate
+heap or whatever, without adding the complexity of different allocators for messages and blocks.
+
+Conclusion: share the same allocator, for now.
+
 
 Wednesday July 6th, 2016
 ========================
@@ -1514,6 +1532,20 @@ OK. Hacked up an encryption mapping on the server interface somehow. Now the cod
 Ok. I think I have the fix.
 
 Yes, also confirming the port endian swap thing is real. Fixing that as well. Fixed.
+
+First order of business, restricting "max messages per-packet" to a fixed constant # is not appropriate.
+
+Modify this so it is dynamically allocated memory inside the packet. But from which allocator?
+
+I already have a pointer to the message allocator inside the connection packet, and I can use this to get the message allocator.
+
+That seems kind of appropriate, seeing as that block of memory will be storing pointers to messages.
+
+But wait, how will I know max # of messages per-packet during serialization?
+
+Adding connection config struct, and putting this in the context.
+
+Fixed some bugs and now it's working. MaxMessagesPerPacket constant has been removed.
 
 
 Sunday June 5th, 2016

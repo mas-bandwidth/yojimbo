@@ -548,6 +548,8 @@ namespace yojimbo
 
     private:
 
+        ConnectionConfig m_connectionConfig;                                // connection configuration.
+
         Allocator * m_allocator;                                            // allocator used for creating connections per-client.
 
         NetworkInterface * m_networkInterface;                              // network interface for sending and receiving packets.
@@ -716,6 +718,8 @@ namespace yojimbo
         virtual ConnectionConfig GetConnectionConfig() const { return ConnectionConfig(); }
 
     protected:
+
+        ConnectionConfig m_connectionConfig;                                // connection configuration.
 
         Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
 

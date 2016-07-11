@@ -3590,6 +3590,7 @@ void test_connection_messages()
 
     ConnectionContext context;
     context.messageFactory = &messageFactory;
+    context.connectionConfig = &connectionConfig;
 
     const int NumMessagesSent = 64;
 

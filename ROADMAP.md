@@ -44,7 +44,6 @@ This release will extend the internal UDP-based network protocol to support:
 2. Data blocks larger than MTU in the same reliable-ordered stream as messages
 3. Packet fragmentation and reassembly
 4. Packet aggregation
-5. Support for compressed packets and data blocks
 
 There is lots of work to do in this release so it is likely this release will take some time. I estimate 2 months.
 
