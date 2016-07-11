@@ -167,6 +167,11 @@ protected:
             printf( "server received '%s' packet from %s\n", packetTypeString, addressString );
         }
     }
+
+    void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t fragmentId )
+    {
+        printf( "received fragment %d\n", fragmentId );
+    }
 };
 
 #endif // #if SERVER
@@ -287,8 +292,8 @@ public:
 
 enum MessageType
 {
-    MESSAGE_TEST,
-    MESSAGE_BLOCK,
+    TEST_MESSAGE,
+    TEST_BLOCK_MESSAGE,
     NUM_MESSAGE_TYPES
 };
 
@@ -302,7 +307,9 @@ inline int GetNumBitsForMessage( uint16_t sequence )
 
 struct TestMessage : public Message
 {
-    TestMessage() : Message( MESSAGE_TEST )
+    uint16_t sequence;
+
+    TestMessage() : Message( TEST_MESSAGE )
     {
         sequence = 0;
     }
@@ -326,8 +333,24 @@ struct TestMessage : public Message
     }
 
     YOJIMBO_SERIALIZE_FUNCTIONS();
+};
 
+struct TestBlockMessage : public BlockMessage
+{
     uint16_t sequence;
+
+    TestBlockMessage() : BlockMessage( TEST_BLOCK_MESSAGE ) 
+    {
+        sequence = 0;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {        
+        serialize_bits( stream, sequence, 16 );
+        return true;
+    }
+
+    YOJIMBO_SERIALIZE_FUNCTIONS();
 };
 
 class TestMessageFactory : public MessageFactory
@@ -344,8 +367,8 @@ protected:
 
         switch ( type )
         {
-            case MESSAGE_TEST:          return YOJIMBO_NEW( allocator, TestMessage );
-            case MESSAGE_BLOCK:         return YOJIMBO_NEW( allocator, BlockMessage );
+            case TEST_MESSAGE:          return YOJIMBO_NEW( allocator, TestMessage );
+            case TEST_BLOCK_MESSAGE:    return YOJIMBO_NEW( allocator, TestBlockMessage );
             default:
                 return NULL;
         }

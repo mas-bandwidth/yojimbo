@@ -61,11 +61,6 @@ namespace yojimbo
             fragmentResendRate = 0.25f;
         }
 
-        void Validate()
-        {
-            // todo: write a validator looking for stupid shit. asserts only
-        }
-
         int GetMaxFragmentsPerBlock() const
         {
             return maxBlockSize / fragmentSize;
@@ -88,6 +83,7 @@ namespace yojimbo
         Message ** messages;
         MessageFactory * messageFactory;
 
+        BlockMessage * blockMessage;
         uint8_t * blockFragmentData;
         uint64_t blockMessageId : 16;
         uint64_t blockFragmentId : 16;
@@ -103,6 +99,7 @@ namespace yojimbo
             numMessages = 0;
             messages = NULL;
             messageFactory = NULL;
+            blockMessage = NULL;
             blockFragmentData = NULL;
             blockMessageId = 0;
             blockFragmentId = 0;
@@ -159,6 +156,8 @@ namespace yojimbo
         virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
         virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/ ) {}
     };
 
     struct ConnectionSentPacketData 
@@ -247,12 +246,14 @@ namespace yojimbo
         ConnectionReceiveBlockData()
         {
             blockData = NULL;
+            blockMessage = NULL;
             Reset();
         }
 
         ~ConnectionReceiveBlockData()
         {
             assert( !blockData );
+            assert( !blockMessage );
         }
 
         void Allocate( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
@@ -286,6 +287,7 @@ namespace yojimbo
         uint32_t blockSize;                                             // block size in bytes.
         BitArray * receivedFragment;                                    // has fragment n been received?
         uint8_t * blockData;                                            // block data for receive
+        BlockMessage * blockMessage;                                    // block message (sent with fragment 0)
     };
 
     class Connection

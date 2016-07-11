@@ -1,6 +1,27 @@
 
+Monday July 11, 2016
+====================
+
+Idea of block message having a real serialize function (fragment 0), but also a block attached to it is sexy.
+
+This could be really flexible, for example for a large block you want to send across, but with some free from data you 
+also want to send with it, eg. metadata describing that block.
+
+The idea also of having different blocks as message types, so you can distinguish different blocks sent is really strong.
+
+Extend the soak test to have a uint16_t sequence added to the block message
+
+Implemented. Passes test. This is very convenient.
+
+Add callbacks from connection -> client/server so I can print out logs when fragments are received.
+
+Done. Can add more callbacks in the future, but this is enough to get the soak test up and running.
+
+Updated BUILDING.md with information about reliable messages and new soak test.
+
+
 Sunday July 10, 2016
-======================
+====================
 
 Client/server now automatically sets up the connection context. User should not need to do this manually.
 
@@ -63,6 +84,18 @@ OK. I think I have the functionality in the connection packet that I need.
 Now to bring across the remaining helper functions for blocks and it should be functional.
 
 Should theoretically work now.
+
+Extended soak test to also include sending and receiving blocks.
+
+Extended to send blocks, and receive them, but it's getting stuck for some reason on the receive for the first block?
+
+Why is it hanging? Adding logs...
+
+I think the acks are maybe broken? Yeah. Missing some code in process message acks.
+
+Yepppp. OK it's working fine now.
+
+Added code to verify block size and contents on the receive side.
 
 
 Wednesday July 6th, 2016
