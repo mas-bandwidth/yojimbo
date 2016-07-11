@@ -33,12 +33,16 @@ namespace yojimbo
             for ( int i = 0; i < numMessages; ++i )
             {
                 assert( messages[i] );
-
                 messageFactory->Release( messages[i] );
             }
+
+            Allocator & allocator = messageFactory->GetAllocator();
+            allocator.Free( messages );
+            messages = NULL;
         }
         else
         {
+            assert( messages == NULL );
             assert( numMessages == 0 );
         }
     }
@@ -74,14 +78,16 @@ namespace yojimbo
 
         if ( hasMessages )
         {
-            serialize_int( stream, numMessages, 1, MaxMessagesPerPacket );
+            serialize_int( stream, numMessages, 1, context->connectionConfig->maxMessagesPerPacket );
 
-            int messageTypes[MaxMessagesPerPacket];
+            int * messageTypes = (int*) alloca( sizeof( int*) * numMessages );
 
-            uint16_t messageIds[MaxMessagesPerPacket];
+            uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t) * numMessages );
 
             if ( Stream::IsWriting )
             {
+                assert( messages );
+
                 for ( int i = 0; i < numMessages; ++i )
                 {
                     assert( messages[i] );
@@ -91,7 +97,9 @@ namespace yojimbo
             }
             else
             {
-                memset( messages, 0, sizeof( messages ) );
+                Allocator & allocator = context->messageFactory->GetAllocator();
+
+                messages = (Message**) allocator.Allocate( sizeof( Message*) * numMessages );
             }
 
             serialize_bits( stream, messageIds[0], 16 );
@@ -186,7 +194,7 @@ namespace yojimbo
         
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
         
-        m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, MaxMessagesPerPacket * m_config.messageSendQueueSize );
+        m_sentPacketMessageIds = YOJIMBO_NEW_ARRAY( *m_allocator, uint16_t, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
 
         Reset();
     }
@@ -209,7 +217,7 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, m_messageSendQueue );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, m_messageSentPackets );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, m_messageReceiveQueue );
-        YOJIMBO_DELETE_ARRAY( *m_allocator, m_sentPacketMessageIds, MaxMessagesPerPacket * m_config.messageSendQueueSize );
+        YOJIMBO_DELETE_ARRAY( *m_allocator, m_sentPacketMessageIds, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
     }
 
     void Connection::Reset()
@@ -352,22 +360,13 @@ namespace yojimbo
 
         int numMessageIds;
         
-        uint16_t messageIds[MaxMessagesPerPacket];
+        uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t ) * m_config.maxMessagesPerPacket );
 
         GetMessagesToSend( messageIds, numMessageIds );
 
+        AddMessagesToPacket( messageIds, numMessageIds, packet );
+
         AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
-
-        packet->numMessages = numMessageIds;
-
-        for ( int i = 0; i < numMessageIds; ++i )
-        {
-            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
-            assert( entry && entry->message );
-            packet->messageFactory = m_messageFactory;
-            packet->messages[i] = entry->message;
-            m_messageFactory->AddRef( entry->message );
-        }
 
         if ( m_listener )
             m_listener->OnConnectionPacketSent( this, packet->sequence );
@@ -495,12 +494,35 @@ namespace yojimbo
                 availableBits -= entry->measuredBits;
             }
 
-            if ( numMessageIds == MaxMessagesPerPacket )
+            if ( numMessageIds == m_config.maxMessagesPerPacket )
                 break;
         }
     }
 
-    void Connection::AddMessagePacketEntry( const uint16_t * messageIds, int & numMessageIds, uint16_t sequence )
+    void Connection::AddMessagesToPacket( const uint16_t * messageIds, int numMessageIds, ConnectionPacket * packet )
+    {
+        assert( packet );
+        assert( messageIds );
+
+        if ( numMessageIds == 0 )
+            return;
+
+        packet->messageFactory = m_messageFactory;
+        
+        packet->numMessages = numMessageIds;
+        
+        packet->messages = (Message**) m_messageFactory->GetAllocator().Allocate( sizeof( Message* ) * numMessageIds );
+
+        for ( int i = 0; i < numMessageIds; ++i )
+        {
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
+            assert( entry && entry->message );
+            packet->messages[i] = entry->message;
+            m_messageFactory->AddRef( entry->message );
+        }
+    }
+
+    void Connection::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
         MessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( sequence );
         
@@ -510,7 +532,7 @@ namespace yojimbo
         {
             sentPacket->acked = 0;
             sentPacket->timeSent = m_time;
-            sentPacket->messageIds = &m_sentPacketMessageIds[ m_sentPackets->GetIndex( sequence ) * MaxMessagesPerPacket ];
+            sentPacket->messageIds = &m_sentPacketMessageIds[ m_sentPackets->GetIndex( sequence ) * m_config.maxMessagesPerPacket ];
             sentPacket->numMessageIds = numMessageIds;            
             for ( int i = 0; i < numMessageIds; ++i )
                 sentPacket->messageIds[i] = messageIds[i];
