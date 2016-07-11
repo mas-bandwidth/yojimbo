@@ -29,6 +29,8 @@
 
 namespace yojimbo
 {
+    // todo: wrap message magic with #if YOJIMBO_MESSAGE_MAGIC and have it off by default
+
     const int MessageMagic = 0x12345;
 
     class Message : public Serializable
@@ -148,15 +150,12 @@ namespace yojimbo
 
         Allocator * m_allocator;
 
-        int num_allocated_messages;
-
         int m_numTypes;
 
     public:
 
         MessageFactory( Allocator & allocator, int numTypes )
         {
-            num_allocated_messages = 0;
             m_allocator = &allocator;
             m_numTypes = numTypes;
         }
