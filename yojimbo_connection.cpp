@@ -39,11 +39,17 @@ namespace yojimbo
             Allocator & allocator = messageFactory->GetAllocator();
             allocator.Free( messages );
             messages = NULL;
+
+            if ( blockFragmentData )
+            {
+                allocator.Free( blockFragmentData );
+                blockFragmentData = NULL;
+            }
         }
         else
         {
             assert( messages == NULL );
-            assert( numMessages == 0 );
+            assert( blockFragmentData == NULL );
         }
     }
 
@@ -52,6 +58,10 @@ namespace yojimbo
         ConnectionContext * context = (ConnectionContext*) stream.GetContext();
 
         assert( context );
+
+        messageFactory = context->messageFactory;
+
+        const int maxMessageType = messageFactory->GetNumTypes() - 1;
 
         // ack system
 
@@ -116,8 +126,6 @@ namespace yojimbo
 
             for ( int i = 0; i < numMessages; ++i )
             {
-                const int maxMessageType = messageFactory->GetNumTypes() - 1;
-
                 if ( maxMessageType > 0 )
                 {
                     serialize_int( stream, messageTypes[i], 0, maxMessageType );
@@ -144,6 +152,45 @@ namespace yojimbo
             }
 
             serialize_check( stream, "messages" );
+        }
+
+        // serialize block fragment
+
+        bool hasFragment = Stream::IsWriting && blockFragmentData;
+
+        serialize_bool( stream, hasFragment );
+
+        if ( hasFragment )
+        {
+            serialize_bits( stream, blockMessageId, 16 );
+
+            serialize_int( stream, blockNumFragments, 1, context->connectionConfig->GetMaxFragmentsPerBlock() );
+
+            if ( blockNumFragments > 1 )
+            {
+                serialize_int( stream, blockFragmentId, 0, blockNumFragments - 1 );
+            }
+            else
+            {
+                blockFragmentId = 0;
+            }
+
+            serialize_int( stream, blockFragmentSize, 1, context->connectionConfig->fragmentSize );
+
+            if ( Stream::IsReading )
+            {
+                blockFragmentData = new uint8_t[blockFragmentSize];
+
+                if ( !blockFragmentData )
+                    return false;
+            }
+
+            serialize_bytes( stream, blockFragmentData, blockFragmentSize );
+
+            if ( blockFragmentId == 0 )
+            {
+                serialize_int( stream, blockMessageType, 0, maxMessageType );
+            }
         }
 
         return true;
@@ -380,7 +427,6 @@ namespace yojimbo
 
         if ( HasMessagesToSend() )
         {
-            /*
             if ( SendingBlockMessage() )
             {
                 uint16_t messageId;
@@ -399,7 +445,6 @@ namespace yojimbo
                 }
             }
             else
-            */
             {
                 GetMessagesToSend( messageIds, numMessageIds );
 
@@ -764,24 +809,13 @@ namespace yojimbo
     {
         assert( packet );
 
-        (void)messageId;
-        (void)fragmentId;
-        (void)fragmentData;
-        (void)fragmentSize;
-        (void)numFragments;
-        (void)messageType;
-        (void)packet;
-
-        // todo: gotta bring across packet extensions
-
-        /*
+        packet->messageFactory = m_messageFactory;
         packet->blockFragmentData = fragmentData;
         packet->blockMessageId = messageId;
         packet->blockFragmentId = fragmentId;
         packet->blockFragmentSize = fragmentSize;
         packet->blockNumFragments = numFragments;
         packet->blockMessageType = messageType;
-        */
     }
 
     void Connection::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
@@ -804,8 +838,6 @@ namespace yojimbo
 
     void Connection::ProcessPacketFragment( const ConnectionPacket * packet )
     {  
-        (void)packet;
-#if 0
         if ( packet->blockFragmentData )
         {
             const uint16_t messageId = packet->blockMessageId;
@@ -819,14 +851,14 @@ namespace yojimbo
                 const int numFragments = packet->blockNumFragments;
 
                 assert( numFragments >= 0 );
-                assert( numFragments <= MaxFragmentsPerBlock );
+                assert( numFragments <= m_config.GetMaxFragmentsPerBlock() );
 
                 m_receiveBlock.active = true;
                 m_receiveBlock.numFragments = numFragments;
                 m_receiveBlock.numReceivedFragments = 0;
                 m_receiveBlock.messageId = messageId;
                 m_receiveBlock.blockSize = 0;
-                m_receiveBlock.receivedFragment.Clear();
+                m_receiveBlock.receivedFragment->Clear();
             }
 
             // validate fragment
@@ -847,15 +879,13 @@ namespace yojimbo
 
             const uint16_t fragmentId = packet->blockFragmentId;
 
-            if ( !m_receiveBlock.receivedFragment.GetBit( fragmentId ) )
+            if ( !m_receiveBlock.receivedFragment->GetBit( fragmentId ) )
             {
-                printf( "received fragment %d\n", fragmentId );
-
-                m_receiveBlock.receivedFragment.SetBit( fragmentId );
+                m_receiveBlock.receivedFragment->SetBit( fragmentId );
 
                 const int fragmentBytes = packet->blockFragmentSize;
 
-                memcpy( m_receiveBlock.blockData + fragmentId * BlockFragmentSize, packet->blockFragmentData, fragmentBytes );
+                memcpy( m_receiveBlock.blockData + fragmentId * m_config.fragmentSize, packet->blockFragmentData, fragmentBytes );
 
                 if ( fragmentId == 0 )
                 {
@@ -864,9 +894,9 @@ namespace yojimbo
 
                 if ( fragmentId == m_receiveBlock.numFragments - 1 )
                 {
-                    m_receiveBlock.blockSize = ( m_receiveBlock.numFragments - 1 ) * BlockFragmentSize + fragmentBytes;
+                    m_receiveBlock.blockSize = ( m_receiveBlock.numFragments - 1 ) * m_config.fragmentSize + fragmentBytes;
 
-                    assert( m_receiveBlock.blockSize <= MaxBlockSize );
+                    assert( m_receiveBlock.blockSize <= (uint32_t) m_config.maxBlockSize );
                 }
 
                 m_receiveBlock.numReceivedFragments++;
@@ -887,7 +917,7 @@ namespace yojimbo
 
                     BlockMessage * blockMessage = (BlockMessage*) message;
 
-                    uint8_t * blockData = new uint8_t[m_receiveBlock.blockSize];
+                    uint8_t * blockData = (uint8_t*) m_messageFactory->GetAllocator().Allocate( m_receiveBlock.blockSize );
 
                     if ( !blockData )
                     {
@@ -897,13 +927,13 @@ namespace yojimbo
 
                     memcpy( blockData, m_receiveBlock.blockData, m_receiveBlock.blockSize );
 
-                    blockMessage->Connect( blockData, m_receiveBlock.blockSize );
+                    blockMessage->Connect( m_messageFactory->GetAllocator(), blockData, m_receiveBlock.blockSize );
 
                     blockMessage->AssignId( messageId );
 
                     m_receiveBlock.active = false;
 
-                    MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+                    ConnectionMessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
 
                     assert( entry );
 
@@ -917,6 +947,5 @@ namespace yojimbo
                 }
             }
         }
-    #endif
     }
 }
