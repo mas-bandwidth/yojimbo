@@ -357,7 +357,7 @@ class TestMessageFactory : public MessageFactory
 {
 public:
 
-    TestMessageFactory( Allocator & allocator ) : MessageFactory( allocator, NUM_MESSAGE_TYPES ) {}
+    explicit TestMessageFactory( Allocator & allocator ) : MessageFactory( allocator, NUM_MESSAGE_TYPES ) {}
 
 protected:
 

@@ -3295,7 +3295,7 @@ struct TestPacketData
     TestPacketData()
         : sequence(0xFFFF) {}
 
-    TestPacketData( uint16_t _sequence )
+    explicit TestPacketData( uint16_t _sequence )
         : sequence( _sequence ) {}
 
     uint32_t sequence : 16;                 // packet sequence #
@@ -3425,7 +3425,7 @@ class TestMessageFactory : public MessageFactory
 {
 public:
 
-    TestMessageFactory( Allocator & allocator ) : MessageFactory( allocator, NUM_MESSAGE_TYPES ) {}
+    explicit TestMessageFactory( Allocator & allocator ) : MessageFactory( allocator, NUM_MESSAGE_TYPES ) {}
 
 protected:
 

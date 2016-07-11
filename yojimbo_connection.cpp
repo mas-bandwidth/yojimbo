@@ -97,9 +97,9 @@ namespace yojimbo
         {
             serialize_int( stream, numMessages, 1, context->connectionConfig->maxMessagesPerPacket );
 
-            int * messageTypes = (int*) alloca( sizeof( int*) * numMessages );
+            int * messageTypes = (int*) alloca( sizeof( int ) * numMessages );
 
-            uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t) * numMessages );
+            uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t ) * numMessages );
 
             if ( Stream::IsWriting )
             {
@@ -572,7 +572,7 @@ namespace yojimbo
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
     }
 
-    bool Connection::HasMessagesToSend()
+    bool Connection::HasMessagesToSend() const
     {
         return m_oldestUnackedMessageId != m_sendMessageId;
     }
@@ -601,7 +601,7 @@ namespace yojimbo
             if ( entry->block )
                 break;
             
-            if ( entry && ( entry->timeLastSent + m_config.messageResendRate <= m_time ) && ( availableBits - entry->measuredBits >= 0 ) )
+            if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits >= entry->measuredBits )
             {
                 messageIds[numMessageIds++] = messageId;
                 entry->timeLastSent = m_time;

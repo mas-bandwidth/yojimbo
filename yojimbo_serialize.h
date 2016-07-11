@@ -48,7 +48,8 @@ namespace yojimbo
             if ( Stream::IsReading )                                    \
             {                                                           \
                 value = int32_value;                                    \
-                if ( value < min || value > max )                       \
+                if ( int64_t(value) < int64_t(min) ||                   \
+                     int64_t(value) > int64_t(max) )                    \
                     return false;                                       \
             }                                                           \
         } while (0)
@@ -256,7 +257,6 @@ namespace yojimbo
         {
             assert( previous < current );
             difference = current - previous;
-            assert( difference >= 0 );
         }
 
         bool oneBit;

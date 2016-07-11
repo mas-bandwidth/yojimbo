@@ -75,7 +75,10 @@ namespace yojimbo
         uint64_t m_magic;
 #endif // #if YOJIMBO_PACKET_MAGIC
 
+    private:
+
         Packet( const Packet & other );
+        
         Packet & operator = ( const Packet & other );
     };
 
