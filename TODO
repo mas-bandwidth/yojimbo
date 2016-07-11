@@ -14,9 +14,25 @@ DONE
 
     OK. Send and receive block data are now hooked up nicely, and I've moved the relevant block configuration into ConnectionConfig. Nice!
 
-TODO
+    Add send and receive block data to reset function.
 
-    Up next. Diff the 006 example vs. the 007 example and use that to drive additions to connection.h / cpp. This will highlight things to copy. Can do this on windows with Araxis Merge.
+    Added block related data to send queue entry, sent packet entry.
+
+    Bring across changes to send message that handle blocks.
+
+    Next bring across changes to "WritePacket" and all supporting functions (lots of them...)
+
+    OK. Brought across the non-block specific stuff for 'WritePacket' plus supporting functions.
+
+    Some more stuff to bring across for block messages being sent.
+
+    OK. Brought across all of the support functions but had to comment out a bunch of stuff because I don't have the packet structure for block fragments yet. Need to bring that over next.
+
+TODO
+    
+    Bring over connection packet changes to support sending fragments.
+
+    This requires some adjustments so the blocks are allocated and freed via the packet factory allocator, vs. new and delete.
 
 
 

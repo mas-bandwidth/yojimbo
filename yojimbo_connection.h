@@ -157,7 +157,8 @@ namespace yojimbo
     {
         Message * message;
         double timeLastSent;
-        int measuredBits;
+        uint32_t measuredBits : 31;
+        uint32_t block : 1;
     };
 
     struct ConnectionMessageSentPacketEntry
@@ -166,6 +167,9 @@ namespace yojimbo
         uint16_t * messageIds;
         uint32_t numMessageIds : 16;                 // number of messages in this packet
         uint32_t acked : 1;                          // 1 if this sent packet has been acked
+        uint64_t block : 1;                          // 1 if this sent packet contains a block fragment
+        uint64_t blockMessageId : 16;                // block id. valid only when sending block.
+        uint64_t blockFragmentId : 16;               // fragment id. valid only when sending block.
     };
 
     struct ConnectionMessageReceiveQueueEntry
@@ -317,6 +321,8 @@ namespace yojimbo
 
         void PacketAcked( uint16_t sequence );
 
+        bool HasMessagesToSend();
+
         void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds );
 
         void AddMessagesToPacket( const uint16_t * messageIds, int numMessageIds, ConnectionPacket * packet );
@@ -330,7 +336,17 @@ namespace yojimbo
         void UpdateOldestUnackedMessageId();
 
         int CalculateMessageOverheadBits();
-        
+            
+        bool SendingBlockMessage();
+
+        uint8_t * GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType );
+
+        void AddFragmentToPacket( uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType, ConnectionPacket * packet );
+
+        void AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence );
+
+        void ProcessPacketFragment( const ConnectionPacket * packet );
+
     private:
 
         const ConnectionConfig m_config;                                                // const configuration data

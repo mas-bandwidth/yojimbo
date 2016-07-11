@@ -225,7 +225,7 @@ namespace yojimbo
         YOJIMBO_DELETE_ARRAY( *m_allocator, m_sentPacketMessageIds, m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
 
         m_sendBlock.Free( *m_allocator );
-        
+
         m_receiveBlock.Free( *m_allocator );
     }
 
@@ -259,6 +259,10 @@ namespace yojimbo
         m_messageSendQueue->Reset();
         m_messageSentPackets->Reset();
         m_messageReceiveQueue->Reset();
+
+        m_sendBlock.Reset();
+
+        m_receiveBlock.Reset();
 
         memset( m_counters, 0, sizeof( m_counters ) );
     }
@@ -297,15 +301,22 @@ namespace yojimbo
 
         assert( entry );
 
-        const int blockMessage = message->IsBlockMessage();
-        
+        entry->block = message->IsBlockMessage();
         entry->message = message;
         entry->measuredBits = 0;
         entry->timeLastSent = -1.0;
 
-        if ( !blockMessage )
+        if ( message->IsBlockMessage() )
         {
-            MeasureStream measureStream( m_config.messagePacketBudget / 2 );        // if a single message takes up more than 1/2 the packet budget, there will be problems.
+#if _DEBUG
+            BlockMessage * blockMessage = (BlockMessage*) message;
+            assert( blockMessage->GetBlockSize() > 0 );
+            assert( blockMessage->GetBlockSize() <= MaxBlockSize );
+#endif // #if _DEBUG
+        }
+        else
+        {
+            MeasureStream measureStream( m_config.messagePacketBudget / 2 );
 
             message->SerializeInternal( measureStream );
 
@@ -357,30 +368,46 @@ namespace yojimbo
         if ( !packet )
             return NULL;
 
-        // ack system
-
         packet->sequence = m_sentPackets->GetSequence();
 
         GenerateAckBits( *m_receivedPackets, packet->ack, packet->ack_bits );
 
         InsertAckPacketEntry( packet->sequence );
 
-        // message system
-
-        int numMessageIds;
+        int numMessageIds = 0;
         
-        uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t ) * m_config.maxMessagesPerPacket );
+        uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
 
-        GetMessagesToSend( messageIds, numMessageIds );
+        if ( HasMessagesToSend() )
+        {
+            /*
+            if ( SendingBlockMessage() )
+            {
+                uint16_t messageId;
+                uint16_t fragmentId;
+                int fragmentBytes;
+                int numFragments;
+                int messageType;
 
-        AddMessagesToPacket( messageIds, numMessageIds, packet );
+                uint8_t * fragmentData = GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
 
-        AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
+                if ( fragmentData )
+                {
+                    AddFragmentToPacket( messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType, packet );
 
-        if ( m_listener )
-            m_listener->OnConnectionPacketSent( this, packet->sequence );
+                    AddFragmentPacketEntry( messageId, fragmentId, packet->sequence );
+                }
+            }
+            else
+            */
+            {
+                GetMessagesToSend( messageIds, numMessageIds );
 
-        m_counters[CONNECTION_COUNTER_PACKETS_WRITTEN]++;
+                AddMessagesToPacket( messageIds, numMessageIds, packet );
+
+                AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
+            }
+        }
 
         return packet;
     }
@@ -470,39 +497,45 @@ namespace yojimbo
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
     }
 
+    bool Connection::HasMessagesToSend()
+    {
+        return m_oldestUnackedMessageId != m_sendMessageId;
+    }
+
     void Connection::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds )
     {
+        assert( HasMessagesToSend() );
+
         numMessageIds = 0;
-
-        ConnectionMessageSendQueueEntry * firstEntry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
-
-        if ( !firstEntry )
-            return;
-        
 
         const int GiveUpBits = 8 * 8;
 
         int availableBits = m_config.messagePacketBudget * 8;
 
-        for ( int i = 0; i < m_config.messageSendQueueSize; ++i )
+        const int messageLimit = min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize ) / 2;
+
+        for ( int i = 0; i < messageLimit; ++i )
         {
-            if ( availableBits <= GiveUpBits )
-                break;
-            
             const uint16_t messageId = m_oldestUnackedMessageId + i;
 
             ConnectionMessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
-            
-            if ( !entry )
-                break;
 
-            if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits - entry->measuredBits >= 0 )
+            if ( !entry )
+                continue;
+
+            if ( entry->block )
+                break;
+            
+            if ( entry && ( entry->timeLastSent + m_config.messageResendRate <= m_time ) && ( availableBits - entry->measuredBits >= 0 ) )
             {
                 messageIds[numMessageIds++] = messageId;
                 entry->timeLastSent = m_time;
                 availableBits -= entry->measuredBits;
             }
 
+            if ( availableBits <= GiveUpBits )
+                break;
+            
             if ( numMessageIds == m_config.maxMessagesPerPacket )
                 break;
         }
@@ -540,6 +573,7 @@ namespace yojimbo
         if ( sentPacket )
         {
             sentPacket->acked = 0;
+            sentPacket->block = 0;
             sentPacket->timeSent = m_time;
             sentPacket->messageIds = &m_sentPacketMessageIds[ m_sentPackets->GetIndex( sequence ) * m_config.maxMessagesPerPacket ];
             sentPacket->numMessageIds = numMessageIds;            
@@ -638,5 +672,251 @@ namespace yojimbo
         const int MessageTypeBits = bits_required( 0, maxMessageType );
 
         return MessageIdBits + MessageTypeBits;
+    }
+
+    bool Connection::SendingBlockMessage()
+    {
+        assert( HasMessagesToSend() );
+
+        ConnectionMessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+
+        return entry->block;
+    }
+
+    uint8_t * Connection::GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType )
+    {
+        ConnectionMessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+
+        assert( entry );
+        assert( entry->block );
+
+        BlockMessage * blockMessage = (BlockMessage*) entry->message;
+
+        assert( blockMessage );
+
+        messageId = blockMessage->GetId();
+
+        const int blockSize = blockMessage->GetBlockSize();
+
+        if ( !m_sendBlock.active )
+        {
+            // start sending this block
+
+            m_sendBlock.active = true;
+            m_sendBlock.blockSize = blockSize;
+            m_sendBlock.blockMessageId = messageId;
+            m_sendBlock.numFragments = (int) ceil( blockSize / float( m_config.fragmentSize ) );
+            m_sendBlock.numAckedFragments = 0;
+
+            const int MaxFragmentsPerBlock = m_config.GetMaxFragmentsPerBlock();
+
+            assert( m_sendBlock.numFragments > 0 );
+            assert( m_sendBlock.numFragments <= MaxFragmentsPerBlock );
+
+            m_sendBlock.ackedFragment->Clear();
+
+            for ( int i = 0; i < MaxFragmentsPerBlock; ++i )
+                m_sendBlock.fragmentSendTime[i] = -1.0;
+        }
+
+        numFragments = m_sendBlock.numFragments;
+
+        // find the next fragment to send (there may not be one)
+
+        fragmentId = 0xFFFF;
+
+        for ( int i = 0; i < m_sendBlock.numFragments; ++i )
+        {
+            if ( !m_sendBlock.ackedFragment->GetBit( i ) && m_sendBlock.fragmentSendTime[i] + m_config.fragmentResendRate < m_time )
+            {
+                fragmentId = uint16_t( i );
+                break;
+            }
+        }
+
+        if ( fragmentId == 0xFFFF )
+            return NULL;
+
+        // allocate and return a copy of the fragment data
+
+        messageType = blockMessage->GetType();
+
+        fragmentBytes = m_config.fragmentSize;
+        
+        const int fragmentRemainder = blockSize % m_config.fragmentSize;
+
+        if ( fragmentRemainder && fragmentId == m_sendBlock.numFragments - 1 )
+            fragmentBytes = fragmentRemainder;
+
+        uint8_t * fragmentData = new uint8_t[fragmentBytes];
+
+        if ( fragmentData )
+        {
+            memcpy( fragmentData, blockMessage->GetBlockData() + fragmentId * m_config.fragmentSize, fragmentBytes );
+
+            m_sendBlock.fragmentSendTime[fragmentId] = m_time;
+        }
+
+        return fragmentData;
+    }
+
+    void Connection::AddFragmentToPacket( uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType, ConnectionPacket * packet )
+    {
+        assert( packet );
+
+        (void)messageId;
+        (void)fragmentId;
+        (void)fragmentData;
+        (void)fragmentSize;
+        (void)numFragments;
+        (void)messageType;
+        (void)packet;
+
+        // todo: gotta bring across packet extensions
+
+        /*
+        packet->blockFragmentData = fragmentData;
+        packet->blockMessageId = messageId;
+        packet->blockFragmentId = fragmentId;
+        packet->blockFragmentSize = fragmentSize;
+        packet->blockNumFragments = numFragments;
+        packet->blockMessageType = messageType;
+        */
+    }
+
+    void Connection::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
+    {
+        ConnectionMessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( sequence );
+        
+        assert( sentPacket );
+
+        if ( sentPacket )
+        {
+            sentPacket->numMessageIds = 0;
+            sentPacket->messageIds = NULL;
+            sentPacket->timeSent = m_time;
+            sentPacket->acked = 0;
+            sentPacket->block = 1;
+            sentPacket->blockMessageId = messageId;
+            sentPacket->blockFragmentId = fragmentId;
+        }
+    }
+
+    void Connection::ProcessPacketFragment( const ConnectionPacket * packet )
+    {  
+        (void)packet;
+#if 0
+        if ( packet->blockFragmentData )
+        {
+            const uint16_t messageId = packet->blockMessageId;
+            const uint16_t expectedMessageId = m_messageReceiveQueue->GetSequence();
+
+            if ( messageId != expectedMessageId )
+                return;
+
+            if ( !m_receiveBlock.active )
+            {
+                const int numFragments = packet->blockNumFragments;
+
+                assert( numFragments >= 0 );
+                assert( numFragments <= MaxFragmentsPerBlock );
+
+                m_receiveBlock.active = true;
+                m_receiveBlock.numFragments = numFragments;
+                m_receiveBlock.numReceivedFragments = 0;
+                m_receiveBlock.messageId = messageId;
+                m_receiveBlock.blockSize = 0;
+                m_receiveBlock.receivedFragment.Clear();
+            }
+
+            // validate fragment
+
+            if ( packet->blockFragmentId >= m_receiveBlock.numFragments )
+            {
+                m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                return;
+            }
+
+            if ( packet->blockNumFragments != m_receiveBlock.numFragments )
+            {
+                m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                return;
+            }
+
+            // receive the fragment
+
+            const uint16_t fragmentId = packet->blockFragmentId;
+
+            if ( !m_receiveBlock.receivedFragment.GetBit( fragmentId ) )
+            {
+                printf( "received fragment %d\n", fragmentId );
+
+                m_receiveBlock.receivedFragment.SetBit( fragmentId );
+
+                const int fragmentBytes = packet->blockFragmentSize;
+
+                memcpy( m_receiveBlock.blockData + fragmentId * BlockFragmentSize, packet->blockFragmentData, fragmentBytes );
+
+                if ( fragmentId == 0 )
+                {
+                    m_receiveBlock.messageType = packet->blockMessageType;
+                }
+
+                if ( fragmentId == m_receiveBlock.numFragments - 1 )
+                {
+                    m_receiveBlock.blockSize = ( m_receiveBlock.numFragments - 1 ) * BlockFragmentSize + fragmentBytes;
+
+                    assert( m_receiveBlock.blockSize <= MaxBlockSize );
+                }
+
+                m_receiveBlock.numReceivedFragments++;
+
+                if ( m_receiveBlock.numReceivedFragments == m_receiveBlock.numFragments )
+                {
+                    // receive for this block has completed
+
+                    Message * message = m_messageFactory->Create( m_receiveBlock.messageType );
+
+                    assert( message );
+
+                    if ( !message || !message->IsBlockMessage() )
+                    {
+                        m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                        return;
+                    }
+
+                    BlockMessage * blockMessage = (BlockMessage*) message;
+
+                    uint8_t * blockData = new uint8_t[m_receiveBlock.blockSize];
+
+                    if ( !blockData )
+                    {
+                        m_error = CONNECTION_ERROR_OUT_OF_MEMORY;
+                        return;
+                    }
+
+                    memcpy( blockData, m_receiveBlock.blockData, m_receiveBlock.blockSize );
+
+                    blockMessage->Connect( blockData, m_receiveBlock.blockSize );
+
+                    blockMessage->AssignId( messageId );
+
+                    m_receiveBlock.active = false;
+
+                    MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+
+                    assert( entry );
+
+                    if ( !entry )
+                    {
+                        m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                        return;
+                    }
+
+                    entry->message = blockMessage;
+                }
+            }
+        }
+    #endif
     }
 }
