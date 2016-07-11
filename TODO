@@ -2,22 +2,23 @@ DONE
 
 TODO
 
---------------
+    --------------
 
-Tightly integrate connection with client/server packets. I don't see any reason why it should be used without the client/server *packet set*.
+    Add large block support:
 
-Otherwise it become so frustrating everytime a new feature is added to client/server protocol. It has to have a strange configuration rules that links it up to client/server...
+    1. Extend the system to support large blocks from example source code
 
-Similarly, client/server needs to have its own context automatically setup in the packet factory.
+    2. Bring across unit tests for large blocks
 
-Bottom line: I don't want the user to have to do *ANYTHING* to enable client/server usage of messages except pass in a message factory.
+    --------------
 
---------------
+    Idea of block message having a real serialize function (fragment 0), but also a block attached to it is sexy.
 
-Add large block support:
+    This could be really flexible, for example for a large block you want to send across, but with some free from data you 
+    also want to send with it, eg. metadata describing that block.
 
-1. Extend the system to support large blocks
+    The idea also of having different blocks as message types, so you can distinguish different blocks sent is really strong.
 
-2. Bring across tests for large blocks
+    Nice!
 
---------------
+    --------------

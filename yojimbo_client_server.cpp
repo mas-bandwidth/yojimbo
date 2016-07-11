@@ -412,6 +412,8 @@ namespace yojimbo
             ResetClientState( i );
 
         memset( m_counters, 0, sizeof( m_counters ) );
+
+        InitializeContext();
     }
 
     Server::~Server()
@@ -755,6 +757,12 @@ namespace yojimbo
     uint64_t Server::GetFlags() const
     {
         return m_flags;
+    }
+
+    void Server::InitializeContext()
+    {
+        m_context.messageFactory = m_messageFactory;
+        m_networkInterface->SetContext( &m_context );
     }
 
     void Server::ResetClientState( int clientIndex )
@@ -1341,6 +1349,8 @@ namespace yojimbo
 
         m_clientState = CLIENT_STATE_DISCONNECTED;
 
+        InitializeContext();
+
         ResetConnectionData();
     }
 
@@ -1665,6 +1675,12 @@ namespace yojimbo
     int Client::GetClientIndex() const
     {
         return m_clientIndex;
+    }
+
+    void Client::InitializeContext()
+    {
+        m_context.messageFactory = m_messageFactory;
+        m_networkInterface->SetContext( &m_context );
     }
 
     void Client::SetClientState( int clientState )

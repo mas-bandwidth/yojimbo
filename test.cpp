@@ -1068,7 +1068,7 @@ public:
     void OnClientConnect( int clientIndex )
     {
         assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
+        assert( clientIndex < GetMaxClients() );
         m_numGamePacketsReceived[clientIndex] = 0;
 
         if ( verbose_logging )
@@ -1148,16 +1148,16 @@ public:
     uint64_t GetNumGamePacketsReceived( int clientIndex ) const
     {
         assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
+        assert( clientIndex < GetMaxClients() );
         return m_numGamePacketsReceived[clientIndex];
     }
 
     void SendGamePacketToClient( int clientIndex )
     {
         assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
+        assert( clientIndex < GetMaxClients() );
         assert( IsClientConnected( clientIndex ) );
-        GamePacket * packet = (GamePacket*) m_networkInterface->CreatePacket( GAME_PACKET );
+        GamePacket * packet = (GamePacket*) GetNetworkInterface()->CreatePacket( GAME_PACKET );
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToConnectedClient( clientIndex, packet );
@@ -3748,12 +3748,6 @@ void test_connection_client_server()
     double time = 0.0;
 
     TestMessageFactory messageFactory( GetDefaultAllocator() );
-
-    ConnectionContext context;
-    context.messageFactory = &messageFactory;
-
-    clientInterface.SetContext( &context );
-    serverInterface.SetContext( &context );
 
     GameClient client( GetDefaultAllocator(), clientInterface, &messageFactory );
 

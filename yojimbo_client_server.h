@@ -375,6 +375,11 @@ namespace yojimbo
         }
     };
 
+    struct ClientServerContext : public ConnectionContext
+    {
+        // ...
+    };
+
     enum ServerCounters
     {
         SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED,
@@ -407,46 +412,6 @@ namespace yojimbo
 
     class Server : public ConnectionListener
     {
-    protected:
-
-        Allocator * m_allocator;                                            // allocator used for creating connections per-client.
-
-        NetworkInterface * m_networkInterface;                              // network interface for sending and receiving packets.
-
-        MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional!
-
-        uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
-
-        uint64_t m_challengeTokenNonce;                                     // nonce used for encoding challenge tokens
-
-        double m_time;                                                      // current server time (see "AdvanceTime")
-
-        uint64_t m_flags;                                                   // server flags
-
-        int m_maxClients;                                                   // maximum number of clients supported by this server
-
-        int m_numConnectedClients;                                          // number of connected clients
-        
-        bool m_clientConnected[MaxClients];                                 // true if client n is connected
-        
-        uint64_t m_clientId[MaxClients];                                    // array of client id values per-client
-
-        Address m_serverAddress;                                            // the external IP address of this server (what clients will be sending packets to)
-
-        uint64_t m_globalSequence;                                          // global sequence number for packets sent not corresponding to any particular connected client.
-
-        uint64_t m_clientSequence[MaxClients];                              // per-client sequence number for packets sent
-
-        Address m_clientAddress[MaxClients];                                // array of client address values per-client
-        
-        ServerClientData m_clientData[MaxClients];                          // heavier weight data per-client, eg. not for fast lookup
-
-        Connection * m_connection[MaxClients];                              // per-client connection. allocated and freed in start/stop according to max clients.
-
-        ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
-
-        uint64_t m_counters[SERVER_COUNTER_NUM_COUNTERS];
-
     public:
 
         Server( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL );
@@ -537,6 +502,8 @@ namespace yojimbo
 
     protected:
 
+        void InitializeContext();
+
         void ResetClientState( int clientIndex );
 
         int FindFreeClientIndex() const;
@@ -576,6 +543,50 @@ namespace yojimbo
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
 
         ConnectionHeartBeatPacket * CreateHeartBeatPacket( int clientIndex );
+
+        NetworkInterface * GetNetworkInterface() { return m_networkInterface; }
+
+    private:
+
+        Allocator * m_allocator;                                            // allocator used for creating connections per-client.
+
+        NetworkInterface * m_networkInterface;                              // network interface for sending and receiving packets.
+
+        MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional!
+
+        ClientServerContext m_context;                                      // serialization context for client/server packets.
+
+        uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
+
+        uint64_t m_challengeTokenNonce;                                     // nonce used for encoding challenge tokens
+
+        double m_time;                                                      // current server time (see "AdvanceTime")
+
+        uint64_t m_flags;                                                   // server flags
+
+        int m_maxClients;                                                   // maximum number of clients supported by this server
+
+        int m_numConnectedClients;                                          // number of connected clients
+        
+        bool m_clientConnected[MaxClients];                                 // true if client n is connected
+        
+        uint64_t m_clientId[MaxClients];                                    // array of client id values per-client
+
+        Address m_serverAddress;                                            // the external IP address of this server (what clients will be sending packets to)
+
+        uint64_t m_globalSequence;                                          // global sequence number for packets sent not corresponding to any particular connected client.
+
+        uint64_t m_clientSequence[MaxClients];                              // per-client sequence number for packets sent
+
+        Address m_clientAddress[MaxClients];                                // array of client address values per-client
+        
+        ServerClientData m_clientData[MaxClients];                          // heavier weight data per-client, eg. not for fast lookup
+
+        Connection * m_connection[MaxClients];                              // per-client connection. allocated and freed in start/stop according to max clients.
+
+        ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
+
+        uint64_t m_counters[SERVER_COUNTER_NUM_COUNTERS];
     };
 
     enum ClientState
@@ -670,6 +681,8 @@ namespace yojimbo
 
     protected:
 
+        void InitializeContext();
+
         void SetClientState( int clientState );
 
         void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
@@ -711,6 +724,8 @@ namespace yojimbo
         Connection * m_connection;                                          // the connection object for exchanging messages with the server. optional.
 
         int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
+
+        ClientServerContext m_context;                                      // serialization context for client/server packets.
 
         ClientState m_clientState;                                          // current client state
 

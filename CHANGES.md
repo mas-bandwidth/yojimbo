@@ -1,10 +1,16 @@
 
+Saturday July 10, 2016
+======================
+
+Client/server now automatically sets up the connection context. User should not need to do this manually.
+
+
 Wednesday July 6th, 2016
 ========================
 
 Implement listener interface? Client/Server implement connection listener? Yes.
 
-OnConnectionPackteSent, Acked, Received.
+OnConnectionPacketSent, Acked, Received.
 
 Getting the listener callback working with multiple connections is going to be a bit tricky. For example, need to pass in connection instance to work out index for server per-client connections?
 
