@@ -1,29 +1,5 @@
 DONE
 
 TODO
-
-    Extend soak test to also include sending and receiving blocks.
-
-    Add callbacks from connection -> client/server so I can print out logs when fragments are received.
-
-    Make sure the callbacks are enough to print out progress, for example a connection progress or download bar progress for a very large block.
-
-
-
-
-
-
-
-
-    --------------
-
-    Idea of block message having a real serialize function (fragment 0), but also a block attached to it is sexy.
-
-    This could be really flexible, for example for a large block you want to send across, but with some free from data you 
-    also want to send with it, eg. metadata describing that block.
-
-    The idea also of having different blocks as message types, so you can distinguish different blocks sent is really strong.
-
-    Nice!
-
-    --------------
+    
+    Make a preview release

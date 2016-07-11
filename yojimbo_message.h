@@ -59,7 +59,7 @@ namespace yojimbo
 
         void Release() { assert( m_magic == MessageMagic ); assert( m_refCount > 0 ); m_refCount--; }
 
-        ~Message()
+        virtual ~Message()
         {
             assert( m_magic == MessageMagic );
             assert( m_refCount == 0 );
@@ -71,6 +71,7 @@ namespace yojimbo
         friend class MessageFactory;
       
         Message( const Message & other );
+        
         const Message & operator = ( const Message & other );
 
         uint32_t m_magic;
@@ -80,13 +81,11 @@ namespace yojimbo
         uint32_t m_blockMessage : 1;
     };
 
-    const int BLOCK_MESSAGE_DEFAULT_TYPE = 0;
-
     class BlockMessage : public Message
     {
     public:
 
-        BlockMessage() : Message( BLOCK_MESSAGE_DEFAULT_TYPE, 1 ), m_allocator(NULL), m_blockSize(0), m_blockData(NULL) {}
+        BlockMessage( int type ) : Message( type, 1 ), m_allocator(NULL), m_blockSize(0), m_blockData(NULL) {}
 
         ~BlockMessage()
         {
@@ -109,13 +108,13 @@ namespace yojimbo
             if ( m_allocator )
             {
                 m_allocator->Free( m_blockData );
-                m_blockData = NULL;
                 m_blockSize = 0;
+                m_blockData = NULL;
                 m_allocator = NULL;
             }
         }
 
-        template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return false; }
+        template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return true; }
 
         YOJIMBO_SERIALIZE_FUNCTIONS();
 

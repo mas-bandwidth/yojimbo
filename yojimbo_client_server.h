@@ -494,6 +494,8 @@ namespace yojimbo
 
         virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
+        virtual void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/ ) {}
+
         virtual bool ProcessGamePacket( int /*clientIndex*/, Packet * /*packet*/, uint64_t /*sequence*/ ) { return false; }
 
     protected:
@@ -678,6 +680,8 @@ namespace yojimbo
         virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
         virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/ ) {}
 
         virtual bool ProcessGamePacket( Packet * /*packet*/, uint64_t /*sequence*/ ) { return false; }
 

@@ -123,6 +123,24 @@ This is accomplished via an encrypted connect token that the matchmaker generate
 
 Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed using a shared private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances or the security model breaks down.
 
+## Reliable Messages and Blocks
+
+The latest preview release of yojimbo has support for reliable-ordered messages and blocks.
+
+Messages can be sent in both directions. Client to server **and** server to client. Messages are reliable, ordered and time critical. They are resent rapidly until acked.
+
+Blocks of data larger than MTU may be sent in the same reliable ordered stream. They are sliced up and reassembled on the other side and injected into the same reliable ordered stream of messages. This is very convenient for example when you need to send down a large block of initial state (eg. initial delta baseline, or state of the world) on client connect. 
+
+For more details see soak.cpp.
+
+To see the blocks and messages in action, run:
+
+    premake5 soak
+
+This soak program looks forever sending messages and reliable blocks over very bad network conditions.
+
+The soak test is self validating. As long as it keeps receiving messages it's working. CTRL-C to stop.
+
 ## Feedback
 
 This is pre-release software so please email me with any feedback you have <glenn.fiedler@gmail.com>
