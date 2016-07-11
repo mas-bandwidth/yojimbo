@@ -55,24 +55,6 @@ namespace yojimbo
 	
 	#define YOJIMBO_NEW( a, T, ... ) ( new ((a).Allocate(sizeof(T))) T(__VA_ARGS__) )
 	#define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free(p); p = NULL; } } while (0)	
-
-	template <typename T> T * AllocateArray( Allocator & allocator, int arraySize, T * /*dummy*/ )
-	{
-		T * array = (T*) allocator.Allocate( sizeof(T) * arraySize );
-		for ( int i = 0; i < arraySize; ++i )
-			new( &array[i] ) T();
-		return array;
-	}
-
-	template <typename T> void DeleteArray( Allocator & allocator, T * array, int arraySize )
-	{
-		for ( int i = 0; i < arraySize; ++i )
-			(&array[i])->~T();
-		allocator.Free( array );
-	}
-
-	#define YOJIMBO_NEW_ARRAY( a, T, count ) AllocateArray( a, count, (T*)NULL )
-	#define YOJIMBO_DELETE_ARRAY( a, array, count ) do { DeleteArray( a, array, count ); array = NULL; } while (0)
 }
 
 #endif

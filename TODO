@@ -1,5 +1,22 @@
 DONE
 
-TODO
-    
     Make a preview release
+
+    Tested on MacOSX and Linux. Fine.
+
+TODO
+
+	Tested on windows. Some minor compile errors to fix up.
+
+	Hold on test.exe runs really slow in debug, what's going on?
+
+	YOJIMBO_ALLOCATE_ARRAY was being used for super-large primitive arrays, and is very slow in debug.
+
+	Removed. Replaced with allocator.Allocate( sizeof(T) * count )
+
+	Perf is back to normal.
+
+	Fixed some issues with some tests not having enough iterations and very rarely failing under packet loss.
+
+	Really should add a queue test. I broke it and it was hard to track down (breakage only showed up in stress test with 64 clients)
+    
