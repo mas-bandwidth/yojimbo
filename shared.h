@@ -332,7 +332,7 @@ struct TestMessage : public Message
         return true;
     }
 
-    YOJIMBO_SERIALIZE_FUNCTIONS();
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 struct TestBlockMessage : public BlockMessage
@@ -350,7 +350,7 @@ struct TestBlockMessage : public BlockMessage
         return true;
     }
 
-    YOJIMBO_SERIALIZE_FUNCTIONS();
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 class TestMessageFactory : public MessageFactory

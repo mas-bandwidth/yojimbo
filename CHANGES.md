@@ -1,4 +1,39 @@
 
+Tuesday July 12, 2016
+=====================
+
+There is really no utility to forcing people to implement "DestroyPacket" themselves.
+
+Just like with message factory, hell man, if you create a packet via an allocator, it should be freed via that allocator.
+
+There is no situation where we're not going to want YOJIMBO_DELETE called on the packet when it is destroyed. Just bake that in.
+
+Done.
+
+Maybe add helpers to make it easier to define packet factory types.
+
+    YOJIMBO_PACKET_FACTORY_START( TestPacketFactory, ClientServerPacketFactory, TEST_PACKET_NUM_TYPES );
+
+        YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_A, TestPacketA );
+        YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_B, TestPacketB );
+        YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_C, TestPacketC );
+        YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_D, TestPacketD );
+        
+    YOJIMBO_PACKET_FACTORY_FINISH();
+
+I mean, it's really boilerplate.
+
+One nice thing about not baking the type in to the constructor and using this boilerplate, is that it becomes simpler to define packet and message structs.
+
+eg. No more assigning the type in the CTOR.
+
+Plus this lets me use the same message struct, for multiple messages, which seems convenient.
+
+I'm sold on the boilerplate. Lets see how this goes, and maybe how it can be extended further to make defining packet and message classes easier.
+
+Added it. It's pretty nice. Especially now that it lets me simplify the packet types.
+
+
 Monday July 11, 2016
 ====================
 
@@ -36,6 +71,24 @@ Perf is back to normal.
 Fixed some issues with some tests not having enough iterations and very rarely failing under packet loss.
 
 Really should add a queue test. I broke it and it was hard to track down (breakage only showed up in stress test with 64 clients)
+
+What to do next?
+
+Time for some general cleanup while I think over the next steps.
+
+Added test_queue
+
+Bring across tests for blocks
+
+Converted test.cpp set of messages and factory to match what is in shared.h
+
+Updated test_connection_client_server to send both messages and blocks
+
+Implement test_connection_blocks
+
+Implement test_connection_messages_and_blocks
+
+Everything passes.
 
 
 Sunday July 10, 2016

@@ -43,7 +43,7 @@ namespace yojimbo
         
 #if YOJIMBO_PACKET_MAGIC
 
-        explicit Packet( int type ) : m_type( type ), m_magic( 0 ) {}
+        Packet() : m_type(0), m_magic(0) {}
 
 		virtual ~Packet() { m_type = -1; m_magic = 0; }
 
@@ -53,7 +53,7 @@ namespace yojimbo
 
 #else // #if YOJIMBO_PACKET_MAGIC
 
-        explicit Packet( int type ) : m_type( type ) {}
+        Packet() : m_type( 0 ) {}
 
 		virtual ~Packet() { m_type = -1; }
 
@@ -82,10 +82,7 @@ namespace yojimbo
         Packet & operator = ( const Packet & other );
     };
 
-    class PacketHeader : public Serializable
-    {
-        // ...
-    };
+    class PacketHeader : public Serializable {};
 
     class PacketFactory
     {        
@@ -107,15 +104,13 @@ namespace yojimbo
 
     protected:
 
-        void OverridePacketType( Packet * packet, int type );
+        void SetPacketType( Packet * packet, int type );
 
         Allocator & GetAllocator();
 
     protected:
 
-        virtual Packet * CreateInternal( int type ) = 0;
-
-        virtual void DestroyInternal( Packet * packet ) = 0;
+        virtual Packet * CreateInternal( int /*type*/ ) { return NULL; }
 
     private:
 
@@ -145,7 +140,7 @@ namespace yojimbo
 
         const uint8_t * allowedPacketTypes;         // array of allowed packet types. if a packet type is not allowed the serialize read or write will fail.
 
-        void * context;                             // context for the packet serialization (optional, pass in NULL)
+        void * context;                             // context for the packet serialization (optional, you may pass in NULL)
 
         PacketInfo()
         {
@@ -185,5 +180,39 @@ namespace yojimbo
 
 #endif // #if YOJIMBO_PACKET_AGGREGATION
 }
+
+#define YOJIMBO_PACKET_FACTORY_START( factory_class, base_factory_class, num_packet_types )                         \
+                                                                                                                    \
+    class factory_class : public base_factory_class                                                                 \
+    {                                                                                                               \
+    public:                                                                                                         \
+        factory_class( Allocator & allocator = GetDefaultAllocator(), int numPacketTypes = num_packet_types )       \
+         : base_factory_class( allocator, numPacketTypes ) {}                                                       \
+        Packet * CreateInternal( int type )                                                                         \
+        {                                                                                                           \
+            Packet * packet = base_factory_class::CreateInternal( type );                                           \
+            if ( packet )                                                                                           \
+                return packet;                                                                                      \
+            Allocator & allocator = GetAllocator();                                                                 \
+            switch ( type )                                                                                         \
+            {                                                                                                       \
+
+
+
+#define YOJIMBO_DECLARE_PACKET_TYPE( packet_type, packet_class )                                                    \
+                                                                                                                    \
+                case packet_type:                                                                                   \
+                    packet = YOJIMBO_NEW( allocator, packet_class );                                                \
+                    if ( !packet )                                                                                  \
+                        return NULL;                                                                                \
+                    SetPacketType( packet, packet_type );                                                           \
+                    return packet;        
+
+#define YOJIMBO_PACKET_FACTORY_FINISH()                                                                             \
+                                                                                                                    \
+                default: return NULL;                                                                               \
+            }                                                                                                       \
+        }                                                                                                           \
+    };
 
 #endif // #ifndef YOJIMBO_PACKET_H

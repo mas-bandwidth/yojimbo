@@ -49,6 +49,8 @@ namespace yojimbo
 	    Allocator & operator = ( const Allocator & other );
 	};
 
+    Allocator & GetDefaultAllocator();
+
 #if defined( _MSC_VER )
 	#define _ALLOW_KEYWORD_MACROS
 #endif // #if defined( _MSC_VER )

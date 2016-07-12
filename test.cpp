@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-//#define SOAK 1
+#define SOAK 1
 
 #if SOAK
 #include <signal.h>
@@ -313,7 +313,7 @@ struct TestObject : public Serializable
         return true;
     }
 
-    YOJIMBO_SERIALIZE_FUNCTIONS();
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 
     bool operator == ( const TestObject & other ) const
     {
@@ -371,7 +371,7 @@ struct TestPacketA : public Packet
 {
     int a,b,c;
 
-    TestPacketA() : Packet( TEST_PACKET_A )
+    TestPacketA()
     {
         a = 1;
         b = 2;
@@ -386,14 +386,14 @@ struct TestPacketA : public Packet
         return true;
     }
 
-    YOJIMBO_SERIALIZE_FUNCTIONS();
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 struct TestPacketB : public Packet
 {
     int x,y;
 
-    TestPacketB() : Packet( TEST_PACKET_B )
+    TestPacketB()
     {
         x = 0;
         y = 1;
@@ -406,14 +406,14 @@ struct TestPacketB : public Packet
         return true;
     }
 
-    YOJIMBO_SERIALIZE_FUNCTIONS();
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 struct TestPacketC : public Packet
 {
     uint8_t data[16];
 
-    TestPacketC() : Packet( TEST_PACKET_C )
+    TestPacketC()
     {
         for ( int i = 0; i < (int) sizeof( data ); ++i )
             data[i] = (uint8_t) i;
@@ -426,44 +426,23 @@ struct TestPacketC : public Packet
         return true;
     }
 
-    YOJIMBO_SERIALIZE_FUNCTIONS();
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-struct TestPacketFactory : public PacketFactory
-{
-    explicit TestPacketFactory( Allocator & allocator ) : PacketFactory( allocator, TEST_PACKET_NUM_TYPES ) {}
+YOJIMBO_PACKET_FACTORY_START( TestPacketFactory, PacketFactory, TEST_PACKET_NUM_TYPES );
 
-    Packet * CreateInternal( int type )
-    {
-        Allocator & allocator = GetAllocator();
+    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_A, TestPacketA );
+    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_B, TestPacketB );
+    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_C, TestPacketC );
+    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_CONNECTION, ConnectionPacket );
 
-        switch ( type )
-        {
-            case TEST_PACKET_A: return YOJIMBO_NEW( allocator, TestPacketA );
-            case TEST_PACKET_B: return YOJIMBO_NEW( allocator, TestPacketB );
-            case TEST_PACKET_C: return YOJIMBO_NEW( allocator, TestPacketC );
-
-            case TEST_PACKET_CONNECTION:
-            {
-                Packet * packet = YOJIMBO_NEW( allocator, ConnectionPacket );
-                OverridePacketType( packet, TEST_PACKET_CONNECTION );
-                return packet;
-            }
-        }
-        return NULL;
-    }
-
-    void DestroyInternal( Packet * packet )
-    {
-        YOJIMBO_DELETE( GetAllocator(), Packet, packet );
-    }
-};
+YOJIMBO_PACKET_FACTORY_FINISH();
 
 void test_packets()
 {
     printf( "test_packets\n" );
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
     TestPacketA * a = (TestPacketA*) packetFactory.CreatePacket( TEST_PACKET_A );
     TestPacketB * b = (TestPacketB*) packetFactory.CreatePacket( TEST_PACKET_B );
@@ -1053,7 +1032,7 @@ struct GamePacket : public Packet
     uint32_t sequence;
     uint32_t a,b,c;
 
-    GamePacket() : Packet( GAME_PACKET )
+    GamePacket()
     {
         sequence = 0;
         a = 0;
@@ -1086,7 +1065,7 @@ struct GamePacket : public Packet
         return true;
     }
 
-    YOJIMBO_SERIALIZE_FUNCTIONS();
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 static bool verbose_logging = false;
@@ -1335,26 +1314,9 @@ public:
     }
 };
 
-class GamePacketFactory : public ClientServerPacketFactory
-{
-public:
-
-    GamePacketFactory() : ClientServerPacketFactory( GetDefaultAllocator(), GAME_NUM_PACKETS ) {}
-
-    Packet * CreateInternal( int type )
-    {
-        Packet * packet = ClientServerPacketFactory::CreateInternal( type );
-        if ( packet )
-            return packet;
-
-        Allocator & allocator = GetAllocator();
-
-        if ( type == GAME_PACKET )
-            return YOJIMBO_NEW( allocator, GamePacket );
-
-        return NULL;
-    }
-};
+YOJIMBO_PACKET_FACTORY_START( GamePacketFactory, ClientServerPacketFactory, GAME_NUM_PACKETS );
+YOJIMBO_DECLARE_PACKET_TYPE( GAME_PACKET, GamePacket );
+YOJIMBO_PACKET_FACTORY_FINISH();
 
 class TestNetworkSimulator : public NetworkSimulator
 {
@@ -3429,7 +3391,8 @@ void test_generate_ack_bits()
 
 enum MessageType
 {
-    MESSAGE_TEST,
+    TEST_MESSAGE,
+    TEST_BLOCK_MESSAGE,
     NUM_MESSAGE_TYPES
 };
 
@@ -3443,7 +3406,9 @@ inline int GetNumBitsForMessage( uint16_t sequence )
 
 struct TestMessage : public Message
 {
-    TestMessage() : Message( MESSAGE_TEST )
+    uint16_t sequence;
+
+    TestMessage() : Message( TEST_MESSAGE )
     {
         sequence = 0;
     }
@@ -3466,9 +3431,25 @@ struct TestMessage : public Message
         return true;
     }
 
-    YOJIMBO_SERIALIZE_FUNCTIONS();
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
 
+struct TestBlockMessage : public BlockMessage
+{
     uint16_t sequence;
+
+    TestBlockMessage() : BlockMessage( TEST_BLOCK_MESSAGE ) 
+    {
+        sequence = 0;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {        
+        serialize_bits( stream, sequence, 16 );
+        return true;
+    }
+
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 class TestMessageFactory : public MessageFactory
@@ -3485,7 +3466,8 @@ protected:
 
         switch ( type )
         {
-            case MESSAGE_TEST:          return YOJIMBO_NEW( allocator, TestMessage );
+            case TEST_MESSAGE:          return YOJIMBO_NEW( allocator, TestMessage );
+            case TEST_BLOCK_MESSAGE:    return YOJIMBO_NEW( allocator, TestBlockMessage );
             default:
                 return NULL;
         }
@@ -3636,7 +3618,7 @@ void test_connection_messages()
 
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
-        TestMessage * message = (TestMessage*) messageFactory.Create( MESSAGE_TEST );
+        TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
         check( message );
         message->sequence = i;
         sender.SendMessage( message );
@@ -3721,13 +3703,348 @@ void test_connection_messages()
                 break;
 
             check( message->GetId() == (int) numMessagesReceived );
-            check( message->GetType() == MESSAGE_TEST );
+            check( message->GetType() == TEST_MESSAGE );
 
             TestMessage * testMessage = (TestMessage*) message;
 
             check( testMessage->sequence == numMessagesReceived );
 
             ++numMessagesReceived;
+
+            messageFactory.Release( message );
+        }
+
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
+
+        time += deltaTime;
+
+        sender.AdvanceTime( time );
+        receiver.AdvanceTime( time );
+
+        senderInterface.AdvanceTime( time );
+        receiverInterface.AdvanceTime( time );
+
+        networkSimulator.AdvanceTime( time );
+    }
+
+    check( numMessagesReceived == NumMessagesSent );
+}
+
+void test_connection_blocks()
+{
+    printf( "test_connection_blocks\n" );
+
+    TestPacketFactory packetFactory( GetDefaultAllocator() );
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.packetType = TEST_PACKET_CONNECTION;
+
+    TestConnection sender( packetFactory, messageFactory, connectionConfig );
+
+    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+
+    ConnectionContext context;
+    context.messageFactory = &messageFactory;
+    context.connectionConfig = &connectionConfig;
+
+    const int NumMessagesSent = 32;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+        check( message );
+        message->sequence = i;
+        const int blockSize = 1 + ( ( i * 901 ) % 3333 );
+        uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+        for ( int j = 0; j < blockSize; ++j )
+            blockData[j] = i + j;
+        message->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+        sender.SendMessage( message );
+    }
+
+    TestNetworkSimulator networkSimulator;
+
+    networkSimulator.SetJitter( 250 );
+    networkSimulator.SetLatency( 1000 );
+    networkSimulator.SetDuplicates( 50 );
+    networkSimulator.SetPacketLoss( 50 );
+
+    const int SenderPort = 10000;
+    const int ReceiverPort = 10001;
+
+    Address senderAddress( "::1", SenderPort );
+    Address receiverAddress( "::1", ReceiverPort );
+
+    SimulatorInterface senderInterface( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
+    SimulatorInterface receiverInterface( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
+
+    senderInterface.SetContext( &context );
+    receiverInterface.SetContext( &context );
+
+    double time = 0.0;
+    double deltaTime = 0.1;
+
+    const int NumIterations = 10000;
+
+    int numMessagesReceived = 0;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Packet * senderPacket = sender.WritePacket();
+        Packet * receiverPacket = receiver.WritePacket();
+
+        check( senderPacket );
+        check( receiverPacket );
+
+        senderInterface.SendPacket( receiverAddress, senderPacket, 0, false );
+        receiverInterface.SendPacket( senderAddress, receiverPacket, 0, false );
+
+        senderInterface.WritePackets();
+        receiverInterface.WritePackets();
+
+        senderInterface.ReadPackets();
+        receiverInterface.ReadPackets();
+
+        while ( true )
+        {
+            Address from;
+            Packet * packet = senderInterface.ReceivePacket( from, NULL );
+            if ( !packet )
+                break;
+
+            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
+                sender.ReadPacket( (ConnectionPacket*) packet );
+
+            packetFactory.DestroyPacket( packet );
+        }
+
+        while ( true )
+        {
+            Address from;
+            Packet * packet = receiverInterface.ReceivePacket( from, NULL );
+            if ( !packet )
+                break;
+
+            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
+            {
+                receiver.ReadPacket( (ConnectionPacket*) packet );
+            }
+
+            packetFactory.DestroyPacket( packet );
+        }
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage();
+
+            if ( !message )
+                break;
+
+            check( message->GetId() == (int) numMessagesReceived );
+
+            check( message->GetType() == TEST_BLOCK_MESSAGE );
+
+            TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+
+            check( blockMessage->sequence == uint16_t( numMessagesReceived ) );
+
+            const int blockSize = blockMessage->GetBlockSize();
+
+            check( blockSize == 1 + ( ( numMessagesReceived * 901 ) % 3333 ) );
+
+            const uint8_t * blockData = blockMessage->GetBlockData();
+
+            check( blockData );
+
+            for ( int j = 0; j < blockSize; ++j )
+            {
+                check( blockData[j] == uint8_t( numMessagesReceived + j ) );
+            }
+
+            ++numMessagesReceived;
+
+            messageFactory.Release( message );
+        }
+
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
+
+        time += deltaTime;
+
+        sender.AdvanceTime( time );
+        receiver.AdvanceTime( time );
+
+        senderInterface.AdvanceTime( time );
+        receiverInterface.AdvanceTime( time );
+
+        networkSimulator.AdvanceTime( time );
+    }
+
+    check( numMessagesReceived == NumMessagesSent );
+}
+
+void test_connection_messages_and_blocks()
+{
+    printf( "test_connection_messages_and_blocks\n" );
+
+    TestPacketFactory packetFactory( GetDefaultAllocator() );
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.packetType = TEST_PACKET_CONNECTION;
+
+    TestConnection sender( packetFactory, messageFactory, connectionConfig );
+
+    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+
+    ConnectionContext context;
+    context.messageFactory = &messageFactory;
+    context.connectionConfig = &connectionConfig;
+
+    const int NumMessagesSent = 32;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        if ( rand() % 2 )
+        {
+            TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+            check( message );
+            message->sequence = i;
+            sender.SendMessage( message );
+        }
+        else
+        {
+            TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+            check( message );
+            message->sequence = i;
+            const int blockSize = 1 + ( ( i * 901 ) % 3333 );
+            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+            for ( int j = 0; j < blockSize; ++j )
+                blockData[j] = i + j;
+            message->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+            sender.SendMessage( message );
+        }
+    }
+
+    TestNetworkSimulator networkSimulator;
+
+    networkSimulator.SetJitter( 250 );
+    networkSimulator.SetLatency( 1000 );
+    networkSimulator.SetDuplicates( 50 );
+    networkSimulator.SetPacketLoss( 50 );
+
+    const int SenderPort = 10000;
+    const int ReceiverPort = 10001;
+
+    Address senderAddress( "::1", SenderPort );
+    Address receiverAddress( "::1", ReceiverPort );
+
+    SimulatorInterface senderInterface( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
+    SimulatorInterface receiverInterface( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
+
+    senderInterface.SetContext( &context );
+    receiverInterface.SetContext( &context );
+
+    double time = 0.0;
+    double deltaTime = 0.1;
+
+    const int NumIterations = 10000;
+
+    int numMessagesReceived = 0;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Packet * senderPacket = sender.WritePacket();
+        Packet * receiverPacket = receiver.WritePacket();
+
+        check( senderPacket );
+        check( receiverPacket );
+
+        senderInterface.SendPacket( receiverAddress, senderPacket, 0, false );
+        receiverInterface.SendPacket( senderAddress, receiverPacket, 0, false );
+
+        senderInterface.WritePackets();
+        receiverInterface.WritePackets();
+
+        senderInterface.ReadPackets();
+        receiverInterface.ReadPackets();
+
+        while ( true )
+        {
+            Address from;
+            Packet * packet = senderInterface.ReceivePacket( from, NULL );
+            if ( !packet )
+                break;
+
+            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
+                sender.ReadPacket( (ConnectionPacket*) packet );
+
+            packetFactory.DestroyPacket( packet );
+        }
+
+        while ( true )
+        {
+            Address from;
+            Packet * packet = receiverInterface.ReceivePacket( from, NULL );
+            if ( !packet )
+                break;
+
+            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
+            {
+                receiver.ReadPacket( (ConnectionPacket*) packet );
+            }
+
+            packetFactory.DestroyPacket( packet );
+        }
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage();
+
+            if ( !message )
+                break;
+
+            check( message->GetId() == (int) numMessagesReceived );
+
+            switch ( message->GetType() )
+            {
+                case TEST_MESSAGE:
+                {
+                    TestMessage * testMessage = (TestMessage*) message;
+
+                    check( testMessage->sequence == uint16_t( numMessagesReceived ) );
+
+                    ++numMessagesReceived;
+                }
+                break;
+
+                case TEST_BLOCK_MESSAGE:
+                {
+                    TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+
+                    check( blockMessage->sequence == uint16_t( numMessagesReceived ) );
+
+                    const int blockSize = blockMessage->GetBlockSize();
+
+                    check( blockSize == 1 + ( ( numMessagesReceived * 901 ) % 3333 ) );
+        
+                    const uint8_t * blockData = blockMessage->GetBlockData();
+
+                    check( blockData );
+
+                    for ( int j = 0; j < blockSize; ++j )
+                    {
+                        check( blockData[j] == uint8_t( numMessagesReceived + j ) );
+                    }
+
+                    ++numMessagesReceived;
+                }
+                break;
+            }
 
             messageFactory.Release( message );
         }
@@ -3837,28 +4154,58 @@ void test_connection_client_server()
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
-    const int NumMessagesSent = 64;
+    const int NumMessagesSent = 16;
 
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
-        TestMessage * message = (TestMessage*) messageFactory.Create( MESSAGE_TEST );
-        check( message );
-        message->sequence = i;
-        client.SendMessage( message );
+        if ( rand() % 2 )
+        {
+            TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+            check( message );
+            message->sequence = i;
+            client.SendMessage( message );
+        }
+        else
+        {
+            TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+            check( message );
+            message->sequence = i;
+            const int blockSize = 1 + ( ( i * 901 ) % 3333 );
+            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+            for ( int j = 0; j < blockSize; ++j )
+                blockData[j] = i + j;
+            message->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+            client.SendMessage( message );
+        }
     }
 
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
-        TestMessage * message = (TestMessage*) messageFactory.Create( MESSAGE_TEST );
-        check( message );
-        message->sequence = i;
-        server.SendMessage( client.GetClientIndex(), message );
+        if ( rand() % 2 )
+        {
+            TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+            check( message );
+            message->sequence = i;
+            server.SendMessage( client.GetClientIndex(), message );
+        }
+        else
+        {
+            TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+            check( message );
+            message->sequence = i;
+            const int blockSize = 1 + ( ( i * 901 ) % 3333 );
+            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+            for ( int j = 0; j < blockSize; ++j )
+                blockData[j] = i + j;
+            message->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+            server.SendMessage( client.GetClientIndex(), message );
+        }
     }
 
     int numMessagesReceivedFromClient = 0;
     int numMessagesReceivedFromServer = 0;
 
-    const int NumIterations = 500;
+    const int NumIterations = 10000;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -3885,13 +4232,42 @@ void test_connection_client_server()
                 break;
 
             check( message->GetId() == (int) numMessagesReceivedFromServer );
-            check( message->GetType() == MESSAGE_TEST );
+            
+            switch ( message->GetType() )
+            {
+                case TEST_MESSAGE:
+                {
+                    TestMessage * testMessage = (TestMessage*) message;
 
-            TestMessage * testMessage = (TestMessage*) message;
+                    check( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
 
-            check( testMessage->sequence == numMessagesReceivedFromServer );
+                    ++numMessagesReceivedFromServer;
+                }
+                break;
 
-            ++numMessagesReceivedFromServer;
+                case TEST_BLOCK_MESSAGE:
+                {
+                    TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+
+                    check( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
+
+                    const int blockSize = blockMessage->GetBlockSize();
+
+                    check( blockSize == 1 + ( ( numMessagesReceivedFromServer * 901 ) % 3333 ) );
+        
+                    const uint8_t * blockData = blockMessage->GetBlockData();
+
+                    check( blockData );
+
+                    for ( int j = 0; j < blockSize; ++j )
+                    {
+                        check( blockData[j] == uint8_t( numMessagesReceivedFromServer + j ) );
+                    }
+
+                    ++numMessagesReceivedFromServer;
+                }
+                break;
+            }
 
             client.ReleaseMessage( message );
         }
@@ -3904,13 +4280,42 @@ void test_connection_client_server()
                 break;
 
             check( message->GetId() == (int) numMessagesReceivedFromClient );
-            check( message->GetType() == MESSAGE_TEST );
 
-            TestMessage * testMessage = (TestMessage*) message;
+            switch ( message->GetType() )
+            {
+                case TEST_MESSAGE:
+                {
+                    TestMessage * testMessage = (TestMessage*) message;
 
-            check( testMessage->sequence == numMessagesReceivedFromClient );
+                    check( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
 
-            ++numMessagesReceivedFromClient;
+                    ++numMessagesReceivedFromClient;
+                }
+                break;
+
+                case TEST_BLOCK_MESSAGE:
+                {
+                    TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+
+                    check( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+
+                    const int blockSize = blockMessage->GetBlockSize();
+
+                    check( blockSize == 1 + ( ( numMessagesReceivedFromClient * 901 ) % 3333 ) );
+        
+                    const uint8_t * blockData = blockMessage->GetBlockData();
+
+                    check( blockData );
+
+                    for ( int j = 0; j < blockSize; ++j )
+                    {
+                        check( blockData[j] == uint8_t( numMessagesReceivedFromClient + j ) );
+                    }
+
+                    ++numMessagesReceivedFromClient;
+                }
+                break;
+            }
 
             server.ReleaseMessage( message );
         }
@@ -3989,6 +4394,8 @@ int main()
         test_connection_counters();
         test_connection_acks();
         test_connection_messages();
+        test_connection_blocks();
+        test_connection_messages_and_blocks();
         test_connection_client_server();
 
 #if SOAK
