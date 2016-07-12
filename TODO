@@ -1,12 +1,29 @@
 DONE    
 
+    Try jacking up to 64 players connected to a server and exchange messages between in profile.cpp (all local)
+
+    Look for bottlenecks. Are there things that can be trivially improved in here?
+
+    This code is pretty ugly. It sure would be nice to do a pass to make sure that users can pretty much derive their own client/server
+    classes and do all their extension in there, eg. network interface, message factory, matchmaker integration in the base client etc.
+
+    Doing it this way, it's really ugly and a lot of work to extend the client to do what I want. Tabling this for fixing up later on.
+
+    Added code to create a random message.
+
+    Bring across code for sending and receiving messages and blocks.
+
+    Once this is going, check in and do some profiling in Visual Studio.
+
 TODO
 
     ------------------
 
-    Try jacking up to 256 players per-connection and exchange messages between in profile.cpp (all local)
+    Server needs to watch the connection for each client and if they go into error state, disconnect that client.
 
-    Look for bottlenecks. Are there things that can be trivially improved?
+    Same thing on the client. Needs to watch server connection. If it goes into error, disconnect from server.
+
+    Add a unit test for this on both sides. Easiest way to reproduce a connection error would be to overflow the send queue.
 
     ------------------
 

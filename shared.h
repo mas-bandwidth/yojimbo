@@ -122,6 +122,8 @@ protected:
         printf( "client %d timed out (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
+#ifndef QUIET
+
     void OnPacketSent( int packetType, const Address & to, bool immediate )
     {
         const char * packetTypeString = NULL;
@@ -172,6 +174,8 @@ protected:
     {
         printf( "received fragment %d\n", fragmentId );
     }
+
+#endif // #ifndef QUIET
 };
 
 #endif // #if SERVER
@@ -192,6 +196,8 @@ public:
     {
         // ...
     }
+
+#ifndef QUIET
 
     void OnConnect( const Address & address )
     {
@@ -263,6 +269,8 @@ public:
             printf( "client received %s packet from %s\n", packetTypeString, addressString );
         }
     }
+
+#endif // #ifndef QUIET
 };
 
 #endif // #if CLIENT
@@ -298,11 +306,11 @@ inline int GetNumBitsForMessage( uint16_t sequence )
     return messageBitsArray[index];
 }
 
-struct TestMessage : public Message
+struct GameMessage : public Message
 {
     uint16_t sequence;
 
-    TestMessage()
+    GameMessage()
     {
         sequence = 0;
     }
@@ -320,7 +328,7 @@ struct TestMessage : public Message
         if ( numRemainderBits > 0 )
             serialize_bits( stream, dummy, numRemainderBits );
 
-        serialize_check( stream, "end of test message" );
+        serialize_check( stream, "end of game message" );
 
         return true;
     }
@@ -328,11 +336,11 @@ struct TestMessage : public Message
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-struct TestBlockMessage : public BlockMessage
+struct GameBlockMessage : public BlockMessage
 {
     uint16_t sequence;
 
-    TestBlockMessage()
+    GameBlockMessage()
     {
         sequence = 0;
     }
@@ -348,14 +356,14 @@ struct TestBlockMessage : public BlockMessage
 
 enum MessageType
 {
-    TEST_MESSAGE,
-    TEST_BLOCK_MESSAGE,
+    GAME_MESSAGE,
+    GAME_BLOCK_MESSAGE,
     NUM_MESSAGE_TYPES
 };
 
-YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
+YOJIMBO_MESSAGE_FACTORY_START( GameMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( GAME_MESSAGE, GameMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( GAME_BLOCK_MESSAGE, GameBlockMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 #endif // #ifndef SHARED_H
