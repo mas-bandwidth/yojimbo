@@ -91,7 +91,7 @@ namespace yojimbo
         uint16_t blockNumFragments : 16;
         int blockMessageType;
 
-        ConnectionPacket() : Packet( 0 )
+        ConnectionPacket()
         {
             sequence = 0;
             ack = 0;

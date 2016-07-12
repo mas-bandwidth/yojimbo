@@ -2,13 +2,45 @@ DONE
 
 TODO
 
-    What to do next?
+    ------------------
 
-    Time for some general cleanup while I think over the next steps.
 
-    Add test_queue
+    ------------------
 
-    Bring across tests for large blocks
+
+    ------------------
+
+    Same thing could be done for message factory.
+
+    ------------------
+
+    Message magic should be wrapped with #if YOJIMBO_MESSAGE_MAGIC and off by default.
+
+    ------------------
+
+    Lightweight code to detect mismatched allocations of memory, packets, messages should be enabled in debug build.
+
+    eg. int numBytesAllocated
+
+    ------------------
+
+    Make it easier to create blocks, attach to messages, detach. It's ugly right now.
+
+    AttachBlock, DetachBlock might be a better way to do it.
+
+    Maybe bring back the block type. Nice to just have a thing that can be passed around that knows how to delete itself when you ask.
+
+    Maybe blocks should be refcounted too? I don't know. Probably not. The block message itself is refcounted.
+
+    Would be nice for message factory to just have a CreateBlock function on it too, 'cos that's part of what the message factory does now.
+
+    ------------------
+
+    Try jacking up to 256 players per-connection and exchange messages between in profile.cpp (all local)
+
+    Look for bottlenecks. Are there things that can be trivially improved?
+
+    ------------------
 
     Add implementation of platform_time for windows.
 
@@ -26,6 +58,46 @@ TODO
 
     Sending a message on a particular channel id is a good metaphor, vs. having functions "SendUnreliableMessage", "SendReliableMessage", "SendSnapshot".
 
+    ------------------
+
+    How is the connection configured?
+
+    ConnectionConfig containing channels?
+
+    GetConnectionConfig that you override? Sounds good.
+
+    const int MaxChannels = 64?
+
+    (You can still specify # of channels up to this limit...)
+
+    Seems reasonable. Avoids annoying dynamic allocation inside the ConnectionConfig.
+
+    There is of course still int numChannels inside the config.
+
+    On connection create, it configures and dynamically allocates itself as per-the connection config.
+
+    Packets will need to dynamically allocate per-channel data, but it should be *uniform* data, eg. messages / blocks, with the config able to quickly
+    tell the serialize function the information it needs to know about how to treat serialization of that data (eg. serialize reliable vs. unrelibale differently,
+    both for messages *and* block messages...)
+
+    ------------------
+
     Packet fragmentation and reassembly.
 
+    ------------------
+
     Packet aggregation.
+
+    ------------------
+
+    Packet compression
+
+    Large block compression
+
+    ------------------
+
+    Multithreaded design for yojimbo. Start profiling it. Is this necessary? What would need to change to make multithreading easier?
+
+    Would yojimbo just multithread internally? What would a multithreaded interface to yojimbo look like in this case to the user?
+
+    ------------------

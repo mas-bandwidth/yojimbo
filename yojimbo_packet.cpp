@@ -23,6 +23,7 @@
 */
 
 #include "yojimbo_packet.h"
+#include "yojimbo_allocator.h"
 
 #ifdef _MSC_VER
 #include <malloc.h>
@@ -590,7 +591,7 @@ cleanup:
 
         m_numAllocatedPackets--;
 
-        DestroyInternal( packet );
+        YOJIMBO_DELETE( *m_allocator, Packet, packet );
     }
 
     int PacketFactory::GetNumPacketTypes() const
@@ -598,7 +599,7 @@ cleanup:
         return m_numPacketTypes;
     }
 
-    void PacketFactory::OverridePacketType( Packet * packet, int type )
+    void PacketFactory::SetPacketType( Packet * packet, int type )
     {
         if ( packet )
             packet->SetType( type );

@@ -45,9 +45,4 @@ bool InitializeYojimbo();
 
 void ShutdownYojimbo();
 
-namespace yojimbo
-{
-    Allocator & GetDefaultAllocator();
-}
-
 #endif // #ifndef YOJIMBO_H
