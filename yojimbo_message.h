@@ -29,25 +29,21 @@
 
 namespace yojimbo
 {
-    // todo: wrap message magic with #if YOJIMBO_MESSAGE_MAGIC and have it off by default
-
-    const int MessageMagic = 0x12345;
-
     class Message : public Serializable
     {
     public:
 
-        Message( int type, int blockMessage = 0 ) : m_magic( MessageMagic ), m_refCount(1), m_id(0), m_type( type ), m_blockMessage( blockMessage ) {}
+        Message( int blockMessage = 0 ) : m_refCount(1), m_id(0), m_type(0), m_blockMessage( blockMessage ) {}
 
-        void AssignId( uint16_t id ) { assert( m_magic == MessageMagic ); m_id = id; }
+        void AssignId( uint16_t id ) { m_id = id; }
 
-        int GetId() const { assert( m_magic == MessageMagic ); return m_id; }
+        int GetId() const { return m_id; }
 
-        int GetType() const { assert( m_magic == MessageMagic ); return m_type; }
+        int GetType() const { return m_type; }
 
-        int GetRefCount() { assert( m_magic == MessageMagic ); return m_refCount; }
+        int GetRefCount() { return m_refCount; }
 
-        bool IsBlockMessage() const { assert( m_magic == MessageMagic ); return m_blockMessage; }
+        bool IsBlockMessage() const { return m_blockMessage; }
 
         virtual bool SerializeInternal( ReadStream & stream ) = 0;
 
@@ -57,15 +53,15 @@ namespace yojimbo
 
     protected:
 
+        void SetType( int type ) { m_type = type; }
+
         void AddRef() { m_refCount++; }
 
-        void Release() { assert( m_magic == MessageMagic ); assert( m_refCount > 0 ); m_refCount--; }
+        void Release() { assert( m_refCount > 0 ); m_refCount--; }
 
         virtual ~Message()
         {
-            assert( m_magic == MessageMagic );
             assert( m_refCount == 0 );
-            m_magic = 0;
         }
 
     private:
@@ -76,7 +72,6 @@ namespace yojimbo
         
         const Message & operator = ( const Message & other );
 
-        uint32_t m_magic;
         int m_refCount;
         uint32_t m_id : 16;
         uint32_t m_type : 15;       
@@ -87,25 +82,9 @@ namespace yojimbo
     {
     public:
 
-        explicit BlockMessage( int type ) : Message( type, 1 ), m_allocator(NULL), m_blockSize(0), m_blockData(NULL) {}
+        explicit BlockMessage() : Message( 1 ), m_allocator(NULL), m_blockData(NULL), m_blockSize(0) {}
 
         ~BlockMessage()
-        {
-            Disconnect();
-        }
-
-        void Connect( Allocator & allocator, uint8_t * blockData, int blockSize )
-        {
-            assert( blockData );
-            assert( blockSize > 0 );
-            assert( !m_blockData );
-
-            m_allocator = &allocator;
-            m_blockData = blockData;
-            m_blockSize = blockSize;
-        }
-
-        void Disconnect()
         {
             if ( m_allocator )
             {
@@ -116,9 +95,23 @@ namespace yojimbo
             }
         }
 
-        template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return true; }
+        void AttachBlock( Allocator & allocator, uint8_t * blockData, int blockSize )
+        {
+            assert( blockData );
+            assert( blockSize > 0 );
+            assert( !m_blockData );
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+            m_allocator = &allocator;
+            m_blockData = blockData;
+            m_blockSize = blockSize;
+        }
+
+        void DetachBlock()
+        {
+            m_allocator = NULL;
+            m_blockData = NULL;
+            m_blockSize = 0;
+        }
 
         Allocator * GetAllocator()
         {
@@ -135,11 +128,15 @@ namespace yojimbo
             return m_blockSize;
         }
 
+        template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return true; }
+
+        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+
     private:
 
         Allocator * m_allocator;
-        int m_blockSize;
         uint8_t * m_blockData;
+        int m_blockSize;
     };
 
     class MessageFactory
@@ -237,8 +234,43 @@ namespace yojimbo
 
     protected:
 
-        virtual Message * CreateInternal( int type ) = 0;
+        void SetMessageType( Message * message, int type ) { message->SetType( type ); }
+
+        virtual Message * CreateInternal( int /*type*/ ) { return NULL; }
     };
 }
+
+#define YOJIMBO_MESSAGE_FACTORY_START( factory_class, base_factory_class, num_message_types )                       \
+                                                                                                                    \
+    class factory_class : public base_factory_class                                                                 \
+    {                                                                                                               \
+    public:                                                                                                         \
+        factory_class( Allocator & allocator = GetDefaultAllocator(), int numMessageTypes = num_message_types )     \
+         : base_factory_class( allocator, numMessageTypes ) {}                                                      \
+        Message * CreateInternal( int type )                                                                        \
+        {                                                                                                           \
+            Message * message = base_factory_class::CreateInternal( type );                                         \
+            if ( message )                                                                                          \
+                return message;                                                                                     \
+            Allocator & allocator = GetAllocator();                                                                 \
+            switch ( type )                                                                                         \
+            {                                                                                                       \
+
+
+#define YOJIMBO_DECLARE_MESSAGE_TYPE( message_type, message_class )                                                 \
+                                                                                                                    \
+                case message_type:                                                                                  \
+                    message = YOJIMBO_NEW( allocator, message_class );                                              \
+                    if ( !message )                                                                                 \
+                        return NULL;                                                                                \
+                    SetMessageType( message, message_type );                                                        \
+                    return message;
+
+#define YOJIMBO_MESSAGE_FACTORY_FINISH()                                                                            \
+                                                                                                                    \
+                default: return NULL;                                                                               \
+            }                                                                                                       \
+        }                                                                                                           \
+    };
 
 #endif

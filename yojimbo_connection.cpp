@@ -1007,7 +1007,7 @@ namespace yojimbo
 
                     memcpy( blockData, m_receiveBlock.blockData, m_receiveBlock.blockSize );
 
-                    blockMessage->Connect( m_messageFactory->GetAllocator(), blockData, m_receiveBlock.blockSize );
+                    blockMessage->AttachBlock( m_messageFactory->GetAllocator(), blockData, m_receiveBlock.blockSize );
 
                     blockMessage->AssignId( messageId );
 

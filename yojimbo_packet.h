@@ -41,25 +41,11 @@ namespace yojimbo
     {
     public:        
         
-#if YOJIMBO_PACKET_MAGIC
-
-        Packet() : m_type(0), m_magic(0) {}
-
-		virtual ~Packet() { m_type = -1; m_magic = 0; }
-
-		uint64_t GetMagic() const { return m_magic; }
-    
-        bool IsValid() const { return m_magic != 0 && m_type >= 0; }
-
-#else // #if YOJIMBO_PACKET_MAGIC
-
         Packet() : m_type( 0 ) {}
 
 		virtual ~Packet() { m_type = -1; }
 
         bool IsValid() const { return m_type >= 0; }
-
-#endif // #if YOJIMBO_PACKET_MAGIC
 
         int GetType() const { return m_type; }
 
@@ -70,10 +56,6 @@ namespace yojimbo
         void SetType( int type) { m_type = type; }
 
         int m_type;
-
-#if YOJIMBO_PACKET_MAGIC
-        uint64_t m_magic;
-#endif // #if YOJIMBO_PACKET_MAGIC
 
     private:
 
@@ -98,10 +80,6 @@ namespace yojimbo
 
         int GetNumPacketTypes() const;
 
-#if YOJIMBO_PACKET_MAGIC
-        uint64_t GetMagic() const { return m_magic; }
-#endif // #if YOJIMBO_PACKET_MAGIC
-
     protected:
 
         void SetPacketType( Packet * packet, int type );
@@ -113,10 +91,6 @@ namespace yojimbo
         virtual Packet * CreateInternal( int /*type*/ ) { return NULL; }
 
     private:
-
-#if YOJIMBO_PACKET_MAGIC
-        uint64_t m_magic;
-#endif // #if DEBUG
 
 #if YOJIMBO_DEBUG_PACKET_LEAKS
         std::map<void*,int> allocated_packets;
@@ -195,8 +169,7 @@ namespace yojimbo
                 return packet;                                                                                      \
             Allocator & allocator = GetAllocator();                                                                 \
             switch ( type )                                                                                         \
-            {                                                                                                       \
-
+            {                                                                                                       
 
 
 #define YOJIMBO_DECLARE_PACKET_TYPE( packet_type, packet_class )                                                    \

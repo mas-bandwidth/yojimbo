@@ -18,7 +18,7 @@ Maybe add helpers to make it easier to define packet factory types.
         YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_B, TestPacketB );
         YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_C, TestPacketC );
         YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_D, TestPacketD );
-        
+
     YOJIMBO_PACKET_FACTORY_FINISH();
 
 I mean, it's really boilerplate.
@@ -32,6 +32,20 @@ Plus this lets me use the same message struct, for multiple messages, which seem
 I'm sold on the boilerplate. Lets see how this goes, and maybe how it can be extended further to make defining packet and message classes easier.
 
 Added it. It's pretty nice. Especially now that it lets me simplify the packet types.
+
+Now do the same for messages. Much better. Clean.
+
+Make it easier to create blocks, attach to messages, detach. It's ugly right now.
+
+Just renaming it to "AttachBlock" and "DetachBlock" is probably a good start.
+
+Start here.
+
+Good enough for now.
+
+Spotted a bug in the detach block. Fixed.
+
+Removed packet magic. Redundant with the debug packet leaks feature with std::map. Removed message magic as well.
 
 
 Monday July 11, 2016

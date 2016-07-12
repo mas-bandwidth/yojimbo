@@ -158,7 +158,7 @@ int ClientServerMain()
                             for ( int j = 0; j < blockSize; ++j )
                                 blockData[j] = uint8_t( numMessagesSentToServer + j );
 
-                            blockMessage->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+                            blockMessage->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
 
                             client.SendMessage( blockMessage );
 
