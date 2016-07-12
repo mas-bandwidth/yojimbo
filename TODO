@@ -1,3 +1,31 @@
 DONE    
 
 TODO
+
+    What to do next?
+
+    Time for some general cleanup while I think over the next steps.
+
+    Add test_queue
+
+    Bring across tests for large blocks
+
+    Add implementation of platform_time for windows.
+
+    ------------------
+
+    Large block of data (eg. snapshot data) -- a large unreliable message at front of packet?
+
+    Set of unreliable messages at the end of the packet (eg. effects and sounds?)
+
+    Concept of channels? Let user specified channel config? Seems like the correct approach.
+
+    Would be a shame to hard-code the packet layout, if it could easily be made flexible.
+
+    For example, unifying everything as "messages" is probably a good concept.
+
+    Sending a message on a particular channel id is a good metaphor, vs. having functions "SendUnreliableMessage", "SendReliableMessage", "SendSnapshot".
+
+    Packet fragmentation and reassembly.
+
+    Packet aggregation.

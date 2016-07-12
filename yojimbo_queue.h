@@ -107,7 +107,7 @@ namespace yojimbo
 
         int GetSize() const
         {
-            return m_numEntries;
+            return m_arraySize;
         }
 
         bool IsFull() const
@@ -118,6 +118,11 @@ namespace yojimbo
         bool IsEmpty() const
         {
             return m_numEntries == 0;
+        }
+
+        int GetNumEntries() const
+        {
+            return m_numEntries;
         }
     };
 }
