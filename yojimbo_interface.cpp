@@ -104,7 +104,7 @@ namespace yojimbo
 
     void BaseInterface::ClearSendQueue()
     {
-        for ( int i = 0; i < m_sendQueue.GetSize(); ++i )
+        for ( int i = 0; i < m_sendQueue.GetNumEntries(); ++i )
         {
             PacketEntry & entry = m_sendQueue[i];
             assert( entry.packet );
@@ -120,7 +120,7 @@ namespace yojimbo
 
     void BaseInterface::ClearReceiveQueue()
     {
-        for ( int i = 0; i < m_receiveQueue.GetSize(); ++i )
+        for ( int i = 0; i < m_receiveQueue.GetNumEntries(); ++i )
         {
             PacketEntry & entry = m_receiveQueue[i];
             assert( entry.packet );

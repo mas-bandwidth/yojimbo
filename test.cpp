@@ -67,6 +67,56 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
+void test_queue()
+{
+    printf( "test_queue\n" );
+
+    const int QueueSize = 1024;
+
+    Queue<int> queue( GetDefaultAllocator(), QueueSize );
+
+    assert( queue.IsEmpty() );
+    assert( !queue.IsFull() );
+    assert( queue.GetNumEntries() == 0 );
+    assert( queue.GetSize() == QueueSize );
+
+    int NumEntries = 100;
+
+    for ( int i = 0; i < NumEntries; ++i )
+        queue.Push( i );
+
+    assert( !queue.IsEmpty() );
+    assert( !queue.IsFull() );
+    assert( queue.GetNumEntries() == NumEntries );
+    assert( queue.GetSize() == QueueSize );
+
+    for ( int i = 0; i < NumEntries; ++i )
+        assert( queue[i] == i );
+
+    for ( int i = 0; i < NumEntries; ++i )
+        assert( queue.Pop() == i );
+
+    assert( queue.IsEmpty() );
+    assert( !queue.IsFull() );
+    assert( queue.GetNumEntries() == 0 );
+    assert( queue.GetSize() == QueueSize );
+
+    for ( int i = 0; i < QueueSize; ++i )
+        queue.Push( i );
+
+    assert( !queue.IsEmpty() );
+    assert( queue.IsFull() );
+    assert( queue.GetNumEntries() == QueueSize );
+    assert( queue.GetSize() == QueueSize );
+
+    queue.Clear();
+
+    assert( queue.IsEmpty() );
+    assert( !queue.IsFull() );
+    assert( queue.GetNumEntries() == 0 );
+    assert( queue.GetSize() == QueueSize );
+}
+
 void test_base64()
 {
     printf( "test_base64\n" );
@@ -3902,8 +3952,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
-		// todo: I really need to add test_queue
-
+        test_queue();
         test_base64();
         test_bitpacker();
         test_stream();
@@ -3956,10 +4005,8 @@ int main()
     if ( quit )					  
         printf( "\ntest stopped\n" );
     else
-        printf( "\n*** ALL TESTS PASS ***\n" );
-    printf( "\n" );
 #else // #if SOAK
-    printf( "\n*** ALL TESTS PASS ***\n\n" );
+        printf( "\n*** ALL TESTS PASS ***\n\n" );
 #endif // #if SOAK
 
     ShutdownYojimbo();
