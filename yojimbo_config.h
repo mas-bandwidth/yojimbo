@@ -79,12 +79,12 @@
 
 #define YOJIMBO_SERIALIZE_CHECKS                    1
 
+// the ones below this line are particularly slow. you really only want to turn them on if you are debugging things!
+
 //#define YOJIMBO_DEBUG_MEMORY_LEAKS				1
 
 //#define YOJIMBO_DEBUG_PACKET_LEAKS				1
     
 //#define YOJIMBO_DEBUG_MESSAGE_LEAKS				1
-
-//#define YOJIMBO_PACKET_MAGIC						1
 
 #endif // #ifndef YOJIMBO_CONFIG_H

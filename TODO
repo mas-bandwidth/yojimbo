@@ -4,38 +4,6 @@ TODO
 
     ------------------
 
-
-    ------------------
-
-
-    ------------------
-
-    Same thing could be done for message factory.
-
-    ------------------
-
-    Message magic should be wrapped with #if YOJIMBO_MESSAGE_MAGIC and off by default.
-
-    ------------------
-
-    Lightweight code to detect mismatched allocations of memory, packets, messages should be enabled in debug build.
-
-    eg. int numBytesAllocated
-
-    ------------------
-
-    Make it easier to create blocks, attach to messages, detach. It's ugly right now.
-
-    AttachBlock, DetachBlock might be a better way to do it.
-
-    Maybe bring back the block type. Nice to just have a thing that can be passed around that knows how to delete itself when you ask.
-
-    Maybe blocks should be refcounted too? I don't know. Probably not. The block message itself is refcounted.
-
-    Would be nice for message factory to just have a CreateBlock function on it too, 'cos that's part of what the message factory does now.
-
-    ------------------
-
     Try jacking up to 256 players per-connection and exchange messages between in profile.cpp (all local)
 
     Look for bottlenecks. Are there things that can be trivially improved?

@@ -290,13 +290,6 @@ public:
     }
 };
 
-enum MessageType
-{
-    TEST_MESSAGE,
-    TEST_BLOCK_MESSAGE,
-    NUM_MESSAGE_TYPES
-};
-
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
     static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
@@ -309,7 +302,7 @@ struct TestMessage : public Message
 {
     uint16_t sequence;
 
-    TestMessage() : Message( TEST_MESSAGE )
+    TestMessage()
     {
         sequence = 0;
     }
@@ -339,7 +332,7 @@ struct TestBlockMessage : public BlockMessage
 {
     uint16_t sequence;
 
-    TestBlockMessage() : BlockMessage( TEST_BLOCK_MESSAGE ) 
+    TestBlockMessage()
     {
         sequence = 0;
     }
@@ -353,26 +346,16 @@ struct TestBlockMessage : public BlockMessage
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-class TestMessageFactory : public MessageFactory
+enum MessageType
 {
-public:
-
-    explicit TestMessageFactory( Allocator & allocator ) : MessageFactory( allocator, NUM_MESSAGE_TYPES ) {}
-
-protected:
-
-    Message * CreateInternal( int type )
-    {
-        Allocator & allocator = GetAllocator();
-
-        switch ( type )
-        {
-            case TEST_MESSAGE:          return YOJIMBO_NEW( allocator, TestMessage );
-            case TEST_BLOCK_MESSAGE:    return YOJIMBO_NEW( allocator, TestBlockMessage );
-            default:
-                return NULL;
-        }
-    }
+    TEST_MESSAGE,
+    TEST_BLOCK_MESSAGE,
+    NUM_MESSAGE_TYPES
 };
+
+YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
+YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 #endif // #ifndef SHARED_H

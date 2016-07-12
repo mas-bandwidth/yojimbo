@@ -75,46 +75,46 @@ void test_queue()
 
     Queue<int> queue( GetDefaultAllocator(), QueueSize );
 
-    assert( queue.IsEmpty() );
-    assert( !queue.IsFull() );
-    assert( queue.GetNumEntries() == 0 );
-    assert( queue.GetSize() == QueueSize );
+    check( queue.IsEmpty() );
+    check( !queue.IsFull() );
+    check( queue.GetNumEntries() == 0 );
+    check( queue.GetSize() == QueueSize );
 
     int NumEntries = 100;
 
     for ( int i = 0; i < NumEntries; ++i )
         queue.Push( i );
 
-    assert( !queue.IsEmpty() );
-    assert( !queue.IsFull() );
-    assert( queue.GetNumEntries() == NumEntries );
-    assert( queue.GetSize() == QueueSize );
+    check( !queue.IsEmpty() );
+    check( !queue.IsFull() );
+    check( queue.GetNumEntries() == NumEntries );
+    check( queue.GetSize() == QueueSize );
 
     for ( int i = 0; i < NumEntries; ++i )
-        assert( queue[i] == i );
+        check( queue[i] == i );
 
     for ( int i = 0; i < NumEntries; ++i )
-        assert( queue.Pop() == i );
+        check( queue.Pop() == i );
 
-    assert( queue.IsEmpty() );
-    assert( !queue.IsFull() );
-    assert( queue.GetNumEntries() == 0 );
-    assert( queue.GetSize() == QueueSize );
+    check( queue.IsEmpty() );
+    check( !queue.IsFull() );
+    check( queue.GetNumEntries() == 0 );
+    check( queue.GetSize() == QueueSize );
 
     for ( int i = 0; i < QueueSize; ++i )
         queue.Push( i );
 
-    assert( !queue.IsEmpty() );
-    assert( queue.IsFull() );
-    assert( queue.GetNumEntries() == QueueSize );
-    assert( queue.GetSize() == QueueSize );
+    check( !queue.IsEmpty() );
+    check( queue.IsFull() );
+    check( queue.GetNumEntries() == QueueSize );
+    check( queue.GetSize() == QueueSize );
 
     queue.Clear();
 
-    assert( queue.IsEmpty() );
-    assert( !queue.IsFull() );
-    assert( queue.GetNumEntries() == 0 );
-    assert( queue.GetSize() == QueueSize );
+    check( queue.IsEmpty() );
+    check( !queue.IsFull() );
+    check( queue.GetNumEntries() == 0 );
+    check( queue.GetSize() == QueueSize );
 }
 
 void test_base64()
@@ -358,15 +358,6 @@ void test_stream()
     check( readObject == writeObject );
 }
 
-enum TestPacketTypes
-{
-    TEST_PACKET_A,
-    TEST_PACKET_B,
-    TEST_PACKET_C,
-    TEST_PACKET_CONNECTION,
-    TEST_PACKET_NUM_TYPES
-};
-
 struct TestPacketA : public Packet
 {
     int a,b,c;
@@ -427,6 +418,15 @@ struct TestPacketC : public Packet
     }
 
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+enum TestPacketTypes
+{
+    TEST_PACKET_A,
+    TEST_PACKET_B,
+    TEST_PACKET_C,
+    TEST_PACKET_CONNECTION,
+    TEST_PACKET_NUM_TYPES
 };
 
 YOJIMBO_PACKET_FACTORY_START( TestPacketFactory, PacketFactory, TEST_PACKET_NUM_TYPES );
@@ -1021,12 +1021,6 @@ public:
     }
 };
 
-enum GamePackets
-{
-    GAME_PACKET = CLIENT_SERVER_NUM_PACKETS,
-    GAME_NUM_PACKETS
-};
-
 struct GamePacket : public Packet
 {
     uint32_t sequence;
@@ -1067,6 +1061,16 @@ struct GamePacket : public Packet
 
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
+
+enum GamePackets
+{
+    GAME_PACKET = CLIENT_SERVER_NUM_PACKETS,
+    GAME_NUM_PACKETS
+};
+
+YOJIMBO_PACKET_FACTORY_START( GamePacketFactory, ClientServerPacketFactory, GAME_NUM_PACKETS );
+    YOJIMBO_DECLARE_PACKET_TYPE( GAME_PACKET, GamePacket );
+YOJIMBO_PACKET_FACTORY_FINISH();
 
 static bool verbose_logging = false;
 
@@ -1313,10 +1317,6 @@ public:
         return false;
     }
 };
-
-YOJIMBO_PACKET_FACTORY_START( GamePacketFactory, ClientServerPacketFactory, GAME_NUM_PACKETS );
-YOJIMBO_DECLARE_PACKET_TYPE( GAME_PACKET, GamePacket );
-YOJIMBO_PACKET_FACTORY_FINISH();
 
 class TestNetworkSimulator : public NetworkSimulator
 {
@@ -3389,13 +3389,6 @@ void test_generate_ack_bits()
     check( ack_bits == ( 1 | (1<<(11-9)) | (1<<(11-5)) | (1<<(11-1)) ) );
 }
 
-enum MessageType
-{
-    TEST_MESSAGE,
-    TEST_BLOCK_MESSAGE,
-    NUM_MESSAGE_TYPES
-};
-
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
     static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
@@ -3408,7 +3401,7 @@ struct TestMessage : public Message
 {
     uint16_t sequence;
 
-    TestMessage() : Message( TEST_MESSAGE )
+    TestMessage()
     {
         sequence = 0;
     }
@@ -3438,7 +3431,7 @@ struct TestBlockMessage : public BlockMessage
 {
     uint16_t sequence;
 
-    TestBlockMessage() : BlockMessage( TEST_BLOCK_MESSAGE ) 
+    TestBlockMessage()
     {
         sequence = 0;
     }
@@ -3452,27 +3445,17 @@ struct TestBlockMessage : public BlockMessage
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-class TestMessageFactory : public MessageFactory
+enum MessageType
 {
-public:
-
-    explicit TestMessageFactory( Allocator & allocator ) : MessageFactory( allocator, NUM_MESSAGE_TYPES ) {}
-
-protected:
-
-    Message * CreateInternal( int type )
-    {
-        Allocator & allocator = GetAllocator();
-
-        switch ( type )
-        {
-            case TEST_MESSAGE:          return YOJIMBO_NEW( allocator, TestMessage );
-            case TEST_BLOCK_MESSAGE:    return YOJIMBO_NEW( allocator, TestBlockMessage );
-            default:
-                return NULL;
-        }
-    }
+    TEST_MESSAGE,
+    TEST_BLOCK_MESSAGE,
+    NUM_MESSAGE_TYPES
 };
+
+YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
+YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 class TestConnection : public Connection
 {
@@ -3761,7 +3744,7 @@ void test_connection_blocks()
         uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
         for ( int j = 0; j < blockSize; ++j )
             blockData[j] = i + j;
-        message->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+        message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
         sender.SendMessage( message );
     }
 
@@ -3925,7 +3908,7 @@ void test_connection_messages_and_blocks()
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+            message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
             sender.SendMessage( message );
         }
     }
@@ -4174,7 +4157,7 @@ void test_connection_client_server()
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+            message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
             client.SendMessage( message );
         }
     }
@@ -4197,7 +4180,7 @@ void test_connection_client_server()
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->Connect( messageFactory.GetAllocator(), blockData, blockSize );
+            message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
             server.SendMessage( client.GetClientIndex(), message );
         }
     }
