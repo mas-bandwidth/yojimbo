@@ -348,9 +348,6 @@ namespace yojimbo
     {
         assert( m_messageSendQueue );
 
-        if ( GetError() != CONNECTION_ERROR_NONE )
-            return true;
-
         return m_messageSendQueue->IsAvailable( m_sendMessageId );
     }
 

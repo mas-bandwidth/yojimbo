@@ -1,5 +1,5 @@
 /*
-    Client/Server Testbed
+    Soak Test
 
     Copyright © 2016, The Network Protocol Company, Inc.
 
@@ -38,7 +38,7 @@ void interrupt_handler( int /*dummy*/ )
     quit = 1;
 }
 
-int ClientServerMain()
+int SoakMain()
 {
     srand( (unsigned int) time( NULL ) );
 
@@ -78,7 +78,7 @@ int ClientServerMain()
     SimulatorInterface clientInterface( GetDefaultAllocator(), networkSimulator, packetFactory, clientAddress, ProtocolId );
     SimulatorInterface serverInterface( GetDefaultAllocator(), networkSimulator, packetFactory, serverAddress, ProtocolId );
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    GameMessageFactory messageFactory;
 
     double time = 0.0;
 
@@ -130,7 +130,7 @@ int ClientServerMain()
 
                 if ( rand() % 100 )
                 {
-                    TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+                    GameMessage * message = (GameMessage*) messageFactory.Create( GAME_MESSAGE );
                     
                     if ( message )
                     {
@@ -143,7 +143,7 @@ int ClientServerMain()
                 }
                 else
                 {
-                    TestBlockMessage * blockMessage = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+                    GameBlockMessage * blockMessage = (GameBlockMessage*) messageFactory.Create( GAME_BLOCK_MESSAGE );
 
                     if ( blockMessage )
                     {
@@ -181,13 +181,13 @@ int ClientServerMain()
 
                 switch ( message->GetType() )
                 {
-                    case TEST_MESSAGE:
+                    case GAME_MESSAGE:
                     {
-                        TestMessage * testMessage = (TestMessage*) message;
+                        GameMessage * gameMessage = (GameMessage*) message;
 
-                        assert( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+                        assert( gameMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
 
-                        printf( "received message %d\n", testMessage->sequence );
+                        printf( "received message %d\n", gameMessage->sequence );
 
                         server.ReleaseMessage( message );
 
@@ -195,9 +195,9 @@ int ClientServerMain()
                     }
                     break;
 
-                    case TEST_BLOCK_MESSAGE:
+                    case GAME_BLOCK_MESSAGE:
                     {
-                        TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+                        GameBlockMessage * blockMessage = (GameBlockMessage*) message;
 
                         assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
 
@@ -252,7 +252,7 @@ int ClientServerMain()
 
 int main()
 {
-    printf( "\n" );
+    printf( "\nsoak test\n\n" );
 
     verbose_logging = true;
 
@@ -264,7 +264,7 @@ int main()
 
     srand( (unsigned int) time( NULL ) );
 
-    int result = ClientServerMain();
+    int result = SoakMain();
 
     ShutdownYojimbo();
 

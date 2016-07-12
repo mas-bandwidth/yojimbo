@@ -120,6 +120,16 @@ project "soak"
     configuration "Release"
         links { release_libs }
 
+project "profile"
+    language "C++"
+    kind "ConsoleApp"
+    files { "profile.cpp", "shared.h" }
+    links { "yojimbo" }
+    configuration "Debug"
+        links { debug_libs }
+    configuration "Release"
+        links { release_libs }
+
 if not os.is "windows" then
 
     -- MacOSX and Linux.
@@ -254,6 +264,17 @@ if not os.is "windows" then
         execute = function ()
             if os.execute "make -j32 soak" == 0 then
                 os.execute "./bin/soak"
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "profile",
+        description = "Build and run profile testbed",
+        execute = function ()
+            if os.execute "make -j32 profile" == 0 then
+                os.execute "./bin/profile"
             end
         end
     }
