@@ -11,6 +11,7 @@ end
 
 solution "Yojimbo"
     platforms { "x64" }
+    configurations { "Debug", "Release" }
     if os.is "windows" then
         includedirs { ".", "./windows" }
         libdirs { "./windows" }
@@ -20,9 +21,8 @@ solution "Yojimbo"
     if not os.is "windows" then
         targetdir "bin/"  
     end
-    configurations { "Debug", "Release" }
-    flags { "ExtraWarnings", "FatalWarnings", "StaticRuntime", "FloatFast" }
     rtti "Off"
+    flags { "ExtraWarnings", "FatalWarnings", "StaticRuntime", "FloatFast" }
     configuration "Debug"
         flags { "Symbols" }
         defines { "DEBUG" }

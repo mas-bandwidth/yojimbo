@@ -141,6 +141,42 @@ This soak program looks forever sending messages and reliable blocks over very b
 
 The soak test is self validating. As long as it keeps receiving messages it's working. CTRL-C to stop.
 
+## Profiling
+
+There is now a profiling testbed for libyojimbo. 
+
+This testbed connects local 64 clients to a secure server in the same process and exchanges packets, messages and blocks continuously between them. 
+
+While the client and server are in the same process, packets are still encrypted and sent over sockets performance is representative of real world usage of the library.
+
+The good news: The performance is very good, and after fixing some minor hotspots (see CHANGES.md) the total cost of libyojimbo library is smaller than the time it takes to call sendto/recvfrom, and much, much less than the time spent encrypting and decrypting packets. This means that the actual performance cost of libyojimbo connection management and serializing packets is neglible.
+
+If you'd like to look at the profile results yourself, you'll need a copy of Visual Studio 2015 (Community edition is fine). 
+
+It is necessary to first make some modifications to premake5.lua so you have debug symbols in release build for the profiler.
+
+First, add symbols to the release configuration:
+
+    configuration "Release"
+        optimize "Speed"
+        defines { "NDEBUG" }
+
+Next remove fatal warnings, because you will have some missing debug symbol warnings for prebuilt libraries.
+
+Change this line:
+
+    flags { "ExtraWarnings", "FatalWarnings", "StaticRuntime", "FloatFast" }
+
+to:
+
+    flags { "ExtraWarnings", "StaticRuntime", "FloatFast" }
+
+Now run "premake5 solution", switch to "Release" configuration and rebuild all. 
+
+Right click on "profile" project an set it as the startup project. Press ALT-F2 then check "CPU Usage" and click the blue "Start" button.
+
+After about minute you should have enough samples. Close the profile process and view the results. Enjoy.
+
 ## Feedback
 
 This is pre-release software so please email me with any feedback you have <glenn.fiedler@gmail.com>
