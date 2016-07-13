@@ -97,6 +97,7 @@ namespace yojimbo
 
         void RemoveOldEntries()
         {
+            // todo: this is super, super fucking slow
             const uint16_t oldest_sequence = m_sequence - m_size;
             for ( int i = 0; i < m_size; ++i )
             {
@@ -113,6 +114,12 @@ namespace yojimbo
         int GetIndex( uint16_t sequence ) const
         {
             return sequence % m_size;
+        }
+
+        bool Exists( uint16_t sequence ) const
+        {
+            const int index = sequence % m_size;
+            return m_exists.GetBit( index ) && m_entry_sequence[index] == sequence;
         }
 
         const T * Find( uint16_t sequence ) const
@@ -171,11 +178,13 @@ namespace yojimbo
     {
         ack = packets.GetSequence() - 1;
         ack_bits = 0;
+        uint32_t mask = 1;
         for ( int i = 0; i < 32; ++i )
         {
             uint16_t sequence = ack - i;
-            if ( packets.Find( sequence ) )
-                ack_bits |= ( 1 << i );
+            if ( packets.Exists( sequence ) )
+                ack_bits |= mask;
+            mask <<= 1;
         }
     }
 }

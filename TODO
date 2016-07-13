@@ -1,5 +1,19 @@
 DONE    
 
+    Make some optimizations to generate ack bits. 
+
+        1) don't get the pointer to the entry, just check exists bit and sequence
+
+        2) don't use variable shift. generate a mask and <<= 1 each iteration
+
+    If it's still slow, try removing the exists bitfield, and expand the sequence array to uint32_t, and use 0xFFFFFFFF as an empty sentinal.
+
+    This way simply checking if the sequence # matches what you are looking for is enough to know it's there. One less branch. Less shifting too.
+
+    Probably worth the memory.
+
+    Check this in and measure it...
+
 TODO
 
     ------------------
