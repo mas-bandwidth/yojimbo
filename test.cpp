@@ -1338,7 +1338,6 @@ public:
     TestNetworkInterface( GamePacketFactory & packetFactory, NetworkSimulator & networkSimulator, const Address & address ) 
         : SimulatorInterface( GetDefaultAllocator(), networkSimulator, packetFactory, address, ProtocolId )
     {
-        // ...
     }
 
     ~TestNetworkInterface()
@@ -1363,6 +1362,9 @@ void test_unencrypted_packets()
     TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
 
     // make sure that encrypted packet types will *not* be received if they are sent as unencrypted
+
+    clientInterface.EnablePacketEncryption();
+    serverInterface.EnablePacketEncryption();
 
     check( clientInterface.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
     check( serverInterface.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
