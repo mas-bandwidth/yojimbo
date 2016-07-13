@@ -678,8 +678,18 @@ namespace yojimbo
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 assert( m_connection[i] );
+
                 if ( IsClientConnected( i ) )
+                {
                     m_connection[i]->AdvanceTime( time );
+
+                    if ( m_connection[i]->GetError() )
+                    {
+                        m_counters[SERVER_COUNTER_CONNECTION_ERRORS]++;
+
+                        DisconnectClient( i, true );
+                    }
+                }
             }
         }
     }
@@ -1317,6 +1327,7 @@ namespace yojimbo
             case CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT:     return "connection request timed out";
             case CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT:     return "challenge response timed out";
             case CLIENT_STATE_CONNECTION_TIMED_OUT:             return "connection timed out";
+            case CLIENT_STATE_CONNECTION_ERROR:                 return "connection error";
             case CLIENT_STATE_CONNECTION_DENIED:                return "connection denied";
             case CLIENT_STATE_DISCONNECTED:                     return "disconnected";
 #if YOJIMBO_INSECURE_CONNECT
@@ -1675,7 +1686,15 @@ namespace yojimbo
         m_time = time;
 
         if ( m_connection )
+        {
+            if ( m_connection->GetError() )
+            {
+                Disconnect( CLIENT_STATE_CONNECTION_ERROR, true );
+                return;
+            }
+
             m_connection->AdvanceTime( time );
+        }
     }
 
     double Client::GetTime() const
