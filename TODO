@@ -4,14 +4,6 @@ TODO
 
     ------------------
 
-    Server needs to watch the connection for each client and if they go into error state, disconnect that client.
-
-    Same thing on the client. Needs to watch server connection. If it goes into error, disconnect from server.
-
-    Add a unit test for this on both sides. Easiest way to reproduce a connection error would be to overflow the send queue.
-
-    ------------------
-
     Large block of data (eg. snapshot data) -- a large unreliable message at front of packet?
 
     Set of unreliable messages at the end of the packet (eg. effects and sounds?)

@@ -137,6 +137,8 @@ Now do a final profile on windows and call it a day for now. Good enough.
 
 Added implementation of platform_time for windows.
 
+Added code on the server and on the client to watch for connection error. If a connection error is spotted, the client is disconnected immediately.
+
 
 Monday July 11, 2016
 ====================
