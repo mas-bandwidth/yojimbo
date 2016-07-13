@@ -16,6 +16,15 @@ DONE
 
 TODO
 
+    It's a bit faster now:
+
+        0.75% - GenerateAckBits
+        0.42% - GetFragmentToSend
+
+    But it can probably be made faster.
+
+    Try the idea with the 32bit integer.
+
     ------------------
 
     Optimize InternalReceivePacket
@@ -23,6 +32,10 @@ TODO
     ------------------
 
     Optimize RemoveOldEntries
+
+    ------------------
+
+    There should really be a test for old entries getting removed from the sequence buffer.
 
     ------------------
 

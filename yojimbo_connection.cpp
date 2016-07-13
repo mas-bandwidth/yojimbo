@@ -348,7 +348,7 @@ namespace yojimbo
     {
         assert( m_messageSendQueue );
 
-        return m_messageSendQueue->IsAvailable( m_sendMessageId );
+        return m_messageSendQueue->Available( m_sendMessageId );
     }
 
     void Connection::SendMessage( Message * message )
