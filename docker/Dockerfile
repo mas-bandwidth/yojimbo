@@ -41,7 +41,7 @@ RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.1.5.tar.gz && \
 
 ADD libyojimbo /app/libyojimbo
 
-RUN cd libyojimbo && premake5 gmake && make -j32 all config=release_x64 && ./bin/test && cp /app/libyojimbo/bin/server /app && rm -rf libyojimbo
+RUN cd libyojimbo && premake5 gmake && make -j32 test server config=release_x64 && ./bin/test && cp /app/libyojimbo/bin/server /app && rm -rf libyojimbo
 
 ENTRYPOINT ./server
 
