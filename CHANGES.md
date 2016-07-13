@@ -98,6 +98,43 @@ Biggest gains would be:
 
 In that order. The simulator is not really meant for shipping code, but it should at least be fast, 
 
+Make some optimizations to generate ack bits. 
+
+    1) don't get the pointer to the entry, just check exists bit and sequence
+
+    2) don't use variable shift. generate a mask and <<= 1 each iteration
+
+If it's still slow, try removing the exists bitfield, and expand the sequence array to uint32_t, and use 0xFFFFFFFF as an empty sentinal.
+
+This way simply checking if the sequence # matches what you are looking for is enough to know it's there. One less branch. Less shifting too.
+
+Probably worth the memory.
+
+Check this in and measure it...
+
+It's a bit faster now:
+
+    0.75% - GenerateAckBits
+    0.42% - GetFragmentToSend
+
+But it can probably be made faster.
+
+Try the idea with the 32bit integer.
+
+A tiny bit faster still.
+
+Optimized away bool first_entry codepath in sequence buffer. Not required.
+
+Optimize RemoveOldEntries away by removing entries as the sequence buffer moves forward.
+
+Bumped sliding window up from 256 to 1024 entries, just because. Soak test passes.
+
+Punt on optimizing InternalReceivePacket for now, because the network simulator is not something intended for use in production.
+
+Convert the profile to use actual socket network interfaces, which will give a more realistic measurement of actual performance, including sendto and recvfrom
+
+Now do a final profile on windows and call it a day for now. Good enough.
+
 
 Monday July 11, 2016
 ====================
