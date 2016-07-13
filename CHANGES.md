@@ -47,6 +47,57 @@ Spotted a bug in the detach block. Fixed.
 
 Removed packet magic. Redundant with the debug packet leaks feature with std::map. Removed message magic as well.
 
+Try jacking up to 64 players connected to a server and exchange messages between in profile.cpp (all local)
+
+Look for bottlenecks. Are there things that can be trivially improved in here?
+
+This code is pretty ugly. It sure would be nice to do a pass to make sure that users can pretty much derive their own client/server
+classes and do all their extension in there, eg. network interface, message factory, matchmaker integration in the base client etc.
+
+Doing it this way, it's really ugly and a lot of work to extend the client to do what I want. Tabling this for fixing up later on.
+
+Added code to create a random message.
+
+Bring across code for sending and receiving messages and blocks.
+
+Once this is going, check in and do some profiling in Visual Studio.
+
+Profile results so far:
+
+Network simulator read packet is really, really slow.
+
+yojimbo::calculate_crc32 is slow, 10% of cost, and it really shouldn't be getting used for encrypted packets (the bulk). Fix this.
+
+Whoops. I had encryption disabled for all packet types after I updated the packet factory with the macro.
+
+There should really be a check inside client/server that certain packet types are encrypted. Otherwise, risk of thinking you are safe when you are not.
+
+Fixed this by adding a virtual that enforces all packets to be encrypted for client and server.
+
+Now profile again. I expect the encrypt/decrypt will dominate over the rest of the packet processing, which should mean we are in the perf ballpark.
+
+Still, look for low hanging fruit and things that should basically be free, and aren't.
+
+Low hanging fruit:
+
+    SimulatorInterface::InternalReceivePacket is dog slow due to linear scan.
+
+    SequenceBuffer::RemoveOldEntries is *very* slow. Rework sequence buffer so it doesn't need to scan the whole array to do this.
+    
+    hash_string appears to be slow (relatively, for what it does). Check usage in serialize_check
+
+    EncryptionManager::GetSendKey/GetReceiveKey should be basically free, but it has a cost because of the linear search and slow(ish) Address == operator
+
+    GenerateAckBits is slower than it should really be. 1% of total time.
+
+Biggest gains would be:
+
+    InternalReceivePacket
+
+    RemoveOldEntries
+
+In that order. The simulator is not really meant for shipping code, but it should at least be fast, 
+
 
 Monday July 11, 2016
 ====================
