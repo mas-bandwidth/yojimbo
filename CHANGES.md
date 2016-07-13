@@ -1249,8 +1249,6 @@ Convert remaining new/deletes over to allocator.
 
 Implement signal break for test, so it can be broken out of when tests are soaking
 
-Marked all allocator stuff with // todo
-
 Converted all allocator stuff over. Left the windows address walking stuff alone (malloc)
 
 Works fine on linux.
