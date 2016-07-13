@@ -531,7 +531,7 @@
 			"file": "premake5.lua",
 			"settings":
 			{
-				"buffer_size": 12295,
+				"buffer_size": 12314,
 				"line_ending": "Windows"
 			}
 		},
@@ -563,7 +563,7 @@
 			"file": "test.cpp",
 			"settings":
 			{
-				"buffer_size": 134389,
+				"buffer_size": 134467,
 				"line_ending": "Windows"
 			}
 		},
@@ -579,7 +579,7 @@
 			"file": "TODO",
 			"settings":
 			{
-				"buffer_size": 3271,
+				"buffer_size": 3165,
 				"line_ending": "Windows"
 			}
 		},
@@ -974,7 +974,7 @@
 	],
 	"find":
 	{
-		"height": 34.0
+		"height": 23.0
 	},
 	"find_in_files":
 	{
@@ -1234,15 +1234,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 12295,
+						"buffer_size": 12314,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								924,
-								924
+								1100,
+								1100
 							]
 						],
 						"settings":
@@ -1251,7 +1251,7 @@
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
-						"translation.x": -0.0,
+						"translation.x": 0.0,
 						"translation.y": 45.0,
 						"zoom_level": 1.0
 					},
@@ -1354,15 +1354,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 134389,
+						"buffer_size": 134467,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								42209,
-								42209
+								0,
+								0
 							]
 						],
 						"settings":
@@ -1412,7 +1412,7 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3271,
+						"buffer_size": 3165,
 						"regions":
 						{
 						},

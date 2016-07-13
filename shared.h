@@ -327,8 +327,6 @@ struct GameMessage : public Message
         if ( numRemainderBits > 0 )
             serialize_bits( stream, dummy, numRemainderBits );
 
-        serialize_check( stream, "end of game message" );
-
         return true;
     }
 
