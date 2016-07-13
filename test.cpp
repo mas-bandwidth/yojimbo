@@ -1338,8 +1338,7 @@ public:
     TestNetworkInterface( GamePacketFactory & packetFactory, NetworkSimulator & networkSimulator, const Address & address ) 
         : SimulatorInterface( GetDefaultAllocator(), networkSimulator, packetFactory, address, ProtocolId )
     {
-        EnablePacketEncryption();
-        DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
+        // ...
     }
 
     ~TestNetworkInterface()

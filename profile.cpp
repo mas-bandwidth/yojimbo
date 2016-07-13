@@ -262,7 +262,7 @@ int ProfileMain()
         {
             const int messagesToSend = random_int( 0, 64 );
 
-            for ( int i = 0; i < messagesToSend; ++i )
+            for ( int j = 0; j < messagesToSend; ++j )
             {
                 if ( !clientData[i].client->CanSendMessage() )
                     break;
@@ -282,7 +282,7 @@ int ProfileMain()
         {
             const int messagesToSend = random_int( 0, 64 );
 
-            for ( int i = 0; i < messagesToSend; ++i )
+            for ( int j = 0; j < messagesToSend; ++j )
             {
                 if ( !serverData.server->CanSendMessage( i ) )
                     break;

@@ -473,9 +473,11 @@ namespace yojimbo
 
     protected:
 
-        void InitializeContext();
+        virtual void InitializeContext();
 
-        void ResetClientState( int clientIndex );
+        virtual void SetEncryptedPacketTypes();
+
+        virtual void ResetClientState( int clientIndex );
 
         int FindFreeClientIndex() const;
 
@@ -656,7 +658,9 @@ namespace yojimbo
 
     protected:
 
-        void InitializeContext();
+        virtual void InitializeContext();
+
+        virtual void SetEncryptedPacketTypes();
 
         void SetClientState( int clientState );
 
