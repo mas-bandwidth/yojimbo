@@ -99,6 +99,8 @@ namespace yojimbo
             SerializeAlign();
             const uint32_t magic = hash_string( string, 0 );
             SerializeBits( magic, 32 );
+#else // #if YOJIMBO_SERIALIZE_CHECKS
+			(void)string;
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
             return true;
         }
@@ -248,6 +250,7 @@ namespace yojimbo
 #endif // #ifdef DEBUG
             return value == magic;
 #else // #if YOJIMBO_SERIALIZE_CHECKS
+			(void)string;
             return true;
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
         }

@@ -77,9 +77,9 @@
 
 #define YOJIMBO_INSECURE_CONNECT                    1           // IMPORTANT: You should disable this in retail build
 
-#define YOJIMBO_SERIALIZE_CHECKS                    1
-
 // the ones below this line are particularly slow. you really only want to turn them on if you are debugging things!
+
+//#define YOJIMBO_SERIALIZE_CHECKS                  1
 
 //#define YOJIMBO_DEBUG_MEMORY_LEAKS				1
 

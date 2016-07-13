@@ -29,7 +29,8 @@ solution "Yojimbo"
         flags { "Symbols" }
         defines { "DEBUG" }
     configuration "Release"
---        flags { "Symbols" }
+    -- for profiling
+        flags { "Symbols" }
         optimize "Speed"
         defines { "NDEBUG" }
 
