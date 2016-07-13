@@ -25,7 +25,6 @@
 #ifndef YOJIMBO_SEQUENCE_BUFFER_H
 #define YOJIMBO_SEQUENCE_BUFFER_H
 
-#include "yojimbo_bit_array.h"
 #include "yojimbo_allocator.h"
 
 namespace yojimbo
@@ -35,14 +34,13 @@ namespace yojimbo
     public:
 
         SequenceBuffer( Allocator & allocator, int size )
-            : m_exists( allocator, size )
         {
             assert( size > 0 );
             m_size = size;
             m_first_entry = true;
             m_sequence = 0;
             m_allocator = &allocator;
-            m_entry_sequence = (uint16_t*) allocator.Allocate( sizeof(uint16_t) * size );
+            m_entry_sequence = (uint32_t*) allocator.Allocate( sizeof( uint32_t ) * size );
             m_entries = (T*) allocator.Allocate( sizeof(T) * size );
             Reset();
         }
@@ -61,8 +59,7 @@ namespace yojimbo
         {
             m_first_entry = true;
             m_sequence = 0;
-            m_exists.Clear();
-            memset( m_entry_sequence, 0, sizeof(uint16_t) * m_size );
+            memset( m_entry_sequence, 0xFF, sizeof( uint32_t ) * m_size );
         }
 
         T * Insert( uint16_t sequence )
@@ -83,8 +80,6 @@ namespace yojimbo
 
             const int index = sequence % m_size;
 
-            m_exists.SetBit( index );
-
             m_entry_sequence[index] = sequence;
 
             return &m_entries[index];
@@ -92,7 +87,7 @@ namespace yojimbo
 
         void Remove( uint16_t sequence )
         {
-            m_exists.ClearBit( sequence % m_size );
+            m_entry_sequence[ sequence % m_size ] = 0xFFFFFFFF;
         }
 
         void RemoveOldEntries()
@@ -101,31 +96,25 @@ namespace yojimbo
             const uint16_t oldest_sequence = m_sequence - m_size;
             for ( int i = 0; i < m_size; ++i )
             {
-                if ( m_exists.GetBit( i ) && sequence_less_than( m_entry_sequence[i], oldest_sequence ) )
-                    m_exists.ClearBit( i );
+                if ( m_entry_sequence[i] != 0xFFFFFFFF && sequence_less_than( uint16_t( m_entry_sequence[i] ), oldest_sequence ) )
+                    m_entry_sequence[i] = 0xFFFFFFFF;
             }
         }
 
-        bool IsAvailable( uint16_t sequence ) const
+        bool Available( uint16_t sequence ) const
         {
-            return !m_exists.GetBit( sequence % m_size );
-        }
-
-        int GetIndex( uint16_t sequence ) const
-        {
-            return sequence % m_size;
+            return m_entry_sequence[ sequence % m_size ] == 0xFFFFFFFF;
         }
 
         bool Exists( uint16_t sequence ) const
         {
-            const int index = sequence % m_size;
-            return m_exists.GetBit( index ) && m_entry_sequence[index] == sequence;
+            return m_entry_sequence[ sequence % m_size ] == uint32_t( sequence );
         }
 
         const T * Find( uint16_t sequence ) const
         {
             const int index = sequence % m_size;
-            if ( m_exists.GetBit( index ) && m_entry_sequence[index] == sequence )
+            if ( m_entry_sequence[index] == uint32_t( sequence ) )
                 return &m_entries[index];
             else
                 return NULL;
@@ -134,7 +123,7 @@ namespace yojimbo
         T * Find( uint16_t sequence )
         {
             const int index = sequence % m_size;
-            if ( m_exists.GetBit( index ) && m_entry_sequence[index] == sequence )
+            if ( m_entry_sequence[index] == uint32_t( sequence ) )
                 return &m_entries[index];
             else
                 return NULL;
@@ -144,12 +133,17 @@ namespace yojimbo
         {
             assert( index >= 0 );
             assert( index < m_size );
-            return m_exists.GetBit( index ) ? &m_entries[index] : NULL;
+            return m_entry_sequence[index] != 0xFFFFFFFF ? &m_entries[index] : NULL;
         }
 
         uint16_t GetSequence() const 
         {
             return m_sequence;
+        }
+
+        int GetIndex( uint16_t sequence ) const
+        {
+            return sequence % m_size;
         }
 
         int GetSize() const
@@ -160,15 +154,14 @@ namespace yojimbo
     private:
 
         Allocator * m_allocator;
-
-        bool m_first_entry;
-        uint16_t m_sequence;
-        int m_size;
-        BitArray m_exists;
-        uint16_t * m_entry_sequence;
         T * m_entries;
+        uint32_t * m_entry_sequence;
+        int m_size;
+        uint16_t m_sequence;
+        bool m_first_entry;
 
         SequenceBuffer( const SequenceBuffer<T> & other );
+
         SequenceBuffer<T> & operator = ( const SequenceBuffer<T> & other );
     };
 

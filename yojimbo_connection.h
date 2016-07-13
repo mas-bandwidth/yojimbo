@@ -28,6 +28,7 @@
 #include "yojimbo_packet.h"
 #include "yojimbo_message.h"
 #include "yojimbo_allocator.h"
+#include "yojimbo_bit_array.h"
 #include "yojimbo_sequence_buffer.h"
 
 namespace yojimbo
