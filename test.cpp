@@ -3420,8 +3420,6 @@ struct TestMessage : public Message
         if ( numRemainderBits > 0 )
             serialize_bits( stream, dummy, numRemainderBits );
 
-        serialize_check( stream, "end of test message" );
-
         return true;
     }
 
