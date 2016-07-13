@@ -158,7 +158,7 @@ It is necessary to first make some modifications to premake5.lua so you have deb
 First, add symbols to the release configuration:
 
     configuration "Release"
-        flags { "Symbols" }             // <--- add this line
+        flags { "Symbols" }             -- add this line
         optimize "Speed"
         defines { "NDEBUG" }
 
