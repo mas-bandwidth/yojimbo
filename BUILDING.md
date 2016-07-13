@@ -166,7 +166,7 @@ Now run "premake5 solution", switch to "Release" configuration and rebuild all.
 
 Right click on "profile" project an set it as the startup project. 
 
-Press ALT-F2, check "CPU Usage" and click the "Start" button.
+Press ALT-F2, check "CPU Usage" and click the "Start" to begin profiling.
 
 After about minute you should have enough samples. Close the profile process and view the results. Enjoy.
 
