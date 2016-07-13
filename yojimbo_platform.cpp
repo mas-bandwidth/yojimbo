@@ -86,13 +86,13 @@ namespace yojimbo
 		{
 			timespec ts;
 			clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
-			start = ts.tv_sec + double(ts.tv_nsec) / 1000000000.0;
+			start = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
 			return 0.0;
 		}
 
 		timespec ts;
 		clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
-		double current = ts.tv_sec + double(ts.tv_nsec) / 1000000000.0;
+		double current = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
 		return current - start;
 	}
 }
@@ -116,9 +116,16 @@ namespace yojimbo
 
 	double platform_time()
 	{
-		// todo
-		assert( false );
-		return 0.0;
+        static LARGE_INTEGER frequency = 0;
+        static LARGE_INTEGER start = 0;
+        if ( frequency == 0 )
+        {
+            QueryPerformanceFrequency( &frequency );
+            QueryPerformanceCounter( &start );
+        }
+        LARGE_INTEGER now;
+        QueryPerformanceCounter( &now );
+        return double( now.QuadPart - start.QuadPart ) / double( win_frequency.QuadPart );
 	}
 }
 
