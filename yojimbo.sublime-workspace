@@ -531,7 +531,7 @@
 			"file": "premake5.lua",
 			"settings":
 			{
-				"buffer_size": 12314,
+				"buffer_size": 12147,
 				"line_ending": "Windows"
 			}
 		},
@@ -579,7 +579,7 @@
 			"file": "TODO",
 			"settings":
 			{
-				"buffer_size": 3165,
+				"buffer_size": 2477,
 				"line_ending": "Windows"
 			}
 		},
@@ -613,7 +613,7 @@
 			"file": "shared.h",
 			"settings":
 			{
-				"buffer_size": 12514,
+				"buffer_size": 12455,
 				"line_ending": "Windows"
 			}
 		},
@@ -1234,15 +1234,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 12314,
+						"buffer_size": 12147,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1100,
-								1100
+								585,
+								595
 							]
 						],
 						"settings":
@@ -1412,7 +1412,7 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3165,
+						"buffer_size": 2477,
 						"regions":
 						{
 						},
@@ -1734,15 +1734,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 12514,
+						"buffer_size": 12455,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								10618,
-								10618
+								0,
+								0
 							]
 						],
 						"settings":
