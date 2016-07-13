@@ -37,7 +37,6 @@ namespace yojimbo
         {
             assert( size > 0 );
             m_size = size;
-            m_first_entry = true;
             m_sequence = 0;
             m_allocator = &allocator;
             m_entry_sequence = (uint32_t*) allocator.Allocate( sizeof( uint32_t ) * size );
@@ -57,20 +56,16 @@ namespace yojimbo
 
         void Reset()
         {
-            m_first_entry = true;
             m_sequence = 0;
             memset( m_entry_sequence, 0xFF, sizeof( uint32_t ) * m_size );
         }
 
         T * Insert( uint16_t sequence )
         {
-            if ( m_first_entry )
+            if ( sequence_greater_than( sequence + 1, m_sequence ) )
             {
-                m_sequence = sequence + 1;
-                m_first_entry = false;
-            }
-            else if ( sequence_greater_than( sequence + 1, m_sequence ) )
-            {
+                RemoveEntries( m_sequence, sequence );
+
                 m_sequence = sequence + 1;
             }
             else if ( sequence_less_than( sequence, m_sequence - m_size ) )
@@ -88,17 +83,6 @@ namespace yojimbo
         void Remove( uint16_t sequence )
         {
             m_entry_sequence[ sequence % m_size ] = 0xFFFFFFFF;
-        }
-
-        void RemoveOldEntries()
-        {
-            // todo: this is super, super fucking slow
-            const uint16_t oldest_sequence = m_sequence - m_size;
-            for ( int i = 0; i < m_size; ++i )
-            {
-                if ( m_entry_sequence[i] != 0xFFFFFFFF && sequence_less_than( uint16_t( m_entry_sequence[i] ), oldest_sequence ) )
-                    m_entry_sequence[i] = 0xFFFFFFFF;
-            }
         }
 
         bool Available( uint16_t sequence ) const
@@ -151,6 +135,16 @@ namespace yojimbo
             return m_size;
         }
 
+    protected:
+
+        void RemoveEntries( int start_sequence, int finish_sequence )
+        {
+            if ( finish_sequence < start_sequence ) 
+                finish_sequence += 65535;
+            for ( int sequence = start_sequence; sequence <= finish_sequence; ++sequence )
+                m_entry_sequence[sequence % m_size] = 0xFFFFFFFF;
+        }
+
     private:
 
         Allocator * m_allocator;
@@ -158,7 +152,6 @@ namespace yojimbo
         uint32_t * m_entry_sequence;
         int m_size;
         uint16_t m_sequence;
-        bool m_first_entry;
 
         SequenceBuffer( const SequenceBuffer<T> & other );
 

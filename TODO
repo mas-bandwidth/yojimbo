@@ -14,8 +14,6 @@ DONE
 
     Check this in and measure it...
 
-TODO
-
     It's a bit faster now:
 
         0.75% - GenerateAckBits
@@ -25,17 +23,21 @@ TODO
 
     Try the idea with the 32bit integer.
 
+    A tiny bit faster still.
+
+    Optimized away bool first_entry codepath in sequence buffer. Not required.
+
+    Optimize RemoveOldEntries away by removing entries as the sequence buffer moves forward.
+
+    Bumped sliding window up from 256 to 1024 entries, just because. Soak test passes.
+
+    Punt on optimizing InternalReceivePacket for now, because the network simulator is not something intended for use in production.
+
+TODO
+
     ------------------
 
-    Optimize InternalReceivePacket
-
-    ------------------
-
-    Optimize RemoveOldEntries
-
-    ------------------
-
-    There should really be a test for old entries getting removed from the sequence buffer.
+    Convert the profile to use actual socket network interfaces, which will give a more realistic measurement of actual performance, including sendto and recvfrom
 
     ------------------
 

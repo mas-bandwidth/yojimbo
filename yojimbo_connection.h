@@ -51,7 +51,7 @@ namespace yojimbo
         {
             packetType = 0;
             maxPacketSize = 4 * 1024;
-            slidingWindowSize = 256;
+            slidingWindowSize = 1024;
             messageResendRate = 0.1f;
             messageSendQueueSize = 1024;
             messageReceiveQueueSize = 1024;

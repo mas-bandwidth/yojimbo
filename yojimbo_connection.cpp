@@ -512,12 +512,8 @@ namespace yojimbo
             return;
 
         m_time = time;
-
-        m_sentPackets->RemoveOldEntries();
-        m_receivedPackets->RemoveOldEntries();
-        m_messageSentPackets->RemoveOldEntries();
     }
-
+    
     uint64_t Connection::GetCounter( int index ) const
     {
         assert( index >= 0 );
