@@ -28,6 +28,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_common.h"
 #include "yojimbo_packet.h"
+#include "yojimbo_message.h"
 #include "yojimbo_network.h"
 #include "yojimbo_sockets.h"
 #include "yojimbo_matcher.h"

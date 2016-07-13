@@ -444,6 +444,8 @@ namespace yojimbo
 
         m_maxClients = maxClients;
 
+        SetEncryptedPacketTypes();
+
         if ( m_messageFactory )
         {
             m_connectionConfig = GetConnectionConfig();
@@ -764,6 +766,12 @@ namespace yojimbo
         m_context.messageFactory = m_messageFactory;
         m_context.connectionConfig = &m_connectionConfig;
         m_networkInterface->SetContext( &m_context );
+    }
+
+    void Server::SetEncryptedPacketTypes()
+    {
+        m_networkInterface->EnablePacketEncryption();
+        m_networkInterface->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
     void Server::ResetClientState( int clientIndex )
@@ -1396,6 +1404,8 @@ namespace yojimbo
     {
         Disconnect();
 
+        SetEncryptedPacketTypes();
+
         m_serverAddress = address;
 
         OnConnect( address );
@@ -1683,6 +1693,12 @@ namespace yojimbo
         m_context.messageFactory = m_messageFactory;
         m_context.connectionConfig = &m_connectionConfig;
         m_networkInterface->SetContext( &m_context );
+    }
+
+    void Client::SetEncryptedPacketTypes()
+    {
+        m_networkInterface->EnablePacketEncryption();
+        m_networkInterface->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
     void Client::SetClientState( int clientState )

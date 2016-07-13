@@ -21,12 +21,15 @@ solution "Yojimbo"
         targetdir "bin/"  
     end
     configurations { "Debug", "Release" }
-    flags { "ExtraWarnings", "FatalWarnings", "StaticRuntime", "FloatFast" }
+    -- temporary: need symbols in release for profiling
+--    flags { "ExtraWarnings", "FatalWarnings", "StaticRuntime", "FloatFast" }
+    flags { "ExtraWarnings", "StaticRuntime", "FloatFast" }
     rtti "Off"
     configuration "Debug"
         flags { "Symbols" }
         defines { "DEBUG" }
     configuration "Release"
+--        flags { "Symbols" }
         optimize "Speed"
         defines { "NDEBUG" }
 

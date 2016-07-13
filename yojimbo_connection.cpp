@@ -598,7 +598,7 @@ namespace yojimbo
             if ( entry->block )
                 break;
             
-            if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits >= entry->measuredBits )
+            if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits >= (int) entry->measuredBits )
             {
                 messageIds[numMessageIds++] = messageId;
                 entry->timeLastSent = m_time;
