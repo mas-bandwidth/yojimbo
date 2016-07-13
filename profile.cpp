@@ -164,13 +164,6 @@ int ProfileMain()
 
     GameMessageFactory messageFactory;
 
-    NetworkSimulator networkSimulator;
-
-    networkSimulator.SetJitter( 250 );
-    networkSimulator.SetLatency( 250 );
-    networkSimulator.SetDuplicates( 10 );
-    networkSimulator.SetPacketLoss( 50 );
-
     ServerData serverData;
 
     serverData.address = Address( "::1", ServerPort );
@@ -198,10 +191,10 @@ int ProfileMain()
         }
     }
 
-    serverData.networkInterface = new SimulatorInterface( GetDefaultAllocator(), networkSimulator, packetFactory, serverData.address, ProtocolId );
+    serverData.networkInterface = new SocketInterface( GetDefaultAllocator(), packetFactory, serverData.address, ProtocolId );
 
     for ( int i = 0; i < MaxClients; ++i )
-        clientData[i].networkInterface = new SimulatorInterface( GetDefaultAllocator(), networkSimulator, packetFactory, clientData[i].address, ProtocolId );
+        clientData[i].networkInterface = new SocketInterface( GetDefaultAllocator(), packetFactory, clientData[i].address, ProtocolId );
 
     serverData.server = new GameServer( GetDefaultAllocator(), *serverData.networkInterface, &messageFactory );
 
