@@ -135,6 +135,8 @@ Convert the profile to use actual socket network interfaces, which will give a m
 
 Now do a final profile on windows and call it a day for now. Good enough.
 
+Added implementation of platform_time for windows.
+
 
 Monday July 11, 2016
 ====================

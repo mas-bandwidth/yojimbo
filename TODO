@@ -12,10 +12,6 @@ TODO
 
     ------------------
 
-    Add implementation of platform_time for windows.
-
-    ------------------
-
     Large block of data (eg. snapshot data) -- a large unreliable message at front of packet?
 
     Set of unreliable messages at the end of the packet (eg. effects and sounds?)
@@ -69,5 +65,9 @@ TODO
     Multithreaded design for yojimbo. Start profiling it. Is this necessary? What would need to change to make multithreading easier?
 
     Would yojimbo just multithread internally? What would a multithreaded interface to yojimbo look like in this case to the user?
+
+    It would be nice to be able to run the expensive part, which is the network interface read and write packets off main thread.
+
+    What is required to be able to do this?
 
     ------------------
