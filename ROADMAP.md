@@ -22,7 +22,7 @@ Features implemented for this release:
 
 This release extended libyojimbo to support a web backend for clients who need to securely connect to dedicated servers with 'connect tokens'. The connect token and packet encryption feature has already been implemented in 0.1.0, but it is necessary to setup a backend matchmaker and dedicated server infrastructure to show how this would be used in production. 
 
-Docker is being used in this release as an example, not to tie libyojimbo to any particular architecture (Docker is not required to use libyojimbo) but because it is a really convenient way to distribute and run a web application across Mac, Windows and Linux. This lets me share example web backends in libyojimbo now and trust that they'll work for people using libyojimbo on different platforms thanks to Docker.
+Docker is being used in this release as an example, not to tie libyojimbo to any particular architecture (Docker is not required to use libyojimbo) but because it is a really convenient way to distribute and run a web application across Mac, Windows and Linux. This lets me share example web backends and trust that they'll work on different platforms.
 
 This release added support for: 
 
@@ -48,7 +48,7 @@ This release will extend the internal UDP-based network protocol to support:
 6. Packet fragmentation and reassembly
 7. Packet aggregation
 
-There is lots of work to do in this release so it is likely this release will take some time. I estimate 2 months.
+There is lots of work to do in this release so it is likely it will take some time. I estimate 2-3 months.
 
 ## 0.4.0 - Matchmaker
 
