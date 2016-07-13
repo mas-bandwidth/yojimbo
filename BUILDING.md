@@ -155,28 +155,12 @@ If you'd like to look at the profile results yourself, you'll need a copy of Vis
 
 First it is necessary to make some modifications to premake5.lua so you have debug symbols in release build for the profiler:
 
-Near the solution "Yojimbo" section, change the following lines from this:
+In the solution "Yojimbo" section near the top of premake5, add symbols to the release configuration:
 
     configuration "Release"
+        flags { "Symbols" }             --  add this line!
         optimize "Speed"
         defines { "NDEBUG" }
-
-To this:
-
-    configuration "Release"
-        flags { "Symbols" }
-        optimize "Speed"
-        defines { "NDEBUG" }
-
-Next you'll need to remove fatal warnings, because you will have some missing debug symbol warnings for prebuilt libraries for libsodium and mbedtls and Visual Studio is going to complain about that.
-
-Change this line:
-
-    flags { "ExtraWarnings", "FatalWarnings", "StaticRuntime", "FloatFast" }
-
-to this:
-
-    flags { "ExtraWarnings", "StaticRuntime", "FloatFast" }
 
 Now run "premake5 solution", switch to "Release" configuration and rebuild all. 
 

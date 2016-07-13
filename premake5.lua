@@ -22,7 +22,7 @@ solution "Yojimbo"
         targetdir "bin/"  
     end
     rtti "Off"
-    flags { "ExtraWarnings", "FatalWarnings", "StaticRuntime", "FloatFast" }
+    flags { "ExtraWarnings", "StaticRuntime", "FloatFast" }
     configuration "Debug"
         flags { "Symbols" }
         defines { "DEBUG" }
