@@ -114,18 +114,21 @@ namespace yojimbo
 		Sleep( milliseconds );
 	}
 
+	static bool timer_initialized = false;
+	static LARGE_INTEGER timer_frequency;
+    static LARGE_INTEGER timer_start;
+
 	double platform_time()
 	{
-        static LARGE_INTEGER frequency = 0;
-        static LARGE_INTEGER start = 0;
-        if ( frequency == 0 )
+        if ( !timer_initialized )
         {
-            QueryPerformanceFrequency( &frequency );
-            QueryPerformanceCounter( &start );
+            QueryPerformanceFrequency( &timer_frequency );
+            QueryPerformanceCounter( &timer_start );
+			timer_initialized = true;
         }
         LARGE_INTEGER now;
         QueryPerformanceCounter( &now );
-        return double( now.QuadPart - start.QuadPart ) / double( win_frequency.QuadPart );
+        return double( now.QuadPart - timer_start.QuadPart ) / double( timer_frequency.QuadPart );
 	}
 }
 

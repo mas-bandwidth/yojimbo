@@ -303,6 +303,8 @@ int ProfileMain()
                 serverData.numMessagesReceived[i]++;
 
 //                printf( "server received message %d from client %d\n", message->GetId(), i );
+
+				messageFactory.Release( message );
             }
         }
 
@@ -318,6 +320,8 @@ int ProfileMain()
                 clientData[i].numMessagesReceived++;
 
 //                printf( "client received message %d from client %d\n", message->GetId(), i );
+
+				messageFactory.Release( message );
             }
         }
 
