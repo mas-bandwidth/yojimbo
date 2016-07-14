@@ -36,36 +36,18 @@ namespace yojimbo
 
     struct ConnectionConfig
     {
-        int packetType;                                         // connect packet type (override)
-        int maxPacketSize;                                      // maximum connection packet size in bytes
-        int slidingWindowSize;                                  // size of ack sliding window (in packets)
-        float messageResendRate;                                // message max resend rate in seconds, until acked.
-        int messageSendQueueSize;                               // message send queue size
-        int messageReceiveQueueSize;                            // receive queue size
-        int messagePacketBudget;                                // budget of how many bytes messages can take up in the connection packet
-        int maxMessagesPerPacket;                               // maximum number of messages per-packet
-        int maxBlockSize;                                       // maximum block size in bytes
-        int fragmentSize;                                       // size of block fragments sent in packets (bytes)
-        float fragmentResendRate;                               // min seconds to wait before resending the same fragment
+        int maxConnectionPacketSize;                            // maximum connection packet size in bytes
+        int connectionPacketType;                               // connection packet type (so you may override it)
+        int slidingWindowSize;                                  // sliding window size for packet ack system (# of packets)
+        int numChannels;                                        // number of channels: [1,MaxChannels]
+        ChannelConfig channelConfig[MaxChannels];
 
         ConnectionConfig()
         {
-            packetType = 0;
-            maxPacketSize = 4 * 1024;
+            maxConnectionPacketSize = 4 * 1024;
+            connectionPacketType = 0;
             slidingWindowSize = 1024;
-            messageResendRate = 0.1f;
-            messageSendQueueSize = 1024;
-            messageReceiveQueueSize = 1024;
-            messagePacketBudget = 1024;
-            maxMessagesPerPacket = 64;
-            maxBlockSize = 256 * 1024;
-            fragmentSize = 1024;
-            fragmentResendRate = 0.25f;
-        }
-
-        int GetMaxFragmentsPerBlock() const
-        {
-            return maxBlockSize / fragmentSize;
+            numChannels = 1;
         }
     };
 
@@ -173,11 +155,11 @@ namespace yojimbo
 
         void Reset();
 
-        bool CanSendMessage() const;
+        bool CanSendMessage( int channelId = 0 ) const;
 
-        void SendMessage( Message * message );
+        void SendMessage( Message * message, int channelId = 0 );
 
-        Message * ReceiveMessage();
+        Message * ReceiveMessage( int channelId = 0 );
 
         ConnectionPacket * WritePacket();
 
@@ -225,7 +207,7 @@ namespace yojimbo
 
         int m_clientIndex;                                                              // optional client index for server client connections. 0 by default.
 
-        Channel * m_channel;                                                            // message channel
+        Channel * m_channel[MaxChannels];                                               // message channels. see config.numChannels for size of this array.
 
         Allocator * m_allocator;                                                        // allocator for allocations matching life cycle of object
 

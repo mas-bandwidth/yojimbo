@@ -28,7 +28,7 @@ namespace yojimbo
 {
     Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config ) : m_config( config )
     {
-        assert( ( 65536 % config.slidingWindowSize ) == 0 );
+        assert( ( 65536 % config.sentPacketsSize ) == 0 );
         assert( ( 65536 % config.messageSendQueueSize ) == 0 );
         assert( ( 65536 % config.messageReceiveQueueSize ) == 0 );
 
@@ -44,7 +44,7 @@ namespace yojimbo
 
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
         
-        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, *m_allocator, m_config.slidingWindowSize );
+        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, *m_allocator, m_config.sentPacketsSize );
         
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
         
@@ -235,7 +235,7 @@ namespace yojimbo
             if ( entry->block )
                 break;
             
-            if ( entry->timeLastSent + m_config.messageResendRate <= m_time && availableBits >= (int) entry->measuredBits )
+            if ( entry->timeLastSent + m_config.messageResendTime <= m_time && availableBits >= (int) entry->measuredBits )
             {
                 messageIds[numMessageIds++] = messageId;
                 entry->timeLastSent = m_time;
@@ -261,7 +261,7 @@ namespace yojimbo
             sentPacket->acked = 0;
             sentPacket->block = 0;
             sentPacket->timeSent = m_time;
-            sentPacket->messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.slidingWindowSize ) * m_config.maxMessagesPerPacket ];
+            sentPacket->messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketsSize ) * m_config.maxMessagesPerPacket ];
             sentPacket->numMessageIds = numMessageIds;            
             for ( int i = 0; i < numMessageIds; ++i )
                 sentPacket->messageIds[i] = messageIds[i];
@@ -441,7 +441,7 @@ namespace yojimbo
 
         for ( int i = 0; i < m_sendBlock->numFragments; ++i )
         {
-            if ( !m_sendBlock->ackedFragment->GetBit( i ) && m_sendBlock->fragmentSendTime[i] + m_config.fragmentResendRate < m_time )
+            if ( !m_sendBlock->ackedFragment->GetBit( i ) && m_sendBlock->fragmentSendTime[i] + m_config.fragmentResendTime < m_time )
             {
                 fragmentId = uint16_t( i );
                 break;

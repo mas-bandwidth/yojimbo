@@ -89,13 +89,16 @@ namespace yojimbo
 
         // serialize messages
 
+        // todo: need to walk over per-channel data here
+        const int channelId = 0;
+
         bool hasMessages = numMessages != 0;
 
         serialize_bool( stream, hasMessages );
 
         if ( hasMessages )
         {
-            serialize_int( stream, numMessages, 1, context->connectionConfig->maxMessagesPerPacket );
+            serialize_int( stream, numMessages, 1, context->connectionConfig->channelConfig[channelId].maxMessagesPerPacket );
 
             int * messageTypes = (int*) alloca( sizeof( int ) * numMessages );
 
@@ -171,7 +174,7 @@ namespace yojimbo
         {
             serialize_bits( stream, blockMessageId, 16 );
 
-            serialize_int( stream, blockNumFragments, 1, context->connectionConfig->GetMaxFragmentsPerBlock() );
+            serialize_int( stream, blockNumFragments, 1, context->connectionConfig->channelConfig[channelId].GetMaxFragmentsPerBlock() );
 
             if ( blockNumFragments > 1 )
             {
@@ -182,7 +185,7 @@ namespace yojimbo
                 blockFragmentId = 0;
             }
 
-            serialize_int( stream, blockFragmentSize, 1, context->connectionConfig->fragmentSize );
+            serialize_int( stream, blockFragmentSize, 1, context->connectionConfig->channelConfig[channelId].fragmentSize );
 
             if ( Stream::IsReading )
             {
@@ -238,8 +241,6 @@ namespace yojimbo
     Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config ) : m_config( config )
     {
         assert( ( 65536 % config.slidingWindowSize ) == 0 );
-        assert( ( 65536 % config.messageSendQueueSize ) == 0 );
-        assert( ( 65536 % config.messageReceiveQueueSize ) == 0 );
 
         m_allocator = &allocator;
 
@@ -253,13 +254,20 @@ namespace yojimbo
 
         m_clientIndex = 0;
 
-        m_channel = YOJIMBO_NEW( *m_allocator, Channel, *m_allocator, messageFactory );
+        memset( m_channel, 0, sizeof( m_channel ) );
+
+        assert( m_config.numChannels >= 1 );
+        assert( m_config.numChannels <= MaxChannels );
+
+        for ( int i = 0; i < m_config.numChannels; ++i )
+        {
+            m_channel[i] = YOJIMBO_NEW( *m_allocator, Channel, *m_allocator, messageFactory, m_config.channelConfig[i] );
+            m_channel[i]->SetListener( this );
+        }
 
         m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, *m_allocator, m_config.slidingWindowSize );
         
         m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, *m_allocator, m_config.slidingWindowSize );
-
-        m_channel->SetListener( this );
 
         Reset();
     }
@@ -268,7 +276,9 @@ namespace yojimbo
     {
         Reset();
 
-        YOJIMBO_DELETE( *m_allocator, Channel, m_channel );
+        for ( int i = 0; i < m_config.numChannels; ++i )
+            YOJIMBO_DELETE( *m_allocator, Channel, m_channel[i] );
+
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, m_sentPackets );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, m_receivedPackets );
     }
@@ -277,26 +287,34 @@ namespace yojimbo
     {
         m_error = CONNECTION_ERROR_NONE;
 
-        m_channel->Reset();
+        for ( int i = 0; i < m_config.numChannels; ++i )
+            m_channel[i]->Reset();
+
         m_sentPackets->Reset();
         m_receivedPackets->Reset();
 
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
-    bool Connection::CanSendMessage() const
+    bool Connection::CanSendMessage( int channelId ) const
     {
-        return m_channel->CanSendMessage();
+        assert( channelId >= 0 );
+        assert( channelId < m_config.numChannels );
+        return m_channel[channelId]->CanSendMessage();
     }
 
-    void Connection::SendMessage( Message * message )
+    void Connection::SendMessage( Message * message, int channelId )
     {
-        return m_channel->SendMessage( message );
+        assert( channelId >= 0 );
+        assert( channelId < m_config.numChannels );
+        return m_channel[channelId]->SendMessage( message );
     }
 
-    Message * Connection::ReceiveMessage()
+    Message * Connection::ReceiveMessage( int channelId )
     {
-        return m_channel->ReceiveMessage();
+        assert( channelId >= 0 );
+        assert( channelId < m_config.numChannels );
+        return m_channel[channelId]->ReceiveMessage();
     }
 
     ConnectionPacket * Connection::WritePacket()
@@ -304,7 +322,7 @@ namespace yojimbo
         if ( m_error != CONNECTION_ERROR_NONE )
             return NULL;
 
-        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->CreatePacket( m_config.packetType );
+        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->CreatePacket( m_config.connectionPacketType );
 
         if ( !packet )
             return NULL;
@@ -315,14 +333,21 @@ namespace yojimbo
 
         InsertAckPacketEntry( packet->sequence );
 
-        int numMessageIds = 0;
-        
-        // todo: this actually has to come from the per-channel config
-        uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
+        m_counters[CONNECTION_COUNTER_PACKETS_WRITTEN]++;
 
-        if ( m_channel->HasMessagesToSend() )
+        if ( m_config.numChannels == 0 )
+            return packet;
+
+        int numMessageIds = 0;
+
+        // todo
+        const int channelId = 0;
+        
+        uint16_t * messageIds = (uint16_t*) alloca( m_config.channelConfig[channelId].maxMessagesPerPacket * sizeof( uint16_t ) );
+
+        if ( m_channel[channelId]->HasMessagesToSend() )
         {
-            if ( m_channel->SendingBlockMessage() )
+            if ( m_channel[channelId]->SendingBlockMessage() )
             {
                 uint16_t messageId;
                 uint16_t fragmentId;
@@ -330,26 +355,24 @@ namespace yojimbo
                 int numFragments;
                 int messageType;
 
-                uint8_t * fragmentData = m_channel->GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
+                uint8_t * fragmentData = m_channel[channelId]->GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
 
                 if ( fragmentData )
                 {
                     AddFragmentToPacket( messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType, packet );
 
-                    m_channel->AddFragmentPacketEntry( messageId, fragmentId, packet->sequence );
+                    m_channel[channelId]->AddFragmentPacketEntry( messageId, fragmentId, packet->sequence );
                 }
             }
             else
             {
-                m_channel->GetMessagesToSend( messageIds, numMessageIds );
+                m_channel[channelId]->GetMessagesToSend( messageIds, numMessageIds );
 
                 AddMessagesToPacket( messageIds, numMessageIds, packet );
 
-                m_channel->AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
+                m_channel[channelId]->AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
             }
         }
-
-        m_counters[CONNECTION_COUNTER_PACKETS_WRITTEN]++;
 
         return packet;
     }
@@ -360,7 +383,7 @@ namespace yojimbo
             return false;
 
         assert( packet );
-        assert( packet->GetType() == m_config.packetType );
+        assert( packet->GetType() == m_config.connectionPacketType );
 
         m_counters[CONNECTION_COUNTER_PACKETS_READ]++;
 
@@ -372,21 +395,30 @@ namespace yojimbo
 
         ProcessAcks( packet->ack, packet->ack_bits );
 
-        m_channel->ProcessPacketMessages( packet->numMessages, packet->messages );
+        if ( m_config.numChannels > 0 )
+        {
+            // todo
+            const int channelId = 0;
 
-        m_channel->ProcessPacketFragment( packet->blockMessageType, packet->blockMessageId, packet->blockNumFragments, packet->blockFragmentId, packet->blockFragmentData, packet->blockFragmentSize, packet->blockMessage );
+            m_channel[channelId]->ProcessPacketMessages( packet->numMessages, packet->messages );
+
+            m_channel[channelId]->ProcessPacketFragment( packet->blockMessageType, packet->blockMessageId, packet->blockNumFragments, packet->blockFragmentId, packet->blockFragmentData, packet->blockFragmentSize, packet->blockMessage );
+        }
 
         return true;
     }
 
     void Connection::AdvanceTime( double time )
     {
-        m_channel->AdvanceTime( time );
-
-        if ( m_channel->GetError() )
+        for ( int i = 0; i < m_config.numChannels; ++i )
         {
-            m_error = CONNECTION_ERROR_CHANNEL;
-            return;
+            m_channel[i]->AdvanceTime( time );
+        
+            if ( m_channel[i]->GetError() )
+            {
+                m_error = CONNECTION_ERROR_CHANNEL;
+                return;
+            }
         }
     }
     
@@ -436,7 +468,8 @@ namespace yojimbo
     {
         OnPacketAcked( sequence );
 
-        m_channel->ProcessAck( sequence );
+        for ( int i = 0; i < m_config.numChannels; ++i )
+            m_channel[i]->ProcessAck( sequence );
 
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
     }
@@ -455,9 +488,12 @@ namespace yojimbo
         
         packet->messages = (Message**) m_messageFactory->GetAllocator().Allocate( sizeof( Message* ) * numMessageIds );
 
+        // todo
+        const int channelId = 0;
+
         for ( int i = 0; i < numMessageIds; ++i )
         {
-            packet->messages[i] = m_channel->GetSendQueueMessage( messageIds[i] );
+            packet->messages[i] = m_channel[channelId]->GetSendQueueMessage( messageIds[i] );
 
             m_messageFactory->AddRef( packet->messages[i] );
         }
@@ -475,9 +511,12 @@ namespace yojimbo
         packet->blockNumFragments = numFragments;
         packet->blockMessageType = messageType;
 
+        // todo
+        const int channelId = 0;
+
         if ( fragmentId == 0 )
         {
-            packet->blockMessage = (BlockMessage*) m_channel->GetSendQueueMessage( messageId );
+            packet->blockMessage = (BlockMessage*) m_channel[channelId]->GetSendQueueMessage( messageId );
             
             m_messageFactory->AddRef( packet->blockMessage );
         }

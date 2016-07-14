@@ -52,6 +52,18 @@ Done. Once I go multi-channel I'm going to want to put the channel id in the lis
 
 Verified soak is back to regular log behavior.
 
+Need to split apart the channel configuration from the connection configuration. Done.
+
+Next start thinking about how channels will be configured.
+
+static const int MaxChannels for the config? 64?
+
+Channel configuration should contain number of channels, and per-channel config.
+
+Pass channel config to channel on creation.
+
+Generalize channel to channels, dynamically allocated according to the # of channels in the config.
+
 
 Tuesday July 12, 2016
 =====================
