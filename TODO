@@ -2,13 +2,9 @@ DONE
 
 TODO
     
-    Next I need to work out how multiple channels store their data in the connection packet.
+    Serialize function for connection packet is getting pretttty unweildy.
 
-    Is there some channel data structure that gets allocated dynamically, n times for the packet, for n entries?
-
-    Since the entries are sparse, each entry needs a channelId at the top to identify it.
-
-    OK I think this can work.
+    Would be nice to move that out to a function inside ChannelPacketData
 
     ------------------
 

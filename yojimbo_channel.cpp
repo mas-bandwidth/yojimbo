@@ -26,7 +26,42 @@
 
 namespace yojimbo
 {
-    Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config ) : m_config( config )
+    void ChannelPacketData::Free( MessageFactory & messageFactory )
+    {
+        Allocator & allocator = messageFactory.GetAllocator();
+
+        if ( !blockMessage )
+        {
+            if ( message.numMessages > 0 )
+            {
+                for ( int i = 0; i < message.numMessages; ++i )
+                {
+                    assert( message.messages[i] );
+                    messageFactory.Release( message.messages[i] );
+                }
+
+                allocator.Free( message.messages );
+                message.messages = NULL;
+            }
+        }
+        else
+        {
+            if ( block.message )
+            {
+                messageFactory.Release( block.message );
+                block.message = NULL;
+            }
+
+            if ( block.fragmentData )
+            {
+                allocator.Free( block.fragmentData );
+                block.fragmentData = NULL;
+            }
+        }
+    }
+
+    Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
+        : m_config( config ), m_channelId( channelId )
     {
         assert( ( 65536 % config.sentPacketsSize ) == 0 );
         assert( ( 65536 % config.messageSendQueueSize ) == 0 );
@@ -250,6 +285,28 @@ namespace yojimbo
         }
     }
 
+    void Channel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
+    {
+        assert( messageIds );
+
+        packetData.channelId = m_channelId;
+        
+        packetData.blockMessage = 0;
+
+        packetData.message.numMessages = numMessageIds;
+        
+        if ( numMessageIds == 0 )
+            return;
+
+        packetData.message.messages = (Message**) m_messageFactory->GetAllocator().Allocate( sizeof( Message* ) * numMessageIds );
+
+        for ( int i = 0; i < numMessageIds; ++i )
+        {
+            packetData.message.messages[i] = GetSendQueueMessage( messageIds[i] );
+            m_messageFactory->AddRef( packetData.message.messages[i] );
+        }
+    }
+
     void Channel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
         MessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( sequence );
@@ -298,6 +355,18 @@ namespace yojimbo
             entry->message = message;
 
             m_messageFactory->AddRef( message );
+        }
+    }
+
+    void Channel::ProcessPacketData( ChannelPacketData & packetData )
+    {
+        if ( packetData.blockMessage )
+        {
+            ProcessPacketFragment( packetData.block.messageType, packetData.block.messageId, packetData.block.numFragments, packetData.block.fragmentId, packetData.block.fragmentData, packetData.block.fragmentSize, packetData.block.message );
+        }
+        else
+        {
+            ProcessPacketMessages( packetData.message.numMessages, packetData.message.messages );
         }
     }
 
@@ -472,6 +541,30 @@ namespace yojimbo
         }
 
         return fragmentData;
+    }
+
+    void Channel::GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType )
+    {
+        packetData.channelId = m_channelId;
+
+        packetData.blockMessage = 1;
+
+        packetData.block.fragmentData = fragmentData;
+        packetData.block.messageId = messageId;
+        packetData.block.fragmentId = fragmentId;
+        packetData.block.fragmentSize = fragmentSize;
+        packetData.block.numFragments = numFragments;
+        packetData.block.messageType = messageType;
+
+        if ( fragmentId == 0 )
+        {
+            packetData.block.message = (BlockMessage*) GetSendQueueMessage( messageId );
+            m_messageFactory->AddRef( packetData.block.message );
+        }
+        else
+        {
+            packetData.block.message = NULL;
+        }
     }
 
     void Channel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )

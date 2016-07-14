@@ -1,4 +1,36 @@
 
+Thursday July 14th, 2016
+========================
+
+Next I need to work out how multiple channels store their data in the connection packet.
+
+Is there some channel data structure that gets allocated in an array n times for the packet, for n entries?
+
+Yes. This works. One contiguous block of memory, not individual pointers per-channel.
+
+Since the entries are sparse, each entry needs a channelId at the top to identify it.
+
+OK I think this can work.
+
+Each channel still allocates its own message pointer array, which is frustrating, and its own block
+
+For now, let this be. Later on can allocate a contiguous block for everything, including an array of message pointers at the end.
+
+Create the channel packet data struct.
+
+Make sure it's a union.
+
+Added a function to fill channel packet data with block fragment and optional block message
+
+Add function to fill channel packet data with messages.
+
+Now switch out connection packet to use a single (one) channel packet data, rather than having the data in-place.
+
+Switch over to new functions to fill this packet data.
+
+All tests pass.
+
+
 Wednesday July 13th, 2016
 =========================
 
