@@ -40,6 +40,12 @@ Ran over a cppcheck scan and fixed some minor issues.
 
 OK. Taking a break now.
 
+Calling something a "network interface" is probably bad.
+
+Network interface in this field has a very, very specific meaning.
+
+Renamed to "Transport", eg. "SocketTransport", "SimulatorTransport" and so on.
+
 
 Wednesday July 13th, 2016
 =========================

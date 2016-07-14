@@ -4,6 +4,14 @@ TODO
 
     ------------------
 
+    Calling something a "network interface" is probably bad.
+
+    Network interface in this field has a very, very specific meaning.
+
+    It's probably better to rename it to "transport", eg. yojimbo_transport.h, TransportInterface.h, TransportImplementation class, SocketTransport, SimulatorTransport.
+
+    ------------------
+
     Now I have to work out how multiple channels work.
 
     Key thing I think is a scan from left to right, so channel 0 not only is potentially in front of the packet, but has
@@ -50,7 +58,7 @@ TODO
 
     ------------------
 
-    Packet aggregation.
+    v0.3.0 release (!!!) YEY! :D
 
     ------------------
 
@@ -62,10 +70,6 @@ TODO
 
     ------------------
 
-    Calling something a "network interface" is probably bad.
-
-    Network interface in this field has a very, very specific meaning.
-
-    It's probably better to rename it to "transport", eg. yojimbo_transport.h, TransportInterface.h, TransportImplementation class, SocketTransport, SimulatorTransport.
+    Packet aggregation.
 
     ------------------

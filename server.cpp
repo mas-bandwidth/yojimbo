@@ -48,15 +48,15 @@ int ServerMain()
 
     Address serverPublicAddress( "127.0.0.1", ServerPort );
 
-    GameNetworkInterface serverInterface( packetFactory, serverBindAddress );
+    GameNetworkTransport serverTransport( packetFactory, serverBindAddress );
 
-    if ( serverInterface.GetError() != SOCKET_ERROR_NONE )
+    if ( serverTransport.GetError() != SOCKET_ERROR_NONE )
     {
         printf( "error: failed to initialize server socket\n" );
         return 1;
     }
     
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverPublicAddress );
 
@@ -64,7 +64,7 @@ int ServerMain()
 
     server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
     
-    serverInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+    serverTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
     
 #endif // #if !SECURE_SERVER && YOJIMBO_INSECURE_CONNECT
 
@@ -80,9 +80,9 @@ int ServerMain()
     {
         server.SendPackets();
 
-        serverInterface.WritePackets();
+        serverTransport.WritePackets();
 
-        serverInterface.ReadPackets();
+        serverTransport.ReadPackets();
 
         server.ReceivePackets();
 
@@ -92,7 +92,7 @@ int ServerMain()
 
         server.AdvanceTime( time );
 
-        serverInterface.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
 
         platform_sleep( deltaTime );
     }

@@ -1,4 +1,4 @@
-	/*
+/*
     Yojimbo Client/Server Network Library.
 
     Copyright © 2016, The Network Protocol Company, Inc.
@@ -22,8 +22,8 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef YOJIMBO_INTERFACE_H
-#define YOJIMBO_INTERFACE_H
+#ifndef YOJIMBO_TRANSPORT_H
+#define YOJIMBO_TRANSPORT_H
 
 #include "yojimbo_config.h"
 #include "yojimbo_queue.h"
@@ -36,36 +36,36 @@
 
 namespace yojimbo
 {
-    enum NetworkInterfaceFlags
+    enum TransportFlags
     {
-        NETWORK_INTERFACE_FLAG_INSECURE_MODE = (1<<0)
+        TRANSPORT_FLAG_INSECURE_MODE = (1<<0)
     };
 
-    enum NetworkInterfaceCounters
+    enum TransportCounters
     {
-        NETWORK_INTERFACE_COUNTER_PACKETS_SENT,
-        NETWORK_INTERFACE_COUNTER_PACKETS_RECEIVED,
-        NETWORK_INTERFACE_COUNTER_PACKETS_READ,
-        NETWORK_INTERFACE_COUNTER_PACKETS_WRITTEN,
-        NETWORK_INTERFACE_COUNTER_SEND_QUEUE_OVERFLOW,
-        NETWORK_INTERFACE_COUNTER_RECEIVE_QUEUE_OVERFLOW,
-        NETWORK_INTERFACE_COUNTER_READ_PACKET_FAILURES,
-        NETWORK_INTERFACE_COUNTER_WRITE_PACKET_FAILURES,
-        NETWORK_INTERFACE_COUNTER_ENCRYPT_PACKET_FAILURES,
-        NETWORK_INTERFACE_COUNTER_DECRYPT_PACKET_FAILURES,
-        NETWORK_INTERFACE_COUNTER_ENCRYPTED_PACKETS_READ,
-        NETWORK_INTERFACE_COUNTER_ENCRYPTED_PACKETS_WRITTEN,
-        NETWORK_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_READ,
-        NETWORK_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_WRITTEN,
-        NETWORK_INTERFACE_COUNTER_ENCRYPTION_MAPPING_FAILURES,
-        NETWORK_INTERFACE_COUNTER_NUM_COUNTERS
+        TRANSPORT_COUNTER_PACKETS_SENT,
+        TRANSPORT_COUNTER_PACKETS_RECEIVED,
+        TRANSPORT_COUNTER_PACKETS_READ,
+        TRANSPORT_COUNTER_PACKETS_WRITTEN,
+        TRANSPORT_COUNTER_SEND_QUEUE_OVERFLOW,
+        TRANSPORT_COUNTER_RECEIVE_QUEUE_OVERFLOW,
+        TRANSPORT_COUNTER_READ_PACKET_FAILURES,
+        TRANSPORT_COUNTER_WRITE_PACKET_FAILURES,
+        TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES,
+        TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES,
+        TRANSPORT_COUNTER_ENCRYPTED_PACKETS_READ,
+        TRANSPORT_COUNTER_ENCRYPTED_PACKETS_WRITTEN,
+        TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_READ,
+        TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_WRITTEN,
+        TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES,
+        TRANSPORT_COUNTER_NUM_COUNTERS
     };
 
-    class NetworkInterface
+    class Transport
     {
     public:
 
-        virtual ~NetworkInterface() {}
+        virtual ~Transport() {}
 
         virtual Packet * CreatePacket( int type ) = 0;
 
@@ -110,11 +110,11 @@ namespace yojimbo
         virtual PacketFactory * GetPacketFactory() = 0;
     };
 
-    class BaseInterface : public NetworkInterface
+    class BaseTransport : public Transport
     {
     public:
 
-        BaseInterface( Allocator & allocator,
+        BaseTransport( Allocator & allocator,
                        PacketFactory & packetFactory, 
                        const Address & address,
                        uint32_t protocolId,
@@ -122,7 +122,7 @@ namespace yojimbo
                        int sendQueueSize = 1024,
                        int receiveQueueSize = 1024 );
 
-        ~BaseInterface();
+        ~BaseTransport();
 
         Packet * CreatePacket( int type );
 
@@ -220,9 +220,9 @@ namespace yojimbo
         uint8_t * m_packetTypeIsEncrypted;
         uint8_t * m_packetTypeIsUnencrypted;
 
-        uint64_t m_counters[NETWORK_INTERFACE_COUNTER_NUM_COUNTERS];
-
         EncryptionManager m_encryptionManager;
+
+        uint64_t m_counters[TRANSPORT_COUNTER_NUM_COUNTERS];
     };
 }
 

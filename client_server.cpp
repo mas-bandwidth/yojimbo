@@ -56,10 +56,10 @@ int ClientServerMain()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    GameNetworkInterface clientInterface( packetFactory, clientAddress );
-    GameNetworkInterface serverInterface( packetFactory, serverAddress );
+    GameNetworkTransport clientTransport( packetFactory, clientAddress );
+    GameNetworkTransport serverTransport( packetFactory, serverAddress );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE || serverInterface.GetError() != SOCKET_ERROR_NONE )
+    if ( clientTransport.GetError() != SOCKET_ERROR_NONE || serverTransport.GetError() != SOCKET_ERROR_NONE )
     {
         printf( "error: failed to initialize sockets\n" );
         return 1;
@@ -69,9 +69,9 @@ int ClientServerMain()
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
 
@@ -84,11 +84,11 @@ int ClientServerMain()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -113,8 +113,8 @@ int ClientServerMain()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     return 0;

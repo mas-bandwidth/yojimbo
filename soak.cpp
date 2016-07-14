@@ -75,16 +75,16 @@ int SoakMain()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    SimulatorInterface clientInterface( GetDefaultAllocator(), networkSimulator, packetFactory, clientAddress, ProtocolId );
-    SimulatorInterface serverInterface( GetDefaultAllocator(), networkSimulator, packetFactory, serverAddress, ProtocolId );
+    SimulatorTransport clientTransport( GetDefaultAllocator(), networkSimulator, packetFactory, clientAddress, ProtocolId );
+    SimulatorTransport serverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, serverAddress, ProtocolId );
 
     GameMessageFactory messageFactory;
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface, &messageFactory );
+    GameClient client( GetDefaultAllocator(), clientTransport, &messageFactory );
 
-    GameServer server( GetDefaultAllocator(), serverInterface, &messageFactory );
+    GameServer server( GetDefaultAllocator(), serverTransport, &messageFactory );
 
     server.SetServerAddress( serverAddress );
 
@@ -102,11 +102,11 @@ int SoakMain()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -238,8 +238,8 @@ int SoakMain()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     if ( quit )

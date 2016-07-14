@@ -45,7 +45,7 @@ struct ServerData
 {
     GameServer * server;
 
-    NetworkInterface * networkInterface;
+    Transport * transport;
 
     Address address;
 
@@ -65,10 +65,10 @@ struct ServerData
             server = NULL;
         }
 
-        if ( networkInterface )
+        if ( transport )
         {
-            delete networkInterface;
-            networkInterface = NULL;
+            delete transport;
+            transport = NULL;
         }
     }   
 };
@@ -77,7 +77,7 @@ struct ClientData
 {
     GameClient * client;
 
-    NetworkInterface * networkInterface;
+    Transport * transport;
 
     Address address;
 
@@ -108,10 +108,10 @@ struct ClientData
             client = NULL;
         }
 
-        if ( networkInterface )
+        if ( transport )
         {
-            delete networkInterface;
-            networkInterface = NULL;
+            delete transport;
+            transport = NULL;
         }
     }
 };
@@ -191,15 +191,15 @@ int ProfileMain()
         }
     }
 
-    serverData.networkInterface = new SocketInterface( GetDefaultAllocator(), packetFactory, serverData.address, ProtocolId );
+    serverData.transport = new SocketTransport( GetDefaultAllocator(), packetFactory, serverData.address, ProtocolId );
 
     for ( int i = 0; i < MaxClients; ++i )
-        clientData[i].networkInterface = new SocketInterface( GetDefaultAllocator(), packetFactory, clientData[i].address, ProtocolId );
+        clientData[i].transport = new SocketTransport( GetDefaultAllocator(), packetFactory, clientData[i].address, ProtocolId );
 
-    serverData.server = new GameServer( GetDefaultAllocator(), *serverData.networkInterface, &messageFactory );
+    serverData.server = new GameServer( GetDefaultAllocator(), *serverData.transport, &messageFactory );
 
     for ( int i = 0; i < MaxClients; ++i )
-        clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].networkInterface, &messageFactory );
+        clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].transport, &messageFactory );
 
     serverData.server->SetServerAddress( serverData.address );
 
@@ -225,15 +225,15 @@ int ProfileMain()
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].client->SendPackets();
 
-        serverData.networkInterface->WritePackets();
+        serverData.transport->WritePackets();
 
         for ( int i = 0; i < MaxClients; ++i )
-            clientData[i].networkInterface->WritePackets();
+            clientData[i].transport->WritePackets();
 
-        serverData.networkInterface->ReadPackets();
+        serverData.transport->ReadPackets();
 
         for ( int i = 0; i < MaxClients; ++i )
-            clientData[i].networkInterface->ReadPackets();
+            clientData[i].transport->ReadPackets();
 
         serverData.server->ReceivePackets();
 
@@ -330,10 +330,10 @@ int ProfileMain()
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].client->AdvanceTime( time );
 
-        serverData.networkInterface->AdvanceTime( time );
+        serverData.transport->AdvanceTime( time );
 
         for ( int i = 0; i < MaxClients; ++i )
-            clientData[i].networkInterface->AdvanceTime( time );
+            clientData[i].transport->AdvanceTime( time );
     }
 
     if ( quit )

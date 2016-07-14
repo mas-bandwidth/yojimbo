@@ -1081,7 +1081,7 @@ class GameServer : public Server
 
 public:
 
-    explicit GameServer( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL ) : Server( allocator, networkInterface, messageFactory )
+    explicit GameServer( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL ) : Server( allocator, transport, messageFactory )
     {
         SetPrivateKey( private_key );
         m_gamePacketSequence = 0;
@@ -1180,7 +1180,7 @@ public:
         assert( clientIndex >= 0 );
         assert( clientIndex < GetMaxClients() );
         assert( IsClientConnected( clientIndex ) );
-        GamePacket * packet = (GamePacket*) GetNetworkInterface()->CreatePacket( GAME_PACKET );
+        GamePacket * packet = (GamePacket*) GetTransport()->CreatePacket( GAME_PACKET );
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToConnectedClient( clientIndex, packet );
@@ -1205,7 +1205,7 @@ class GameClient : public Client
 
 public:
 
-    explicit GameClient( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL ) : Client( allocator, networkInterface, messageFactory )
+    explicit GameClient( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL ) : Client( allocator, transport, messageFactory )
     {
         m_numGamePacketsReceived = 0;
         m_gamePacketSequence = 0;
@@ -1213,7 +1213,7 @@ public:
 
     void SendGamePacketToServer()
     {
-        GamePacket * packet = (GamePacket*) m_networkInterface->CreatePacket( GAME_PACKET );
+        GamePacket * packet = (GamePacket*) m_transport->CreatePacket( GAME_PACKET );
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToServer( packet );
@@ -1331,16 +1331,14 @@ public:
     }   
 };
 
-class TestNetworkInterface : public SimulatorInterface
+class TestNetworkTransport : public SimulatorTransport
 {   
 public:
 
-    TestNetworkInterface( GamePacketFactory & packetFactory, NetworkSimulator & networkSimulator, const Address & address ) 
-        : SimulatorInterface( GetDefaultAllocator(), networkSimulator, packetFactory, address, ProtocolId )
-    {
-    }
+    TestNetworkTransport( GamePacketFactory & packetFactory, NetworkSimulator & networkSimulator, const Address & address ) 
+        : SimulatorTransport( GetDefaultAllocator(), networkSimulator, packetFactory, address, ProtocolId ) {}
 
-    ~TestNetworkInterface()
+    ~TestNetworkTransport()
     {
         ClearSendQueue();
         ClearReceiveQueue();
@@ -1358,20 +1356,20 @@ void test_unencrypted_packets()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     // make sure that encrypted packet types will *not* be received if they are sent as unencrypted
 
-    clientInterface.EnablePacketEncryption();
-    serverInterface.EnablePacketEncryption();
+    clientTransport.EnablePacketEncryption();
+    serverTransport.EnablePacketEncryption();
 
-    check( clientInterface.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
-    check( serverInterface.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
+    check( clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
+    check( serverTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
 
-    clientInterface.DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+    clientTransport.DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
-    check( !clientInterface.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
+    check( !clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
 
     const int NumIterations = 32;
 
@@ -1381,27 +1379,27 @@ void test_unencrypted_packets()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * sendPacket = clientInterface.CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+        Packet * sendPacket = clientTransport.CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
         check( sendPacket );
-        clientInterface.SendPacket( serverAddress, sendPacket, 0, false );
+        clientTransport.SendPacket( serverAddress, sendPacket, 0, false );
 
-        clientInterface.WritePackets();
+        clientTransport.WritePackets();
 
-        serverInterface.ReadPackets();
+        serverTransport.ReadPackets();
 
         while ( true )
         {
             Address address;
             uint64_t sequence;
-            Packet * packet = serverInterface.ReceivePacket( address, &sequence );
+            Packet * packet = serverTransport.ReceivePacket( address, &sequence );
             if ( !packet )
                 break;
             if ( packet->GetType() == CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT )
                 numPacketsReceived++;
         }
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
 
         time += 0.1;
     }
@@ -1443,14 +1441,14 @@ void test_client_server_connect()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -1463,11 +1461,11 @@ void test_client_server_connect()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -1489,8 +1487,8 @@ void test_client_server_connect()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -1524,8 +1522,8 @@ void test_client_server_reconnect()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverInterface( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
@@ -1695,8 +1693,8 @@ void test_client_server_client_side_disconnect()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverInterface( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
@@ -1819,8 +1817,8 @@ void test_client_server_server_side_disconnect()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverInterface( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
@@ -1949,13 +1947,13 @@ void test_client_server_connection_request_timeout()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
 
     const int NumIterations = 20;
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
@@ -1963,9 +1961,9 @@ void test_client_server_connection_request_timeout()
     {
         client.SendPackets();
 
-        clientInterface.WritePackets();
+        clientTransport.WritePackets();
 
-        clientInterface.ReadPackets();
+        clientTransport.ReadPackets();
 
         client.ReceivePackets();
 
@@ -1978,7 +1976,7 @@ void test_client_server_connection_request_timeout()
 
         client.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
     }
 
     check( client.ConnectionFailed() );
@@ -2019,14 +2017,14 @@ void test_client_server_connection_response_timeout()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -2041,11 +2039,11 @@ void test_client_server_connection_response_timeout()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -2061,8 +2059,8 @@ void test_client_server_connection_response_timeout()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( client.ConnectionFailed() );
@@ -2103,14 +2101,14 @@ void test_client_server_client_side_timeout()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -2123,11 +2121,11 @@ void test_client_server_client_side_timeout()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -2149,8 +2147,8 @@ void test_client_server_client_side_timeout()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -2159,9 +2157,9 @@ void test_client_server_client_side_timeout()
     {
         server.SendPackets();
 
-        serverInterface.WritePackets();
+        serverTransport.WritePackets();
 
-        serverInterface.ReadPackets();
+        serverTransport.ReadPackets();
 
         server.ReceivePackets();
 
@@ -2174,7 +2172,7 @@ void test_client_server_client_side_timeout()
 
         server.AdvanceTime( time );
 
-        serverInterface.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( server.GetNumConnectedClients() == 0 );
@@ -2214,8 +2212,8 @@ void test_client_server_server_side_timeout()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverInterface( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
@@ -2298,7 +2296,7 @@ struct ClientData
     uint64_t clientId;
     int numServerAddresses;
     Address serverAddresses[MaxServersPerConnectToken];
-    TestNetworkInterface * networkInterface;
+    TestNetworkTransport * transport;
     GameClient * client;
     uint8_t connectTokenData[ConnectTokenBytes];
     uint8_t connectTokenNonce[NonceBytes];
@@ -2310,7 +2308,7 @@ struct ClientData
         allocator = NULL;
         clientId = 0;
         numServerAddresses = 0;
-        networkInterface = NULL;
+        transport = NULL;
         client = NULL;
         memset( connectTokenData, 0, ConnectTokenBytes );
         memset( connectTokenNonce, 0, NonceBytes );
@@ -2320,7 +2318,7 @@ struct ClientData
 
     ~ClientData()
     {
-        YOJIMBO_DELETE( *allocator, TestNetworkInterface, networkInterface );
+        YOJIMBO_DELETE( *allocator, TestNetworkTransport, transport );
         YOJIMBO_DELETE( *allocator, GameClient, client );
     }
 };
@@ -2351,7 +2349,7 @@ void test_client_server_server_is_full()
 
         Address clientAddress( "::1", ClientPort + i );
 
-        clientData[i].networkInterface = YOJIMBO_NEW( allocator, TestNetworkInterface, packetFactory, networkSimulator, clientAddress );
+        clientData[i].transport = YOJIMBO_NEW( allocator, TestNetworkTransport, packetFactory, networkSimulator, clientAddress );
 
         if ( !matcher.RequestMatch( clientData[i].clientId, 
                                     clientData[i].connectTokenData, 
@@ -2365,16 +2363,16 @@ void test_client_server_server_is_full()
             exit( 1 );
         }
 
-        clientData[i].client = YOJIMBO_NEW( allocator, GameClient, allocator, *clientData[i].networkInterface );
+        clientData[i].client = YOJIMBO_NEW( allocator, GameClient, allocator, *clientData[i].transport );
     }
 
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -2399,14 +2397,14 @@ void test_client_server_server_is_full()
         server.SendPackets();
 
         for ( int j = 0; j < NumClients; ++j )
-            clientData[j].networkInterface->WritePackets();
+            clientData[j].transport->WritePackets();
 
-        serverInterface.WritePackets();
+        serverTransport.WritePackets();
 
         for ( int j = 0; j < NumClients; ++j )
-            clientData[j].networkInterface->ReadPackets();
+            clientData[j].transport->ReadPackets();
 
-        serverInterface.ReadPackets();
+        serverTransport.ReadPackets();
 
         for ( int j = 0; j < NumClients; ++j )
             clientData[j].client->ReceivePackets();
@@ -2444,12 +2442,12 @@ void test_client_server_server_is_full()
         {
             clientData[j].client->AdvanceTime( time );
 
-            clientData[j].networkInterface->AdvanceTime( time );
+            clientData[j].transport->AdvanceTime( time );
         }
 
         server.AdvanceTime( time );
 
-        serverInterface.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     bool allClientsConnected = server.GetNumConnectedClients() == NumClients;
@@ -2482,14 +2480,14 @@ void test_client_server_server_is_full()
         server.SendPackets();
 
         for ( int j = 0; j <= NumClients; ++j )
-            clientData[j].networkInterface->WritePackets();
+            clientData[j].transport->WritePackets();
 
-        serverInterface.WritePackets();
+        serverTransport.WritePackets();
 
         for ( int j = 0; j <= NumClients; ++j )
-            clientData[j].networkInterface->ReadPackets();
+            clientData[j].transport->ReadPackets();
 
-        serverInterface.ReadPackets();
+        serverTransport.ReadPackets();
 
         for ( int j = 0; j <= NumClients; ++j )
             clientData[j].client->ReceivePackets();
@@ -2510,12 +2508,12 @@ void test_client_server_server_is_full()
         {
             clientData[j].client->AdvanceTime( time );
 
-            clientData[j].networkInterface->AdvanceTime( time );
+            clientData[j].transport->AdvanceTime( time );
         }
 
         server.AdvanceTime( time );
 
-        serverInterface.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( server.GetNumConnectedClients() == NumClients );
@@ -2560,14 +2558,14 @@ void test_client_server_connect_token_reuse()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -2580,11 +2578,11 @@ void test_client_server_connect_token_reuse()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -2606,8 +2604,8 @@ void test_client_server_connect_token_reuse()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -2616,9 +2614,9 @@ void test_client_server_connect_token_reuse()
 
     Address clientAddress2( "::1", ClientPort + 1 );
 
-    TestNetworkInterface clientInterface2( packetFactory, networkSimulator, clientAddress2 );
+    TestNetworkTransport clientTransport2( packetFactory, networkSimulator, clientAddress2 );
     
-    GameClient client2( GetDefaultAllocator(), clientInterface2 );
+    GameClient client2( GetDefaultAllocator(), clientTransport2 );
 
     client2.AdvanceTime( time );
 
@@ -2630,13 +2628,13 @@ void test_client_server_connect_token_reuse()
         client2.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        clientInterface2.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        clientTransport2.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        clientInterface2.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        clientTransport2.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         client2.ReceivePackets();
@@ -2655,9 +2653,9 @@ void test_client_server_connect_token_reuse()
         client2.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        clientInterface2.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        clientTransport2.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -2699,16 +2697,16 @@ void test_client_server_connect_token_expiry()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 1000;
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -2721,11 +2719,11 @@ void test_client_server_connect_token_expiry()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -2741,8 +2739,8 @@ void test_client_server_connect_token_expiry()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( client.ConnectionFailed() );
@@ -2792,16 +2790,16 @@ void test_client_server_connect_token_whitelist()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 1000;
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -2814,11 +2812,11 @@ void test_client_server_connect_token_whitelist()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -2834,8 +2832,8 @@ void test_client_server_connect_token_whitelist()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( client.ConnectionFailed() );
@@ -2868,16 +2866,16 @@ void test_client_server_connect_token_invalid()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     const int NumIterations = 1000;
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -2890,11 +2888,11 @@ void test_client_server_connect_token_invalid()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -2910,8 +2908,8 @@ void test_client_server_connect_token_invalid()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( client.ConnectionFailed() );
@@ -2953,14 +2951,14 @@ void test_client_server_game_packets()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    GameServer server( GetDefaultAllocator(), serverInterface );
+    GameServer server( GetDefaultAllocator(), serverTransport );
 
     server.SetServerAddress( serverAddress );
     
@@ -2973,11 +2971,11 @@ void test_client_server_game_packets()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -2999,8 +2997,8 @@ void test_client_server_game_packets()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -3021,11 +3019,11 @@ void test_client_server_game_packets()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -3041,8 +3039,8 @@ void test_client_server_game_packets()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( client.GetNumGamePacketsReceived() >= NumGamePackets && server.GetNumGamePacketsReceived( clientIndex ) >= NumGamePackets );
@@ -3061,8 +3059,8 @@ void test_client_server_insecure_connect()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverInterface( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
@@ -3072,8 +3070,8 @@ void test_client_server_insecure_connect()
 
     server.SetServerAddress( serverAddress );
 
-    clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
-    serverInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+    clientInterface.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
+    serverInterface.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
 
     server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
 
@@ -3132,13 +3130,13 @@ void test_client_server_insecure_connect_timeout()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
-    clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+    clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
 
     client.InsecureConnect( serverAddress );
 
@@ -3146,9 +3144,9 @@ void test_client_server_insecure_connect_timeout()
     {
         client.SendPackets();
 
-        clientInterface.WritePackets();
+        clientTransport.WritePackets();
 
-        clientInterface.ReadPackets();
+        clientTransport.ReadPackets();
 
         client.ReceivePackets();
 
@@ -3161,7 +3159,7 @@ void test_client_server_insecure_connect_timeout()
 
         client.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() );
@@ -3619,11 +3617,11 @@ void test_connection_messages()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorInterface senderInterface( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
-    SimulatorInterface receiverInterface( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
+    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
+    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
 
-    senderInterface.SetContext( &context );
-    receiverInterface.SetContext( &context );
+    senderTransport.SetContext( &context );
+    receiverTransport.SetContext( &context );
 
     double time = 0.0;
     double deltaTime = 0.1;
@@ -3640,19 +3638,19 @@ void test_connection_messages()
         check( senderPacket );
         check( receiverPacket );
 
-        senderInterface.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverInterface.SendPacket( senderAddress, receiverPacket, 0, false );
+        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
+        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
 
-        senderInterface.WritePackets();
-        receiverInterface.WritePackets();
+        senderTransport.WritePackets();
+        receiverTransport.WritePackets();
 
-        senderInterface.ReadPackets();
-        receiverInterface.ReadPackets();
+        senderTransport.ReadPackets();
+        receiverTransport.ReadPackets();
 
         while ( true )
         {
             Address from;
-            Packet * packet = senderInterface.ReceivePacket( from, NULL );
+            Packet * packet = senderTransport.ReceivePacket( from, NULL );
             if ( !packet )
                 break;
 
@@ -3665,7 +3663,7 @@ void test_connection_messages()
         while ( true )
         {
             Address from;
-            Packet * packet = receiverInterface.ReceivePacket( from, NULL );
+            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
             if ( !packet )
                 break;
 
@@ -3704,8 +3702,8 @@ void test_connection_messages()
         sender.AdvanceTime( time );
         receiver.AdvanceTime( time );
 
-        senderInterface.AdvanceTime( time );
-        receiverInterface.AdvanceTime( time );
+        senderTransport.AdvanceTime( time );
+        receiverTransport.AdvanceTime( time );
 
         networkSimulator.AdvanceTime( time );
     }
@@ -3760,11 +3758,11 @@ void test_connection_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorInterface senderInterface( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
-    SimulatorInterface receiverInterface( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
+    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
+    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
 
-    senderInterface.SetContext( &context );
-    receiverInterface.SetContext( &context );
+    senderTransport.SetContext( &context );
+    receiverTransport.SetContext( &context );
 
     double time = 0.0;
     double deltaTime = 0.1;
@@ -3781,19 +3779,19 @@ void test_connection_blocks()
         check( senderPacket );
         check( receiverPacket );
 
-        senderInterface.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverInterface.SendPacket( senderAddress, receiverPacket, 0, false );
+        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
+        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
 
-        senderInterface.WritePackets();
-        receiverInterface.WritePackets();
+        senderTransport.WritePackets();
+        receiverTransport.WritePackets();
 
-        senderInterface.ReadPackets();
-        receiverInterface.ReadPackets();
+        senderTransport.ReadPackets();
+        receiverTransport.ReadPackets();
 
         while ( true )
         {
             Address from;
-            Packet * packet = senderInterface.ReceivePacket( from, NULL );
+            Packet * packet = senderTransport.ReceivePacket( from, NULL );
             if ( !packet )
                 break;
 
@@ -3806,7 +3804,7 @@ void test_connection_blocks()
         while ( true )
         {
             Address from;
-            Packet * packet = receiverInterface.ReceivePacket( from, NULL );
+            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
             if ( !packet )
                 break;
 
@@ -3859,8 +3857,8 @@ void test_connection_blocks()
         sender.AdvanceTime( time );
         receiver.AdvanceTime( time );
 
-        senderInterface.AdvanceTime( time );
-        receiverInterface.AdvanceTime( time );
+        senderTransport.AdvanceTime( time );
+        receiverTransport.AdvanceTime( time );
 
         networkSimulator.AdvanceTime( time );
     }
@@ -3925,11 +3923,11 @@ void test_connection_messages_and_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorInterface senderInterface( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
-    SimulatorInterface receiverInterface( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
+    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
+    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
 
-    senderInterface.SetContext( &context );
-    receiverInterface.SetContext( &context );
+    senderTransport.SetContext( &context );
+    receiverTransport.SetContext( &context );
 
     double time = 0.0;
     double deltaTime = 0.1;
@@ -3946,19 +3944,19 @@ void test_connection_messages_and_blocks()
         check( senderPacket );
         check( receiverPacket );
 
-        senderInterface.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverInterface.SendPacket( senderAddress, receiverPacket, 0, false );
+        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
+        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
 
-        senderInterface.WritePackets();
-        receiverInterface.WritePackets();
+        senderTransport.WritePackets();
+        receiverTransport.WritePackets();
 
-        senderInterface.ReadPackets();
-        receiverInterface.ReadPackets();
+        senderTransport.ReadPackets();
+        receiverTransport.ReadPackets();
 
         while ( true )
         {
             Address from;
-            Packet * packet = senderInterface.ReceivePacket( from, NULL );
+            Packet * packet = senderTransport.ReceivePacket( from, NULL );
             if ( !packet )
                 break;
 
@@ -3971,7 +3969,7 @@ void test_connection_messages_and_blocks()
         while ( true )
         {
             Address from;
-            Packet * packet = receiverInterface.ReceivePacket( from, NULL );
+            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
             if ( !packet )
                 break;
 
@@ -4039,8 +4037,8 @@ void test_connection_messages_and_blocks()
         sender.AdvanceTime( time );
         receiver.AdvanceTime( time );
 
-        senderInterface.AdvanceTime( time );
-        receiverInterface.AdvanceTime( time );
+        senderTransport.AdvanceTime( time );
+        receiverTransport.AdvanceTime( time );
 
         networkSimulator.AdvanceTime( time );
     }
@@ -4082,16 +4080,16 @@ void test_connection_client_server()
 
     TestNetworkSimulator networkSimulator;
 
-    TestNetworkInterface clientInterface( packetFactory, networkSimulator, clientAddress );
-    TestNetworkInterface serverInterface( packetFactory, networkSimulator, serverAddress );
+    TestNetworkTransport clientTransport( packetFactory, networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( packetFactory, networkSimulator, serverAddress );
 
     double time = 0.0;
 
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
-    GameClient client( GetDefaultAllocator(), clientInterface, &messageFactory );
+    GameClient client( GetDefaultAllocator(), clientTransport, &messageFactory );
 
-    GameServer server( GetDefaultAllocator(), serverInterface, &messageFactory );
+    GameServer server( GetDefaultAllocator(), serverTransport, &messageFactory );
 
     server.SetServerAddress( serverAddress );
     
@@ -4104,11 +4102,11 @@ void test_connection_client_server()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -4130,8 +4128,8 @@ void test_connection_client_server()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -4194,11 +4192,11 @@ void test_connection_client_server()
         client.SendPackets();
         server.SendPackets();
 
-        clientInterface.WritePackets();
-        serverInterface.WritePackets();
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientInterface.ReadPackets();
-        serverInterface.ReadPackets();
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -4313,8 +4311,8 @@ void test_connection_client_server()
         client.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
-        serverInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
     }
 
     check( numMessagesReceivedFromClient == NumMessagesSent );

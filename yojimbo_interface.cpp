@@ -22,14 +22,14 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "yojimbo_interface.h"
+#include "yojimbo_transport.h"
 #include "yojimbo_common.h"
 #include <stdint.h>
 #include <inttypes.h>
 
 namespace yojimbo
 {
-    BaseInterface::BaseInterface( Allocator & allocator, 
+    BaseTransport::BaseTransport( Allocator & allocator, 
                                   PacketFactory & packetFactory, 
                                   const Address & address,
                                   uint32_t protocolId,
@@ -80,7 +80,7 @@ namespace yojimbo
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
-    BaseInterface::~BaseInterface()
+    BaseTransport::~BaseTransport()
     {
         ClearSendQueue();
         ClearReceiveQueue();
@@ -102,7 +102,7 @@ namespace yojimbo
         m_allocator = NULL;
     }
 
-    void BaseInterface::ClearSendQueue()
+    void BaseTransport::ClearSendQueue()
     {
         for ( int i = 0; i < m_sendQueue.GetNumEntries(); ++i )
         {
@@ -118,7 +118,7 @@ namespace yojimbo
         m_sendQueue.Clear();
     }
 
-    void BaseInterface::ClearReceiveQueue()
+    void BaseTransport::ClearReceiveQueue()
     {
         for ( int i = 0; i < m_receiveQueue.GetNumEntries(); ++i )
         {
@@ -134,19 +134,19 @@ namespace yojimbo
         m_receiveQueue.Clear();
     }
 
-    Packet * BaseInterface::CreatePacket( int type )
+    Packet * BaseTransport::CreatePacket( int type )
     {
         assert( m_packetFactory );
         return m_packetFactory->CreatePacket( type );
     }
 
-    void BaseInterface::DestroyPacket( Packet * packet )
+    void BaseTransport::DestroyPacket( Packet * packet )
     {
         assert( m_packetFactory );
         m_packetFactory->DestroyPacket( packet );
     }
 
-    void BaseInterface::SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate )
+    void BaseTransport::SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -157,7 +157,7 @@ namespace yojimbo
 
         if ( immediate )
         {
-            m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_SENT]++;
+            m_counters[TRANSPORT_COUNTER_PACKETS_SENT]++;
 
             WriteAndFlushPacket( address, packet, sequence );
 
@@ -176,16 +176,16 @@ namespace yojimbo
             }
             else
             {
-                m_counters[NETWORK_INTERFACE_COUNTER_SEND_QUEUE_OVERFLOW]++;
+                m_counters[TRANSPORT_COUNTER_SEND_QUEUE_OVERFLOW]++;
                 m_packetFactory->DestroyPacket( packet );
                 return;
             }
         }
 
-        m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_SENT]++;
+        m_counters[TRANSPORT_COUNTER_PACKETS_SENT]++;
     }
 
-    Packet * BaseInterface::ReceivePacket( Address & from, uint64_t * sequence )
+    Packet * BaseTransport::ReceivePacket( Address & from, uint64_t * sequence )
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -204,12 +204,12 @@ namespace yojimbo
         if ( sequence )
             *sequence = entry.sequence;
 
-        m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_RECEIVED]++;
+        m_counters[TRANSPORT_COUNTER_PACKETS_RECEIVED]++;
 
         return entry.packet;
     }
 
-    void BaseInterface::WritePackets()
+    void BaseTransport::WritePackets()
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -229,7 +229,7 @@ namespace yojimbo
         }
     }
 
-    void BaseInterface::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
+    void BaseTransport::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
     {
         assert( packet );
         assert( packet->IsValid() );
@@ -247,7 +247,7 @@ namespace yojimbo
         const uint8_t * key = m_encryptionManager.GetSendKey( address, time );
 
 #if YOJIMBO_INSECURE_CONNECT
-        const bool encrypt = ( GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packetType ) && key : IsEncryptedPacketType( packetType );
+        const bool encrypt = ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packetType ) && key : IsEncryptedPacketType( packetType );
 #else // #if YOJIMBO_INSECURE_CONNECT
         const bool encrypt = IsEncryptedPacketType( packetType );
 #endif // #if YOJIMBO_INSECURE_CONNECT
@@ -258,9 +258,9 @@ namespace yojimbo
         {
             switch ( m_packetProcessor->GetError() )
             {
-                case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[NETWORK_INTERFACE_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;         break;
-                case PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED:             m_counters[NETWORK_INTERFACE_COUNTER_ENCRYPT_PACKET_FAILURES]++;             break;
-                case PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED:        m_counters[NETWORK_INTERFACE_COUNTER_WRITE_PACKET_FAILURES]++;               break;
+                case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;         break;
+                case PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED:             m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;             break;
+                case PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED:        m_counters[TRANSPORT_COUNTER_WRITE_PACKET_FAILURES]++;               break;
 
                 default:
                     break;
@@ -271,15 +271,15 @@ namespace yojimbo
 
         InternalSendPacket( address, packetData, packetBytes );
 
-        m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_WRITTEN]++;
+        m_counters[TRANSPORT_COUNTER_PACKETS_WRITTEN]++;
 
         if ( encrypt )
-            m_counters[NETWORK_INTERFACE_COUNTER_ENCRYPTED_PACKETS_WRITTEN]++;
+            m_counters[TRANSPORT_COUNTER_ENCRYPTED_PACKETS_WRITTEN]++;
         else
-            m_counters[NETWORK_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_WRITTEN]++;
+            m_counters[TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_WRITTEN]++;
     }
 
-    void BaseInterface::ReadPackets()
+    void BaseTransport::ReadPackets()
     {
         assert( m_allocator );
         assert( m_packetFactory );
@@ -300,7 +300,7 @@ namespace yojimbo
 
             if ( m_receiveQueue.IsFull() )
             {
-                m_counters[NETWORK_INTERFACE_COUNTER_RECEIVE_QUEUE_OVERFLOW]++;
+                m_counters[TRANSPORT_COUNTER_RECEIVE_QUEUE_OVERFLOW]++;
                 break;
             }
 
@@ -314,7 +314,7 @@ namespace yojimbo
             const uint8_t * unencryptedPacketTypes = m_packetTypeIsUnencrypted;
 
 #if YOJIMBO_INSECURE_CONNECT
-            if ( GetFlags() & NETWORK_INTERFACE_FLAG_INSECURE_MODE )
+            if ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE )
             {
                 encryptedPacketTypes = m_allPacketTypes;
                 unencryptedPacketTypes = m_allPacketTypes;
@@ -327,10 +327,10 @@ namespace yojimbo
             {
                 switch ( m_packetProcessor->GetError() )
                 {
-                    case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[NETWORK_INTERFACE_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;        break;
-                    case PACKET_PROCESSOR_ERROR_DECRYPT_FAILED:             m_counters[NETWORK_INTERFACE_COUNTER_ENCRYPT_PACKET_FAILURES]++;            break;
-                    case PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL:           m_counters[NETWORK_INTERFACE_COUNTER_DECRYPT_PACKET_FAILURES]++;            break;
-                    case PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED:         m_counters[NETWORK_INTERFACE_COUNTER_READ_PACKET_FAILURES]++;               break;
+                    case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;        break;
+                    case PACKET_PROCESSOR_ERROR_DECRYPT_FAILED:             m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;            break;
+                    case PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL:           m_counters[TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES]++;            break;
+                    case PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED:         m_counters[TRANSPORT_COUNTER_READ_PACKET_FAILURES]++;               break;
 
                     default:
                         break;
@@ -346,32 +346,32 @@ namespace yojimbo
 
             m_receiveQueue.Push( entry );
 
-            m_counters[NETWORK_INTERFACE_COUNTER_PACKETS_READ]++;
+            m_counters[TRANSPORT_COUNTER_PACKETS_READ]++;
 
             if ( encrypted )
-                m_counters[NETWORK_INTERFACE_COUNTER_ENCRYPTED_PACKETS_READ]++;
+                m_counters[TRANSPORT_COUNTER_ENCRYPTED_PACKETS_READ]++;
             else
-                m_counters[NETWORK_INTERFACE_COUNTER_UNENCRYPTED_PACKETS_READ]++;
+                m_counters[TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_READ]++;
         }
     }
 
-    int BaseInterface::GetMaxPacketSize() const 
+    int BaseTransport::GetMaxPacketSize() const 
     {
         return m_packetProcessor->GetMaxPacketSize();
     }
 
-    void BaseInterface::SetContext( void * context )
+    void BaseTransport::SetContext( void * context )
     {
         m_packetProcessor->SetContext( context );
     }
 
-    void BaseInterface::EnablePacketEncryption()
+    void BaseTransport::EnablePacketEncryption()
     {
         memset( m_packetTypeIsEncrypted, 1, m_packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsUnencrypted, 0, m_packetFactory->GetNumPacketTypes() );
     }
 
-    void BaseInterface::DisableEncryptionForPacketType( int type )
+    void BaseTransport::DisableEncryptionForPacketType( int type )
     {
         assert( type >= 0 );
         assert( type < m_packetFactory->GetNumPacketTypes() );
@@ -379,62 +379,62 @@ namespace yojimbo
         m_packetTypeIsUnencrypted[type] = 1;
     }
 
-    bool BaseInterface::IsEncryptedPacketType( int type ) const
+    bool BaseTransport::IsEncryptedPacketType( int type ) const
     {
         assert( type >= 0 );
         assert( type < m_packetFactory->GetNumPacketTypes() );
         return m_packetTypeIsEncrypted[type] != 0;
     }
 
-    bool BaseInterface::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey )
+    bool BaseTransport::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey )
     {
         return m_encryptionManager.AddEncryptionMapping( address, sendKey, receiveKey, GetTime() );
     }
 
-    bool BaseInterface::RemoveEncryptionMapping( const Address & address )
+    bool BaseTransport::RemoveEncryptionMapping( const Address & address )
     {
         return m_encryptionManager.RemoveEncryptionMapping( address, GetTime() );
     }
 
-    void BaseInterface::ResetEncryptionMappings()
+    void BaseTransport::ResetEncryptionMappings()
     {
         m_encryptionManager.ResetEncryptionMappings();
     }
 
-    void BaseInterface::AdvanceTime( double time )
+    void BaseTransport::AdvanceTime( double time )
     {
         assert( time >= m_time );
         m_time = time;
     }
 
-    double BaseInterface::GetTime() const
+    double BaseTransport::GetTime() const
     {
         return m_time;
     }
 
-    uint64_t BaseInterface::GetCounter( int index ) const
+    uint64_t BaseTransport::GetCounter( int index ) const
     {
         assert( index >= 0 );
-        assert( index < NETWORK_INTERFACE_COUNTER_NUM_COUNTERS );
+        assert( index < TRANSPORT_COUNTER_NUM_COUNTERS );
         return m_counters[index];
     }
 
-    void BaseInterface::SetFlags( uint64_t flags )
+    void BaseTransport::SetFlags( uint64_t flags )
     {
         m_flags = flags;
     }
 
-    uint64_t BaseInterface::GetFlags() const
+    uint64_t BaseTransport::GetFlags() const
     {
         return m_flags;
     }
 
-    const Address & BaseInterface::GetAddress() const
+    const Address & BaseTransport::GetAddress() const
     {
         return m_address;
     }
 
-    PacketFactory * BaseInterface::GetPacketFactory()
+    PacketFactory * BaseTransport::GetPacketFactory()
     {
         return m_packetFactory;
     }

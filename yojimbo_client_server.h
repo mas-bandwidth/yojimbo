@@ -28,7 +28,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_interface.h"
+#include "yojimbo_transport.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_connection.h"
 #include "yojimbo_packet_processor.h"
@@ -384,7 +384,7 @@ namespace yojimbo
     {
     public:
 
-        Server( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL );
+        Server( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL );
 
         virtual ~Server();
 
@@ -518,7 +518,7 @@ namespace yojimbo
 
         ConnectionHeartBeatPacket * CreateHeartBeatPacket( int clientIndex );
 
-        NetworkInterface * GetNetworkInterface() { return m_networkInterface; }
+        Transport * GetTransport() { return m_transport; }
 
     private:
 
@@ -526,7 +526,7 @@ namespace yojimbo
 
         Allocator * m_allocator;                                            // allocator used for creating connections per-client.
 
-        NetworkInterface * m_networkInterface;                              // network interface for sending and receiving packets.
+        Transport * m_transport;                                            // transport interface for sending and receiving packets.
 
         MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional!
 
@@ -590,7 +590,7 @@ namespace yojimbo
     {
     public:
 
-        explicit Client( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL );
+        explicit Client( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL );
 
         virtual ~Client();
 
@@ -718,7 +718,7 @@ namespace yojimbo
 
         double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
 
-        NetworkInterface * m_networkInterface;                              // network interface the client uses to send and receive packets.
+        Transport * m_transport;                                            // transport for sending and receiving packets
 
         double m_time;                                                      // current client time (see "AdvanceTime")
 

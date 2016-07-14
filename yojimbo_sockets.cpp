@@ -297,14 +297,14 @@ namespace yojimbo
         return m_address;
     }
 
-    SocketInterface::SocketInterface( Allocator & allocator, 
+    SocketTransport::SocketTransport( Allocator & allocator, 
                                       PacketFactory & packetFactory, 
                                       const Address & address,
                                       uint32_t protocolId,
                                       int maxPacketSize, 
                                       int sendQueueSize, 
                                       int receiveQueueSize )
-        : BaseInterface( allocator, 
+        : BaseTransport( allocator, 
                          packetFactory, 
                          address,
                          protocolId,
@@ -315,34 +315,35 @@ namespace yojimbo
         m_socket = YOJIMBO_NEW( allocator, Socket, address );
     }
 
-    SocketInterface::~SocketInterface()
+    SocketTransport::~SocketTransport()
     {
         YOJIMBO_DELETE( GetAllocator(), Socket, m_socket );
     }
 
-    bool SocketInterface::IsError() const
+    bool SocketTransport::IsError() const
     {
         return m_socket->IsError();
     }
 
-    int SocketInterface::GetError() const
+    int SocketTransport::GetError() const
     {
         return m_socket->GetError();
     }
 
-    const Address & SocketInterface::GetAddress() const
+    const Address & SocketTransport::GetAddress() const
     {
         return m_socket->GetAddress();
     }
 
-    bool SocketInterface::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
+    bool SocketTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
         return m_socket->SendPacket( to, packetData, packetBytes );
     }
 
-    int SocketInterface::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
+    int SocketTransport::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
     {
         return m_socket->ReceivePacket( from, packetData, maxPacketSize );
     }
+
 #endif // #if YOJIMBO_SOCKETS
 }
