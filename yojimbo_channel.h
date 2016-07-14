@@ -81,116 +81,42 @@ namespace yojimbo
         }
     };
 
-    struct MessageSendQueueEntry
+    struct ChannelPacketData
     {
-        Message * message;
-        double timeLastSent;
-        uint32_t measuredBits : 31;
-        uint32_t block : 1;
-    };
+        uint32_t channelId : 16;
+        uint32_t blockMessage : 1;
 
-    struct MessageSentPacketEntry
-    {
-        double timeSent;
-        uint16_t * messageIds;
-        uint32_t numMessageIds : 16;                 // number of messages in this packet
-        uint32_t acked : 1;                          // 1 if this sent packet has been acked
-        uint64_t block : 1;                          // 1 if this sent packet contains a block fragment
-        uint64_t blockMessageId : 16;                // block id. valid only when sending block.
-        uint64_t blockFragmentId : 16;               // fragment id. valid only when sending block.
-    };
-
-    struct MessageReceiveQueueEntry
-    {
-        Message * message;
-    };
-
-    struct SendBlockData
-    {
-        SendBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
+        struct MessageData
         {
-            m_allocator = &allocator;
-            ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            fragmentSendTime = (double*) allocator.Allocate( sizeof( double) * maxFragmentsPerBlock );
-            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
-            assert( ackedFragment && blockData && fragmentSendTime );
-            Reset();
+            int numMessages;
+            Message ** messages;
+        };
+
+        struct BlockData
+        {
+            BlockMessage * message;
+            uint8_t * fragmentData;
+            uint64_t messageId : 16;
+            uint64_t fragmentId : 16;
+            uint64_t fragmentSize : 16;
+            uint64_t numFragments : 16;
+            int messageType;
+        };
+
+        union
+        {
+            MessageData message;                                        // packet data for sending messages
+            BlockData block;                                            // packet data for sending a block
+        };
+
+        ChannelPacketData()
+        {
+            channelId = 0;
+            blockMessage = 0;
+            message.numMessages = 0;
         }
 
-        ~SendBlockData()
-        {
-            YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
-            m_allocator->Free( blockData );
-            m_allocator->Free( fragmentSendTime );
-            fragmentSendTime = NULL;
-            blockData = NULL;
-        }
-
-        void Reset()
-        {
-            active = false;
-            numFragments = 0;
-            numAckedFragments = 0;
-            blockMessageId = 0;
-            blockSize = 0;
-        }
-
-        bool active;                                                    // true if we are currently sending a block
-        int numFragments;                                               // number of fragments in the current block being sent
-        int numAckedFragments;                                          // number of acked fragments in current block being sent
-        int blockSize;                                                  // send block size in bytes
-        uint16_t blockMessageId;                                        // the message id of the block being sent
-        BitArray * ackedFragment;                                       // has fragment n been received?
-        double * fragmentSendTime;                                      // time fragment was last sent in seconds.
-        uint8_t * blockData;                                            // block data storage as it is received.
-
-    private:
-
-        Allocator * m_allocator;                                        // allocator used to free the data on shutdown
-    };
-
-    struct ReceiveBlockData
-    {
-        ReceiveBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
-        {
-            m_allocator = &allocator;
-            receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
-            assert( receivedFragment && blockData );
-            blockMessage = NULL;
-            Reset();
-        }
-
-        ~ReceiveBlockData()
-        {
-            YOJIMBO_DELETE( *m_allocator, BitArray, receivedFragment );
-            m_allocator->Free( blockData );
-            blockData = NULL;
-        }
-
-        void Reset()
-        {
-            active = false;
-            numFragments = 0;
-            numReceivedFragments = 0;
-            messageId = 0;
-            messageType = 0;
-            blockSize = 0;
-        }
-
-        bool active;                                                    // true if we are currently receiving a block
-        int numFragments;                                               // number of fragments in this block
-        int numReceivedFragments;                                       // number of fragments received.
-        uint16_t messageId;                                             // message id of block being currently received.
-        int messageType;                                                // message type of the block being received.
-        uint32_t blockSize;                                             // block size in bytes.
-        BitArray * receivedFragment;                                    // has fragment n been received?
-        uint8_t * blockData;                                            // block data for receive
-        BlockMessage * blockMessage;                                    // block message (sent with fragment 0)
-
-    private:
-
-        Allocator * m_allocator;                                        // allocator used to free the data on shutdown
+        void Free( MessageFactory & messageFactory );
     };
 
     class ChannelListener
@@ -206,7 +132,7 @@ namespace yojimbo
     {
     public:
 
-        Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config = ChannelConfig() );
+        Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
 
         ~Channel();
 
@@ -226,9 +152,13 @@ namespace yojimbo
 
         void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds );
 
+        void GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds );
+
         void AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence );
 
         void ProcessPacketMessages( int numMessages, Message ** messages );
+
+        void ProcessPacketData( ChannelPacketData & packetData );
 
         void ProcessAck( uint16_t ack );
 
@@ -240,6 +170,8 @@ namespace yojimbo
 
         uint8_t * GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType );
 
+        void GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType );
+
         void AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence );
 
         void ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage );
@@ -249,6 +181,8 @@ namespace yojimbo
         uint64_t GetCounter( int index ) const;
 
         void SetListener( ChannelListener * listener ) { m_listener = listener; }
+
+        int GetChannelId() const { return m_channelId; }
 
     private:
 
@@ -261,6 +195,8 @@ namespace yojimbo
         MessageFactory * m_messageFactory;                                              // message factory creates and destroys messages
 
         double m_time;                                                                  // current time
+
+        int m_channelId;                                                                // channel id [0,MaxChannels-1]
 
         ChannelError m_error;                                                           // channel error level
 

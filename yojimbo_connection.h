@@ -59,38 +59,15 @@ namespace yojimbo
 
     struct ConnectionPacket : public Packet
     {
+        MessageFactory * messageFactory;
+
         uint16_t sequence;
         uint16_t ack;
         uint32_t ack_bits;
 
-        int numMessages;
-        Message ** messages;
-        MessageFactory * messageFactory;
+        ChannelPacketData channelData;
 
-        BlockMessage * blockMessage;
-        uint8_t * blockFragmentData;
-        uint64_t blockMessageId : 16;
-        uint64_t blockFragmentId : 16;
-        uint64_t blockFragmentSize : 16;
-        uint16_t blockNumFragments : 16;
-        int blockMessageType;
-
-        ConnectionPacket()
-        {
-            sequence = 0;
-            ack = 0;
-            ack_bits = 0;
-            numMessages = 0;
-            messages = NULL;
-            messageFactory = NULL;
-            blockMessage = NULL;
-            blockFragmentData = NULL;
-            blockMessageId = 0;
-            blockFragmentId = 0;
-            blockFragmentSize = 0;
-            blockNumFragments = 0;
-            blockMessageType = 0;
-        }
+        ConnectionPacket();
 
         ~ConnectionPacket();
 
@@ -140,10 +117,10 @@ namespace yojimbo
 
     struct ConnectionSentPacketData 
     { 
-        uint8_t acked; 
+        uint8_t acked;                              // todo: put send time in here for RTT estimate
     };
 
-    struct ConnectionReceivedPacketData {};
+    struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate
 
     class Connection : public ChannelListener
     {
@@ -192,10 +169,6 @@ namespace yojimbo
         void ProcessAcks( uint16_t ack, uint32_t ack_bits );
 
         void PacketAcked( uint16_t sequence );
-
-        void AddMessagesToPacket( const uint16_t * messageIds, int numMessageIds, ConnectionPacket * packet );
-
-        void AddFragmentToPacket( uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType, ConnectionPacket * packet );
 
         void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId );
 
