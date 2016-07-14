@@ -4,7 +4,7 @@
 
 It is designed around the networking requirements of competitive realtime multiplayer games such as first person shooters and action games. As such it provides the absolute fastest, most time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
-The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol such as: reliable-ordered messages and data blocks, compressed packets, packet aggregation, packet fragmentation and reassembly.
+The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade game network protocol such as: reliable ordered messages and data blocks, multiple message channels, reliability and ordering configured on a per-channel basis, per-channel packet budgets, packet fragmentation and reassembly, compressed packets and packet aggregation.
 
 The library is currently in pre-release and provides support for cryptographically secure authentication, client/server connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for extending the protocol with custom packet types.
 
