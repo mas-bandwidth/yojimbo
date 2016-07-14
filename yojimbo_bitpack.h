@@ -26,6 +26,7 @@
 #define YOJIMBO_BITPACK_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_common.h"
 #include <assert.h>
 #include <string.h>
 

@@ -1,9 +1,5 @@
 DONE    
 
-TODO
-
-    ------------------
-
     Large block of data (eg. snapshot data) -- a large unreliable message at front of packet?
 
     Set of unreliable messages at the end of the packet (eg. effects and sounds?)
@@ -15,6 +11,58 @@ TODO
     For example, unifying everything as "messages" is probably a good concept.
 
     Sending a message on a particular channel id is a good metaphor, vs. having functions "SendUnreliableMessage", "SendReliableMessage", "SendSnapshot".
+
+    Decision: Yes. Add support for multiple channels. It is the correct approach.
+
+TODO
+
+    Now work out how to restructure the code so that the message queues right now are part of a "channel".
+
+    For now just have one channel, and have that channel be reliable-ordered, but connection should have a general sense of # of channels,
+    and the channels should be dynamically allocated. Just for the moment, only an array of size one will be created.
+
+    Get this working and passing all existing tests.
+
+    ------------------
+
+    Next start thinking about how channels will be configured.
+
+    I like this configuration much better than the current implicit configuration by passing in a message factory to client/server meaning that one magical channel is setup and connections are allocated.
+
+    ------------------
+
+    Now work out how packet processing across multiple channels will work.
+
+    What about budgets? Channel configuration should clearly be static, but budgets could quite reasonably be expected to change (eg. different packet sizes selected dynamically).
+
+    Should the budgets be specified absolutely in terms of bytes (perhaps with optional -1, no budget, caveat emptor), or as a % of packet?
+
+    If the sender changes the target packet size in the budget, should the sender specify the # of bytes per-channel?
+
+    Also the maximum size of messages in the channel should be specified. This could well be different across channels.
+
+    ------------------
+
+    Implement an unreliable channel.
+
+    Unreliable channels don't support fragmentation and reassembly of large blocks, that has to be done at the MTU level.
+
+    This is for large delta snapshots.
+
+    The same channel could be used for unreliable messages that go at the end of the packet, if there is room, eg. sounds, effects.
+
+    The idea would be that for a size -1 specified in the budget, it will be the responsibility of the channel to not go over the maximum
+    size of the packet, but otherwise, to fill it up as much as possible. This is useful for snapshots, and for unreliable messages at the end of the packet.
+
+    ------------------
+
+    What about reliable, unordered messages? What do these look like?
+
+    I think the sender looks the same, but for messages the head of line blocking doesn't stop messages from being received early.
+
+    You get the messages as soon as they are received, and the sliding window is used only to make sure messages are reliable, not to enforce reordering.
+
+    For large blocks, I think they must stop the stream of messages until they get through, but this is acceptable. Only receive one block at a time, can't justify reworking block sending code to send fragments from multiple blocks at the same time, and really it wouldn't add much anyway.
 
     ------------------
 
@@ -54,12 +102,10 @@ TODO
 
     ------------------
 
-    Multithreaded design for yojimbo. Start profiling it. Is this necessary? What would need to change to make multithreading easier?
+    Calling something a "network interface" is probably bad.
 
-    Would yojimbo just multithread internally? What would a multithreaded interface to yojimbo look like in this case to the user?
+    Network interface in this field has a very, very specific meaning.
 
-    It would be nice to be able to run the expensive part, which is the network interface read and write packets off main thread.
-
-    What is required to be able to do this?
+    It's probably better to rename it to "transport", eg. yojimbo_transport.h, TransportInterface.h, TransportImplementation class, SocketTransport, SimulatorTransport.
 
     ------------------
