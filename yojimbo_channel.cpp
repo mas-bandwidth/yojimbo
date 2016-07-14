@@ -36,7 +36,7 @@ namespace yojimbo
 
         m_messageFactory = &messageFactory;
 
-//        m_error = CONNECTION_ERROR_NONE;
+        m_error = CHANNEL_ERROR_NONE;
 
         m_messageOverheadBits = CalculateMessageOverheadBits();
 
@@ -70,8 +70,6 @@ namespace yojimbo
         
 		m_allocator->Free( m_sentPacketMessageIds );	m_sentPacketMessageIds = NULL;
 
-        // todo: convert send block, receive block to pointers. optional.
-
         m_sendBlock.Free( *m_allocator );
 
         m_receiveBlock.Free( *m_allocator );
@@ -79,7 +77,7 @@ namespace yojimbo
 
     void Channel::Reset()
     {
-        //m_error = CONNECTION_ERROR_NONE;
+        m_error = CHANNEL_ERROR_NONE;
 
         m_time = 0.0;
 
@@ -115,7 +113,7 @@ namespace yojimbo
             m_receiveBlock.blockMessage = NULL;
         }
 
-//        memset( m_counters, 0, sizeof( m_counters ) );
+        memset( m_counters, 0, sizeof( m_counters ) );
     }
 
     bool Channel::CanSendMessage() const
@@ -130,17 +128,15 @@ namespace yojimbo
         assert( message );
         assert( CanSendMessage() );
 
-        /*
-        if ( GetError() != CONNECTION_ERROR_NONE )
+        if ( GetError() != CHANNEL_ERROR_NONE )
         {
             m_messageFactory->Release( message );
             return;
         }
-        */
 
         if ( !CanSendMessage() )
         {
-//            m_error = CONNECTION_ERROR_MESSAGE_SEND_QUEUE_FULL;
+            m_error = CHANNEL_ERROR_SEND_QUEUE_FULL;
             m_messageFactory->Release( message );
             return;
         }
@@ -168,24 +164,22 @@ namespace yojimbo
 
         if ( measureStream.GetError() )
         {
-//            m_error = CONNECTION_ERROR_MESSAGE_SERIALIZE_MEASURE_FAILED;
+            m_error = CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED;
             m_messageFactory->Release( message );
             return;
         }
 
         entry->measuredBits = measureStream.GetBitsProcessed() + m_messageOverheadBits;
 
-//        m_counters[CONNECTION_COUNTER_MESSAGES_SENT]++;
+        m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
 
         m_sendMessageId++;
     }
 
     Message * Channel::ReceiveMessage()
     {
-        /*
-        if ( GetError() != CONNECTION_ERROR_NONE )
+        if ( GetError() != CHANNEL_ERROR_NONE )
             return NULL;
-            */
 
         MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Find( m_receiveMessageId );
         if ( !entry )
@@ -198,7 +192,7 @@ namespace yojimbo
 
         m_messageReceiveQueue->Remove( m_receiveMessageId );
 
-//        m_counters[CONNECTION_COUNTER_MESSAGES_RECEIVED]++;
+        m_counters[CHANNEL_COUNTER_MESSAGES_RECEIVED]++;
 
         m_receiveMessageId++;
 
@@ -210,19 +204,10 @@ namespace yojimbo
         m_time = time;
     }
     
-    /*
-    uint64_t Channel::GetCounter( int index ) const
-    {
-        assert( index >= 0 );
-        assert( index < CONNECTION_COUNTER_NUM_COUNTERS );
-        return m_counters[index];
-    }
-
-    ConnectionError Connection::GetError() const
+    ChannelError Channel::GetError() const
     {
         return m_error;
     }
-    */
 
     bool Channel::HasMessagesToSend() const
     {
@@ -304,8 +289,7 @@ namespace yojimbo
 
             if ( sequence_greater_than( messageId, maxMessageId ) )
             {
-                // todo
-                //m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                m_error = CHANNEL_ERROR_DESYNC;
                 return;
             }
 
@@ -317,8 +301,6 @@ namespace yojimbo
             entry->message = message;
 
             m_messageFactory->AddRef( message );
-
-            //m_counters[CONNECTION_COUNTER_MESSAGES_RECEIVED]++;
         }
     }
 
@@ -541,15 +523,13 @@ namespace yojimbo
 
             if ( fragmentId >= m_receiveBlock.numFragments )
             {
-                // todo
-//                m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                m_error = CHANNEL_ERROR_DESYNC;
                 return;
             }
 
             if ( numFragments != m_receiveBlock.numFragments )
             {
-                // todo
-                //m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                m_error = CHANNEL_ERROR_DESYNC;
                 return;
             }
 
@@ -602,8 +582,7 @@ namespace yojimbo
 
                     if ( !blockData )
                     {
-                        // todo
-//                        m_error = CONNECTION_ERROR_OUT_OF_MEMORY;
+                        m_error = CHANNEL_ERROR_OUT_OF_MEMORY;
                         return;
                     }
 
@@ -619,8 +598,7 @@ namespace yojimbo
 
                     if ( !entry )
                     {
-                        // todo
-                        //m_error = CONNECTION_ERROR_MESSAGE_DESYNC;
+                        m_error = CHANNEL_ERROR_DESYNC;
                         return;
                     }
 
@@ -631,5 +609,12 @@ namespace yojimbo
                 }
             }
         }
+    }
+
+    uint64_t Channel::GetCounter( int index ) const
+    {
+        assert( index >= 0 );
+        assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
+        return m_counters[index];
     }
 }

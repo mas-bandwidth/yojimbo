@@ -121,7 +121,7 @@ namespace yojimbo
     private:
 
         ConnectionPacket( const ConnectionPacket & other );
-        
+
         const ConnectionPacket & operator = ( const ConnectionPacket & other );
     };
 
@@ -130,8 +130,6 @@ namespace yojimbo
         CONNECTION_COUNTER_PACKETS_READ,                        // number of packets read
         CONNECTION_COUNTER_PACKETS_WRITTEN,                     // number of packets written
         CONNECTION_COUNTER_PACKETS_ACKED,                       // number of packets acked
-        CONNECTION_COUNTER_MESSAGES_SENT,                       // number of messages sent
-        CONNECTION_COUNTER_MESSAGES_RECEIVED,                   // number of messages received
         CONNECTION_COUNTER_NUM_COUNTERS
     };
 
@@ -190,8 +188,6 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
-        uint64_t GetCounter( int index ) const;
-
         ConnectionError GetError() const;
 
         void SetListener( ConnectionListener * listener ) { m_listener = listener; }
@@ -199,6 +195,8 @@ namespace yojimbo
         void SetClientIndex( int clientIndex ) { m_clientIndex = clientIndex; }
 
         int GetClientIndex() const { return m_clientIndex; }
+
+        uint64_t GetCounter( int index ) const;
 
     protected:
 
@@ -224,6 +222,12 @@ namespace yojimbo
 
         const ConnectionConfig m_config;                                                // const configuration data
 
+        ConnectionError m_error;                                                        // connection error level
+
+        int m_clientIndex;                                                              // optional client index for server client connections. 0 by default.
+
+        Channel * m_channel;                                                            // message channel
+
         Allocator * m_allocator;                                                        // allocator for allocations matching life cycle of object
 
         PacketFactory * m_packetFactory;                                                // packet factory for creating and destroying connection packets
@@ -232,15 +236,9 @@ namespace yojimbo
 
         ConnectionListener * m_listener;                                                // connection listener
 
-        ConnectionError m_error;                                                        // connection error level
-
         SequenceBuffer<ConnectionSentPacketData> * m_sentPackets;                       // sequence buffer of recently sent packets
 
         SequenceBuffer<ConnectionReceivedPacketData> * m_receivedPackets;               // sequence buffer of recently received packets
-
-        int m_clientIndex;                                                              // optional client index for server client connections. 0 by default.
-
-        Channel * m_channel;                                                            // message channel
 
         uint64_t m_counters[CONNECTION_COUNTER_NUM_COUNTERS];                           // counters for unit testing, stats etc.
 
