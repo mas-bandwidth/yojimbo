@@ -1,10 +1,6 @@
 DONE    
 
-TODO
-    
-    Serialize function for connection packet is getting pretttty unweildy.
-
-    Would be nice to move that out to a function inside ChannelPacketData
+TODO    
 
     ------------------
 

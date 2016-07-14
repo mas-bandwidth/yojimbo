@@ -93,7 +93,7 @@ namespace yojimbo
             m_scratchBuffer[0] |= ENCRYPTED_PACKET_FLAG;
             prefixBytes++;
 
-            PacketInfo info;
+            PacketReadWriteInfo info;
             info.context = m_context;
             info.protocolId = m_protocolId;
             info.packetFactory = m_packetFactory;
@@ -128,7 +128,7 @@ namespace yojimbo
         }
         else
         {
-            PacketInfo info;
+            PacketReadWriteInfo info;
             info.context = m_context;
             info.protocolId = m_protocolId;
             info.packetFactory = m_packetFactory;
@@ -188,7 +188,7 @@ namespace yojimbo
                 return NULL;
             }
 
-            PacketInfo info;
+            PacketReadWriteInfo info;
             info.context = m_context;
             info.protocolId = m_protocolId;
             info.packetFactory = m_packetFactory;
@@ -210,7 +210,7 @@ namespace yojimbo
         }
         else
         {
-            PacketInfo info;
+            PacketReadWriteInfo info;
             info.context = m_context;
             info.protocolId = m_protocolId;
             info.packetFactory = m_packetFactory;

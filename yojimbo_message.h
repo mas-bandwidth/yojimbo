@@ -312,6 +312,10 @@ namespace yojimbo
     private:
 
         Allocator * m_allocator;                                        // allocator used to free the data on shutdown
+    
+        SendBlockData( const SendBlockData & other );
+        
+        SendBlockData & operator = ( const SendBlockData & other );
     };
 
     struct ReceiveBlockData
@@ -356,6 +360,10 @@ namespace yojimbo
     private:
 
         Allocator * m_allocator;                                        // allocator used to free the data on shutdown
+
+        ReceiveBlockData( const ReceiveBlockData & other );
+        
+        ReceiveBlockData & operator = ( const ReceiveBlockData & other );
     };
 }
 

@@ -99,10 +99,14 @@ namespace yojimbo
         Allocator * m_allocator;
 
         int m_numPacketTypes;
-        int m_numAllocatedPackets;  
+        int m_numAllocatedPackets;
+
+        PacketFactory( const PacketFactory & other );
+        
+        PacketFactory & operator = ( const PacketFactory & other );
     };
 
-    struct PacketInfo
+    struct PacketReadWriteInfo
     {
         bool rawFormat;                             // if true packets are written in "raw" format without crc32 (useful for encrypted packets).
 
@@ -116,7 +120,7 @@ namespace yojimbo
 
         void * context;                             // context for the packet serialization (optional, you may pass in NULL)
 
-        PacketInfo()
+        PacketReadWriteInfo()
         {
             rawFormat = false;
             prefixBytes = 0;
@@ -127,13 +131,13 @@ namespace yojimbo
         }
     };
 
-    int WritePacket( const PacketInfo & info, Packet * packet, uint8_t * buffer, int bufferSize, PacketHeader * header = NULL );
+    int WritePacket( const PacketReadWriteInfo & info, Packet * packet, uint8_t * buffer, int bufferSize, PacketHeader * header = NULL );
 
-    Packet * ReadPacket( const PacketInfo & info, const uint8_t * buffer, int bufferSize, PacketHeader * header = NULL, int * errorCode = NULL );
+    Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, PacketHeader * header = NULL, int * errorCode = NULL );
 
 #if YOJIMBO_PACKET_AGGREGATION
 
-    int WriteAggregatePacket( const PacketInfo & info, 
+    int WriteAggregatePacket( const PacketReadWriteInfo & info, 
                               int numPackets, 
                               Packet ** packets, 
                               uint8_t * buffer, 
@@ -142,7 +146,7 @@ namespace yojimbo
                               PacketHeader * aggregatePacketHeader = NULL, 
                               PacketHeader ** packetHeaders = NULL );
 
-    void ReadAggregatePacket( const PacketInfo & info, 
+    void ReadAggregatePacket( const PacketReadWriteInfo & info, 
                               int maxPacketsToRead, 
                               Packet ** packets, 
                               const uint8_t * buffer, 
