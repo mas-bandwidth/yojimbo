@@ -259,6 +259,8 @@ namespace yojimbo
         
         m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, *m_allocator, m_config.slidingWindowSize );
 
+        m_channel->SetListener( this );
+
         Reset();
     }
 
@@ -315,7 +317,7 @@ namespace yojimbo
 
         int numMessageIds = 0;
         
-        // todo: this actually has to come from the channel config
+        // todo: this actually has to come from the per-channel config
         uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
 
         if ( m_channel->HasMessagesToSend() )
@@ -478,6 +480,14 @@ namespace yojimbo
             packet->blockMessage = (BlockMessage*) m_channel->GetSendQueueMessage( messageId );
             
             m_messageFactory->AddRef( packet->blockMessage );
+        }
+    }
+
+    void Connection::OnChannelFragmentReceived( class Channel * /*channel*/, uint16_t messageId, uint16_t fragmentId )
+    {
+        if ( m_listener )
+        {
+            m_listener->OnConnectionFragmentReceived( this, messageId, fragmentId );      // todo: will want to pass in channel id as well
         }
     }
 }

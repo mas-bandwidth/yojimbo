@@ -36,6 +36,8 @@ namespace yojimbo
 
         m_messageFactory = &messageFactory;
 
+        m_listener = NULL;
+
         m_error = CHANNEL_ERROR_NONE;
 
         m_messageOverheadBits = CalculateMessageOverheadBits();
@@ -532,11 +534,8 @@ namespace yojimbo
 
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )
             {
-                // todo
-                /*
                 if ( m_listener )
-                    m_listener->OnConnectionFragmentReceived( this, messageId, fragmentId );
-                    */
+                    m_listener->OnChannelFragmentReceived( this, messageId, fragmentId );
 
                 m_receiveBlock->receivedFragment->SetBit( fragmentId );
 
