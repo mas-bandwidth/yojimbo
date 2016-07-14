@@ -606,6 +606,12 @@ namespace yojimbo
         }
     }
 
+    Message * Channel::GetSendQueueMessage( uint16_t messageId )
+    {
+        MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
+        return entry ? entry->message : NULL;
+    }
+
     uint64_t Channel::GetCounter( int index ) const
     {
         assert( index >= 0 );

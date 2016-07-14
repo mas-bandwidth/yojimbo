@@ -237,6 +237,8 @@ namespace yojimbo
 
         void ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage );
 
+        Message * GetSendQueueMessage( uint16_t messageId );
+
         uint64_t GetCounter( int index ) const;
 
     private:
