@@ -46,6 +46,27 @@ Network interface in this field has a very, very specific meaning.
 
 Renamed to "Transport", eg. "SocketTransport", "SimulatorTransport" and so on.
 
+Extend connection to support multiple channel data objects.
+
+Extend logic in and out of packets to iterate across number of channel data entries.
+
+I chose to keep it simple and serialize each channel with its channel id, and a count of channel entries.
+
+This makes serialize read easier, because I don't need an extra copy MaxChannels size to serialize into on read.
+
+It's slightly more bandwidth but the simplicity is worth it.
+
+It's a bit more complicated on write, but you'd want that anyway... need to go across channels and see if they have data, can't know until you look,
+and then only include in the packet entries for channels that do have data.
+
+Technically multiple channels should be working now. Add a unit test to make sure.
+
+Add a test to make sure multiple channels work. Try two channels both with a mix of messages and blocks.
+
+Channel 0 is receiving messages, but channel 1 is not. What is going on?
+
+Argh. Was just a stupid mistake in the test.
+
 
 Wednesday July 13th, 2016
 =========================

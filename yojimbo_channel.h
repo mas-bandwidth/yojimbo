@@ -118,13 +118,13 @@ namespace yojimbo
 
         void Free( MessageFactory & messageFactory );
 
-        template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig & channelConfig );
+        template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
-        bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ChannelConfig & channelConfig );
+        bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
-        bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ChannelConfig & channelConfig );
+        bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
-        bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig & channelConfig );
+        bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
     };
 
     class ChannelListener

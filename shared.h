@@ -170,7 +170,7 @@ protected:
         }
     }
 
-    void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t fragmentId )
+    void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t fragmentId, int /*channelId*/ )
     {
         printf( "received fragment %d\n", fragmentId );
     }

@@ -59,17 +59,19 @@ namespace yojimbo
 
     struct ConnectionPacket : public Packet
     {
-        MessageFactory * messageFactory;
-
         uint16_t sequence;
         uint16_t ack;
         uint32_t ack_bits;
 
-        ChannelPacketData channelData;
+        int numChannelEntries;
+
+        ChannelPacketData * channelEntry;
 
         ConnectionPacket();
 
         ~ConnectionPacket();
+
+        bool AllocateChannelData( MessageFactory & messageFactory, int numEntries );
 
         template <typename Stream> bool Serialize( Stream & stream );
 
@@ -79,7 +81,11 @@ namespace yojimbo
 
         bool SerializeInternal( MeasureStream & stream );
 
+        void SetMessageFactory( MessageFactory & messageFactory ) { m_messageFactory = &messageFactory; }
+
     private:
+
+        MessageFactory * m_messageFactory;
 
         ConnectionPacket( const ConnectionPacket & other );
 
@@ -97,7 +103,8 @@ namespace yojimbo
     enum ConnectionError
     {
         CONNECTION_ERROR_NONE = 0,
-        CONNECTION_ERROR_CHANNEL = 1
+        CONNECTION_ERROR_CHANNEL = 1,
+        CONNECTION_ERROR_OUT_OF_MEMORY = 1
     };
 
     class ConnectionListener
@@ -112,7 +119,7 @@ namespace yojimbo
 
         virtual void OnConnectionPacketReceived( class Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
-        virtual void OnConnectionFragmentReceived( class Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/ ) {}
+        virtual void OnConnectionFragmentReceived( class Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*channelId*/ ) {}
     };
 
     struct ConnectionSentPacketData 

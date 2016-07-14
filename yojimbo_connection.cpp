@@ -28,18 +28,43 @@ namespace yojimbo
 {
     ConnectionPacket::ConnectionPacket()
     {
-        messageFactory = NULL;
+        m_messageFactory = NULL;
         sequence = 0;
         ack = 0;
         ack_bits = 0;
+        numChannelEntries = 0;
+        channelEntry = NULL;
     }
 
     ConnectionPacket::~ConnectionPacket()
     {
-        if ( messageFactory )
+        if ( m_messageFactory )
         {
-            channelData.Free( *messageFactory );
+            for ( int i = 0; i < numChannelEntries; ++i )
+            {
+                channelEntry[i].Free( *m_messageFactory );
+            }
+
+            Allocator & allocator = m_messageFactory->GetAllocator();
+
+            allocator.Free( channelEntry );
         }
+    }
+
+    bool ConnectionPacket::AllocateChannelData( MessageFactory & messageFactory, int numEntries )
+    {
+        assert( numEntries > 0 );
+        assert( numEntries <= MaxChannels );
+
+        SetMessageFactory( messageFactory );
+
+        Allocator & allocator = messageFactory.GetAllocator();
+
+        channelEntry = (ChannelPacketData*) allocator.Allocate( sizeof( ChannelPacketData ) * numEntries );
+
+        numChannelEntries = numEntries;
+
+        return channelEntry != NULL;
     }
 
     template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream )
@@ -47,9 +72,8 @@ namespace yojimbo
         ConnectionContext * context = (ConnectionContext*) stream.GetContext();
 
         assert( context );
-
-        messageFactory = context->messageFactory;
-
+        assert( context->messageFactory );
+        
         // ack system
 
         bool perfect_acks = Stream::IsWriting ? ( ack_bits == 0xFFFFFFFF ) : 0;
@@ -65,13 +89,26 @@ namespace yojimbo
 
         serialize_ack_relative( stream, sequence, ack );
 
-        // channel data
+        // channel entries
 
-        // todo: need to iterate across available channel data
-        channelData.channelId = 0;
+        const int numChannels = context->connectionConfig->numChannels;
 
-        if ( !channelData.Serialize( stream, *messageFactory, context->connectionConfig->channelConfig[0] ) )
-            return false;
+        serialize_int( stream, numChannelEntries, 0, context->connectionConfig->numChannels );
+
+        if ( numChannelEntries > 0 )
+        {
+            if ( Stream::IsReading )
+            {
+                if ( !AllocateChannelData( *context->messageFactory, numChannelEntries ) )
+                    return false;
+            }
+
+            for ( int i = 0; i < numChannelEntries; ++i )
+            {
+                if ( !channelEntry[i].Serialize( stream, *m_messageFactory, context->connectionConfig->channelConfig, numChannels ) )
+                    return false;
+            }
+        }
 
         return true;
     }
@@ -112,10 +149,10 @@ namespace yojimbo
         assert( m_config.numChannels >= 1 );
         assert( m_config.numChannels <= MaxChannels );
 
-        for ( int i = 0; i < m_config.numChannels; ++i )
+        for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
-            m_channel[i] = YOJIMBO_NEW( *m_allocator, Channel, *m_allocator, messageFactory, m_config.channelConfig[i], i );
-            m_channel[i]->SetListener( this );
+            m_channel[channelId] = YOJIMBO_NEW( *m_allocator, Channel, *m_allocator, messageFactory, m_config.channelConfig[channelId], channelId );
+            m_channel[channelId]->SetListener( this );
         }
 
         m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, *m_allocator, m_config.slidingWindowSize );
@@ -191,45 +228,74 @@ namespace yojimbo
         if ( m_config.numChannels == 0 )
             return packet;
 
-        int numMessageIds = 0;
+        int numChannelsWithData = 0;
+        bool channelHasData[MaxChannels];
+        memset( channelHasData, 0, sizeof( channelHasData ) );
+        ChannelPacketData channelData[MaxChannels];
 
-        // todo
-        const int channelId = 0;
-        
-        uint16_t * messageIds = (uint16_t*) alloca( m_config.channelConfig[channelId].maxMessagesPerPacket * sizeof( uint16_t ) );
-
-        if ( m_channel[channelId]->HasMessagesToSend() )
+        for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
-            if ( m_channel[channelId]->SendingBlockMessage() )
+            uint16_t * messageIds = (uint16_t*) alloca( m_config.channelConfig[channelId].maxMessagesPerPacket * sizeof( uint16_t ) );
+
+            if ( m_channel[channelId]->HasMessagesToSend() )
             {
-                uint16_t messageId;
-                uint16_t fragmentId;
-                int fragmentBytes;
-                int numFragments;
-                int messageType;
-
-                uint8_t * fragmentData = m_channel[channelId]->GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
-
-                if ( fragmentData )
+                if ( m_channel[channelId]->SendingBlockMessage() )
                 {
-                    packet->messageFactory = m_messageFactory;
+                    uint16_t messageId;
+                    uint16_t fragmentId;
+                    int fragmentBytes;
+                    int numFragments;
+                    int messageType;
 
-                    m_channel[channelId]->GetFragmentPacketData( packet->channelData, messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
+                    uint8_t * fragmentData = m_channel[channelId]->GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
 
-                    m_channel[channelId]->AddFragmentPacketEntry( messageId, fragmentId, packet->sequence );
+                    if ( fragmentData )
+                    {
+                        m_channel[channelId]->GetFragmentPacketData( channelData[channelId], messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
+
+                        m_channel[channelId]->AddFragmentPacketEntry( messageId, fragmentId, packet->sequence );
+
+                        channelHasData[channelId] = true;
+
+                        numChannelsWithData++;
+                    }
+                }
+                else
+                {
+                    int numMessageIds = 0;
+
+                    m_channel[channelId]->GetMessagesToSend( messageIds, numMessageIds );
+
+                    if ( numMessageIds > 0 )
+                    {
+                        m_channel[channelId]->GetMessagePacketData( channelData[channelId], messageIds, numMessageIds );
+
+                        m_channel[channelId]->AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
+
+                        channelHasData[channelId] = true;
+
+                        numChannelsWithData++;
+                    }
                 }
             }
-            else
+        }
+
+        if ( numChannelsWithData > 0 )
+        {
+            if ( !packet->AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
             {
-                m_channel[channelId]->GetMessagesToSend( messageIds, numMessageIds );
+                m_error = CONNECTION_ERROR_OUT_OF_MEMORY;
+                return NULL;
+            }
 
-                if ( numMessageIds > 0 )
+            int index = 0;
+
+            for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
+            {
+                if ( channelHasData[channelId] )
                 {
-                    packet->messageFactory = m_messageFactory;
-
-                    m_channel[channelId]->GetMessagePacketData( packet->channelData, messageIds, numMessageIds );
-
-                    m_channel[channelId]->AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
+                    memcpy( &packet->channelEntry[index], &channelData[channelId], sizeof( ChannelPacketData ) );
+                    index++;
                 }
             }
         }
@@ -255,10 +321,15 @@ namespace yojimbo
 
         ProcessAcks( packet->ack, packet->ack_bits );
 
-        // todo
-        const int channelId = 0;
+        for ( int i = 0; i < packet->numChannelEntries; ++i )
+        {
+            const int channelId = packet->channelEntry[i].channelId;
 
-        m_channel[channelId]->ProcessPacketData( packet->channelData );
+            assert( channelId >= 0 );
+            assert( channelId <= m_config.numChannels );
+
+            m_channel[channelId]->ProcessPacketData( packet->channelEntry[i] );
+        }
 
         return true;
     }
@@ -323,17 +394,17 @@ namespace yojimbo
     {
         OnPacketAcked( sequence );
 
-        for ( int i = 0; i < m_config.numChannels; ++i )
-            m_channel[i]->ProcessAck( sequence );
+        for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
+            m_channel[channelId]->ProcessAck( sequence );
 
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
     }
 
-    void Connection::OnChannelFragmentReceived( class Channel * /*channel*/, uint16_t messageId, uint16_t fragmentId )
+    void Connection::OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId )
     {
         if ( m_listener )
         {
-            m_listener->OnConnectionFragmentReceived( this, messageId, fragmentId );      // todo: will want to pass in channel id as well
+            m_listener->OnConnectionFragmentReceived( this, messageId, fragmentId, channel->GetChannelId() );
         }
     }
 }
