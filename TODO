@@ -1,18 +1,12 @@
 DONE    
 
-    Connection needs to watch channels. If a channel is in an error state, set CONNECTION_ERROR_CHANNEL
-
 TODO
-
-    ------------------
-
-    Get callback from channel -> connection so we can log fragments being received.
-
-    ------------------
 
     Next start thinking about how channels will be configured.
 
-    I like this configuration much better than the current implicit configuration by passing in a message factory to client/server meaning that one magical channel is setup and connections are allocated.
+    static const int MaxChannels for the config? 64?
+
+    Seems reasonable.
 
     ------------------
 

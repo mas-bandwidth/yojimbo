@@ -40,6 +40,18 @@ Get block fragments and message inserted into packet
 
 BOOM. All tests pass! :D
 
+Connection needs to watch channels. If a channel is in an error state, set CONNECTION_ERROR_CHANNEL
+
+Get callback from channel -> connection so we can log fragments being received.
+
+Owwww. how to best do this? Channel listener I think.
+
+A bit naff having a listener that calls up through another listener, but what are you gonna do.
+
+Done. Once I go multi-channel I'm going to want to put the channel id in the listener as well.
+
+Verified soak is back to regular log behavior.
+
 
 Tuesday July 12, 2016
 =====================

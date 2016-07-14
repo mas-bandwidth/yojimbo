@@ -32,6 +32,8 @@
 
 namespace yojimbo
 {
+    // todo: need to work out what is in connection config, and what is in channel config?
+
     struct ConnectionConfig
     {
         int packetType;                                         // connect packet type (override)
@@ -78,8 +80,6 @@ namespace yojimbo
         uint16_t sequence;
         uint16_t ack;
         uint32_t ack_bits;
-
-        // todo: clean this up. maybe "ChannelData" with a union?
 
         int numMessages;
         Message ** messages;
@@ -141,21 +141,19 @@ namespace yojimbo
         CONNECTION_ERROR_CHANNEL = 1
     };
 
-    class Connection;
-
     class ConnectionListener
     {
     public:
 
         virtual ~ConnectionListener() {}
 
-        virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+        virtual void OnConnectionPacketSent( class Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
-        virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+        virtual void OnConnectionPacketAcked( class Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
-        virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+        virtual void OnConnectionPacketReceived( class Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
-        virtual void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/ ) {}
+        virtual void OnConnectionFragmentReceived( class Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/ ) {}
     };
 
     struct ConnectionSentPacketData 
@@ -165,7 +163,7 @@ namespace yojimbo
 
     struct ConnectionReceivedPacketData {};
 
-    class Connection
+    class Connection : public ChannelListener
     {
     public:
 
@@ -216,6 +214,8 @@ namespace yojimbo
         void AddMessagesToPacket( const uint16_t * messageIds, int numMessageIds, ConnectionPacket * packet );
 
         void AddFragmentToPacket( uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType, ConnectionPacket * packet );
+
+        void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId );
 
     private:
 

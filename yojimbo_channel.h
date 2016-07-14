@@ -195,6 +195,15 @@ namespace yojimbo
         Allocator * m_allocator;                                        // allocator used to free the data on shutdown
     };
 
+    class ChannelListener
+    {
+    public:
+
+        virtual ~ChannelListener() {}
+
+        virtual void OnChannelFragmentReceived( class Channel * /*channel*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/ ) {}
+    };
+
     class Channel
     {
     public:
@@ -241,11 +250,15 @@ namespace yojimbo
 
         uint64_t GetCounter( int index ) const;
 
+        void SetListener( ChannelListener * listener ) { m_listener = listener; }
+
     private:
 
         const ChannelConfig m_config;                                                   // const configuration data
 
         Allocator * m_allocator;                                                        // allocator for allocations matching life cycle of object
+
+        ChannelListener * m_listener;                                                   // channel listener for callbacks. optional.
 
         MessageFactory * m_messageFactory;                                              // message factory creates and destroys messages
 
