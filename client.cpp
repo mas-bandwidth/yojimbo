@@ -40,19 +40,19 @@ int ClientMain( int argc, char * argv[] )
 {   
     GamePacketFactory packetFactory;
 
-    GameNetworkInterface clientInterface( packetFactory );
+    GameNetworkTransport clientTransport( packetFactory );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
+    if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
     {
         printf( "error: failed to initialize client socket\n" );
         return 1;
     }
     
-    printf( "client started on port %d\n", clientInterface.GetAddress().GetPort() );
+    printf( "client started on port %d\n", clientTransport.GetAddress().GetPort() );
 
-    clientInterface.SetFlags( NETWORK_INTERFACE_FLAG_INSECURE_MODE );
+    clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
     Address serverAddress( "127.0.0.1", ServerPort );
 
@@ -79,9 +79,9 @@ int ClientMain( int argc, char * argv[] )
     {
         client.SendPackets();
 
-        clientInterface.WritePackets();
+        clientTransport.WritePackets();
 
-        clientInterface.ReadPackets();
+        clientTransport.ReadPackets();
 
         client.ReceivePackets();
 
@@ -94,7 +94,7 @@ int ClientMain( int argc, char * argv[] )
 
         client.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
 
         if ( client.ConnectionFailed() )
             break;

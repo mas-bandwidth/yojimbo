@@ -93,8 +93,8 @@ class GameServer : public Server
 {
 public:
 
-    explicit GameServer( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL ) 
-        : Server( allocator, networkInterface, messageFactory )
+    explicit GameServer( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL ) 
+        : Server( allocator, transport, messageFactory )
     {
         SetPrivateKey( private_key );
     }
@@ -186,8 +186,8 @@ class GameClient : public Client
 {
 public:
 
-    explicit GameClient( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory = NULL ) 
-        : Client( allocator, networkInterface, messageFactory )
+    explicit GameClient( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL ) 
+        : Client( allocator, transport, messageFactory )
     {
         // ...
     }
@@ -281,16 +281,17 @@ public:
     GamePacketFactory() : ClientServerPacketFactory( GetDefaultAllocator(), CLIENT_SERVER_NUM_PACKETS ) {}
 };
 
-class GameNetworkInterface : public SocketInterface
+class GameNetworkTransport : public SocketTransport
 {   
 public:
 
-    GameNetworkInterface( GamePacketFactory & packetFactory, const Address & address = Address( "0.0.0.0" ) ) : SocketInterface( GetDefaultAllocator(), packetFactory, address, ProtocolId )
+    GameNetworkTransport( GamePacketFactory & packetFactory, const Address & address = Address( "0.0.0.0" ) ) 
+        : SocketTransport( GetDefaultAllocator(), packetFactory, address, ProtocolId )
     {
         // ...
     }
 
-    ~GameNetworkInterface()
+    ~GameNetworkTransport()
     {
         ClearSendQueue();
         ClearReceiveQueue();

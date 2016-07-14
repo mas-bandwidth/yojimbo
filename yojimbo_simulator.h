@@ -29,7 +29,7 @@
 #include "yojimbo_common.h"
 #include "yojimbo_address.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_interface.h"
+#include "yojimbo_transport.h"
 
 namespace yojimbo
 {
@@ -98,11 +98,11 @@ namespace yojimbo
         PacketEntry * m_packetEntries;                  // pointer to dynamically allocated packet entries. this is where buffered packets are stored.
     };
 
-    class SimulatorInterface : public BaseInterface
+    class SimulatorTransport : public BaseTransport
     {
     public:
 
-        SimulatorInterface( Allocator & allocator,
+        SimulatorTransport( Allocator & allocator,
                             NetworkSimulator & networkSimulator,
                             PacketFactory & packetFactory, 
                             const Address & address,
@@ -111,7 +111,7 @@ namespace yojimbo
                             int sendQueueSize = 1024,
                             int receiveQueueSize = 1024 );
 
-        ~SimulatorInterface();
+        ~SimulatorTransport();
 
         void AdvanceTime( double time );
 

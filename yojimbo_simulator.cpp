@@ -204,7 +204,7 @@ namespace yojimbo
         m_time = time;
     }
 
-    SimulatorInterface::SimulatorInterface( Allocator & allocator, 
+    SimulatorTransport::SimulatorTransport( Allocator & allocator, 
                                             NetworkSimulator & networkSimulator,
                                             PacketFactory & packetFactory, 
                                             const Address & address,
@@ -212,7 +212,7 @@ namespace yojimbo
                                             int maxPacketSize, 
                                             int sendQueueSize, 
                                             int receiveQueueSize )
-        : BaseInterface( allocator, 
+        : BaseTransport( allocator, 
                          packetFactory, 
                          address,
                          protocolId,
@@ -225,7 +225,7 @@ namespace yojimbo
         m_networkSimulator = &networkSimulator;
     }
 
-    SimulatorInterface::~SimulatorInterface()
+    SimulatorTransport::~SimulatorTransport()
     {
         assert( m_networkSimulator );
 
@@ -234,14 +234,14 @@ namespace yojimbo
         m_networkSimulator = NULL;
     }
 
-    void SimulatorInterface::AdvanceTime( double time )
+    void SimulatorTransport::AdvanceTime( double time )
     {
-        BaseInterface::AdvanceTime( time );
+        BaseTransport::AdvanceTime( time );
 
         m_networkSimulator->AdvanceTime( time );
     }
 
-    bool SimulatorInterface::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
+    bool SimulatorTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
         assert( m_networkSimulator );
 
@@ -259,7 +259,7 @@ namespace yojimbo
         return true;
     }
 
-    int SimulatorInterface::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
+    int SimulatorTransport::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
     {
         (void) maxPacketSize;
 

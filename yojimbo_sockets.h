@@ -27,7 +27,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_address.h"
-#include "yojimbo_interface.h"
+#include "yojimbo_transport.h"
 
 #include <stdint.h>
 #include <assert.h>
@@ -83,11 +83,11 @@ namespace yojimbo
         SocketHandle m_socket;
     };
 
-    class SocketInterface : public BaseInterface
+    class SocketTransport : public BaseTransport
     {
     public:
 
-        SocketInterface( Allocator & allocator,
+        SocketTransport( Allocator & allocator,
                          PacketFactory & packetFactory, 
                          const Address & address,
                          uint32_t protocolId,
@@ -95,7 +95,7 @@ namespace yojimbo
                          int sendQueueSize = 1024,
                          int receiveQueueSize = 1024 );
 
-        ~SocketInterface();
+        ~SocketTransport();
 
         bool IsError() const;
 

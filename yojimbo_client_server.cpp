@@ -382,13 +382,13 @@ namespace yojimbo
 
     // =============================================================
 
-    Server::Server( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory )
+    Server::Server( Allocator & allocator, Transport & transport, MessageFactory * messageFactory )
     {
         memset( m_privateKey, 0, KeyBytes );
 
         m_allocator = &allocator;
 
-        m_networkInterface = &networkInterface;
+        m_transport = &transport;
 
         m_messageFactory = messageFactory;
 
@@ -420,9 +420,9 @@ namespace yojimbo
     {
         Stop();
 
-        assert( m_networkInterface );
+        assert( m_transport );
 
-        m_networkInterface = NULL;
+        m_transport = NULL;
     }
 
     void Server::SetPrivateKey( const uint8_t * privateKey )
@@ -454,7 +454,7 @@ namespace yojimbo
 
             for ( int i = 0; i < m_maxClients; ++i )
             {
-                m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
+                m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
                
                 m_connection[i]->SetListener( this );
 
@@ -496,7 +496,7 @@ namespace yojimbo
         {
             for ( int i = 0; i < NumDisconnectPackets; ++i )
             {
-                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );
+                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );
 
                 if ( packet )
                 {
@@ -505,7 +505,7 @@ namespace yojimbo
             }
         }
 
-        m_networkInterface->RemoveEncryptionMapping( m_clientData[clientIndex].address );
+        m_transport->RemoveEncryptionMapping( m_clientData[clientIndex].address );
 
         ResetClientState( clientIndex );
 
@@ -632,7 +632,7 @@ namespace yojimbo
         {
             Address address;
             uint64_t sequence;
-            Packet * packet = m_networkInterface->ReceivePacket( address, &sequence );
+            Packet * packet = m_transport->ReceivePacket( address, &sequence );
 
             if ( !packet )
                 break;
@@ -640,7 +640,7 @@ namespace yojimbo
             if ( IsRunning() )
                 ProcessPacket( packet, address, sequence );
 
-            m_networkInterface->DestroyPacket( packet );
+            m_transport->DestroyPacket( packet );
         }
     }
 
@@ -775,13 +775,13 @@ namespace yojimbo
     {
         m_context.messageFactory = m_messageFactory;
         m_context.connectionConfig = &m_connectionConfig;
-        m_networkInterface->SetContext( &m_context );
+        m_transport->SetContext( &m_context );
     }
 
     void Server::SetEncryptedPacketTypes()
     {
-        m_networkInterface->EnablePacketEncryption();
-        m_networkInterface->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
+        m_transport->EnablePacketEncryption();
+        m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
     void Server::ResetClientState( int clientIndex )
@@ -952,7 +952,7 @@ namespace yojimbo
     {
         assert( IsRunning() );
 
-        m_networkInterface->SendPacket( address, packet, ++m_globalSequence, immediate );
+        m_transport->SendPacket( address, packet, ++m_globalSequence, immediate );
 
         OnPacketSent( packet->GetType(), address, immediate );
     }
@@ -969,7 +969,7 @@ namespace yojimbo
         
         m_clientData[clientIndex].lastPacketSendTime = time;
         
-        m_networkInterface->SendPacket( m_clientAddress[clientIndex], packet, ++m_clientSequence[clientIndex], immediate );
+        m_transport->SendPacket( m_clientAddress[clientIndex], packet, ++m_clientSequence[clientIndex], immediate );
         
         OnPacketSent( packet->GetType(), m_clientAddress[clientIndex], immediate );
     }
@@ -1037,7 +1037,7 @@ namespace yojimbo
 
         if ( !FindConnectTokenEntry( packet.connectTokenData ) )
         {
-            if ( !m_networkInterface->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
+            if ( !m_transport->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
             {
 //                printf( "failed to add encryption mapping\n" );
                 m_counters[SERVER_COUNTER_ENCRYPTION_MAPPING_CANNOT_ADD]++;
@@ -1052,7 +1052,7 @@ namespace yojimbo
         {
 //            printf( "server is full\n" );
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
-            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
                 SendPacket( address, connectionDeniedPacket );
@@ -1075,7 +1075,7 @@ namespace yojimbo
             return;
         }
 
-        ConnectionChallengePacket * connectionChallengePacket = (ConnectionChallengePacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE );
+        ConnectionChallengePacket * connectionChallengePacket = (ConnectionChallengePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE );
         if ( !connectionChallengePacket )
         {
 //            printf( "null connection challenge packet\n" );
@@ -1136,7 +1136,7 @@ namespace yojimbo
         if ( m_numConnectedClients == m_maxClients )
         {
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
-            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
                 SendPacket( address, connectionDeniedPacket );
@@ -1198,7 +1198,7 @@ namespace yojimbo
         if ( m_numConnectedClients == m_maxClients )
         {
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
-            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
                 SendPacket( address, connectionDeniedPacket );
@@ -1305,7 +1305,7 @@ namespace yojimbo
 
     ConnectionHeartBeatPacket * Server::CreateHeartBeatPacket( int clientIndex )
     {
-        ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+        ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
         if ( packet )
         {
@@ -1342,11 +1342,11 @@ namespace yojimbo
         }
     }
 
-    Client::Client( Allocator & allocator, NetworkInterface & networkInterface, MessageFactory * messageFactory )
+    Client::Client( Allocator & allocator, Transport & transport, MessageFactory * messageFactory )
     {
         m_allocator = &allocator;
 
-        m_networkInterface = &networkInterface;
+        m_transport = &transport;
 
         m_messageFactory = messageFactory;
 
@@ -1356,7 +1356,7 @@ namespace yojimbo
 
             m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
 
-            m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
+            m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
 
             m_connection->SetListener( this );
         }
@@ -1380,8 +1380,8 @@ namespace yojimbo
 
         YOJIMBO_DELETE( *m_allocator, Connection, m_connection );
 
-        m_networkInterface = NULL;
         m_messageFactory = NULL;
+        m_transport = NULL;
         m_allocator = NULL;
     }
 
@@ -1403,7 +1403,7 @@ namespace yojimbo
 
         RandomBytes( (uint8_t*) &m_clientSalt, sizeof( m_clientSalt ) );
 
-        m_networkInterface->ResetEncryptionMappings();
+        m_transport->ResetEncryptionMappings();
     }
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
@@ -1430,9 +1430,9 @@ namespace yojimbo
         memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
         memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
 
-        m_networkInterface->ResetEncryptionMappings();
+        m_transport->ResetEncryptionMappings();
 
-        m_networkInterface->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
+        m_transport->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
     }
 
     void Client::Disconnect( int clientState, bool sendDisconnectPacket )
@@ -1448,7 +1448,7 @@ namespace yojimbo
         {
             for ( int i = 0; i < NumDisconnectPackets; ++i )
             {
-                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );            
+                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );            
 
                 if ( packet )
                 {
@@ -1536,7 +1536,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + InsecureConnectSendRate > time )
                     return;
 
-                InsecureConnectPacket * packet = (InsecureConnectPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
+                InsecureConnectPacket * packet = (InsecureConnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
                 if ( packet )
                 {
                     packet->clientSalt = m_clientSalt;
@@ -1552,7 +1552,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + ConnectionRequestSendRate > time )
                     return;
 
-                ConnectionRequestPacket * packet = (ConnectionRequestPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
+                ConnectionRequestPacket * packet = (ConnectionRequestPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
                 if ( packet )
                 {
                     memcpy( packet->connectTokenData, m_connectTokenData, ConnectTokenBytes );
@@ -1568,7 +1568,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + ConnectionResponseSendRate > time )
                     return;
 
-                ConnectionResponsePacket * packet = (ConnectionResponsePacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_RESPONSE );
+                ConnectionResponsePacket * packet = (ConnectionResponsePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_RESPONSE );
                 if ( packet )
                 {
                     memcpy( packet->challengeTokenData, m_challengeTokenData, ChallengeTokenBytes );
@@ -1593,7 +1593,7 @@ namespace yojimbo
 
                 if ( m_lastPacketSendTime + ConnectionHeartBeatRate <= time )
                 {
-                    ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_networkInterface->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+                    ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
                     if ( packet )
                     {
@@ -1614,13 +1614,13 @@ namespace yojimbo
         {
             Address address;
             uint64_t sequence;
-            Packet * packet = m_networkInterface->ReceivePacket( address, &sequence );
+            Packet * packet = m_transport->ReceivePacket( address, &sequence );
             if ( !packet )
                 break;
 
             ProcessPacket( packet, address, sequence );
 
-            m_networkInterface->DestroyPacket( packet );
+            m_transport->DestroyPacket( packet );
         }
     }
 
@@ -1711,13 +1711,13 @@ namespace yojimbo
     {
         m_context.messageFactory = m_messageFactory;
         m_context.connectionConfig = &m_connectionConfig;
-        m_networkInterface->SetContext( &m_context );
+        m_transport->SetContext( &m_context );
     }
 
     void Client::SetEncryptedPacketTypes()
     {
-        m_networkInterface->EnablePacketEncryption();
-        m_networkInterface->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
+        m_transport->EnablePacketEncryption();
+        m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
     void Client::SetClientState( int clientState )
@@ -1730,7 +1730,7 @@ namespace yojimbo
 
     void Client::ResetConnectionData( int clientState )
     {
-        assert( m_networkInterface );
+        assert( m_transport );
         m_clientIndex = -1;
         m_serverAddress = Address();
         SetClientState( clientState );
@@ -1740,7 +1740,7 @@ namespace yojimbo
         memset( m_connectTokenNonce, 0, NonceBytes );
         memset( m_challengeTokenData, 0, ChallengeTokenBytes );
         memset( m_challengeTokenNonce, 0, NonceBytes );
-        m_networkInterface->ResetEncryptionMappings();
+        m_transport->ResetEncryptionMappings();
         m_sequence = 0;
 #if YOJIMBO_INSECURE_CONNECT
         m_clientSalt = 0;
@@ -1754,7 +1754,7 @@ namespace yojimbo
 
         if ( !IsConnected() )
         {
-            m_networkInterface->DestroyPacket( packet );
+            m_transport->DestroyPacket( packet );
             return;
         }
 
@@ -1767,7 +1767,7 @@ namespace yojimbo
         assert( m_clientState > CLIENT_STATE_DISCONNECTED );
         assert( m_serverAddress.IsValid() );
 
-        m_networkInterface->SendPacket( m_serverAddress, packet, ++m_sequence, immediate );
+        m_transport->SendPacket( m_serverAddress, packet, ++m_sequence, immediate );
 
         OnPacketSent( packet->GetType(), m_serverAddress, immediate );
 

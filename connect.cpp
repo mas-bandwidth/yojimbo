@@ -81,17 +81,17 @@ int ConnectMain( int argc, char * argv[] )
 
     GamePacketFactory packetFactory;
 
-    GameNetworkInterface clientInterface( packetFactory );
+    GameNetworkTransport clientTransport( packetFactory );
 
-    if ( clientInterface.GetError() != SOCKET_ERROR_NONE )
+    if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
     {
         printf( "error: failed to initialize client socket\n" );
         return 1;
     }
     
-    printf( "client started on port %d\n", clientInterface.GetAddress().GetPort() );
+    printf( "client started on port %d\n", clientTransport.GetAddress().GetPort() );
 
-    GameClient client( GetDefaultAllocator(), clientInterface );
+    GameClient client( GetDefaultAllocator(), clientTransport );
 
     client.Connect( matchResponse.serverAddresses[0],
                     matchResponse.connectTokenData, 
@@ -109,9 +109,9 @@ int ConnectMain( int argc, char * argv[] )
     {
         client.SendPackets();
 
-        clientInterface.WritePackets();
+        clientTransport.WritePackets();
 
-        clientInterface.ReadPackets();
+        clientTransport.ReadPackets();
 
         client.ReceivePackets();
 
@@ -124,7 +124,7 @@ int ConnectMain( int argc, char * argv[] )
 
         client.AdvanceTime( time );
 
-        clientInterface.AdvanceTime( time );
+        clientTransport.AdvanceTime( time );
 
         if ( client.ConnectionFailed() )
             break;
