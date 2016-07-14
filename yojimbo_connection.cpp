@@ -380,6 +380,12 @@ namespace yojimbo
     void Connection::AdvanceTime( double time )
     {
         m_channel->AdvanceTime( time );
+
+        if ( m_channel->GetError() )
+        {
+            m_error = CONNECTION_ERROR_CHANNEL;
+            return;
+        }
     }
     
     uint64_t Connection::GetCounter( int index ) const
@@ -435,13 +441,6 @@ namespace yojimbo
 
     void Connection::AddMessagesToPacket( const uint16_t * messageIds, int numMessageIds, ConnectionPacket * packet )
     {
-        (void)messageIds;
-        (void)numMessageIds;
-        (void)packet;
-
-        // todo: not really sure what to do here - i don't want channel to know about the connection packet
-#if 0
-
         assert( packet );
         assert( messageIds );
 
@@ -456,26 +455,14 @@ namespace yojimbo
 
         for ( int i = 0; i < numMessageIds; ++i )
         {
-            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
-            assert( entry && entry->message );
-            packet->messages[i] = entry->message;
-            m_messageFactory->AddRef( entry->message );
+            packet->messages[i] = m_channel->GetSendQueueMessage( messageIds[i] );
+
+            m_messageFactory->AddRef( packet->messages[i] );
         }
-#endif
     }
 
     void Connection::AddFragmentToPacket( uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType, ConnectionPacket * packet )
     {
-        (void)messageId;
-        (void)fragmentId;
-        (void)fragmentData;
-        (void)fragmentSize;
-        (void)numFragments;
-        (void)messageType;
-        (void)packet;
-
-        // todo: again -- don't want channel to know about connection packet at all
-#if 0
         assert( packet );
 
         packet->messageFactory = m_messageFactory;
@@ -488,17 +475,9 @@ namespace yojimbo
 
         if ( fragmentId == 0 )
         {
-            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
-
-            assert( entry );
-            assert( entry->block );
-            assert( entry->message );
-            assert( entry->message->IsBlockMessage() );
-
-            packet->blockMessage = (BlockMessage*) entry->message;
-
+            packet->blockMessage = (BlockMessage*) m_channel->GetSendQueueMessage( messageId );
+            
             m_messageFactory->AddRef( packet->blockMessage );
         }
-#endif
     }
 }
