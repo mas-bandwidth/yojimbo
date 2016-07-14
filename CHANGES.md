@@ -30,6 +30,16 @@ Switch over to new functions to fill this packet data.
 
 All tests pass.
 
+Serialize function for connection packet is getting pretttty unweildy...
+
+Would be nice to move that out to a function inside ChannelPacketData somehow.
+
+Successfully moved serialize into ChannelPacketData.
+
+Ran over a cppcheck scan and fixed some minor issues.
+
+OK. Taking a break now.
+
 
 Wednesday July 13th, 2016
 =========================

@@ -33,7 +33,7 @@
 
 namespace yojimbo
 {
-    int WritePacket( const PacketInfo & info, Packet * packet, uint8_t * buffer, int bufferSize, PacketHeader * header )
+    int WritePacket( const PacketReadWriteInfo & info, Packet * packet, uint8_t * buffer, int bufferSize, PacketHeader * header )
     {
         assert( packet );
         assert( buffer );
@@ -94,7 +94,7 @@ namespace yojimbo
         return stream.GetBytesProcessed();
     }
 
-    Packet * ReadPacket( const PacketInfo & info, const uint8_t * buffer, int bufferSize, PacketHeader * header, int * errorCode )
+    Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, PacketHeader * header, int * errorCode )
     {
         assert( buffer );
         assert( bufferSize > 0 );
@@ -212,7 +212,7 @@ cleanup:
 
 #if YOJIMBO_PACKET_AGGREGATION
 
-    int WriteAggregatePacket( const PacketInfo & info, 
+    int WriteAggregatePacket( const PacketReadWriteInfo & info, 
                               int numPackets, 
                               Packet **packets, 
                               uint8_t *buffer, 
@@ -358,7 +358,7 @@ cleanup:
         return aggregatePacketBytes;
     }
 
-    void ReadAggregatePacket( const PacketInfo & info,
+    void ReadAggregatePacket( const PacketReadWriteInfo & info,
                               int maxPacketsToRead, 
                               Packet ** packets, 
                               const uint8_t * buffer, 
