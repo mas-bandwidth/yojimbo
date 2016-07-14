@@ -450,7 +450,7 @@ namespace yojimbo
         {
             m_connectionConfig = GetConnectionConfig();
 
-            m_connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
+            m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
 
             for ( int i = 0; i < m_maxClients; ++i )
             {
@@ -1354,7 +1354,7 @@ namespace yojimbo
         {
             m_connectionConfig = GetConnectionConfig();
 
-            m_connectionConfig.packetType = CLIENT_SERVER_PACKET_CONNECTION;
+            m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
 
             m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_networkInterface->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
 

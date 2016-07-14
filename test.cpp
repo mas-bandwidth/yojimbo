@@ -3488,7 +3488,7 @@ void test_connection_counters()
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
-    connectionConfig.packetType = TEST_PACKET_CONNECTION;
+    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
     TestConnection connection( packetFactory, messageFactory, connectionConfig );
 
@@ -3531,7 +3531,7 @@ void test_connection_acks()
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
-    connectionConfig.packetType = TEST_PACKET_CONNECTION;
+    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
     TestConnection connection( packetFactory, messageFactory, connectionConfig );
 
@@ -3586,7 +3586,7 @@ void test_connection_messages()
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
-    connectionConfig.packetType = TEST_PACKET_CONNECTION;
+    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
     TestConnection sender( packetFactory, messageFactory, connectionConfig );
 
@@ -3722,7 +3722,7 @@ void test_connection_blocks()
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
-    connectionConfig.packetType = TEST_PACKET_CONNECTION;
+    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
     TestConnection sender( packetFactory, messageFactory, connectionConfig );
 
@@ -3877,7 +3877,7 @@ void test_connection_messages_and_blocks()
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
-    connectionConfig.packetType = TEST_PACKET_CONNECTION;
+    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
     TestConnection sender( packetFactory, messageFactory, connectionConfig );
 

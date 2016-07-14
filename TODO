@@ -1,24 +1,33 @@
 DONE    
 
 TODO
+    
+    Next I need to work out how multiple channels store their data in the connection packet.
 
-    Next start thinking about how channels will be configured.
+    Is there some channel data structure that gets allocated dynamically, n times for the packet, for n entries?
 
-    static const int MaxChannels for the config? 64?
+    Since the entries are sparse, each entry needs a channelId at the top to identify it.
 
-    Seems reasonable.
+    OK I think this can work.
 
     ------------------
 
-    Now work out how packet processing across multiple channels will work.
+    Now I have to work out how multiple channels work.
 
-    What about budgets? Channel configuration should clearly be static, but budgets could quite reasonably be expected to change (eg. different packet sizes selected dynamically).
+    Key thing I think is a scan from left to right, so channel 0 not only is potentially in front of the packet, but has
+    the first go to fill up the packet, the last channel has the opportunity to fill up the remainder of the packet.
 
-    Should the budgets be specified absolutely in terms of bytes (perhaps with optional -1, no budget, caveat emptor), or as a % of packet?
+    Starvation will be possible, if you budget channels on the left to let them send too much, they can leave no room for other channels on the right.
 
-    If the sender changes the target packet size in the budget, should the sender specify the # of bytes per-channel?
+    Add counters to detect these situations, but give the user the power to create a connection configuration that doesn't work if they want.
 
-    Also the maximum size of messages in the channel should be specified. This could well be different across channels.
+    ------------------
+
+    Implement channel budget.
+
+    Current behavior is equivalent to the -1.
+
+    How about a limit of maximum serialize size per-message, because now if I have a budget of -1 I can't work out a fair value for that.
 
     ------------------
 
@@ -45,28 +54,6 @@ TODO
 
     ------------------
 
-    How is the connection configured?
-
-    ConnectionConfig containing channels?
-
-    GetConnectionConfig that you override? Sounds good.
-
-    const int MaxChannels = 64?
-
-    (You can still specify # of channels up to this limit...)
-
-    Seems reasonable. Avoids annoying dynamic allocation inside the ConnectionConfig.
-
-    There is of course still int numChannels inside the config.
-
-    On connection create, it configures and dynamically allocates itself as per-the connection config.
-
-    Packets will need to dynamically allocate per-channel data, but it should be *uniform* data, eg. messages / blocks, with the config able to quickly
-    tell the serialize function the information it needs to know about how to treat serialization of that data (eg. serialize reliable vs. unrelibale differently,
-    both for messages *and* block messages...)
-
-    ------------------
-
     Packet fragmentation and reassembly.
 
     ------------------
@@ -76,6 +63,8 @@ TODO
     ------------------
 
     Packet compression
+
+    ------------------
 
     Large block compression
 

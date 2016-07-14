@@ -32,6 +32,8 @@
 
 namespace yojimbo
 {
+    const int MaxChannels = 64;
+
     enum ChannelCounters
     {
         CHANNEL_COUNTER_MESSAGES_SENT,                          // number of messages sent
@@ -50,31 +52,27 @@ namespace yojimbo
 
     struct ChannelConfig
     {
-        int packetType;                                         // connect packet type (override)
-        int maxPacketSize;                                      // maximum connection packet size in bytes
-        int slidingWindowSize;                                  // size of ack sliding window (in packets)
-        float messageResendRate;                                // message max resend rate in seconds, until acked.
+        int messagePacketBudget;                                // maximum bytes of message data per-packet. -1 = no limit
+        int maxMessagesPerPacket;                               // maximum number of messages per-packet
         int messageSendQueueSize;                               // message send queue size
         int messageReceiveQueueSize;                            // receive queue size
-        int messagePacketBudget;                                // budget of how many bytes messages can take up in the connection packet
-        int maxMessagesPerPacket;                               // maximum number of messages per-packet
+        float messageResendTime;                                // message resend time (seconds)
         int maxBlockSize;                                       // maximum block size in bytes
-        int fragmentSize;                                       // size of block fragments sent in packets (bytes)
-        float fragmentResendRate;                               // min seconds to wait before resending the same fragment
+        int fragmentSize;                                       // block fragments size in bytes
+        float fragmentResendTime;                               // fragment resend time (seconds)
+        int sentPacketsSize;                                    // size of sent packets buffer (maps packet level acks to messages & fragments)
 
         ChannelConfig()
         {
-            packetType = 0;
-            maxPacketSize = 4 * 1024;
-            slidingWindowSize = 1024;
-            messageResendRate = 0.1f;
-            messageSendQueueSize = 1024;
-            messageReceiveQueueSize = 1024;
             messagePacketBudget = 1024;
             maxMessagesPerPacket = 64;
+            messageSendQueueSize = 1024;
+            messageReceiveQueueSize = 1024;
+            messageResendTime = 0.1f;
             maxBlockSize = 256 * 1024;
             fragmentSize = 1024;
-            fragmentResendRate = 0.25f;
+            fragmentResendTime = 0.25f;
+            sentPacketsSize = 1024;
         }
 
         int GetMaxFragmentsPerBlock() const
