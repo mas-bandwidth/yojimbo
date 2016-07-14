@@ -60,8 +60,15 @@ namespace yojimbo
         }
     }
 
-    template <typename Stream> bool ChannelPacketData::Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig & channelConfig )
+    template <typename Stream> bool ChannelPacketData::Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
     {
+        if ( numChannels > 1 )
+            serialize_int( stream, channelId, 0, numChannels - 1 );
+        else
+            channelId = 0;
+
+        const ChannelConfig & channelConfig = channelConfigs[channelId];
+
         const int maxMessageType = messageFactory.GetNumTypes() - 1;
 
         serialize_bool( stream, blockMessage );
@@ -197,19 +204,19 @@ namespace yojimbo
         return true;
     }
 
-    bool ChannelPacketData::SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ChannelConfig & channelConfig )
+    bool ChannelPacketData::SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
     {
-        return Serialize( stream, messageFactory, channelConfig );
+        return Serialize( stream, messageFactory, channelConfigs, numChannels );
     }
 
-    bool ChannelPacketData::SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ChannelConfig & channelConfig )
+    bool ChannelPacketData::SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
     {
-        return Serialize( stream, messageFactory, channelConfig );
+        return Serialize( stream, messageFactory, channelConfigs, numChannels );
     }
 
-    bool ChannelPacketData::SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig & channelConfig )
+    bool ChannelPacketData::SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
     {
-        return Serialize( stream, messageFactory, channelConfig );
+        return Serialize( stream, messageFactory, channelConfigs, numChannels );
     }
 
     Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
@@ -486,7 +493,7 @@ namespace yojimbo
         {
             Message * message = messages[i];
 
-            assert( message );
+            assert( message );  
 
             const uint16_t messageId = message->GetId();
 
