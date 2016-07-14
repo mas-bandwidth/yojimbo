@@ -109,33 +109,23 @@ namespace yojimbo
 
     struct SendBlockData
     {
-        SendBlockData()
+        SendBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
         {
-            blockData = NULL;
-            ackedFragment = NULL;
-            fragmentSendTime = NULL;
+            m_allocator = &allocator;
+            ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
+            fragmentSendTime = (double*) allocator.Allocate( sizeof( double) * maxFragmentsPerBlock );
+            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
+            assert( ackedFragment && blockData && fragmentSendTime );
             Reset();
         }
 
         ~SendBlockData()
         {
-            assert( !blockData );
-        }
-
-        void Allocate( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
-        {
-            ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            fragmentSendTime = (double*) allocator.Allocate( sizeof( double) * maxFragmentsPerBlock );
-            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
-            assert( ackedFragment && blockData && fragmentSendTime );
-        }
-
-        void Free( Allocator & allocator )
-        {
-            YOJIMBO_DELETE( allocator, BitArray, ackedFragment );
-
-            allocator.Free( blockData );           blockData = NULL;
-            allocator.Free( fragmentSendTime );    fragmentSendTime = NULL;
+            YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
+            m_allocator->Free( blockData );
+            m_allocator->Free( fragmentSendTime );
+            fragmentSendTime = NULL;
+            blockData = NULL;
         }
 
         void Reset()
@@ -155,35 +145,29 @@ namespace yojimbo
         BitArray * ackedFragment;                                       // has fragment n been received?
         double * fragmentSendTime;                                      // time fragment was last sent in seconds.
         uint8_t * blockData;                                            // block data storage as it is received.
+
+    private:
+
+        Allocator * m_allocator;                                        // allocator used to free the data on shutdown
     };
 
     struct ReceiveBlockData
     {
-        ReceiveBlockData()
+        ReceiveBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
         {
-            blockData = NULL;
+            m_allocator = &allocator;
+            receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
+            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
+            assert( receivedFragment && blockData );
             blockMessage = NULL;
-            receivedFragment = NULL;
             Reset();
         }
 
         ~ReceiveBlockData()
         {
-            assert( !blockData );
-            assert( !blockMessage );
-        }
-
-        void Allocate( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
-        {
-            receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
-            assert( receivedFragment && blockData );
-        }
-
-        void Free( Allocator & allocator )
-        {
-            YOJIMBO_DELETE( allocator, BitArray, receivedFragment );
-            allocator.Free( blockData );   blockData = NULL;
+            YOJIMBO_DELETE( *m_allocator, BitArray, receivedFragment );
+            m_allocator->Free( blockData );
+            blockData = NULL;
         }
 
         void Reset()
@@ -205,6 +189,10 @@ namespace yojimbo
         BitArray * receivedFragment;                                    // has fragment n been received?
         uint8_t * blockData;                                            // block data for receive
         BlockMessage * blockMessage;                                    // block message (sent with fragment 0)
+
+    private:
+
+        Allocator * m_allocator;                                        // allocator used to free the data on shutdown
     };
 
     class Channel
@@ -279,9 +267,9 @@ namespace yojimbo
 
         uint16_t * m_sentPacketMessageIds;                                              // array of message ids, n ids per-sent packet
 
-        // todo: convert these to pointers
-        SendBlockData m_sendBlock;                                                      // data for block being sent
-        ReceiveBlockData m_receiveBlock;                                                // data for block being received
+        SendBlockData * m_sendBlock;                                                    // block being sent
+
+        ReceiveBlockData * m_receiveBlock;                                              // block being received
 
         uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              // counters for unit testing, stats etc.
 

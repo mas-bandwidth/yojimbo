@@ -30,6 +30,10 @@ DONE
 
 TODO
 
+    Convert send block data, receive block data to pointers, so they can be made optional (don't want this overhead, if you don't for example enable blocks for a channel...)
+
+    ------------------
+
     Get messages inserted into packet.
 
     ------------------
