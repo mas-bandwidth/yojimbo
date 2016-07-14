@@ -79,6 +79,8 @@ namespace yojimbo
         uint16_t ack;
         uint32_t ack_bits;
 
+        // todo: clean this up. maybe "ChannelData" with a union?
+
         int numMessages;
         Message ** messages;
         MessageFactory * messageFactory;
