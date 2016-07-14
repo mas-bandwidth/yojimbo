@@ -14,14 +14,31 @@ DONE
 
     Decision: Yes. Add support for multiple channels. It is the correct approach.
 
-TODO
-
     Now work out how to restructure the code so that the message queues right now are part of a "channel".
 
     For now just have one channel, and have that channel be reliable-ordered, but connection should have a general sense of # of channels,
     and the channels should be dynamically allocated. Just for the moment, only an array of size one will be created.
 
     Get this working and passing all existing tests.
+
+    So far conversion is going well, except I have one tricky aspect, I don't want the channel to know about the connection packet,
+    but there are helper functions that fill the connection packet with data (eg. with messages etc.)
+
+    I'm going to need to clean this up so the channel part can function without knowing packets, and the connection takes that data and puts in in the connection packet.
+
+    Added error and counters back to messages.
+
+TODO
+
+    Get messages inserted into packet.
+
+    ------------------
+
+    Get block fragments and message inserted into packet (probably need temporary structure...)
+
+    ------------------
+
+    Connection needs to watch channels. If a channel is in an error state, set CONNECTION_ERROR_CHANNEL
 
     ------------------
 

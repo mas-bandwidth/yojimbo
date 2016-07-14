@@ -32,6 +32,22 @@
 
 namespace yojimbo
 {
+    enum ChannelCounters
+    {
+        CHANNEL_COUNTER_MESSAGES_SENT,                          // number of messages sent
+        CHANNEL_COUNTER_MESSAGES_RECEIVED,                      // number of messages received
+        CHANNEL_COUNTER_NUM_COUNTERS
+    };
+
+    enum ChannelError
+    {
+        CHANNEL_ERROR_NONE = 0,
+        CHANNEL_ERROR_DESYNC,
+        CHANNEL_ERROR_SEND_QUEUE_FULL,
+        CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED,
+        CHANNEL_ERROR_OUT_OF_MEMORY
+    };
+
     struct ChannelConfig
     {
         int packetType;                                         // connect packet type (override)
@@ -209,6 +225,8 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
+        ChannelError GetError() const;
+
         bool HasMessagesToSend() const;
 
         void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds );
@@ -231,6 +249,8 @@ namespace yojimbo
 
         void ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage );
 
+        uint64_t GetCounter( int index ) const;
+
     private:
 
         const ChannelConfig m_config;                                                   // const configuration data
@@ -241,8 +261,7 @@ namespace yojimbo
 
         double m_time;                                                                  // current time
 
-        // todo: we're going to need a channel error concept
-        //ConnectionError m_error;                                                        // channel error level
+        ChannelError m_error;                                                           // channel error level
 
         int m_messageOverheadBits;                                                      // number of bits overhead per-serialized message
 
@@ -260,9 +279,11 @@ namespace yojimbo
 
         uint16_t * m_sentPacketMessageIds;                                              // array of message ids, n ids per-sent packet
 
+        // todo: convert these to pointers
         SendBlockData m_sendBlock;                                                      // data for block being sent
-
         ReceiveBlockData m_receiveBlock;                                                // data for block being received
+
+        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              // counters for unit testing, stats etc.
 
     private:
 
