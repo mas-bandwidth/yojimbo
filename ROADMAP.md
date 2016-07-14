@@ -42,13 +42,12 @@ This release will extend the internal UDP-based network protocol to support:
 
 1. Reliable-ordered messages (done)
 2. Data blocks larger than MTU in the same reliable-ordered stream as messages (done)
-3. User configurable message channels per-connection with different reliability and ordering guarantees (current)
+3. Multiple user configurable message channels with different reliability and ordering guarantees (current)
 4. Support for channels with unreliable, unordered messages and blocks
 5. Support for channels with reliable, unordered messages and blocks
 6. Packet fragmentation and reassembly
-7. Packet aggregation
 
-There is lots of work to do in this release so it is likely it will take some time. I estimate 2-3 months.
+There is lots of work to do in this release so it is likely it will take some time. I estimate 1-2 months.
 
 ## 0.4.0 - Matchmaker
 
