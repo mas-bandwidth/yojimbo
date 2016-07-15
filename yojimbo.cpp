@@ -58,7 +58,7 @@ namespace yojimbo
             if ( m_alloc_map.size() )
             {
                 printf( "you leaked memory!\n" );
-                typedef std::unordered_map<void*,uint32_t>::iterator itor_type;
+                typedef std::map<void*,uint32_t>::iterator itor_type;
                 for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i ) 
                 {
                     void *p = i->first;
