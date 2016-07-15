@@ -20,6 +20,21 @@ TODO
 
     ------------------
 
+    One thing I don't like is that the packet factory and message factory are global for all clients.
+
+    This means that a rogue client can DOS other clients by sending and allocating too many messages, packets.
+
+    This is relevant to the packet fragmentation and reassembly as well, because now fragments if allocated out of the packet factory
+    would provide another way to easily deny service to other clients.
+
+    The solution I think is to have a global packet factory, one packet factory per-client, one message factory per-client.
+
+    This way the only thing a client can do is hurt itself. If it fails to allocate a fragment, message or packet it is disconnected.
+
+    I think this is a crucial design element for security moving forward. It is simply not safe until I do this.
+
+    ------------------
+
     Packet fragmentation and reassembly.
 
     Definitely needed for large snapshot blocks.
