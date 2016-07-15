@@ -140,8 +140,6 @@ namespace yojimbo
                     if ( !message.messages[i]->SerializeInternal( stream ) )
                         return false;
                 }
-
-                serialize_check( stream, "messages" );
             }
         }
         else
@@ -345,6 +343,15 @@ namespace yojimbo
             return;
         }
 
+        assert( !( message->IsBlockMessage() && m_config.disableBlocks ) );
+
+        if ( message->IsBlockMessage() && m_config.disableBlocks )
+        {
+            m_error = CHANNEL_ERROR_BLOCKS_DISABLED;
+            m_messageFactory->Release( message );
+            return;
+        }
+
         message->AssignId( m_sendMessageId );
 
         MessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
@@ -418,7 +425,7 @@ namespace yojimbo
         return m_oldestUnackedMessageId != m_sendMessageId;
     }
 
-    void Channel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds )
+    void Channel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits )
     {
         assert( HasMessagesToSend() );
 
@@ -426,7 +433,8 @@ namespace yojimbo
 
         const int GiveUpBits = 8 * 8;
 
-        int availableBits = m_config.messagePacketBudget * 8;
+        if ( m_config.messagePacketBudget > 0 )
+            availableBits = min( m_config.messagePacketBudget * 8, availableBits );
 
         const int messageLimit = min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize ) / 2;
 
@@ -446,7 +454,7 @@ namespace yojimbo
             {
                 messageIds[numMessageIds++] = messageId;
                 entry->timeLastSent = m_time;
-                availableBits -= entry->measuredBits;
+                availableBits -= entry->measuredBits + m_messageOverheadBits;
             }
 
             if ( availableBits <= GiveUpBits )
@@ -457,7 +465,7 @@ namespace yojimbo
         }
     }
 
-    void Channel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
+    int Channel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
     {
         assert( messageIds );
 
@@ -468,15 +476,22 @@ namespace yojimbo
         packetData.message.numMessages = numMessageIds;
         
         if ( numMessageIds == 0 )
-            return;
+            return 0;
 
         packetData.message.messages = (Message**) m_messageFactory->GetAllocator().Allocate( sizeof( Message* ) * numMessageIds );
 
+        int messageBits = ConservativeMessageHeaderOverhead;
+
         for ( int i = 0; i < numMessageIds; ++i )
         {
-            packetData.message.messages[i] = GetSendQueueMessage( messageIds[i] );
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
+            assert( entry );
+            packetData.message.messages[i] = entry->message;
             m_messageFactory->AddRef( packetData.message.messages[i] );
+            messageBits += entry->measuredBits + m_messageOverheadBits;
         }
+
+        return messageBits;
     }
 
     void Channel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
@@ -715,7 +730,7 @@ namespace yojimbo
         return fragmentData;
     }
 
-    void Channel::GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType )
+    int Channel::GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType )
     {
         packetData.channelId = m_channelId;
 
@@ -730,12 +745,17 @@ namespace yojimbo
 
         if ( fragmentId == 0 )
         {
-            packetData.block.message = (BlockMessage*) GetSendQueueMessage( messageId );
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( packetData.block.messageId );
+            assert( entry );
+            assert( entry->message );
+            packetData.block.message = (BlockMessage*) entry->message;
             m_messageFactory->AddRef( packetData.block.message );
+            return ConservativeFragmentHeaderOverhead + entry->measuredBits + m_messageOverheadBits;
         }
         else
         {
             packetData.block.message = NULL;
+            return 0;
         }
     }
 
@@ -870,12 +890,6 @@ namespace yojimbo
                 }
             }
         }
-    }
-
-    Message * Channel::GetSendQueueMessage( uint16_t messageId )
-    {
-        MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
-        return entry ? entry->message : NULL;
     }
 
     uint64_t Channel::GetCounter( int index ) const

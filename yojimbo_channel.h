@@ -34,6 +34,13 @@ namespace yojimbo
 {
     const int MaxChannels = 64;
 
+    // todo: add checks to the connection packet serialize to make sure these estimates hold!!!
+
+    const int ConservativePacketHeaderEstimate = 128;
+    const int ConservativeMessageHeaderOverhead = 32;
+    const int ConservativeFragmentHeaderOverhead = 64;
+    const int ConservativePerChannelOverheadEstimate = 32;
+
     enum ChannelCounters
     {
         CHANNEL_COUNTER_MESSAGES_SENT,                          // number of messages sent
@@ -47,7 +54,8 @@ namespace yojimbo
         CHANNEL_ERROR_DESYNC,
         CHANNEL_ERROR_SEND_QUEUE_FULL,
         CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED,
-        CHANNEL_ERROR_OUT_OF_MEMORY
+        CHANNEL_ERROR_OUT_OF_MEMORY,
+        CHANNEL_ERROR_BLOCKS_DISABLED
     };
 
     struct ChannelConfig
@@ -160,9 +168,9 @@ namespace yojimbo
 
         bool HasMessagesToSend() const;
 
-        void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds );
+        void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits );
 
-        void GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds );
+        int GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds );
 
         void AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence );
 
@@ -180,7 +188,7 @@ namespace yojimbo
 
         uint8_t * GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType );
 
-        void GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType );
+        int GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType );
 
         void AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence );
 

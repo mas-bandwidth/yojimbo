@@ -4,13 +4,15 @@ TODO
 
     ------------------
 
-    Implement channel budget.
+    Add serialization checks to make sure conservative estimates hold for various parts of the packet.
 
-    Current behavior is equivalent to a budget of -1, eg. fill up the packet.
+    ------------------
 
-    How about a limit of maximum serialize size per-message, because now if I have a budget of -1 I can't work out a fair value for that.
+    Add a unit test with a constrained packet size to make sure the budgeting is working properly.
 
-    Add an assert to make sure channel data never goes over budget.
+    ------------------
+
+    Modify the soak test so the budgeting will come into play.
 
     ------------------
 
@@ -22,27 +24,11 @@ TODO
 
     The same channel could be used for unreliable messages that go at the end of the packet, if there is room, eg. sounds, effects.
 
-    The idea would be that for a size -1 specified in the budget, it will be the responsibility of the channel to not go over the maximum
-    size of the packet, but otherwise, to fill it up as much as possible. This is useful for snapshots, and for unreliable messages at the end of the packet.
+    Unreliable messages don't serialize the message id.
 
-    ------------------
+    Unreliable messages. You might want to include more than you think will fit in the packet, and include a budget, that way you can fit as many in as possible.
 
-    What about reliable, unordered messages? What do these look like?
-
-    I think the sender looks the same, but for messages the head of line blocking doesn't stop messages from being received early.
-
-    You get the messages as soon as they are received, and the sliding window is used only to make sure messages are reliable, not to enforce reordering.
-
-    For large blocks, I think they must stop the stream of messages until they get through, but this is acceptable. Only receive one block at a time, can't justify reworking block sending code to send fragments from multiple blocks at the same time, and really it wouldn't add much anyway.
-
-    What is the utility of sending reliable unordered messages? Avoiding head of line blocking when ordering doesn't count?
-
-    But when does ordering not count? Sending state?
-
-    Sending state is much more efficiently done via delta encoding, rather than by resending the same state over and over (when it is probably stale by 
-    the time it gets through...)
-
-    Maybe punt on this one for now?
+    This is a good way to possibly fill up any gaps left in the packet due to conservative estimates for the other parts of the packet.
 
     ------------------
 
