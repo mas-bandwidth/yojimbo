@@ -276,11 +276,11 @@ namespace yojimbo
                 {
                     int numMessageIds = 0;
 
-                    m_channel[channelId]->GetMessagesToSend( messageIds, numMessageIds, availableBits );
+                    const int messageBits = m_channel[channelId]->GetMessagesToSend( messageIds, numMessageIds, availableBits );
 
                     if ( numMessageIds > 0 )
                     {
-                        const int messageBits = m_channel[channelId]->GetMessagePacketData( channelData[channelId], messageIds, numMessageIds );
+                        m_channel[channelId]->GetMessagePacketData( channelData[channelId], messageIds, numMessageIds );
 
                         m_channel[channelId]->AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
 

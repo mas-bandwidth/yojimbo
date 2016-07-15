@@ -2,10 +2,6 @@ DONE
 
 TODO    
 
-    Implement a better estimate of the per-message id overhead.
-
-    This estimate must consider the relative serialization of ids in order to be accurate. Do it.
-
     ------------------
 
     Implement an unreliable channel.

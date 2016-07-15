@@ -114,11 +114,7 @@ namespace yojimbo
                 serialize_bits( stream, messageIds[0], 16 );
 
                 for ( int i = 1; i < message.numMessages; ++i )
-                {
-                    //serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
-
-                    serialize_bits( stream, messageIds[i], 16 );
-                }
+                    serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
 
                 for ( int i = 0; i < message.numMessages; ++i )
                 {
@@ -152,8 +148,6 @@ namespace yojimbo
             if ( channelConfig.messagePacketBudget > 0 )
             {
                 assert( stream.GetBitsProcessed() - startBits <= channelConfig.messagePacketBudget * 8 );
-                if ( Stream::IsWriting )
-                    printf( "%d messages used %.1f bytes\n", message.numMessages, ( stream.GetBitsProcessed() - startBits ) / 8.0f );
             }
 #endif // #if YOJIMBO_VALIDATE_PACKET_BUDGET
         }
@@ -249,8 +243,6 @@ namespace yojimbo
         m_listener = NULL;
 
         m_error = CHANNEL_ERROR_NONE;
-
-        m_messageOverheadBits = CalculateMessageOverheadBits();
 
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
         
@@ -384,7 +376,7 @@ namespace yojimbo
             assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
         }
 
-        MeasureStream measureStream( m_config.messagePacketBudget / 2 );
+        MeasureStream measureStream;
 
         message->SerializeInternal( measureStream );
 
@@ -395,7 +387,7 @@ namespace yojimbo
             return;
         }
 
-        entry->measuredBits = measureStream.GetBitsProcessed() + m_messageOverheadBits;
+        entry->measuredBits = measureStream.GetBitsProcessed();
 
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
 
@@ -440,7 +432,7 @@ namespace yojimbo
         return m_oldestUnackedMessageId != m_sendMessageId;
     }
 
-    void Channel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits )
+    int Channel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits )
     {
         assert( HasMessagesToSend() );
 
@@ -451,11 +443,17 @@ namespace yojimbo
         if ( m_config.messagePacketBudget > 0 )
             availableBits = min( m_config.messagePacketBudget * 8, availableBits );
 
+        const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
+
         const int messageLimit = min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize ) / 2;
+
+        uint16_t previousMessageId = 0;
+
+        int messageBits = ConservativeMessageHeaderEstimate;
 
         for ( int i = 0; i < messageLimit; ++i )
         {
-            const uint16_t messageId = m_oldestUnackedMessageId + i;
+            uint16_t messageId = m_oldestUnackedMessageId + i;
 
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
 
@@ -465,22 +463,46 @@ namespace yojimbo
             if ( entry->block )
                 break;
             
+            const int previousMessageBits = messageBits;
+
             if ( entry->timeLastSent + m_config.messageResendTime <= m_time && availableBits >= (int) entry->measuredBits )
             {
-                messageIds[numMessageIds++] = messageId;
+                messageIds[numMessageIds] = messageId;
+                
                 entry->timeLastSent = m_time;
-                availableBits -= entry->measuredBits;
+                
+                messageBits += entry->measuredBits + messageTypeBits;
+                
+                if ( numMessageIds == 0 )
+                {
+                    messageBits += 16;
+                }
+                else
+                {
+                    MeasureStream stream;
+                    serialize_sequence_relative_internal( stream, previousMessageId, messageId );
+                    messageBits += stream.GetBitsProcessed();
+                }
+
+                if ( messageBits + GiveUpBits >= availableBits )
+                {
+                    messageBits = previousMessageBits;
+                    break;
+                }
+
+                previousMessageId = messageId;
+
+                numMessageIds++;
             }
 
-            if ( availableBits <= GiveUpBits )
-                break;
-            
             if ( numMessageIds == m_config.maxMessagesPerPacket )
                 break;
         }
+
+        return messageBits;
     }
 
-    int Channel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
+    void Channel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
     {
         assert( messageIds );
 
@@ -491,11 +513,9 @@ namespace yojimbo
         packetData.message.numMessages = numMessageIds;
         
         if ( numMessageIds == 0 )
-            return 0;
+            return;
 
         packetData.message.messages = (Message**) m_messageFactory->GetAllocator().Allocate( sizeof( Message* ) * numMessageIds );
-
-        int messageBits = ConservativeMessageHeaderEstimate;
 
         for ( int i = 0; i < numMessageIds; ++i )
         {
@@ -503,10 +523,7 @@ namespace yojimbo
             assert( entry );
             packetData.message.messages[i] = entry->message;
             m_messageFactory->AddRef( packetData.message.messages[i] );
-            messageBits += entry->measuredBits;
         }
-
-        return messageBits;
     }
 
     void Channel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
@@ -646,17 +663,6 @@ namespace yojimbo
         }
 
         assert( !sequence_greater_than( m_oldestUnackedMessageId, stopMessageId ) );
-    }
-
-    int Channel::CalculateMessageOverheadBits()
-    {
-        const int maxMessageType = m_messageFactory->GetNumTypes() - 1;
-
-        const int MessageIdBits = 16;
-        
-        const int MessageTypeBits = bits_required( 0, maxMessageType );
-
-        return MessageIdBits + MessageTypeBits;
     }
 
     bool Channel::SendingBlockMessage()
