@@ -35,6 +35,23 @@ TODO
 
     ------------------
 
+    I think the correct way forward for this is to provide callbacks in Client/Server:
+
+        CreatePacketFactory
+        CreateMessageFactory
+
+    And then have the base client/server code call in to these callbacks whenever a factory needs to be created.
+
+    This is a necessity for the server at least, because the server can dynamically adjust the # of clients,
+    and therefore dynamically adjust the # of packet factory and message factories that it needs.
+
+    Therefore the callback is really the only way to go about this.
+
+    It should also be a bit cleaner. Ideally, the only things that should be maintained separately from the client/server are the transports,
+    because these need to be logically separate and eventually will be doing work off main thread this makes sense. To maintain and create message and packet factories is just a nuisance though. The server and client can create and own those just fine.
+
+    ------------------
+
     Packet fragmentation and reassembly.
 
     Definitely needed for large snapshot blocks.
@@ -43,7 +60,7 @@ TODO
 
     ------------------
 
-    v0.3.0 release (!!!) YEY! :D
+    v0.3.0 final release (!!!) YEY! :D
 
     ------------------
 

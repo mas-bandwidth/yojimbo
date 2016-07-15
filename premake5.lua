@@ -290,6 +290,15 @@ if not os.is "windows" then
 
     newaction
     {
+        trigger     = "scan-build",
+        description = "Run clang scan-build over the project",
+        execute = function ()
+            os.execute "scan-build make all -j4"
+        end
+    }
+
+    newaction
+    {
         trigger     = "loc",
         description = "Count lines of code",
         execute = function ()
