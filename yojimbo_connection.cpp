@@ -155,7 +155,7 @@ namespace yojimbo
 
         for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
-            m_channel[channelId] = YOJIMBO_NEW( *m_allocator, Channel, *m_allocator, messageFactory, m_config.channelConfig[channelId], channelId );
+            m_channel[channelId] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_config.channelConfig[channelId], channelId );
             m_channel[channelId]->SetListener( this );
         }
 
@@ -243,6 +243,9 @@ namespace yojimbo
 
         for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
+            // todo: gotta move this into the reliable ordered channel somehow. it's specific to the type of channel
+
+            /*
             availableBits -= ConservativeChannelHeaderEstimate;
 
             uint16_t * messageIds = (uint16_t*) alloca( m_config.channelConfig[channelId].maxMessagesPerPacket * sizeof( uint16_t ) );
@@ -292,6 +295,7 @@ namespace yojimbo
                     }
                 }
             }
+            */
         }
 
         if ( numChannelsWithData > 0 )
@@ -352,9 +356,9 @@ namespace yojimbo
     {
         for ( int i = 0; i < m_config.numChannels; ++i )
         {
-            m_channel[i]->AdvanceTime( time );
-        
-            if ( m_channel[i]->GetError() )
+            ChannelError error = m_channel[i]->AdvanceTime( time );
+
+            if ( error != CHANNEL_ERROR_NONE )
             {
                 m_error = CONNECTION_ERROR_CHANNEL;
                 return;

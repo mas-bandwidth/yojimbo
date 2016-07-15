@@ -38,25 +38,15 @@ namespace yojimbo
     const int ConservativeFragmentHeaderEstimate = 64;
     const int ConservativeChannelHeaderEstimate = 32;
 
-    enum ChannelCounters
+    enum ChannelType
     {
-        CHANNEL_COUNTER_MESSAGES_SENT,                          // number of messages sent
-        CHANNEL_COUNTER_MESSAGES_RECEIVED,                      // number of messages received
-        CHANNEL_COUNTER_NUM_COUNTERS
-    };
-
-    enum ChannelError
-    {
-        CHANNEL_ERROR_NONE = 0,
-        CHANNEL_ERROR_DESYNC,
-        CHANNEL_ERROR_SEND_QUEUE_FULL,
-        CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED,
-        CHANNEL_ERROR_OUT_OF_MEMORY,
-        CHANNEL_ERROR_BLOCKS_DISABLED
+        CHANNEL_TYPE_RELIABLE_ORDERED,                          // reliable ordered stream of messages
+        CHANNEL_TYPE_UNRELIABLE_UNORDERED                       // unreliable unordered stream of messages
     };
 
     struct ChannelConfig
     {
+        ChannelType type;                                       // channel type: reliable ordered or unreliable unordered.
         int messagePacketBudget;                                // maximum bytes of message data per-packet. -1 = no limit
         int maxMessagesPerPacket;                               // maximum number of messages per-packet
         int messageSendQueueSize;                               // message send queue size
@@ -70,6 +60,7 @@ namespace yojimbo
 
         ChannelConfig()
         {
+            type = CHANNEL_TYPE_RELIABLE_ORDERED;
             messagePacketBudget = 1100;
             maxMessagesPerPacket = 64;
             messageSendQueueSize = 1024;
@@ -143,13 +134,55 @@ namespace yojimbo
         virtual void OnChannelFragmentReceived( class Channel * /*channel*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/ ) {}
     };
 
+    enum ChannelCounters
+    {
+        CHANNEL_COUNTER_MESSAGES_SENT,                          // number of messages sent
+        CHANNEL_COUNTER_MESSAGES_RECEIVED,                      // number of messages received
+        CHANNEL_COUNTER_NUM_COUNTERS
+    };
+
+    enum ChannelError
+    {
+        CHANNEL_ERROR_NONE = 0,
+        CHANNEL_ERROR_DESYNC,
+        CHANNEL_ERROR_SEND_QUEUE_FULL,
+        CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED,
+        CHANNEL_ERROR_OUT_OF_MEMORY,
+        CHANNEL_ERROR_BLOCKS_DISABLED
+    };
+
     class Channel
     {
     public:
 
-        Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+        virtual ~Channel() {}
 
-        ~Channel();
+        virtual void SetListener( ChannelListener * listener ) = 0;
+
+        virtual void Reset() = 0;
+
+        virtual bool CanSendMessage() const = 0;
+
+        virtual void SendMessage( Message * message ) = 0;
+
+        virtual Message * ReceiveMessage() = 0;
+
+        virtual ChannelError AdvanceTime( double time ) = 0;
+
+        virtual void ProcessPacketData( ChannelPacketData & packetData ) = 0;
+
+        virtual void ProcessAck( uint16_t sequence ) = 0;
+
+        virtual int GetChannelId() const = 0;           // todo: I don't really like this being virtual
+    };
+
+    class ReliableOrderedChannel : public Channel
+    {
+    public:
+
+        ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+
+        ~ReliableOrderedChannel();
 
         void Reset();
 
@@ -159,7 +192,7 @@ namespace yojimbo
 
         Message * ReceiveMessage();
 
-        void AdvanceTime( double time );
+        ChannelError AdvanceTime( double time );
 
         ChannelError GetError() const;
 
@@ -237,9 +270,9 @@ namespace yojimbo
 
     private:
 
-        Channel( const Channel & other );
+        ReliableOrderedChannel( const ReliableOrderedChannel & other );
 
-        Channel & operator = ( const Channel & other );
+        ReliableOrderedChannel & operator = ( const ReliableOrderedChannel & other );
     };
 }
 

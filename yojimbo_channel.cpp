@@ -232,7 +232,7 @@ namespace yojimbo
         return Serialize( stream, messageFactory, channelConfigs, numChannels );
     }
 
-    Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
+    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
         : m_config( config ), m_channelId( channelId )
     {
         assert( ( 65536 % config.sentPacketsSize ) == 0 );
@@ -270,7 +270,7 @@ namespace yojimbo
         Reset();
     }
 
-    Channel::~Channel()
+    ReliableOrderedChannel::~ReliableOrderedChannel()
     {
         Reset();
 
@@ -285,7 +285,7 @@ namespace yojimbo
         m_sentPacketMessageIds = NULL;
     }
 
-    void Channel::Reset()
+    void ReliableOrderedChannel::Reset()
     {
         m_error = CHANNEL_ERROR_NONE;
 
@@ -328,14 +328,14 @@ namespace yojimbo
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
-    bool Channel::CanSendMessage() const
+    bool ReliableOrderedChannel::CanSendMessage() const
     {
         assert( m_messageSendQueue );
 
         return m_messageSendQueue->Available( m_sendMessageId );
     }
 
-    void Channel::SendMessage( Message * message )
+    void ReliableOrderedChannel::SendMessage( Message * message )
     {
         assert( message );
         assert( CanSendMessage() );
@@ -397,7 +397,7 @@ namespace yojimbo
         m_sendMessageId++;
     }
 
-    Message * Channel::ReceiveMessage()
+    Message * ReliableOrderedChannel::ReceiveMessage()
     {
         if ( GetError() != CHANNEL_ERROR_NONE )
             return NULL;
@@ -420,22 +420,23 @@ namespace yojimbo
         return message;
     }
 
-    void Channel::AdvanceTime( double time )
+    ChannelError ReliableOrderedChannel::AdvanceTime( double time )
     {
         m_time = time;
+        return m_error;
     }
     
-    ChannelError Channel::GetError() const
+    ChannelError ReliableOrderedChannel::GetError() const
     {
         return m_error;
     }
 
-    bool Channel::HasMessagesToSend() const
+    bool ReliableOrderedChannel::HasMessagesToSend() const
     {
         return m_oldestUnackedMessageId != m_sendMessageId;
     }
 
-    int Channel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits )
+    int ReliableOrderedChannel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits )
     {
         assert( HasMessagesToSend() );
 
@@ -505,7 +506,7 @@ namespace yojimbo
         return messageBits;
     }
 
-    void Channel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
+    void ReliableOrderedChannel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
     {
         assert( messageIds );
 
@@ -529,7 +530,7 @@ namespace yojimbo
         }
     }
 
-    void Channel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
+    void ReliableOrderedChannel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
         MessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( sequence );
         
@@ -547,7 +548,7 @@ namespace yojimbo
         }
     }
 
-    void Channel::ProcessPacketMessages( int numMessages, Message ** messages )
+    void ReliableOrderedChannel::ProcessPacketMessages( int numMessages, Message ** messages )
     {
         const uint16_t minMessageId = m_receiveMessageId;
         const uint16_t maxMessageId = m_receiveMessageId + m_config.messageReceiveQueueSize - 1;
@@ -580,7 +581,7 @@ namespace yojimbo
         }
     }
 
-    void Channel::ProcessPacketData( ChannelPacketData & packetData )
+    void ReliableOrderedChannel::ProcessPacketData( ChannelPacketData & packetData )
     {
         if ( packetData.blockMessage )
         {
@@ -592,7 +593,7 @@ namespace yojimbo
         }
     }
 
-    void Channel::ProcessAck( uint16_t ack )
+    void ReliableOrderedChannel::ProcessAck( uint16_t ack )
     {
         MessageSentPacketEntry * sentPacketEntry = m_messageSentPackets->Find( ack );
 
@@ -649,7 +650,7 @@ namespace yojimbo
         }
     }
 
-    void Channel::UpdateOldestUnackedMessageId()
+    void ReliableOrderedChannel::UpdateOldestUnackedMessageId()
     {
         const uint16_t stopMessageId = m_messageSendQueue->GetSequence();
 
@@ -668,7 +669,7 @@ namespace yojimbo
         assert( !sequence_greater_than( m_oldestUnackedMessageId, stopMessageId ) );
     }
 
-    bool Channel::SendingBlockMessage()
+    bool ReliableOrderedChannel::SendingBlockMessage()
     {
         assert( HasMessagesToSend() );
 
@@ -677,7 +678,7 @@ namespace yojimbo
         return entry->block;
     }
 
-    uint8_t * Channel::GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType )
+    uint8_t * ReliableOrderedChannel::GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType )
     {
         MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
 
@@ -754,7 +755,7 @@ namespace yojimbo
         return fragmentData;
     }
 
-    int Channel::GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType )
+    int ReliableOrderedChannel::GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType )
     {
         packetData.channelId = m_channelId;
 
@@ -783,7 +784,7 @@ namespace yojimbo
         }
     }
 
-    void Channel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
+    void ReliableOrderedChannel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
     {
         MessageSentPacketEntry * sentPacket = m_messageSentPackets->Insert( sequence );
         
@@ -801,7 +802,7 @@ namespace yojimbo
         }
     }
 
-    void Channel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )
+    void ReliableOrderedChannel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )
     {  
         assert( !m_config.disableBlocks );
 
@@ -916,7 +917,7 @@ namespace yojimbo
         }
     }
 
-    uint64_t Channel::GetCounter( int index ) const
+    uint64_t ReliableOrderedChannel::GetCounter( int index ) const
     {
         assert( index >= 0 );
         assert( index < CHANNEL_COUNTER_NUM_COUNTERS );

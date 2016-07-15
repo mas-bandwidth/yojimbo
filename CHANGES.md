@@ -1,4 +1,62 @@
 
+Friday July 15th, 2016
+======================
+
+Add channel type enum:
+
+    CHANNEL_TYPE_RELIABLE_ORDERED
+    CHANNEL_TYPE_UNRELIABLE_UNORDERED
+
+What needs to change to implement the unreliable, unordered channel?
+
+Start with unreliable, unordered messages.
+
+You really need to know what packet they came in on.
+
+Maybe on the receive side, stash the packet sequence number they came in on into the id for the message?
+
+I think this is the best way to give the user some possibility for grouping the messages together, eg. working backwards and going,
+oh, these are the messages belonging to packet X, therefore snapshot Y.
+
+While still letting the user just fire off totally unreliable, unordered messages and not caring when they arrive and just processing them.
+
+Start here.
+
+Rename the existing message structures in send queue so it is clear they belong to reliable ordered.
+
+*OR* create a virtual channel interface and implement different channel types.
+
+What's the best way to go here? Is the virtual overhead likely to be significant? No. As long as they share a common message data format that feeds into the packet, I think it's fine.
+
+I think first, the cleanup within the existing channel, to get the interface from the connection -> channel really clean is required before expanding to multiple channel types.
+
+So the key is to work out what the actual interface the connection needs with the channel is.
+
+Really the connection needs to ask:
+
+    Can send message?
+
+    Send message
+
+    Receive message
+
+    What is the channel data you want to send, and conservatively how many bits in the packet will it take up?
+
+    Process this packet level ack
+
+    Process this channel data.
+
+    Serialize the channel data. <---- this can be unifying between all channel types, with some modifications based on the channel config, which it has access to, eg. common data structure.
+
+I think that's really it.
+
+To get here I have to move more aspects of channel processing out of connection and into the channel.
+
+Specifically, the whole loop across channel ids should just call into a single function on each channel, vs. doing all that logic in channel, beacuse that logic could depend on channel type.
+
+Starting by sketching out a virtual channel interface, and then moving the existing channel into ReliableOrderedChannel.
+
+
 Thursday July 14th, 2016
 ========================
 
