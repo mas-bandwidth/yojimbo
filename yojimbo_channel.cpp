@@ -148,6 +148,9 @@ namespace yojimbo
         {
             // block message
 
+            if ( channelConfig.disableBlocks )
+                return false;
+
             serialize_bits( stream, block.messageId, 16 );
 
             serialize_int( stream, block.numFragments, 1, channelConfig.GetMaxFragmentsPerBlock() );
@@ -244,9 +247,17 @@ namespace yojimbo
         
         m_sentPacketMessageIds = (uint16_t*) m_allocator->Allocate( sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
 
-        m_sendBlock = YOJIMBO_NEW( *m_allocator, SendBlockData, *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
-        
-        m_receiveBlock = YOJIMBO_NEW( *m_allocator, ReceiveBlockData, *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
+        if ( !config.disableBlocks )
+        {
+            m_sendBlock = YOJIMBO_NEW( *m_allocator, SendBlockData, *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
+            
+            m_receiveBlock = YOJIMBO_NEW( *m_allocator, ReceiveBlockData, *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
+        }
+        else
+        {
+            m_sendBlock = NULL;
+            m_receiveBlock = NULL;
+        }
 
         Reset();
     }
@@ -294,14 +305,16 @@ namespace yojimbo
         m_messageSentPackets->Reset();
         m_messageReceiveQueue->Reset();
 
-        m_sendBlock->Reset();
-
-        m_receiveBlock->Reset();
-
-        if ( m_receiveBlock->blockMessage )
+        if ( !m_config.disableBlocks )
         {
-            m_messageFactory->Release( m_receiveBlock->blockMessage );
-            m_receiveBlock->blockMessage = NULL;
+            m_sendBlock->Reset();
+            m_receiveBlock->Reset();
+
+            if ( m_receiveBlock->blockMessage )
+            {
+                m_messageFactory->Release( m_receiveBlock->blockMessage );
+                m_receiveBlock->blockMessage = NULL;
+            }
         }
 
         memset( m_counters, 0, sizeof( m_counters ) );
@@ -557,7 +570,7 @@ namespace yojimbo
             }
         }
 
-        if ( sentPacketEntry->block && m_sendBlock->active && m_sendBlock->blockMessageId == sentPacketEntry->blockMessageId )
+        if ( !m_config.disableBlocks && sentPacketEntry->block && m_sendBlock->active && m_sendBlock->blockMessageId == sentPacketEntry->blockMessageId )
         {        
             const int messageId = sentPacketEntry->blockMessageId;
             const int fragmentId = sentPacketEntry->blockFragmentId;
@@ -746,6 +759,8 @@ namespace yojimbo
 
     void Channel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )
     {  
+        assert( !m_config.disableBlocks );
+
         if ( fragmentData )
         {
             const uint16_t expectedMessageId = m_messageReceiveQueue->GetSequence();
