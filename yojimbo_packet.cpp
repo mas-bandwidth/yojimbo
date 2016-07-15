@@ -528,7 +528,7 @@ cleanup:
         {
             printf( "you leaked packets!\n" );
             printf( "%d packets leaked\n", m_numAllocatedPackets );
-            typedef std::unordered_map<void*,int>::iterator itor_type;
+            typedef std::map<void*,int>::iterator itor_type;
             for ( itor_type i = allocated_packets.begin(); i != allocated_packets.end(); ++i ) 
             {
                 printf( "leaked packet %p (type %d)\n", i->first, i->second );

@@ -32,7 +32,7 @@
 #include "yojimbo_serialize.h"
 
 #if YOJIMBO_DEBUG_PACKET_LEAKS
-#include <unordered_map>
+#include <map>
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
 
 namespace yojimbo
@@ -93,7 +93,7 @@ namespace yojimbo
     private:
 
 #if YOJIMBO_DEBUG_PACKET_LEAKS
-        std::unordered_map<void*,int> allocated_packets;
+        std::map<void*,int> allocated_packets;
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
 
         Allocator * m_allocator;

@@ -31,7 +31,7 @@
 #include "yojimbo_bit_array.h"
 
 #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-#include <unordered_map>
+#include <map>
 #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
 namespace yojimbo
@@ -149,7 +149,7 @@ namespace yojimbo
     class MessageFactory
     {        
         #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-        std::unordered_map<void*,int> allocated_messages;
+        std::map<void*,int> allocated_messages;
         #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
         Allocator * m_allocator;
@@ -174,7 +174,7 @@ namespace yojimbo
             {
                 printf( "you leaked messages!\n" );
                 printf( "%d messages leaked\n", (int) allocated_messages.size() );
-                typedef std::unordered_map<void*,int>::iterator itor_type;
+                typedef std::map<void*,int>::iterator itor_type;
                 for ( itor_type i = allocated_messages.begin(); i != allocated_messages.end(); ++i ) 
                 {
                     Message * message = (Message*) i->first;
