@@ -384,7 +384,9 @@ namespace yojimbo
     {
     public:
 
-        Server( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL );
+        Server( Allocator & allocator, Transport & transport );
+
+        Server( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() );
 
         virtual ~Server();
 
@@ -470,10 +472,6 @@ namespace yojimbo
 
     protected:
 
-        virtual ConnectionConfig GetConnectionConfig() const { return ConnectionConfig(); }
-
-    protected:
-
         virtual void InitializeContext();
 
         virtual void SetEncryptedPacketTypes();
@@ -521,6 +519,8 @@ namespace yojimbo
         Transport * GetTransport() { return m_transport; }
 
     private:
+
+        void Defaults();
 
         ConnectionConfig m_connectionConfig;                                // connection configuration.
 
@@ -590,7 +590,9 @@ namespace yojimbo
     {
     public:
 
-        explicit Client( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL );
+        explicit Client( Allocator & allocator, Transport & transport );
+
+        explicit Client( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() );
 
         virtual ~Client();
 
@@ -694,9 +696,7 @@ namespace yojimbo
 
     protected:
 
-        virtual ConnectionConfig GetConnectionConfig() const { return ConnectionConfig(); }
-
-    protected:
+        void Defaults();
 
         ConnectionConfig m_connectionConfig;                                // connection configuration.
 

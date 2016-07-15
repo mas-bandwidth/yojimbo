@@ -33,13 +33,10 @@
 namespace yojimbo
 {
     const int MaxChannels = 64;
-
-    // todo: add checks to the connection packet serialize to make sure these estimates hold!!!
-
-    const int ConservativePacketHeaderEstimate = 128;
-    const int ConservativeMessageHeaderOverhead = 32;
-    const int ConservativeFragmentHeaderOverhead = 64;
-    const int ConservativePerChannelOverheadEstimate = 32;
+    const int ConservativeConnectionPacketHeaderEstimate = 80;
+    const int ConservativeMessageHeaderEstimate = 32;
+    const int ConservativeFragmentHeaderEstimate = 64;
+    const int ConservativeChannelHeaderEstimate = 32;
 
     enum ChannelCounters
     {
@@ -73,7 +70,7 @@ namespace yojimbo
 
         ChannelConfig()
         {
-            messagePacketBudget = 1024;
+            messagePacketBudget = 1100;
             maxMessagesPerPacket = 64;
             messageSendQueueSize = 1024;
             messageReceiveQueueSize = 1024;

@@ -32,22 +32,20 @@
 
 namespace yojimbo
 {
-    // todo: need to work out what is in connection config, and what is in channel config?
-
     struct ConnectionConfig
     {
-        int maxConnectionPacketSize;                            // maximum connection packet size in bytes
-        int connectionPacketType;                               // connection packet type (so you may override it)
+        int maxPacketSize;                                      // maximum connection packet size in bytes
         int slidingWindowSize;                                  // sliding window size for packet ack system (# of packets)
+        int connectionPacketType;                               // connection packet type (so you may override it)
         int numChannels;                                        // number of channels: [1,MaxChannels]
         ChannelConfig channelConfig[MaxChannels];
 
         ConnectionConfig()
         {
-            maxConnectionPacketSize = 4 * 1024;
-            connectionPacketType = 0;
+            maxPacketSize = 4 * 1024;
             slidingWindowSize = 1024;
             numChannels = 1;
+            connectionPacketType = 0;
         }
     };
 

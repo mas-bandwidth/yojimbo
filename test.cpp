@@ -1079,13 +1079,23 @@ class GameServer : public Server
     uint32_t m_gamePacketSequence;
     uint64_t m_numGamePacketsReceived[MaxClients];
 
-public:
-
-    explicit GameServer( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL ) : Server( allocator, transport, messageFactory )
+    void Initialize()
     {
         SetPrivateKey( private_key );
         m_gamePacketSequence = 0;
         memset( m_numGamePacketsReceived, 0, sizeof( m_numGamePacketsReceived ) );
+    }
+
+public:
+
+    explicit GameServer( Allocator & allocator, Transport & transport ) : Server( allocator, transport )
+    {
+        Initialize();
+    }
+
+    explicit GameServer( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : Server( allocator, transport, messageFactory, connectionConfig )
+    {
+        Initialize();
     }
 
     void OnClientConnect( int clientIndex )
@@ -1203,12 +1213,22 @@ class GameClient : public Client
     uint64_t m_numGamePacketsReceived;
     uint32_t m_gamePacketSequence;
 
-public:
-
-    explicit GameClient( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL ) : Client( allocator, transport, messageFactory )
+    void Initialize()
     {
         m_numGamePacketsReceived = 0;
         m_gamePacketSequence = 0;
+    }
+
+public:
+
+    explicit GameClient( Allocator & allocator, Transport & transport ) : Client( allocator, transport )
+    {
+        Initialize();
+    }
+
+    explicit GameClient( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : Client( allocator, transport, messageFactory, connectionConfig )
+    {
+        Initialize();
     }
 
     void SendGamePacketToServer()
@@ -4293,9 +4313,15 @@ void test_connection_client_server()
 
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
-    GameClient client( GetDefaultAllocator(), clientTransport, &messageFactory );
+    ConnectionConfig connectionConfig;
+    connectionConfig.maxPacketSize = 256;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channelConfig[0].maxBlockSize = 1024;
+    connectionConfig.channelConfig[0].fragmentSize = 200;
 
-    GameServer server( GetDefaultAllocator(), serverTransport, &messageFactory );
+    GameClient client( GetDefaultAllocator(), clientTransport, messageFactory, connectionConfig );
+
+    GameServer server( GetDefaultAllocator(), serverTransport, messageFactory, connectionConfig );
 
     server.SetServerAddress( serverAddress );
     
@@ -4340,11 +4366,11 @@ void test_connection_client_server()
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
-    const int NumMessagesSent = 16;
+    const int NumMessagesSent = 64;
 
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
-        if ( rand() % 2 )
+        if ( rand() % 10 )
         {
             TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
             check( message );
@@ -4356,7 +4382,7 @@ void test_connection_client_server()
             TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
-            const int blockSize = 1 + ( ( i * 901 ) % 3333 );
+            const int blockSize = 1 + ( ( i * 901 ) % 1001 );
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
@@ -4379,7 +4405,7 @@ void test_connection_client_server()
             TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
-            const int blockSize = 1 + ( ( i * 901 ) % 3333 );
+            const int blockSize = 1 + ( ( i * 901 ) % 1001 );
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
@@ -4439,7 +4465,7 @@ void test_connection_client_server()
 
                     const int blockSize = blockMessage->GetBlockSize();
 
-                    check( blockSize == 1 + ( ( numMessagesReceivedFromServer * 901 ) % 3333 ) );
+                    check( blockSize == 1 + ( ( numMessagesReceivedFromServer * 901 ) % 1001 ) );
         
                     const uint8_t * blockData = blockMessage->GetBlockData();
 
@@ -4487,7 +4513,7 @@ void test_connection_client_server()
 
                     const int blockSize = blockMessage->GetBlockSize();
 
-                    check( blockSize == 1 + ( ( numMessagesReceivedFromClient * 901 ) % 3333 ) );
+                    check( blockSize == 1 + ( ( numMessagesReceivedFromClient * 901 ) % 1001 ) );
         
                     const uint8_t * blockData = blockMessage->GetBlockData();
 

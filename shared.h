@@ -93,8 +93,13 @@ class GameServer : public Server
 {
 public:
 
-    explicit GameServer( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL ) 
-        : Server( allocator, transport, messageFactory )
+    explicit GameServer( Allocator & allocator, Transport & transport ) : Server( allocator, transport )
+    {
+        SetPrivateKey( private_key );
+    }
+
+    explicit GameServer( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() ) 
+        : Server( allocator, transport, messageFactory, connectionConfig )
     {
         SetPrivateKey( private_key );
     }
@@ -186,8 +191,13 @@ class GameClient : public Client
 {
 public:
 
-    explicit GameClient( Allocator & allocator, Transport & transport, MessageFactory * messageFactory = NULL ) 
-        : Client( allocator, transport, messageFactory )
+    explicit GameClient( Allocator & allocator, Transport & transport ) : Client( allocator, transport )
+    {
+        // ...
+    }
+
+    explicit GameClient( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() ) 
+        : Client( allocator, transport, messageFactory, connectionConfig )
     {
         // ...
     }
@@ -300,7 +310,7 @@ public:
 
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
-    static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
+    static int messageBitsArray[] = { 32 }; //1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
     const int modulus = sizeof( messageBitsArray ) / sizeof( int );
     const int index = sequence % modulus;
     return messageBitsArray[index];

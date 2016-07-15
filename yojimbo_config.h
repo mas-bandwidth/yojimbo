@@ -81,13 +81,13 @@
 
 #if DEBUG
 
-// these are slow
-
 #define YOJIMBO_DEBUG_MEMORY_LEAKS					1
 
 #define YOJIMBO_DEBUG_PACKET_LEAKS					1
     
 #define YOJIMBO_DEBUG_MESSAGE_LEAKS					1
+
+#define YOJIMBO_VALIDATE_PACKET_BUDGET              1
 
 #endif // #if DEBUG
 
