@@ -391,7 +391,7 @@ namespace yojimbo
         if ( Stream::IsWriting )
         {
             uint32_t a = messageId1;
-            uint32_t b = messageId2 + ( messageId1 > messageId2 ? 65536 : 0 );
+            uint32_t b = messageId2 + ( ( messageId1 > messageId2 ) ? 65536 : 0 );
             serialize_int_relative( stream, a, b );
         }
         else

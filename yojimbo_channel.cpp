@@ -93,6 +93,9 @@ namespace yojimbo
 
                 uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t ) * message.numMessages );
 
+                memset( messageTypes, 0, sizeof( int ) * message.numMessages );
+                memset( messageIds, 0, sizeof( uint16_t ) * message.numMessages );
+
                 if ( Stream::IsWriting )
                 {
                     assert( message.messages );
