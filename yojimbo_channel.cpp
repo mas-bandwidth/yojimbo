@@ -194,12 +194,12 @@ namespace yojimbo
 
                 if ( Stream::IsReading )
                 {
-                    Message * message = messageFactory.Create( block.messageType );
+                    Message * msg = messageFactory.Create( block.messageType );
 
-                    if ( !message || !message->IsBlockMessage() )
+                    if ( !msg || !msg->IsBlockMessage() )
                         return false;
 
-                    block.message = (BlockMessage*) message;
+                    block.message = (BlockMessage*) msg;
                 }
 
                 assert( block.message );
@@ -879,7 +879,7 @@ namespace yojimbo
                 {
                     // finished receiving block
 
-                    BlockMessage * blockMessage = m_receiveBlock->blockMessage;
+                    blockMessage = m_receiveBlock->blockMessage;
 
                     assert( blockMessage );
 

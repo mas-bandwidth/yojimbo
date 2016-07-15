@@ -4070,7 +4070,7 @@ void test_connection_messages_and_blocks_multiple_channels()
 {
     printf( "test_connection_messages_and_blocks_multiple_channels\n" );
 
-    int NumChannels = 2;
+    const int NumChannels = 2;
 
     TestPacketFactory packetFactory( GetDefaultAllocator() );
 
