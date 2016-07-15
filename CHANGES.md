@@ -67,6 +67,18 @@ Channel 0 is receiving messages, but channel 1 is not. What is going on?
 
 Argh. Was just a stupid mistake in the test.
 
+You should be able to specify whether a channel allows blocks or not.
+
+For reliable-ordered channels, this will save memory allocating send and receive block data.
+
+Assert *and* set an error if a block is ever sent (or received) over a channel that does not allow blocks.
+
+Update code to only allocate blocks if blocks are enabled in the config for that channel.
+
+Enable blocks by default. This is an optimization the user will have to manually specify. Blocks by default.
+
+Done. Pretty easy.
+
 
 Wednesday July 13th, 2016
 =========================

@@ -61,6 +61,7 @@ namespace yojimbo
         int fragmentSize;                                       // block fragments size in bytes
         float fragmentResendTime;                               // fragment resend time (seconds)
         int sentPacketsSize;                                    // size of sent packets buffer (maps packet level acks to messages & fragments)
+        bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.
 
         ChannelConfig()
         {
@@ -73,6 +74,7 @@ namespace yojimbo
             fragmentSize = 1024;
             fragmentResendTime = 0.25f;
             sentPacketsSize = 1024;
+            disableBlocks = false;
         }
 
         int GetMaxFragmentsPerBlock() const
