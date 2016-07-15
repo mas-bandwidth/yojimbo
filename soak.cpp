@@ -26,9 +26,6 @@
 #define CLIENT 1
 #define MATCHER 1
 
-// todo: remove this
-#define QUIET 1
-
 #include "shared.h"
 #include <signal.h>
 
@@ -196,8 +193,7 @@ int SoakMain()
 
                         assert( gameMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
 
-// todo
-//                        printf( "received message %d\n", gameMessage->sequence );
+                        printf( "received message %d\n", gameMessage->sequence );
 
                         server.ReleaseMessage( message );
 
@@ -234,8 +230,7 @@ int SoakMain()
                             }
                         }
 
-// todo
-//                        printf( "received block %d\n", uint16_t( numMessagesReceivedFromClient ) );
+                        printf( "received block %d\n", uint16_t( numMessagesReceivedFromClient ) );
 
                         server.ReleaseMessage( message );
 

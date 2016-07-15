@@ -307,16 +307,6 @@ namespace yojimbo
             return GetBitsRemaining() / 8;
         }
 
-        int GetTotalBits() const 
-        {
-            return m_numBits;
-        }
-
-        int GetTotalBytes() const
-        {
-            return m_numBits / 8;
-        }
-
     private:
 
         const uint32_t * m_data;

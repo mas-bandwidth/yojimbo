@@ -33,7 +33,7 @@
 namespace yojimbo
 {
     const int MaxChannels = 64;
-    const int ConservativeConnectionPacketHeaderEstimate = 80;
+    const int ConservativeConnectionPacketHeaderEstimate = 128;
     const int ConservativeMessageHeaderEstimate = 32;
     const int ConservativeFragmentHeaderEstimate = 64;
     const int ConservativeChannelHeaderEstimate = 32;
@@ -165,9 +165,9 @@ namespace yojimbo
 
         bool HasMessagesToSend() const;
 
-        void GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits );
+        int GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits );
 
-        int GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds );
+        void GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds );
 
         void AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence );
 
@@ -214,8 +214,6 @@ namespace yojimbo
         int m_channelId;                                                                // channel id [0,MaxChannels-1]
 
         ChannelError m_error;                                                           // channel error level
-
-        int m_messageOverheadBits;                                                      // number of bits overhead per-serialized message
 
         uint16_t m_sendMessageId;                                                       // id for next message added to send queue
 

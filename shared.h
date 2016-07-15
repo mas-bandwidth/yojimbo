@@ -310,7 +310,7 @@ public:
 
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
-    static int messageBitsArray[] = { 32 }; //1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
+    static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
     const int modulus = sizeof( messageBitsArray ) / sizeof( int );
     const int index = sequence % modulus;
     return messageBitsArray[index];

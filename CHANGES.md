@@ -129,6 +129,18 @@ I wonder what the CPU cost will be of running through the serialize measure on t
 
 Well, it's worth it. Messages must be tightly packed, and we can't let it be this inaccurate.
 
+Implement a better estimate of the per-message id overhead.
+
+This estimate must consider the relative serialization of ids in order to be accurate. Do it.
+
+------------------
+
+Why even have a byte limit on the message stream? Why not just measure and check the # of bytes after measurement if necessary? Annoying.
+
+The byte limit exists so "GetTotalBytes" works. But is this really ever used by anybody?
+
+Removed concept. If you are working to a budget, you should know that budget externally to the stream. Its not the stream's job.
+
 
 Wednesday July 13th, 2016
 =========================

@@ -125,21 +125,6 @@ namespace yojimbo
             return m_writer.GetBitsWritten();
         }
 
-        int GetBitsRemaining() const
-        {
-            return GetTotalBits() - GetBitsProcessed();
-        }
-
-        int GetTotalBits() const
-        {
-            return m_writer.GetTotalBytes() * 8;
-        }
-
-        int GetTotalBytes() const
-        {
-            return m_writer.GetTotalBytes();
-        }
-
         void SetContext( void *context )
         {
             m_context = context;
@@ -260,11 +245,6 @@ namespace yojimbo
             return m_bitsRead;
         }
 
-        int GetBitsRemaining() const
-        {
-            return m_reader.GetBitsRemaining();
-        }
-
         int GetBytesProcessed() const
         {
             return ( m_bitsRead + 7 ) / 8;
@@ -305,14 +285,11 @@ namespace yojimbo
         enum { IsWriting = 1 };
         enum { IsReading = 0 };
 
-        explicit MeasureStream( int bytes ) : m_context( NULL ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_totalBytes( bytes ), m_bitsWritten(0) {}
+        explicit MeasureStream() : m_context( NULL ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_bitsWritten(0) {}
 
-#ifdef DEBUG
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
-#else // #ifdef DEBUG
-        bool SerializeInteger( int32_t /*value*/, int32_t min, int32_t max )
-#endif // #ifdef DEBUG
-        {
+        {   
+            (void)value;
             assert( min < max );
             assert( value >= min );
             assert( value <= max );
@@ -364,7 +341,7 @@ namespace yojimbo
 
         int GetBitsRemaining() const
         {
-            return m_totalBytes * 8 - GetBitsProcessed();
+            return 0;
         }
 
         int GetBytesProcessed() const
@@ -374,12 +351,12 @@ namespace yojimbo
 
         int GetTotalBytes() const
         {
-            return m_totalBytes;
+            return 0;
         }
 
         int GetTotalBits() const
         {
-            return m_totalBytes * 8;
+            return 0;
         }
 
         void SetContext( void * context )
@@ -401,7 +378,6 @@ namespace yojimbo
 
         void * m_context;
         int m_error;
-        int m_totalBytes;
         int m_bitsWritten;
     };
 }
