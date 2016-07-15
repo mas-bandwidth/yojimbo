@@ -233,8 +233,14 @@ namespace yojimbo
         memset( channelHasData, 0, sizeof( channelHasData ) );
         ChannelPacketData channelData[MaxChannels];
 
+        int availableBits = m_config.maxConnectionPacketSize;
+
+        availableBits -= ConservativePacketHeaderEstimate;
+
         for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
+            availableBits -= ConservativePerChannelOverheadEstimate;
+
             uint16_t * messageIds = (uint16_t*) alloca( m_config.channelConfig[channelId].maxMessagesPerPacket * sizeof( uint16_t ) );
 
             if ( m_channel[channelId]->HasMessagesToSend() )
@@ -251,30 +257,34 @@ namespace yojimbo
 
                     if ( fragmentData )
                     {
-                        m_channel[channelId]->GetFragmentPacketData( channelData[channelId], messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
+                        int fragmentBits = m_channel[channelId]->GetFragmentPacketData( channelData[channelId], messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
 
                         m_channel[channelId]->AddFragmentPacketEntry( messageId, fragmentId, packet->sequence );
 
                         channelHasData[channelId] = true;
 
                         numChannelsWithData++;
+
+                        availableBits -= fragmentBits;
                     }
                 }
                 else
                 {
                     int numMessageIds = 0;
 
-                    m_channel[channelId]->GetMessagesToSend( messageIds, numMessageIds );
+                    m_channel[channelId]->GetMessagesToSend( messageIds, numMessageIds, availableBits );
 
                     if ( numMessageIds > 0 )
                     {
-                        m_channel[channelId]->GetMessagePacketData( channelData[channelId], messageIds, numMessageIds );
+                        const int messageBits = m_channel[channelId]->GetMessagePacketData( channelData[channelId], messageIds, numMessageIds );
 
                         m_channel[channelId]->AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
 
                         channelHasData[channelId] = true;
 
                         numChannelsWithData++;
+
+                        availableBits -= messageBits;
                     }
                 }
             }
