@@ -62,6 +62,10 @@ namespace yojimbo
 
     template <typename Stream> bool ChannelPacketData::Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
     {
+#if YOJIMBO_VALIDATE_PACKET_BUDGET
+        int startBits = stream.GetBitsProcessed();
+#endif // #if YOJIMBO_VALIDATE_PACKET_BUDGET
+
         if ( numChannels > 1 )
             serialize_int( stream, channelId, 0, numChannels - 1 );
         else
@@ -111,7 +115,9 @@ namespace yojimbo
 
                 for ( int i = 1; i < message.numMessages; ++i )
                 {
-                    serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
+                    //serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
+
+                    serialize_bits( stream, messageIds[i], 16 );
                 }
 
                 for ( int i = 0; i < message.numMessages; ++i )
@@ -141,6 +147,15 @@ namespace yojimbo
                         return false;
                 }
             }
+
+#if YOJIMBO_VALIDATE_PACKET_BUDGET
+            if ( channelConfig.messagePacketBudget > 0 )
+            {
+                assert( stream.GetBitsProcessed() - startBits <= channelConfig.messagePacketBudget * 8 );
+                if ( Stream::IsWriting )
+                    printf( "%d messages used %.1f bytes\n", message.numMessages, ( stream.GetBitsProcessed() - startBits ) / 8.0f );
+            }
+#endif // #if YOJIMBO_VALIDATE_PACKET_BUDGET
         }
         else
         {
@@ -431,7 +446,7 @@ namespace yojimbo
 
         numMessageIds = 0;
 
-        const int GiveUpBits = 8 * 8;
+        const int GiveUpBits = 4 * 8;
 
         if ( m_config.messagePacketBudget > 0 )
             availableBits = min( m_config.messagePacketBudget * 8, availableBits );
@@ -454,7 +469,7 @@ namespace yojimbo
             {
                 messageIds[numMessageIds++] = messageId;
                 entry->timeLastSent = m_time;
-                availableBits -= entry->measuredBits + m_messageOverheadBits;
+                availableBits -= entry->measuredBits;
             }
 
             if ( availableBits <= GiveUpBits )
@@ -480,7 +495,7 @@ namespace yojimbo
 
         packetData.message.messages = (Message**) m_messageFactory->GetAllocator().Allocate( sizeof( Message* ) * numMessageIds );
 
-        int messageBits = ConservativeMessageHeaderOverhead;
+        int messageBits = ConservativeMessageHeaderEstimate;
 
         for ( int i = 0; i < numMessageIds; ++i )
         {
@@ -488,7 +503,7 @@ namespace yojimbo
             assert( entry );
             packetData.message.messages[i] = entry->message;
             m_messageFactory->AddRef( packetData.message.messages[i] );
-            messageBits += entry->measuredBits + m_messageOverheadBits;
+            messageBits += entry->measuredBits;
         }
 
         return messageBits;
@@ -750,7 +765,7 @@ namespace yojimbo
             assert( entry->message );
             packetData.block.message = (BlockMessage*) entry->message;
             m_messageFactory->AddRef( packetData.block.message );
-            return ConservativeFragmentHeaderOverhead + entry->measuredBits + m_messageOverheadBits;
+            return ConservativeFragmentHeaderEstimate + entry->measuredBits;
         }
         else
         {

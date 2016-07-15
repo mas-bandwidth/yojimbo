@@ -2,17 +2,9 @@ DONE
 
 TODO    
 
-    ------------------
+    Implement a better estimate of the per-message id overhead.
 
-    Add serialization checks to make sure conservative estimates hold for various parts of the packet.
-
-    ------------------
-
-    Add a unit test with a constrained packet size to make sure the budgeting is working properly.
-
-    ------------------
-
-    Modify the soak test so the budgeting will come into play.
+    This estimate must consider the relative serialization of ids in order to be accurate. Do it.
 
     ------------------
 

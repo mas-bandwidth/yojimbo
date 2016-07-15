@@ -382,37 +382,41 @@ namespace yojimbo
 
     // =============================================================
 
-    Server::Server( Allocator & allocator, Transport & transport, MessageFactory * messageFactory )
+    void Server::Defaults()
     {
         memset( m_privateKey, 0, KeyBytes );
-
-        m_allocator = &allocator;
-
-        m_transport = &transport;
-
-        m_messageFactory = messageFactory;
-
+        m_allocator = NULL;
+        m_transport = NULL;
+        m_messageFactory = NULL;
         memset( m_connection, 0, sizeof( m_connection ) );
-
         m_time = 0.0;
-
         m_flags = 0;
-
         m_maxClients = -1;
-
         m_numConnectedClients = 0;
-
         m_challengeTokenNonce = 0;
-
         m_globalSequence = 0;
-
         memset( m_clientSequence, 0, sizeof( m_clientSequence ) );
-
         for ( int i = 0; i < MaxClients; ++i )
             ResetClientState( i );
-
         memset( m_counters, 0, sizeof( m_counters ) );
+    }
 
+    Server::Server( Allocator & allocator, Transport & transport )
+    {
+        Defaults();
+        m_allocator = &allocator;
+        m_transport = &transport;
+        InitializeContext();
+    }
+
+    Server::Server( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+    {
+        Defaults();
+        m_allocator = &allocator;
+        m_transport = &transport;
+        m_messageFactory = &messageFactory;
+        m_connectionConfig = connectionConfig;
+        m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
         InitializeContext();
     }
 
@@ -448,10 +452,6 @@ namespace yojimbo
 
         if ( m_messageFactory )
         {
-            m_connectionConfig = GetConnectionConfig();
-
-            m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
-
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
@@ -1342,32 +1342,45 @@ namespace yojimbo
         }
     }
 
-    Client::Client( Allocator & allocator, Transport & transport, MessageFactory * messageFactory )
+    void Client::Defaults()
     {
+        m_allocator = NULL;
+        m_transport = NULL;
+        m_messageFactory = NULL;
+        m_connection = NULL;
+        m_time = 0.0;
+        m_clientState = CLIENT_STATE_DISCONNECTED;
+    }
+
+    Client::Client( Allocator & allocator, Transport & transport )
+    {
+        Defaults();
+
         m_allocator = &allocator;
 
         m_transport = &transport;
 
-        m_messageFactory = messageFactory;
+        InitializeContext();
 
-        if ( messageFactory )
-        {
-            m_connectionConfig = GetConnectionConfig();
+        ResetConnectionData();
+    }
 
-            m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
+    Client::Client( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+    {
+        Defaults();
 
-            m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
+        m_allocator = &allocator;
 
-            m_connection->SetListener( this );
-        }
-        else
-        {
-            m_connection = NULL;
-        }
+        m_transport = &transport;
 
-        m_time = 0.0;
+        m_messageFactory = &messageFactory;
 
-        m_clientState = CLIENT_STATE_DISCONNECTED;
+        m_connectionConfig = connectionConfig;
+        m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
+
+        m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
+
+        m_connection->SetListener( this );
 
         InitializeContext();
 

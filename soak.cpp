@@ -26,6 +26,9 @@
 #define CLIENT 1
 #define MATCHER 1
 
+// todo: remove this
+#define QUIET 1
+
 #include "shared.h"
 #include <signal.h>
 
@@ -80,11 +83,15 @@ int SoakMain()
 
     GameMessageFactory messageFactory;
 
-    double time = 0.0;
+    ConnectionConfig connectionConfig;
+    connectionConfig.maxPacketSize = 1100;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channelConfig[0].messagePacketBudget = 256;
+    connectionConfig.channelConfig[0].maxMessagesPerPacket = 256;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, &messageFactory );
+    GameClient client( GetDefaultAllocator(), clientTransport, messageFactory, connectionConfig );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, &messageFactory );
+    GameServer server( GetDefaultAllocator(), serverTransport, messageFactory, connectionConfig );
 
     server.SetServerAddress( serverAddress );
 
@@ -96,6 +103,8 @@ int SoakMain()
     uint64_t numMessagesReceivedFromClient = 0;
 
     signal( SIGINT, interrupt_handler );    
+
+    double time = 0.0;
 
     while ( !quit )
     {
@@ -187,7 +196,8 @@ int SoakMain()
 
                         assert( gameMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
 
-                        printf( "received message %d\n", gameMessage->sequence );
+// todo
+//                        printf( "received message %d\n", gameMessage->sequence );
 
                         server.ReleaseMessage( message );
 
@@ -224,7 +234,8 @@ int SoakMain()
                             }
                         }
 
-                        printf( "received block %d\n", uint16_t( numMessagesReceivedFromClient ) );
+// todo
+//                        printf( "received block %d\n", uint16_t( numMessagesReceivedFromClient ) );
 
                         server.ReleaseMessage( message );
 

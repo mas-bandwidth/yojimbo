@@ -79,6 +79,56 @@ Enable blocks by default. This is an optimization the user will have to manually
 
 Done. Pretty easy.
 
+Add serialization checks to make sure conservative estimates hold for various parts of the packet.
+
+Added some basic checks, that the connection packet header is within the conservative estimate, and that 
+message serialiation doesn't go over budget.
+
+Note that there are still other failure cases that could show up, but hopefully the conservative estimates will hold.
+
+Add a unit test with a constrained packet size to make sure the budgeting is working properly.
+
+Need a way to pass a connection config into the client/server.
+
+What's the best way?
+
+Made two versions of ctor for client and server, one that takes a message factory and connection config, and another that doesn't.
+
+With the plain constructor, you take no overhead for messages and can just get a server with entirely your own packets.
+
+With the message and config constructor, you can fully configure the connection setup. Yes! :D
+
+Modify the client/server message test so budgeting comes into play.
+
+Modify the soak test so budgeting comes into play.
+
+I don't trust it yet.
+
+It doesn't trigger, but I think it might be miscalculting and going way under the budget.
+
+I want it to get at least close to the budget, within 10s of bytes.
+
+How to verify channel budgeting is working as expected?
+
+I think it is basically correct, except there is too much overhead per-message. As messages get smaller,
+the overhead per-message is overestimated, and they don't converge closer to the limit, in fact they go further away.
+
+Found it. I was double counting the message overhead (type, id) per-message.
+
+Now it's a bit better, but still really underestimating.
+
+My guess is that I'm saving a lot of bits with the relative encoding of the message id, and this is what is throwing off the estimate.
+
+Test it by disabling this...
+
+Yes. This was it. Is it worth refining the # of bits estimate to get it closer? I think it is.
+
+I can do this. It's just a bit of work.
+
+I wonder what the CPU cost will be of running through the serialize measure on the relative 
+
+Well, it's worth it. Messages must be tightly packed, and we can't let it be this inaccurate.
+
 
 Wednesday July 13th, 2016
 =========================

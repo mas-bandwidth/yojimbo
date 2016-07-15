@@ -95,6 +95,10 @@ namespace yojimbo
 
         serialize_int( stream, numChannelEntries, 0, context->connectionConfig->numChannels );
 
+#if YOJIMBO_VALIDATE_PACKET_BUDGET
+        assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
+#endif // #if YOJIMBO_VALIDATE_PACKET_BUDGET
+
         if ( numChannelEntries > 0 )
         {
             if ( Stream::IsReading )
@@ -233,13 +237,13 @@ namespace yojimbo
         memset( channelHasData, 0, sizeof( channelHasData ) );
         ChannelPacketData channelData[MaxChannels];
 
-        int availableBits = m_config.maxConnectionPacketSize;
+        int availableBits = m_config.maxPacketSize * 8;
 
-        availableBits -= ConservativePacketHeaderEstimate;
+        availableBits -= ConservativeConnectionPacketHeaderEstimate;
 
         for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
-            availableBits -= ConservativePerChannelOverheadEstimate;
+            availableBits -= ConservativeChannelHeaderEstimate;
 
             uint16_t * messageIds = (uint16_t*) alloca( m_config.channelConfig[channelId].maxMessagesPerPacket * sizeof( uint16_t ) );
 
