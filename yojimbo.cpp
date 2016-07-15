@@ -32,7 +32,7 @@
 #include <sodium.h>
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-#include <unordered_map>
+#include <map>
 #endif // YOJIMBO_DEBUG_MEMORY_LEAKS
 
 static yojimbo::Allocator * g_defaultAllocator = NULL;
@@ -42,7 +42,7 @@ namespace yojimbo
     class DefaultAllocator : public Allocator
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        std::unordered_map<void*,uint32_t> m_alloc_map;
+        std::map<void*,uint32_t> m_alloc_map;
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
     public:
