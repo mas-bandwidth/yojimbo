@@ -60,6 +60,148 @@ namespace yojimbo
         }
     }
 
+    template <typename Stream> bool SerializeOrderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** & messages, int maxMessagesPerPacket )
+    {
+        const int maxMessageType = messageFactory.GetNumTypes() - 1;
+
+        bool hasMessages = Stream::IsWriting && numMessages != 0;
+
+        serialize_bool( stream, hasMessages );
+
+        if ( hasMessages )
+        {
+            serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
+
+            int * messageTypes = (int*) alloca( sizeof( int ) * numMessages );
+
+            uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t ) * numMessages );
+
+            memset( messageTypes, 0, sizeof( int ) * numMessages );
+            memset( messageIds, 0, sizeof( uint16_t ) * numMessages );
+
+            if ( Stream::IsWriting )
+            {
+                assert( messages );
+
+                for ( int i = 0; i < numMessages; ++i )
+                {
+                    assert( messages[i] );
+                    messageTypes[i] = messages[i]->GetType();
+                    messageIds[i] = messages[i]->GetId();
+                }
+            }
+            else
+            {
+                Allocator & allocator = messageFactory.GetAllocator();
+
+                messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
+            }
+
+            serialize_bits( stream, messageIds[0], 16 );
+
+            for ( int i = 1; i < numMessages; ++i )
+                serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
+
+            for ( int i = 0; i < numMessages; ++i )
+            {
+                if ( maxMessageType > 0 )
+                {
+                    serialize_int( stream, messageTypes[i], 0, maxMessageType );
+                }
+                else
+                {
+                    messageTypes[i] = 0;
+                }
+
+                if ( Stream::IsReading )
+                {
+                    messages[i] = messageFactory.Create( messageTypes[i] );
+
+                    if ( !messages[i] )
+                        return false;
+
+                    messages[i]->AssignId( messageIds[i] );
+                }
+
+                assert( messages[i] );
+
+                if ( !messages[i]->SerializeInternal( stream ) )
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** messages, int maxMessagesPerPacket )
+    {
+        (void)stream;
+        (void)messageFactory;
+        (void)numMessages;
+        (void)messages;
+        (void)maxMessagesPerPacket;
+        return true;
+    }
+
+    template <typename Stream> bool SerializeBlockFragment( Stream & stream, MessageFactory & messageFactory, ChannelPacketData::BlockData & block, const ChannelConfig & channelConfig )
+    {
+        const int maxMessageType = messageFactory.GetNumTypes() - 1;
+
+        serialize_bits( stream, block.messageId, 16 );
+
+        serialize_int( stream, block.numFragments, 1, channelConfig.GetMaxFragmentsPerBlock() );
+
+        if ( block.numFragments > 1 )
+        {
+            serialize_int( stream, block.fragmentId, 0, block.numFragments - 1 );
+        }
+        else
+        {
+            block.fragmentId = 0;
+        }
+
+        serialize_int( stream, block.fragmentSize, 1, channelConfig.fragmentSize );
+
+        if ( Stream::IsReading )
+        {
+            block.fragmentData = (uint8_t*) messageFactory.GetAllocator().Allocate( block.fragmentSize );
+
+            if ( !block.fragmentData )
+                return false;
+        }
+
+        serialize_bytes( stream, block.fragmentData, block.fragmentSize );
+
+        if ( block.fragmentId == 0 )
+        {
+            // block message
+
+            serialize_int( stream, block.messageType, 0, maxMessageType );
+
+            if ( Stream::IsReading )
+            {
+                Message * msg = messageFactory.Create( block.messageType );
+
+                if ( !msg || !msg->IsBlockMessage() )
+                    return false;
+
+                block.message = (BlockMessage*) msg;
+            }
+
+            assert( block.message );
+
+            if ( !block.message->SerializeInternal( stream ) )
+                return false;
+        }
+        else
+        {
+            if ( Stream::IsReading )
+                block.message = NULL;
+        }
+
+        return true;
+    }
+
     template <typename Stream> bool ChannelPacketData::Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
     {
 #if YOJIMBO_VALIDATE_PACKET_BUDGET
@@ -73,79 +215,12 @@ namespace yojimbo
 
         const ChannelConfig & channelConfig = channelConfigs[channelId];
 
-        const int maxMessageType = messageFactory.GetNumTypes() - 1;
-
         serialize_bool( stream, blockMessage );
 
         if ( !blockMessage )
         {
-            // serialize messages
-
-            bool hasMessages = Stream::IsWriting && message.numMessages != 0;
-
-            serialize_bool( stream, hasMessages );
-
-            if ( hasMessages )
-            {
-                serialize_int( stream, message.numMessages, 1, channelConfig.maxMessagesPerPacket );
-
-                int * messageTypes = (int*) alloca( sizeof( int ) * message.numMessages );
-
-                uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t ) * message.numMessages );
-
-                memset( messageTypes, 0, sizeof( int ) * message.numMessages );
-                memset( messageIds, 0, sizeof( uint16_t ) * message.numMessages );
-
-                if ( Stream::IsWriting )
-                {
-                    assert( message.messages );
-
-                    for ( int i = 0; i < message.numMessages; ++i )
-                    {
-                        assert( message.messages[i] );
-                        messageTypes[i] = message.messages[i]->GetType();
-                        messageIds[i] = message.messages[i]->GetId();
-                    }
-                }
-                else
-                {
-                    Allocator & allocator = messageFactory.GetAllocator();
-
-                    message.messages = (Message**) allocator.Allocate( sizeof( Message* ) * message.numMessages );
-                }
-
-                serialize_bits( stream, messageIds[0], 16 );
-
-                for ( int i = 1; i < message.numMessages; ++i )
-                    serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
-
-                for ( int i = 0; i < message.numMessages; ++i )
-                {
-                    if ( maxMessageType > 0 )
-                    {
-                        serialize_int( stream, messageTypes[i], 0, maxMessageType );
-                    }
-                    else
-                    {
-                        messageTypes[i] = 0;
-                    }
-
-                    if ( Stream::IsReading )
-                    {
-                        message.messages[i] = messageFactory.Create( messageTypes[i] );
-
-                        if ( !message.messages[i] )
-                            return false;
-
-                        message.messages[i]->AssignId( messageIds[i] );
-                    }
-
-                    assert( message.messages[i] );
-
-                    if ( !message.messages[i]->SerializeInternal( stream ) )
-                        return false;
-                }
-            }
+            if ( !SerializeOrderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket ) )
+                return false;
 
 #if YOJIMBO_VALIDATE_PACKET_BUDGET
             if ( channelConfig.messagePacketBudget > 0 )
@@ -156,62 +231,11 @@ namespace yojimbo
         }
         else
         {
-            // block message
-
             if ( channelConfig.disableBlocks )
                 return false;
 
-            serialize_bits( stream, block.messageId, 16 );
-
-            serialize_int( stream, block.numFragments, 1, channelConfig.GetMaxFragmentsPerBlock() );
-
-            if ( block.numFragments > 1 )
-            {
-                serialize_int( stream, block.fragmentId, 0, block.numFragments - 1 );
-            }
-            else
-            {
-                block.fragmentId = 0;
-            }
-
-            serialize_int( stream, block.fragmentSize, 1, channelConfig.fragmentSize );
-
-            if ( Stream::IsReading )
-            {
-                block.fragmentData = (uint8_t*) messageFactory.GetAllocator().Allocate( block.fragmentSize );
-
-                if ( !block.fragmentData )
-                    return false;
-            }
-
-            serialize_bytes( stream, block.fragmentData, block.fragmentSize );
-
-            if ( block.fragmentId == 0 )
-            {
-                // block message
-
-                serialize_int( stream, block.messageType, 0, maxMessageType );
-
-                if ( Stream::IsReading )
-                {
-                    Message * msg = messageFactory.Create( block.messageType );
-
-                    if ( !msg || !msg->IsBlockMessage() )
-                        return false;
-
-                    block.message = (BlockMessage*) msg;
-                }
-
-                assert( block.message );
-
-                if ( !block.message->SerializeInternal( stream ) )
-                    return false;
-            }
-            else
-            {
-                if ( Stream::IsReading )
-                    block.message = NULL;
-            }
+            if ( !SerializeBlockFragment( stream, messageFactory, block, channelConfig ) )
+                return false;
         }
 
         return true;
