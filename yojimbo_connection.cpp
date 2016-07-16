@@ -315,7 +315,9 @@ namespace yojimbo
     {
         for ( int i = 0; i < m_config.numChannels; ++i )
         {
-            ChannelError error = m_channel[i]->AdvanceTime( time );
+            m_channel[i]->AdvanceTime( time );
+
+            ChannelError error = m_channel[i]->GetError();
 
             if ( error != CHANNEL_ERROR_NONE )
             {

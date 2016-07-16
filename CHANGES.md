@@ -56,6 +56,15 @@ Specifically, the whole loop across channel ids should just call into a single f
 
 Starting by sketching out a virtual channel interface, and then moving the existing channel into ReliableOrderedChannel.
 
+Almost working post-refactor. Messages are working, but something is going wrong with blocks.
+
+Fixed it. Was a bad fuckup on fragment bits, which was returning 0 bits for any fragment id not equal to zero.
+
+This bug was always there, it's just that now I'm deriving "does this channel have data to send" based on the # of bits
+it says it has to send.
+
+Soak is working again.
+
 
 Thursday July 14th, 2016
 ========================

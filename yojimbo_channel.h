@@ -155,6 +155,8 @@ namespace yojimbo
     {
     public:
 
+        Channel() { m_channelId = 0; m_error = CHANNEL_ERROR_NONE; }
+
         virtual ~Channel() {}
 
         virtual void SetListener( ChannelListener * listener ) = 0;
@@ -167,7 +169,7 @@ namespace yojimbo
 
         virtual Message * ReceiveMessage() = 0;
 
-        virtual ChannelError AdvanceTime( double time ) = 0;
+        virtual void AdvanceTime( double time ) = 0;
 
         virtual int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits ) = 0;
 
@@ -175,7 +177,28 @@ namespace yojimbo
 
         virtual void ProcessAck( uint16_t sequence ) = 0;
 
-        virtual int GetChannelId() const = 0;           // todo: I don't really like this being virtual
+        ChannelError GetError() const { return m_error; }
+
+        int GetChannelId() const { return m_channelId; }
+
+    protected:
+
+        void SetError( ChannelError error )
+        {
+            m_error = error;
+        }
+
+        void SetChannelId( int channelId )
+        {
+            assert( channelId >= 0 );
+            assert( channelId < MaxChannels );
+            m_channelId = channelId;
+        }
+
+    private:
+
+        int m_channelId;
+        ChannelError m_error;
     };
 
     class ReliableOrderedChannel : public Channel
@@ -194,9 +217,7 @@ namespace yojimbo
 
         Message * ReceiveMessage();
 
-        ChannelError AdvanceTime( double time );
-
-        ChannelError GetError() const;
+        void AdvanceTime( double time );
 
         int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
 
@@ -234,8 +255,6 @@ namespace yojimbo
 
         void SetListener( ChannelListener * listener ) { m_listener = listener; }
 
-        int GetChannelId() const { return m_channelId; }
-
     private:
 
         const ChannelConfig m_config;                                                   // const configuration data
@@ -247,10 +266,6 @@ namespace yojimbo
         MessageFactory * m_messageFactory;                                              // message factory creates and destroys messages
 
         double m_time;                                                                  // current time
-
-        int m_channelId;                                                                // channel id [0,MaxChannels-1]
-
-        ChannelError m_error;                                                           // channel error level
 
         uint16_t m_sendMessageId;                                                       // id for next message added to send queue
 
