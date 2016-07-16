@@ -975,4 +975,152 @@ namespace yojimbo
         assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
         return m_counters[index];
     }
+
+    // ------------------------------------------------
+
+    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
+        : m_config( config )
+    {
+        SetChannelId( channelId );
+
+        m_allocator = &allocator;
+
+        m_messageFactory = &messageFactory;
+
+        m_listener = NULL;
+
+        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.messageSendQueueSize );
+        
+        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.messageReceiveQueueSize );
+
+        Reset();
+    }
+
+    UnreliableUnorderedChannel::~UnreliableUnorderedChannel()
+    {
+        Reset();
+
+        YOJIMBO_DELETE( *m_allocator, Queue<Message*>, m_messageSendQueue );
+        YOJIMBO_DELETE( *m_allocator, Queue<Message*>, m_messageReceiveQueue );
+    }
+
+    void UnreliableUnorderedChannel::Reset()
+    {
+        SetError( CHANNEL_ERROR_NONE );
+
+        for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )
+            m_messageFactory->Release( (*m_messageSendQueue)[i] );
+
+        for ( int i = 0; i < m_messageReceiveQueue->GetNumEntries(); ++i )
+            m_messageFactory->Release( (*m_messageReceiveQueue)[i] );
+
+        m_messageSendQueue->Clear();
+        m_messageReceiveQueue->Clear();
+  
+        memset( m_counters, 0, sizeof( m_counters ) );
+    }
+
+    bool UnreliableUnorderedChannel::CanSendMessage() const
+    {
+        assert( m_messageSendQueue );
+
+        return !m_messageSendQueue->IsFull();
+    }
+
+    void UnreliableUnorderedChannel::SendMessage( Message * message )
+    {
+        assert( message );
+        assert( CanSendMessage() );
+
+        if ( GetError() != CHANNEL_ERROR_NONE )
+        {
+            m_messageFactory->Release( message );
+            return;
+        }
+
+        if ( !CanSendMessage() )
+        {
+            SetError( CHANNEL_ERROR_SEND_QUEUE_FULL );
+            m_messageFactory->Release( message );
+            return;
+        }
+
+        assert( !( message->IsBlockMessage() && m_config.disableBlocks ) );
+
+        if ( message->IsBlockMessage() && m_config.disableBlocks )
+        {
+            SetError( CHANNEL_ERROR_BLOCKS_DISABLED );
+            m_messageFactory->Release( message );
+            return;
+        }
+
+        m_messageSendQueue->Push( message );
+    }
+
+    Message * UnreliableUnorderedChannel::ReceiveMessage()
+    {
+        if ( GetError() != CHANNEL_ERROR_NONE )
+            return NULL;
+
+        if ( m_messageReceiveQueue->IsEmpty() )
+            return NULL;
+
+        m_counters[CHANNEL_COUNTER_MESSAGES_RECEIVED]++;
+
+        return m_messageReceiveQueue->Pop();
+    }
+
+    void UnreliableUnorderedChannel::AdvanceTime( double time )
+    {
+        (void)time;
+    }
+    
+    int UnreliableUnorderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
+    {
+        (void)packetData;
+        (void)packetSequence;
+        (void)availableBits;
+        return 0;
+    }
+
+    void UnreliableUnorderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
+    {
+        (void)packetData;
+        (void)packetSequence;
+    }
+
+    void UnreliableUnorderedChannel::ProcessAck( uint16_t ack )
+    {
+        (void)ack;
+    }
+
+    uint64_t UnreliableUnorderedChannel::GetCounter( int index ) const
+    {
+        assert( index >= 0 );
+        assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
+        return m_counters[index];
+    }
+
+#if 0
+
+    /*
+    MeasureStream measureStream;
+
+    message->SerializeInternal( measureStream );
+
+    if ( measureStream.GetError() )
+    {
+        SetError( CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED );
+        m_messageFactory->Release( message );
+        return;
+    }
+
+    entry->measuredBits = measureStream.GetBitsProcessed();
+
+    m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
+
+    m_sendMessageId++;
+    */
+
+#endif // #if 0
 }
