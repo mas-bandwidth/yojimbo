@@ -431,14 +431,8 @@ namespace yojimbo
         return m_error;
     }
 
-    int ReliableOrderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence )
+    int ReliableOrderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
-        (void)packetData;
-        (void)packetSequence;
-
-        //uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
-
-        /*
         if ( HasMessagesToSend() )
         {
             if ( SendingBlockMessage() )
@@ -457,34 +451,27 @@ namespace yojimbo
 
                     AddFragmentPacketEntry( messageId, fragmentId, packetSequence );
 
-                    channelHasData[channelId] = true;
-
-                    numChannelsWithData++;
-
-                    availableBits -= fragmentBits;
+                    return fragmentBits;
                 }
             }
             else
             {
                 int numMessageIds = 0;
 
+                uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
+                
                 const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits );
 
                 if ( numMessageIds > 0 )
                 {
-                    GetMessagePacketData( channelData[channelId], messageIds, numMessageIds );
+                    GetMessagePacketData( packetData, messageIds, numMessageIds );
 
-                    AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
+                    AddMessagePacketEntry( messageIds, numMessageIds, packetSequence );
 
-                    channelHasData[channelId] = true;
-
-                    numChannelsWithData++;
-
-                    availableBits -= messageBits;
+                    return messageBits;
                 }
             }
         }
-        */
 
         return 0;
     }
@@ -642,7 +629,7 @@ namespace yojimbo
     void ReliableOrderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
         (void)packetSequence;
-        
+
         if ( packetData.blockMessage )
         {
             ProcessPacketFragment( packetData.block.messageType, packetData.block.messageId, packetData.block.numFragments, packetData.block.fragmentId, packetData.block.fragmentData, packetData.block.fragmentSize, packetData.block.message );
