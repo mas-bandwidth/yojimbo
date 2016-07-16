@@ -431,6 +431,64 @@ namespace yojimbo
         return m_error;
     }
 
+    int ReliableOrderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence )
+    {
+        (void)packetData;
+        (void)packetSequence;
+
+        //uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
+
+        /*
+        if ( HasMessagesToSend() )
+        {
+            if ( SendingBlockMessage() )
+            {
+                uint16_t messageId;
+                uint16_t fragmentId;
+                int fragmentBytes;
+                int numFragments;
+                int messageType;
+
+                uint8_t * fragmentData = GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
+
+                if ( fragmentData )
+                {
+                    int fragmentBits = GetFragmentPacketData( packetData, messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
+
+                    AddFragmentPacketEntry( messageId, fragmentId, packetSequence );
+
+                    channelHasData[channelId] = true;
+
+                    numChannelsWithData++;
+
+                    availableBits -= fragmentBits;
+                }
+            }
+            else
+            {
+                int numMessageIds = 0;
+
+                const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits );
+
+                if ( numMessageIds > 0 )
+                {
+                    GetMessagePacketData( channelData[channelId], messageIds, numMessageIds );
+
+                    AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
+
+                    channelHasData[channelId] = true;
+
+                    numChannelsWithData++;
+
+                    availableBits -= messageBits;
+                }
+            }
+        }
+        */
+
+        return 0;
+    }
+
     bool ReliableOrderedChannel::HasMessagesToSend() const
     {
         return m_oldestUnackedMessageId != m_sendMessageId;
@@ -581,8 +639,10 @@ namespace yojimbo
         }
     }
 
-    void ReliableOrderedChannel::ProcessPacketData( ChannelPacketData & packetData )
+    void ReliableOrderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
+        (void)packetSequence;
+        
         if ( packetData.blockMessage )
         {
             ProcessPacketFragment( packetData.block.messageType, packetData.block.messageId, packetData.block.numFragments, packetData.block.fragmentId, packetData.block.fragmentData, packetData.block.fragmentSize, packetData.block.message );

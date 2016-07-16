@@ -243,59 +243,16 @@ namespace yojimbo
 
         for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
-            // todo: gotta move this into the reliable ordered channel somehow. it's specific to the type of channel
+            int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packet->sequence );
 
-            /*
-            availableBits -= ConservativeChannelHeaderEstimate;
-
-            uint16_t * messageIds = (uint16_t*) alloca( m_config.channelConfig[channelId].maxMessagesPerPacket * sizeof( uint16_t ) );
-
-            if ( m_channel[channelId]->HasMessagesToSend() )
+            if ( packetDataBits > 0 )
             {
-                if ( m_channel[channelId]->SendingBlockMessage() )
-                {
-                    uint16_t messageId;
-                    uint16_t fragmentId;
-                    int fragmentBytes;
-                    int numFragments;
-                    int messageType;
+                availableBits -= ConservativeChannelHeaderEstimate;
 
-                    uint8_t * fragmentData = m_channel[channelId]->GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
+                availableBits -= packetDataBits;
 
-                    if ( fragmentData )
-                    {
-                        int fragmentBits = m_channel[channelId]->GetFragmentPacketData( channelData[channelId], messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
-
-                        m_channel[channelId]->AddFragmentPacketEntry( messageId, fragmentId, packet->sequence );
-
-                        channelHasData[channelId] = true;
-
-                        numChannelsWithData++;
-
-                        availableBits -= fragmentBits;
-                    }
-                }
-                else
-                {
-                    int numMessageIds = 0;
-
-                    const int messageBits = m_channel[channelId]->GetMessagesToSend( messageIds, numMessageIds, availableBits );
-
-                    if ( numMessageIds > 0 )
-                    {
-                        m_channel[channelId]->GetMessagePacketData( channelData[channelId], messageIds, numMessageIds );
-
-                        m_channel[channelId]->AddMessagePacketEntry( messageIds, numMessageIds, packet->sequence );
-
-                        channelHasData[channelId] = true;
-
-                        numChannelsWithData++;
-
-                        availableBits -= messageBits;
-                    }
-                }
+                channelHasData[channelId] = true;
             }
-            */
         }
 
         if ( numChannelsWithData > 0 )
@@ -346,7 +303,7 @@ namespace yojimbo
             assert( channelId >= 0 );
             assert( channelId <= m_config.numChannels );
 
-            m_channel[channelId]->ProcessPacketData( packet->channelEntry[i] );
+            m_channel[channelId]->ProcessPacketData( packet->channelEntry[i], packet->sequence );
         }
 
         return true;
