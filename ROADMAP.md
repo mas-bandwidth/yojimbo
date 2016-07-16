@@ -65,11 +65,9 @@ This release sounds like a lot of fun. I'm looking forward to it! Estimate: 2 mo
 
 The estimated time for initial public release is November 2016. At this time I intend to get more people using this library and build a community to determine which features should be implemented next.
 
-One possibility is to continue to extend this system to support entity synchronization, client-side prediction as per-FPS networking models, although it is quite likely that I would create a *new* network library build on top libyojimbo to implement that aspect, so as to not lock people using libyojimbo into one particular network model.
+Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 
 Your feedback is most welcome! 
-
-Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 
 cheers
 
