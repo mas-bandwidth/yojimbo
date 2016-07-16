@@ -67,8 +67,6 @@ The estimated time for initial public release is November 2016. At this time I i
 
 Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 
-Your feedback is most welcome! 
-
 cheers
 
 - Glenn
