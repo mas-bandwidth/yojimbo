@@ -169,7 +169,7 @@ namespace yojimbo
 
         virtual ChannelError AdvanceTime( double time ) = 0;
 
-        virtual int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence ) = 0;
+        virtual int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits ) = 0;
 
         virtual void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence ) = 0;
 
@@ -198,7 +198,7 @@ namespace yojimbo
 
         ChannelError GetError() const;
 
-        int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence );
+        int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
 
         bool HasMessagesToSend() const;
 

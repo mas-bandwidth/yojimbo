@@ -243,7 +243,7 @@ namespace yojimbo
 
         for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
-            int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packet->sequence );
+            int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packet->sequence, availableBits );
 
             if ( packetDataBits > 0 )
             {
@@ -252,6 +252,8 @@ namespace yojimbo
                 availableBits -= packetDataBits;
 
                 channelHasData[channelId] = true;
+
+                numChannelsWithData++;
             }
         }
 
