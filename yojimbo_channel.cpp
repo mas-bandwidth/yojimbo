@@ -447,7 +447,7 @@ namespace yojimbo
 
                 if ( fragmentData )
                 {
-                    int fragmentBits = GetFragmentPacketData( packetData, messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
+                    const int fragmentBits = GetFragmentPacketData( packetData, messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
 
                     AddFragmentPacketEntry( messageId, fragmentId, packetSequence );
 
@@ -815,20 +815,29 @@ namespace yojimbo
         packetData.block.numFragments = numFragments;
         packetData.block.messageType = messageType;
 
+        const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
+
+        int fragmentBits = ConservativeFragmentHeaderEstimate + fragmentSize;
+
         if ( fragmentId == 0 )
         {
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( packetData.block.messageId );
+
             assert( entry );
             assert( entry->message );
+
             packetData.block.message = (BlockMessage*) entry->message;
+
             m_messageFactory->AddRef( packetData.block.message );
-            return ConservativeFragmentHeaderEstimate + entry->measuredBits;
+
+            fragmentBits += entry->measuredBits + messageTypeBits;
         }
         else
         {
             packetData.block.message = NULL;
-            return 0;
         }
+
+        return fragmentBits;
     }
 
     void ReliableOrderedChannel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
@@ -848,6 +857,8 @@ namespace yojimbo
             sentPacket->blockFragmentId = fragmentId;
         }
     }
+
+    // todo: should probably be able to return false to say, HEY, STOP PROCESSING THIS PACKET NAO!
 
     void ReliableOrderedChannel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )
     {  
