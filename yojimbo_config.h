@@ -73,8 +73,6 @@
 
 #define YOJIMBO_NETWORK_SIMULATOR                   1
 
-#define YOJIMBO_PACKET_AGGREGATION                  1
-
 #define YOJIMBO_INSECURE_CONNECT                    1           // IMPORTANT: You should disable this in retail build
 
 #define YOJIMBO_SERIALIZE_CHECKS                    1

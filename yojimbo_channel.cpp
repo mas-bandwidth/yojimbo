@@ -481,10 +481,10 @@ namespace yojimbo
 
         numMessageIds = 0;
 
-        const int GiveUpBits = 4 * 8;
-
         if ( m_config.messagePacketBudget > 0 )
             availableBits = min( m_config.messagePacketBudget * 8, availableBits );
+
+        const int giveUpBits = 4 * 8;
 
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
@@ -492,10 +492,18 @@ namespace yojimbo
 
         uint16_t previousMessageId = 0;
 
-        int messageBits = ConservativeMessageHeaderEstimate;
+        int usedBits = ConservativeMessageHeaderEstimate;
+
+        int giveUpCounter = 0;
 
         for ( int i = 0; i < messageLimit; ++i )
         {
+            if ( availableBits - usedBits < giveUpBits )
+                break;
+
+            if ( giveUpCounter > m_config.messageSendQueueSize )
+                break;
+
             uint16_t messageId = m_oldestUnackedMessageId + i;
 
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
@@ -506,15 +514,9 @@ namespace yojimbo
             if ( entry->block )
                 break;
             
-            const int previousMessageBits = messageBits;
-
             if ( entry->timeLastSent + m_config.messageResendTime <= m_time && availableBits >= (int) entry->measuredBits )
-            {
-                messageIds[numMessageIds] = messageId;
-                
-                entry->timeLastSent = m_time;
-                
-                messageBits += entry->measuredBits + messageTypeBits;
+            {                
+                int messageBits = entry->measuredBits + messageTypeBits;
                 
                 if ( numMessageIds == 0 )
                 {
@@ -527,22 +529,26 @@ namespace yojimbo
                     messageBits += stream.GetBitsProcessed();
                 }
 
-                if ( messageBits + GiveUpBits >= availableBits )
+                if ( usedBits + messageBits > availableBits )
                 {
-                    messageBits = previousMessageBits;
-                    break;
+                    giveUpCounter++;
+                    continue;
                 }
 
-                previousMessageId = messageId;
+                usedBits += messageBits;
 
-                numMessageIds++;
+                messageIds[numMessageIds++] = messageId;
+                
+                entry->timeLastSent = m_time;
+
+                previousMessageId = messageId;
             }
 
             if ( numMessageIds == m_config.maxMessagesPerPacket )
                 break;
         }
 
-        return messageBits;
+        return usedBits;
     }
 
     void ReliableOrderedChannel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
@@ -1055,6 +1061,8 @@ namespace yojimbo
         }
 
         m_messageSendQueue->Push( message );
+
+        m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
     }
 
     Message * UnreliableUnorderedChannel::ReceiveMessage()
@@ -1075,12 +1083,64 @@ namespace yojimbo
         (void)time;
     }
     
-    int UnreliableUnorderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
+    int UnreliableUnorderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t /*packetSequence*/, int availableBits )
     {
-        (void)packetData;
-        (void)packetSequence;
-        (void)availableBits;
-        return 0;
+        if ( m_messageSendQueue->IsEmpty() )
+            return 0;
+
+        if ( m_config.messagePacketBudget > 0 )
+            availableBits = min( m_config.messagePacketBudget * 8, availableBits );
+
+        const int giveUpBits = 4 * 8;
+
+        const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
+
+        const int messageLimit = min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize ) / 2;
+
+        int usedBits = ConservativeMessageHeaderEstimate;
+
+        for ( int i = 0; i < messageLimit; ++i )
+        {
+            if ( m_messageSendQueue->IsEmpty() )
+                break;
+
+            if ( packetData.message.numMessages == m_config.maxMessagesPerPacket )
+                break;
+
+            Message * message = m_messageSendQueue->Pop();
+
+            assert( message );
+
+            MeasureStream measureStream;
+
+            message->SerializeInternal( measureStream );
+
+            if ( measureStream.GetError() )
+            {
+                SetError( CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED );
+                m_messageFactory->Release( message );
+                return 0;
+            }
+
+            const int messageBits = messageTypeBits + measureStream.GetBitsProcessed();
+
+            if ( usedBits + messageBits > availableBits || availableBits - usedBits < giveUpBits )
+            {
+                m_messageFactory->Release( message );
+                continue;
+            }
+
+            usedBits += messageBits;
+
+            assert( usedBits <= availableBits );
+
+            packetData.message.messages[packetData.message.numMessages++] = message;
+        }
+
+        if ( packetData.message.numMessages == 0 )
+            return 0;
+
+        return usedBits;
     }
 
     void UnreliableUnorderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
@@ -1100,27 +1160,4 @@ namespace yojimbo
         assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
         return m_counters[index];
     }
-
-#if 0
-
-    /*
-    MeasureStream measureStream;
-
-    message->SerializeInternal( measureStream );
-
-    if ( measureStream.GetError() )
-    {
-        SetError( CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED );
-        m_messageFactory->Release( message );
-        return;
-    }
-
-    entry->measuredBits = measureStream.GetBitsProcessed();
-
-    m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
-
-    m_sendMessageId++;
-    */
-
-#endif // #if 0
 }

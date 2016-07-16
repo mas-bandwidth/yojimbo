@@ -632,6 +632,20 @@ Wow. That took a long time. Firstly, there was a bug in the sequence buffer not 
 
 Fixed by adding "RemoveOldEntries" to sequence buffer and calling it for sequence buffers that need it inside connection.
 
+Removed packet aggregation support. It is not required with new message system.
+
+Implement function to get packet data to send.
+
+This function needs to measure each message as it sends, vs. ahead of time. 
+
+This is OK because we are only ever considering sending messages once, and if they don't fit into the packet they are discarded.
+
+Give up bits is a bad concept for reliable ordered messages, because it assumes that no message will be smaller than some # of bits, so it is dependent on the size of messages being sent. if all messages are big, but there are a lot of them, it will return to worst case behavior.
+
+It would be better to just sent a # of messages to try past the first one that doesnt fit, so it is bounded no matter what the size of messages are, as well as setting a bit level below which it just stops (can't possibly have a message smaller than this).
+
+This way a full send queue of large messages don't revert to worst case (scan entire send queue) if there is a # of bits left that is larger than give up bits, but smaller than the minimum size of all messages in the queue.
+
 
 Monday July 4th, 2016
 =====================

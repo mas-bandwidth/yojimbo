@@ -64,8 +64,6 @@ namespace yojimbo
         Packet & operator = ( const Packet & other );
     };
 
-    class PacketHeader : public Serializable {};
-
     class PacketFactory
     {        
     public:
@@ -131,32 +129,9 @@ namespace yojimbo
         }
     };
 
-    int WritePacket( const PacketReadWriteInfo & info, Packet * packet, uint8_t * buffer, int bufferSize, PacketHeader * header = NULL );
+    int WritePacket( const PacketReadWriteInfo & info, Packet * packet, uint8_t * buffer, int bufferSize );
 
-    Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, PacketHeader * header = NULL, int * errorCode = NULL );
-
-#if YOJIMBO_PACKET_AGGREGATION
-
-    int WriteAggregatePacket( const PacketReadWriteInfo & info, 
-                              int numPackets, 
-                              Packet ** packets, 
-                              uint8_t * buffer, 
-                              int bufferSize, 
-                              int & numPacketsWritten, 
-                              PacketHeader * aggregatePacketHeader = NULL, 
-                              PacketHeader ** packetHeaders = NULL );
-
-    void ReadAggregatePacket( const PacketReadWriteInfo & info, 
-                              int maxPacketsToRead, 
-                              Packet ** packets, 
-                              const uint8_t * buffer, 
-                              int bufferSize, 
-                              int & numPacketsRead, 
-                              PacketHeader * aggregatePacketHeader = NULL, 
-                              PacketHeader ** packetHeaders = NULL, 
-                              int * errorCode = NULL );
-
-#endif // #if YOJIMBO_PACKET_AGGREGATION
+    Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, int * errorCode = NULL );
 }
 
 #define YOJIMBO_PACKET_FACTORY_START( factory_class, base_factory_class, num_packet_types )                         \
