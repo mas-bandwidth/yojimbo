@@ -135,11 +135,63 @@ namespace yojimbo
 
     template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** messages, int maxMessagesPerPacket )
     {
-        (void)stream;
-        (void)messageFactory;
-        (void)numMessages;
-        (void)messages;
-        (void)maxMessagesPerPacket;
+        const int maxMessageType = messageFactory.GetNumTypes() - 1;
+
+        bool hasMessages = Stream::IsWriting && numMessages != 0;
+
+        serialize_bool( stream, hasMessages );
+
+        if ( hasMessages )
+        {
+            serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
+
+            int * messageTypes = (int*) alloca( sizeof( int ) * numMessages );
+
+            memset( messageTypes, 0, sizeof( int ) * numMessages );
+
+            if ( Stream::IsWriting )
+            {
+                assert( messages );
+
+                for ( int i = 0; i < numMessages; ++i )
+                {
+                    assert( messages[i] );
+                    messageTypes[i] = messages[i]->GetType();
+                }
+            }
+            else
+            {
+                Allocator & allocator = messageFactory.GetAllocator();
+
+                messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
+            }
+
+            for ( int i = 0; i < numMessages; ++i )
+            {
+                if ( maxMessageType > 0 )
+                {
+                    serialize_int( stream, messageTypes[i], 0, maxMessageType );
+                }
+                else
+                {
+                    messageTypes[i] = 0;
+                }
+
+                if ( Stream::IsReading )
+                {
+                    messages[i] = messageFactory.Create( messageTypes[i] );
+
+                    if ( !messages[i] )
+                        return false;
+                }
+
+                assert( messages[i] );
+
+                if ( !messages[i]->SerializeInternal( stream ) )
+                    return false;
+            }
+        }
+
         return true;
     }
 
@@ -219,8 +271,22 @@ namespace yojimbo
 
         if ( !blockMessage )
         {
-            if ( !SerializeOrderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket ) )
-                return false;
+            switch ( channelConfig.type )
+            {
+                case CHANNEL_TYPE_RELIABLE_ORDERED:
+                {
+                    if ( !SerializeOrderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket ) )
+                        return false;
+                }
+                break;
+
+                case CHANNEL_TYPE_UNRELIABLE_UNORDERED:
+                {
+                    if ( !SerializeUnorderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket ) )
+                        return false;
+                }
+                break;
+            }
 
 #if YOJIMBO_VALIDATE_PACKET_BUDGET
             if ( channelConfig.messagePacketBudget > 0 )
@@ -1169,8 +1235,21 @@ namespace yojimbo
 
     void UnreliableUnorderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
-        (void)packetData;
-        (void)packetSequence;
+        for ( int i = 0; i < (int) packetData.message.numMessages; ++i )
+        {
+            Message * message = packetData.message.messages[i];
+
+            assert( message );  
+
+            message->AssignId( packetSequence );
+
+            if ( !m_messageReceiveQueue->IsFull() )
+            {
+                m_messageFactory->AddRef( message );
+
+                m_messageReceiveQueue->Push( message );
+            }
+        }
     }
 
     void UnreliableUnorderedChannel::ProcessAck( uint16_t ack )
