@@ -155,7 +155,20 @@ namespace yojimbo
 
         for ( int channelId = 0; channelId < m_config.numChannels; ++channelId )
         {
-            m_channel[channelId] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_config.channelConfig[channelId], channelId );
+            switch ( m_config.channelConfig[channelId].type )
+            {
+                case CHANNEL_TYPE_RELIABLE_ORDERED: 
+                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_config.channelConfig[channelId], channelId ); 
+                    break;
+
+                case CHANNEL_TYPE_UNRELIABLE_UNORDERED: 
+                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_config.channelConfig[channelId], channelId ); 
+                    break;
+
+                default: 
+                    assert( !"unknown channel type" );
+            }
+
             m_channel[channelId]->SetListener( this );
         }
 

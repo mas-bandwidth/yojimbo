@@ -1,28 +1,38 @@
 DONE    
 
-TODO    
+TODO
+
+    Implement function to get packet data to send.
+
+    This function needs to measure each message as it sends, vs. ahead of time. 
+
+    This is OK because we are only ever considering sending messages once, and if they don't fit into the packet they are discarded.
 
     ------------------
 
-    I don't like that it's a virtual for calling "GetChannelId". That's lame.
+    Extend message serialize function to have two payloads:
 
-    Put some base functionality in Channel? eg. getting and setting channel Id?
+    1. serialize ordered messages
+
+    2. serialize unordered messages
+
+    Use the unordered for reliable messages.
 
     ------------------
 
-    Implement an unreliable channel.
+    Implement code to process packet data
 
-    Unreliable channels don't support fragmentation and reassembly of large blocks, that has to be done at the MTU level.
+    On process, assign all message ids to the packet sequence they were sent in.
 
-    This is for large delta snapshots.
+    Add a unit test to verify unordered channel messages work (set zero packet loss, make sure they all get through)
 
-    The same channel could be used for unreliable messages that go at the end of the packet, if there is room, eg. sounds, effects.
+    ------------------
 
-    Unreliable messages don't serialize the message id.
+    Give up bits is a bad concept for reliable ordered messages, because it assumes that no message will be smaller than some # of bits, so it is dependent on the size of messages being sent. if all messages are big, but there are a lot of them, it will return to worst case behavior.
 
-    Unreliable messages. You might want to include more than you think will fit in the packet, and include a budget, that way you can fit as many in as possible.
+    It would be better to just sent a # of messages to try past the first one that doesnt fit, so it is bounded no matter what the size of messages are, as well as setting a bit level below which it just stops (can't possibly have a message smaller than this).
 
-    This is a good way to possibly fill up any gaps left in the packet due to conservative estimates for the other parts of the packet.
+    This way a full send queue of large messages don't revert to worst case (scan entire send queue) if there is a # of bits left that is larger than give up bits, but smaller than the minimum size of all messages in the queue.
 
     ------------------
 

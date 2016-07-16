@@ -27,7 +27,7 @@
 
 #include "yojimbo_message.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_bit_array.h"
+#include "yojimbo_queue.h"
 #include "yojimbo_sequence_buffer.h"
 
 namespace yojimbo
@@ -237,8 +237,6 @@ namespace yojimbo
 
         void UpdateOldestUnackedMessageId();
 
-        int CalculateMessageOverheadBits();
-            
         bool SendingBlockMessage();
 
         uint8_t * GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType );
@@ -292,6 +290,57 @@ namespace yojimbo
         ReliableOrderedChannel( const ReliableOrderedChannel & other );
 
         ReliableOrderedChannel & operator = ( const ReliableOrderedChannel & other );
+    };
+
+    class UnreliableUnorderedChannel : public Channel
+    {
+    public:
+
+        UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+
+        ~UnreliableUnorderedChannel();
+
+        void Reset();
+
+        bool CanSendMessage() const;
+
+        void SendMessage( Message * message );
+
+        Message * ReceiveMessage();
+
+        void AdvanceTime( double time );
+
+        int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
+
+        void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence );
+
+        void ProcessAck( uint16_t ack );
+
+        uint64_t GetCounter( int index ) const;
+
+        void SetListener( ChannelListener * listener ) { m_listener = listener; }
+
+    private:
+
+        const ChannelConfig m_config;                                                   // const configuration data
+
+        Allocator * m_allocator;                                                        // allocator for allocations matching life cycle of object
+
+        ChannelListener * m_listener;                                                   // channel listener for callbacks. optional.
+
+        MessageFactory * m_messageFactory;                                              // message factory creates and destroys messages
+
+        Queue<Message*> * m_messageSendQueue;                                           // message send queue. messages that don't fit in the next packet are discarded.
+
+        Queue<Message*> * m_messageReceiveQueue;                                        // message receive queue. should generally be larger than the send queue.
+
+        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              // counters for unit testing, stats etc.
+
+    private:
+
+        UnreliableUnorderedChannel( const UnreliableUnorderedChannel & other );
+
+        UnreliableUnorderedChannel & operator = ( const UnreliableUnorderedChannel & other );
     };
 }
 

@@ -1,4 +1,41 @@
 
+Saturday July 16th, 2016
+========================
+
+    I don't like that it's a virtual for calling "GetChannelId". That's lame.
+
+    Put some base functionality in Channel? eg. getting and setting channel Id?
+
+    Done. Also put m_error in there.
+
+    Implement unreliable unordered channel.
+
+    Start with messages alone. Add blocks later.
+
+    This channel has a send queue which is just the set of messages to try to send in the next packet. 
+
+    If they don't fit any additional messages are dropped.
+
+    On the receive side, messages are dequeued from the packet and just put in an unordered queue for receive.
+
+    There needs to be some way to identify unreliable messagse with the packet they came from, so we can cross
+    reference unreliable messages with a snapshot message in the packet, in potentially a different channel, eg.
+    these unreliable messages correspond to snapshot n
+
+    So on receive, call set id on the messages to the sequence # of the packet they arrived in.
+
+    This will allow the user to lookup which snapshot they correspond to, although this will be a bit of work,
+    I think this is the most general solution.
+
+    Sketched out UnreliableUnorderedChannel by cutting down ReliableOrderedChannel.
+
+    Hook it up to connection create channels based on channel type in config.
+
+    Implement send and receive queues
+
+    Implemented send and receive message functions. 
+
+
 Friday July 15th, 2016
 ======================
 
