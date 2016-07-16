@@ -233,19 +233,19 @@ namespace yojimbo
     }
 
     ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
-        : m_config( config ), m_channelId( channelId )
+        : m_config( config )
     {
         assert( ( 65536 % config.sentPacketsSize ) == 0 );
         assert( ( 65536 % config.messageSendQueueSize ) == 0 );
         assert( ( 65536 % config.messageReceiveQueueSize ) == 0 );
+
+        SetChannelId( channelId );
 
         m_allocator = &allocator;
 
         m_messageFactory = &messageFactory;
 
         m_listener = NULL;
-
-        m_error = CHANNEL_ERROR_NONE;
 
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
         
@@ -287,7 +287,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::Reset()
     {
-        m_error = CHANNEL_ERROR_NONE;
+        SetError( CHANNEL_ERROR_NONE );
 
         m_time = 0.0;
 
@@ -348,7 +348,7 @@ namespace yojimbo
 
         if ( !CanSendMessage() )
         {
-            m_error = CHANNEL_ERROR_SEND_QUEUE_FULL;
+            SetError( CHANNEL_ERROR_SEND_QUEUE_FULL );
             m_messageFactory->Release( message );
             return;
         }
@@ -357,7 +357,7 @@ namespace yojimbo
 
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
-            m_error = CHANNEL_ERROR_BLOCKS_DISABLED;
+            SetError( CHANNEL_ERROR_BLOCKS_DISABLED );
             m_messageFactory->Release( message );
             return;
         }
@@ -385,7 +385,7 @@ namespace yojimbo
 
         if ( measureStream.GetError() )
         {
-            m_error = CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED;
+            SetError( CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED );
             m_messageFactory->Release( message );
             return;
         }
@@ -420,17 +420,11 @@ namespace yojimbo
         return message;
     }
 
-    ChannelError ReliableOrderedChannel::AdvanceTime( double time )
+    void ReliableOrderedChannel::AdvanceTime( double time )
     {
         m_time = time;
-        return m_error;
     }
     
-    ChannelError ReliableOrderedChannel::GetError() const
-    {
-        return m_error;
-    }
-
     int ReliableOrderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
         if ( HasMessagesToSend() )
@@ -555,7 +549,7 @@ namespace yojimbo
     {
         assert( messageIds );
 
-        packetData.channelId = m_channelId;
+        packetData.channelId = GetChannelId();
         
         packetData.blockMessage = 0;
 
@@ -611,7 +605,7 @@ namespace yojimbo
 
             if ( sequence_greater_than( messageId, maxMessageId ) )
             {
-                m_error = CHANNEL_ERROR_DESYNC;
+                SetError( CHANNEL_ERROR_DESYNC );
                 return;
             }
 
@@ -804,7 +798,7 @@ namespace yojimbo
 
     int ReliableOrderedChannel::GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType )
     {
-        packetData.channelId = m_channelId;
+        packetData.channelId = GetChannelId();
 
         packetData.blockMessage = 1;
 
@@ -890,13 +884,13 @@ namespace yojimbo
 
             if ( fragmentId >= m_receiveBlock->numFragments )
             {
-                m_error = CHANNEL_ERROR_DESYNC;
+                SetError( CHANNEL_ERROR_DESYNC );
                 return;
             }
 
             if ( numFragments != m_receiveBlock->numFragments )
             {
-                m_error = CHANNEL_ERROR_DESYNC;
+                SetError( CHANNEL_ERROR_DESYNC );
                 return;
             }
 
@@ -946,7 +940,7 @@ namespace yojimbo
 
                     if ( !blockData )
                     {
-                        m_error = CHANNEL_ERROR_OUT_OF_MEMORY;
+                        SetError( CHANNEL_ERROR_OUT_OF_MEMORY );
                         return;
                     }
 
@@ -962,7 +956,7 @@ namespace yojimbo
 
                     if ( !entry )
                     {
-                        m_error = CHANNEL_ERROR_DESYNC;
+                        SetError( CHANNEL_ERROR_DESYNC );
                         return;
                     }
 
