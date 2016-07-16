@@ -35,6 +35,22 @@ Saturday July 16th, 2016
 
     Implemented send and receive message functions. 
 
+    Extended message serialize function to have two payloads:
+
+    1. serialize ordered messages
+
+    2. serialize unordered messages
+
+    Use the unordered for reliable messages.
+
+    The unordered does not serialize the id per-message, and later when unordered blocks are implemented, will serialize the block in-place (no fragments).
+
+    Also moved block flagment serialization into its own function, to keep the channel packet data serialize clean.
+
+    Implement code to process packet data for unreliable unordered channel.
+
+    On process, assign all message ids to the packet sequence they were sent in.
+
 
 Friday July 15th, 2016
 ======================

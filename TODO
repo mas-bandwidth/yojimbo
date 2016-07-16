@@ -2,29 +2,17 @@ DONE
 
 TODO
 
-    ------------------
+    Add a unit test to verify unordered channel messages work. Disable packet loss, jitter etc., verify they all get through.
 
-    Extend message serialize function to have two payloads:
+    Extend unreliable unordered to serialize blocks in-place (eg. not as fragments, just the whole block following the message as header)
 
-    1. serialize ordered messages
+    Yes, eventually for large blocks this will require MTU splits, but for now keep those blocks small-ish.
 
-    2. serialize unordered messages
-
-    Use the unordered for reliable messages.
-
-    The unordered does not serialize the id per-message, and later when unordered blocks are implemented, will serialize the block in-place (no fragments).
+    Add a unit test to verify unordered channels work with blocks.
 
     ------------------
 
-    Implement code to process packet data
-
-    On process, assign all message ids to the packet sequence they were sent in.
-
-    ------------------
-
-    Add a unit test to verify unordered channel messages work (set zero packet loss, make sure they all get through)
-
-    Unit test should make sure that the message ids are set properly.
+    Time for another preview release.
 
     ------------------
 
@@ -33,7 +21,7 @@ TODO
     This means that a rogue client can DOS other clients by sending and allocating too many messages, packets.
 
     This is relevant to the packet fragmentation and reassembly as well, because now fragments if allocated out of the packet factory
-    would provide another way to easily deny service to other clients.
+    would provide another way to easily deny service to other clients the ability to allocate fragments.
 
     The solution I think is to have a global packet factory, one packet factory per-client, one message factory per-client.
 
