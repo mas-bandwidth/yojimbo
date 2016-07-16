@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.3.0-Preview4"
+libyojimbo_version = "0.3.0-Preview5"
 
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
@@ -293,6 +293,8 @@ if not os.is "windows" then
         trigger     = "scan-build",
         description = "Run clang scan-build over the project",
         execute = function ()
+            os.execute "premake5 clean"
+            os.execute "premake5 gmake"
             os.execute "scan-build make all -j4"
         end
     }

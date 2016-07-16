@@ -58,9 +58,8 @@ namespace yojimbo
         int sentPacketsSize;                                    // size of sent packets buffer (maps packet level acks to messages & fragments)
         bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.
 
-        ChannelConfig()
+        ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )
         {
-            type = CHANNEL_TYPE_RELIABLE_ORDERED;
             messagePacketBudget = 1100;
             maxMessagesPerPacket = 64;
             messageSendQueueSize = 1024;
@@ -155,7 +154,7 @@ namespace yojimbo
     {
     public:
 
-        Channel() { m_channelId = 0; m_error = CHANNEL_ERROR_NONE; }
+        Channel() : m_channelId(0), m_error( CHANNEL_ERROR_NONE ) {}
 
         virtual ~Channel() {}
 
