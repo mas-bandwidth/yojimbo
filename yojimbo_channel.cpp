@@ -403,9 +403,13 @@ namespace yojimbo
         m_messageSentPackets->Reset();
         m_messageReceiveQueue->Reset();
 
-        if ( !m_config.disableBlocks )
+        if ( m_sendBlock )
         {
             m_sendBlock->Reset();
+        }
+
+        if ( m_receiveBlock )
+        {
             m_receiveBlock->Reset();
 
             if ( m_receiveBlock->blockMessage )
