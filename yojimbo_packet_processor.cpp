@@ -197,7 +197,7 @@ namespace yojimbo
 
             int readError;
             
-            Packet * packet = yojimbo::ReadPacket( info, m_scratchBuffer, decryptedPacketBytes, NULL, &readError );
+            Packet * packet = yojimbo::ReadPacket( info, m_scratchBuffer, decryptedPacketBytes, &readError );
 
             if ( !packet )
             {
@@ -221,7 +221,7 @@ namespace yojimbo
             
             int readError;
 
-            Packet * packet = yojimbo::ReadPacket( info, packetData, packetBytes, NULL, &readError );
+            Packet * packet = yojimbo::ReadPacket( info, packetData, packetBytes, &readError );
 
             if ( !packet )
             {
