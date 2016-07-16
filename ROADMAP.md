@@ -15,7 +15,7 @@ Features implemented for this release:
 7. Unit tests for all of the functionality above
 8. Integrated client/server test program that demonstrates secure connect with tokens
 9. Separate client/server test programs that connect insecure connection (dev mode)
-10. Network simulator support with latency, packet loss, jitter and duplicate packets.
+10. Network simulator support with latency, packet loss, jitter and duplicate packets
 11. Socket network interface (send packets over UDP)
 
 ## 0.2.0 - Docker integration
@@ -47,7 +47,7 @@ This release will extend the internal UDP-based network protocol to support:
 5. Support for channels with reliable, unordered messages and blocks
 6. Packet fragmentation and reassembly
 
-There is lots of work to do in this release so it is likely it will take some time. I estimate 1-2 months.
+This release is tracking ahead of schedule. It should be finished sometime in the next week.
 
 ## 0.4.0 - Matchmaker
 
@@ -64,10 +64,6 @@ This release sounds like a lot of fun. I'm looking forward to it! Estimate: 2 mo
 ## 0.5.0 - Initial public release
 
 The estimated time for initial public release is November 2016. At this time I intend to get more people using this library and build a community to determine which features should be implemented next.
-
-One possibility is to continue to extend this system to support entity synchronization, client-side prediction as per-FPS networking models, although it is quite likely that I would create a *new* network library build on top libyojimbo to implement that aspect, so as to not lock people using libyojimbo into one particular network model.
-
-Your feedback is most welcome! 
 
 Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 
