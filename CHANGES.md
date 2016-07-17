@@ -57,6 +57,10 @@ Saturday July 16th, 2016
 
     Disabled packet loss, jitter, duplicates, latency etc. so all messages get through.
 
+    Fixed some more bugs in the channel code (missing reference in serialize unordered). 
+
+    Tests pass now. Time to move on to unreliable unordered blocks.
+
 
 Friday July 15th, 2016
 ======================

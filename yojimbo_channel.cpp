@@ -133,7 +133,7 @@ namespace yojimbo
         return true;
     }
 
-    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** messages, int maxMessagesPerPacket )
+    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** & messages, int maxMessagesPerPacket )
     {
         const int maxMessageType = messageFactory.GetNumTypes() - 1;
 
@@ -1249,7 +1249,7 @@ namespace yojimbo
 
         packetData.message.numMessages = numMessages;
 
-        packetData.message.messages = (Message**) allocator.Allocate( sizeof( Message*) * numMessages );
+        packetData.message.messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
 
         for ( int i = 0; i < numMessages; ++i )
         {

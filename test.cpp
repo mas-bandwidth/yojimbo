@@ -4293,16 +4293,6 @@ void test_connection_unreliable_unordered_messages()
     context.messageFactory = &messageFactory;
     context.connectionConfig = &connectionConfig;
 
-    const int NumMessagesSent = 16;
-
-    for ( int i = 0; i < NumMessagesSent; ++i )
-    {
-        TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
-        check( message );
-        message->sequence = i;
-        sender.SendMessage( message );
-    }
-
     TestNetworkSimulator networkSimulator;
 
     networkSimulator.SetPacketLoss( 0 );
@@ -4325,12 +4315,20 @@ void test_connection_unreliable_unordered_messages()
     double time = 0.0;
     double deltaTime = 0.1;
 
-    const int NumIterations = 1000;
-
-    int numMessagesReceived = 0;
+    const int NumIterations = 16;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
+        const int NumMessagesSent = 16;
+
+        for ( int i = 0; i < NumMessagesSent; ++i )
+        {
+            TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+            check( message );
+            message->sequence = i;
+            sender.SendMessage( message );
+        }
+
         Packet * senderPacket = sender.WritePacket();
         Packet * receiverPacket = receiver.WritePacket();
 
@@ -4374,6 +4372,8 @@ void test_connection_unreliable_unordered_messages()
             packetFactory.DestroyPacket( packet );
         }
 
+        int numMessagesReceived = 0;
+
         while ( true )
         {
             Message * message = receiver.ReceiveMessage();
@@ -4381,20 +4381,19 @@ void test_connection_unreliable_unordered_messages()
             if ( !message )
                 break;
 
-            check( message->GetId() == (int) numMessagesReceived );
+            check( message->GetId() == uint16_t( i ) );
             check( message->GetType() == TEST_MESSAGE );
 
             TestMessage * testMessage = (TestMessage*) message;
 
-            check( testMessage->sequence == numMessagesReceived );
+            check( testMessage->sequence == uint16_t( numMessagesReceived ) );
 
             ++numMessagesReceived;
 
             messageFactory.Release( message );
         }
 
-        if ( numMessagesReceived == NumMessagesSent )
-            break;
+        check( numMessagesReceived == NumMessagesSent );
 
         time += deltaTime;
 
@@ -4406,10 +4405,6 @@ void test_connection_unreliable_unordered_messages()
 
         networkSimulator.AdvanceTime( time );
     }
-
-    printf( "numMessagesReceived = %d\n", numMessagesReceived );
-
-    check( numMessagesReceived == NumMessagesSent );
 }
 
 void test_connection_client_server()
