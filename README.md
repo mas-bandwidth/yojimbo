@@ -4,11 +4,7 @@
 
 It is designed around the networking requirements of competitive realtime multiplayer games such as first person shooters and action games. As such it provides the absolute fastest, most time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
-**libyojimbo** is currently in pre-release. It provides support for cryptographically secure authentication, client/server connection management and encryption for packets sent over UDP, as well as a bitpacker and framework for extending the protocol with custom packet types. Work in progress support for reliable-ordered messages and data blocks is also included in the latest release (0.3.0-Preview*). 
-
-The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol such as: multiple message channels, per-channel reliability and ordering settings, per-channel packet budget and prioritization, packet fragmentation and reassembly, compressed packets, compressed data blocks, and packet aggregation.
-
-Current work on 0.3.0 is focused on extended the protocol to support multiple message channels with different reliability and ordering guarantees per-channel. 0.3.0 will be released once multiple channels support reliable-ordered, reliable-unordered and unreliable-unordered messages and the underlying packet transport is extended to support packet fragmentation and reassembly.
+The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol such as: multiple message channels, per-channel reliability and ordering settings, per-channel packet budget and prioritization, packet fragmentation and reassembly, compressed packets and data blocks.
 
 ## Author
 
