@@ -1154,6 +1154,12 @@ namespace yojimbo
             return;
         }
 
+        if ( message->IsBlockMessage() )
+        {
+            assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
+            assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
+        }
+
         m_messageSendQueue->Push( message );
 
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
