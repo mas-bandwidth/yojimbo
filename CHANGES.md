@@ -51,6 +51,12 @@ Saturday July 16th, 2016
 
     On process, assign all message ids to the packet sequence they were sent in.
 
+    Moved existing connection tests, eg. test_connection_messages -> test_connection_reliable_ordered_messages
+
+    Added a unit test for unreliable unordered messages. Right now no messages are being received. Digging in...
+
+    Disabled packet loss, jitter, duplicates, latency etc. so all messages get through.
+
 
 Friday July 15th, 2016
 ======================
