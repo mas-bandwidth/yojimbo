@@ -4407,6 +4407,159 @@ void test_connection_unreliable_unordered_messages()
     }
 }
 
+void test_connection_unreliable_unordered_blocks()
+{
+    printf( "test_connection_unreliable_unordered_blocks\n" );
+
+    TestPacketFactory packetFactory( GetDefaultAllocator() );
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channelConfig[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    TestConnection sender( packetFactory, messageFactory, connectionConfig );
+
+    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+
+    ConnectionContext context;
+    context.messageFactory = &messageFactory;
+    context.connectionConfig = &connectionConfig;
+
+    TestNetworkSimulator networkSimulator;
+
+    networkSimulator.SetPacketLoss( 0 );
+    networkSimulator.SetLatency( 0 );
+    networkSimulator.SetJitter( 0 );
+    networkSimulator.SetDuplicates( 0 );
+
+    const int SenderPort = 10000;
+    const int ReceiverPort = 10001;
+
+    Address senderAddress( "::1", SenderPort );
+    Address receiverAddress( "::1", ReceiverPort );
+
+    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
+    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
+
+    senderTransport.SetContext( &context );
+    receiverTransport.SetContext( &context );
+
+    double time = 0.0;
+    double deltaTime = 0.1;
+
+    const int NumIterations = 8;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        const int NumMessagesSent = 8;
+
+        for ( int i = 0; i < NumMessagesSent; ++i )
+        {
+            TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+            check( message );
+            message->sequence = i;
+            const int blockSize = 1 + ( i * 7 );
+            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+            for ( int j = 0; j < blockSize; ++j )
+                blockData[j] = i + j;
+            message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+            sender.SendMessage( message );
+        }
+
+        Packet * senderPacket = sender.WritePacket();
+        Packet * receiverPacket = receiver.WritePacket();
+
+        check( senderPacket );
+        check( receiverPacket );
+
+        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
+        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
+
+        senderTransport.WritePackets();
+        receiverTransport.WritePackets();
+
+        senderTransport.ReadPackets();
+        receiverTransport.ReadPackets();
+
+        while ( true )
+        {
+            Address from;
+            Packet * packet = senderTransport.ReceivePacket( from, NULL );
+            if ( !packet )
+                break;
+
+            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
+                sender.ReadPacket( (ConnectionPacket*) packet );
+
+            packetFactory.DestroyPacket( packet );
+        }
+
+        while ( true )
+        {
+            Address from;
+            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
+            if ( !packet )
+                break;
+
+            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
+            {
+                receiver.ReadPacket( (ConnectionPacket*) packet );
+            }
+
+            packetFactory.DestroyPacket( packet );
+        }
+
+        int numMessagesReceived = 0;
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage();
+
+            if ( !message )
+                break;
+
+            check( message->GetId() == uint16_t( i ) );
+            check( message->GetType() == TEST_BLOCK_MESSAGE );
+
+            TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+
+            check( blockMessage->sequence == uint16_t( numMessagesReceived ) );
+
+            const int blockSize = blockMessage->GetBlockSize();
+
+            check( blockSize == 1 + ( numMessagesReceived * 7 ) );
+
+            const uint8_t * blockData = blockMessage->GetBlockData();
+
+            check( blockData );
+
+            for ( int j = 0; j < blockSize; ++j )
+            {
+                check( blockData[j] == uint8_t( numMessagesReceived + j ) );
+            }
+
+            ++numMessagesReceived;
+
+            messageFactory.Release( message );
+        }
+
+        check( numMessagesReceived == NumMessagesSent );
+
+        time += deltaTime;
+
+        sender.AdvanceTime( time );
+        receiver.AdvanceTime( time );
+
+        senderTransport.AdvanceTime( time );
+        receiverTransport.AdvanceTime( time );
+
+        networkSimulator.AdvanceTime( time );
+    }
+}
+
 void test_connection_client_server()
 {
     printf( "test_connection_client_server\n" );
@@ -4745,6 +4898,7 @@ int main()
         test_connection_reliable_ordered_messages_and_blocks();
         test_connection_reliable_ordered_messages_and_blocks_multiple_channels();
         test_connection_unreliable_unordered_messages();
+        test_connection_unreliable_unordered_blocks();
         test_connection_client_server();
 
 #if SOAK
