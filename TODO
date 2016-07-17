@@ -1,22 +1,6 @@
 DONE    
 
-    Extend unreliable unordered channel to serialize blocks in-place (eg. not as fragments, just the whole block following the message as header)
-
-    Yes, eventually for large blocks this will require MTU splits, but for now keep those blocks small-ish.
-
-    In theory, blocks sent through the unreliable unordered channel should now work.
-
-    Unlike with messages and blocks over reliable ordered channels, where they are treated quite differently (fragments),
-    there is no substantial difference between how messages and blocks are treated in unreliable unordered, so I don't think
-    a mixed messages and blocks unit test over unreliable unordered channel adds any value.
-
 TODO
-
-    Add a unit test to verify unordered channels work with blocks.
-
-    ------------------
-
-    Time for another preview release.
 
     ------------------
 
