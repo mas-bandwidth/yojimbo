@@ -1011,7 +1011,7 @@ public:
         if ( !EncryptConnectToken( token, tokenData, NULL, 0, (const uint8_t*) &m_nonce, private_key ) )
             return false;
 
-        assert( NonceBytes == 8 );
+        check( NonceBytes == 8 );
 
         memcpy( tokenNonce, &m_nonce, NonceBytes );
 
@@ -1036,7 +1036,6 @@ struct GamePacket : public Packet
 
     void Initialize( uint32_t seq )
     {
-        assert( seq > 0 );
         sequence = seq;
         a = seq % 2;
         b = seq % 3;
@@ -1051,7 +1050,6 @@ struct GamePacket : public Packet
         serialize_bits( stream, b, 32 );
         serialize_bits( stream, c, 32 );
 
-        assert( sequence > 0 );
         assert( a == sequence % 2 );
         assert( b == sequence % 3 );
         assert( c == sequence % 5 );
@@ -3208,7 +3206,7 @@ void test_matcher()
         uint64_t decryptedMessageLength;
         check( Decrypt_AEAD( encryptedMessage, sizeof( encryptedMessage ), decryptedMessage, decryptedMessageLength, NULL, 0, nonce, key ) );
 
-        assert( decryptedMessageLength == ConnectTokenBytes - AuthBytes );
+        check( decryptedMessageLength == ConnectTokenBytes - AuthBytes );
     }
 
     // test base64 decrypt from matcher.go
@@ -4321,11 +4319,11 @@ void test_connection_unreliable_unordered_messages()
     {
         const int NumMessagesSent = 16;
 
-        for ( int i = 0; i < NumMessagesSent; ++i )
+        for ( int j = 0; j < NumMessagesSent; ++j )
         {
             TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
             check( message );
-            message->sequence = i;
+            message->sequence = j;
             sender.SendMessage( message );
         }
 
@@ -4456,15 +4454,15 @@ void test_connection_unreliable_unordered_blocks()
     {
         const int NumMessagesSent = 8;
 
-        for ( int i = 0; i < NumMessagesSent; ++i )
+        for ( int j = 0; j < NumMessagesSent; ++j )
         {
             TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
             check( message );
-            message->sequence = i;
-            const int blockSize = 1 + ( i * 7 );
+            message->sequence = j;
+            const int blockSize = 1 + ( j * 7 );
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
-            for ( int j = 0; j < blockSize; ++j )
-                blockData[j] = i + j;
+            for ( int k = 0; k < blockSize; ++k )
+                blockData[k] = j + k;
             message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
             sender.SendMessage( message );
         }
