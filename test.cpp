@@ -3595,9 +3595,9 @@ void test_connection_acks()
     check( numReceivedPackets >= numAckedPackets );
 }
 
-void test_connection_messages()
+void test_connection_reliable_ordered_messages()
 {
-    printf( "test_connection_messages\n" );
+    printf( "test_connection_reliable_ordered_messages\n" );
 
     TestPacketFactory packetFactory( GetDefaultAllocator() );
 
@@ -3731,9 +3731,9 @@ void test_connection_messages()
     check( numMessagesReceived == NumMessagesSent );
 }
 
-void test_connection_blocks()
+void test_connection_reliable_ordered_blocks()
 {
-    printf( "test_connection_blocks\n" );
+    printf( "test_connection_reliable_ordered_blocks\n" );
 
     TestPacketFactory packetFactory( GetDefaultAllocator() );
 
@@ -3886,9 +3886,9 @@ void test_connection_blocks()
     check( numMessagesReceived == NumMessagesSent );
 }
 
-void test_connection_messages_and_blocks()
+void test_connection_reliable_ordered_messages_and_blocks()
 {
-    printf( "test_connection_messages_and_blocks\n" );
+    printf( "test_connection_reliable_ordered_messages_and_blocks\n" );
 
     TestPacketFactory packetFactory( GetDefaultAllocator() );
 
@@ -4066,9 +4066,9 @@ void test_connection_messages_and_blocks()
     check( numMessagesReceived == NumMessagesSent );
 }
 
-void test_connection_messages_and_blocks_multiple_channels()
+void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 {
-    printf( "test_connection_messages_and_blocks_multiple_channels\n" );
+    printf( "test_connection_reliable_ordered_messages_and_blocks_multiple_channels\n" );
 
     const int NumChannels = 2;
 
@@ -4270,6 +4270,146 @@ void test_connection_messages_and_blocks_multiple_channels()
     {
         check( numMessagesReceived[channelId] == NumMessagesSent );
     }
+}
+
+void test_connection_unreliable_unordered_messages()
+{
+    printf( "test_connection_unreliable_unordered_messages\n" );
+
+    TestPacketFactory packetFactory( GetDefaultAllocator() );
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channelConfig[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    TestConnection sender( packetFactory, messageFactory, connectionConfig );
+
+    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+
+    ConnectionContext context;
+    context.messageFactory = &messageFactory;
+    context.connectionConfig = &connectionConfig;
+
+    const int NumMessagesSent = 16;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+        check( message );
+        message->sequence = i;
+        sender.SendMessage( message );
+    }
+
+    TestNetworkSimulator networkSimulator;
+
+    networkSimulator.SetPacketLoss( 0 );
+    networkSimulator.SetLatency( 0 );
+    networkSimulator.SetJitter( 0 );
+    networkSimulator.SetDuplicates( 0 );
+
+    const int SenderPort = 10000;
+    const int ReceiverPort = 10001;
+
+    Address senderAddress( "::1", SenderPort );
+    Address receiverAddress( "::1", ReceiverPort );
+
+    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, packetFactory, senderAddress, ProtocolId );
+    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, receiverAddress, ProtocolId );
+
+    senderTransport.SetContext( &context );
+    receiverTransport.SetContext( &context );
+
+    double time = 0.0;
+    double deltaTime = 0.1;
+
+    const int NumIterations = 1000;
+
+    int numMessagesReceived = 0;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Packet * senderPacket = sender.WritePacket();
+        Packet * receiverPacket = receiver.WritePacket();
+
+        check( senderPacket );
+        check( receiverPacket );
+
+        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
+        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
+
+        senderTransport.WritePackets();
+        receiverTransport.WritePackets();
+
+        senderTransport.ReadPackets();
+        receiverTransport.ReadPackets();
+
+        while ( true )
+        {
+            Address from;
+            Packet * packet = senderTransport.ReceivePacket( from, NULL );
+            if ( !packet )
+                break;
+
+            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
+                sender.ReadPacket( (ConnectionPacket*) packet );
+
+            packetFactory.DestroyPacket( packet );
+        }
+
+        while ( true )
+        {
+            Address from;
+            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
+            if ( !packet )
+                break;
+
+            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
+            {
+                receiver.ReadPacket( (ConnectionPacket*) packet );
+            }
+
+            packetFactory.DestroyPacket( packet );
+        }
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage();
+
+            if ( !message )
+                break;
+
+            check( message->GetId() == (int) numMessagesReceived );
+            check( message->GetType() == TEST_MESSAGE );
+
+            TestMessage * testMessage = (TestMessage*) message;
+
+            check( testMessage->sequence == numMessagesReceived );
+
+            ++numMessagesReceived;
+
+            messageFactory.Release( message );
+        }
+
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
+
+        time += deltaTime;
+
+        sender.AdvanceTime( time );
+        receiver.AdvanceTime( time );
+
+        senderTransport.AdvanceTime( time );
+        receiverTransport.AdvanceTime( time );
+
+        networkSimulator.AdvanceTime( time );
+    }
+
+    printf( "numMessagesReceived = %d\n", numMessagesReceived );
+
+    check( numMessagesReceived == NumMessagesSent );
 }
 
 void test_connection_client_server()
@@ -4605,10 +4745,11 @@ int main()
         test_generate_ack_bits();
         test_connection_counters();
         test_connection_acks();
-        test_connection_messages();
-        test_connection_blocks();
-        test_connection_messages_and_blocks();
-        test_connection_messages_and_blocks_multiple_channels();
+        test_connection_reliable_ordered_messages();
+        test_connection_reliable_ordered_blocks();
+        test_connection_reliable_ordered_messages_and_blocks();
+        test_connection_reliable_ordered_messages_and_blocks_multiple_channels();
+        test_connection_unreliable_unordered_messages();
         test_connection_client_server();
 
 #if SOAK

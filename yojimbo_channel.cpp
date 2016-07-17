@@ -1189,16 +1189,21 @@ namespace yojimbo
 
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
-        const int messageLimit = min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize ) / 2;
-
         int usedBits = ConservativeMessageHeaderEstimate;
 
-        for ( int i = 0; i < messageLimit; ++i )
+        int numMessages = 0;
+
+        Message ** messages = (Message**) alloca( sizeof( Message* ) * m_config.maxMessagesPerPacket );
+
+        while ( true )
         {
             if ( m_messageSendQueue->IsEmpty() )
                 break;
 
-            if ( packetData.message.numMessages == m_config.maxMessagesPerPacket )
+            if ( availableBits - usedBits < giveUpBits )
+                break;
+
+            if ( numMessages == m_config.maxMessagesPerPacket )
                 break;
 
             Message * message = m_messageSendQueue->Pop();
@@ -1218,7 +1223,7 @@ namespace yojimbo
 
             const int messageBits = messageTypeBits + measureStream.GetBitsProcessed();
 
-            if ( usedBits + messageBits > availableBits || availableBits - usedBits < giveUpBits )
+            if ( usedBits + messageBits > availableBits )
             {
                 m_messageFactory->Release( message );
                 continue;
@@ -1228,11 +1233,22 @@ namespace yojimbo
 
             assert( usedBits <= availableBits );
 
-            packetData.message.messages[packetData.message.numMessages++] = message;
+            messages[numMessages++] = message;
         }
 
-        if ( packetData.message.numMessages == 0 )
+        if ( numMessages == 0 )
             return 0;
+
+        Allocator & allocator = m_messageFactory->GetAllocator();
+
+        packetData.message.numMessages = numMessages;
+
+        packetData.message.messages = (Message**) allocator.Allocate( sizeof( Message*) * numMessages );
+
+        for ( int i = 0; i < numMessages; ++i )
+        {
+            packetData.message.messages[i] = messages[i];
+        }
 
         return usedBits;
     }
