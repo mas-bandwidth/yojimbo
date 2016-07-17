@@ -109,7 +109,7 @@ namespace yojimbo
 
             for ( int i = 0; i < numChannelEntries; ++i )
             {
-                if ( !channelEntry[i].Serialize( stream, *m_messageFactory, context->connectionConfig->channelConfig, numChannels ) )
+                if ( !channelEntry[i].SerializeInternal( stream, *m_messageFactory, context->connectionConfig->channelConfig, numChannels ) )
                     return false;
             }
         }
