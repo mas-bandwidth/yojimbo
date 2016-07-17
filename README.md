@@ -4,7 +4,7 @@
 
 It is designed around the networking requirements of competitive realtime multiplayer games such as first person shooters and action games. As such it provides the absolute fastest, most time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
-The library is under active development and is is being extended to provide all the standard functionality expected from a professional grade network protocol such as: multiple message channels, per-channel reliability and ordering settings, per-channel packet budget and prioritization, packet fragmentation and reassembly, compressed packets and data blocks.
+The library is under active development and is being extended to provide all standard functionality expected from a professional grade network protocol such as: packet ack system, reliable-ordered messages and data blocks, multiple message channels with different reliability and ordering settings per-channel, packet budgets per-channel, packet fragmentation and reassembly for packet payloads larger than MTU.
 
 ## Author
 
