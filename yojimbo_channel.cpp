@@ -133,7 +133,33 @@ namespace yojimbo
         return true;
     }
 
-    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** & messages, int maxMessagesPerPacket )
+    template <typename Stream> bool SerializeMessageBlock( Stream & stream, MessageFactory & messageFactory, BlockMessage * blockMessage, int maxBlockSize )
+    {
+        int blockSize = Stream::IsWriting ? blockMessage->GetBlockSize() : 0;
+
+        serialize_int( stream, blockSize, 1, maxBlockSize );
+
+        uint8_t * blockData;
+
+        if ( Stream::IsReading )
+        {
+            Allocator & allocator = messageFactory.GetAllocator();
+            blockData = (uint8_t*) allocator.Allocate( blockSize );
+            if ( !blockData )
+                return false;
+            blockMessage->AttachBlock( allocator, blockData, blockSize );
+        }                   
+        else
+        {
+            blockData = blockMessage->GetBlockData();
+        } 
+
+        serialize_bytes( stream, blockData, blockSize );
+
+        return true;
+    }
+
+    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** & messages, int maxMessagesPerPacket, int maxBlockSize )
     {
         const int maxMessageType = messageFactory.GetNumTypes() - 1;
 
@@ -189,6 +215,13 @@ namespace yojimbo
 
                 if ( !messages[i]->SerializeInternal( stream ) )
                     return false;
+
+                if ( messages[i]->IsBlockMessage() )
+                {
+                    BlockMessage * blockMessage = (BlockMessage*) messages[i];
+                    if ( !SerializeMessageBlock( stream, messageFactory, blockMessage, maxBlockSize ) )
+                        return false;
+                }
             }
         }
 
@@ -282,7 +315,7 @@ namespace yojimbo
 
                 case CHANNEL_TYPE_UNRELIABLE_UNORDERED:
                 {
-                    if ( !SerializeUnorderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket ) )
+                    if ( !SerializeUnorderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket, channelConfig.maxBlockSize ) )
                         return false;
                 }
                 break;
@@ -476,13 +509,6 @@ namespace yojimbo
         MeasureStream measureStream;
 
         message->SerializeInternal( measureStream );
-
-        if ( measureStream.GetError() )
-        {
-            SetError( CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED );
-            m_messageFactory->Release( message );
-            return;
-        }
 
         entry->measuredBits = measureStream.GetBitsProcessed();
 
@@ -1220,11 +1246,10 @@ namespace yojimbo
 
             message->SerializeInternal( measureStream );
 
-            if ( measureStream.GetError() )
+            if ( message->IsBlockMessage() )
             {
-                SetError( CHANNEL_ERROR_SERIALIZE_MEASURE_FAILED );
-                m_messageFactory->Release( message );
-                return 0;
+                BlockMessage * blockMessage = (BlockMessage*) message;
+                SerializeMessageBlock( measureStream, *m_messageFactory, blockMessage, m_config.maxBlockSize );
             }
 
             const int messageBits = messageTypeBits + measureStream.GetBitsProcessed();
