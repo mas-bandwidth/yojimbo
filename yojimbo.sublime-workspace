@@ -526,6 +526,14 @@
 				"buffer_size": 11062,
 				"line_ending": "Windows"
 			}
+		},
+		{
+			"file": "yojimbo_client_server.h",
+			"settings":
+			{
+				"buffer_size": 31114,
+				"line_ending": "Windows"
+			}
 		}
 	],
 	"build_system": "",
@@ -1073,7 +1081,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -1101,6 +1109,36 @@
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "yojimbo_client_server.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 31114,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1935,
+								1935
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 900.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -1162,6 +1200,10 @@
 		"selected_items":
 		[
 			[
+				"client_server",
+				"libyojimbo\\yojimbo_client_server.h"
+			],
+			[
 				"premake5",
 				"libyojimbo\\premake5.lua"
 			],
@@ -1208,10 +1250,6 @@
 			[
 				"client_server.h",
 				"libyojimbo\\yojimbo_client_server.h"
-			],
-			[
-				"client_server",
-				"libyojimbo\\yojimbo_client_server.cpp"
 			],
 			[
 				"todo",
