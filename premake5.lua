@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.3.0-Preview6"
+libyojimbo_version = "0.3.0-Preview7"
 
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
@@ -8,6 +8,13 @@ else
     debug_libs = { "sodium", "mbedtls", "mbedx509", "mbedcrypto" }
     release_libs = debug_libs
 end
+
+language "C++"
+kind "ConsoleApp"
+configuration "Debug"
+    links { debug_libs }
+configuration "Release"
+    links { release_libs }
 
 solution "Yojimbo"
     platforms { "x64" }
@@ -22,113 +29,54 @@ solution "Yojimbo"
         targetdir "bin/"  
     end
     rtti "Off"
-    flags { "ExtraWarnings", "StaticRuntime", "FloatFast" }
+    flags { "ExtraWarnings", "StaticRuntime", "FloatFast", "EnableSSE2" }
     configuration "Debug"
         flags { "Symbols" }
         defines { "DEBUG" }
     configuration "Release"
         optimize "Speed"
         defines { "NDEBUG" }
-
+        
 project "test"
-    language "C++"
-    kind "ConsoleApp"
     files { "test.cpp" }
     links { "yojimbo" }
-    configuration "Debug"
-		links { debug_libs }
-	configuration "Release"
-        links { release_libs }
 
 project "connect"
-    language "C++"
-    kind "ConsoleApp"
     files { "connect.cpp" }
     links { "yojimbo" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 project "info"
-    language "C++"
-    kind "ConsoleApp"
     files { "info.cpp" }
     links { "yojimbo" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 project "yojimbo"
-    language "C++"
     kind "StaticLib"
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 project "client"
-    language "C++"
-    kind "ConsoleApp"
     files { "client.cpp", "shared.h" }
     links { "yojimbo" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 project "server"
-    language "C++"
-    kind "ConsoleApp"
     files { "server.cpp", "shared.h" }
     links { "yojimbo" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 project "secure_server"
-    language "C++"
-    kind "ConsoleApp"
     files { "server.cpp", "shared.h" }
     links { "yojimbo" }
     defines { "SECURE_SERVER=1" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 project "client_server"
-    language "C++"
-    kind "ConsoleApp"
     files { "client_server.cpp", "shared.h" }
     links { "yojimbo" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 project "soak"
-    language "C++"
-    kind "ConsoleApp"
     files { "soak.cpp", "shared.h" }
     links { "yojimbo" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 project "profile"
-    language "C++"
-    kind "ConsoleApp"
     files { "profile.cpp", "shared.h" }
     links { "yojimbo" }
-    configuration "Debug"
-        links { debug_libs }
-    configuration "Release"
-        links { release_libs }
 
 if not os.is "windows" then
 
