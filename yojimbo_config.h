@@ -73,7 +73,7 @@
 
 #define YOJIMBO_NETWORK_SIMULATOR                   1
 
-#define YOJIMBO_INSECURE_CONNECT                    1           // IMPORTANT: You should disable this in retail build
+#define YOJIMBO_INSECURE_CONNECT                    1           // IMPORTANT: You should probably disable this in retail build
 
 #define YOJIMBO_SERIALIZE_CHECKS                    1
 
@@ -88,5 +88,7 @@
 #define YOJIMBO_VALIDATE_PACKET_BUDGET              1
 
 #endif // #if DEBUG
+
+#define YOJIMBO_DEBUG_SPAM                          1           // really spammy logs for debugging yojimbo
 
 #endif // #ifndef YOJIMBO_CONFIG_H

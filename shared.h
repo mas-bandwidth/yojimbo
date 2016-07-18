@@ -177,7 +177,11 @@ protected:
 
     void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t fragmentId, int /*channelId*/ )
     {
+#if !YOJIMBO_DEBUG_SPAM
         printf( "received fragment %d\n", fragmentId );
+#else
+        (void)fragmentId;
+#endif // #if !YOJIMBO_DEBUG_SPAM
     }
 
 #endif // #ifndef QUIET
