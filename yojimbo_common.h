@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <assert.h>
     
 namespace yojimbo
@@ -271,6 +272,8 @@ namespace yojimbo
     int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size );
 
     int base64_decode_data( const char * input, uint8_t * output, int output_size );
+
+    void debug_printf( const char * format, ... );
 }
 
 #endif // #ifndef YOJIMBO_COMMON_H
