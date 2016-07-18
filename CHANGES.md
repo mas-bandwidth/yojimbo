@@ -1,4 +1,25 @@
 
+Sunday July 17th, 2016
+======================
+
+    Need to add an intensive logging mode to help track down what is going on one user's system.
+
+    They are only getting ~20 clients connecting to the server in profile.cpp, but the rest of the clients
+    are sending packets but seemingly not establishing connection. Weird.
+
+    Need logs to track down what is going on. It's really strange.
+
+    Added some basic logs here, looking good.
+
+    OK. no dice. Packets just not getting through.
+
+    Theory: on this particular version of windows the default socket buffers are just too small.
+
+    Bump up socket buffers to 1mb send and 1mb receive by default (users can specify if they want more or less, but good default...)
+
+    This should fix the issue.
+
+
 Saturday July 16th, 2016
 ========================
 

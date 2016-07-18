@@ -89,6 +89,6 @@
 
 #endif // #if DEBUG
 
-#define YOJIMBO_DEBUG_SPAM                          1           // really spammy logs for debugging yojimbo
+//#define YOJIMBO_DEBUG_SPAM                          1
 
 #endif // #ifndef YOJIMBO_CONFIG_H

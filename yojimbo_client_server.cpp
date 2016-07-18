@@ -1021,7 +1021,7 @@ namespace yojimbo
 
         if ( FindAddressAndClientId( address, connectToken.clientId ) >= 0 )
         {
-            debug_printf( "client id already connected: %d\n", (int) connectToken.clientId );
+            debug_printf( "client id already connected: %" PRIx64 " (connection request)\n", connectToken.clientId );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_CLIENT_ID_ALREADY_CONNECTED]++;
             return;
         }
@@ -1131,7 +1131,7 @@ namespace yojimbo
                 }
             }
 
-            debug_printf( "client is already connected\n" );
+            debug_printf( "client is already connected: %" PRIx64 " (challenge response)\n", challengeToken.clientId );
 
             return;
         }

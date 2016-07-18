@@ -69,7 +69,7 @@
 
 namespace yojimbo
 {
-	Socket::Socket( const Address & address )
+	Socket::Socket( const Address & address, int bufferSize )
     {
         assert( address.IsValid() );
         assert( IsNetworkInitialized() );
@@ -100,6 +100,20 @@ namespace yojimbo
                 m_error = SOCKET_ERROR_SOCKOPT_IPV6_ONLY_FAILED;
                 return;
             }
+        }
+
+        // increase socket send and receive buffer sizes
+
+        if ( setsockopt( m_socket, SOL_SOCKET, SO_RCVBUF, (char*)&bufferSize, sizeof(int) ) != 0 )
+        {
+            m_error = SOCKET_ERROR_SOCKOPT_RECVBUF_FAILED;
+            return;
+        }
+
+        if ( setsockopt( m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&bufferSize, sizeof(int) ) != 0 )
+        {
+            m_error = SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED;
+            return;
         }
 
         // bind to port
@@ -224,14 +238,6 @@ namespace yojimbo
 
         bool result = false;
 
-#if YOJIMBO_DEBUG_SPAM
-        char toString[MaxAddressLength];
-        char fromString[MaxAddressLength];
-        to.ToString( toString, MaxAddressLength );
-        m_address.ToString( fromString, MaxAddressLength );
-        debug_printf( "sending packet from %s to %s (%d bytes)\n", toString, fromString, packetBytes );
-#endif // #if YOJIMBO_DEBUG_SPAM
-
         if ( to.GetType() == ADDRESS_IPV6 )
         {
             sockaddr_in6 socket_address;
@@ -301,14 +307,6 @@ namespace yojimbo
 
         const int bytesRead = result;
 
-#if YOJIMBO_DEBUG_SPAM
-        char toString[MaxAddressLength];
-        char fromString[MaxAddressLength];
-        from.ToString( fromString, MaxAddressLength );
-        m_address.ToString( toString, MaxAddressLength );
-        debug_printf( "received packet from %s to %s (%d bytes)\n", fromString, toString, bytesRead );
-#endif // #if YOJIMBO_DEBUG_SPAM
-
         return bytesRead;
     }
 
@@ -323,7 +321,8 @@ namespace yojimbo
                                       uint32_t protocolId,
                                       int maxPacketSize, 
                                       int sendQueueSize, 
-                                      int receiveQueueSize )
+                                      int receiveQueueSize,
+                                      int bufferSize )
         : BaseTransport( allocator, 
                          packetFactory, 
                          address,
@@ -332,7 +331,7 @@ namespace yojimbo
                          sendQueueSize,
                          receiveQueueSize )
     {
-        m_socket = YOJIMBO_NEW( allocator, Socket, address );
+        m_socket = YOJIMBO_NEW( allocator, Socket, address, bufferSize );
     }
 
     SocketTransport::~SocketTransport()

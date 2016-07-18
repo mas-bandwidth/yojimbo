@@ -1,14 +1,5 @@
 DONE    
 
-    Need to add an intensive logging mode to help track down what is going on one user's system.
-
-    They are only getting ~20 clients connecting to the server in profile.cpp, but the rest of the clients
-    are sending packets but seemingly not establishing connection. Weird.
-
-    Need logs to track down what is going on. It's really strange.
-
-    Added some basic logs here, looking good.
-
 TODO
 
     ------------------
