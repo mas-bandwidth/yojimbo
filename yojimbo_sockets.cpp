@@ -224,6 +224,14 @@ namespace yojimbo
 
         bool result = false;
 
+#if YOJIMBO_DEBUG_SPAM
+        char toString[MaxAddressLength];
+        char fromString[MaxAddressLength];
+        to.ToString( toString, MaxAddressLength );
+        m_address.ToString( fromString, MaxAddressLength );
+        debug_printf( "sending packet from %s to %s (%d bytes)\n", toString, fromString, packetBytes );
+#endif // #if YOJIMBO_DEBUG_SPAM
+
         if ( to.GetType() == ADDRESS_IPV6 )
         {
             sockaddr_in6 socket_address;
@@ -271,6 +279,8 @@ namespace yojimbo
             if ( error == WSAEWOULDBLOCK )
                 return 0;
 
+            debug_printf( "recvfrom failed with error %d\n", error );
+
             return 0;
         }
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
@@ -278,6 +288,8 @@ namespace yojimbo
         {
             if ( errno == EAGAIN )
                 return 0;
+
+            debug_printf( "recvfrom failed with error %d\n", errno );
 
             return 0;
         }
@@ -288,6 +300,14 @@ namespace yojimbo
         assert( result >= 0 );
 
         const int bytesRead = result;
+
+#if YOJIMBO_DEBUG_SPAM
+        char toString[MaxAddressLength];
+        char fromString[MaxAddressLength];
+        from.ToString( fromString, MaxAddressLength );
+        m_address.ToString( toString, MaxAddressLength );
+        debug_printf( "received packet from %s to %s (%d bytes)\n", fromString, toString, bytesRead );
+#endif // #if YOJIMBO_DEBUG_SPAM
 
         return bytesRead;
     }
