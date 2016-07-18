@@ -68,7 +68,10 @@ namespace yojimbo
         }
 
         if ( !packet->SerializeInternal( stream ) )
+        {
+            debug_printf( "serialize packet type %d failed (write packet)\n", packetType );
             return 0;
+        }
 
         stream.SerializeCheck( "end of packet" );
 
@@ -83,7 +86,10 @@ namespace yojimbo
         }
 
         if ( stream.GetError() )
+        {
+            debug_printf( "stream error %d (write packet)\n", stream.GetError() );
             return 0;
+        }
 
         return stream.GetBytesProcessed();
     }
@@ -121,9 +127,7 @@ namespace yojimbo
 
             if ( crc32 != read_crc32 )
             {
-#ifdef DEBUG
-                printf( "corrupt packet. expected crc32 %x, got %x\n", crc32, read_crc32 );
-#endif // #ifdef DEBUG
+                debug_printf( "corrupt packet. expected crc32 %x, got %x (read packet)\n", crc32, read_crc32 );
                 if ( errorCode )
                     *errorCode = YOJIMBO_PROTOCOL_ERROR_CRC32_MISMATCH;
                 return NULL;
@@ -140,6 +144,7 @@ namespace yojimbo
         {
             if ( !stream.SerializeInteger( packetType, 0, numPacketTypes - 1 ) )
             {
+                debug_printf( "invalid packet type %d (read packet)\n", packetType );
                 if ( errorCode )
                     *errorCode = YOJIMBO_PROTOCOL_ERROR_INVALID_PACKET_TYPE;
                 return NULL;
@@ -150,6 +155,7 @@ namespace yojimbo
         {
             if ( !info.allowedPacketTypes[packetType] )
             {
+                debug_printf( "packet type %d not allowed (read packet)\n", packetType );
                 if ( errorCode )
                     *errorCode = YOJIMBO_PROTOCOL_ERROR_PACKET_TYPE_NOT_ALLOWED;
                 return NULL;
@@ -159,6 +165,7 @@ namespace yojimbo
         Packet *packet = info.packetFactory->CreatePacket( packetType );
         if ( !packet )
         {
+            debug_printf( "create packet type %d failed (read packet)\n", packetType );
             if ( errorCode )
                 *errorCode = YOJIMBO_PROTOCOL_ERROR_CREATE_PACKET_FAILED;
             return NULL;
@@ -166,6 +173,7 @@ namespace yojimbo
 
         if ( !packet->SerializeInternal( stream ) )
         {
+            debug_printf( "serialize packet type %d failed (read packet)\n", packetType );
             if ( errorCode )
                 *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_PACKET_FAILED;
             goto cleanup;
@@ -174,6 +182,7 @@ namespace yojimbo
 #if YOJIMBO_SERIALIZE_CHECKS
         if ( !stream.SerializeCheck( "end of packet" ) )
         {
+            debug_printf( "serialize check failed at end of packet type %d (read packet)\n", packetType );
             if ( errorCode )
                 *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_CHECK_FAILED;
             goto cleanup;
@@ -182,6 +191,7 @@ namespace yojimbo
 
         if ( stream.GetError() )
         {
+            debug_printf( "stream error %d (read packet)\n", stream.GetError() );
             if ( errorCode )
                 *errorCode = stream.GetError();
             goto cleanup;

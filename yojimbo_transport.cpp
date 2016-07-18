@@ -176,6 +176,7 @@ namespace yojimbo
             }
             else
             {
+                debug_printf( "base transport send queue overflow\n" );
                 m_counters[TRANSPORT_COUNTER_SEND_QUEUE_OVERFLOW]++;
                 m_packetFactory->DestroyPacket( packet );
                 return;
@@ -258,9 +259,26 @@ namespace yojimbo
         {
             switch ( m_packetProcessor->GetError() )
             {
-                case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;         break;
-                case PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED:             m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;             break;
-                case PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED:        m_counters[TRANSPORT_COUNTER_WRITE_PACKET_FAILURES]++;               break;
+                case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                
+                {
+                    debug_printf( "base transport packet processor key is null (write packet)\n" );
+                    m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;         
+                }
+                break;
+
+                case PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED:
+                {
+                    debug_printf( "base transport encrypt failed (write packet)\n" );
+                    m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;
+                }
+                break;
+
+                case PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED:
+                {
+                    debug_printf( "base transport write packet failed (write packet)\n" );
+                    m_counters[TRANSPORT_COUNTER_WRITE_PACKET_FAILURES]++;               
+                }
+                break;
 
                 default:
                     break;
@@ -300,6 +318,7 @@ namespace yojimbo
 
             if ( m_receiveQueue.IsFull() )
             {
+                debug_printf( "base transport receive queue overflow\n" );
                 m_counters[TRANSPORT_COUNTER_RECEIVE_QUEUE_OVERFLOW]++;
                 break;
             }
@@ -327,10 +346,33 @@ namespace yojimbo
             {
                 switch ( m_packetProcessor->GetError() )
                 {
-                    case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:                m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;        break;
-                    case PACKET_PROCESSOR_ERROR_DECRYPT_FAILED:             m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;            break;
-                    case PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL:           m_counters[TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES]++;            break;
-                    case PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED:         m_counters[TRANSPORT_COUNTER_READ_PACKET_FAILURES]++;               break;
+                    case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:
+                    {
+                        printf( "base transport key is null (read packet)\n" );
+                        m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;
+                    }
+                    break;
+
+                    case PACKET_PROCESSOR_ERROR_DECRYPT_FAILED:
+                    {
+                        printf( "base transport decrypt failed (read packet)\n" );
+                        m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;
+                    }
+                    break;
+
+                    case PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL:
+                    {
+                        printf( "base transport packet too small (read packet)\n" );
+                        m_counters[TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES]++;
+                    }
+                    break;
+
+                    case PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED:
+                    {
+                        printf( "base transport read packet failed (read packet)\n" );
+                        m_counters[TRANSPORT_COUNTER_READ_PACKET_FAILURES]++;
+                    }
+                    break;
 
                     default:
                         break;

@@ -150,6 +150,12 @@ namespace yojimbo
             }
         }
 
+#if YOJIMBO_DEBUG_SPAM
+        char addressString[MaxAddressLength];
+        address.ToString( addressString, MaxAddressLength );
+        debug_printf( "failed to add encryption mapping for %s\n", addressString );
+#endif // #if YOJIMBO_DEBUG_SPAM
+
         return false;
     }
 
@@ -180,6 +186,12 @@ namespace yojimbo
                 return true;
             }
         }
+
+#if YOJIMBO_DEBUG_SPAM
+        char addressString[MaxAddressLength];
+        address.ToString( addressString, MaxAddressLength );
+        debug_printf( "failed to remove encryption mapping for %s\n", addressString );
+#endif // #if YOJIMBO_DEBUG_SPAM
 
         return false;
     }
