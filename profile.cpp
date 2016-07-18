@@ -244,7 +244,8 @@ int ProfileMain()
         {
             if ( clientData[i].client->ConnectionFailed() )
             {
-                printf( "error: client %d connect failed!\n", i );
+                printf( "\nerror: client %d connect failed!", i );
+                quit = true;
                 break;
             }
         }
@@ -324,6 +325,11 @@ int ProfileMain()
 				messageFactory.Release( message );
             }
         }
+
+        serverData.server->CheckForTimeOut();
+
+        for ( int i = 0; i < MaxClients; ++i )
+            clientData[i].client->CheckForTimeOut();
 
         serverData.server->AdvanceTime( time );
 
