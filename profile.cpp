@@ -164,11 +164,10 @@ int ProfileMain()
 
     GameMessageFactory messageFactory;
 
-    ServerData serverData;
+    ServerData * serverData = new ServerData();
+    serverData->address = Address( "::1", ServerPort );
 
-    serverData.address = Address( "::1", ServerPort );
-
-    ClientData clientData[MaxClients];
+	ClientData * clientData = new ClientData[MaxClients];
 
     LocalMatcher matcher;
 
@@ -191,23 +190,23 @@ int ProfileMain()
         }
     }
 
-    serverData.transport = new SocketTransport( GetDefaultAllocator(), packetFactory, serverData.address, ProtocolId );
+    serverData->transport = new SocketTransport( GetDefaultAllocator(), packetFactory, serverData->address, ProtocolId );
 
     for ( int i = 0; i < MaxClients; ++i )
         clientData[i].transport = new SocketTransport( GetDefaultAllocator(), packetFactory, clientData[i].address, ProtocolId );
 
-    serverData.server = new GameServer( GetDefaultAllocator(), *serverData.transport, messageFactory );
+    serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, messageFactory );
 
     for ( int i = 0; i < MaxClients; ++i )
         clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].transport, messageFactory );
 
-    serverData.server->SetServerAddress( serverData.address );
+    serverData->server->SetServerAddress( serverData->address );
 
-    serverData.server->Start();
+    serverData->server->Start();
 
     for ( int i = 0; i < MaxClients; ++i )
     {
-        clientData[i].client->Connect( serverData.address, 
+        clientData[i].client->Connect( serverData->address, 
                                        clientData[i].connectTokenData, 
                                        clientData[i].connectTokenNonce, 
                                        clientData[i].clientToServerKey, 
@@ -220,22 +219,22 @@ int ProfileMain()
 
     while ( !quit )
     {
-        serverData.server->SendPackets();
+        serverData->server->SendPackets();
 
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].client->SendPackets();
 
-        serverData.transport->WritePackets();
+        serverData->transport->WritePackets();
 
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].transport->WritePackets();
 
-        serverData.transport->ReadPackets();
+        serverData->transport->ReadPackets();
 
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].transport->ReadPackets();
 
-        serverData.server->ReceivePackets();
+        serverData->server->ReceivePackets();
 
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].client->ReceivePackets();
@@ -277,16 +276,16 @@ int ProfileMain()
 
             for ( int j = 0; j < messagesToSend; ++j )
             {
-                if ( !serverData.server->CanSendMessage( i ) )
+                if ( !serverData->server->CanSendMessage( i ) )
                     break;
 
-                Message * message = CreateRandomMessage( messageFactory, serverData.numMessagesSent[i] );
+                Message * message = CreateRandomMessage( messageFactory, serverData->numMessagesSent[i] );
 
                 if ( message )
                 {
-                    serverData.server->SendMessage( i, message );
+                    serverData->server->SendMessage( i, message );
 
-                    serverData.numMessagesSent[i]++;
+                    serverData->numMessagesSent[i]++;
                 }
             }
         }            
@@ -295,12 +294,12 @@ int ProfileMain()
         {
             while ( true )
             {
-                Message * message = serverData.server->ReceiveMessage( i );
+                Message * message = serverData->server->ReceiveMessage( i );
 
                 if ( !message )
                     break;
 
-                serverData.numMessagesReceived[i]++;
+                serverData->numMessagesReceived[i]++;
 
 //                printf( "server received message %d from client %d\n", message->GetId(), i );
 
@@ -325,12 +324,12 @@ int ProfileMain()
             }
         }
 
-        serverData.server->AdvanceTime( time );
+        serverData->server->AdvanceTime( time );
 
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].client->AdvanceTime( time );
 
-        serverData.transport->AdvanceTime( time );
+        serverData->transport->AdvanceTime( time );
 
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].transport->AdvanceTime( time );
@@ -342,6 +341,10 @@ int ProfileMain()
     {
         printf( "\n\nstopped\n" );
     }
+
+	delete [] clientData;
+
+	delete serverData;
 
     return 0;
 }
