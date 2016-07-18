@@ -46,6 +46,8 @@ namespace yojimbo
         SOCKET_ERROR_CREATE_FAILED,
         SOCKET_ERROR_SET_NON_BLOCKING_FAILED,
         SOCKET_ERROR_SOCKOPT_IPV6_ONLY_FAILED,
+        SOCKET_ERROR_SOCKOPT_RECVBUF_FAILED,
+        SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED,
         SOCKET_ERROR_BIND_IPV4_FAILED,
         SOCKET_ERROR_BIND_IPV6_FAILED,
         SOCKET_ERROR_GET_SOCKNAME_IPV4_FAILED,
@@ -62,7 +64,7 @@ namespace yojimbo
     {
     public:
 
-        explicit Socket( const Address & address );
+        explicit Socket( const Address & address, int bufferSize = 1024*1024 );
 
         ~Socket();
 
@@ -93,7 +95,8 @@ namespace yojimbo
                          uint32_t protocolId,
                          int maxPacketSize = 4 * 1024,
                          int sendQueueSize = 1024,
-                         int receiveQueueSize = 1024 );
+                         int receiveQueueSize = 1024,
+                         int bufferSize = 1024*1024 );
 
         ~SocketTransport();
 
