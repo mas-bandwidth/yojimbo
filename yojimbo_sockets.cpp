@@ -106,7 +106,7 @@ namespace yojimbo
 
         if ( setsockopt( m_socket, SOL_SOCKET, SO_RCVBUF, (char*)&bufferSize, sizeof(int) ) != 0 )
         {
-            m_error = SOCKET_ERROR_SOCKOPT_RECVBUF_FAILED;
+            m_error = SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED;
             return;
         }
 
