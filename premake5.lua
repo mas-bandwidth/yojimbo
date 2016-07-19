@@ -78,6 +78,10 @@ project "profile"
     files { "profile.cpp", "shared.h" }
     links { "yojimbo" }
 
+project "messages"
+    files { "messages.cpp", "shared.h" }
+    links { "yojimbo" }
+
 if not os.is "windows" then
 
     -- MacOSX and Linux.
@@ -168,7 +172,7 @@ if not os.is "windows" then
 		trigger     = "docker",
 		description = "Build and run a yojimbo server inside a docker container",
 		execute = function ()
-			os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cp -R rapidjson docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 50000:50000/udp networkprotocol:yojimbo-server"
+			os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cp -R rapidjson docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 40000:40000/udp networkprotocol:yojimbo-server"
 		end
 	}
 
@@ -223,6 +227,17 @@ if not os.is "windows" then
         execute = function ()
             if os.execute "make -j32 profile" == 0 then
                 os.execute "./bin/profile"
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "messages",
+        description = "Build and run messages testbed",
+        execute = function ()
+            if os.execute "make -j32 messages" == 0 then
+                os.execute "./bin/messages"
             end
         end
     }
