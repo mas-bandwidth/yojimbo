@@ -39,8 +39,8 @@ using namespace yojimbo;
 
 const uint32_t ProtocolId = 0x12341651;
 
-const int ClientPort = 40000;
-const int ServerPort = 50000;
+const int ClientPort = 30000;
+const int ServerPort = 40000;
 
 static bool verbose_logging = false;
 

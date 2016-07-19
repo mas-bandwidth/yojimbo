@@ -873,8 +873,8 @@ void test_client_server_tokens()
     printf( "test_client_server_tokens\n" );
 
     const uint32_t ProtocolId = 0x12398137;
-    const int ServerPort = 50000;
-    const int ClientPort = 60000;
+    const int ServerPort = 30000;
+    const int ClientPort = 40000;
 
     uint8_t key[KeyBytes];
 
@@ -969,8 +969,8 @@ void test_client_server_tokens()
 
 const uint32_t ProtocolId = 0x01231111;
 
-const int ClientPort = 40000;
-const int ServerPort = 50000;
+const int ClientPort = 30000;
+const int ServerPort = 40000;
 
 static uint8_t private_key[KeyBytes];
 

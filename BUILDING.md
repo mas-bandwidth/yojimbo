@@ -37,7 +37,7 @@ This creates makefiles which you can use to build the source via "make all", or 
 
     premake5 cs             // build and run the local client/server testbed with secure connect tokens
 
-    premake5 server         // build run your own yojimbo server on localhost on UDP port 50000
+    premake5 server         // build run your own yojimbo server on localhost on UDP port 40000
 
     premake5 client         // build and run the client that connects to the server running on localhost
 
@@ -53,7 +53,7 @@ Now go to the command line at the yojimbo directory and enter:
 
     premake5 docker
 
-This builds and runs a Docker container with a yojimbo server inside it (exactly the same as if you ran "premake5 server" on a Linux box). You can now connect to this server by running a client which connects to 127.0.0.0:50000. For example, "premake5 client" on Mac or Linux, or running the "client" project inside the Yojimbo.sln in Visual Studio.
+This builds and runs a Docker container with a yojimbo server inside it (exactly the same as if you ran "premake5 server" on a Linux box). You can now connect to this server by running a client which connects to 127.0.0.0:40000. For example, "premake5 client" on Mac or Linux, or running the "client" project inside the Yojimbo.sln in Visual Studio.
 
 IMPORTANT: The premake docker action takes a long time initially, because it has a lot of work to do:
 
@@ -69,13 +69,13 @@ IMPORTANT: The premake docker action takes a long time initially, because it has
 
 6. If all tests pass, clean everything and copy the libyojimbo server to the /home dir
 
-7. When the Docker container is run, start the yojimbo server /home/server on UDP port 50000.
+7. When the Docker container is run, start the yojimbo server /home/server on UDP port 40000.
 
 For details see docker/Dockerfile and the premake5.lua file with commands that build and run the container instance.
 
 What's most impressive is that if no dependencies have changed, the numbered steps above are precached as intermediate Docker instances are not rebuilt unless necessary. For example, if you have already downloaded and installed wget, g++, libsodium and premake5 and you run "premake5 docker" again, these steps are skipped.
 
-Try it yourself by running "premake5 docker" once (it should build everything), then run it again. It will go straight to the server running on port 50000. Similarly, if you change some libyojimbo source it automatically rebuilds libyojimbo server and runs tests before starting the server. Impressive!
+Try it yourself by running "premake5 docker" once (it should build everything), then run it again. It will go straight to the server running on port 40000. Similarly, if you change some libyojimbo source it automatically rebuilds libyojimbo server and runs tests before starting the server. Impressive!
 
 ## Run a yojimbo matcher inside Docker
 
