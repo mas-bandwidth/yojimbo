@@ -19,6 +19,8 @@ Tuesday July 19th, 2016
 
     Finished in memory connection read and write example.
 
+    Extended memory example showing how to send dumb messages, eg. just small/large blocks of memory.
+
 
 Sunday July 17th, 2016
 ======================

@@ -34,6 +34,7 @@ using namespace yojimbo;
 const uint32_t ProtocolId = 0x12345678;
 const int MaxPacketSize = 4 * 1024;
 const int MaxBlockSize = 32 * 1024;
+const int MaxSmallMessageSize = 256;
 
 class MemoryTransport : public BaseTransport
 {
@@ -124,7 +125,7 @@ public:
     {
         (void)channel;
         (void)messageId;
-        printf( "received fragment %d\n", fragmentId );
+        printf( "received large message fragment %d\n", fragmentId );
     }
 };
 
@@ -146,85 +147,68 @@ inline int GetNumBitsForMessage( uint16_t sequence )
     return messageBitsArray[index];
 }
 
-struct TestMessage : public Message
+struct SmallMessage : public Message
 {
-    uint16_t sequence;
-
-    TestMessage()
+    SmallMessage()
     {
-        sequence = 0;
+        messageSize = 0;
     }
 
     template <typename Stream> bool Serialize( Stream & stream )
     {        
-        serialize_bits( stream, sequence, 16 );
-
-        int numBits = GetNumBitsForMessage( sequence );
-        int numWords = numBits / 32;
-        uint32_t dummy = 0;
-        for ( int i = 0; i < numWords; ++i )
-            serialize_bits( stream, dummy, 32 );
-        int numRemainderBits = numBits - numWords * 32;
-        if ( numRemainderBits > 0 )
-            serialize_bits( stream, dummy, numRemainderBits );
-
+        serialize_int( stream, messageSize, 1, MaxSmallMessageSize );
+        serialize_bytes( stream, messageData, messageSize );
         return true;
     }
+
+    int messageSize;
+    uint8_t messageData[MaxSmallMessageSize];
 
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-struct TestBlockMessage : public BlockMessage
+struct LargeMessage : public BlockMessage
 {
-    uint16_t sequence;
+    LargeMessage() {}
 
-    TestBlockMessage()
-    {
-        sequence = 0;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {        
-        serialize_bits( stream, sequence, 16 );
-        return true;
-    }
+    template <typename Stream> bool Serialize( Stream & stream ) { (void)stream; return true; }
 
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 enum MessageType
 {
-    TEST_MESSAGE,
-    TEST_BLOCK_MESSAGE,
+    SMALL_MESSAGE,
+    LARGE_MESSAGE,
     NUM_MESSAGE_TYPES
 };
 
 YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( SMALL_MESSAGE, SmallMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( LARGE_MESSAGE, LargeMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 Message * GenerateRandomMessage( MessageFactory & messageFactory, uint64_t numMessagesSent )
 {
     if ( rand() % 100 )
     {
-        TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+        SmallMessage * message = (SmallMessage*) messageFactory.Create( SMALL_MESSAGE );
         
         if ( message )
         {
-            message->sequence = (uint16_t) numMessagesSent;
+            message->messageSize = random_int( 1, MaxSmallMessageSize );
+            for ( int j = 0; j < message->messageSize; ++j )
+                message->messageData[j] = uint8_t( numMessagesSent + j );
         }
 
         return message;
     }
     else
     {
-        TestBlockMessage * blockMessage = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+        LargeMessage * largeMessage = (LargeMessage*) messageFactory.Create( LARGE_MESSAGE );
 
-        if ( blockMessage )
+        if ( largeMessage )
         {
-            blockMessage->sequence = (uint16_t) numMessagesSent;
-
             const int blockSize = 1 + ( int( numMessagesSent ) * 33 ) % MaxBlockSize;
 
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
@@ -234,11 +218,11 @@ Message * GenerateRandomMessage( MessageFactory & messageFactory, uint64_t numMe
                 for ( int j = 0; j < blockSize; ++j )
                     blockData[j] = uint8_t( numMessagesSent + j );
 
-                blockMessage->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+                largeMessage->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
             }
         }
 
-        return blockMessage;
+        return largeMessage;
     }
 }
 
@@ -275,29 +259,30 @@ void ProcessMessage( Message * message, uint64_t numMessagesReceived )
 
     switch ( message->GetType() )
     {
-        case TEST_MESSAGE:
+        case SMALL_MESSAGE:
         {
-            TestMessage * testMessage = (TestMessage*) message;
+            SmallMessage * smallMessage = (SmallMessage*) message;
 
-            check( testMessage->sequence == uint16_t( numMessagesReceived ) );
+            for ( int i = 0; i < smallMessage->messageSize; ++i )
+            {
+                check( smallMessage->messageData[i] == uint8_t( numMessagesReceived + i ) );
+            }
 
-            printf( "received message %d\n", testMessage->sequence );
+            printf( "received small message %d\n", uint16_t( numMessagesReceived ) );
         }
         break;
 
-        case TEST_BLOCK_MESSAGE:
+        case LARGE_MESSAGE:
         {
-            TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+            LargeMessage * largeMessage = (LargeMessage*) message;
 
-            check( blockMessage->sequence == uint16_t( numMessagesReceived ) );
-
-            const int blockSize = blockMessage->GetBlockSize();
+            const int blockSize = largeMessage->GetBlockSize();
 
             const int expectedBlockSize = 1 + ( int( numMessagesReceived ) * 33 ) % MaxBlockSize;
 
             check( blockSize == expectedBlockSize );
 
-            const uint8_t * blockData = blockMessage->GetBlockData();
+            const uint8_t * blockData = largeMessage->GetBlockData();
 
             check( blockData );
 
@@ -306,7 +291,7 @@ void ProcessMessage( Message * message, uint64_t numMessagesReceived )
                 check( blockData[i] == uint8_t( numMessagesReceived + i ) );
             }
 
-            printf( "received block %d\n", uint16_t( numMessagesReceived ) );
+            printf( "received large message %d\n", uint16_t( numMessagesReceived ) );
         }
         break;
     }
