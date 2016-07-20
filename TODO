@@ -1,6 +1,15 @@
 DONE    
 
+    I extended memory.cpp to have multiple channels and a mix of small and large blocks going through both an unreliable channel (3k),
+    and a reliable channel (1k). Fixed some minor issues with validation (can't validate unreliable messages based on # messages received).
+
 TODO
+
+    There seems to be a budgeting bug. This is a good test case. Need to track down what is going on and fix it.
+
+    I really need to think of a better name for this example than "memory". That doesn't communicate what this is.
+
+    ------------------
 
     It would be nice if the message factory and packet factory both had their own allocators, and passed the allocators into a virtual 
     free function before destroying the message / packet.

@@ -188,7 +188,14 @@ YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_MESSAGE_T
     YOJIMBO_DECLARE_MESSAGE_TYPE( LARGE_MESSAGE, LargeMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
-Message * GenerateRandomMessage( MessageFactory & messageFactory, uint64_t numMessagesSent )
+enum Channels
+{
+    UNRELIABLE_CHANNEL,
+    RELIABLE_CHANNEL,
+    NUM_CHANNELS
+};
+
+Message * GenerateRandomMessage( MessageFactory & messageFactory, uint64_t numMessagesSent, int channelId )
 {
     if ( rand() % 100 )
     {
@@ -197,8 +204,8 @@ Message * GenerateRandomMessage( MessageFactory & messageFactory, uint64_t numMe
         if ( message )
         {
             message->messageSize = random_int( 1, MaxSmallMessageSize );
-            for ( int j = 0; j < message->messageSize; ++j )
-                message->messageData[j] = uint8_t( numMessagesSent + j );
+            for ( int i = 0; i < message->messageSize; ++i )
+                message->messageData[i] = uint8_t( numMessagesSent + i );
         }
 
         return message;
@@ -209,14 +216,14 @@ Message * GenerateRandomMessage( MessageFactory & messageFactory, uint64_t numMe
 
         if ( largeMessage )
         {
-            const int blockSize = 1 + ( int( numMessagesSent ) * 33 ) % MaxBlockSize;
+            const int blockSize = ( channelId == RELIABLE_CHANNEL ) ? ( 1 + ( int( numMessagesSent ) * 33 ) % MaxBlockSize ) : ( 1 + ( int( numMessagesSent ) * 33 ) % 1024 );
 
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
 
             if ( blockData )
             {
-                for ( int j = 0; j < blockSize; ++j )
-                    blockData[j] = uint8_t( numMessagesSent + j );
+                for ( int i = 0; i < blockSize; ++i )
+                    blockData[i] = uint8_t( numMessagesSent + i );
 
                 largeMessage->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
             }
@@ -251,11 +258,14 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
-void ProcessMessage( Message * message, uint64_t numMessagesReceived )
+void ProcessMessage( Message * message, uint64_t numMessagesReceived, int channelId )
 {
     check( message );
 
-    check( message->GetId() == (uint16_t) numMessagesReceived );
+    if ( channelId == RELIABLE_CHANNEL )
+    {
+        check( message->GetId() == (uint16_t) numMessagesReceived );
+    }
 
     switch ( message->GetType() )
     {
@@ -263,12 +273,15 @@ void ProcessMessage( Message * message, uint64_t numMessagesReceived )
         {
             SmallMessage * smallMessage = (SmallMessage*) message;
 
-            for ( int i = 0; i < smallMessage->messageSize; ++i )
+            if ( channelId == RELIABLE_CHANNEL )
             {
-                check( smallMessage->messageData[i] == uint8_t( numMessagesReceived + i ) );
+                for ( int i = 0; i < smallMessage->messageSize; ++i )
+                {
+                    check( smallMessage->messageData[i] == uint8_t( numMessagesReceived + i ) );
+                }
             }
 
-            printf( "received small message %d\n", uint16_t( numMessagesReceived ) );
+            printf( "received small message %d [%d]\n", uint16_t( numMessagesReceived ), channelId );
         }
         break;
 
@@ -276,22 +289,25 @@ void ProcessMessage( Message * message, uint64_t numMessagesReceived )
         {
             LargeMessage * largeMessage = (LargeMessage*) message;
 
-            const int blockSize = largeMessage->GetBlockSize();
-
-            const int expectedBlockSize = 1 + ( int( numMessagesReceived ) * 33 ) % MaxBlockSize;
-
-            check( blockSize == expectedBlockSize );
-
-            const uint8_t * blockData = largeMessage->GetBlockData();
-
-            check( blockData );
-
-            for ( int i = 0; i < blockSize; ++i )
+            if ( channelId == RELIABLE_CHANNEL )
             {
-                check( blockData[i] == uint8_t( numMessagesReceived + i ) );
+                const int blockSize = largeMessage->GetBlockSize();
+
+                const int expectedBlockSize = ( channelId == RELIABLE_CHANNEL ) ? ( 1 + ( int( numMessagesReceived ) * 33 ) % MaxBlockSize ) : ( 1 + ( int( numMessagesReceived ) * 33 ) % 1024 );
+
+                check( blockSize == expectedBlockSize );
+
+                const uint8_t * blockData = largeMessage->GetBlockData();
+
+                check( blockData );
+
+                for ( int i = 0; i < blockSize; ++i )
+                {
+                    check( blockData[i] == uint8_t( numMessagesReceived + i ) );
+                }
             }
 
-            printf( "received large message %d\n", uint16_t( numMessagesReceived ) );
+            printf( "received large message %d [%d]\n", uint16_t( numMessagesReceived ), channelId );
         }
         break;
     }
@@ -382,6 +398,12 @@ int MessagesMain()
     TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
+    connectionConfig.maxPacketSize = MaxPacketSize;
+    connectionConfig.numChannels = NUM_CHANNELS;
+    connectionConfig.channelConfig[UNRELIABLE_CHANNEL].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    connectionConfig.channelConfig[UNRELIABLE_CHANNEL].messagePacketBudget = 3 * 1024;
+    connectionConfig.channelConfig[RELIABLE_CHANNEL].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    connectionConfig.channelConfig[RELIABLE_CHANNEL].messagePacketBudget = 1024;
 
     TestConnection sender( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
     TestConnection receiver( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
@@ -396,8 +418,11 @@ int MessagesMain()
     signal( SIGINT, interrupt_handler );    
 
     uint64_t numIterations = 0;
-    uint64_t numMessagesSent = 0;
-    uint64_t numMessagesReceived = 0;
+    uint64_t numMessagesSent[NUM_CHANNELS];
+    uint64_t numMessagesReceived[NUM_CHANNELS];
+
+    memset( numMessagesSent, 0, sizeof( numMessagesSent ) );
+    memset( numMessagesReceived, 0, sizeof( numMessagesReceived ) );
 
     uint8_t senderPacketData[MaxPacketSize];
     uint8_t receiverPacketData[MaxPacketSize];
@@ -406,19 +431,22 @@ int MessagesMain()
 
     while ( !quit )
     {
-        const int messagesToSend = random_int( 0, 64 );
-
-        for ( int i = 0; i < messagesToSend; ++i )
+        for ( int channelId = 0; channelId < NUM_CHANNELS; ++channelId )
         {
-            if ( !sender.CanSendMessage() )
-                break;
+            const int messagesToSend = random_int( 0, 64 );
 
-            Message * message = GenerateRandomMessage( messageFactory, numMessagesSent );
-
-            if ( message )
+            for ( int i = 0; i < messagesToSend; ++i )
             {
-                sender.SendMessage( message );
-                numMessagesSent++;
+                if ( !sender.CanSendMessage( channelId ) )
+                    break;
+
+                Message * message = GenerateRandomMessage( messageFactory, numMessagesSent[channelId], channelId );
+
+                if ( message )
+                {
+                    sender.SendMessage( message, channelId );
+                    numMessagesSent[channelId]++;
+                }
             }
         }
 
@@ -448,17 +476,20 @@ int MessagesMain()
             return 1;
         }
 
-        while ( true )
+        for ( int channelId = 0; channelId < NUM_CHANNELS; ++channelId )
         {
-            Message * message = receiver.ReceiveMessage();
-            if ( !message )
-                break;
+            while ( true )
+            {
+                Message * message = receiver.ReceiveMessage( channelId );
+                if ( !message )
+                    break;
 
-            ProcessMessage( message, numMessagesReceived );
+                ProcessMessage( message, numMessagesReceived[channelId], channelId );
 
-            messageFactory.Release( message );
+                messageFactory.Release( message );
 
-            numMessagesReceived++;
+                numMessagesReceived[channelId]++;
+            }
         }
 
         sender.AdvanceTime( time );
