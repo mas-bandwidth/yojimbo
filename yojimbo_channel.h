@@ -58,6 +58,10 @@ namespace yojimbo
         int sentPacketsSize;                                    // size of sent packets buffer (maps packet level acks to messages & fragments)
         bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.
 
+        // todo: packetBudget is nicer than "messagePacketBudget". "sendQueueSize" is better than "messageSendQueueSize".
+
+        // todo: sentPacketsSize is a bad name. a user would find this confusing ("the size of packets to send?")
+
         ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )
         {
             messagePacketBudget = 1100;
