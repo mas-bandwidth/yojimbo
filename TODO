@@ -5,13 +5,17 @@ DONE
 
     Some clients using this library are interested integrating with it in this way, implementing their own client/server connection layer, and just wanting yojimbo to queue up messages, generate wire packets (that they send), and in reverse for packet reads. read packets in, process and fill message receive queues, deliver messages to the application.
 
-TODO
-
     Added messages.cpp example that will show how this is done.
 
     The strategy is to derive a new transport type from BaseTransport that writes out the packet data, then provides accessors for the packet data and packet size after writing the connection packet.
 
     I could even move this transport into yojimbo as a supported feature if it is useful long term, eg. memory transport?
+
+    Good progress implementing this. Almost done. 90%
+
+    Decided to rename Connection::WritePacket to Connection::GeneratePacket, write packet is confusing, as it does not actually serialize the packet.
+
+TODO
 
     ------------------
 
