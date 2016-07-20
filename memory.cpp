@@ -29,12 +29,11 @@
 #include <signal.h>
 #include <time.h>
 
-const uint32_t ProtocolId = 0x12345678;
-
-const int MaxPacketSize = 4 * 1024;
-const int MaxBlockSize = 10 * 1024;
-
 using namespace yojimbo;
+
+const uint32_t ProtocolId = 0x12345678;
+const int MaxPacketSize = 4 * 1024;
+const int MaxBlockSize = 32 * 1024;
 
 class MemoryTransport : public BaseTransport
 {
@@ -44,18 +43,19 @@ public:
         : BaseTransport( allocator, packetFactory, address, ProtocolId, MaxPacketSize, 32, 32 )
     {
         m_sentPacketSize = 0;
+        m_sentPacketData = NULL;
         m_receivePacketSize = 0;
         m_receivePacketData = NULL;
     }
 
-    void SetReceivePacketData( const Address & from, const uint8_t * packetData, int packetSize )
+    void SetReceivePacketData( const uint8_t * packetData, int packetSize, const Address & from )
     {
         m_receivePacketFrom = from;
         m_receivePacketData = packetData;
         m_receivePacketSize = packetSize;
     }
 
-    uint8_t * GetSentPacketData()
+    const uint8_t * GetSentPacketData()
     {
         return m_sentPacketData;
     }
@@ -68,6 +68,7 @@ public:
     void ClearSentPacketData()
     {
         m_sentPacketSize = 0;
+        m_sentPacketData = NULL;
     }
 
 protected:
@@ -75,8 +76,8 @@ protected:
     virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
         (void)to;
-        (void)packetData;
-        (void)packetBytes;
+        m_sentPacketSize = packetBytes;
+        m_sentPacketData = (const uint8_t*) packetData;
         return true;
     }
 
@@ -87,9 +88,9 @@ protected:
         if ( m_receivePacketSize == 0 )
             return 0;
 
-        const int packetSize = m_receivePacketSize;
-
         from = m_receivePacketFrom;
+
+        const int packetSize = m_receivePacketSize;
 
         memcpy( packetData, m_receivePacketData, packetSize );
 
@@ -105,8 +106,26 @@ private:
     int m_sentPacketSize;
     int m_receivePacketSize;
     Address m_receivePacketFrom;
-    uint8_t m_sentPacketData[MaxPacketSize];
+    const uint8_t * m_sentPacketData;
     const uint8_t * m_receivePacketData;
+};
+
+class TestConnection : public Connection
+{
+public:
+
+    TestConnection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config = ConnectionConfig() )
+        : Connection( allocator, packetFactory, messageFactory, config )
+    {
+        // ...
+    }
+
+    void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId )
+    {
+        (void)channel;
+        (void)messageId;
+        printf( "received fragment %d\n", fragmentId );
+    }
 };
 
 enum TestPacketTypes
@@ -248,7 +267,7 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
-void ProcessMessage( TestMessageFactory & messageFactory, Message * message, uint64_t numMessagesReceived )
+void ProcessMessage( Message * message, uint64_t numMessagesReceived )
 {
     check( message );
 
@@ -291,8 +310,6 @@ void ProcessMessage( TestMessageFactory & messageFactory, Message * message, uin
         }
         break;
     }
-
-    messageFactory.Release( message );
 }
 
 int WriteConnectionPacket( Connection & connection, MemoryTransport & transport, uint64_t sequence, uint8_t * packetBuffer, const Address & toAddress )
@@ -316,12 +333,30 @@ int WriteConnectionPacket( Connection & connection, MemoryTransport & transport,
     return sentPacketSize;
 }
 
-bool ReadConnectionPacket( Connection & connection, const uint8_t * packetBuffer, int packetSize, const Address & fromAddress )
+bool ReadConnectionPacket( Connection & connection, MemoryTransport & transport, const uint8_t * packetBuffer, int packetSize, const Address & fromAddress )
 {
-    (void)connection;
-    (void)packetBuffer;
-    (void)packetSize;
-    (void)fromAddress;
+    transport.SetReceivePacketData( packetBuffer, packetSize, fromAddress );
+
+    transport.ReadPackets();
+
+    Address from;
+    uint64_t sequence;
+    Packet * packet = transport.ReceivePacket( from, &sequence );
+    if ( !packet )
+        return false;
+
+    if ( packet->GetType() != CONNECTION_PACKET )
+    {
+        transport.DestroyPacket( packet );
+        return false;
+    }
+
+    ConnectionPacket * connectionPacket = (ConnectionPacket*) packet;
+
+    connection.ProcessPacket( connectionPacket );
+
+    transport.DestroyPacket( packet );
+
     return true;
 }
 
@@ -363,8 +398,8 @@ int MessagesMain()
 
     ConnectionConfig connectionConfig;
 
-    Connection sender( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
-    Connection receiver( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
+    TestConnection sender( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
+    TestConnection receiver( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
 
     ConnectionContext context;
     context.connectionConfig = &connectionConfig;
@@ -381,6 +416,8 @@ int MessagesMain()
 
     uint8_t senderPacketData[MaxPacketSize];
     uint8_t receiverPacketData[MaxPacketSize];
+
+    double time = 0.0;
 
     while ( !quit )
     {
@@ -407,7 +444,7 @@ int MessagesMain()
             return 1;
         }
 
-        if ( !ReadConnectionPacket( receiver, senderPacketData, senderPacketSize, senderAddress ) )
+        if ( !ReadConnectionPacket( receiver, receiverTransport, senderPacketData, senderPacketSize, senderAddress ) )
         {
             printf( "error: failed to read connection packet (receiver)\n" );
             return 1;
@@ -420,7 +457,7 @@ int MessagesMain()
             return 1;
         }
 
-        if ( !ReadConnectionPacket( sender, receiverPacketData, receiverPacketSize, receiverAddress ) )
+        if ( !ReadConnectionPacket( sender, senderTransport, receiverPacketData, receiverPacketSize, receiverAddress ) )
         {
             printf( "error: failed to read connection packet (sender)\n" );
             return 1;
@@ -432,12 +469,18 @@ int MessagesMain()
             if ( !message )
                 break;
 
-            ProcessMessage( messageFactory, message, numMessagesReceived );
+            ProcessMessage( message, numMessagesReceived );
 
             messageFactory.Release( message );
 
             numMessagesReceived++;
         }
+
+        sender.AdvanceTime( time );
+        receiver.AdvanceTime( time );
+
+        senderTransport.AdvanceTime( time );
+        receiverTransport.AdvanceTime( time );
 
         numIterations++;
     }

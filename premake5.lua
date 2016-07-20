@@ -78,8 +78,8 @@ project "profile"
     files { "profile.cpp", "shared.h" }
     links { "yojimbo" }
 
-project "messages"
-    files { "messages.cpp", "shared.h" }
+project "memory"
+    files { "memory.cpp", "shared.h" }
     links { "yojimbo" }
 
 if not os.is "windows" then
@@ -233,11 +233,11 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "messages",
-        description = "Build and run messages testbed",
+        trigger     = "memory",
+        description = "Build and run testbed for reading and writing connection packets to memory",
         execute = function ()
-            if os.execute "make -j32 messages" == 0 then
-                os.execute "./bin/messages"
+            if os.execute "make -j32 memory" == 0 then
+                os.execute "./bin/memory"
             end
         end
     }
