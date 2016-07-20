@@ -297,8 +297,7 @@ void ProcessMessage( TestMessageFactory & messageFactory, Message * message, uin
 
 int WriteConnectionPacket( Connection & connection, MemoryTransport & transport, uint64_t sequence, uint8_t * packetBuffer, const Address & toAddress )
 {
-    // todo: GeneratePacket is actually a much better name. this function does not "write" the packet...
-    ConnectionPacket * connectionPacket = connection.WritePacket();         
+    ConnectionPacket * connectionPacket = connection.GeneratePacket();
     if ( !connectionPacket )
         return 0;
 

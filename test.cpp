@@ -3512,11 +3512,11 @@ void test_connection_counters()
 
     for ( int i = 0; i < NumAcks * 2; ++i )
     {
-        ConnectionPacket * packet = connection.WritePacket();
+        ConnectionPacket * packet = connection.GeneratePacket();
 
         check( packet );
 
-        check( connection.ReadPacket( packet ) );
+        check( connection.ProcessPacket( packet ) );
 
         packetFactory.DestroyPacket( packet );
         packet = NULL;
@@ -3526,8 +3526,8 @@ void test_connection_counters()
     }
 
     check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_ACKED ) == NumAcks );
-    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_WRITTEN ) == NumAcks + 1 );
-    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_READ ) == NumAcks + 1 );
+    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_GENERATED ) == NumAcks + 1 );
+    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_PROCESSED ) == NumAcks + 1 );
 }
 
 void test_connection_acks()
@@ -3555,13 +3555,13 @@ void test_connection_acks()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        ConnectionPacket * packet = connection.WritePacket();
+        ConnectionPacket * packet = connection.GeneratePacket();
 
         check( packet );
 
         if ( rand() % 100 == 0 )
         {
-            connection.ReadPacket( packet );
+            connection.ProcessPacket( packet );
 
             if ( packet )
             {
@@ -3650,8 +3650,8 @@ void test_connection_reliable_ordered_messages()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.WritePacket();
-        Packet * receiverPacket = receiver.WritePacket();
+        Packet * senderPacket = sender.GeneratePacket();
+        Packet * receiverPacket = receiver.GeneratePacket();
 
         check( senderPacket );
         check( receiverPacket );
@@ -3673,7 +3673,7 @@ void test_connection_reliable_ordered_messages()
                 break;
 
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ReadPacket( (ConnectionPacket*) packet );
+                sender.ProcessPacket( (ConnectionPacket*) packet );
 
             packetFactory.DestroyPacket( packet );
         }
@@ -3687,7 +3687,7 @@ void test_connection_reliable_ordered_messages()
 
             if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
             {
-                receiver.ReadPacket( (ConnectionPacket*) packet );
+                receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
             packetFactory.DestroyPacket( packet );
@@ -3791,8 +3791,8 @@ void test_connection_reliable_ordered_blocks()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.WritePacket();
-        Packet * receiverPacket = receiver.WritePacket();
+        Packet * senderPacket = sender.GeneratePacket();
+        Packet * receiverPacket = receiver.GeneratePacket();
 
         check( senderPacket );
         check( receiverPacket );
@@ -3814,7 +3814,7 @@ void test_connection_reliable_ordered_blocks()
                 break;
 
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ReadPacket( (ConnectionPacket*) packet );
+                sender.ProcessPacket( (ConnectionPacket*) packet );
 
             packetFactory.DestroyPacket( packet );
         }
@@ -3828,7 +3828,7 @@ void test_connection_reliable_ordered_blocks()
 
             if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
             {
-                receiver.ReadPacket( (ConnectionPacket*) packet );
+                receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
             packetFactory.DestroyPacket( packet );
@@ -3956,8 +3956,8 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.WritePacket();
-        Packet * receiverPacket = receiver.WritePacket();
+        Packet * senderPacket = sender.GeneratePacket();
+        Packet * receiverPacket = receiver.GeneratePacket();
 
         check( senderPacket );
         check( receiverPacket );
@@ -3979,7 +3979,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
                 break;
 
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ReadPacket( (ConnectionPacket*) packet );
+                sender.ProcessPacket( (ConnectionPacket*) packet );
 
             packetFactory.DestroyPacket( packet );
         }
@@ -3993,7 +3993,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
             if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
             {
-                receiver.ReadPacket( (ConnectionPacket*) packet );
+                receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
             packetFactory.DestroyPacket( packet );
@@ -4145,8 +4145,8 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.WritePacket();
-        Packet * receiverPacket = receiver.WritePacket();
+        Packet * senderPacket = sender.GeneratePacket();
+        Packet * receiverPacket = receiver.GeneratePacket();
 
         check( senderPacket );
         check( receiverPacket );
@@ -4168,7 +4168,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                 break;
 
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ReadPacket( (ConnectionPacket*) packet );
+                sender.ProcessPacket( (ConnectionPacket*) packet );
 
             packetFactory.DestroyPacket( packet );
         }
@@ -4182,7 +4182,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
             if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
             {
-                receiver.ReadPacket( (ConnectionPacket*) packet );
+                receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
             packetFactory.DestroyPacket( packet );
@@ -4327,8 +4327,8 @@ void test_connection_unreliable_unordered_messages()
             sender.SendMessage( message );
         }
 
-        Packet * senderPacket = sender.WritePacket();
-        Packet * receiverPacket = receiver.WritePacket();
+        Packet * senderPacket = sender.GeneratePacket();
+        Packet * receiverPacket = receiver.GeneratePacket();
 
         check( senderPacket );
         check( receiverPacket );
@@ -4350,7 +4350,7 @@ void test_connection_unreliable_unordered_messages()
                 break;
 
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ReadPacket( (ConnectionPacket*) packet );
+                sender.ProcessPacket( (ConnectionPacket*) packet );
 
             packetFactory.DestroyPacket( packet );
         }
@@ -4364,7 +4364,7 @@ void test_connection_unreliable_unordered_messages()
 
             if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
             {
-                receiver.ReadPacket( (ConnectionPacket*) packet );
+                receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
             packetFactory.DestroyPacket( packet );
@@ -4467,8 +4467,8 @@ void test_connection_unreliable_unordered_blocks()
             sender.SendMessage( message );
         }
 
-        Packet * senderPacket = sender.WritePacket();
-        Packet * receiverPacket = receiver.WritePacket();
+        Packet * senderPacket = sender.GeneratePacket();
+        Packet * receiverPacket = receiver.GeneratePacket();
 
         check( senderPacket );
         check( receiverPacket );
@@ -4490,7 +4490,7 @@ void test_connection_unreliable_unordered_blocks()
                 break;
 
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ReadPacket( (ConnectionPacket*) packet );
+                sender.ProcessPacket( (ConnectionPacket*) packet );
 
             packetFactory.DestroyPacket( packet );
         }
@@ -4504,7 +4504,7 @@ void test_connection_unreliable_unordered_blocks()
 
             if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
             {
-                receiver.ReadPacket( (ConnectionPacket*) packet );
+                receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
             packetFactory.DestroyPacket( packet );

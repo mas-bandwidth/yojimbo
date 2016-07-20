@@ -224,7 +224,7 @@ namespace yojimbo
         return m_channel[channelId]->ReceiveMessage();
     }
 
-    ConnectionPacket * Connection::WritePacket()
+    ConnectionPacket * Connection::GeneratePacket()
     {
         if ( m_error != CONNECTION_ERROR_NONE )
             return NULL;
@@ -240,7 +240,7 @@ namespace yojimbo
 
         InsertAckPacketEntry( packet->sequence );
 
-        m_counters[CONNECTION_COUNTER_PACKETS_WRITTEN]++;
+        m_counters[CONNECTION_COUNTER_PACKETS_GENERATED]++;
 
         if ( m_config.numChannels == 0 )
             return packet;
@@ -293,7 +293,7 @@ namespace yojimbo
         return packet;
     }
 
-    bool Connection::ReadPacket( ConnectionPacket * packet )
+    bool Connection::ProcessPacket( ConnectionPacket * packet )
     {
         if ( m_error != CONNECTION_ERROR_NONE )
             return false;
@@ -301,7 +301,7 @@ namespace yojimbo
         assert( packet );
         assert( packet->GetType() == m_config.connectionPacketType );
 
-        m_counters[CONNECTION_COUNTER_PACKETS_READ]++;
+        m_counters[CONNECTION_COUNTER_PACKETS_PROCESSED]++;
 
         if ( m_listener )
             m_listener->OnConnectionPacketReceived( this, packet->sequence );

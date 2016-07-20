@@ -92,8 +92,8 @@ namespace yojimbo
 
     enum ConnectionCounters
     {
-        CONNECTION_COUNTER_PACKETS_READ,                        // number of packets read
-        CONNECTION_COUNTER_PACKETS_WRITTEN,                     // number of packets written
+        CONNECTION_COUNTER_PACKETS_GENERATED,                   // number of packets generated
+        CONNECTION_COUNTER_PACKETS_PROCESSED,                   // number of packets processed
         CONNECTION_COUNTER_PACKETS_ACKED,                       // number of packets acked
         CONNECTION_COUNTER_NUM_COUNTERS
     };
@@ -143,9 +143,9 @@ namespace yojimbo
 
         Message * ReceiveMessage( int channelId = 0 );
 
-        ConnectionPacket * WritePacket();
+        ConnectionPacket * GeneratePacket();
 
-        bool ReadPacket( ConnectionPacket * packet );
+        bool ProcessPacket( ConnectionPacket * packet );
 
         void AdvanceTime( double time );
 
