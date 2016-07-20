@@ -43,7 +43,7 @@ public:
     MemoryTransport( Allocator & allocator, PacketFactory & packetFactory, const Address & address )
         : BaseTransport( allocator, packetFactory, address, ProtocolId, MaxPacketSize, 32, 32 )
     {
-        m_sendPacketSize = 0;
+        m_sentPacketSize = 0;
         m_receivePacketSize = 0;
         m_receivePacketData = NULL;
     }
@@ -55,10 +55,19 @@ public:
         m_receivePacketSize = packetSize;
     }
 
-    uint8_t * GetSendPacketData( int & packetSize )
+    uint8_t * GetSentPacketData()
     {
-        packetSize = m_sendPacketSize;
-        return m_sendPacketData;
+        return m_sentPacketData;
+    }
+
+    int GetSentPacketSize()
+    {
+        return m_sentPacketSize;
+    }
+
+    void ClearSentPacketData()
+    {
+        m_sentPacketSize = 0;
     }
 
 protected:
@@ -68,7 +77,7 @@ protected:
         (void)to;
         (void)packetData;
         (void)packetBytes;
-        return false;
+        return true;
     }
 
     virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
@@ -93,10 +102,10 @@ protected:
 
 private:
 
-    int m_sendPacketSize;
+    int m_sentPacketSize;
     int m_receivePacketSize;
     Address m_receivePacketFrom;
-    uint8_t m_sendPacketData[MaxPacketSize];
+    uint8_t m_sentPacketData[MaxPacketSize];
     const uint8_t * m_receivePacketData;
 };
 
@@ -286,11 +295,26 @@ void ProcessMessage( TestMessageFactory & messageFactory, Message * message, uin
     messageFactory.Release( message );
 }
 
-int WriteConnectionPacket( Connection & connection, const uint8_t * packetBuffer )
+int WriteConnectionPacket( Connection & connection, MemoryTransport & transport, uint64_t sequence, uint8_t * packetBuffer, const Address & toAddress )
 {
-    (void)connection;
-    (void)packetBuffer;
-    return 1;
+    // todo: GeneratePacket is actually a much better name. this function does not "write" the packet...
+    ConnectionPacket * connectionPacket = connection.WritePacket();         
+    if ( !connectionPacket )
+        return 0;
+
+    transport.SendPacket( toAddress, connectionPacket, sequence, true );
+
+    const int sentPacketSize = transport.GetSentPacketSize();
+    if ( sentPacketSize == 0 )
+        return 0;
+
+    const uint8_t * sentPacketData = transport.GetSentPacketData();
+
+    memcpy( packetBuffer, sentPacketData, sentPacketSize );
+
+    transport.ClearSentPacketData();
+
+    return sentPacketSize;
 }
 
 bool ReadConnectionPacket( Connection & connection, const uint8_t * packetBuffer, int packetSize, const Address & fromAddress )
@@ -338,11 +362,21 @@ int MessagesMain()
 
     TestMessageFactory messageFactory;
 
-    Connection sender( GetDefaultAllocator(), packetFactory, messageFactory );
-    Connection receiver( GetDefaultAllocator(), packetFactory, messageFactory );
+    ConnectionConfig connectionConfig;
+
+    Connection sender( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
+    Connection receiver( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
+
+    ConnectionContext context;
+    context.connectionConfig = &connectionConfig;
+    context.messageFactory = &messageFactory;
+
+    senderTransport.SetContext( &context );
+    receiverTransport.SetContext( &context );
 
     signal( SIGINT, interrupt_handler );    
 
+    uint64_t numIterations = 0;
     uint64_t numMessagesSent = 0;
     uint64_t numMessagesReceived = 0;
 
@@ -367,7 +401,7 @@ int MessagesMain()
             }
         }
 
-        const int senderPacketSize = WriteConnectionPacket( sender, senderPacketData );
+        const int senderPacketSize = WriteConnectionPacket( sender, senderTransport, numIterations, senderPacketData, receiverAddress );
         if ( !senderPacketSize )
         {
             printf( "error: failed to write connection packet (sender)\n" );
@@ -376,11 +410,11 @@ int MessagesMain()
 
         if ( !ReadConnectionPacket( receiver, senderPacketData, senderPacketSize, senderAddress ) )
         {
-            printf( "error: failed to read connection packet (from sender)\n" );
+            printf( "error: failed to read connection packet (receiver)\n" );
             return 1;
         }
 
-        const int receiverPacketSize = WriteConnectionPacket( receiver, receiverPacketData );
+        const int receiverPacketSize = WriteConnectionPacket( receiver, receiverTransport, numIterations, receiverPacketData, senderAddress );
         if ( !receiverPacketSize )
         {
             printf( "error: failed to write connection packet (receiver)\n" );
@@ -389,7 +423,7 @@ int MessagesMain()
 
         if ( !ReadConnectionPacket( sender, receiverPacketData, receiverPacketSize, receiverAddress ) )
         {
-            printf( "error: failed to read connection packet (from receiver)\n" );
+            printf( "error: failed to read connection packet (sender)\n" );
             return 1;
         }
 
@@ -405,6 +439,8 @@ int MessagesMain()
 
             numMessagesReceived++;
         }
+
+        numIterations++;
     }
 
     printf( "\nstopped\n" );

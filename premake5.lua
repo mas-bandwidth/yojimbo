@@ -18,7 +18,7 @@ configuration "Release"
 
 solution "Yojimbo"
     platforms { "x64" }
-    configurations { "Release" } -- "Debug", "Release" }
+    configurations { "Debug", "Release" }
     if os.is "windows" then
         includedirs { ".", "./windows" }
         libdirs { "./windows" }
