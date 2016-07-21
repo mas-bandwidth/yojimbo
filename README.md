@@ -1,4 +1,4 @@
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/9479/badge.svg)](https://scan.coverity.com/projects/2397)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/9479/badge.svg)](https://scan.coverity.com/projects/9479)
 
 # libyojimbo
 
