@@ -15,7 +15,7 @@ This creates Yojimbo.sln and a bunch of project files then opens them in Visual 
 
 Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
-## Building on MacOSX and Linux
+## Building on MacOS and Linux
 
 Download [premake 5](https://premake.github.io/download.html) then build and install from source.
 
@@ -40,6 +40,22 @@ This creates makefiles which you can use to build the source via "make all", or 
     premake5 server         // build run your own yojimbo server on localhost on UDP port 40000
 
     premake5 client         // build and run the client that connects to the server running on localhost
+
+## Premake bug on older versions of MacOS
+
+If you see an error like this while building on MacOS:
+
+    ld: warning: directory not found for option '-L/usr/lib64'
+    ld: unknown option: --start-group
+    clang: error: linker command failed with exit code 1 (use -v to see invocation)
+    make[1]: *** [bin/test] Error 1
+    make: *** [test] Error 2
+    
+You have an older version of MacOS that premake5 is generating incorrect makefiles for :(
+
+You can workaround this bug by manually removing "-L/usr/lib64", "--start-group", and "--end-group" from the generated makefiles.
+
+Please bug the premake team to fix this issue: https://github.com/premake/premake-core
 
 ## Run a yojimbo server inside Docker
 
@@ -101,7 +117,7 @@ This should return the match response in JSON which looks something like this:
 
 If you have both a matcher and server running you can run the "connect" program to connect a client to that server through the matchmaker.
 
-On MacOSX or Linux, run:
+On MacOS or Linux, run:
 
     premake5 connect
 
@@ -172,21 +188,19 @@ After about minute you should have enough samples. Close the profile process and
 
 ## Simple Messages
 
-Some users have expressed interest in using libyojimbo to transmit their own existing message format reliably over UDP. This means that all messages they want to send across libyojimbo are like tiny packets, eg. a block of memory with a size in bytes, rather than a smart C++ class with serialize function.
+Some users have expressed interest in using libyojimbo to transmit their own existing message format reliably over UDP. This means that all messages they want to send across libyojimbo are like tiny packets, blocks of memory with a size in bytes, rather than a C++ yojmibo::Message derived class with a serialize function.
 
 The good news is that you can adapt yojimbo to work with this sort of system, so I have added a new example program to show how: simple_messages.cpp
 
-This sample set up two channels: a reliable-ordered channel, and an unreliable ordered channel, and two message types: small message and large message. 
+To run this example go to the command line and type:
 
-Two channels are necessary to be able to specify, per-message whether it should be sent reliably or unreliably. See CHANNEL_RELIABLE, CHANNEL_UNRELIABLE.
+    premake5 simple_messages
 
-The two message types are necessary because even though all messages are blocks of data, if small messages in the reliable-ordered stream were sent as block messages (BlockMessage) this would stall out the wire protocol and delay message delivery, because only one block message is sent over the wire at the same time. To workaround this, small messages below a certain size are sent as regular messages with the message data serialized in-place.
+If you are building under Visual Studio, run the "simple_messages" project from the IDE.
 
-This example also shows how to sort of flip the the yojimbo transport concept inside-out to create a function that just writes a connection packet to a buffer in memory, and similarly, can just be pointed at a buffer in memory to read in a connection packet. This way, a connection can be used without the client/server layer and doing socket sends and receives yourself. If you already have your own socket layer and messages concept, but still want all of the benefits of the transport like packet encryption, MTU splits and so on, this is the way to do it.
+This sample set up two channels: a reliable-ordered channel, and an unreliable ordered channel and two message types: small and large. This ensures that small messages (<256 bytes) are serialized efficiently in the reliable-ordered stream instead of stalling out the protocol (only one "BlockMessage" derived message may be sent over the wire at a time in the reliable-ordered channel).
 
-This simple message system is currently an experiment. It's meant to show that a certain way of working is possibly with yojimbo, but it is not yet as performant as it could be. For example, message data needs to be copied into a yojimbo messages before sent, and the transport shim involves an extra memcpy per-packet on read and write.
-
-But its a start. If you are interested in using yojimbo in this way, especially in having an efficient transport that reads and writes packets to memory instead of forcing you to send and receive packets to sockets owned by libyojimbo, let me know and I can make MemoryTransport an official feature of this library.
+This simple message system example is currently an experiment. If you are interested in using yojimbo in this way, especially in having a transport implementation that reads and writes packets to memory instead of forcing you to send and receive packets to sockets owned by libyojimbo, let me know and I can make MemoryTransport an official feature of this library.
 
 ## Feedback
 
