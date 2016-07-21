@@ -170,6 +170,24 @@ Press ALT-F2, check "CPU Usage" and click the "Start" to begin profiling.
 
 After about minute you should have enough samples. Close the profile process and view the results. Enjoy.
 
+## Simple Messages
+
+Some users have expressed interest in using libyojimbo to transmit their own existing message format reliably over UDP. This means that all messages they want to send across libyojimbo are like tiny packets, eg. a block of memory with a size in bytes, rather than a smart C++ class with serialize function.
+
+The good news is that you can adapt yojimbo to work with this sort of system, so I have added a new example program to show how: simple_messages.cpp
+
+This sample set up two channels: a reliable-ordered channel, and an unreliable ordered channel, and two message types: small message and large message. 
+
+Two channels are necessary to be able to specify, per-message whether it should be reliably or unreliably. See CHANNEL_RELIABLE, CHANNEL_UNRELIABLE.
+
+Two message types are necessary because even though all messages are blocks of data, if small messages in the reliable-ordered stream were sent as block messages (search the code for BlockMessage) this would stall out the protocol, because only one block message is sent over the wire at the same time. The small message type is a workaround for this, as it serializes its message data in-place, even in the reliable-ordered channel.
+
+This example also shows how to sort of flip the the yojimbo transport concept inside-out to create a function that just writes a connection packet to a buffer in memory, and similarly, can just be pointed at a buffer in memory to read in a connection packet. This way, a connection can be used without the client/server layer, and without sending packets through the SocketTransport in yojimbo, but doing socket sends and receives yourself. If you already have your own connection concept, but still want all of the benefits of the transport like packet encryption, MTU splits and so on, but want to handle the sending of packets yourself, this is the way to do it.
+
+This simple message system example is currently an experiment. It's meant to show that a certain way of working is possibly with yojimbo, but it is not as performant as it could be. For example, message data needs to be copied into yojimbo messages before sent, and the transport shim involves an extra memcpy per-packet on read and write.
+
+But its a start. If you are interested in using yojimbo in this way, especially in having an efficient transport that reads and writes packets to memory instead of forcing you to send and receive packets to sockets owned by libyojimbo, let me know and I can make MemoryTransport an official feature of this library.
+
 ## Feedback
 
 This is pre-release software so please email me with any feedback you have <glenn.fiedler@gmail.com>
