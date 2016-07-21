@@ -37,7 +37,7 @@ This creates makefiles which you can use to build the source via "make all", or 
 
     premake5 cs             // build and run the local client/server testbed with secure connect tokens
 
-    premake5 server         // build run your own yojimbo server on localhost on UDP port 50000
+    premake5 server         // build run your own yojimbo server on localhost on UDP port 40000
 
     premake5 client         // build and run the client that connects to the server running on localhost
 
@@ -53,7 +53,7 @@ Now go to the command line at the yojimbo directory and enter:
 
     premake5 docker
 
-This builds and runs a Docker container with a yojimbo server inside it (exactly the same as if you ran "premake5 server" on a Linux box). You can now connect to this server by running a client which connects to 127.0.0.0:50000. For example, "premake5 client" on Mac or Linux, or running the "client" project inside the Yojimbo.sln in Visual Studio.
+This builds and runs a Docker container with a yojimbo server inside it (exactly the same as if you ran "premake5 server" on a Linux box). You can now connect to this server by running a client which connects to 127.0.0.0:40000. For example, "premake5 client" on Mac or Linux, or running the "client" project inside the Yojimbo.sln in Visual Studio.
 
 IMPORTANT: The premake docker action takes a long time initially, because it has a lot of work to do:
 
@@ -69,13 +69,13 @@ IMPORTANT: The premake docker action takes a long time initially, because it has
 
 6. If all tests pass, clean everything and copy the libyojimbo server to the /home dir
 
-7. When the Docker container is run, start the yojimbo server /home/server on UDP port 50000.
+7. When the Docker container is run, start the yojimbo server /home/server on UDP port 40000.
 
 For details see docker/Dockerfile and the premake5.lua file with commands that build and run the container instance.
 
 What's most impressive is that if no dependencies have changed, the numbered steps above are precached as intermediate Docker instances are not rebuilt unless necessary. For example, if you have already downloaded and installed wget, g++, libsodium and premake5 and you run "premake5 docker" again, these steps are skipped.
 
-Try it yourself by running "premake5 docker" once (it should build everything), then run it again. It will go straight to the server running on port 50000. Similarly, if you change some libyojimbo source it automatically rebuilds libyojimbo server and runs tests before starting the server. Impressive!
+Try it yourself by running "premake5 docker" once (it should build everything), then run it again. It will go straight to the server running on port 40000. Similarly, if you change some libyojimbo source it automatically rebuilds libyojimbo server and runs tests before starting the server. Impressive!
 
 ## Run a yojimbo matcher inside Docker
 
@@ -169,6 +169,24 @@ Right click on "profile" project an set it as the startup project.
 Press ALT-F2, check "CPU Usage" and click the "Start" to begin profiling.
 
 After about minute you should have enough samples. Close the profile process and view the results. Enjoy.
+
+## Simple Messages
+
+Some users have expressed interest in using libyojimbo to transmit their own existing message format reliably over UDP. This means that all messages they want to send across libyojimbo are like tiny packets, eg. a block of memory with a size in bytes, rather than a smart C++ class with serialize function.
+
+The good news is that you can adapt yojimbo to work with this sort of system, so I have added a new example program to show how: simple_messages.cpp
+
+This sample set up two channels: a reliable-ordered channel, and an unreliable ordered channel, and two message types: small message and large message. 
+
+Two channels are necessary to be able to specify, per-message whether it should be reliably or unreliably. See CHANNEL_RELIABLE, CHANNEL_UNRELIABLE.
+
+Two message types are necessary because even though all messages are blocks of data, if small messages in the reliable-ordered stream were sent as block messages (search the code for BlockMessage) this would stall out the protocol, because only one block message is sent over the wire at the same time. The small message type is a workaround for this, as it serializes its message data in-place, even in the reliable-ordered channel.
+
+This example also shows how to sort of flip the the yojimbo transport concept inside-out to create a function that just writes a connection packet to a buffer in memory, and similarly, can just be pointed at a buffer in memory to read in a connection packet. This way, a connection can be used without the client/server layer, and without sending packets through the SocketTransport in yojimbo, but doing socket sends and receives yourself. If you already have your own connection concept, but still want all of the benefits of the transport like packet encryption, MTU splits and so on, but want to handle the sending of packets yourself, this is the way to do it.
+
+This simple message system example is currently an experiment. It's meant to show that a certain way of working is possibly with yojimbo, but it is not as performant as it could be. For example, message data needs to be copied into yojimbo messages before sent, and the transport shim involves an extra memcpy per-packet on read and write.
+
+But its a start. If you are interested in using yojimbo in this way, especially in having an efficient transport that reads and writes packets to memory instead of forcing you to send and receive packets to sockets owned by libyojimbo, let me know and I can make MemoryTransport an official feature of this library.
 
 ## Feedback
 

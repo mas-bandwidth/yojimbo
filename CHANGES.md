@@ -1,4 +1,52 @@
 
+Wednesday July 20th, 2016
+=========================
+
+    I extended memory.cpp to have multiple channels and a mix of small and large blocks going through both an unreliable channel (3k),
+    and a reliable channel (1k). Fixed some minor issues with validation (can't validate unreliable messages based on # messages received).
+
+    There seems to be a budgeting bug. This is a good test case. Need to track down what is going on and fix it.
+
+    I really need to think of a better name for this example than "memory". That doesn't really communicate what this sample is for.
+
+    It was not actually a budgeting bug, but it was the block fragment not fitting in the rest of the packet.
+
+    I have adjusted by changing the budget. Conclusion from this i think is that there should be better error reporting and validation
+    of the budget reported, so people using the library don't get a really nasty, deep callstack assert in the serialization system when 
+    the budget is setup incorrectly, leading to the packet being written past the end.
+
+    For example, some code should be added to test if the fragment will actually fit in the packet, and either warn, or assert that it won't fit.
+
+    Now clean up the printf output for memory.cpp and rename it to something else, eg. wrapper.cpp, simple_messages.cpp?
+
+    I like simple_messages.cpp. I don't think there is a one word description of this sample that explains it.
+
+    Cleaned up output for simple_messages.cpp. Looks good. Done.
+
+
+Tuesday July 19th, 2016
+=======================
+
+    Adding a messages example showing how to use yojimbo connection and transport to send messages
+    without using the client/server layer.
+
+    Some clients using this library are interested integrating with it in this way, implementing their own client/server connection layer, and just wanting yojimbo to queue up messages, generate wire packets (that they send), and in reverse for packet reads. read packets in, process and fill message receive queues, deliver messages to the application.
+
+    Added messages.cpp example that will show how this is done.
+
+    The strategy is to derive a new transport type from BaseTransport that writes out the packet data, then provides accessors for the packet data and packet size after writing the connection packet.
+
+    I could even move this transport into yojimbo as a supported feature if it is useful long term, eg. memory transport?
+
+    Good progress implementing this. Almost done. 90%
+
+    Decided to rename Connection::WritePacket to Connection::GeneratePacket, write packet is confusing, as it does not actually serialize the packet.
+
+    Finished in memory connection read and write example.
+
+    Extended memory example showing how to send dumb messages, eg. just small/large blocks of memory.
+
+
 Sunday July 17th, 2016
 ======================
 
