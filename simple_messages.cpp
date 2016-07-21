@@ -32,7 +32,7 @@
 using namespace yojimbo;
 
 const uint32_t ProtocolId = 0x12345678;
-const int MaxPacketSize = 4 * 1024;
+const int MaxPacketSize = 5 * 1024;
 const int MaxBlockSize = 32 * 1024;
 const int MaxSmallMessageSize = 256;
 
@@ -109,24 +109,6 @@ private:
     Address m_receivePacketFrom;
     const uint8_t * m_sentPacketData;
     const uint8_t * m_receivePacketData;
-};
-
-class TestConnection : public Connection
-{
-public:
-
-    TestConnection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config = ConnectionConfig() )
-        : Connection( allocator, packetFactory, messageFactory, config )
-    {
-        // ...
-    }
-
-    void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId )
-    {
-        (void)channel;
-        (void)messageId;
-        printf( "received large message fragment %d\n", fragmentId );
-    }
 };
 
 enum TestPacketTypes
@@ -216,7 +198,7 @@ Message * GenerateRandomMessage( MessageFactory & messageFactory, uint64_t numMe
 
         if ( largeMessage )
         {
-            const int blockSize = ( channelId == RELIABLE_CHANNEL ) ? ( 1 + ( int( numMessagesSent ) * 33 ) % MaxBlockSize ) : ( 1 + ( int( numMessagesSent ) * 33 ) % 1024 );
+            const int blockSize = ( channelId == RELIABLE_CHANNEL ) ? ( 1024 + ( int( numMessagesSent ) * 33 ) % MaxBlockSize ) : ( 1024 + ( int( numMessagesSent ) * 33 ) % 1024 );
 
             uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
 
@@ -281,7 +263,7 @@ void ProcessMessage( Message * message, uint64_t numMessagesReceived, int channe
                 }
             }
 
-            printf( "received small message %d [%d]\n", uint16_t( numMessagesReceived ), channelId );
+            printf( "channel %d: received small message (%d bytes)\n", channelId, smallMessage->messageSize );
         }
         break;
 
@@ -289,11 +271,11 @@ void ProcessMessage( Message * message, uint64_t numMessagesReceived, int channe
         {
             LargeMessage * largeMessage = (LargeMessage*) message;
 
+            const int blockSize = largeMessage->GetBlockSize();
+
             if ( channelId == RELIABLE_CHANNEL )
             {
-                const int blockSize = largeMessage->GetBlockSize();
-
-                const int expectedBlockSize = ( channelId == RELIABLE_CHANNEL ) ? ( 1 + ( int( numMessagesReceived ) * 33 ) % MaxBlockSize ) : ( 1 + ( int( numMessagesReceived ) * 33 ) % 1024 );
+                const int expectedBlockSize = ( channelId == RELIABLE_CHANNEL ) ? ( 1024 + ( int( numMessagesReceived ) * 33 ) % MaxBlockSize ) : ( 1024 + ( int( numMessagesReceived ) * 33 ) % 1024 );
 
                 check( blockSize == expectedBlockSize );
 
@@ -307,7 +289,7 @@ void ProcessMessage( Message * message, uint64_t numMessagesReceived, int channe
                 }
             }
 
-            printf( "received large message %d [%d]\n", uint16_t( numMessagesReceived ), channelId );
+            printf( "channel %d: received large message (%d bytes)\n", channelId, blockSize );
         }
         break;
     }
@@ -370,7 +352,7 @@ void interrupt_handler( int /*dummy*/ )
 
 int MessagesMain()
 {
-    printf( "messages\n\n" );
+    printf( "simple messages\n\n" );
 
     TestPacketFactory packetFactory;
 
@@ -401,12 +383,12 @@ int MessagesMain()
     connectionConfig.maxPacketSize = MaxPacketSize;
     connectionConfig.numChannels = NUM_CHANNELS;
     connectionConfig.channelConfig[UNRELIABLE_CHANNEL].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    connectionConfig.channelConfig[UNRELIABLE_CHANNEL].messagePacketBudget = 3 * 1024;
+    connectionConfig.channelConfig[UNRELIABLE_CHANNEL].messagePacketBudget = 2 * 1024;
     connectionConfig.channelConfig[RELIABLE_CHANNEL].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    connectionConfig.channelConfig[RELIABLE_CHANNEL].messagePacketBudget = 1024;
+    connectionConfig.channelConfig[RELIABLE_CHANNEL].messagePacketBudget = 2 * 1024;
 
-    TestConnection sender( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
-    TestConnection receiver( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
+    Connection sender( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
+    Connection receiver( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
 
     ConnectionContext context;
     context.connectionConfig = &connectionConfig;
