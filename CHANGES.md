@@ -2,147 +2,147 @@
 Wednesday July 20th, 2016
 =========================
 
-    I extended memory.cpp to have multiple channels and a mix of small and large blocks going through both an unreliable channel (3k),
-    and a reliable channel (1k). Fixed some minor issues with validation (can't validate unreliable messages based on # messages received).
+I extended memory.cpp to have multiple channels and a mix of small and large blocks going through both an unreliable channel (3k),
+and a reliable channel (1k). Fixed some minor issues with validation (can't validate unreliable messages based on # messages received).
 
-    There seems to be a budgeting bug. This is a good test case. Need to track down what is going on and fix it.
+There seems to be a budgeting bug. This is a good test case. Need to track down what is going on and fix it.
 
-    I really need to think of a better name for this example than "memory". That doesn't really communicate what this sample is for.
+I really need to think of a better name for this example than "memory". That doesn't really communicate what this sample is for.
 
-    It was not actually a budgeting bug, but it was the block fragment not fitting in the rest of the packet.
+It was not actually a budgeting bug, but it was the block fragment not fitting in the rest of the packet.
 
-    I have adjusted by changing the budget. Conclusion from this i think is that there should be better error reporting and validation
-    of the budget reported, so people using the library don't get a really nasty, deep callstack assert in the serialization system when 
-    the budget is setup incorrectly, leading to the packet being written past the end.
+I have adjusted by changing the budget. Conclusion from this i think is that there should be better error reporting and validation
+of the budget reported, so people using the library don't get a really nasty, deep callstack assert in the serialization system when 
+the budget is setup incorrectly, leading to the packet being written past the end.
 
-    For example, some code should be added to test if the fragment will actually fit in the packet, and either warn, or assert that it won't fit.
+For example, some code should be added to test if the fragment will actually fit in the packet, and either warn, or assert that it won't fit.
 
-    Now clean up the printf output for memory.cpp and rename it to something else, eg. wrapper.cpp, simple_messages.cpp?
+Now clean up the printf output for memory.cpp and rename it to something else, eg. wrapper.cpp, simple_messages.cpp?
 
-    I like simple_messages.cpp. I don't think there is a one word description of this sample that explains it.
+I like simple_messages.cpp. I don't think there is a one word description of this sample that explains it.
 
-    Cleaned up output for simple_messages.cpp. Looks good. Done.
+Cleaned up output for simple_messages.cpp. Looks good. Done.
 
 
 Tuesday July 19th, 2016
 =======================
 
-    Adding a messages example showing how to use yojimbo connection and transport to send messages
-    without using the client/server layer.
+Adding a messages example showing how to use yojimbo connection and transport to send messages
+without using the client/server layer.
 
-    Some clients using this library are interested integrating with it in this way, implementing their own client/server connection layer, and just wanting yojimbo to queue up messages, generate wire packets (that they send), and in reverse for packet reads. read packets in, process and fill message receive queues, deliver messages to the application.
+Some clients using this library are interested integrating with it in this way, implementing their own client/server connection layer, and just wanting yojimbo to queue up messages, generate wire packets (that they send), and in reverse for packet reads. read packets in, process and fill message receive queues, deliver messages to the application.
 
-    Added messages.cpp example that will show how this is done.
+Added messages.cpp example that will show how this is done.
 
-    The strategy is to derive a new transport type from BaseTransport that writes out the packet data, then provides accessors for the packet data and packet size after writing the connection packet.
+The strategy is to derive a new transport type from BaseTransport that writes out the packet data, then provides accessors for the packet data and packet size after writing the connection packet.
 
-    I could even move this transport into yojimbo as a supported feature if it is useful long term, eg. memory transport?
+I could even move this transport into yojimbo as a supported feature if it is useful long term, eg. memory transport?
 
-    Good progress implementing this. Almost done. 90%
+Good progress implementing this. Almost done. 90%
 
-    Decided to rename Connection::WritePacket to Connection::GeneratePacket, write packet is confusing, as it does not actually serialize the packet.
+Decided to rename Connection::WritePacket to Connection::GeneratePacket, write packet is confusing, as it does not actually serialize the packet.
 
-    Finished in memory connection read and write example.
+Finished in memory connection read and write example.
 
-    Extended memory example showing how to send dumb messages, eg. just small/large blocks of memory.
+Extended memory example showing how to send dumb messages, eg. just small/large blocks of memory.
 
 
 Sunday July 17th, 2016
 ======================
 
-    Need to add an intensive logging mode to help track down what is going on one user's system.
+Need to add an intensive logging mode to help track down what is going on one user's system.
 
-    They are only getting ~20 clients connecting to the server in profile.cpp, but the rest of the clients
-    are sending packets but seemingly not establishing connection. Weird.
+They are only getting ~20 clients connecting to the server in profile.cpp, but the rest of the clients
+are sending packets but seemingly not establishing connection. Weird.
 
-    Need logs to track down what is going on. It's really strange.
+Need logs to track down what is going on. It's really strange.
 
-    Added some basic logs here, looking good.
+Added some basic logs here, looking good.
 
-    OK. no dice. Packets just not getting through.
+OK. no dice. Packets just not getting through.
 
-    Theory: on this particular version of windows the default socket buffers are just too small.
+Theory: on this particular version of windows the default socket buffers are just too small.
 
-    Bump up socket buffers to 1mb send and 1mb receive by default (users can specify if they want more or less, but good default...)
+Bump up socket buffers to 1mb send and 1mb receive by default (users can specify if they want more or less, but good default...)
 
-    This should fix the issue.
+This should fix the issue.
 
 
 Saturday July 16th, 2016
 ========================
 
-    I don't like that it's a virtual for calling "GetChannelId". That's lame.
+I don't like that it's a virtual for calling "GetChannelId". That's lame.
 
-    Put some base functionality in Channel? eg. getting and setting channel Id?
+Put some base functionality in Channel? eg. getting and setting channel Id?
 
-    Done. Also put m_error in there.
+Done. Also put m_error in there.
 
-    Implement unreliable unordered channel.
+Implement unreliable unordered channel.
 
-    Start with messages alone. Add blocks later.
+Start with messages alone. Add blocks later.
 
-    This channel has a send queue which is just the set of messages to try to send in the next packet. 
+This channel has a send queue which is just the set of messages to try to send in the next packet. 
 
-    If they don't fit any additional messages are dropped.
+If they don't fit any additional messages are dropped.
 
-    On the receive side, messages are dequeued from the packet and just put in an unordered queue for receive.
+On the receive side, messages are dequeued from the packet and just put in an unordered queue for receive.
 
-    There needs to be some way to identify unreliable messagse with the packet they came from, so we can cross
-    reference unreliable messages with a snapshot message in the packet, in potentially a different channel, eg.
-    these unreliable messages correspond to snapshot n
+There needs to be some way to identify unreliable messagse with the packet they came from, so we can cross
+reference unreliable messages with a snapshot message in the packet, in potentially a different channel, eg.
+these unreliable messages correspond to snapshot n
 
-    So on receive, call set id on the messages to the sequence # of the packet they arrived in.
+So on receive, call set id on the messages to the sequence # of the packet they arrived in.
 
-    This will allow the user to lookup which snapshot they correspond to, although this will be a bit of work,
-    I think this is the most general solution.
+This will allow the user to lookup which snapshot they correspond to, although this will be a bit of work,
+I think this is the most general solution.
 
-    Sketched out UnreliableUnorderedChannel by cutting down ReliableOrderedChannel.
+Sketched out UnreliableUnorderedChannel by cutting down ReliableOrderedChannel.
 
-    Hook it up to connection create channels based on channel type in config.
+Hook it up to connection create channels based on channel type in config.
 
-    Implement send and receive queues
+Implement send and receive queues
 
-    Implemented send and receive message functions. 
+Implemented send and receive message functions. 
 
-    Extended message serialize function to have two payloads:
+Extended message serialize function to have two payloads:
 
-    1. serialize ordered messages
+1. serialize ordered messages
 
-    2. serialize unordered messages
+2. serialize unordered messages
 
-    Use the unordered for reliable messages.
+Use the unordered for reliable messages.
 
-    The unordered does not serialize the id per-message, and later when unordered blocks are implemented, will serialize the block in-place (no fragments).
+The unordered does not serialize the id per-message, and later when unordered blocks are implemented, will serialize the block in-place (no fragments).
 
-    Also moved block flagment serialization into its own function, to keep the channel packet data serialize clean.
+Also moved block flagment serialization into its own function, to keep the channel packet data serialize clean.
 
-    Implement code to process packet data for unreliable unordered channel.
+Implement code to process packet data for unreliable unordered channel.
 
-    On process, assign all message ids to the packet sequence they were sent in.
+On process, assign all message ids to the packet sequence they were sent in.
 
-    Moved existing connection tests, eg. test_connection_messages -> test_connection_reliable_ordered_messages
+Moved existing connection tests, eg. test_connection_messages -> test_connection_reliable_ordered_messages
 
-    Added a unit test for unreliable unordered messages. Right now no messages are being received. Digging in...
+Added a unit test for unreliable unordered messages. Right now no messages are being received. Digging in...
 
-    Disabled packet loss, jitter, duplicates, latency etc. so all messages get through.
+Disabled packet loss, jitter, duplicates, latency etc. so all messages get through.
 
-    Fixed some more bugs in the channel code (missing reference in serialize unordered). 
+Fixed some more bugs in the channel code (missing reference in serialize unordered). 
 
-    Tests pass now. Time to move on to unreliable unordered blocks.
+Tests pass now. Time to move on to unreliable unordered blocks.
 
-    Extend unreliable unordered channel to serialize blocks in-place (eg. not as fragments, just the whole block following the message as header)
+Extend unreliable unordered channel to serialize blocks in-place (eg. not as fragments, just the whole block following the message as header)
 
-    Yes, eventually for large blocks this will require MTU splits, but for now keep those blocks small-ish.
+Yes, eventually for large blocks this will require MTU splits, but for now keep those blocks small-ish.
 
-    In theory, blocks sent through the unreliable unordered channel should now work.
+In theory, blocks sent through the unreliable unordered channel should now work.
 
-    Unlike with messages and blocks over reliable ordered channels, where they are treated quite differently (fragments),
-    there is no substantial difference between how messages and blocks are treated in unreliable unordered, so I don't think
-    a mixed messages and blocks unit test over unreliable unordered channel adds any value.
+Unlike with messages and blocks over reliable ordered channels, where they are treated quite differently (fragments),
+there is no substantial difference between how messages and blocks are treated in unreliable unordered, so I don't think
+a mixed messages and blocks unit test over unreliable unordered channel adds any value.
 
-    Add a unit test to verify unordered channels work with blocks. Passes.
+Add a unit test to verify unordered channels work with blocks. Passes.
 
-    Time for another preview release.
+Time for another preview release.
 
 
 Friday July 15th, 2016
