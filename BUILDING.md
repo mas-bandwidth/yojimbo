@@ -188,11 +188,11 @@ After about minute you should have enough samples. Close the profile process and
 
 ## Simple Messages
 
-Some users have expressed interest in using libyojimbo to transmit their own existing messages reliably over UDP. This means that all messages they want to send across libyojimbo are like tiny packets, eg. a block of memory with a size in bytes, rather than a C++ class with serialize function.
+Some users have expressed interest in using libyojimbo to transmit their own existing message format reliably over UDP. This means that all messages they want to send across libyojimbo are like tiny packets, blocks of memory with a size in bytes, rather than a C++ yojmibo::Message derived class with a serialize function.
 
 The good news is that you can adapt yojimbo to work with this sort of system, so I have added a new example program to show how: simple_messages.cpp
 
-This sample set up two channels: a reliable-ordered channel, and an unreliable ordered channel and two message types: small message and large message. This ensures that small messages (<256 bytes) are serialized efficiently in the reliable-ordered stream instead of stalling out the protocol (only one fragmented block is sent over the wire at a time).
+This sample set up two channels: a reliable-ordered channel, and an unreliable ordered channel and two message types: small and large. This ensures that small messages (<256 bytes) are serialized efficiently in the reliable-ordered stream instead of stalling out the protocol (only one fragmented block is sent over the wire at a time per-channel).
 
 This simple message system example is currently an experiment. If you are interested in using yojimbo in this way, especially in having a transport implementation that reads and writes packets to memory instead of forcing you to send and receive packets to sockets owned by libyojimbo, let me know and I can make MemoryTransport an official feature of this library.
 
