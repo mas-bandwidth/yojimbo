@@ -192,7 +192,13 @@ Some users have expressed interest in using libyojimbo to transmit their own exi
 
 The good news is that you can adapt yojimbo to work with this sort of system, so I have added a new example program to show how: simple_messages.cpp
 
-This sample set up two channels: a reliable-ordered channel, and an unreliable ordered channel and two message types: small and large. This ensures that small messages (<256 bytes) are serialized efficiently in the reliable-ordered stream instead of stalling out the protocol (only one fragmented block is sent over the wire at a time per-channel).
+To run this example go to the command line and type:
+
+    premake5 simple_messages
+
+If you are building under Visual Studio, run the "simple_messages" project from the IDE.
+
+This sample set up two channels: a reliable-ordered channel, and an unreliable ordered channel and two message types: small and large. This ensures that small messages (<256 bytes) are serialized efficiently in the reliable-ordered stream instead of stalling out the protocol (only one "BlockMessage" derived message may be sent over the wire at a time in the reliable-ordered channel).
 
 This simple message system example is currently an experiment. If you are interested in using yojimbo in this way, especially in having a transport implementation that reads and writes packets to memory instead of forcing you to send and receive packets to sockets owned by libyojimbo, let me know and I can make MemoryTransport an official feature of this library.
 
