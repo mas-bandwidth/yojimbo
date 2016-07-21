@@ -62,7 +62,7 @@ This release sounds like a lot of fun. I'm looking forward to it! Estimate: 2 mo
 
 ## Feedback
 
-Yojimbo is now publically released on github for feedback and colloboration. Release early and release often!
+Yojimbo is now publically released on github for feedback and collaboration. Release early and release often!
 
 Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 
