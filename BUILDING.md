@@ -15,7 +15,7 @@ This creates Yojimbo.sln and a bunch of project files then opens them in Visual 
 
 Now you can build the library and run individual test programs as you would for any other visual studio solution.
 
-## Building on MacOSX and Linux
+## Building on MacOS and Linux
 
 Download [premake 5](https://premake.github.io/download.html) then build and install from source.
 
@@ -40,6 +40,22 @@ This creates makefiles which you can use to build the source via "make all", or 
     premake5 server         // build run your own yojimbo server on localhost on UDP port 40000
 
     premake5 client         // build and run the client that connects to the server running on localhost
+
+## Premake bug on older versions of MacOS
+
+If you see an error like this while building on MacOS:
+
+    ld: warning: directory not found for option '-L/usr/lib64'
+    ld: unknown option: --start-group
+    clang: error: linker command failed with exit code 1 (use -v to see invocation)
+    make[1]: *** [bin/test] Error 1
+    make: *** [test] Error 2
+    
+You have an older version of MacOS that premake5 is generating incorrect makefiles for. 
+
+You can workaround this bug by manually removing "-L/usr/lib64", "--start-group', and "--end-group" from the generated makefiles.
+
+Please bug the premake guys to fix this issue: https://github.com/premake/premake-core
 
 ## Run a yojimbo server inside Docker
 
@@ -101,7 +117,7 @@ This should return the match response in JSON which looks something like this:
 
 If you have both a matcher and server running you can run the "connect" program to connect a client to that server through the matchmaker.
 
-On MacOSX or Linux, run:
+On MacOS or Linux, run:
 
     premake5 connect
 
