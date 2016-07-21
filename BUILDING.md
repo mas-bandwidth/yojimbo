@@ -51,11 +51,11 @@ If you see an error like this while building on MacOS:
     make[1]: *** [bin/test] Error 1
     make: *** [test] Error 2
     
-You have an older version of MacOS that premake5 is generating incorrect makefiles for. 
+You have an older version of MacOS that premake5 is generating incorrect makefiles for :(
 
-You can workaround this bug by manually removing "-L/usr/lib64", "--start-group', and "--end-group" from the generated makefiles.
+You can workaround this bug by manually removing "-L/usr/lib64", "--start-group", and "--end-group" from the generated makefiles.
 
-Please bug the premake guys to fix this issue: https://github.com/premake/premake-core
+Please bug the premake team to fix this issue: https://github.com/premake/premake-core
 
 ## Run a yojimbo server inside Docker
 
