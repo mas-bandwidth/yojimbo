@@ -42,12 +42,11 @@ This release will extend the internal UDP-based network protocol to support:
 
 1. Reliable-ordered messages (done)
 2. Data blocks larger than MTU in the same reliable-ordered stream as messages (done)
-3. Multiple user configurable message channels with different reliability and ordering guarantees (current)
-4. Support for channels with unreliable, unordered messages and blocks
-5. Support for channels with reliable, unordered messages and blocks
-6. Packet fragmentation and reassembly
+3. Multiple user configurable message channels with different reliability and ordering guarantees (done)
+4. Support for channels with unreliable, unordered messages and blocks (done)
+6. Packet fragmentation and reassembly (soon)
 
-This release is tracking ahead of schedule. It should be finished sometime in the next week.
+This release is finished short of the packet fragmentation and reassembly. This part is actually quite complicated so I'm going to take some time to design it properly. Work should recommence early August once I've worked out the best approach that doesn't expose the server to protocol attacks (eg. DOS'ing with fragments).
 
 ## 0.4.0 - Matchmaker
 
@@ -61,9 +60,9 @@ I may even setup a swarm of fake clients as well for stress test behavior, this 
 
 This release sounds like a lot of fun. I'm looking forward to it! Estimate: 2 months.
 
-## 0.5.0 - Initial public release
+## Feedback
 
-The estimated time for initial public release is November 2016. At this time I intend to get more people using this library and build a community to determine which features should be implemented next.
+Yojimbo is now publically released on github for feedback and collaboration. Release early and release often!
 
 Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 

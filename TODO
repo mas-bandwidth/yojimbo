@@ -4,6 +4,18 @@ TODO
 
     ------------------
 
+    It would be nice if the message factory and packet factory both had their own allocators, and passed the allocators into a virtual 
+    free function before destroying the message / packet.
+
+    This would make it possible to dynamically allocate aspects of packets/mesages without needing some bullshit context
+    just to get the allocator.
+
+    Similarly, it would be really nice if the allocator for messages and packets was accessible via the stream as it worked.
+
+    There is no reason this can't be done... stick allocators on the stream, the stream is passed into all serialize functions.
+
+    ------------------
+
     One thing I don't like is that the packet factory and message factory are global for all clients.
 
     This means that a rogue client can DOS other clients by sending and allocating too many messages, packets.

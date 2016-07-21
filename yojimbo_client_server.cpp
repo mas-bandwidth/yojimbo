@@ -589,7 +589,7 @@ namespace yojimbo
             {
                 if ( m_connection[i] )
                 {
-                    ConnectionPacket * packet = m_connection[i]->WritePacket();
+                    ConnectionPacket * packet = m_connection[i]->GeneratePacket();
 
                     if ( packet )
                     {
@@ -1253,7 +1253,7 @@ namespace yojimbo
         assert( clientIndex < m_maxClients );
 
         if ( m_connection[clientIndex] )
-            m_connection[clientIndex]->ReadPacket( &packet );
+            m_connection[clientIndex]->ProcessPacket( &packet );
 
         m_clientData[clientIndex].lastPacketReceiveTime = GetTime();
 
@@ -1602,7 +1602,7 @@ namespace yojimbo
             {
                 if ( m_connection )
                 {
-                    ConnectionPacket * packet = m_connection->WritePacket();
+                    ConnectionPacket * packet = m_connection->GeneratePacket();
 
                     if ( packet )
                     {
@@ -1891,7 +1891,7 @@ namespace yojimbo
             return;
 
         if ( m_connection )
-            m_connection->ReadPacket( &packet );
+            m_connection->ProcessPacket( &packet );
 
         m_lastPacketReceiveTime = GetTime();
     }
