@@ -60,9 +60,9 @@ I may even setup a swarm of fake clients as well for stress test behavior, this 
 
 This release sounds like a lot of fun. I'm looking forward to it! Estimate: 2 months.
 
-## 0.5.0 - Initial public release
+## Feedback
 
-The estimated time for initial public release is November 2016. At this time I intend to get more people using this library and build a community to determine which features should be implemented next.
+Yojimbo is now publically released on github for feedback and colloboration. Release early and release often!
 
 Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 
