@@ -523,7 +523,7 @@
 			"file": "premake5.lua",
 			"settings":
 			{
-				"buffer_size": 11062,
+				"buffer_size": 11465,
 				"line_ending": "Windows"
 			}
 		},
@@ -531,7 +531,15 @@
 			"file": "yojimbo_client_server.h",
 			"settings":
 			{
-				"buffer_size": 31114,
+				"buffer_size": 31160,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "profile.cpp",
+			"settings":
+			{
+				"buffer_size": 10626,
 				"line_ending": "Windows"
 			}
 		}
@@ -860,7 +868,7 @@
 	],
 	"find":
 	{
-		"height": 28.0
+		"height": 43.0
 	},
 	"find_in_files":
 	{
@@ -907,6 +915,7 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			">>>",
 			"InitializeContext",
 			"EnablePacketEncryption",
 			"CONNECTION_REQUEST",
@@ -1033,8 +1042,7 @@
 			"PRIx64",
 			"PRI",
 			"UCL_EMIT",
-			"emit_type",
-			"/*"
+			"emit_type"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1081,7 +1089,7 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 2,
 			"sheets":
 			[
 				{
@@ -1090,15 +1098,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 11062,
+						"buffer_size": 11465,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								690,
-								690
+								0,
+								0
 							]
 						],
 						"settings":
@@ -1111,7 +1119,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
@@ -1120,15 +1128,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 31114,
+						"buffer_size": 31160,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1935,
-								1935
+								0,
+								0
 							]
 						],
 						"settings":
@@ -1138,7 +1146,37 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 900.0,
+						"translation.y": 810.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "profile.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 10626,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
@@ -1149,7 +1187,7 @@
 	],
 	"incremental_find":
 	{
-		"height": 28.0
+		"height": 26.0
 	},
 	"input":
 	{
@@ -1190,7 +1228,7 @@
 	"project": "yojimbo.sublime-project",
 	"replace":
 	{
-		"height": 52.0
+		"height": 50.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -1199,6 +1237,10 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"profile.cpp",
+				"libyojimbo\\profile.cpp"
+			],
 			[
 				"client_server",
 				"libyojimbo\\yojimbo_client_server.h"
@@ -1706,10 +1748,6 @@
 			[
 				"simulator_inte",
 				"yojimbo_simulator_interface.h"
-			],
-			[
-				"simulator.h",
-				"yojimbo_simulator.h"
 			]
 		],
 		"width": 0.0
