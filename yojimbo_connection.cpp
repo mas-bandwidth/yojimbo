@@ -392,11 +392,11 @@ namespace yojimbo
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
     }
 
-    void Connection::OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId )
+    void Connection::OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes )
     {
         if ( m_listener )
         {
-            m_listener->OnConnectionFragmentReceived( this, messageId, fragmentId, channel->GetChannelId() );
+            m_listener->OnConnectionFragmentReceived( this, messageId, fragmentId, fragmentBytes, channel->GetChannelId() );
         }
     }
 }

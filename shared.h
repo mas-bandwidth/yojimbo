@@ -175,7 +175,7 @@ protected:
         }
     }
 
-    void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t fragmentId, int /*channelId*/ )
+    void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t fragmentId, int /*fragmentBytes*/, int /*channelId*/ )
     {
 #if !YOJIMBO_DEBUG_SPAM
         printf( "received fragment %d\n", fragmentId );

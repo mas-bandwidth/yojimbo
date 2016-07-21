@@ -1025,7 +1025,7 @@ namespace yojimbo
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )
             {
                 if ( m_listener )
-                    m_listener->OnChannelFragmentReceived( this, messageId, fragmentId );
+                    m_listener->OnChannelFragmentReceived( this, messageId, fragmentId, fragmentBytes );
 
                 m_receiveBlock->receivedFragment->SetBit( fragmentId );
 
@@ -1249,6 +1249,7 @@ namespace yojimbo
             if ( message->IsBlockMessage() )
             {
                 BlockMessage * blockMessage = (BlockMessage*) message;
+                
                 SerializeMessageBlock( measureStream, *m_messageFactory, blockMessage, m_config.maxBlockSize );
             }
 
