@@ -43,7 +43,7 @@ namespace yojimbo
         
         Packet() : m_type( 0 ) {}
 
-		virtual ~Packet() { m_type = -1; }
+        virtual ~Packet() { m_type = -1; }
 
         bool IsValid() const { return m_type >= 0; }
 

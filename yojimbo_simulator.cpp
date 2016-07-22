@@ -38,7 +38,7 @@ namespace yojimbo
 
         m_packetEntries = (PacketEntry*) allocator.Allocate( sizeof( PacketEntry ) * numPackets );
 
-		memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
+        memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
 
         m_time = 0.0;
         m_latency = 0.0f;
@@ -61,7 +61,7 @@ namespace yojimbo
             }
         }
 
-		m_allocator->Free( m_packetEntries );	m_packetEntries = NULL;
+        m_allocator->Free( m_packetEntries );    m_packetEntries = NULL;
         
         m_numPacketEntries = 0;
     }
