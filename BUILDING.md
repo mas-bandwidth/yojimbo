@@ -21,7 +21,7 @@ Download [premake 5](https://premake.github.io/download.html) then build and ins
 
 Next install libsodium and mbedtls.
 
-On MacOS X, this can be done "brew install libsodium mbedtls". If you don't have Brew, you can install it from <http://brew.sh>.
+On MacOS X, this can be done `brew install libsodium mbedtls`. If you don't have Brew, you can install it from <http://brew.sh>.
 
 On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 2.x version of mbedtls. The 1.x version will not work with libyojimbo.
 
@@ -55,7 +55,7 @@ You have an older version of MacOS that premake5 is generating incorrect makefil
 
 You can workaround this bug by manually removing "-L/usr/lib64", "--start-group", and "--end-group" from the generated makefiles.
 
-Please bug the premake team to fix this issue: https://github.com/premake/premake-core
+There is an issue about this problem: https://github.com/premake/premake-core/issues/473
 
 ## Run a yojimbo server inside Docker
 
@@ -75,7 +75,7 @@ IMPORTANT: The premake docker action takes a long time initially, because it has
 
 1. Start a new docker image from an [ubuntu derived base image](https://github.com/phusion/baseimage-docker)
 
-2. apt-get update, apt-get install wget, g++
+2. `apt-get update, apt-get install wget, g++`
 
 3. Download, build and install premake5
 
