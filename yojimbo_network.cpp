@@ -244,7 +244,8 @@ namespace yojimbo
                     goto next;
 
                 pUnicast = pCurrAddresses->FirstUnicastAddress;
-                if (pUnicast != NULL) 
+                
+                if ( pUnicast != NULL ) 
                 {
                     for ( int i = 0; pUnicast != NULL; i++ )
                     {
