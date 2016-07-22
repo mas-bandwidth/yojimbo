@@ -186,6 +186,7 @@ int ProfileMain()
                                     clientData[i].serverAddresses ) )
         {
             printf( "error: client %d request match failed\n", i );
+            delete serverData;
             return 1;
         }
     }
