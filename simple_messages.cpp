@@ -134,6 +134,7 @@ struct SmallMessage : public Message
     SmallMessage()
     {
         messageSize = 0;
+        memset( messageData, 0, MaxSmallMessageSize );
     }
 
     template <typename Stream> bool Serialize( Stream & stream )
