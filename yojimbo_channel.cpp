@@ -403,7 +403,7 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, m_messageSentPackets );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, m_messageReceiveQueue );
         
-		m_allocator->Free( m_sentPacketMessageIds );
+        m_allocator->Free( m_sentPacketMessageIds );
 
         m_sentPacketMessageIds = NULL;
     }

@@ -51,14 +51,14 @@ namespace yojimbo
             m_numEntries = 0;
             m_allocator = &allocator;
             m_entries = (T*) allocator.Allocate( sizeof(T) * size );
-			memset( m_entries, 0, sizeof(T) * size );
+            memset( m_entries, 0, sizeof(T) * size );
         }
 
         ~Queue()
         {
             assert( m_allocator );
             assert( m_entries );
-			m_allocator->Free( m_entries );
+            m_allocator->Free( m_entries );
             m_arraySize = 0;
             m_startIndex = 0;
             m_numEntries = 0;
@@ -92,16 +92,16 @@ namespace yojimbo
         T & operator [] ( int index )
         {
             assert( !IsEmpty() );
-			assert( index >= 0 );
-			assert( index < m_numEntries );
+            assert( index >= 0 );
+            assert( index < m_numEntries );
             return m_entries[ ( m_startIndex + index ) % m_arraySize ];
         }
 
         const T & operator [] ( int index ) const
         {
             assert( !IsEmpty() );
-			assert( index >= 0 );
-			assert( index < m_numEntries );
+            assert( index >= 0 );
+            assert( index < m_numEntries );
             return m_entries[ ( m_startIndex + index ) % m_arraySize ];
         }
 

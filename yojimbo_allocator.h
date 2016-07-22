@@ -30,33 +30,33 @@
 
 namespace yojimbo
 {
-	class Allocator
-	{
-	public:
+    class Allocator
+    {
+    public:
 
-		Allocator() {}
+        Allocator() {}
 
-		virtual ~Allocator() {}
-		
-		virtual void * Allocate( uint32_t size ) = 0;
+        virtual ~Allocator() {}
+        
+        virtual void * Allocate( uint32_t size ) = 0;
 
-		virtual void Free( void * p ) = 0;
+        virtual void Free( void * p ) = 0;
 
-	private:
+    private:
 
-	    Allocator( const Allocator & other );
+        Allocator( const Allocator & other );
 
-	    Allocator & operator = ( const Allocator & other );
-	};
+        Allocator & operator = ( const Allocator & other );
+    };
 
     Allocator & GetDefaultAllocator();
 
 #if defined( _MSC_VER )
-	#define _ALLOW_KEYWORD_MACROS
+    #define _ALLOW_KEYWORD_MACROS
 #endif // #if defined( _MSC_VER )
-	
-	#define YOJIMBO_NEW( a, T, ... ) ( new ((a).Allocate(sizeof(T))) T(__VA_ARGS__) )
-	#define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free(p); p = NULL; } } while (0)	
+    
+    #define YOJIMBO_NEW( a, T, ... ) ( new ((a).Allocate(sizeof(T))) T(__VA_ARGS__) )
+    #define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free(p); p = NULL; } } while (0)    
 }
 
 #endif

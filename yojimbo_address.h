@@ -105,7 +105,7 @@ namespace yojimbo
 
         bool IsMulticast() const;
 
-		bool IsLoopback() const;
+        bool IsLoopback() const;
 
         bool IsGlobalUnicast() const;
 

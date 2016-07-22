@@ -55,11 +55,11 @@ namespace yojimbo
     };
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
-	typedef uint64_t SocketHandle;
+    typedef uint64_t SocketHandle;
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
-	typedef int SocketHandle;
+    typedef int SocketHandle;
 #endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
-						   
+                           
     class Socket
     {
     public:

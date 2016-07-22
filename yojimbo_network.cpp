@@ -37,10 +37,10 @@
     #undef SetPort
     #endif // #ifdef SetPort
 
-	#if YOJIMBO_SOCKETS
-	#include <iphlpapi.h>
-	#pragma comment( lib, "IPHLPAPI.lib" )
-	#endif // #if YOJIMBO_SOCKETS
+    #if YOJIMBO_SOCKETS
+    #include <iphlpapi.h>
+    #pragma comment( lib, "IPHLPAPI.lib" )
+    #endif // #if YOJIMBO_SOCKETS
 
 #elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
 
@@ -100,8 +100,8 @@ namespace yojimbo
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
-	#define WORKING_BUFFER_SIZE 15000
-	#define MAX_TRIES 3
+    #define WORKING_BUFFER_SIZE 15000
+    #define MAX_TRIES 3
 
     void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses )
     {
@@ -110,264 +110,264 @@ namespace yojimbo
 
         numAddresses = 0;
 
-		DWORD dwRetVal = 0;
+        DWORD dwRetVal = 0;
 
-	    ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
+        ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
 
-	    ULONG family = AF_UNSPEC;
+        ULONG family = AF_UNSPEC;
 
-		PIP_ADAPTER_ADDRESSES pAddresses = NULL;
-		ULONG outBufLen = 0;
-		ULONG Iterations = 0;
+        PIP_ADAPTER_ADDRESSES pAddresses = NULL;
+        ULONG outBufLen = 0;
+        ULONG Iterations = 0;
 
-		PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
-		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
+        PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
+        PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
 
-	    outBufLen = WORKING_BUFFER_SIZE;
+        outBufLen = WORKING_BUFFER_SIZE;
 
-		do
-		{
-			pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
-			if ( pAddresses == NULL ) 
-				return;
+        do
+        {
+            pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
+            if ( pAddresses == NULL ) 
+                return;
 
-			dwRetVal = GetAdaptersAddresses( family, flags, NULL, pAddresses, &outBufLen );
+            dwRetVal = GetAdaptersAddresses( family, flags, NULL, pAddresses, &outBufLen );
 
-			if ( dwRetVal == ERROR_BUFFER_OVERFLOW ) 
-			{
-				free( pAddresses );
-				pAddresses = NULL;
-			} 
-			else 
-			{
-				break;
-			}
+            if ( dwRetVal == ERROR_BUFFER_OVERFLOW ) 
+            {
+                free( pAddresses );
+                pAddresses = NULL;
+            } 
+            else 
+            {
+                break;
+            }
 
-			Iterations++;
+            Iterations++;
 
-		} while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
+        } while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
 
-		if ( dwRetVal == NO_ERROR )
-		{
-			pCurrAddresses = pAddresses;
+        if ( dwRetVal == NO_ERROR )
+        {
+            pCurrAddresses = pAddresses;
 
-			while ( pCurrAddresses && numAddresses < maxAddresses )
-			{
-				if ( pCurrAddresses->OperStatus != IfOperStatusUp )
-					goto next;
+            while ( pCurrAddresses && numAddresses < maxAddresses )
+            {
+                if ( pCurrAddresses->OperStatus != IfOperStatusUp )
+                    goto next;
 
-				pUnicast = pCurrAddresses->FirstUnicastAddress;
-				if (pUnicast != NULL) 
-				{
-					for ( int i = 0; pUnicast != NULL; i++ )
-					{
-						Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
+                pUnicast = pCurrAddresses->FirstUnicastAddress;
+                if (pUnicast != NULL) 
+                {
+                    for ( int i = 0; pUnicast != NULL; i++ )
+                    {
+                        Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
 
-						if ( !address.IsValid() )
-							goto next_unicast;
+                        if ( !address.IsValid() )
+                            goto next_unicast;
 
-						if ( address.IsLoopback() )
-							goto next_unicast;
+                        if ( address.IsLoopback() )
+                            goto next_unicast;
 
-						if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
-							goto next_unicast;
+                        if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
+                            goto next_unicast;
 
-						addresses[numAddresses++] = address;
+                        addresses[numAddresses++] = address;
 
-						if ( numAddresses >= maxAddresses )
-							break;
+                        if ( numAddresses >= maxAddresses )
+                            break;
 
-					next_unicast:
+                    next_unicast:
 
-						pUnicast = pUnicast->Next;
-					}
-				} 
+                        pUnicast = pUnicast->Next;
+                    }
+                } 
 
-			next:
+            next:
 
-				pCurrAddresses = pCurrAddresses->Next;
-			}
-		}
+                pCurrAddresses = pCurrAddresses->Next;
+            }
+        }
 
-		if ( pAddresses)
-		{
-			free( pAddresses );
-		}
-	}
+        if ( pAddresses)
+        {
+            free( pAddresses );
+        }
+    }
 
     Address GetFirstNetworkAddress_IPV4()
     {
-		DWORD dwRetVal = 0;
+        DWORD dwRetVal = 0;
 
-	    ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
+        ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
 
-	    ULONG family = AF_INET;
+        ULONG family = AF_INET;
 
-		PIP_ADAPTER_ADDRESSES pAddresses = NULL;
-		ULONG outBufLen = 0;
-		ULONG Iterations = 0;
+        PIP_ADAPTER_ADDRESSES pAddresses = NULL;
+        ULONG outBufLen = 0;
+        ULONG Iterations = 0;
 
-		PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
-		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
+        PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
+        PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
 
-	    outBufLen = WORKING_BUFFER_SIZE;
+        outBufLen = WORKING_BUFFER_SIZE;
 
-		do
-		{
-			pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
-			if ( pAddresses == NULL ) 
-				return Address();
+        do
+        {
+            pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
+            if ( pAddresses == NULL ) 
+                return Address();
 
-			dwRetVal = GetAdaptersAddresses( family, flags, NULL, pAddresses, &outBufLen );
+            dwRetVal = GetAdaptersAddresses( family, flags, NULL, pAddresses, &outBufLen );
 
-			if ( dwRetVal == ERROR_BUFFER_OVERFLOW ) 
-			{
-				free( pAddresses );
-				pAddresses = NULL;
-			} 
-			else 
-			{
-				break;
-			}
+            if ( dwRetVal == ERROR_BUFFER_OVERFLOW ) 
+            {
+                free( pAddresses );
+                pAddresses = NULL;
+            } 
+            else 
+            {
+                break;
+            }
 
-			Iterations++;
+            Iterations++;
 
-		} while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
+        } while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
 
-		if ( dwRetVal == NO_ERROR )
-		{
-			pCurrAddresses = pAddresses;
+        if ( dwRetVal == NO_ERROR )
+        {
+            pCurrAddresses = pAddresses;
 
-			while ( pCurrAddresses )
-			{
-				if ( pCurrAddresses->OperStatus != IfOperStatusUp )
-					goto next;
+            while ( pCurrAddresses )
+            {
+                if ( pCurrAddresses->OperStatus != IfOperStatusUp )
+                    goto next;
 
-				pUnicast = pCurrAddresses->FirstUnicastAddress;
-				if (pUnicast != NULL) 
-				{
-					for ( int i = 0; pUnicast != NULL; i++ )
-					{
-						Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
+                pUnicast = pCurrAddresses->FirstUnicastAddress;
+                if (pUnicast != NULL) 
+                {
+                    for ( int i = 0; pUnicast != NULL; i++ )
+                    {
+                        Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
 
-						if ( !address.IsValid() )
-							goto next_unicast;
+                        if ( !address.IsValid() )
+                            goto next_unicast;
 
-						if ( address.IsLoopback() )
-							goto next_unicast;
+                        if ( address.IsLoopback() )
+                            goto next_unicast;
 
-						if ( pAddresses )
-							free( pAddresses );
+                        if ( pAddresses )
+                            free( pAddresses );
 
-						return address;
+                        return address;
 
-					next_unicast:
+                    next_unicast:
 
-						pUnicast = pUnicast->Next;
-					}
-				} 
+                        pUnicast = pUnicast->Next;
+                    }
+                } 
 
-			next:
+            next:
 
-				pCurrAddresses = pCurrAddresses->Next;
-			}
-		}
+                pCurrAddresses = pCurrAddresses->Next;
+            }
+        }
 
-		if ( pAddresses)
-		{
-			free( pAddresses );
-		}
+        if ( pAddresses)
+        {
+            free( pAddresses );
+        }
 
-		return Address();
+        return Address();
     }
 
     Address GetFirstNetworkAddress_IPV6()
     {
-		DWORD dwRetVal = 0;
+        DWORD dwRetVal = 0;
 
-	    ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
+        ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
 
-	    ULONG family = AF_INET6;
+        ULONG family = AF_INET6;
 
-		PIP_ADAPTER_ADDRESSES pAddresses = NULL;
-		ULONG outBufLen = 0;
-		ULONG Iterations = 0;
+        PIP_ADAPTER_ADDRESSES pAddresses = NULL;
+        ULONG outBufLen = 0;
+        ULONG Iterations = 0;
 
-		PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
-		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
+        PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
+        PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
 
-	    outBufLen = WORKING_BUFFER_SIZE;
+        outBufLen = WORKING_BUFFER_SIZE;
 
-		do
-		{
-			pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
-			if ( pAddresses == NULL ) 
-				return Address();
+        do
+        {
+            pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
+            if ( pAddresses == NULL ) 
+                return Address();
 
-			dwRetVal = GetAdaptersAddresses( family, flags, NULL, pAddresses, &outBufLen );
+            dwRetVal = GetAdaptersAddresses( family, flags, NULL, pAddresses, &outBufLen );
 
-			if ( dwRetVal == ERROR_BUFFER_OVERFLOW ) 
-			{
-				free( pAddresses );
-				pAddresses = NULL;
-			} 
-			else 
-			{
-				break;
-			}
+            if ( dwRetVal == ERROR_BUFFER_OVERFLOW ) 
+            {
+                free( pAddresses );
+                pAddresses = NULL;
+            } 
+            else 
+            {
+                break;
+            }
 
-			Iterations++;
+            Iterations++;
 
-		} while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
+        } while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
 
-		if ( dwRetVal == NO_ERROR )
-		{
-			pCurrAddresses = pAddresses;
+        if ( dwRetVal == NO_ERROR )
+        {
+            pCurrAddresses = pAddresses;
 
-			while ( pCurrAddresses )
-			{
-				if ( pCurrAddresses->OperStatus != IfOperStatusUp )
-					goto next;
+            while ( pCurrAddresses )
+            {
+                if ( pCurrAddresses->OperStatus != IfOperStatusUp )
+                    goto next;
 
-				pUnicast = pCurrAddresses->FirstUnicastAddress;
-				if (pUnicast != NULL) 
-				{
-					for ( int i = 0; pUnicast != NULL; i++ )
-					{
-						Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
+                pUnicast = pCurrAddresses->FirstUnicastAddress;
+                if (pUnicast != NULL) 
+                {
+                    for ( int i = 0; pUnicast != NULL; i++ )
+                    {
+                        Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
 
-						if ( !address.IsValid() )
-							goto next_unicast;
+                        if ( !address.IsValid() )
+                            goto next_unicast;
 
-						if ( address.IsLoopback() )
-							goto next_unicast;
+                        if ( address.IsLoopback() )
+                            goto next_unicast;
 
-						if ( !address.IsGlobalUnicast() )
-							goto next_unicast;
+                        if ( !address.IsGlobalUnicast() )
+                            goto next_unicast;
 
-						if ( pAddresses )
-							free( pAddresses );
+                        if ( pAddresses )
+                            free( pAddresses );
 
-						return address;
+                        return address;
 
-					next_unicast:
+                    next_unicast:
 
-						pUnicast = pUnicast->Next;
-					}
-				} 
+                        pUnicast = pUnicast->Next;
+                    }
+                } 
 
-			next:
+            next:
 
-				pCurrAddresses = pCurrAddresses->Next;
-			}
-		}
+                pCurrAddresses = pCurrAddresses->Next;
+            }
+        }
 
-		if ( pAddresses)
-		{
-			free( pAddresses );
-		}
+        if ( pAddresses)
+        {
+            free( pAddresses );
+        }
 
-		return Address();
+        return Address();
     }
 
 #elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS

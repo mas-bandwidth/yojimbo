@@ -62,7 +62,7 @@ namespace yojimbo
         
         const int numPacketTypes = m_packetFactory->GetNumPacketTypes();
 
-		assert( numPacketTypes > 0 );
+        assert( numPacketTypes > 0 );
 
 #if YOJIMBO_INSECURE_CONNECT
         m_allPacketTypes = (uint8_t*) m_allocator->Allocate( numPacketTypes );
@@ -197,7 +197,7 @@ namespace yojimbo
         PacketEntry entry = m_receiveQueue.Pop();
 
         assert( entry.packet );
-		assert( entry.packet->IsValid() );
+        assert( entry.packet->IsValid() );
         assert( entry.address.IsValid() );
 
         from = entry.address;

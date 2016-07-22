@@ -73,28 +73,28 @@ namespace yojimbo
 
 namespace yojimbo
 {
-	void platform_sleep( double time )
-	{
-		usleep( (int) ( time * 1000000 ) );
-	}
+    void platform_sleep( double time )
+    {
+        usleep( (int) ( time * 1000000 ) );
+    }
 
-	double platform_time()
-	{
-		static double start = -1;
+    double platform_time()
+    {
+        static double start = -1;
 
-		if ( start == -1 )
-		{
-			timespec ts;
-			clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
-			start = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
-			return 0.0;
-		}
+        if ( start == -1 )
+        {
+            timespec ts;
+            clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+            start = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
+            return 0.0;
+        }
 
-		timespec ts;
-		clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
-		double current = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
-		return current - start;
-	}
+        timespec ts;
+        clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+        double current = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
+        return current - start;
+    }
 }
 
 #elif defined(_WIN32)
@@ -108,28 +108,28 @@ namespace yojimbo
 
 namespace yojimbo
 {
-	void platform_sleep( double time )
-	{
-		const int milliseconds = time * 1000;
-		Sleep( milliseconds );
-	}
+    void platform_sleep( double time )
+    {
+        const int milliseconds = time * 1000;
+        Sleep( milliseconds );
+    }
 
-	static bool timer_initialized = false;
-	static LARGE_INTEGER timer_frequency;
+    static bool timer_initialized = false;
+    static LARGE_INTEGER timer_frequency;
     static LARGE_INTEGER timer_start;
 
-	double platform_time()
-	{
+    double platform_time()
+    {
         if ( !timer_initialized )
         {
             QueryPerformanceFrequency( &timer_frequency );
             QueryPerformanceCounter( &timer_start );
-			timer_initialized = true;
+            timer_initialized = true;
         }
         LARGE_INTEGER now;
         QueryPerformanceCounter( &now );
         return double( now.QuadPart - timer_start.QuadPart ) / double( timer_frequency.QuadPart );
-	}
+    }
 }
 
 #else

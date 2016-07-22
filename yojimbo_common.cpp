@@ -263,11 +263,11 @@ namespace yojimbo
 
         int result = mbedtls_base64_decode( (unsigned char*) output, output_size, &output_length, (const unsigned char*) input, strlen( input ) );
 
-		if ( result != 0 || output[output_length-1] != '\0' )
-		{
-			output[0] = '\0';
-			return -1;
-		}
+        if ( result != 0 || output[output_length-1] != '\0' )
+        {
+            output[0] = '\0';
+            return -1;
+        }
 
         return (int) output_length;
     }

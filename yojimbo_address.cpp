@@ -37,10 +37,10 @@
     #undef SetPort
     #endif // #ifdef SetPort
 
-	#if YOJIMBO_SOCKETS
-	#include <iphlpapi.h>
-	#pragma comment( lib, "IPHLPAPI.lib" )
-	#endif // #if YOJIMBO_SOCKETS
+    #if YOJIMBO_SOCKETS
+    #include <iphlpapi.h>
+    #pragma comment( lib, "IPHLPAPI.lib" )
+    #endif // #if YOJIMBO_SOCKETS
 
 #elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
 
@@ -283,7 +283,7 @@ namespace yojimbo
         else
         {
             snprintf( buffer, bufferSize, "%s", "NONE" );
-			return buffer;
+            return buffer;
         }
     }
 
@@ -307,26 +307,26 @@ namespace yojimbo
         return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xff00 );
     }
 
-	bool Address::IsLoopback() const
-	{
-		return ( m_type == ADDRESS_IPV4 && m_address_ipv4 == htonl( 0x7F000001 ) ) 
-											||
-			   ( m_type == ADDRESS_IPV6 && m_address_ipv6[0] == 0
-				  				        && m_address_ipv6[1] == 0
-									    && m_address_ipv6[2] == 0
-									    && m_address_ipv6[3] == 0
-									    && m_address_ipv6[4] == 0
-									    && m_address_ipv6[5] == 0
-									    && m_address_ipv6[6] == 0
-									    && m_address_ipv6[7] == htons( 0x0001 ) );
-	}
+    bool Address::IsLoopback() const
+    {
+        return ( m_type == ADDRESS_IPV4 && m_address_ipv4 == htonl( 0x7F000001 ) ) 
+                                            ||
+               ( m_type == ADDRESS_IPV6 && m_address_ipv6[0] == 0
+                                          && m_address_ipv6[1] == 0
+                                        && m_address_ipv6[2] == 0
+                                        && m_address_ipv6[3] == 0
+                                        && m_address_ipv6[4] == 0
+                                        && m_address_ipv6[5] == 0
+                                        && m_address_ipv6[6] == 0
+                                        && m_address_ipv6[7] == htons( 0x0001 ) );
+    }
 
     bool Address::IsGlobalUnicast() const
     {
         return m_type == ADDRESS_IPV6 && m_address_ipv6[0] != htons( 0xfe80 )
                                       && m_address_ipv6[0] != htons( 0xfec0 )
                                       && m_address_ipv6[0] != htons( 0xff00 )
-								      && !IsLoopback();
+                                      && !IsLoopback();
     }
 
     bool Address::operator ==( const Address & other ) const
