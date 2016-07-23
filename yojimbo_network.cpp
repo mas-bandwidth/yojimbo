@@ -98,12 +98,32 @@ namespace yojimbo
         return s_networkInitialized;
     }
 
+    bool FilterAddress( const Address & address, AddressFilter filter )
+    {
+        if ( !address.IsValid() )
+            return false;
+
+        if ( address.IsLoopback() )
+            return false;
+
+        if ( filter == ADDRESS_FILTER_IPV4_ONLY && address.GetType() != ADDRESS_IPV4 )
+            return false;
+
+        if ( filter == ADDRESS_FILTER_IPV6_ONLY && address.GetType() != ADDRESS_IPV6 )
+            return false;
+
+        if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
+            return false;
+
+        return true;
+    }
+
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
     #define WORKING_BUFFER_SIZE 15000
     #define MAX_TRIES 3
 
-    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses )
+    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses, AddressFilter filter )
     {
         assert( addresses );
         assert( maxAddresses >= 0 );
@@ -118,7 +138,7 @@ namespace yojimbo
 
         PIP_ADAPTER_ADDRESSES pAddresses = NULL;
         ULONG outBufLen = 0;
-        ULONG Iterations = 0;
+        ULONG iterations = 0;
 
         PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
         PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
@@ -143,49 +163,35 @@ namespace yojimbo
                 break;
             }
 
-            Iterations++;
+            iterations++;
 
-        } while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
+        } while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( iterations < MAX_TRIES ) );
 
         if ( dwRetVal == NO_ERROR )
         {
             pCurrAddresses = pAddresses;
 
-            while ( pCurrAddresses && numAddresses < maxAddresses )
+            for ( ; pCurrAddresses; pCurrAddresses = pCurrAddresses->Next )
             {
                 if ( pCurrAddresses->OperStatus != IfOperStatusUp )
-                    goto next;
+                    continue;
 
                 pUnicast = pCurrAddresses->FirstUnicastAddress;
-                if (pUnicast != NULL) 
+                if ( pUnicast == NULL )
+					continue;
+
+                for ( ; pUnicast != NULL; pUnicast = pUnicast->Next )
                 {
-                    for ( int i = 0; pUnicast != NULL; i++ )
-                    {
-                        Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
+					if ( numAddresses >= maxAddresses )
+						break;
 
-                        if ( !address.IsValid() )
-                            goto next_unicast;
+                    Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
 
-                        if ( address.IsLoopback() )
-                            goto next_unicast;
+					if ( !FilterAddress( address, filter ) )
+						continue;
 
-                        if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
-                            goto next_unicast;
-
-                        addresses[numAddresses++] = address;
-
-                        if ( numAddresses >= maxAddresses )
-                            break;
-
-                    next_unicast:
-
-                        pUnicast = pUnicast->Next;
-                    }
-                } 
-
-            next:
-
-                pCurrAddresses = pCurrAddresses->Next;
+                    addresses[numAddresses++] = address;
+                }
             }
         }
 
@@ -193,205 +199,9 @@ namespace yojimbo
         {
             free( pAddresses );
         }
-    }
-
-    Address GetFirstNetworkAddress_IPV4()
-    {
-        DWORD dwRetVal = 0;
-
-        ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
-
-        ULONG family = AF_INET;
-
-        PIP_ADAPTER_ADDRESSES pAddresses = NULL;
-        ULONG outBufLen = 0;
-        ULONG Iterations = 0;
-
-        PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
-        PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
-
-        outBufLen = WORKING_BUFFER_SIZE;
-
-        do
-        {
-            pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
-            if ( pAddresses == NULL ) 
-                return Address();
-
-            dwRetVal = GetAdaptersAddresses( family, flags, NULL, pAddresses, &outBufLen );
-
-            if ( dwRetVal == ERROR_BUFFER_OVERFLOW ) 
-            {
-                free( pAddresses );
-                pAddresses = NULL;
-            } 
-            else 
-            {
-                break;
-            }
-
-            Iterations++;
-
-        } while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
-
-        if ( dwRetVal == NO_ERROR )
-        {
-            pCurrAddresses = pAddresses;
-
-            while ( pCurrAddresses )
-            {
-                if ( pCurrAddresses->OperStatus != IfOperStatusUp )
-                    goto next;
-
-                pUnicast = pCurrAddresses->FirstUnicastAddress;
-                
-                if ( pUnicast != NULL ) 
-                {
-                    for ( int i = 0; pUnicast != NULL; i++ )
-                    {
-                        Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
-
-                        if ( !address.IsValid() )
-                            goto next_unicast;
-
-                        if ( address.IsLoopback() )
-                            goto next_unicast;
-
-                        if ( pAddresses )
-                            free( pAddresses );
-
-                        return address;
-
-                    next_unicast:
-
-                        pUnicast = pUnicast->Next;
-                    }
-                } 
-
-            next:
-
-                pCurrAddresses = pCurrAddresses->Next;
-            }
-        }
-
-        if ( pAddresses)
-        {
-            free( pAddresses );
-        }
-
-        return Address();
-    }
-
-    Address GetFirstNetworkAddress_IPV6()
-    {
-        DWORD dwRetVal = 0;
-
-        ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
-
-        ULONG family = AF_INET6;
-
-        PIP_ADAPTER_ADDRESSES pAddresses = NULL;
-        ULONG outBufLen = 0;
-        ULONG Iterations = 0;
-
-        PIP_ADAPTER_ADDRESSES pCurrAddresses = NULL;
-        PIP_ADAPTER_UNICAST_ADDRESS pUnicast = NULL;
-
-        outBufLen = WORKING_BUFFER_SIZE;
-
-        do
-        {
-            pAddresses = (IP_ADAPTER_ADDRESSES*) malloc( outBufLen );
-            if ( pAddresses == NULL ) 
-                return Address();
-
-            dwRetVal = GetAdaptersAddresses( family, flags, NULL, pAddresses, &outBufLen );
-
-            if ( dwRetVal == ERROR_BUFFER_OVERFLOW ) 
-            {
-                free( pAddresses );
-                pAddresses = NULL;
-            } 
-            else 
-            {
-                break;
-            }
-
-            Iterations++;
-
-        } while ( ( dwRetVal == ERROR_BUFFER_OVERFLOW ) && ( Iterations < MAX_TRIES ) );
-
-        if ( dwRetVal == NO_ERROR )
-        {
-            pCurrAddresses = pAddresses;
-
-            while ( pCurrAddresses )
-            {
-                if ( pCurrAddresses->OperStatus != IfOperStatusUp )
-                    goto next;
-
-                pUnicast = pCurrAddresses->FirstUnicastAddress;
-                if (pUnicast != NULL) 
-                {
-                    for ( int i = 0; pUnicast != NULL; i++ )
-                    {
-                        Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
-
-                        if ( !address.IsValid() )
-                            goto next_unicast;
-
-                        if ( address.IsLoopback() )
-                            goto next_unicast;
-
-                        if ( !address.IsGlobalUnicast() )
-                            goto next_unicast;
-
-                        if ( pAddresses )
-                            free( pAddresses );
-
-                        return address;
-
-                    next_unicast:
-
-                        pUnicast = pUnicast->Next;
-                    }
-                } 
-
-            next:
-
-                pCurrAddresses = pCurrAddresses->Next;
-            }
-        }
-
-        if ( pAddresses)
-        {
-            free( pAddresses );
-        }
-
-        return Address();
     }
 
 #elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
-
-    bool FilterAddress( const Address & address, AddressFilter filter )
-    {
-        if ( !address.IsValid() )
-            return false;
-
-        if ( address.IsLoopback() )
-            return false;
-
-        if ( filter == ADDRESS_FILTER_IPV4_ONLY && address.GetType() != ADDRESS_IPV4 )
-            return false;
-
-        if ( filter == ADDRESS_FILTER_IPV6_ONLY && address.GetType() != ADDRESS_IPV6 )
-            return false;
-
-        if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
-            return false;
-
-        return true;
-    }
 
     void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses, AddressFilter filter )
     {
@@ -427,37 +237,11 @@ namespace yojimbo
         freeifaddrs( ifaddr );
     }
 
-    Address GetFirstNetworkAddress_IPV4()
-    {
-        Address address;
-        int numAddresses;
-        GetNetworkAddresses( &address, numAddresses, 1, ADDRESS_FILTER_IPV4_ONLY );
-        return address;
-    }
-
-    Address GetFirstNetworkAddress_IPV6()
-    {
-        Address address;
-        int numAddresses;
-        GetNetworkAddresses( &address, numAddresses, 1, ADDRESS_FILTER_IPV6_ONLY );
-        return address;
-    }
-
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
     void GetNetworkAddresses( Address * /*addresses*/, int & numAddresses, int /*maxAddresses*/ )
     {
         numAddresses = 0;
-    }
-
-    Address GetFirstNetworkAddress_IPV4()
-    {
-        return Address();
-    }
-
-    Address GetFirstNetworkAddress_IPV6()
-    {
-        return Address();
     }
 
 #endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
