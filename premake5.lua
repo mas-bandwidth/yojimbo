@@ -258,7 +258,18 @@ if not os.is "windows" then
         execute = function ()
             os.execute "premake5 clean"
             os.execute "premake5 gmake"
-            os.execute "scan-build make all -j4"
+            os.execute "scan-build make all -j32"
+        end
+    }
+
+    newaction
+    {
+        trigger     = "coverity",
+        description = "Run coverity over the project",
+        execute = function ()
+            os.execute "premake5 clean"
+            os.execute "premake5 gmake"
+            os.execute "cov-build --dir cov-int make -j32 all"
         end
     }
 
@@ -374,6 +385,7 @@ newaction
             "Debug",
             "Release",
             "release",
+            "cov-int",
             "docker/libyojimbo"
         }
 
