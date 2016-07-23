@@ -188,7 +188,7 @@ After about minute you should have enough samples. Close the profile process and
 
 ## Simple Messages
 
-Some users have expressed interest in using libyojimbo to transmit their own existing message format reliably over UDP. This means that all messages they want to send across libyojimbo are like tiny packets, blocks of memory with a size in bytes, rather than a C++ yojmibo::Message derived class with a serialize function.
+Some users have expressed interest in using libyojimbo to transmit their own existing message format reliably over UDP. This means that all messages they want to send across libyojimbo are like tiny packets, blocks of memory with a size in bytes, rather than a C++ yojimbo::Message derived class with a serialize function.
 
 The good news is that you can adapt yojimbo to work with this sort of system, so I have added a new example program to show how: simple_messages.cpp
 
