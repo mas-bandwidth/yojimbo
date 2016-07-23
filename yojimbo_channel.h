@@ -200,6 +200,7 @@ namespace yojimbo
     private:
 
         int m_channelId;
+        
         ChannelError m_error;
     };
 

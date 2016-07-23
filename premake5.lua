@@ -91,6 +91,7 @@ if not os.is "windows" then
         trigger     = "test",
         description = "Build and run all unit tests",
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 test" == 0 then
                 os.execute "./bin/test"
             end
@@ -102,6 +103,7 @@ if not os.is "windows" then
         trigger     = "info",
         description = "Build and run network info utility",
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 info" == 0 then
                 os.execute "./bin/info"
             end
@@ -113,6 +115,7 @@ if not os.is "windows" then
         trigger     = "cs",
         description = "Build and run client/server testbed",     
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 client_server" == 0 then
                 os.execute "./bin/client_server"
             end
@@ -135,6 +138,7 @@ if not os.is "windows" then
         valid_tools = premake.action.get("gmake").valid_tools,
      
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 client" == 0 then
                 if _OPTIONS["serverAddress"] then
                     os.execute( "./bin/client " .. _OPTIONS["serverAddress"] )
@@ -150,6 +154,7 @@ if not os.is "windows" then
         trigger     = "server",
         description = "Build and run server",     
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 server" == 0 then
                 os.execute "./bin/server"
             end
@@ -161,6 +166,7 @@ if not os.is "windows" then
         trigger     = "secure_server",
         description = "Build and run secure server",     
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 secure_server" == 0 then
                 os.execute "./bin/secure_server"
             end
@@ -190,6 +196,7 @@ if not os.is "windows" then
         trigger     = "connect",
         description = "Build and run connect test program",
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 connect" == 0 then
                 os.execute "./bin/connect"
             end
@@ -201,6 +208,7 @@ if not os.is "windows" then
         trigger     = "stress",
         description = "Launch 64 connect instances to stress the matcher and server",
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 connect" == 0 then
                 for i = 0, 63 do
                     os.execute "./bin/connect &"
@@ -214,6 +222,7 @@ if not os.is "windows" then
         trigger     = "soak",
         description = "Build and run soak test",
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 soak" == 0 then
                 os.execute "./bin/soak"
             end
@@ -225,6 +234,7 @@ if not os.is "windows" then
         trigger     = "profile",
         description = "Build and run profile testbed",
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 profile" == 0 then
                 os.execute "./bin/profile"
             end
@@ -236,6 +246,7 @@ if not os.is "windows" then
         trigger     = "simple_messages",
         description = "Build and run simple messages testbed",
         execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 simple_messages" == 0 then
                 os.execute "./bin/simple_messages"
             end
@@ -264,7 +275,7 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "coverity",
+        trigger     = "coverity",                            -- i can't get this to work on latest MacOS. if you know how please let me know!
         description = "Run coverity over the project",
         execute = function ()
             os.execute "premake5 clean"
