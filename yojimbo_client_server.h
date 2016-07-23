@@ -277,7 +277,7 @@ namespace yojimbo
     };
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-    enum PacketTypes
+    enum ClientServerPacketTypes
     {
         CLIENT_SERVER_PACKET_CONNECTION_REQUEST,                      // client requests a connection.
         CLIENT_SERVER_PACKET_CONNECTION_DENIED,                       // server denies client connection request.
@@ -293,7 +293,6 @@ namespace yojimbo
     };
 
     YOJIMBO_PACKET_FACTORY_START( ClientServerPacketFactory, PacketFactory, CLIENT_SERVER_NUM_PACKETS );
-
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION_REQUEST,       ConnectionRequestPacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION_DENIED,        ConnectionDeniedPacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE,     ConnectionChallengePacket );
@@ -304,8 +303,16 @@ namespace yojimbo
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_INSECURE_CONNECT,         InsecureConnectPacket );
 #endif // #if YOJIMBO_INSECURE_CONNECT
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION,               ConnectionPacket );
-
     YOJIMBO_PACKET_FACTORY_FINISH()
+
+    enum ClientServerMessageTypes
+    {
+        CLIENT_SERVER_NUM_MESSAGES
+    };
+
+    YOJIMBO_MESSAGE_FACTORY_START( ClientServerMessageFactory, MessageFactory, CLIENT_SERVER_NUM_MESSAGES );
+        // nothing yet
+    YOJIMBO_MESSAGE_FACTORY_FINISH()
 
     struct ServerClientData
     {
@@ -475,6 +482,10 @@ namespace yojimbo
         virtual void InitializeContext();
 
         virtual void SetEncryptedPacketTypes();
+
+        virtual PacketFactory * CreatePacketFactory();
+
+        virtual MessageFactory * CreateMessageFactory();
 
         virtual void ResetClientState( int clientIndex );
 
@@ -671,6 +682,10 @@ namespace yojimbo
         virtual void InitializeContext();
 
         virtual void SetEncryptedPacketTypes();
+
+        virtual PacketFactory * CreatePacketFactory();
+
+        virtual MessageFactory * CreateMessageFactory();
 
         void SetClientState( int clientState );
 

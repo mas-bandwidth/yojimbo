@@ -161,7 +161,7 @@ void test_bitpacker()
 
     const int BufferSize = 256;
 
-    uint8_t buffer[256];
+    uint8_t buffer[BufferSize];
 
     BitWriter writer( buffer, BufferSize );
 
