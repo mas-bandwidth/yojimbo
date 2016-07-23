@@ -563,6 +563,12 @@ namespace yojimbo
         ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
 
         uint64_t m_counters[SERVER_COUNTER_NUM_COUNTERS];
+
+    private:
+
+        Server( const Server & other );
+        
+        const Server & operator = ( const Server & other );
     };
 
     enum ClientState
@@ -735,6 +741,12 @@ namespace yojimbo
         uint8_t m_challengeTokenData[ChallengeTokenBytes];                  // encrypted challenge token data for challenge response packet
 
         uint8_t m_challengeTokenNonce[NonceBytes];                          // nonce required to send to server so it can decrypt challenge token
+
+    private:
+
+        Client( const Client & other );
+        
+        const Client & operator = ( const Client & other );
     };
 }
 
