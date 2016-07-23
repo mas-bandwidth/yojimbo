@@ -373,7 +373,27 @@ namespace yojimbo
 
 #elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
-    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses )
+    bool FilterAddress( const Address & address, AddressFilter filter )
+    {
+        if ( !address.IsValid() )
+            return false;
+
+        if ( address.IsLoopback() )
+            return false;
+
+        if ( filter == ADDRESS_FILTER_IPV4_ONLY && address.GetType() != ADDRESS_IPV4 )
+            return false;
+
+        if ( filter == ADDRESS_FILTER_IPV6_ONLY && address.GetType() != ADDRESS_IPV6 )
+            return false;
+
+        if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
+            return false;
+
+        return true;
+    }
+
+    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses, AddressFilter filter )
     {
         assert( addresses );
         assert( maxAddresses >= 0 );
@@ -390,21 +410,15 @@ namespace yojimbo
             if ( numAddresses >= maxAddresses )
                 break;
 
-            if ( ifa->ifa_addr == NULL || ( ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6 ) ) 
-                continue;
-
             if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
                 continue;
 
+            if ( ifa->ifa_addr == NULL || ( ifa->ifa_addr->sa_family != AF_INET && ifa->ifa_addr->sa_family != AF_INET6 ) ) 
+                continue;
+
             Address address( (sockaddr_storage*) ifa->ifa_addr );
-            
-            if ( !address.IsValid() )
-                continue;
 
-            if ( address.IsLoopback() )
-                continue;
-
-            if ( address.GetType() == ADDRESS_IPV6 && !address.IsGlobalUnicast() )
+            if ( !FilterAddress( address, filter ) )
                 continue;
 
             addresses[numAddresses++] = address;
@@ -415,75 +429,18 @@ namespace yojimbo
 
     Address GetFirstNetworkAddress_IPV4()
     {
-        struct ifaddrs *ifaddr, *ifa;
-
-        if ( getifaddrs( &ifaddr ) == -1 )
-            return Address();
-
-        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-        {
-            if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET ) 
-                continue;
-
-            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-                continue;
-
-            Address address( (sockaddr_storage*) ifa->ifa_addr );
-
-            if ( !address.IsValid() )
-                continue;
-
-            if ( address.IsLoopback() )
-                continue;
-
-            assert( address.GetType() == ADDRESS_IPV4 );
-
-            freeifaddrs( ifaddr );
-
-            return address;
-        }
-
-        freeifaddrs( ifaddr );
-
-        return Address();
+        Address address;
+        int numAddresses;
+        GetNetworkAddresses( &address, numAddresses, 1, ADDRESS_FILTER_IPV4_ONLY );
+        return address;
     }
 
     Address GetFirstNetworkAddress_IPV6()
     {
-        struct ifaddrs *ifaddr, *ifa;
-
-        if ( getifaddrs( &ifaddr ) == -1 )
-            return Address();
-
-        for ( ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next )
-        {
-            if ( ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ) 
-                continue;
-
-            if ( ( ifa->ifa_flags & IFF_RUNNING ) == 0 )
-                continue;
-
-            Address address( (sockaddr_storage*) ifa->ifa_addr );
-
-            if ( !address.IsValid() )
-                continue;
-
-            if ( address.IsLoopback() )
-                continue;
-
-            assert( address.GetType() == ADDRESS_IPV6 );
-
-            if ( !address.IsGlobalUnicast() )
-                continue;
-
-            freeifaddrs( ifaddr );
-
-            return address;
-        }
-
-        freeifaddrs( ifaddr );
-
-        return Address();
+        Address address;
+        int numAddresses;
+        GetNetworkAddresses( &address, numAddresses, 1, ADDRESS_FILTER_IPV6_ONLY );
+        return address;
     }
 
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS

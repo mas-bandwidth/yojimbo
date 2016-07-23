@@ -44,7 +44,14 @@ namespace yojimbo
 
     bool IsNetworkInitialized();
 
-    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses );
+    enum AddressFilter
+    {
+        ADDRESS_FILTER_BOTH,
+        ADDRESS_FILTER_IPV4_ONLY,
+        ADDRESS_FILTER_IPV6_ONLY
+    };
+
+    void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses, AddressFilter filter = ADDRESS_FILTER_BOTH );
 
     Address GetFirstNetworkAddress_IPV4();
 
