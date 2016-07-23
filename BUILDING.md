@@ -29,7 +29,7 @@ Next go to the command line under the libyojimbo directory and enter:
 
     premake5 gmake
 
-This creates makefiles which you can use to build the source via "make all", or if you prefer, via the following shortcuts:
+This creates makefiles which you can use to build the source via "make all", or if you prefer you can use the following shortcuts. These shortcuts are smart enough to 
 
     premake5 test           // build and run unit tests
 
@@ -41,6 +41,10 @@ This creates makefiles which you can use to build the source via "make all", or 
 
     premake5 client         // build and run the client that connects to the server running on localhost
 
+To remove all generated makefiles and build output:
+
+    premake5 clean
+    
 ## Premake bug on older versions of MacOS
 
 If you see an error like this while building on MacOS:
