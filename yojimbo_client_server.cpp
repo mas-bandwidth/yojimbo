@@ -784,6 +784,16 @@ namespace yojimbo
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
+    PacketFactory * Server::CreatePacketFactory()
+    {
+        return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
+    }
+
+    MessageFactory * Server::CreateMessageFactory()
+    {
+        return YOJIMBO_NEW( *m_allocator, ClientServerMessageFactory, *m_allocator );
+    }
+
     void Server::ResetClientState( int clientIndex )
     {
         assert( clientIndex >= 0 );
@@ -1737,6 +1747,16 @@ namespace yojimbo
     {
         m_transport->EnablePacketEncryption();
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
+    }
+
+    PacketFactory * Client::CreatePacketFactory()
+    {
+        return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
+    }
+
+    MessageFactory * Client::CreateMessageFactory()
+    {
+        return YOJIMBO_NEW( *m_allocator, ClientServerMessageFactory, *m_allocator );
     }
 
     void Client::SetClientState( int clientState )

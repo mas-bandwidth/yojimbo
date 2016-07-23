@@ -1,21 +1,5 @@
 DONE    
 
-TODO
-
-    ------------------
-
-    It would be nice if the message factory and packet factory both had their own allocators, and passed the allocators into a virtual 
-    free function before destroying the message / packet.
-
-    This would make it possible to dynamically allocate aspects of packets/mesages without needing some bullshit context
-    just to get the allocator.
-
-    Similarly, it would be really nice if the allocator for messages and packets was accessible via the stream as it worked.
-
-    There is no reason this can't be done... stick allocators on the stream, the stream is passed into all serialize functions.
-
-    ------------------
-
     One thing I don't like is that the packet factory and message factory are global for all clients.
 
     This means that a rogue client can DOS other clients by sending and allocating too many messages, packets.
@@ -28,8 +12,6 @@ TODO
     This way the only thing a client can do is hurt itself. If it fails to allocate a fragment, message or packet it is disconnected.
 
     I think this is a crucial design element for security moving forward. It is simply not safe until I do this.
-
-    ------------------
 
     I think the correct way forward for this is to provide callbacks in Client/Server:
 
@@ -46,6 +28,39 @@ TODO
     It should also be a bit cleaner. Ideally, the only things that should be maintained separately from the client/server are the transports,
     because these need to be logically separate and eventually will be doing work off main thread this makes sense. To maintain and create message and packet factories is just a nuisance though. The server and client can create and own those just fine.
 
+    Get started by moving the packet and message factories inside the client and server instances, created via callback.
+
+    To do this, I already have good defaults for packet factories, but I need to create a default client server message factory too.
+
+    I will use the default allocator for these factories, because I expect if anybody wants to customize yojimbo, they will simply
+    override the creation of the factories and use their own allocator they want at the same time.
+
+TODO
+
+    ------------------
+
+    Next I really have to work out how I will direct specific addresses to use packet and factory allocator pairs.
+
+    I'm guessing it will look similar to how the encryption mapping sets up per-address private key pairs.
+
+    Basically, oh hey, does this address have a mapping? OK, use these factories. otherwise, use the global factories.
+
+    Maybe call it a context mapping? Because as you serialize packets, you need to know the packet factory, allocator, message factory...
+
+    So really, it needs to also be a context per-packet.
+
+    In fact, it might just be nicer to set the message factory on the stream as it serializes, set the allocator on the stream...
+
+    Because really, I don't want to have multiple contexts. I'd rather leave the context for the actual config, which is global for each client.
+
+    The per-client stuff, should just get set on the stream as it serializes, while having the same context.
+
+    So don't call it a context mapping. That would be confusing.
+
+    But would it be beneficial to the *user* of the libary to have separate contexts per-connected client on the server?
+
+    Possibly. But I think at the low-protocol level this is overengineering. They could build this up themselves for example by sending down per-client data inside messages on connect.
+
     ------------------
 
     Packet fragmentation and reassembly.
@@ -56,11 +71,19 @@ TODO
 
     ------------------
 
-    v0.3.0 final release (!!!) YEY! :D
+    It would be nice if the message factory and packet factory both had their own allocators, and passed the allocators into a virtual 
+    free function before destroying the message / packet factories.
+
+    This would make it possible to dynamically allocate aspects of packets/mesages without needing some bullshit context
+    just to get the allocator.
+
+    Similarly, it would be really nice if the allocator for messages and packets was accessible via the stream as it worked.
+
+    There is no reason this can't be done... stick allocators on the stream, the stream is passed into all serialize functions.
 
     ------------------
 
-    Packet compression
+    v0.3.0 final release (!!!) YEY! :D
 
     ------------------
 
@@ -68,6 +91,6 @@ TODO
 
     ------------------
 
-    Packet aggregation.
+    Packet aggregation
 
     ------------------

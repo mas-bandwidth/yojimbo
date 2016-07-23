@@ -155,10 +155,10 @@ namespace yojimbo
 
         assert( address_in );
 
-        char buffer[256];
+        char buffer[MaxAddressLength];
         char * address = buffer;
-        strncpy( address, address_in, 255 );
-        address[255] = '\0';
+        strncpy( address, address_in, MaxAddressLength - 1 );
+        address[MaxAddressLength-1] = '\0';
 
         int addressLength = (int) strlen( address );
         m_port = 0;

@@ -281,7 +281,7 @@ namespace yojimbo
             if ( !serverAddresses[i].IsString() )
                 return false;
 
-            char serverAddress[256];
+            char serverAddress[MaxAddressLength];
 
             base64_decode_string( serverAddresses[i].GetString(), serverAddress, sizeof( serverAddress ) );
 

@@ -380,6 +380,7 @@ namespace yojimbo
             if ( message )                                                                                          \
                 return message;                                                                                     \
             Allocator & allocator = GetAllocator();                                                                 \
+            (void)allocator;                                                                                        \
             switch ( type )                                                                                         \
             {                                                                                                       \
 

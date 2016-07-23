@@ -348,28 +348,28 @@ namespace yojimbo
                 {
                     case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:
                     {
-                        printf( "base transport key is null (read packet)\n" );
+                        debug_printf( "base transport key is null (read packet)\n" );
                         m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;
                     }
                     break;
 
                     case PACKET_PROCESSOR_ERROR_DECRYPT_FAILED:
                     {
-                        printf( "base transport decrypt failed (read packet)\n" );
+                        debug_printf( "base transport decrypt failed (read packet)\n" );
                         m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;
                     }
                     break;
 
                     case PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL:
                     {
-                        printf( "base transport packet too small (read packet)\n" );
+                        debug_printf( "base transport packet too small (read packet)\n" );
                         m_counters[TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES]++;
                     }
                     break;
 
                     case PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED:
                     {
-                        printf( "base transport read packet failed (read packet)\n" );
+                        debug_printf( "base transport read packet failed (read packet)\n" );
                         m_counters[TRANSPORT_COUNTER_READ_PACKET_FAILURES]++;
                     }
                     break;
