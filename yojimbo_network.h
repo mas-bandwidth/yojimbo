@@ -52,10 +52,6 @@ namespace yojimbo
     };
 
     void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses, AddressFilter filter = ADDRESS_FILTER_BOTH );
-
-    Address GetFirstNetworkAddress_IPV4();
-
-    Address GetFirstNetworkAddress_IPV6();
 }
 
 #endif // #ifndef YOJIMBO_NETWORK_H
