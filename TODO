@@ -2,6 +2,12 @@ DONE
 
 TODO
 
+    Now actually allocate and free the stream allocators. One global allocator on the server, and n client allocators in stop start.
+
+    On the client, there is only a global allocator, so simplify down the callbacks there, they don't need client index and resource type.
+
+    ------------------
+
     Now hook up client/server stream allocators.
 
     The stream allocator for clients should be per-client, eg. GetStreamAllocator( int clientIndex ), by default in should return GetDefaultAllocator()

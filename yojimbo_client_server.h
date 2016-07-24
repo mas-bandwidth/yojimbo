@@ -305,6 +305,12 @@ namespace yojimbo
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION,               ConnectionPacket );
     YOJIMBO_PACKET_FACTORY_FINISH()
 
+    enum ClientServerResourceType
+    {
+        CLIENT_SERVER_RESOURCE_GLOBAL,                                  // this resource is global for a client/server instance.
+        CLIENT_SERVER_RESOURCE_CLIENT                                   // this resource is for a particular client slot. see client index.
+    };
+
     struct ServerClientData
     {
         Address address;
@@ -452,9 +458,11 @@ namespace yojimbo
 
         virtual void SetEncryptedPacketTypes();
 
-        virtual PacketFactory * CreatePacketFactory();
+        virtual Allocator * CreateStreamAllocator( ClientServerResourceType type, int clientIndex );
 
-        virtual MessageFactory * CreateMessageFactory();
+        virtual PacketFactory * CreatePacketFactory( ClientServerResourceType type, int clientIndex );
+
+        virtual MessageFactory * CreateMessageFactory( ClientServerResourceType type, int clientIndex );
 
         void SetClientState( int clientState );
 
@@ -666,9 +674,11 @@ namespace yojimbo
 
         virtual void SetEncryptedPacketTypes();
 
-        virtual PacketFactory * CreatePacketFactory();
+        virtual Allocator * CreateStreamAllocator( ClientServerResourceType type, int clientIndex );
 
-        virtual MessageFactory * CreateMessageFactory();
+        virtual PacketFactory * CreatePacketFactory( ClientServerResourceType type, int clientIndex );
+
+        virtual MessageFactory * CreateMessageFactory( ClientServerResourceType type, int clientIndex );
 
         virtual void ResetClientState( int clientIndex );
 
