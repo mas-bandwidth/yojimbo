@@ -1,7 +1,19 @@
 DONE    
 
 TODO
+
+    Now hook up client/server stream allocators.
+
+    The stream allocator for clients should be per-client, eg. GetStreamAllocator( int clientIndex ), by default in should return GetDefaultAllocator()
     
+    There should also be a stream allocator for global packets. eg. ones that aren't involved in client connections such as challenge/response.
+
+    For the moment the default allocator can be used, but in the future, I'd like to at least by default have some sort of reasonable limit, eg. no more than 1mb allocated per-client in the stream allocator, or the client gets disconnected.
+
+    ------------------
+
+    Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Use the ones in shared.h
+
     ------------------
 
     Next I really have to work out how I will direct specific addresses to use packet and factory allocator pairs.
@@ -25,10 +37,6 @@ TODO
     But would it be beneficial to the *user* of the libary to have separate contexts per-connected client on the server?
 
     Possibly. But I think at the low-protocol level this is overengineering. They could build this up themselves for example by sending down per-client data inside messages on connect.
-
-    ------------------
-
-    Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Waste of LOC.
 
     ------------------
 

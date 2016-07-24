@@ -38,6 +38,17 @@ Could be that these are the messages in the connection send/recv queues, and tho
 
 Yeah, that was it in ~Client.
 
+Stop and think for a bit about how the per-client stream allocators will work, eg. "GetStreamAllocator( int clientIndex )",
+and how this relates to the message factory, packet factory stuff being planned.
+
+What needs to be done first to stream and connection/message types to convert across to per-client stream allocators.
+
+Do this first, before generalizing to per-client message factories.
+
+Add concept of an allocator per-stream.
+
+Unless specified, it is the default allocator. Done. Now you can always ask the stream for an allocator, and you will get one.
+
 
 Saturday July 23rd, 2016
 ========================
