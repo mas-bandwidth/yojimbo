@@ -162,8 +162,6 @@ int ProfileMain()
 
     GamePacketFactory packetFactory;
 
-    GameMessageFactory messageFactory;
-
     ServerData * serverData = new ServerData();
     serverData->address = Address( "::1", ServerPort );
 
@@ -197,10 +195,10 @@ int ProfileMain()
     for ( int i = 0; i < MaxClients; ++i )
         clientData[i].transport = new SocketTransport( GetDefaultAllocator(), packetFactory, clientData[i].address, ProtocolId );
 
-    serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, messageFactory );
+    serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport );
 
     for ( int i = 0; i < MaxClients; ++i )
-        clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].transport, messageFactory );
+        clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].transport );
 
     serverData->server->SetServerAddress( serverData->address );
 
@@ -262,7 +260,7 @@ int ProfileMain()
                 if ( !clientData[i].client->CanSendMessage() )
                     break;
 
-                Message * message = CreateRandomMessage( messageFactory, clientData[i].numMessagesSent );
+                Message * message = CreateRandomMessage( clientData[i].client->GetMessageFactory(), clientData[i].numMessagesSent );
 
                 if ( message )
                 {
@@ -282,7 +280,7 @@ int ProfileMain()
                 if ( !serverData->server->CanSendMessage( i ) )
                     break;
 
-                Message * message = CreateRandomMessage( messageFactory, serverData->numMessagesSent[i] );
+                Message * message = CreateRandomMessage( serverData->server->GetMessageFactory( i ), serverData->numMessagesSent[i] );
 
                 if ( message )
                 {
@@ -306,7 +304,7 @@ int ProfileMain()
 
 //                printf( "server received message %d from client %d\n", message->GetId(), i );
 
-				messageFactory.Release( message );
+				serverData->server->ReleaseMessage( i, message );
             }
         }
 
@@ -323,7 +321,7 @@ int ProfileMain()
 
 //                printf( "client received message %d from client %d\n", message->GetId(), i );
 
-				messageFactory.Release( message );
+				clientData[i].client->ReleaseMessage( message );
             }
         }
 

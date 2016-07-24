@@ -1,42 +1,7 @@
 DONE    
 
-    One thing I don't like is that the packet factory and message factory are global for all clients.
-
-    This means that a rogue client can DOS other clients by sending and allocating too many messages, packets.
-
-    This is relevant to the packet fragmentation and reassembly as well, because now fragments if allocated out of the packet factory
-    would provide another way to easily deny service to other clients the ability to allocate fragments.
-
-    The solution I think is to have a global packet factory, one packet factory per-client, one message factory per-client.
-
-    This way the only thing a client can do is hurt itself. If it fails to allocate a fragment, message or packet it is disconnected.
-
-    I think this is a crucial design element for security moving forward. It is simply not safe until I do this.
-
-    I think the correct way forward for this is to provide callbacks in Client/Server:
-
-        CreatePacketFactory
-        CreateMessageFactory
-
-    And then have the base client/server code call in to these callbacks whenever a factory needs to be created.
-
-    This is a necessity for the server at least, because the server can dynamically adjust the # of clients,
-    and therefore dynamically adjust the # of packet factory and message factories that it needs.
-
-    Therefore the callback is really the only way to go about this.
-
-    It should also be a bit cleaner. Ideally, the only things that should be maintained separately from the client/server are the transports,
-    because these need to be logically separate and eventually will be doing work off main thread this makes sense. To maintain and create message and packet factories is just a nuisance though. The server and client can create and own those just fine.
-
-    Get started by moving the packet and message factories inside the client and server instances, created via callback.
-
-    To do this, I already have good defaults for packet factories, but I need to create a default client server message factory too.
-
-    I will use the default allocator for these factories, because I expect if anybody wants to customize yojimbo, they will simply
-    override the creation of the factories and use their own allocator they want at the same time.
-
 TODO
-
+    
     ------------------
 
     Next I really have to work out how I will direct specific addresses to use packet and factory allocator pairs.
@@ -60,6 +25,10 @@ TODO
     But would it be beneficial to the *user* of the libary to have separate contexts per-connected client on the server?
 
     Possibly. But I think at the low-protocol level this is overengineering. They could build this up themselves for example by sending down per-client data inside messages on connect.
+
+    ------------------
+
+    Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Waste of LOC.
 
     ------------------
 
