@@ -24,6 +24,7 @@
 
 #include "yojimbo_allocator.h"
 #include <assert.h>
+#include <stdlib.h>
 
 namespace yojimbo
 {
