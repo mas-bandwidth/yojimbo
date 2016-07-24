@@ -305,10 +305,10 @@ namespace yojimbo
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION,               ConnectionPacket );
     YOJIMBO_PACKET_FACTORY_FINISH()
 
-    enum ClientServerResourceType
+    enum ServerResourceType
     {
-        CLIENT_SERVER_RESOURCE_GLOBAL,                                  // this resource is global for a client/server instance.
-        CLIENT_SERVER_RESOURCE_CLIENT                                   // this resource is for a particular client slot. see client index.
+        SERVER_RESOURCE_GLOBAL,                                     // this resource is global for a client/server instance.
+        SERVER_RESOURCE_PER_CLIENT                                  // this resource is for a particular client slot. see client index.
     };
 
     struct ServerClientData
@@ -458,11 +458,11 @@ namespace yojimbo
 
         virtual void SetEncryptedPacketTypes();
 
-        virtual Allocator * CreateStreamAllocator( ClientServerResourceType type, int clientIndex );
+        virtual Allocator * CreateStreamAllocator();
 
-        virtual PacketFactory * CreatePacketFactory( ClientServerResourceType type, int clientIndex );
+        virtual PacketFactory * CreatePacketFactory();
 
-        virtual MessageFactory * CreateMessageFactory( ClientServerResourceType type, int clientIndex );
+        virtual MessageFactory * CreateMessageFactory();
 
         void SetClientState( int clientState );
 
@@ -674,11 +674,11 @@ namespace yojimbo
 
         virtual void SetEncryptedPacketTypes();
 
-        virtual Allocator * CreateStreamAllocator( ClientServerResourceType type, int clientIndex );
+        virtual Allocator * CreateStreamAllocator( ServerResourceType type, int clientIndex );
 
-        virtual PacketFactory * CreatePacketFactory( ClientServerResourceType type, int clientIndex );
+        virtual PacketFactory * CreatePacketFactory( ServerResourceType type, int clientIndex );
 
-        virtual MessageFactory * CreateMessageFactory( ClientServerResourceType type, int clientIndex );
+        virtual MessageFactory * CreateMessageFactory( ServerResourceType type, int clientIndex );
 
         virtual void ResetClientState( int clientIndex );
 

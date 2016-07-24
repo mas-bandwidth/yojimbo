@@ -170,7 +170,7 @@ public:
         SetPrivateKey( private_key );
     }
 
-    MessageFactory * CreateMessageFactory( ClientServerResourceType /*type*/, int /*clientIndex*/ )
+    MessageFactory * CreateMessageFactory( ServerResourceType /*type*/, int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( GetDefaultAllocator(), GameMessageFactory, GetDefaultAllocator() );
     }
@@ -282,7 +282,7 @@ public:
         // ...
     }
 
-    MessageFactory * CreateMessageFactory( ClientServerResourceType /*type*/, int /*clientIndex*/ )
+    MessageFactory * CreateMessageFactory()
     {
         return YOJIMBO_NEW( GetDefaultAllocator(), GameMessageFactory, GetDefaultAllocator() );
     }
