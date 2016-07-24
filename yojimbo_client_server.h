@@ -305,15 +305,6 @@ namespace yojimbo
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION,               ConnectionPacket );
     YOJIMBO_PACKET_FACTORY_FINISH()
 
-    enum ClientServerMessageTypes
-    {
-        CLIENT_SERVER_NUM_MESSAGES
-    };
-
-    YOJIMBO_MESSAGE_FACTORY_START( ClientServerMessageFactory, MessageFactory, CLIENT_SERVER_NUM_MESSAGES );
-        // nothing yet
-    YOJIMBO_MESSAGE_FACTORY_FINISH()
-
     struct ServerClientData
     {
         Address address;
@@ -356,6 +347,194 @@ namespace yojimbo
 
     struct ClientServerContext : public ConnectionContext {};
 
+    enum ClientState
+    {
+#if YOJIMBO_INSECURE_CONNECT
+        CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT = -6,
+#endif // #if YOJIMBO_INSECURE_CONNECT
+        CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT = -5,
+        CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT = -4,
+        CLIENT_STATE_CONNECTION_TIMED_OUT = -3,
+        CLIENT_STATE_CONNECTION_ERROR = -2,
+        CLIENT_STATE_CONNECTION_DENIED = -1,
+        CLIENT_STATE_DISCONNECTED = 0,
+#if YOJIMBO_INSECURE_CONNECT
+        CLIENT_STATE_SENDING_INSECURE_CONNECT,
+#endif // #if YOJIMBO_INSECURE_CONNECT
+        CLIENT_STATE_SENDING_CONNECTION_REQUEST,
+        CLIENT_STATE_SENDING_CHALLENGE_RESPONSE,
+        CLIENT_STATE_CONNECTED
+    };
+
+    const char * GetClientStateName( int clientState );
+
+    class Client : public ConnectionListener
+    {
+    public:
+
+        explicit Client( Allocator & allocator, Transport & transport );
+
+        explicit Client( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig );
+
+        virtual ~Client();
+
+#if YOJIMBO_INSECURE_CONNECT
+        void InsecureConnect( const Address & address );
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+        void Connect( const Address & address, 
+                      const uint8_t * connectTokenData, 
+                      const uint8_t * connectTokenNonce,
+                      const uint8_t * clientToServerKey,
+                      const uint8_t * serverToClientKey );
+
+        bool IsConnecting() const;
+
+        bool IsConnected() const;
+
+        bool IsDisconnected() const;
+
+        bool ConnectionFailed() const;
+
+        ClientState GetClientState() const;
+
+        void Disconnect( int clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
+
+        bool CanSendMessage();
+
+        Message * CreateMessage( int type );
+
+        void SendMessage( Message * message );
+
+        Message * ReceiveMessage();
+
+        void ReleaseMessage( Message * message );
+
+        MessageFactory & GetMessageFactory();
+
+        void SendPackets();
+
+        void ReceivePackets();
+
+        void CheckForTimeOut();
+
+        void AdvanceTime( double time );
+
+        double GetTime() const;
+
+        int GetClientIndex() const;
+
+    protected:
+
+        virtual void OnConnect( const Address & /*address*/ ) {}
+
+        virtual void OnClientStateChange( int /*previousState*/, int /*currentState*/ ) {}
+
+        virtual void OnDisconnect() {}
+
+        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
+
+        virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/, uint64_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+
+        virtual void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*channelId*/ ) {}
+
+        virtual bool ProcessGamePacket( Packet * /*packet*/, uint64_t /*sequence*/ ) { return false; }
+
+    protected:
+
+        virtual void InitializeContext();
+
+        virtual void SetEncryptedPacketTypes();
+
+        virtual PacketFactory * CreatePacketFactory();
+
+        virtual MessageFactory * CreateMessageFactory();
+
+        void SetClientState( int clientState );
+
+        void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
+
+        void SendPacketToServer( Packet * packet );
+
+    private:
+
+        void SendPacketToServer_Internal( Packet * packet, bool immediate = false );
+
+    protected:
+
+        void ProcessConnectionDenied( const ConnectionDeniedPacket & packet, const Address & address );
+
+        void ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address );
+
+        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & packet, const Address & address );
+
+        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & packet, const Address & address );
+
+        void ProcessConnectionPacket( ConnectionPacket & packet, const Address & address );
+
+        void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
+
+        bool IsPendingConnect();
+
+        void CompletePendingConnect( int clientIndex );
+
+    protected:
+
+        void Defaults();
+
+        ConnectionConfig m_connectionConfig;                                // connection configuration.
+
+        Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
+
+        MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional.
+
+        bool m_allocateConnection;                                          // true if we should allocate a connection.
+
+        Connection * m_connection;                                          // the connection object for exchanging messages with the server. optional.
+
+        int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
+
+        ClientServerContext m_context;                                      // serialization context for client/server packets.
+
+        ClientState m_clientState;                                          // current client state
+
+        Address m_serverAddress;                                            // server address we are connecting or connected to.
+
+        double m_lastPacketSendTime;                                        // time we last sent a packet to the server.
+
+        double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
+
+        Transport * m_transport;                                            // transport for sending and receiving packets
+
+        double m_time;                                                      // current client time (see "AdvanceTime")
+
+#if YOJIMBO_INSECURE_CONNECT
+        uint64_t m_clientSalt;                                              // client salt for insecure connect
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+        uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
+
+        uint8_t m_connectTokenData[ConnectTokenBytes];                      // encrypted connect token data for connection request packet
+
+        uint8_t m_connectTokenNonce[NonceBytes];                            // nonce required to send to server so it can decrypt connect token
+
+        uint8_t m_challengeTokenData[ChallengeTokenBytes];                  // encrypted challenge token data for challenge response packet
+
+        uint8_t m_challengeTokenNonce[NonceBytes];                          // nonce required to send to server so it can decrypt challenge token
+
+    private:
+
+        Client( const Client & other );
+        
+        const Client & operator = ( const Client & other );
+    };
+
     enum ServerCounters
     {
         SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED,
@@ -393,7 +572,7 @@ namespace yojimbo
 
         Server( Allocator & allocator, Transport & transport );
 
-        Server( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() );
+        Server( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig );
 
         virtual ~Server();
 
@@ -409,13 +588,17 @@ namespace yojimbo
 
         void DisconnectAllClients( bool sendDisconnectPacket = true );
 
+        Message * CreateMessage( int clientIndex, int type );
+
         bool CanSendMessage( int clientIndex ) const;
 
         void SendMessage( int clientIndex, Message * message );
 
         Message * ReceiveMessage( int clientIndex );
 
-        void ReleaseMessage( Message * message );
+        void ReleaseMessage( int clientIndex, Message * message );
+
+        MessageFactory & GetMessageFactory( int clientIndex );
 
         void SendPackets();
 
@@ -569,6 +752,8 @@ namespace yojimbo
         
         ServerClientData m_clientData[MaxClients];                          // heavier weight data per-client, eg. not for fast lookup
 
+        bool m_allocateConnections;                                         // true if we should allocate connection objects in start.
+
         Connection * m_connection[MaxClients];                              // per-client connection. allocated and freed in start/stop according to max clients.
 
         ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
@@ -580,188 +765,6 @@ namespace yojimbo
         Server( const Server & other );
         
         const Server & operator = ( const Server & other );
-    };
-
-    enum ClientState
-    {
-#if YOJIMBO_INSECURE_CONNECT
-        CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT = -6,
-#endif // #if YOJIMBO_INSECURE_CONNECT
-        CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT = -5,
-        CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT = -4,
-        CLIENT_STATE_CONNECTION_TIMED_OUT = -3,
-        CLIENT_STATE_CONNECTION_ERROR = -2,
-        CLIENT_STATE_CONNECTION_DENIED = -1,
-        CLIENT_STATE_DISCONNECTED = 0,
-#if YOJIMBO_INSECURE_CONNECT
-        CLIENT_STATE_SENDING_INSECURE_CONNECT,
-#endif // #if YOJIMBO_INSECURE_CONNECT
-        CLIENT_STATE_SENDING_CONNECTION_REQUEST,
-        CLIENT_STATE_SENDING_CHALLENGE_RESPONSE,
-        CLIENT_STATE_CONNECTED
-    };
-
-    const char * GetClientStateName( int clientState );
-
-    class Client : public ConnectionListener
-    {
-    public:
-
-        explicit Client( Allocator & allocator, Transport & transport );
-
-        explicit Client( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() );
-
-        virtual ~Client();
-
-#if YOJIMBO_INSECURE_CONNECT
-        void InsecureConnect( const Address & address );
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-        void Connect( const Address & address, 
-                      const uint8_t * connectTokenData, 
-                      const uint8_t * connectTokenNonce,
-                      const uint8_t * clientToServerKey,
-                      const uint8_t * serverToClientKey );
-
-        bool IsConnecting() const;
-
-        bool IsConnected() const;
-
-        bool IsDisconnected() const;
-
-        bool ConnectionFailed() const;
-
-        ClientState GetClientState() const;
-
-        void Disconnect( int clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
-
-        bool CanSendMessage();
-
-        void SendMessage( Message * message );
-
-        Message * ReceiveMessage();
-
-        void ReleaseMessage( Message * message );
-
-        void SendPackets();
-
-        void ReceivePackets();
-
-        void CheckForTimeOut();
-
-        void AdvanceTime( double time );
-
-        double GetTime() const;
-
-        int GetClientIndex() const;
-
-    protected:
-
-        virtual void OnConnect( const Address & /*address*/ ) {}
-
-        virtual void OnClientStateChange( int /*previousState*/, int /*currentState*/ ) {}
-
-        virtual void OnDisconnect() {}
-
-        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
-
-        virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/, uint64_t /*sequence*/ ) {}
-
-        virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
-
-        virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
-
-        virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
-
-        virtual void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*channelId*/ ) {}
-
-        virtual bool ProcessGamePacket( Packet * /*packet*/, uint64_t /*sequence*/ ) { return false; }
-
-    protected:
-
-        virtual void InitializeContext();
-
-        virtual void SetEncryptedPacketTypes();
-
-        virtual PacketFactory * CreatePacketFactory();
-
-        virtual MessageFactory * CreateMessageFactory();
-
-        void SetClientState( int clientState );
-
-        void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
-
-        void SendPacketToServer( Packet * packet );
-
-    private:
-
-        void SendPacketToServer_Internal( Packet * packet, bool immediate = false );
-
-    protected:
-
-        void ProcessConnectionDenied( const ConnectionDeniedPacket & packet, const Address & address );
-
-        void ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address );
-
-        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & packet, const Address & address );
-
-        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & packet, const Address & address );
-
-        void ProcessConnectionPacket( ConnectionPacket & packet, const Address & address );
-
-        void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
-
-        bool IsPendingConnect();
-
-        void CompletePendingConnect( int clientIndex );
-
-    protected:
-
-        void Defaults();
-
-        ConnectionConfig m_connectionConfig;                                // connection configuration.
-
-        Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
-
-        MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional.
-
-        Connection * m_connection;                                          // the connection object for exchanging messages with the server. optional.
-
-        int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
-
-        ClientServerContext m_context;                                      // serialization context for client/server packets.
-
-        ClientState m_clientState;                                          // current client state
-
-        Address m_serverAddress;                                            // server address we are connecting or connected to.
-
-        double m_lastPacketSendTime;                                        // time we last sent a packet to the server.
-
-        double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
-
-        Transport * m_transport;                                            // transport for sending and receiving packets
-
-        double m_time;                                                      // current client time (see "AdvanceTime")
-
-#if YOJIMBO_INSECURE_CONNECT
-        uint64_t m_clientSalt;                                              // client salt for insecure connect
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-        uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
-
-        uint8_t m_connectTokenData[ConnectTokenBytes];                      // encrypted connect token data for connection request packet
-
-        uint8_t m_connectTokenNonce[NonceBytes];                            // nonce required to send to server so it can decrypt connect token
-
-        uint8_t m_challengeTokenData[ChallengeTokenBytes];                  // encrypted challenge token data for challenge response packet
-
-        uint8_t m_challengeTokenNonce[NonceBytes];                          // nonce required to send to server so it can decrypt challenge token
-
-    private:
-
-        Client( const Client & other );
-        
-        const Client & operator = ( const Client & other );
     };
 }
 

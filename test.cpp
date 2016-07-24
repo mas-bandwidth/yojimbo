@@ -1070,6 +1070,74 @@ YOJIMBO_PACKET_FACTORY_START( GamePacketFactory, ClientServerPacketFactory, GAME
     YOJIMBO_DECLARE_PACKET_TYPE( GAME_PACKET, GamePacket );
 YOJIMBO_PACKET_FACTORY_FINISH();
 
+// todo: this code is all in shared. just port over what is needed and use that. why duplicate it
+
+inline int GetNumBitsForMessage( uint16_t sequence )
+{
+    static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
+    const int modulus = sizeof( messageBitsArray ) / sizeof( int );
+    const int index = sequence % modulus;
+    return messageBitsArray[index];
+}
+
+struct TestMessage : public Message
+{
+    uint16_t sequence;
+
+    TestMessage()
+    {
+        sequence = 0;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {        
+        serialize_bits( stream, sequence, 16 );
+
+        int numBits = GetNumBitsForMessage( sequence );
+        int numWords = numBits / 32;
+        uint32_t dummy = 0;
+        for ( int i = 0; i < numWords; ++i )
+            serialize_bits( stream, dummy, 32 );
+        int numRemainderBits = numBits - numWords * 32;
+        if ( numRemainderBits > 0 )
+            serialize_bits( stream, dummy, numRemainderBits );
+
+        return true;
+    }
+
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+struct TestBlockMessage : public BlockMessage
+{
+    uint16_t sequence;
+
+    TestBlockMessage()
+    {
+        sequence = 0;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {        
+        serialize_bits( stream, sequence, 16 );
+        return true;
+    }
+
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+enum MessageType
+{
+    TEST_MESSAGE,
+    TEST_BLOCK_MESSAGE,
+    NUM_MESSAGE_TYPES
+};
+
+YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
+YOJIMBO_MESSAGE_FACTORY_FINISH();
+
 static bool verbose_logging = false;
 
 class GameServer : public Server
@@ -1091,9 +1159,14 @@ public:
         Initialize();
     }
 
-    explicit GameServer( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : Server( allocator, transport, messageFactory, connectionConfig )
+    explicit GameServer( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig ) : Server( allocator, transport, connectionConfig )
     {
         Initialize();
+    }
+
+    MessageFactory * CreateMessageFactory()
+    {
+        return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
     }
 
     void OnClientConnect( int clientIndex )
@@ -1224,7 +1297,7 @@ public:
         Initialize();
     }
 
-    explicit GameClient( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : Client( allocator, transport, messageFactory, connectionConfig )
+    explicit GameClient( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig ) : Client( allocator, transport, connectionConfig )
     {
         Initialize();
     }
@@ -1235,6 +1308,11 @@ public:
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToServer( packet );
+    }
+
+    MessageFactory * CreateMessageFactory()
+    {
+        return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
     }
 
     void OnConnect( const Address & address )
@@ -3190,7 +3268,7 @@ void test_client_server_insecure_connect_timeout()
 
 void test_matcher()
 {
-    printf( "test matcher\n" );
+    printf( "test_matcher\n" );
 
     uint8_t key[] = { 0x60,0x6a,0xbe,0x6e,0xc9,0x19,0x10,0xea,0x9a,0x65,0x62,0xf6,0x6f,0x2b,0x30,0xe4,0x43,0x71,0xd6,0x2c,0xd1,0x99,0x27,0x26,0x6b,0x3c,0x60,0xf4,0xb7,0x15,0xab,0xa1 };
 
@@ -3405,72 +3483,6 @@ void test_generate_ack_bits()
     check( ack == 11 );
     check( ack_bits == ( 1 | (1<<(11-9)) | (1<<(11-5)) | (1<<(11-1)) ) );
 }
-
-inline int GetNumBitsForMessage( uint16_t sequence )
-{
-    static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
-    const int modulus = sizeof( messageBitsArray ) / sizeof( int );
-    const int index = sequence % modulus;
-    return messageBitsArray[index];
-}
-
-struct TestMessage : public Message
-{
-    uint16_t sequence;
-
-    TestMessage()
-    {
-        sequence = 0;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {        
-        serialize_bits( stream, sequence, 16 );
-
-        int numBits = GetNumBitsForMessage( sequence );
-        int numWords = numBits / 32;
-        uint32_t dummy = 0;
-        for ( int i = 0; i < numWords; ++i )
-            serialize_bits( stream, dummy, 32 );
-        int numRemainderBits = numBits - numWords * 32;
-        if ( numRemainderBits > 0 )
-            serialize_bits( stream, dummy, numRemainderBits );
-
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-struct TestBlockMessage : public BlockMessage
-{
-    uint16_t sequence;
-
-    TestBlockMessage()
-    {
-        sequence = 0;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {        
-        serialize_bits( stream, sequence, 16 );
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-enum MessageType
-{
-    TEST_MESSAGE,
-    TEST_BLOCK_MESSAGE,
-    NUM_MESSAGE_TYPES
-};
-
-YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
-YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 class TestConnection : public Connection
 {
@@ -4597,17 +4609,15 @@ void test_connection_client_server()
 
     double time = 0.0;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
-
     ConnectionConfig connectionConfig;
     connectionConfig.maxPacketSize = 256;
     connectionConfig.numChannels = 1;
     connectionConfig.channelConfig[0].maxBlockSize = 1024;
     connectionConfig.channelConfig[0].fragmentSize = 200;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, messageFactory, connectionConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, connectionConfig );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, messageFactory, connectionConfig );
+    GameServer server( GetDefaultAllocator(), serverTransport, connectionConfig );
 
     server.SetServerAddress( serverAddress );
     
@@ -4658,44 +4668,48 @@ void test_connection_client_server()
     {
         if ( rand() % 10 )
         {
-            TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+            TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
             check( message );
             message->sequence = i;
             client.SendMessage( message );
         }
         else
         {
-            TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+            TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+            Allocator & messageAllocator = client.GetMessageFactory().GetAllocator();
+            uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+            message->AttachBlock( messageAllocator, blockData, blockSize );
             client.SendMessage( message );
         }
     }
 
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
+        const int clientIndex = client.GetClientIndex();
+
         if ( rand() % 2 )
         {
-            TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+            TestMessage * message = (TestMessage*) server.CreateMessage( clientIndex, TEST_MESSAGE );
             check( message );
             message->sequence = i;
-            server.SendMessage( client.GetClientIndex(), message );
+            server.SendMessage( clientIndex, message );
         }
         else
         {
-            TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+            TestBlockMessage * message = (TestBlockMessage*) server.CreateMessage( clientIndex, TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+            Allocator & messageAllocator = client.GetMessageFactory().GetAllocator();
+            uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+            message->AttachBlock( messageAllocator, blockData, blockSize );
             server.SendMessage( client.GetClientIndex(), message );
         }
     }
@@ -4772,7 +4786,9 @@ void test_connection_client_server()
 
         while ( true )
         {
-            Message * message = server.ReceiveMessage( client.GetClientIndex() );
+            const int clientIndex = client.GetClientIndex();
+
+            Message * message = server.ReceiveMessage( clientIndex );
 
             if ( !message )
                 break;
@@ -4815,7 +4831,7 @@ void test_connection_client_server()
                 break;
             }
 
-            server.ReleaseMessage( message );
+            server.ReleaseMessage( clientIndex, message );
         }
 
         if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )

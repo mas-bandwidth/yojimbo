@@ -78,17 +78,15 @@ int SoakMain()
     SimulatorTransport clientTransport( GetDefaultAllocator(), networkSimulator, packetFactory, clientAddress, ProtocolId );
     SimulatorTransport serverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, serverAddress, ProtocolId );
 
-    GameMessageFactory messageFactory;
-
     ConnectionConfig connectionConfig;
     connectionConfig.maxPacketSize = 1100;
     connectionConfig.numChannels = 1;
     connectionConfig.channelConfig[0].messagePacketBudget = 256;
     connectionConfig.channelConfig[0].maxMessagesPerPacket = 256;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, messageFactory, connectionConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, connectionConfig );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, messageFactory, connectionConfig );
+    GameServer server( GetDefaultAllocator(), serverTransport, connectionConfig );
 
     server.SetServerAddress( serverAddress );
 
@@ -136,7 +134,7 @@ int SoakMain()
 
                 if ( rand() % 100 )
                 {
-                    GameMessage * message = (GameMessage*) messageFactory.Create( GAME_MESSAGE );
+                    GameMessage * message = (GameMessage*) client.CreateMessage( GAME_MESSAGE );
                     
                     if ( message )
                     {
@@ -149,7 +147,7 @@ int SoakMain()
                 }
                 else
                 {
-                    GameBlockMessage * blockMessage = (GameBlockMessage*) messageFactory.Create( GAME_BLOCK_MESSAGE );
+                    GameBlockMessage * blockMessage = (GameBlockMessage*) client.CreateMessage( GAME_BLOCK_MESSAGE );
 
                     if ( blockMessage )
                     {
@@ -157,14 +155,16 @@ int SoakMain()
 
                         const int blockSize = 1 + ( int( numMessagesSentToServer ) * 33 ) % MaxBlockSize;
 
-                        uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+                        Allocator & messageAllocator = client.GetMessageFactory().GetAllocator();
+
+                        uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
 
                         if ( blockData )
                         {
                             for ( int j = 0; j < blockSize; ++j )
                                 blockData[j] = uint8_t( numMessagesSentToServer + j );
 
-                            blockMessage->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+                            blockMessage->AttachBlock( messageAllocator, blockData, blockSize );
 
                             client.SendMessage( blockMessage );
 
@@ -195,7 +195,7 @@ int SoakMain()
 
                         printf( "received message %d\n", gameMessage->sequence );
 
-                        server.ReleaseMessage( message );
+                        server.ReleaseMessage( clientIndex, message );
 
                         numMessagesReceivedFromClient++;
                     }
@@ -232,7 +232,7 @@ int SoakMain()
 
                         printf( "received block %d\n", uint16_t( numMessagesReceivedFromClient ) );
 
-                        server.ReleaseMessage( message );
+                        server.ReleaseMessage( clientIndex, message );
 
                         numMessagesReceivedFromClient++;
                     }

@@ -382,12 +382,652 @@ namespace yojimbo
 
     // =============================================================
 
+    const char * GetClientStateName( int clientState )
+    {
+        switch ( clientState )
+        {
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT:       return "insecure connect timed out";
+#endif // #if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT:     return "connection request timed out";
+            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT:     return "challenge response timed out";
+            case CLIENT_STATE_CONNECTION_TIMED_OUT:             return "connection timed out";
+            case CLIENT_STATE_CONNECTION_ERROR:                 return "connection error";
+            case CLIENT_STATE_CONNECTION_DENIED:                return "connection denied";
+            case CLIENT_STATE_DISCONNECTED:                     return "disconnected";
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_SENDING_INSECURE_CONNECT:         return "sending insecure connect";
+#endif // #if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:       return "sending connection request";
+            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:       return "sending challenge response";
+            case CLIENT_STATE_CONNECTED:                        return "connected";
+            default:
+                assert( false );
+                return "???";
+        }
+    }
+
+    void Client::Defaults()
+    {
+        m_allocator = NULL;
+        m_transport = NULL;
+        m_messageFactory = NULL;
+        m_allocateConnection = false;
+        m_connection = NULL;
+        m_time = 0.0;
+        m_clientState = CLIENT_STATE_DISCONNECTED;
+    }
+
+    Client::Client( Allocator & allocator, Transport & transport )
+    {
+        Defaults();
+        m_allocator = &allocator;
+        m_transport = &transport;
+    }
+
+    Client::Client( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig )
+    {
+        Defaults();
+        m_allocator = &allocator;
+        m_transport = &transport;
+        m_connectionConfig = connectionConfig;
+        m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
+        m_allocateConnection = true;
+    }
+
+    Client::~Client()
+    {
+        assert( m_allocator );
+
+        YOJIMBO_DELETE( *m_allocator, Connection, m_connection );
+
+        YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
+
+        m_messageFactory = NULL;
+        m_transport = NULL;
+        m_allocator = NULL;
+    }
+
+#if YOJIMBO_INSECURE_CONNECT
+
+    void Client::InsecureConnect( const Address & address )
+    {
+        Disconnect();
+
+        m_serverAddress = address;
+
+        OnConnect( address );
+
+        SetClientState( CLIENT_STATE_SENDING_INSECURE_CONNECT );
+
+        const double time = GetTime();        
+
+        m_lastPacketSendTime = time - 1.0f;
+        m_lastPacketReceiveTime = time;
+
+        RandomBytes( (uint8_t*) &m_clientSalt, sizeof( m_clientSalt ) );
+
+        m_transport->ResetEncryptionMappings();
+    }
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+    void Client::Connect( const Address & address, 
+                          const uint8_t * connectTokenData, 
+                          const uint8_t * connectTokenNonce,
+                          const uint8_t * clientToServerKey,
+                          const uint8_t * serverToClientKey )
+    {
+        if ( m_allocateConnection && !m_connection )
+        {
+            // IMPORTANT: lazy create so virtuals aren't called in the constructor
+
+            m_messageFactory = CreateMessageFactory();
+
+            m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
+            m_connection->SetListener( this );
+        }
+
+        InitializeContext();
+
+        Disconnect();
+
+        SetEncryptedPacketTypes();
+
+        m_serverAddress = address;
+
+        OnConnect( address );
+
+        SetClientState( CLIENT_STATE_SENDING_CONNECTION_REQUEST );
+
+        const double time = GetTime();        
+
+        m_lastPacketSendTime = time - 1.0f;
+        m_lastPacketReceiveTime = time;
+        memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
+        memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
+
+        m_transport->ResetEncryptionMappings();
+
+        m_transport->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
+    }
+
+    void Client::Disconnect( int clientState, bool sendDisconnectPacket )
+    {
+        assert( clientState <= CLIENT_STATE_DISCONNECTED );
+
+        if ( m_clientState != clientState )
+        {
+            OnDisconnect();
+        }
+
+        if ( sendDisconnectPacket && m_clientState > CLIENT_STATE_DISCONNECTED )
+        {
+            for ( int i = 0; i < NumDisconnectPackets; ++i )
+            {
+                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );            
+
+                if ( packet )
+                {
+                    SendPacketToServer_Internal( packet, true );
+                }
+            }
+        }
+
+        ResetConnectionData( clientState );
+    }
+
+    Message * Client::CreateMessage( int type )
+    {
+        assert( m_messageFactory );
+        return m_messageFactory->Create( type );
+    }
+
+    bool Client::CanSendMessage()
+    {
+        if ( !IsConnected() )
+            return false;
+
+        assert( m_messageFactory );
+        assert( m_connection );
+        
+        return m_connection->CanSendMessage();
+    }
+
+    void Client::SendMessage( Message * message )
+    {
+        assert( IsConnected() );
+        assert( m_messageFactory );
+        assert( m_connection );
+        m_connection->SendMessage( message );
+    }
+
+    Message * Client::ReceiveMessage()
+    {
+        assert( m_messageFactory );
+
+        if ( !IsConnected() )
+            return NULL;
+
+        assert( m_connection );
+
+        return m_connection->ReceiveMessage();
+    }
+
+    void Client::ReleaseMessage( Message * message )
+    {
+        assert( message );
+        assert( m_messageFactory );
+        m_messageFactory->Release( message );
+    }
+
+    MessageFactory & Client::GetMessageFactory()
+    {
+        assert( m_messageFactory );
+        return *m_messageFactory;
+    }
+
+    bool Client::IsConnecting() const
+    {
+        return m_clientState > CLIENT_STATE_DISCONNECTED && m_clientState < CLIENT_STATE_CONNECTED;
+    }
+
+    bool Client::IsConnected() const
+    {
+        return m_clientState == CLIENT_STATE_CONNECTED;
+    }
+
+    bool Client::IsDisconnected() const
+    {
+        return m_clientState <= CLIENT_STATE_DISCONNECTED;
+    }
+
+    bool Client::ConnectionFailed() const
+    {
+        return m_clientState < CLIENT_STATE_DISCONNECTED;
+    }
+
+    ClientState Client::GetClientState() const
+    { 
+        return m_clientState;
+    }
+
+    void Client::SendPackets()
+    {
+        const double time = GetTime();
+
+        switch ( m_clientState )
+        {
+#if YOJIMBO_INSECURE_CONNECT
+
+            case CLIENT_STATE_SENDING_INSECURE_CONNECT:
+            {
+                if ( m_lastPacketSendTime + InsecureConnectSendRate > time )
+                    return;
+
+                InsecureConnectPacket * packet = (InsecureConnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
+                if ( packet )
+                {
+                    packet->clientSalt = m_clientSalt;
+                    SendPacketToServer_Internal( packet );
+                }
+            }
+            break;
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
+            {
+                if ( m_lastPacketSendTime + ConnectionRequestSendRate > time )
+                    return;
+
+                ConnectionRequestPacket * packet = (ConnectionRequestPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
+                if ( packet )
+                {
+                    memcpy( packet->connectTokenData, m_connectTokenData, ConnectTokenBytes );
+                    memcpy( packet->connectTokenNonce, m_connectTokenNonce, NonceBytes );
+
+                    SendPacketToServer_Internal( packet );
+                }
+            }
+            break;
+
+            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:
+            {
+                if ( m_lastPacketSendTime + ConnectionResponseSendRate > time )
+                    return;
+
+                ConnectionResponsePacket * packet = (ConnectionResponsePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_RESPONSE );
+                if ( packet )
+                {
+                    memcpy( packet->challengeTokenData, m_challengeTokenData, ChallengeTokenBytes );
+                    memcpy( packet->challengeTokenNonce, m_challengeTokenNonce, NonceBytes );
+                    
+                    SendPacketToServer_Internal( packet );
+                }
+            }
+            break;
+
+            case CLIENT_STATE_CONNECTED:
+            {
+                if ( m_connection )
+                {
+                    ConnectionPacket * packet = m_connection->GeneratePacket();
+
+                    if ( packet )
+                    {
+                        SendPacketToServer( packet );
+                    }
+                }
+
+                if ( m_lastPacketSendTime + ConnectionHeartBeatRate <= time )
+                {
+                    ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+
+                    if ( packet )
+                    {
+                        SendPacketToServer( packet );
+                    }
+                }
+            }
+            break;
+
+            default:
+                break;
+        }
+    }
+
+    void Client::ReceivePackets()
+    {
+        while ( true )
+        {
+            Address address;
+            uint64_t sequence;
+            Packet * packet = m_transport->ReceivePacket( address, &sequence );
+            if ( !packet )
+                break;
+
+            ProcessPacket( packet, address, sequence );
+
+            m_transport->DestroyPacket( packet );
+        }
+    }
+
+    void Client::CheckForTimeOut()
+    {
+        const double time = GetTime();
+
+        switch ( m_clientState )
+        {
+#if YOJIMBO_INSECURE_CONNECT
+
+            case CLIENT_STATE_SENDING_INSECURE_CONNECT:
+            {
+                if ( m_lastPacketReceiveTime + InsecureConnectTimeOut < time )
+                {
+                    Disconnect( CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT, false );
+                    return;
+                }
+            }
+            break;
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
+            {
+                if ( m_lastPacketReceiveTime + ConnectionRequestTimeOut < time )
+                {
+                    Disconnect( CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT, false );
+                    return;
+                }
+            }
+            break;
+
+            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:
+            {
+                if ( m_lastPacketReceiveTime + ChallengeResponseTimeOut < time )
+                {
+                    Disconnect( CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT, false );
+                    return;
+                }
+            }
+            break;
+
+            case CLIENT_STATE_CONNECTED:
+            {
+                if ( m_lastPacketReceiveTime + ConnectionTimeOut < time )
+                {
+                    Disconnect( CLIENT_STATE_CONNECTION_TIMED_OUT, false );
+                    return;
+                }
+            }
+            break;
+
+            default:
+                break;
+        }
+    }
+
+    void Client::AdvanceTime( double time )
+    {
+        assert( time >= m_time );
+
+        m_time = time;
+
+        if ( m_connection )
+        {
+            if ( m_connection->GetError() )
+            {
+                Disconnect( CLIENT_STATE_CONNECTION_ERROR, true );
+                return;
+            }
+
+            m_connection->AdvanceTime( time );
+        }
+    }
+
+    double Client::GetTime() const
+    {
+        return m_time;
+    }
+
+    int Client::GetClientIndex() const
+    {
+        return m_clientIndex;
+    }
+
+    void Client::InitializeContext()
+    {
+        m_context.messageFactory = m_messageFactory;
+        m_context.connectionConfig = &m_connectionConfig;
+        m_transport->SetContext( &m_context );
+    }
+
+    void Client::SetEncryptedPacketTypes()
+    {
+        m_transport->EnablePacketEncryption();
+        m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
+    }
+
+    PacketFactory * Client::CreatePacketFactory()
+    {
+        return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
+    }
+
+    MessageFactory * Client::CreateMessageFactory()
+    {
+        assert( !"you need to override Client::CreateMessageFactory if you want to use messages" );
+        return NULL;
+    }
+
+    void Client::SetClientState( int clientState )
+    {
+        const int previous = m_clientState;
+        m_clientState = (ClientState) clientState;
+        if ( clientState != previous )
+            OnClientStateChange( previous, clientState );
+    }
+
+    void Client::ResetConnectionData( int clientState )
+    {
+        assert( m_transport );
+        m_clientIndex = -1;
+        m_serverAddress = Address();
+        SetClientState( clientState );
+        m_lastPacketSendTime = -1000.0;
+        m_lastPacketReceiveTime = -1000.0;
+        memset( m_connectTokenData, 0, ConnectTokenBytes );
+        memset( m_connectTokenNonce, 0, NonceBytes );
+        memset( m_challengeTokenData, 0, ChallengeTokenBytes );
+        memset( m_challengeTokenNonce, 0, NonceBytes );
+        m_transport->ResetEncryptionMappings();
+        m_sequence = 0;
+#if YOJIMBO_INSECURE_CONNECT
+        m_clientSalt = 0;
+#endif // #if YOJIMBO_INSECURE_CONNECT
+    }
+
+    void Client::SendPacketToServer( Packet * packet )
+    {
+        assert( packet );
+        assert( m_serverAddress.IsValid() );
+
+        if ( !IsConnected() )
+        {
+            m_transport->DestroyPacket( packet );
+            return;
+        }
+
+        SendPacketToServer_Internal( packet, false );
+    }
+
+    void Client::SendPacketToServer_Internal( Packet * packet, bool immediate )
+    {
+        assert( packet );
+        assert( m_clientState > CLIENT_STATE_DISCONNECTED );
+        assert( m_serverAddress.IsValid() );
+
+        m_transport->SendPacket( m_serverAddress, packet, ++m_sequence, immediate );
+
+        OnPacketSent( packet->GetType(), m_serverAddress, immediate );
+
+        m_lastPacketSendTime = GetTime();
+    }
+
+    void Client::ProcessConnectionDenied( const ConnectionDeniedPacket & /*packet*/, const Address & address )
+    {
+        if ( m_clientState != CLIENT_STATE_SENDING_CONNECTION_REQUEST )
+            return;
+
+        if ( address != m_serverAddress )
+            return;
+
+        SetClientState( CLIENT_STATE_CONNECTION_DENIED );
+    }
+
+    void Client::ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address )
+    {
+        if ( m_clientState != CLIENT_STATE_SENDING_CONNECTION_REQUEST )
+            return;
+
+        if ( address != m_serverAddress )
+            return;
+
+        memcpy( m_challengeTokenData, packet.challengeTokenData, ChallengeTokenBytes );
+        memcpy( m_challengeTokenNonce, packet.challengeTokenNonce, NonceBytes );
+
+        SetClientState( CLIENT_STATE_SENDING_CHALLENGE_RESPONSE );
+
+        const double time = GetTime();
+
+        m_lastPacketReceiveTime = time;
+    }
+
+    bool Client::IsPendingConnect()
+    {
+#if YOJIMBO_INSECURE_CONNECT
+        return m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE || m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT;
+#else // #if YOJIMBO_INSECURE_CONNECT
+        return m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE;
+#endif // #if YOJIMBO_INSECURE_CONNECT
+    }
+
+    void Client::CompletePendingConnect( int clientIndex )
+    {
+        if ( m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
+        {
+            m_clientIndex = clientIndex;
+
+            memset( m_connectTokenData, 0, ConnectTokenBytes );
+            memset( m_connectTokenNonce, 0, NonceBytes );
+            memset( m_challengeTokenData, 0, ChallengeTokenBytes );
+            memset( m_challengeTokenNonce, 0, NonceBytes );
+
+            SetClientState( CLIENT_STATE_CONNECTED );
+        }
+
+#if YOJIMBO_INSECURE_CONNECT
+
+        if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT )
+        {
+            m_clientIndex = clientIndex;
+
+            SetClientState( CLIENT_STATE_CONNECTED );
+        }
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+    }
+
+    void Client::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & packet, const Address & address )
+    {
+        if ( !IsPendingConnect() && !IsConnected() )
+            return;
+
+        if ( address != m_serverAddress )
+            return;
+
+        if ( IsPendingConnect() )
+            CompletePendingConnect( packet.clientIndex );
+
+        m_lastPacketReceiveTime = GetTime();
+    }
+
+    void Client::ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address )
+    {
+        if ( m_clientState != CLIENT_STATE_CONNECTED )
+            return;
+
+        if ( address != m_serverAddress )
+            return;
+
+        Disconnect( CLIENT_STATE_DISCONNECTED, false );
+    }
+
+    void Client::ProcessConnectionPacket( ConnectionPacket & packet, const Address & address )
+    {
+        if ( !IsConnected() )
+            return;
+
+        if ( address != m_serverAddress )
+            return;
+
+        if ( m_connection )
+            m_connection->ProcessPacket( &packet );
+
+        m_lastPacketReceiveTime = GetTime();
+    }
+
+    void Client::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
+    {
+        OnPacketReceived( packet->GetType(), address, sequence );
+        
+        switch ( packet->GetType() )
+        {
+            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:
+                ProcessConnectionDenied( *(ConnectionDeniedPacket*)packet, address );
+                return;
+
+            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:
+                ProcessConnectionChallenge( *(ConnectionChallengePacket*)packet, address );
+                return;
+
+            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:
+                ProcessConnectionHeartBeat( *(ConnectionHeartBeatPacket*)packet, address );
+                return;
+
+            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:
+                ProcessConnectionDisconnect( *(ConnectionDisconnectPacket*)packet, address );
+                return;
+
+            case CLIENT_SERVER_PACKET_CONNECTION:
+                ProcessConnectionPacket( *(ConnectionPacket*)packet, address );
+                return;
+
+            default:
+                break;
+        }
+
+        if ( !IsConnected() )
+            return;
+
+        if ( address != m_serverAddress )
+            return;
+
+        if ( !ProcessGamePacket( packet, sequence ) )
+            return;
+
+        m_lastPacketReceiveTime = GetTime();
+    }
+
+    // =============================================================
+
     void Server::Defaults()
     {
         memset( m_privateKey, 0, KeyBytes );
         m_allocator = NULL;
         m_transport = NULL;
         m_messageFactory = NULL;
+        m_allocateConnections = false;
         memset( m_connection, 0, sizeof( m_connection ) );
         m_time = 0.0;
         m_flags = 0;
@@ -406,23 +1046,23 @@ namespace yojimbo
         Defaults();
         m_allocator = &allocator;
         m_transport = &transport;
-        InitializeContext();
     }
 
-    Server::Server( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+    Server::Server( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig )
     {
         Defaults();
         m_allocator = &allocator;
         m_transport = &transport;
-        m_messageFactory = &messageFactory;
+        m_allocateConnections = true;
         m_connectionConfig = connectionConfig;
         m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
-        InitializeContext();
     }
 
     Server::~Server()
     {
         Stop();
+
+        YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
 
         assert( m_transport );
 
@@ -448,10 +1088,10 @@ namespace yojimbo
 
         m_maxClients = maxClients;
 
-        SetEncryptedPacketTypes();
-
-        if ( m_messageFactory )
+        if ( m_allocateConnections )
         {
+            m_messageFactory = CreateMessageFactory();
+
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
@@ -461,6 +1101,10 @@ namespace yojimbo
                 m_connection[i]->SetClientIndex( i );
             }
         }
+
+        SetEncryptedPacketTypes();
+
+        InitializeContext();
 
         OnStart( maxClients );
     }
@@ -525,6 +1169,13 @@ namespace yojimbo
         }
     }
 
+    Message * Server::CreateMessage( int clientIndex, int type )
+    {
+        (void)clientIndex;
+        assert( m_messageFactory );
+        return m_messageFactory->Create( type );
+    }
+
     bool Server::CanSendMessage( int clientIndex ) const
     {
         if ( !IsRunning() )
@@ -566,11 +1217,19 @@ namespace yojimbo
         return m_connection[clientIndex]->ReceiveMessage();
     }
 
-    void Server::ReleaseMessage( Message * message )
+    void Server::ReleaseMessage( int clientIndex, Message * message )
     {
+        (void)clientIndex;
         assert( message );
         assert( m_messageFactory );
         m_messageFactory->Release( message );
+    }
+
+    MessageFactory & Server::GetMessageFactory( int clientIndex )
+    {
+        (void)clientIndex;
+        assert( m_messageFactory );
+        return *m_messageFactory;
     }
 
     void Server::SendPackets()
@@ -791,7 +1450,8 @@ namespace yojimbo
 
     MessageFactory * Server::CreateMessageFactory()
     {
-        return YOJIMBO_NEW( *m_allocator, ClientServerMessageFactory, *m_allocator );
+        assert( !"you need to override Server::CreateMessageFactory if you want to use messages" );
+        return NULL;
     }
 
     void Server::ResetClientState( int clientIndex )
@@ -1329,632 +1989,5 @@ namespace yojimbo
         }
 
         return packet;
-    }
-
-    // =============================================================
-
-    const char * GetClientStateName( int clientState )
-    {
-        switch ( clientState )
-        {
-#if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT:       return "insecure connect timed out";
-#endif // #if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT:     return "connection request timed out";
-            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT:     return "challenge response timed out";
-            case CLIENT_STATE_CONNECTION_TIMED_OUT:             return "connection timed out";
-            case CLIENT_STATE_CONNECTION_ERROR:                 return "connection error";
-            case CLIENT_STATE_CONNECTION_DENIED:                return "connection denied";
-            case CLIENT_STATE_DISCONNECTED:                     return "disconnected";
-#if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_SENDING_INSECURE_CONNECT:         return "sending insecure connect";
-#endif // #if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:       return "sending connection request";
-            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:       return "sending challenge response";
-            case CLIENT_STATE_CONNECTED:                        return "connected";
-            default:
-                assert( false );
-                return "???";
-        }
-    }
-
-    void Client::Defaults()
-    {
-        m_allocator = NULL;
-        m_transport = NULL;
-        m_messageFactory = NULL;
-        m_connection = NULL;
-        m_time = 0.0;
-        m_clientState = CLIENT_STATE_DISCONNECTED;
-    }
-
-    Client::Client( Allocator & allocator, Transport & transport )
-    {
-        Defaults();
-
-        m_allocator = &allocator;
-
-        m_transport = &transport;
-
-        InitializeContext();
-
-        ResetConnectionData();
-    }
-
-    Client::Client( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
-    {
-        Defaults();
-
-        m_allocator = &allocator;
-
-        m_transport = &transport;
-
-        m_messageFactory = &messageFactory;
-
-        m_connectionConfig = connectionConfig;
-        m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
-
-        m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
-
-        m_connection->SetListener( this );
-
-        InitializeContext();
-
-        ResetConnectionData();
-    }
-
-    Client::~Client()
-    {
-        assert( m_allocator );
-
-        YOJIMBO_DELETE( *m_allocator, Connection, m_connection );
-
-        m_messageFactory = NULL;
-        m_transport = NULL;
-        m_allocator = NULL;
-    }
-
-#if YOJIMBO_INSECURE_CONNECT
-    void Client::InsecureConnect( const Address & address )
-    {
-        Disconnect();
-
-        m_serverAddress = address;
-
-        OnConnect( address );
-
-        SetClientState( CLIENT_STATE_SENDING_INSECURE_CONNECT );
-
-        const double time = GetTime();        
-
-        m_lastPacketSendTime = time - 1.0f;
-        m_lastPacketReceiveTime = time;
-
-        RandomBytes( (uint8_t*) &m_clientSalt, sizeof( m_clientSalt ) );
-
-        m_transport->ResetEncryptionMappings();
-    }
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-    void Client::Connect( const Address & address, 
-                          const uint8_t * connectTokenData, 
-                          const uint8_t * connectTokenNonce,
-                          const uint8_t * clientToServerKey,
-                          const uint8_t * serverToClientKey )
-    {
-        Disconnect();
-
-        SetEncryptedPacketTypes();
-
-        m_serverAddress = address;
-
-        OnConnect( address );
-
-        SetClientState( CLIENT_STATE_SENDING_CONNECTION_REQUEST );
-
-        const double time = GetTime();        
-
-        m_lastPacketSendTime = time - 1.0f;
-        m_lastPacketReceiveTime = time;
-        memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
-        memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
-
-        m_transport->ResetEncryptionMappings();
-
-        m_transport->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
-    }
-
-    void Client::Disconnect( int clientState, bool sendDisconnectPacket )
-    {
-        assert( clientState <= CLIENT_STATE_DISCONNECTED );
-
-        if ( m_clientState != clientState )
-        {
-            OnDisconnect();
-        }
-
-        if ( sendDisconnectPacket && m_clientState > CLIENT_STATE_DISCONNECTED )
-        {
-            for ( int i = 0; i < NumDisconnectPackets; ++i )
-            {
-                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );            
-
-                if ( packet )
-                {
-                    SendPacketToServer_Internal( packet, true );
-                }
-            }
-        }
-
-        ResetConnectionData( clientState );
-    }
-
-    bool Client::CanSendMessage()
-    {
-        if ( !IsConnected() )
-            return false;
-
-        assert( m_messageFactory );
-        assert( m_connection );
-        
-        return m_connection->CanSendMessage();
-    }
-
-    void Client::SendMessage( Message * message )
-    {
-        assert( IsConnected() );
-        assert( m_messageFactory );
-        assert( m_connection );
-        m_connection->SendMessage( message );
-    }
-
-    Message * Client::ReceiveMessage()
-    {
-        assert( m_messageFactory );
-
-        if ( !IsConnected() )
-            return NULL;
-
-        assert( m_connection );
-
-        return m_connection->ReceiveMessage();
-    }
-
-    void Client::ReleaseMessage( Message * message )
-    {
-        assert( message );
-        assert( m_messageFactory );
-        m_messageFactory->Release( message );
-    }
-
-    bool Client::IsConnecting() const
-    {
-        return m_clientState > CLIENT_STATE_DISCONNECTED && m_clientState < CLIENT_STATE_CONNECTED;
-    }
-
-    bool Client::IsConnected() const
-    {
-        return m_clientState == CLIENT_STATE_CONNECTED;
-    }
-
-    bool Client::IsDisconnected() const
-    {
-        return m_clientState <= CLIENT_STATE_DISCONNECTED;
-    }
-
-    bool Client::ConnectionFailed() const
-    {
-        return m_clientState < CLIENT_STATE_DISCONNECTED;
-    }
-
-    ClientState Client::GetClientState() const
-    { 
-        return m_clientState;
-    }
-
-    void Client::SendPackets()
-    {
-        const double time = GetTime();
-
-        switch ( m_clientState )
-        {
-#if YOJIMBO_INSECURE_CONNECT
-
-            case CLIENT_STATE_SENDING_INSECURE_CONNECT:
-            {
-                if ( m_lastPacketSendTime + InsecureConnectSendRate > time )
-                    return;
-
-                InsecureConnectPacket * packet = (InsecureConnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
-                if ( packet )
-                {
-                    packet->clientSalt = m_clientSalt;
-                    SendPacketToServer_Internal( packet );
-                }
-            }
-            break;
-
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
-            {
-                if ( m_lastPacketSendTime + ConnectionRequestSendRate > time )
-                    return;
-
-                ConnectionRequestPacket * packet = (ConnectionRequestPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
-                if ( packet )
-                {
-                    memcpy( packet->connectTokenData, m_connectTokenData, ConnectTokenBytes );
-                    memcpy( packet->connectTokenNonce, m_connectTokenNonce, NonceBytes );
-
-                    SendPacketToServer_Internal( packet );
-                }
-            }
-            break;
-
-            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:
-            {
-                if ( m_lastPacketSendTime + ConnectionResponseSendRate > time )
-                    return;
-
-                ConnectionResponsePacket * packet = (ConnectionResponsePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_RESPONSE );
-                if ( packet )
-                {
-                    memcpy( packet->challengeTokenData, m_challengeTokenData, ChallengeTokenBytes );
-                    memcpy( packet->challengeTokenNonce, m_challengeTokenNonce, NonceBytes );
-                    
-                    SendPacketToServer_Internal( packet );
-                }
-            }
-            break;
-
-            case CLIENT_STATE_CONNECTED:
-            {
-                if ( m_connection )
-                {
-                    ConnectionPacket * packet = m_connection->GeneratePacket();
-
-                    if ( packet )
-                    {
-                        SendPacketToServer( packet );
-                    }
-                }
-
-                if ( m_lastPacketSendTime + ConnectionHeartBeatRate <= time )
-                {
-                    ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
-
-                    if ( packet )
-                    {
-                        SendPacketToServer( packet );
-                    }
-                }
-            }
-            break;
-
-            default:
-                break;
-        }
-    }
-
-    void Client::ReceivePackets()
-    {
-        while ( true )
-        {
-            Address address;
-            uint64_t sequence;
-            Packet * packet = m_transport->ReceivePacket( address, &sequence );
-            if ( !packet )
-                break;
-
-            ProcessPacket( packet, address, sequence );
-
-            m_transport->DestroyPacket( packet );
-        }
-    }
-
-    void Client::CheckForTimeOut()
-    {
-        const double time = GetTime();
-
-        switch ( m_clientState )
-        {
-#if YOJIMBO_INSECURE_CONNECT
-
-            case CLIENT_STATE_SENDING_INSECURE_CONNECT:
-            {
-                if ( m_lastPacketReceiveTime + InsecureConnectTimeOut < time )
-                {
-                    Disconnect( CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT, false );
-                    return;
-                }
-            }
-            break;
-
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
-            {
-                if ( m_lastPacketReceiveTime + ConnectionRequestTimeOut < time )
-                {
-                    Disconnect( CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT, false );
-                    return;
-                }
-            }
-            break;
-
-            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:
-            {
-                if ( m_lastPacketReceiveTime + ChallengeResponseTimeOut < time )
-                {
-                    Disconnect( CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT, false );
-                    return;
-                }
-            }
-            break;
-
-            case CLIENT_STATE_CONNECTED:
-            {
-                if ( m_lastPacketReceiveTime + ConnectionTimeOut < time )
-                {
-                    Disconnect( CLIENT_STATE_CONNECTION_TIMED_OUT, false );
-                    return;
-                }
-            }
-            break;
-
-            default:
-                break;
-        }
-    }
-
-    void Client::AdvanceTime( double time )
-    {
-        assert( time >= m_time );
-
-        m_time = time;
-
-        if ( m_connection )
-        {
-            if ( m_connection->GetError() )
-            {
-                Disconnect( CLIENT_STATE_CONNECTION_ERROR, true );
-                return;
-            }
-
-            m_connection->AdvanceTime( time );
-        }
-    }
-
-    double Client::GetTime() const
-    {
-        return m_time;
-    }
-
-    int Client::GetClientIndex() const
-    {
-        return m_clientIndex;
-    }
-
-    void Client::InitializeContext()
-    {
-        m_context.messageFactory = m_messageFactory;
-        m_context.connectionConfig = &m_connectionConfig;
-        m_transport->SetContext( &m_context );
-    }
-
-    void Client::SetEncryptedPacketTypes()
-    {
-        m_transport->EnablePacketEncryption();
-        m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
-    }
-
-    PacketFactory * Client::CreatePacketFactory()
-    {
-        return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
-    }
-
-    MessageFactory * Client::CreateMessageFactory()
-    {
-        return YOJIMBO_NEW( *m_allocator, ClientServerMessageFactory, *m_allocator );
-    }
-
-    void Client::SetClientState( int clientState )
-    {
-        const int previous = m_clientState;
-        m_clientState = (ClientState) clientState;
-        if ( clientState != previous )
-            OnClientStateChange( previous, clientState );
-    }
-
-    void Client::ResetConnectionData( int clientState )
-    {
-        assert( m_transport );
-        m_clientIndex = -1;
-        m_serverAddress = Address();
-        SetClientState( clientState );
-        m_lastPacketSendTime = -1000.0;
-        m_lastPacketReceiveTime = -1000.0;
-        memset( m_connectTokenData, 0, ConnectTokenBytes );
-        memset( m_connectTokenNonce, 0, NonceBytes );
-        memset( m_challengeTokenData, 0, ChallengeTokenBytes );
-        memset( m_challengeTokenNonce, 0, NonceBytes );
-        m_transport->ResetEncryptionMappings();
-        m_sequence = 0;
-#if YOJIMBO_INSECURE_CONNECT
-        m_clientSalt = 0;
-#endif // #if YOJIMBO_INSECURE_CONNECT
-    }
-
-    void Client::SendPacketToServer( Packet * packet )
-    {
-        assert( packet );
-        assert( m_serverAddress.IsValid() );
-
-        if ( !IsConnected() )
-        {
-            m_transport->DestroyPacket( packet );
-            return;
-        }
-
-        SendPacketToServer_Internal( packet, false );
-    }
-
-    void Client::SendPacketToServer_Internal( Packet * packet, bool immediate )
-    {
-        assert( packet );
-        assert( m_clientState > CLIENT_STATE_DISCONNECTED );
-        assert( m_serverAddress.IsValid() );
-
-        m_transport->SendPacket( m_serverAddress, packet, ++m_sequence, immediate );
-
-        OnPacketSent( packet->GetType(), m_serverAddress, immediate );
-
-        m_lastPacketSendTime = GetTime();
-    }
-
-    void Client::ProcessConnectionDenied( const ConnectionDeniedPacket & /*packet*/, const Address & address )
-    {
-        if ( m_clientState != CLIENT_STATE_SENDING_CONNECTION_REQUEST )
-            return;
-
-        if ( address != m_serverAddress )
-            return;
-
-        SetClientState( CLIENT_STATE_CONNECTION_DENIED );
-    }
-
-    void Client::ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address )
-    {
-        if ( m_clientState != CLIENT_STATE_SENDING_CONNECTION_REQUEST )
-            return;
-
-        if ( address != m_serverAddress )
-            return;
-
-        memcpy( m_challengeTokenData, packet.challengeTokenData, ChallengeTokenBytes );
-        memcpy( m_challengeTokenNonce, packet.challengeTokenNonce, NonceBytes );
-
-        SetClientState( CLIENT_STATE_SENDING_CHALLENGE_RESPONSE );
-
-        const double time = GetTime();
-
-        m_lastPacketReceiveTime = time;
-    }
-
-    bool Client::IsPendingConnect()
-    {
-#if YOJIMBO_INSECURE_CONNECT
-        return m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE || m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT;
-#else // #if YOJIMBO_INSECURE_CONNECT
-        return m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE;
-#endif // #if YOJIMBO_INSECURE_CONNECT
-    }
-
-    void Client::CompletePendingConnect( int clientIndex )
-    {
-        if ( m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE )
-        {
-            m_clientIndex = clientIndex;
-
-            memset( m_connectTokenData, 0, ConnectTokenBytes );
-            memset( m_connectTokenNonce, 0, NonceBytes );
-            memset( m_challengeTokenData, 0, ChallengeTokenBytes );
-            memset( m_challengeTokenNonce, 0, NonceBytes );
-
-            SetClientState( CLIENT_STATE_CONNECTED );
-        }
-
-#if YOJIMBO_INSECURE_CONNECT
-
-        if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT )
-        {
-            m_clientIndex = clientIndex;
-
-            SetClientState( CLIENT_STATE_CONNECTED );
-        }
-
-#endif // #if YOJIMBO_INSECURE_CONNECT
-    }
-
-    void Client::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & packet, const Address & address )
-    {
-        if ( !IsPendingConnect() && !IsConnected() )
-            return;
-
-        if ( address != m_serverAddress )
-            return;
-
-        if ( IsPendingConnect() )
-            CompletePendingConnect( packet.clientIndex );
-
-        m_lastPacketReceiveTime = GetTime();
-    }
-
-    void Client::ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address )
-    {
-        if ( m_clientState != CLIENT_STATE_CONNECTED )
-            return;
-
-        if ( address != m_serverAddress )
-            return;
-
-        Disconnect( CLIENT_STATE_DISCONNECTED, false );
-    }
-
-    void Client::ProcessConnectionPacket( ConnectionPacket & packet, const Address & address )
-    {
-        if ( !IsConnected() )
-            return;
-
-        if ( address != m_serverAddress )
-            return;
-
-        if ( m_connection )
-            m_connection->ProcessPacket( &packet );
-
-        m_lastPacketReceiveTime = GetTime();
-    }
-
-    void Client::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
-    {
-        OnPacketReceived( packet->GetType(), address, sequence );
-        
-        switch ( packet->GetType() )
-        {
-            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:
-                ProcessConnectionDenied( *(ConnectionDeniedPacket*)packet, address );
-                return;
-
-            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:
-                ProcessConnectionChallenge( *(ConnectionChallengePacket*)packet, address );
-                return;
-
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:
-                ProcessConnectionHeartBeat( *(ConnectionHeartBeatPacket*)packet, address );
-                return;
-
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:
-                ProcessConnectionDisconnect( *(ConnectionDisconnectPacket*)packet, address );
-                return;
-
-            case CLIENT_SERVER_PACKET_CONNECTION:
-                ProcessConnectionPacket( *(ConnectionPacket*)packet, address );
-                return;
-
-            default:
-                break;
-        }
-
-        if ( !IsConnected() )
-            return;
-
-        if ( address != m_serverAddress )
-            return;
-
-        if ( !ProcessGamePacket( packet, sequence ) )
-            return;
-
-        m_lastPacketReceiveTime = GetTime();
     }
 }

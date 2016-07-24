@@ -44,6 +44,72 @@ const int ServerPort = 40000;
 
 static bool verbose_logging = false;
 
+inline int GetNumBitsForMessage( uint16_t sequence )
+{
+    static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
+    const int modulus = sizeof( messageBitsArray ) / sizeof( int );
+    const int index = sequence % modulus;
+    return messageBitsArray[index];
+}
+
+struct GameMessage : public Message
+{
+    uint16_t sequence;
+
+    GameMessage()
+    {
+        sequence = 0;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {        
+        serialize_bits( stream, sequence, 16 );
+
+        int numBits = GetNumBitsForMessage( sequence );
+        int numWords = numBits / 32;
+        uint32_t dummy = 0;
+        for ( int i = 0; i < numWords; ++i )
+            serialize_bits( stream, dummy, 32 );
+        int numRemainderBits = numBits - numWords * 32;
+        if ( numRemainderBits > 0 )
+            serialize_bits( stream, dummy, numRemainderBits );
+
+        return true;
+    }
+
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+struct GameBlockMessage : public BlockMessage
+{
+    uint16_t sequence;
+
+    GameBlockMessage()
+    {
+        sequence = 0;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {        
+        serialize_bits( stream, sequence, 16 );
+        return true;
+    }
+
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+enum MessageType
+{
+    GAME_MESSAGE,
+    GAME_BLOCK_MESSAGE,
+    NUM_MESSAGE_TYPES
+};
+
+YOJIMBO_MESSAGE_FACTORY_START( GameMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( GAME_MESSAGE, GameMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( GAME_BLOCK_MESSAGE, GameBlockMessage );
+YOJIMBO_MESSAGE_FACTORY_FINISH();
+
 #if SERVER
 
 static uint8_t private_key[KeyBytes] = { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea, 
@@ -98,10 +164,15 @@ public:
         SetPrivateKey( private_key );
     }
 
-    explicit GameServer( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() ) 
-        : Server( allocator, transport, messageFactory, connectionConfig )
+    explicit GameServer( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig ) 
+        : Server( allocator, transport, connectionConfig )
     {
         SetPrivateKey( private_key );
+    }
+
+    MessageFactory * CreateMessageFactory()
+    {
+        return YOJIMBO_NEW( GetDefaultAllocator(), GameMessageFactory, GetDefaultAllocator() );
     }
 
 protected:
@@ -200,8 +271,8 @@ public:
         // ...
     }
 
-    explicit GameClient( Allocator & allocator, Transport & transport, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() ) 
-        : Client( allocator, transport, messageFactory, connectionConfig )
+    explicit GameClient( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig ) 
+        : Client( allocator, transport, connectionConfig )
     {
         // ...
     }
@@ -209,6 +280,11 @@ public:
     ~GameClient()
     {
         // ...
+    }
+
+    MessageFactory * CreateMessageFactory()
+    {
+        return YOJIMBO_NEW( GetDefaultAllocator(), GameMessageFactory, GetDefaultAllocator() );
     }
 
 #ifndef QUIET
@@ -311,71 +387,5 @@ public:
         ClearReceiveQueue();
     }
 };
-
-inline int GetNumBitsForMessage( uint16_t sequence )
-{
-    static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
-    const int modulus = sizeof( messageBitsArray ) / sizeof( int );
-    const int index = sequence % modulus;
-    return messageBitsArray[index];
-}
-
-struct GameMessage : public Message
-{
-    uint16_t sequence;
-
-    GameMessage()
-    {
-        sequence = 0;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {        
-        serialize_bits( stream, sequence, 16 );
-
-        int numBits = GetNumBitsForMessage( sequence );
-        int numWords = numBits / 32;
-        uint32_t dummy = 0;
-        for ( int i = 0; i < numWords; ++i )
-            serialize_bits( stream, dummy, 32 );
-        int numRemainderBits = numBits - numWords * 32;
-        if ( numRemainderBits > 0 )
-            serialize_bits( stream, dummy, numRemainderBits );
-
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-struct GameBlockMessage : public BlockMessage
-{
-    uint16_t sequence;
-
-    GameBlockMessage()
-    {
-        sequence = 0;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {        
-        serialize_bits( stream, sequence, 16 );
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-enum MessageType
-{
-    GAME_MESSAGE,
-    GAME_BLOCK_MESSAGE,
-    NUM_MESSAGE_TYPES
-};
-
-YOJIMBO_MESSAGE_FACTORY_START( GameMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( GAME_MESSAGE, GameMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( GAME_BLOCK_MESSAGE, GameBlockMessage );
-YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 #endif // #ifndef SHARED_H

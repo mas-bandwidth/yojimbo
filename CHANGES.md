@@ -1,4 +1,154 @@
 
+Sunday July 24th, 2016
+======================
+
+Fix client so it creates the message factory lazily on first connect, and move virtual functions out of constructor.
+
+I'm starting to think the correct approach may be to specify per-client allocators. Here is the reasoning.
+
+It would be really nice to have an allocator during serialization so users of the library can allocate dynamic structures.
+
+It would be nice if on release of a message, this allocator was remembered or known (needs to be able to be looked up easily...)
+
+If I use the message factory allocator, then when client/server is setup without a connection (no messages) where does the allocator come from?
+
+It seems that if I want a consistent property that the stream has an allocator on it that can be accessed via "GetAllocator", then this 
+allocator should probably be specific to that client, but not tied to either the packet or messages.
+
+So there are three memory pools per-client, potentially to be managed:
+
+    1. Packet factory
+    2. Message factory
+    3. Stream allocator
+
+This is somewhat frustrating that there are three, but it follows because message factory is optional that it is necessary. :(
+
+It's best to provide the user with the ability to specify exactly how allocators occur, vs. 
+
+So I think we need a CreateStreamAllocator( int clientIndex ) or something similar, to create the allocator that is used.
+
+Then turning it around, it would be nice if message factory is smart enough to have a "Free" function on messages
+which is called with that allocator being passed in.
+
+This way messages would not need to store a pointer to the allocator.
+
+Some leaks in soak.cpp. Not sure why. Messages all appear to be getting released.
+
+Could be that these are the messages in the connection send/recv queues, and those connections are getting cleaned up after the message factories are cleaned up, triggering the leak detection.
+
+Yeah, that was it in ~Client.
+
+
+Saturday July 23rd, 2016
+========================
+
+One thing I don't like is that the packet factory and message factory are global for all clients.
+
+This means that a rogue client can DOS other clients by sending and allocating too many messages, packets.
+
+This is relevant to the packet fragmentation and reassembly as well, because now fragments if allocated out of the packet factory
+would provide another way to easily deny service to other clients the ability to allocate fragments.
+
+The solution I think is to have a global packet factory, one packet factory per-client, one message factory per-client.
+
+This way the only thing a client can do is hurt itself. If it fails to allocate a fragment, message or packet it is disconnected.
+
+I think this is a crucial design element for security moving forward. It is simply not safe until I do this.
+
+I think the correct way forward for this is to provide callbacks in Client/Server:
+
+    CreatePacketFactory
+    CreateMessageFactory
+
+And then have the base client/server code call in to these callbacks whenever a factory needs to be created.
+
+This is a necessity for the server at least, because the server can dynamically adjust the # of clients,
+and therefore dynamically adjust the # of packet factory and message factories that it needs.
+
+Therefore the callback is really the only way to go about this.
+
+It should also be a bit cleaner. Ideally, the only things that should be maintained separately from the client/server are the transports,
+because these need to be logically separate and eventually will be doing work off main thread this makes sense. To maintain and create message and packet factories is just a nuisance though. The server and client can create and own those just fine.
+
+Get started by moving the packet and message factories inside the client and server instances, created via callback.
+
+To do this, I already have good defaults for packet factories, but I need to create a default client server message factory too.
+
+I will use the default allocator for these factories, because I expect if anybody wants to customize yojimbo, they will simply
+override the creation of the factories and use their own allocator they want at the same time.
+
+Now keep just one packet factory and message factory per-client server (for the moment), but switch over to creating it
+via the new callbacks. Small steps.
+
+On the client, you'll only ever need one. The one with the server, so allocate/free it in ctor/dtor.
+
+On server, the global allocator should be created in ctor/dtor. Once we have allocators per-client, these should be allocated freed in start/stop.
+
+Hmmmm. actually, since this is a virtual I don't think you are supposed to call those from the constructor, the object is not fully formed yet (check)
+
+On client, create it on first use? eg. in connect?
+
+On server, create it on first call to start?
+
+Cleaning up in destructor is fine though.
+
+Yep. is bad. Don't do it. https://www.securecoding.cert.org/confluence/display/cplusplus/OOP50-CPP.+Do+not+invoke+virtual+functions+from+constructors+or+destructors
+
+OK. Time to get started coding it.
+
+Actually, seeing as how transport *needs* a packet factory set on it in creation, seems that global packet factory must still be created by user.
+
+This is annoying. Should there be a way to set the packet factory on a transport dynamically (eg. factory mapping), and if so, should we allow creating a transport initially without a packet factory on it?
+
+For the moment, get started converting across just the message factory, as this is what is needed to avoid message level DOS where one client exhausts memory pools and affects *other* clients.
+
+Keep thinking about how packet factories fit in with the transport. Probably just needs a "SetPacketFactory" on it, and the option to create one without specifying a factory initially.
+
+Removed message factory from client and server ctor.
+
+Made notes for some virtuals called from constructor and destructor in client/server classes. These need to be moved elsewhere.
+
+Need a flag now to indicate that connections should be created. Previously, the m_messageFactory was acting like that.
+
+Interesting. Now to create messages, you have to create them for specific clients.
+
+On send, look I don't really mind if there is a single factory for that... or should you ask for the factory for a particular client.
+
+Or just wrap it all up and add create message ( int clientIndex = -1 )
+
+This is spiralling out to be a big change :)
+
+First key things need to be done to get working again:
+
+1. Client needs to create the connection lazily in connect, if its still NULL, right after it creates the message factory (if m_createConnection is true)
+
+2. Message creation needs to be done via functions on client and server, and these functions need to know which factory they correspond to
+
+This is somewhat frustrating, for the server to release a message, it needs to have the clientIndex passed in.
+
+On the server, when a message is created, you must also specify which client index the message is for, so it gets the right factory.
+
+Otherwise the connection will attempt to free messages from other factories, which won't work.
+
+I think this is the correct approach though. You simply must not allow clients to DOS other clients with message spam.
+
+Clients *must* be limited to exhausting only their own pool of messages, and when exhausted, the connection should be put into an error state and disconnected.
+
+OK. So now we need create message and release message taking client id as next step.
+
+Extended server to do this.
+
+Client also needs functionality to create messages and release them, but without index this time (just one).
+
+Once this is done, can convert tests and example programs over to work this way and remove the external message factory.
+
+Really need a way to get message factory by client index from the outside. For example, you might want access to the allocator.
+
+Added.
+
+Finished converting test and other example programs to new internal client/server message factory.
+
+
 Wednesday July 20th, 2016
 =========================
 
