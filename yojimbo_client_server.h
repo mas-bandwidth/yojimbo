@@ -500,6 +500,8 @@ namespace yojimbo
 
         Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
 
+        Allocator * m_streamAllocator;                                      // stream allocator passed in to the packet serialize for in-place allocations.
+
         MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional.
 
         bool m_allocateConnection;                                          // true if we should allocate a connection.
@@ -729,6 +731,10 @@ namespace yojimbo
         ConnectionConfig m_connectionConfig;                                // connection configuration.
 
         Allocator * m_allocator;                                            // allocator used for creating connections per-client.
+
+        Allocator * m_globalStreamAllocator;                                // stream allocator for global packets. eg. packets not corresponding to an active client slot.
+
+        Allocator * m_clientStreamAllocator[MaxClients];                    // stream allocator for per-client packets. this allocator is used once a connection is established.
 
         Transport * m_transport;                                            // transport interface for sending and receiving packets.
 

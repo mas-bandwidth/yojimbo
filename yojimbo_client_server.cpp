@@ -410,6 +410,7 @@ namespace yojimbo
     void Client::Defaults()
     {
         m_allocator = NULL;
+        m_streamAllocator = NULL;
         m_transport = NULL;
         m_messageFactory = NULL;
         m_allocateConnection = false;
@@ -442,6 +443,8 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, Connection, m_connection );
 
         YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
+
+        YOJIMBO_DELETE( *m_allocator, Allocator, m_streamAllocator );
 
         m_messageFactory = NULL;
         m_transport = NULL;
@@ -478,6 +481,11 @@ namespace yojimbo
                           const uint8_t * clientToServerKey,
                           const uint8_t * serverToClientKey )
     {
+        if ( !m_streamAllocator )
+        {
+            m_streamAllocator = CreateStreamAllocator();
+        }
+
         if ( m_allocateConnection && !m_connection )
         {
             m_messageFactory = CreateMessageFactory();
@@ -1027,6 +1035,8 @@ namespace yojimbo
     {
         memset( m_privateKey, 0, KeyBytes );
         m_allocator = NULL;
+        m_globalStreamAllocator = NULL;
+        memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
         m_transport = NULL;
         m_messageFactory = NULL;
         m_allocateConnections = false;
@@ -1066,6 +1076,8 @@ namespace yojimbo
 
         YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
 
+        YOJIMBO_DELETE( *m_allocator, Allocator, m_globalStreamAllocator );
+
         assert( m_transport );
 
         m_transport = NULL;
@@ -1094,13 +1106,15 @@ namespace yojimbo
         {
             m_messageFactory = CreateMessageFactory( SERVER_RESOURCE_GLOBAL, -1 );
 
-            for ( int i = 0; i < m_maxClients; ++i )
+            for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
             {
-                m_connection[i] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
+                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
                
-                m_connection[i]->SetListener( this );
+                m_connection[clientIndex]->SetListener( this );
 
-                m_connection[i]->SetClientIndex( i );
+                m_connection[clientIndex]->SetClientIndex( clientIndex );
+
+                m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
             }
         }
 
@@ -1123,6 +1137,8 @@ namespace yojimbo
         for ( int i = 0; i < m_maxClients; ++i )
         {
             YOJIMBO_DELETE( *m_allocator, Connection, m_connection[i] );
+
+            YOJIMBO_DELETE( *m_allocator, Allocator, m_clientStreamAllocator[i] );
         }
 
         m_maxClients = -1;
