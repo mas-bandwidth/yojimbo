@@ -2,19 +2,13 @@ DONE
 
 TODO
 
-    Now actually allocate and free the stream allocators. One global allocator on the server, and n client allocators in stop start.
-
-    On the client, there is only a global allocator, so simplify down the callbacks there, they don't need client index and resource type.
-
-    ------------------
-
     Now hook up client/server stream allocators.
 
-    The stream allocator for clients should be per-client, eg. GetStreamAllocator( int clientIndex ), by default in should return GetDefaultAllocator()
-    
-    There should also be a stream allocator for global packets. eg. ones that aren't involved in client connections such as challenge/response.
+    This needs to be done at the transport layer. eg. SetGlobalStreamAllocator
 
-    For the moment the default allocator can be used, but in the future, I'd like to at least by default have some sort of reasonable limit, eg. no more than 1mb allocated per-client in the stream allocator, or the client gets disconnected.
+    Next, there needs to be way to bind a stream allocator to a particular address, and clear a stream allocator from that address.
+
+    This way I can bind and clear the per-client allocators on the transport too, as clients connect and disconnect on the server.
 
     ------------------
 

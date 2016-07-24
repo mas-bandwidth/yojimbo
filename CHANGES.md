@@ -80,6 +80,10 @@ Moved the default allocator to yojimbo_allocator.h so it can be created from ins
 
 Eventually, I would like to out of the box have a nice high quality allocator out of the box for client/server connections, eg. I want my stream allocator per-client to be X bytes maximum, and my message allocator to be a pool, with the following sizes and maximum # per-sizes and so on. I think this is important because I want yojimbo to basically be configured out of the box to be secure, and using a default malloc based alloc out of the box is not (unless it is limited to a maximum amount of allocated memory per-client, which is probably a good idea too as an interim step...)
 
+Now actually allocate and free the stream allocators. One global allocator on the server, and n client allocators in stop start.
+
+On the client, there is only a global allocator, so simplify down the callbacks there, they don't need client index and resource type.
+
 
 Saturday July 23rd, 2016
 ========================
