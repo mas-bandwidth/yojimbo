@@ -482,7 +482,7 @@ namespace yojimbo
         {
             // IMPORTANT: lazy create so virtuals aren't called in the constructor
 
-            m_messageFactory = CreateMessageFactory();
+            m_messageFactory = CreateMessageFactory( CLIENT_SERVER_RESOURCE_GLOBAL, -1 );
 
             m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
             m_connection->SetListener( this );
@@ -809,12 +809,17 @@ namespace yojimbo
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
-    PacketFactory * Client::CreatePacketFactory()
+    Allocator * Client::CreateStreamAllocator( ClientServerResourceType /*type*/, int /*clientIndex*/ )
+    {
+        return YOJIMBO_NEW( *m_allocator, DefaultAllocator );
+    }
+
+    PacketFactory * Client::CreatePacketFactory( ClientServerResourceType /*type*/, int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
     }
 
-    MessageFactory * Client::CreateMessageFactory()
+    MessageFactory * Client::CreateMessageFactory( ClientServerResourceType /*type*/, int /*clientIndex*/ )
     {
         assert( !"you need to override Client::CreateMessageFactory if you want to use messages" );
         return NULL;
@@ -1090,7 +1095,7 @@ namespace yojimbo
 
         if ( m_allocateConnections )
         {
-            m_messageFactory = CreateMessageFactory();
+            m_messageFactory = CreateMessageFactory( CLIENT_SERVER_RESOURCE_GLOBAL, -1 );
 
             for ( int i = 0; i < m_maxClients; ++i )
             {
@@ -1443,12 +1448,17 @@ namespace yojimbo
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
-    PacketFactory * Server::CreatePacketFactory()
+    Allocator * Server::CreateStreamAllocator( ClientServerResourceType /*type*/, int /*clientIndex*/ )
+    {
+        return YOJIMBO_NEW( *m_allocator, DefaultAllocator );
+    }
+
+    PacketFactory * Server::CreatePacketFactory( ClientServerResourceType /*type*/, int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
     }
 
-    MessageFactory * Server::CreateMessageFactory()
+    MessageFactory * Server::CreateMessageFactory( ClientServerResourceType /*type*/, int /*clientIndex*/ )
     {
         assert( !"you need to override Server::CreateMessageFactory if you want to use messages" );
         return NULL;

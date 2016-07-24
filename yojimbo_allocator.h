@@ -27,6 +27,9 @@
 
 #include <stdint.h>
 #include <new>
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+#include <map>
+#endif // YOJIMBO_DEBUG_MEMORY_LEAKS
 
 namespace yojimbo
 {
@@ -51,12 +54,26 @@ namespace yojimbo
 
     Allocator & GetDefaultAllocator();
 
-#if defined( _MSC_VER )
-    #define _ALLOW_KEYWORD_MACROS
-#endif // #if defined( _MSC_VER )
-    
     #define YOJIMBO_NEW( a, T, ... ) ( new ((a).Allocate(sizeof(T))) T(__VA_ARGS__) )
+
     #define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free(p); p = NULL; } } while (0)    
+
+    class DefaultAllocator : public Allocator
+    {
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        std::map<void*,uint32_t> m_alloc_map;
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+    public:
+
+        DefaultAllocator();
+
+        ~DefaultAllocator();
+
+        void * Allocate( uint32_t size );
+
+        void Free( void * p );
+    };
 }
 
 #endif

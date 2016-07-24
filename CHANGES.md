@@ -49,6 +49,37 @@ Add concept of an allocator per-stream.
 
 Unless specified, it is the default allocator. Done. Now you can always ask the stream for an allocator, and you will get one.
 
+Convert the complicated message and block allocation so it uses the stream allocator, instead of the message allocator.
+
+This should overall simplify the code, and make it possible to keep the message allocator more single purpose (messages),
+while the stream allocator handles more interesting dynamic allocations (blocks, variable size stuff etc.)
+
+Actually, it would be quite complicated to convert all the message channel allocations to stream allocator,
+because a lot of the times when the message channel is used it is outside of the stream.
+
+Bottom line is that when messages are serialized, the message allocator will always be there.
+
+The stream allocator is there for other situations, eg. when you are serializing packets that don't have the stream allocator,
+eg. packets that may need to exist without a message factory or connection being created.
+
+For now, it seems pragmatic to leave the message channel allocations using the message factory allocator. For the moment.
+
+Maybe later on it would make sense to switch over.
+
+But still, provide inside client/server the ability to create allocators globally, and pass these allocators in to the
+packet serialization stream. This is a good bit of functionality, giving the user the ability to perform allocations
+from a per-client pool, on a per-packet basis, and inside packet elements. Very useful.
+
+Added a client/server resource type: Global or Client.
+
+This lets me for allocators, packet factories, message factories, specify if they are being created globally, or for a specific client.
+
+Avoids having annoying functions like: "CreateGlobalStreamAllocator", and "CreateClientStreamAllocator" etc.
+
+Moved the default allocator to yojimbo_allocator.h so it can be created from inside CreateStreamAllocator fns in client/server.
+
+Eventually, I would like to out of the box have a nice high quality allocator out of the box for client/server connections, eg. I want my stream allocator per-client to be X bytes maximum, and my message allocator to be a pool, with the following sizes and maximum # per-sizes and so on. I think this is important because I want yojimbo to basically be configured out of the box to be secure, and using a default malloc based alloc out of the box is not (unless it is limited to a maximum amount of allocated memory per-client, which is probably a good idea too as an interim step...)
+
 
 Saturday July 23rd, 2016
 ========================

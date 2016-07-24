@@ -22,51 +22,52 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "yojimbo.h"
+#include "yojimbo_allocator.h"
 #include <assert.h>
-
-#ifdef _MSC_VER
-#define SODIUM_STATIC
-#endif // #ifdef _MSC_VER
-
-#include <sodium.h>
-
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-#include <map>
-#endif // YOJIMBO_DEBUG_MEMORY_LEAKS
-
-static yojimbo::Allocator * g_defaultAllocator = NULL;
 
 namespace yojimbo
 {
-    Allocator & GetDefaultAllocator()
+    DefaultAllocator::DefaultAllocator() 
     {
-        assert( g_defaultAllocator );
-        return *g_defaultAllocator;
+        // ...
     }
-}
 
-bool InitializeYojimbo()
-{
-    g_defaultAllocator = new yojimbo::DefaultAllocator();
+    DefaultAllocator::~DefaultAllocator()
+    {
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        if ( m_alloc_map.size() )
+        {
+            printf( "you leaked memory!\n" );
+            typedef std::map<void*,uint32_t>::iterator itor_type;
+            for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i ) 
+            {
+                void *p = i->first;
+                printf( "leaked block %p (%d bytes)\n", p, i->second );
+            }
+            exit(1);
+        }
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+    }
 
-    assert( yojimbo::NonceBytes == crypto_aead_chacha20poly1305_NPUBBYTES );
-    assert( yojimbo::KeyBytes == crypto_aead_chacha20poly1305_KEYBYTES );
-    assert( yojimbo::AuthBytes == crypto_aead_chacha20poly1305_ABYTES );
-    assert( yojimbo::KeyBytes == crypto_secretbox_KEYBYTES );
-    assert( yojimbo::MacBytes == crypto_secretbox_MACBYTES );
+    void * DefaultAllocator::Allocate( uint32_t size )
+    {
+        void * p = malloc( size );
+        if ( !p )
+            return NULL;
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        m_alloc_map[p] = size;
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+        return p;
+    }
 
-    if ( !yojimbo::InitializeNetwork() )
-        return false;
-
-    return sodium_init() != -1;
-}
-
-void ShutdownYojimbo()
-{
-    yojimbo::ShutdownNetwork();
-
-    assert( g_defaultAllocator );
-    delete g_defaultAllocator;
-    g_defaultAllocator = NULL;
+    void DefaultAllocator::Free( void * p ) 
+    {
+        if ( !p )
+            return;
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        assert( m_alloc_map.find( p ) != m_alloc_map.end() );
+        m_alloc_map.erase( p );
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+        free( p );
+    }
 }

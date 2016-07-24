@@ -27,6 +27,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_bitpack.h"
+#include "yojimbo_allocator.h"
 #ifdef DEBUG
 #include <stdio.h>
 #endif // #ifdef DEBUG
@@ -52,7 +53,7 @@ namespace yojimbo
         enum { IsReading = 0 };
 
         WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) 
-            : m_allocator( &allocator ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_context( NULL ), m_writer( buffer, bytes ) {}
+            : m_allocator( &allocator ), m_context( NULL ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_writer( buffer, bytes ) {}
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {
@@ -389,7 +390,7 @@ namespace yojimbo
             return m_error;
         }
 
-        Allocator * GetAllocator()
+        Allocator & GetAllocator()
         {
             return *m_allocator;
         }

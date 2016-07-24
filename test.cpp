@@ -1164,7 +1164,7 @@ public:
         Initialize();
     }
 
-    MessageFactory * CreateMessageFactory()
+    MessageFactory * CreateMessageFactory( ClientServerResourceType /*type*/, int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
     }
@@ -1310,7 +1310,7 @@ public:
         SendPacketToServer( packet );
     }
 
-    MessageFactory * CreateMessageFactory()
+    MessageFactory * CreateMessageFactory( ClientServerResourceType /*type*/, int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
     }
