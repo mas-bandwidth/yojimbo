@@ -1,8 +1,15 @@
 DONE    
 
+    Thought about unifying the encryption manager and the context manager.
+
+    But can't. The encryption manage has a different life time, it is active prior to establishing connection, 
+    eg. at the point of challenge response, while the context only gets set up when the connection is established.
+
+    Hence we don't actually need timeout in the context manager, like we do for encryption manager. Simpler.
+
 TODO
 
-    ------------------
+    Context manager 
 
     Create yojimbo_context.cpp copied and adapted from encryption manager source.
 
