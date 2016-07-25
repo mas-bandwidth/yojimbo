@@ -35,8 +35,6 @@ namespace yojimbo
     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of connections expected.
     const int MaxContextMappings = 1024;
 
-    const double DefaultContextMappingTimeout = 10;
-
     class Allocator;
     class MessageFactory;
 
@@ -44,6 +42,12 @@ namespace yojimbo
     {
         Allocator * streamAllocator;
         MessageFactory * messageFactory;
+
+        Context()
+        {
+            streamAllocator = NULL;
+            messageFactory = NULL;
+        }
     };
 
     class ContextManager
@@ -52,27 +56,20 @@ namespace yojimbo
 
         ContextManager();
 
-        bool AddContextMapping( const Address & address, Allocator & streamAllocator, MessageFactory * messageFactory, double time );
+        bool AddContextMapping( const Address & address, Allocator & streamAllocator, MessageFactory * messageFactory );
 
-        bool RemoveContextMapping( const Address & address, double time );
+        bool RemoveContextMapping( const Address & address );
 
         void ResetContextMappings();
 
-        bool GetContext( const Address & address );
-
-        void SetTimeout( double timeout )
-        {
-            m_contextMappingTimeout = timeout;
-        }
+        Context * GetContext( const Address & address );
 
     private:
 
         int m_numContextMappings;
-        double m_contextMappingTimeout;
-        double m_lastAccessTime[MaxContextMappings];
         Address m_address[MaxContextMappings];
-        Context * m_context[MaxContextMappings];
-      };
+        Context m_context[MaxContextMappings];
+    };
 }
 
 #endif // #ifndef YOJIMBO_CONTEXT_H
