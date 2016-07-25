@@ -4,26 +4,6 @@ TODO
 
     ------------------
 
-    Extend server to actually have one message factory per-client.
-
-    Work out how to get this message factory in to the serialization via context mapping.
-
-    I think at this point I really need to restructure to have one context per-client. Because context is how the message factory gets passed in.
-
-    Need a function to create the client contexts then. Same pattern: CreateBlah( ServerResourceType type, int clientIndex )
-
-    So there is a global context (with NULL message factory), and a per-client context with a valid message factory pointer (if that server is configured with a connection)
-
-    ------------------
-
-    Implement test_client_server_stream_allocator.
-
-    Need a packet and/or message type that tests dynamic allocations using the stream allocator for that particular client.
-
-    This is a feature so there needs to be a functional test that check the feature is actually working to find regressions.
-
-    ------------------
-
     Add a limit on the number of messages allocated per-client, and track that in the message factory.
 
     If too many messages are allocated, return NULL. This should disconnect that particular client.
@@ -40,6 +20,22 @@ TODO
     ------------------
 
     Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Use the ones in shared.h
+
+    ------------------
+
+    Add a test for client server sending messages with multiple clients.
+
+    This test ensures the context is working correctly, message factories are setup correctly etc.
+
+    Right now there is only a test that sends messages from between client 0 and server. This means I have to run profile.cpp to test that context manager is working correctly.
+
+    ------------------
+
+    Implement test_client_server_stream_allocator.
+
+    Need a packet and/or message type that tests dynamic allocations using the stream allocator for that particular client.
+
+    This is a feature so there needs to be a functional test that check the feature is actually working to find regressions.
 
     ------------------
 

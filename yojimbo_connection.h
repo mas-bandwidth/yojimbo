@@ -49,10 +49,20 @@ namespace yojimbo
         }
     };
 
+    const uint32_t ConnectionContextMagic = 0x11223344;
+
     struct ConnectionContext
     {
+        uint32_t magic;
         MessageFactory * messageFactory;
-        ConnectionConfig * connectionConfig;
+        const ConnectionConfig * connectionConfig;
+
+        ConnectionContext()
+        {
+            magic = ConnectionContextMagic;
+            messageFactory = NULL;
+            connectionConfig = NULL;
+        }
     };
 
     struct ConnectionPacket : public Packet

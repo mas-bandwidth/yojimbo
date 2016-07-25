@@ -1164,7 +1164,7 @@ public:
         Initialize();
     }
 
-    MessageFactory * CreateMessageFactory( ServerResourceType /*type*/, int /*clientIndex*/ )
+    MessageFactory * CreateMessageFactory( int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
     }

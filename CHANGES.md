@@ -23,6 +23,34 @@ Add code inside base transport to query context mapping by address before read/w
 
 Extend to one stream allocator per-client in server. Hook up to transport via context mapping. Done.
 
+Extend server to actually have one message factory per-client.
+
+All tests pass, because there is no test with multiple clients. Should probably add one of those.
+
+Work out how to get this message factory in to the serialization via context mapping.
+
+I think at this point I really need to restructure to have one context per-client. Because context is how the message factory gets passed in.
+
+Need a function to create the client contexts then. Same pattern: CreateBlah( ServerResourceType type, int clientIndex )
+
+So there is a global context (with NULL message factory), and a per-client context with a valid message factory pointer (if that server is configured with a connection)
+
+OK. This should be all setup. Now I just need to set the context on the packet processor prior to packet read/write.
+
+Yeah I think the context is just not pointing at valid data maybe. Add some sanity checks, eg. a magic value uint32_t at the start of the context?
+
+OK. It should be setup now, but I'm getting some errors with the message factory having a NULL allocator.
+
+I'm pretty sure this means the message factory is either pointing to bad data, or we are accessing a message factory after destructor...
+
+Added magic # to the connection context and assert on it in connection packet serialize before any querying of that context is done.
+
+Yes. It's a non-valid, but non-NULL connection context being passed in.
+
+FUCK. Stupid idiot. I was passing in the pointer to the context pointer.
+
+Everything seems to be working. Try profile.cpp to make sure it's OK. Yep. Looks OK.
+
 
 Sunday July 24th, 2016
 ======================
