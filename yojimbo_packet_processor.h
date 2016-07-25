@@ -51,10 +51,21 @@ namespace yojimbo
 
         void SetContext( void * context );
 
-        const uint8_t * WritePacket( Packet * packet, uint64_t sequence, int & packetBytes, bool encrypt = false, const uint8_t * key = NULL );
+        const uint8_t * WritePacket( Packet * packet, 
+                                     uint64_t sequence, 
+                                     int & packetBytes, 
+                                     bool encrypt,
+                                     const uint8_t * key,
+                                     Allocator & streamAllocator );
 
-        Packet * ReadPacket( const uint8_t * packetData,  uint64_t & sequence, int packetBytes, bool & encrypted,
-                             const uint8_t * key = NULL, const uint8_t * encryptedPacketTypes = NULL, const uint8_t * unencryptedPacketTypes = NULL );
+        Packet * ReadPacket( const uint8_t * packetData,  
+                             uint64_t & sequence, 
+                             int packetBytes, 
+                             bool & encrypted,
+                             const uint8_t * key, 
+                             const uint8_t * encryptedPacketTypes, 
+                             const uint8_t * unencryptedPacketTypes, 
+                             Allocator & streamAllocator );
 
         int GetMaxPacketSize() const { return m_maxPacketSize; }
 

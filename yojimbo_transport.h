@@ -83,6 +83,8 @@ namespace yojimbo
 
         virtual void SetContext( void * context ) = 0;
 
+        virtual void SetStreamAllocator( Allocator & allocator ) = 0;
+
         virtual void EnablePacketEncryption() = 0;
 
         virtual void DisableEncryptionForPacketType( int type ) = 0;
@@ -140,6 +142,8 @@ namespace yojimbo
 
         void SetContext( void * context );
 
+        void SetStreamAllocator( Allocator & allocator );
+
         void EnablePacketEncryption();
 
         void DisableEncryptionForPacketType( int type );
@@ -195,7 +199,11 @@ namespace yojimbo
         uint32_t m_protocolId;
 
         Allocator * m_allocator;
+
+        Allocator * m_streamAllocator;
+
         PacketFactory * m_packetFactory;
+
         PacketProcessor * m_packetProcessor;
 
         struct PacketEntry

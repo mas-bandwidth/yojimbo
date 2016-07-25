@@ -484,6 +484,7 @@ namespace yojimbo
         if ( !m_streamAllocator )
         {
             m_streamAllocator = CreateStreamAllocator();
+            m_transport->SetStreamAllocator( *m_streamAllocator );
         }
 
         if ( m_allocateConnection && !m_connection )
@@ -1035,7 +1036,7 @@ namespace yojimbo
     {
         memset( m_privateKey, 0, KeyBytes );
         m_allocator = NULL;
-        m_globalStreamAllocator = NULL;
+        m_streamAllocator = NULL;
         memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
         m_transport = NULL;
         m_messageFactory = NULL;
@@ -1076,7 +1077,7 @@ namespace yojimbo
 
         YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
 
-        YOJIMBO_DELETE( *m_allocator, Allocator, m_globalStreamAllocator );
+        YOJIMBO_DELETE( *m_allocator, Allocator, m_streamAllocator );
 
         assert( m_transport );
 

@@ -54,6 +54,8 @@ namespace yojimbo
 
         m_allocator = &allocator;
                 
+        m_streamAllocator = &GetDefaultAllocator();
+
         m_protocolId = protocolId;
 
         m_packetFactory = &packetFactory;
@@ -253,7 +255,7 @@ namespace yojimbo
         const bool encrypt = IsEncryptedPacketType( packetType );
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key );
+        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, *m_streamAllocator );
 
         if ( !packetData )
         {
@@ -340,7 +342,7 @@ namespace yojimbo
             }
 #endif // #if YOJIMBO_INSECURE_CONNECT
            
-            Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes );
+            Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *m_streamAllocator );
 
             if ( !packet )
             {
@@ -405,6 +407,11 @@ namespace yojimbo
     void BaseTransport::SetContext( void * context )
     {
         m_packetProcessor->SetContext( context );
+    }
+
+    void BaseTransport::SetStreamAllocator( Allocator & allocator )
+    {
+        m_streamAllocator = &allocator;
     }
 
     void BaseTransport::EnablePacketEncryption()

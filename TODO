@@ -4,39 +4,32 @@ TODO
 
     Now hook up client/server stream allocators.
 
-    This needs to be done at the transport layer. eg. SetGlobalStreamAllocator
+    This needs to be done at the transport layer. eg. SetStreamAllocator
+
+    Start with just one stream allocator and work it all the way through to the packet processor and packet serialize
+
+    ------------------
 
     Next, there needs to be way to bind a stream allocator to a particular address, and clear a stream allocator from that address.
 
     This way I can bind and clear the per-client allocators on the transport too, as clients connect and disconnect on the server.
 
+    Remember, that this needs to not just bind an address to an allocator, but also a message factory (optional).
+
+    ------------------
+
+    Add a limit on the number of messages allocated per-client, and track that in the message factory.
+
+    If too many messages are allocated, return NULL. This should disconnect that particular client.
+
+    ------------------
+
+    Add a limit on the # of bytes allocated in the stream allocator. If a stream allocation fails, it is the responsibility
+    of the serialize function to handle this and return false.
+
     ------------------
 
     Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Use the ones in shared.h
-
-    ------------------
-
-    Next I really have to work out how I will direct specific addresses to use packet and factory allocator pairs.
-
-    I'm guessing it will look similar to how the encryption mapping sets up per-address private key pairs.
-
-    Basically, oh hey, does this address have a mapping? OK, use these factories. otherwise, use the global factories.
-
-    Maybe call it a context mapping? Because as you serialize packets, you need to know the packet factory, allocator, message factory...
-
-    So really, it needs to also be a context per-packet.
-
-    In fact, it might just be nicer to set the message factory on the stream as it serializes, set the allocator on the stream...
-
-    Because really, I don't want to have multiple contexts. I'd rather leave the context for the actual config, which is global for each client.
-
-    The per-client stuff, should just get set on the stream as it serializes, while having the same context.
-
-    So don't call it a context mapping. That would be confusing.
-
-    But would it be beneficial to the *user* of the libary to have separate contexts per-connected client on the server?
-
-    Possibly. But I think at the low-protocol level this is overengineering. They could build this up themselves for example by sending down per-client data inside messages on connect.
 
     ------------------
 
