@@ -1110,7 +1110,10 @@ namespace yojimbo
             m_transport->SetStreamAllocator( *m_globalStreamAllocator );
         }
 
-        // todo: create client stream allocators
+        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
+        {
+            m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
+        }
 
         if ( m_allocateConnections )
         {
@@ -1123,8 +1126,6 @@ namespace yojimbo
                 m_connection[clientIndex]->SetListener( this );
 
                 m_connection[clientIndex]->SetClientIndex( clientIndex );
-
-                m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
             }
         }
 
@@ -1148,14 +1149,12 @@ namespace yojimbo
 
         m_transport->ResetEncryptionMappings();
 
-        for ( int i = 0; i < m_maxClients; ++i )
+        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
-            YOJIMBO_DELETE( *m_allocator, Connection, m_connection[i] );
+            YOJIMBO_DELETE( *m_allocator, Connection, m_connection[clientIndex] );
 
-            YOJIMBO_DELETE( *m_allocator, Allocator, m_clientStreamAllocator[i] );
+            YOJIMBO_DELETE( *m_allocator, Allocator, m_clientStreamAllocator[clientIndex] );
         }
-
-        // todo: shut down client stream allocators
 
         m_maxClients = -1;
     }
@@ -1625,8 +1624,8 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketReceiveTime = time;
         m_clientData[clientIndex].fullyConnected = false;
 
-        // todo: when I convert to one message factory per-client below, I need to change this line
-        m_transport->AddContextMapping( clientAddress, *m_globalStreamAllocator, m_messageFactory );//*m_clientStreamAllocator[clientIndex], m_messageFactory );
+        // todo: need to convert NULL to pointer to context data for this client
+        m_transport->AddContextMapping( clientAddress, *m_clientStreamAllocator[clientIndex], NULL );
 
         OnClientConnect( clientIndex );
 

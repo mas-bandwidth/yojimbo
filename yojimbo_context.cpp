@@ -31,14 +31,14 @@ namespace yojimbo
         ResetContextMappings();
     }
 
-    bool ContextManager::AddContextMapping( const Address & address, Allocator & streamAllocator, MessageFactory * messageFactory )
+    bool ContextManager::AddContextMapping( const Address & address, Allocator & streamAllocator, void * contextData )
     {
         for ( int i = 0; i < m_numContextMappings; ++i )
         {
             if ( m_address[i] == address )
             {
                 m_context[i].streamAllocator = &streamAllocator;
-                m_context[i].messageFactory = messageFactory;
+                m_context[i].contextData = contextData;
                 return true;
             }
         }
@@ -49,7 +49,7 @@ namespace yojimbo
             {
                 m_address[i] = address;
                 m_context[i].streamAllocator = &streamAllocator;
-                m_context[i].messageFactory = messageFactory;
+                m_context[i].contextData = contextData;
                 if ( i + 1 > m_numContextMappings )
                     m_numContextMappings = i + 1;
                 return true;
