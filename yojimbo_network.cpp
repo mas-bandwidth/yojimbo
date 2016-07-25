@@ -178,17 +178,17 @@ namespace yojimbo
 
                 pUnicast = pCurrAddresses->FirstUnicastAddress;
                 if ( pUnicast == NULL )
-					continue;
+                    continue;
 
                 for ( ; pUnicast != NULL; pUnicast = pUnicast->Next )
                 {
-					if ( numAddresses >= maxAddresses )
-						break;
+                    if ( numAddresses >= maxAddresses )
+                        break;
 
                     Address address( (sockaddr_storage*) pUnicast->Address.lpSockaddr );
 
-					if ( !FilterAddress( address, filter ) )
-						continue;
+                    if ( !FilterAddress( address, filter ) )
+                        continue;
 
                     addresses[numAddresses++] = address;
                 }
