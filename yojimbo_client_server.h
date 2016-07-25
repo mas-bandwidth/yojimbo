@@ -732,7 +732,7 @@ namespace yojimbo
 
         Allocator * m_allocator;                                            // allocator used for creating connections per-client.
 
-        Allocator * m_streamAllocator;                                      // stream allocator for global packets. eg. packets not corresponding to an active client slot.
+        Allocator * m_globalStreamAllocator;                                // stream allocator for global packets. eg. packets not corresponding to an active client slot.
 
         Allocator * m_clientStreamAllocator[MaxClients];                    // stream allocator for per-client packets. this allocator is used once a connection is established.
 
