@@ -450,6 +450,27 @@ namespace yojimbo
         m_encryptionManager.ResetEncryptionMappings();
     }
 
+    bool BaseTransport::AddContextMapping( const Address & address, Allocator & streamAllocator, MessageFactory * messageFactory )
+    {
+        (void)address;
+        (void)streamAllocator;
+        (void)messageFactory;
+        // todo
+        return true;
+    }
+
+    bool BaseTransport::RemoveContextMapping( const Address & address )
+    {
+        (void)address;
+        // todo
+        return true;
+    }
+
+    void BaseTransport::ResetContextMappings()
+    {
+        // todo
+    }
+
     void BaseTransport::AdvanceTime( double time )
     {
         assert( time >= m_time );

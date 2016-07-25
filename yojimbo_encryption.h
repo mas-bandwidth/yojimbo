@@ -61,6 +61,9 @@ namespace yojimbo
                               const uint8_t * nonce,
                               const uint8_t * key );
 
+    // todo: this is what was limiting to max 1024 clients
+    // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.
+    // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.
     const int MaxEncryptionMappings = 1024;
 
     const double DefaultEncryptionMappingTimeout = 10;
