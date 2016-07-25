@@ -1,30 +1,16 @@
 DONE    
 
-    Now hook up client/server stream allocators.
-
-    This needs to be done at the transport layer. eg. SetStreamAllocator
-
-    Start with just one stream allocator and work it all the way through to the packet processor and packet serialize
-
 TODO
 
     ------------------
 
-    Next, there needs to be way to bind a stream allocator to a particular address, and clear a stream allocator from that address.
+    Create yojimbo_context.cpp copied and adapted from encryption manager source.
 
-    This way I can bind and clear the per-client allocators on the transport too, as clients connect and disconnect on the server.
+    Hook up in base transport.
 
-    Remember, that this needs to not just bind an address to an allocator, but also a message factory (optional), and eventually, also a packet factory.
+    Add code inside client/server to add/remove/clear context mappings.
 
-    ------------------
-
-    I almost feel an opportunity not calling this concept "context", and binding an address to a particular context.
-
-    This *seems* like the correct name, it fits the concept. eg. a global context, and a context per-client potentially.
-
-    It's just frustrating in that contexts need to be created dynamically too on stop/start now.
-
-    But then we can just bind a context pointer to an address and be done with it.
+    Add code inside base transport to query context mapping by address before read/write, and override the allocator and message factory if found.
 
     ------------------
 
@@ -32,10 +18,14 @@ TODO
 
     If too many messages are allocated, return NULL. This should disconnect that particular client.
 
+    Perhaps the message factory should detect, NULL message, and set an error flag that can be checked later -> disconnect.
+
     ------------------
 
     Add a limit on the # of bytes allocated in the stream allocator. If a stream allocation fails, it is the responsibility
     of the serialize function to handle this and return false.
+
+    Check the stream allocator per-client each advance time, if it is in an error state, disconnect that client.
 
     ------------------
 
@@ -51,26 +41,6 @@ TODO
 
     ------------------
 
-    It would be nice if the message factory and packet factory both had their own allocators, and passed the allocators into a virtual 
-    free function before destroying the message / packet factories.
-
-    This would make it possible to dynamically allocate aspects of packets/mesages without needing some bullshit context
-    just to get the allocator.
-
-    Similarly, it would be really nice if the allocator for messages and packets was accessible via the stream as it worked.
-
-    There is no reason this can't be done... stick allocators on the stream, the stream is passed into all serialize functions.
-
-    ------------------
-
     v0.3.0 final release (!!!) YEY! :D
-
-    ------------------
-
-    Large block compression
-
-    ------------------
-
-    Packet aggregation
 
     ------------------

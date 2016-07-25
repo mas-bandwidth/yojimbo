@@ -84,6 +84,32 @@ Now actually allocate and free the stream allocators. One global allocator on th
 
 On the client, there is only a global allocator, so simplify down the callbacks there, they don't need client index and resource type.
 
+Now hook up client/server stream allocators.
+
+This needs to be done at the transport layer. eg. SetStreamAllocator
+
+Start with just one stream allocator and work it all the way through to the packet processor and packet serialize
+
+Next, there needs to be way to bind a stream allocator, packet factory, and message factory to a particular address.
+
+This way I can bind and clear the per-client allocators on the transport too, as clients connect and disconnect on the server.
+
+Remember, that this needs to not just bind an address to an allocator, but also a message factory (optional), and eventually, also a packet factory.
+
+Probably something internally based on how encryption mapping works. Keep it at the transport layer.
+
+Start with the interface on the transport, and then work inside to implementation.
+
+Settled on calling it a "context mapping". This is a good concept I think. The context in which packets to and from an address will be serialized. Later on, I can override the context void* as well, and stick it in here, then have per-client context data if desired. Clean.
+
+So I think I now make a copy of the encryption manager and call it "context manager".
+
+Done in header: yojimbo_context.h
+
+Added interface for add/remove/clear context mappings in transport interface, sketched out functions need to be implemented in base transport.
+
+Added some todos with stuff that is currently hardcoded, eg. MaxEncryptionMappings. It would be much better as a function of max simulaneous connections expected. This is why I could not get const int MaxClients working above 1024. If it was calculated as a function of max clients (passed to transport on create), it would have adjusted dynamically.
+
 
 Saturday July 23rd, 2016
 ========================

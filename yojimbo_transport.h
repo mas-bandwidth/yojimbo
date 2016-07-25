@@ -30,6 +30,7 @@
 #include "yojimbo_common.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_network.h"
+#include "yojimbo_context.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
@@ -97,6 +98,12 @@ namespace yojimbo
 
         virtual void ResetEncryptionMappings() = 0;
 
+        virtual bool AddContextMapping( const Address & address, Allocator & streamAllocator, MessageFactory * messageFactory ) = 0;
+
+        virtual bool RemoveContextMapping( const Address & address ) = 0;
+
+        virtual void ResetContextMappings() = 0;
+
         virtual void AdvanceTime( double time ) = 0;
 
         virtual double GetTime() const = 0;
@@ -155,6 +162,12 @@ namespace yojimbo
         bool RemoveEncryptionMapping( const Address & address );
 
         void ResetEncryptionMappings();
+
+        bool AddContextMapping( const Address & address, Allocator & streamAllocator, MessageFactory * messageFactory );
+
+        bool RemoveContextMapping( const Address & address );
+
+        void ResetContextMappings();
 
         void AdvanceTime( double time );
 
