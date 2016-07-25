@@ -44,7 +44,7 @@ namespace yojimbo
 
         const int numPacketTypes = info.packetFactory->GetNumPacketTypes();
 
-        WriteStream stream( buffer, bufferSize );
+        WriteStream stream( buffer, bufferSize, *info.streamAllocator );
 
         stream.SetContext( info.context );
 
@@ -106,7 +106,7 @@ namespace yojimbo
         if ( errorCode )
             *errorCode = YOJIMBO_PROTOCOL_ERROR_NONE;
 
-        ReadStream stream( buffer, bufferSize );
+        ReadStream stream( buffer, bufferSize, *info.streamAllocator );
 
         stream.SetContext( info.context );
 
@@ -164,7 +164,7 @@ namespace yojimbo
             }
         }
 
-        Packet *packet = info.packetFactory->CreatePacket( packetType );
+        Packet * packet = info.packetFactory->CreatePacket( packetType );
         if ( !packet )
         {
             debug_printf( "create packet type %d failed (read packet)\n", packetType );

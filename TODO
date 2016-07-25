@@ -1,12 +1,12 @@
 DONE    
 
-TODO
-
     Now hook up client/server stream allocators.
 
     This needs to be done at the transport layer. eg. SetStreamAllocator
 
     Start with just one stream allocator and work it all the way through to the packet processor and packet serialize
+
+TODO
 
     ------------------
 
@@ -14,7 +14,17 @@ TODO
 
     This way I can bind and clear the per-client allocators on the transport too, as clients connect and disconnect on the server.
 
-    Remember, that this needs to not just bind an address to an allocator, but also a message factory (optional).
+    Remember, that this needs to not just bind an address to an allocator, but also a message factory (optional), and eventually, also a packet factory.
+
+    ------------------
+
+    I almost feel an opportunity not calling this concept "context", and binding an address to a particular context.
+
+    This *seems* like the correct name, it fits the concept. eg. a global context, and a context per-client potentially.
+
+    It's just frustrating in that contexts need to be created dynamically too on stop/start now.
+
+    But then we can just bind a context pointer to an address and be done with it.
 
     ------------------
 
