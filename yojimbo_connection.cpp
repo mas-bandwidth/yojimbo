@@ -72,8 +72,10 @@ namespace yojimbo
         ConnectionContext * context = (ConnectionContext*) stream.GetContext();
 
         assert( context );
+        assert( context->magic == ConnectionContextMagic );
         assert( context->messageFactory );
-        
+        assert( context->connectionConfig );
+
         // ack system
 
         bool perfect_acks = Stream::IsWriting ? ( ack_bits == 0xFFFFFFFF ) : 0;

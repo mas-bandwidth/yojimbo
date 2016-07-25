@@ -261,6 +261,8 @@ namespace yojimbo
 
         assert( streamAllocator );
 
+        m_packetProcessor->SetContext( context ? context->contextData : m_context );
+
         const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, *streamAllocator );
 
         if ( !packetData )
@@ -354,6 +356,8 @@ namespace yojimbo
             }
 #endif // #if YOJIMBO_INSECURE_CONNECT
            
+            m_packetProcessor->SetContext( context ? context->contextData : m_context );
+
             Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator );
 
             if ( !packet )
@@ -418,7 +422,7 @@ namespace yojimbo
 
     void BaseTransport::SetContext( void * context )
     {
-        m_packetProcessor->SetContext( context );
+        m_context = context;
     }
 
     void BaseTransport::SetStreamAllocator( Allocator & allocator )
@@ -462,9 +466,9 @@ namespace yojimbo
         m_encryptionManager.ResetEncryptionMappings();
     }
 
-    bool BaseTransport::AddContextMapping( const Address & address, Allocator & streamAllocator, MessageFactory * messageFactory )
+    bool BaseTransport::AddContextMapping( const Address & address, Allocator & streamAllocator, void * contextData )
     {
-        return m_contextManager.AddContextMapping( address, streamAllocator, messageFactory );
+        return m_contextManager.AddContextMapping( address, streamAllocator, contextData );
     }
 
     bool BaseTransport::RemoveContextMapping( const Address & address )

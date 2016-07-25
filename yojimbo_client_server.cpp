@@ -1034,24 +1034,26 @@ namespace yojimbo
 
     void Server::Defaults()
     {
-        memset( m_privateKey, 0, KeyBytes );
         m_allocator = NULL;
         m_globalStreamAllocator = NULL;
-        memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
         m_transport = NULL;
-        m_messageFactory = NULL;
         m_allocateConnections = false;
-        memset( m_connection, 0, sizeof( m_connection ) );
         m_time = 0.0;
         m_flags = 0;
         m_maxClients = -1;
         m_numConnectedClients = 0;
         m_challengeTokenNonce = 0;
         m_globalSequence = 0;
+        m_globalContext = NULL;
+        memset( m_privateKey, 0, KeyBytes );
+        memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
+        memset( m_clientContext, 0, sizeof( m_clientContext ) );
+        memset( m_messageFactory, 0, sizeof( m_messageFactory ) );
+        memset( m_connection, 0, sizeof( m_connection ) );
         memset( m_clientSequence, 0, sizeof( m_clientSequence ) );
+        memset( m_counters, 0, sizeof( m_counters ) );
         for ( int i = 0; i < MaxClients; ++i )
             ResetClientState( i );
-        memset( m_counters, 0, sizeof( m_counters ) );
     }
 
     Server::Server( Allocator & allocator, Transport & transport )
@@ -1074,8 +1076,6 @@ namespace yojimbo
     Server::~Server()
     {
         Stop();
-
-        YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
 
         YOJIMBO_DELETE( *m_allocator, Allocator, m_globalStreamAllocator );
 
@@ -1117,21 +1117,25 @@ namespace yojimbo
 
         if ( m_allocateConnections )
         {
-            m_messageFactory = CreateMessageFactory( SERVER_RESOURCE_GLOBAL, -1 );
-
             for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
             {
-                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
+                m_messageFactory[clientIndex] = CreateMessageFactory( clientIndex );
+
+                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory[clientIndex], m_connectionConfig );
                
                 m_connection[clientIndex]->SetListener( this );
 
                 m_connection[clientIndex]->SetClientIndex( clientIndex );
+
+                m_clientContext[clientIndex] = CreateContext( SERVER_RESOURCE_PER_CLIENT, clientIndex );
+
+                assert( m_clientContext[clientIndex]->magic == ConnectionContextMagic );
             }
         }
 
         SetEncryptedPacketTypes();
 
-        InitializeContext();
+        InitializeGlobalContext();
 
         OnStart( maxClients );
     }
@@ -1151,7 +1155,11 @@ namespace yojimbo
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
+            YOJIMBO_DELETE( *m_allocator, ClientServerContext, m_clientContext[clientIndex] );
+
             YOJIMBO_DELETE( *m_allocator, Connection, m_connection[clientIndex] );
+
+            YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory[clientIndex] );
 
             YOJIMBO_DELETE( *m_allocator, Allocator, m_clientStreamAllocator[clientIndex] );
         }
@@ -1206,13 +1214,17 @@ namespace yojimbo
 
     Message * Server::CreateMessage( int clientIndex, int type )
     {
-        (void)clientIndex;
-        assert( m_messageFactory );
-        return m_messageFactory->Create( type );
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_messageFactory[clientIndex] );
+        return m_messageFactory[clientIndex]->Create( type );
     }
 
     bool Server::CanSendMessage( int clientIndex ) const
     {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+
         if ( !IsRunning() )
             return false;
 
@@ -1227,11 +1239,13 @@ namespace yojimbo
 
     void Server::SendMessage( int clientIndex, Message * message )
     {
-        assert( m_messageFactory );
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_messageFactory[clientIndex] );
 
         if ( !m_clientConnected[clientIndex] )
         {
-            m_messageFactory->Release( message );
+            m_messageFactory[clientIndex]->Release( message );
             return;
         }
 
@@ -1254,17 +1268,19 @@ namespace yojimbo
 
     void Server::ReleaseMessage( int clientIndex, Message * message )
     {
-        (void)clientIndex;
         assert( message );
-        assert( m_messageFactory );
-        m_messageFactory->Release( message );
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_messageFactory[clientIndex] );
+        m_messageFactory[clientIndex]->Release( message );
     }
 
     MessageFactory & Server::GetMessageFactory( int clientIndex )
     {
-        (void)clientIndex;
-        assert( m_messageFactory );
-        return *m_messageFactory;
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_messageFactory[clientIndex] );
+        return *m_messageFactory[clientIndex];
     }
 
     void Server::SendPackets()
@@ -1367,13 +1383,11 @@ namespace yojimbo
 
         m_time = time;
 
-        if ( m_messageFactory )
+        for ( int i = 0; i < m_maxClients; ++i )
         {
-            for ( int i = 0; i < m_maxClients; ++i )
+            if ( IsClientConnected( i ) )
             {
-                assert( m_connection[i] );
-
-                if ( IsClientConnected( i ) )
+                if ( m_connection[i] )
                 {
                     m_connection[i]->AdvanceTime( time );
 
@@ -1465,11 +1479,11 @@ namespace yojimbo
         return m_flags;
     }
 
-    void Server::InitializeContext()
+    void Server::InitializeGlobalContext()
     {
-        m_context.messageFactory = m_messageFactory;
-        m_context.connectionConfig = &m_connectionConfig;
-        m_transport->SetContext( &m_context );
+        m_globalContext = CreateContext( SERVER_RESOURCE_GLOBAL, -1 );
+        assert( m_globalContext->magic == ConnectionContextMagic );
+        m_transport->SetContext( m_globalContext );
     }
 
     void Server::SetEncryptedPacketTypes()
@@ -1488,10 +1502,29 @@ namespace yojimbo
         return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
     }
 
-    MessageFactory * Server::CreateMessageFactory( ServerResourceType /*type*/, int /*clientIndex*/ )
+    MessageFactory * Server::CreateMessageFactory( int /*clientIndex*/ )
     {
         assert( !"you need to override Server::CreateMessageFactory if you want to use messages" );
         return NULL;
+    }
+
+    ClientServerContext * Server::CreateContext( ServerResourceType type, int clientIndex )
+    {
+        ClientServerContext * context = YOJIMBO_NEW( *m_allocator, ClientServerContext );
+        
+        assert( context );
+        assert( context->magic == ConnectionContextMagic );
+
+        context->connectionConfig = &GetConnectionConfig();
+        
+        if ( type == SERVER_RESOURCE_PER_CLIENT )
+        {
+            assert( clientIndex >= 0 );
+            assert( clientIndex < m_maxClients );
+            context->messageFactory = &GetMessageFactory( clientIndex );
+        }
+        
+        return context;
     }
 
     void Server::ResetClientState( int clientIndex )
@@ -1624,8 +1657,7 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketReceiveTime = time;
         m_clientData[clientIndex].fullyConnected = false;
 
-        // todo: need to convert NULL to pointer to context data for this client
-        m_transport->AddContextMapping( clientAddress, *m_clientStreamAllocator[clientIndex], NULL );
+        m_transport->AddContextMapping( clientAddress, *m_clientStreamAllocator[clientIndex], m_clientContext[clientIndex] );
 
         OnClientConnect( clientIndex );
 

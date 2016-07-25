@@ -644,6 +644,8 @@ namespace yojimbo
 
         uint64_t GetFlags() const;
 
+        const ConnectionConfig & GetConnectionConfig() const { return m_connectionConfig; }
+
     protected:
 
         virtual void OnStart( int /*maxClients*/ ) {}
@@ -672,7 +674,7 @@ namespace yojimbo
 
     protected:
 
-        virtual void InitializeContext();
+        virtual void InitializeGlobalContext();
 
         virtual void SetEncryptedPacketTypes();
 
@@ -680,7 +682,9 @@ namespace yojimbo
 
         virtual PacketFactory * CreatePacketFactory( ServerResourceType type, int clientIndex );
 
-        virtual MessageFactory * CreateMessageFactory( ServerResourceType type, int clientIndex );
+        virtual MessageFactory * CreateMessageFactory( int clientIndex );
+
+        virtual ClientServerContext * CreateContext( ServerResourceType type, int clientIndex );
 
         virtual void ResetClientState( int clientIndex );
 
@@ -738,9 +742,11 @@ namespace yojimbo
 
         Transport * m_transport;                                            // transport interface for sending and receiving packets.
 
-        MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional!
+        MessageFactory * m_messageFactory[MaxClients];                      // message factory for creating and destroying messages. per-client and optional.
 
-        ClientServerContext m_context;                                      // serialization context for client/server packets.
+        ClientServerContext * m_globalContext;                              // global serialization context for client/server packets. used prior to connection.
+
+        ClientServerContext * m_clientContext[MaxClients];                  // per-client serialization context for client/server packets once connected.
 
         uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
 
