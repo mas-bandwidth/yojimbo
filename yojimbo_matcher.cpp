@@ -126,7 +126,7 @@ namespace yojimbo
                         MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
         {
             m_status = MATCHER_FAILED;
-            return;
+            goto cleanup;
         }
 
         mbedtls_ssl_conf_authmode( &m_internal->conf, MBEDTLS_SSL_VERIFY_OPTIONAL );
