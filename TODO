@@ -16,6 +16,12 @@ TODO
 
     Now add a bunch of tests to make sure it actually is.
 
+    For example, test_client_server_stream_allocator.
+
+    Need a packet and/or message type that tests dynamic allocations using the stream allocator for that particular client.
+
+    This is a feature so there needs to be a functional test that check the feature is actually working to find regressions.
+
     ------------------
 
     Add a limit on the number of messages allocated per-client, and track that in the message factory.

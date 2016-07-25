@@ -32,7 +32,7 @@
 
 namespace yojimbo
 {
-    // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of connections expected.
+    // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.
     const int MaxContextMappings = 1024;
 
     class Allocator;
@@ -41,12 +41,12 @@ namespace yojimbo
     struct Context
     {
         Allocator * streamAllocator;
-        MessageFactory * messageFactory;
+        void * contextData;
 
         Context()
         {
             streamAllocator = NULL;
-            messageFactory = NULL;
+            contextData = NULL;
         }
     };
 
@@ -56,7 +56,7 @@ namespace yojimbo
 
         ContextManager();
 
-        bool AddContextMapping( const Address & address, Allocator & streamAllocator, MessageFactory * messageFactory );
+        bool AddContextMapping( const Address & address, Allocator & streamAllocator, void * contextData );
 
         bool RemoveContextMapping( const Address & address );
 
