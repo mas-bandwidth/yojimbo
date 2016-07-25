@@ -40,6 +40,7 @@ namespace yojimbo
         assert( bufferSize > 0 );
         assert( info.protocolId );
         assert( info.packetFactory );
+        assert( info.streamAllocator );
 
         const int numPacketTypes = info.packetFactory->GetNumPacketTypes();
 
@@ -100,6 +101,7 @@ namespace yojimbo
         assert( bufferSize > 0 );
         assert( info.protocolId != 0 );
         assert( info.packetFactory );
+        assert( info.streamAllocator );
 
         if ( errorCode )
             *errorCode = YOJIMBO_PROTOCOL_ERROR_NONE;

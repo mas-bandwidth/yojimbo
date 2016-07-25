@@ -112,6 +112,8 @@ namespace yojimbo
 
         uint32_t protocolId;                        // protocol id that distinguishes your protocol from other packets sent over UDP.
 
+        Allocator * streamAllocator;                // this allocator is passed in to the stream and used for dynamic allocations, typically in serialize read. required.
+
         PacketFactory * packetFactory;              // create packets and determine information about packet types. required.
 
         const uint8_t * allowedPacketTypes;         // array of allowed packet types. if a packet type is not allowed the serialize read or write will fail.
@@ -124,6 +126,7 @@ namespace yojimbo
             prefixBytes = 0;
             protocolId = 0;
             packetFactory = NULL;
+            streamAllocator = NULL;
             allowedPacketTypes = NULL;
             context = NULL;
         }
