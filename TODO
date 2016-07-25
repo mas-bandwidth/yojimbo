@@ -22,7 +22,7 @@ TODO
 
     If too many messages are allocated, return NULL. This should disconnect that particular client.
 
-    Perhaps the message factory should detect, NULL message, and set an error flag that can be checked later -> disconnect.
+    Perhaps the message factory should detect NULL message being allocated, and set an error flag that can be checked later -> disconnect.
 
     ------------------
 

@@ -1036,7 +1036,7 @@ namespace yojimbo
     {
         memset( m_privateKey, 0, KeyBytes );
         m_allocator = NULL;
-        m_streamAllocator = NULL;
+        m_globalStreamAllocator = NULL;
         memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
         m_transport = NULL;
         m_messageFactory = NULL;
@@ -1077,7 +1077,7 @@ namespace yojimbo
 
         YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
 
-        YOJIMBO_DELETE( *m_allocator, Allocator, m_streamAllocator );
+        YOJIMBO_DELETE( *m_allocator, Allocator, m_globalStreamAllocator );
 
         assert( m_transport );
 
@@ -1103,11 +1103,11 @@ namespace yojimbo
 
         m_maxClients = maxClients;
 
-        if ( !m_streamAllocator )
+        if ( !m_globalStreamAllocator )
         {
-            m_streamAllocator = CreateStreamAllocator( SERVER_RESOURCE_GLOBAL, -1 );
+            m_globalStreamAllocator = CreateStreamAllocator( SERVER_RESOURCE_GLOBAL, -1 );
 
-            m_transport->SetStreamAllocator( *m_streamAllocator );
+            m_transport->SetStreamAllocator( *m_globalStreamAllocator );
         }
 
         // todo: create client stream allocators
@@ -1626,7 +1626,7 @@ namespace yojimbo
         m_clientData[clientIndex].fullyConnected = false;
 
         // todo: when I convert to one message factory per-client below, I need to change this line
-        m_transport->AddContextMapping( clientAddress, *m_streamAllocator, m_messageFactory );//*m_clientStreamAllocator[clientIndex], m_messageFactory );
+        m_transport->AddContextMapping( clientAddress, *m_globalStreamAllocator, m_messageFactory );//*m_clientStreamAllocator[clientIndex], m_messageFactory );
 
         OnClientConnect( clientIndex );
 
