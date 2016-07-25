@@ -109,7 +109,7 @@ namespace yojimbo
         memset( m_context, 0, sizeof( m_context ) );
     }
 
-    Context * ContextManager::GetContext( const Address & address )
+    const Context * ContextManager::GetContext( const Address & address ) const
     {
         for ( int i = 0; i < m_numContextMappings; ++i )
         {

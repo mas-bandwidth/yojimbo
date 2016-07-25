@@ -1,4 +1,29 @@
 
+Monday July 25th, 2016
+======================
+
+Thought about unifying the encryption manager and the context manager.
+
+But can't. The encryption manage has a different life time, it is active prior to establishing connection, 
+eg. at the point of challenge response, while the context only gets set up when the connection is established.
+
+Hence we don't actually need timeout in the context manager, like we do for encryption manager. Simpler.
+
+Context manager 
+
+Create yojimbo_context.cpp copied and adapted from encryption manager source.
+
+Hook up context manager in base transport.
+
+Add code inside yojimbo server to add/remove/clear context mappings. There is no need in client, because there is only one context.
+
+OK should be good.
+
+Add code inside base transport to query context mapping by address before read/write, and override the allocator if a context is found.
+
+Extend to one stream allocator per-client in server. Hook up to transport via context mapping. Done.
+
+
 Sunday July 24th, 2016
 ======================
 
