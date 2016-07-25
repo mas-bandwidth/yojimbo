@@ -12,11 +12,11 @@ TODO
 
     Need a function to create the client contexts then. Same pattern: CreateBlah( ServerResourceType type, int clientIndex )
 
+    So there is a global context (with NULL message factory), and a per-client context with a valid message factory pointer (if that server is configured with a connection)
+
     ------------------
 
-    Now add a bunch of tests to make sure it actually is.
-
-    For example, test_client_server_stream_allocator.
+    Implement test_client_server_stream_allocator.
 
     Need a packet and/or message type that tests dynamic allocations using the stream allocator for that particular client.
 
