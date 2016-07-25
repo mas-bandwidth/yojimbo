@@ -241,6 +241,8 @@ namespace yojimbo
         uint8_t * m_packetTypeIsEncrypted;
         uint8_t * m_packetTypeIsUnencrypted;
 
+        ContextManager m_contextManager;
+
         EncryptionManager m_encryptionManager;
 
         uint64_t m_counters[TRANSPORT_COUNTER_NUM_COUNTERS];

@@ -62,7 +62,7 @@ namespace yojimbo
 
         void ResetContextMappings();
 
-        Context * GetContext( const Address & address );
+        const Context * GetContext( const Address & address ) const;
 
     private:
 

@@ -1,23 +1,20 @@
 DONE    
 
-    Thought about unifying the encryption manager and the context manager.
-
-    But can't. The encryption manage has a different life time, it is active prior to establishing connection, 
-    eg. at the point of challenge response, while the context only gets set up when the connection is established.
-
-    Hence we don't actually need timeout in the context manager, like we do for encryption manager. Simpler.
-
 TODO
 
-    Context manager 
+    ------------------
 
-    Create yojimbo_context.cpp copied and adapted from encryption manager source.
+    Extend server to actually have one message factory per-client.
 
-    Hook up in base transport.
+    Work out how to get this message factory in to the serialization via context mapping.
 
-    Add code inside client/server to add/remove/clear context mappings.
+    I think at this point I really need to restructure to have one context per-client. Because context is how the message factory gets passed in.
 
-    Add code inside base transport to query context mapping by address before read/write, and override the allocator and message factory if found.
+    Need a function to create the client contexts then. Same pattern: CreateBlah( ServerResourceType type, int clientIndex )
+
+    ------------------
+
+    Now add a bunch of tests to make sure it actually is.
 
     ------------------
 
