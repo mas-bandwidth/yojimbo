@@ -276,7 +276,7 @@ void ProcessMessage( Message * message, uint64_t numMessagesReceived, int channe
 
             if ( channelId == RELIABLE_CHANNEL )
             {
-                const int expectedBlockSize = ( channelId == RELIABLE_CHANNEL ) ? ( 1024 + ( int( numMessagesReceived ) * 33 ) % MaxBlockSize ) : ( 1024 + ( int( numMessagesReceived ) * 33 ) % 1024 );
+                const int expectedBlockSize = 1024 + ( int( numMessagesReceived ) * 33 ) % MaxBlockSize;
 
                 check( blockSize == expectedBlockSize );
 
