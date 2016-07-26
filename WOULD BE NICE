@@ -1,12 +1,22 @@
-NOTES
+WOULD BE NICE
+
+    ------------------
+
+    Add tests to make sure the client can recover and reconnect after one of the error states below. eg. error is properly cleared.
+
+    ------------------
+
+    Add unit tests for all the new client error states:
+
+        CLIENT_STATE_PACKET_FACTORY_ERROR
+        CLIENT_STATE_MESSAGE_FACTORY_ERROR
+        CLIENT_STATE_STREAM_ALLOCATOR_ERROR
 
     ------------------
 
     Add a limit on the number of messages allocated per-client, and track that in the message factory.
 
     If too many messages are allocated, return NULL. This should disconnect that particular client.
-
-    Perhaps the message factory should detect NULL message being allocated, and set an error flag that can be checked later -> disconnect.
 
     Add a unit test to verify this is actually working.
 

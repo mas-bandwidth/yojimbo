@@ -387,11 +387,14 @@ namespace yojimbo
         switch ( clientState )
         {
 #if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT:       return "insecure connect timed out";
+            case CLIENT_STATE_INSECURE_CONNECT_TIMEOUT:         return "insecure connect timeout";
 #endif // #if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT:     return "connection request timed out";
-            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT:     return "challenge response timed out";
-            case CLIENT_STATE_CONNECTION_TIMED_OUT:             return "connection timed out";
+            case CLIENT_STATE_PACKET_FACTORY_ERROR:             return "packet factory error";
+            case CLIENT_STATE_MESSAGE_FACTORY_ERROR:            return "message factory error";
+            case CLIENT_STATE_STREAM_ALLOCATOR_ERROR:           return "stream allocator error";
+            case CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT:       return "connection request timeout";
+            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT:       return "challenge response timeout";
+            case CLIENT_STATE_CONNECTION_TIMEOUT:               return "connection timeout";
             case CLIENT_STATE_CONNECTION_ERROR:                 return "connection error";
             case CLIENT_STATE_CONNECTION_DENIED:                return "connection denied";
             case CLIENT_STATE_DISCONNECTED:                     return "disconnected";
@@ -522,10 +525,7 @@ namespace yojimbo
     {
         assert( clientState <= CLIENT_STATE_DISCONNECTED );
 
-        if ( m_clientState != clientState )
-        {
-            OnDisconnect();
-        }
+        const bool disconnected = m_clientState != clientState;
 
         if ( sendDisconnectPacket && m_clientState > CLIENT_STATE_DISCONNECTED )
         {
@@ -541,6 +541,11 @@ namespace yojimbo
         }
 
         ResetConnectionData( clientState );
+
+        if ( disconnected )
+        {
+            OnDisconnect();
+        }
     }
 
     Message * Client::CreateMessage( int type )
@@ -731,7 +736,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + InsecureConnectTimeOut < time )
                 {
-                    Disconnect( CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT, false );
+                    Disconnect( CLIENT_STATE_INSECURE_CONNECT_TIMEOUT, false );
                     return;
                 }
             }
@@ -743,7 +748,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ConnectionRequestTimeOut < time )
                 {
-                    Disconnect( CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT, false );
+                    Disconnect( CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT, false );
                     return;
                 }
             }
@@ -753,7 +758,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ChallengeResponseTimeOut < time )
                 {
-                    Disconnect( CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT, false );
+                    Disconnect( CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT, false );
                     return;
                 }
             }
@@ -763,7 +768,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + ConnectionTimeOut < time )
                 {
-                    Disconnect( CLIENT_STATE_CONNECTION_TIMED_OUT, false );
+                    Disconnect( CLIENT_STATE_CONNECTION_TIMEOUT, false );
                     return;
                 }
             }
@@ -779,6 +784,28 @@ namespace yojimbo
         assert( time >= m_time );
 
         m_time = time;
+
+        if ( m_streamAllocator && m_streamAllocator->GetError() )
+        {
+            Disconnect( CLIENT_STATE_STREAM_ALLOCATOR_ERROR, true );
+            m_streamAllocator->ClearError();
+            return;
+        }
+
+        if ( m_messageFactory && m_messageFactory->GetError() )
+        {
+            Disconnect( CLIENT_STATE_MESSAGE_FACTORY_ERROR, true );
+            m_messageFactory->ClearError();
+            return;
+        }
+
+        PacketFactory * packetFactory = m_transport->GetPacketFactory();
+        if ( packetFactory && packetFactory->GetError() )
+        {
+            Disconnect( CLIENT_STATE_PACKET_FACTORY_ERROR, true );
+            packetFactory->ClearError();
+            return;
+        }
 
         if ( m_connection )
         {
@@ -856,6 +883,10 @@ namespace yojimbo
 #if YOJIMBO_INSECURE_CONNECT
         m_clientSalt = 0;
 #endif // #if YOJIMBO_INSECURE_CONNECT
+        if ( m_connection )
+        {
+            m_connection->Reset();
+        }
     }
 
     void Client::SendPacketToServer( Packet * packet )
@@ -1175,8 +1206,6 @@ namespace yojimbo
         assert( m_numConnectedClients > 0 );
         assert( m_clientConnected[clientIndex] );
 
-        OnClientDisconnect( clientIndex );
-
         if ( sendDisconnectPacket )
         {
             for ( int i = 0; i < NumDisconnectPackets; ++i )
@@ -1199,6 +1228,8 @@ namespace yojimbo
         m_counters[SERVER_COUNTER_CLIENT_DISCONNECTS]++;
 
         m_numConnectedClients--;
+
+        OnClientDisconnect( clientIndex );
     }
 
     void Server::DisconnectAllClients( bool sendDisconnectPacket )
@@ -1383,6 +1414,10 @@ namespace yojimbo
 
         m_time = time;
 
+        // todo: check for global stream allocator error, increment counter, clear error.
+
+        // todo: check for global packet factory error, increment counter, clear error.
+
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
             if ( IsClientConnected( clientIndex ) )
@@ -1411,6 +1446,8 @@ namespace yojimbo
                         DisconnectClient( clientIndex, true );
                     }
                 }
+
+                // todo: check for packet factory error
 
                 // check for connection error
 
