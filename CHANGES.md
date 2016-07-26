@@ -29,6 +29,35 @@ Fixed bug where client was not resetting connection on disconnect.
 
 Added notes for stuff to do for global stream allocator and packet factory error.
 
+Now I need to work out how to get a separate packet factory per-client going.
+
+There needs to be a global packet factory, and a per-client packet factory.
+
+Problem is you cannot create a transport without a packet factory...
+
+So I think moving the global packet factory into the server implies that the transport is created there too.
+
+I'm not sure I like this. Part of what I like about having a separation of aspects between the client/server,
+and the transport is that the transport can be updated completely separately. The client/server just generates
+packets which are process completely outside of it and serialized and send and received from the network via
+the transport.
+
+I like that a client/server can be switched to a different transport trivially, without modifying code, just passing
+a transport into the constructor of the client/server. I don't want to lose this.
+
+So I don't want client/server creating or owning the transport.
+
+But the transport *does* need to know the packet factory in order to create packets on receive, and to destroy packets on send.
+
+In fact, it could get quite a bit tricky inside the transport, having to keep track of which particular packet factory created
+a packet, maybe packets should back reference to the factory that created them?
+
+This means I think that the *global* packet factory is created externally (passed in with the transport), 
+and the per-client packet factories are created inside the server. Which is a bit... inconsistent, but I think
+a better option than jamming together the client/server and the transport into one concept.
+
+Also, it's pretty important that transports can be used without client/server. They should be able to stand on their own.
+
 
 Monday July 25th, 2016
 ======================
