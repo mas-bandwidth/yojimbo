@@ -842,7 +842,7 @@ namespace yojimbo
 
         MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
 
-        return entry->block;
+        return entry ? entry->block : false;
     }
 
     uint8_t * ReliableOrderedChannel::GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType )

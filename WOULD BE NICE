@@ -2,6 +2,30 @@ WOULD BE NICE
 
     ------------------
 
+    AEAD idea. Protocol is currently vulnerable to being spammed invalid connect tokens.
+
+    Of course, an invalid connect token won't decrypt, but a connect token that is an old stale token (reply attack) *will* decrypt.
+
+    So I think the key way to avoid replay attacks being effective, is to store the timestamp in the additional data section of the AEAD of the connect token.
+
+    That way a reused connect token can be discarded quickly, by just checking the timestamp. The test for checking the additional data vs. the HMAC of the payload will quickly reject replayed connect tokens, vs. right now which has to decrypt all of the connect token in order to check it.
+
+    ------------------
+
+    Idea: at the transport layer, implement an interface that can be set on the transport, to filter packets. This way, a packet can be inspected at the byte level (before serialization), and trivially rejected. Then, implement something like this for both the connect token. This will make it cheap to reject replay tokens.
+
+    If early reject happens for a particular IP address, implement a transport level BAN of that IP for a period of time (eg. 5 minutes), and then continue to discard any IP addresses that match that ban.
+
+    Do this IP level ban in such a way it's not vulnerable to worst case hash behavior.
+
+    ------------------
+
+    Security idea from Ben Garney.
+
+    Don't perform any allocation while processing 'connection request' packets or it's a DDOS attack vector.
+
+    ------------------
+
     It's somewhat risky that the server must override the packet factory, but the default implementation is the client/server packet factory.
 
     I think people are going to pass in their custom packet factory in the constructor, but then wonder why their custom packets aren't getting created properly.
