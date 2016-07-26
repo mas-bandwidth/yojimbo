@@ -1,0 +1,45 @@
+NOTES
+
+    ------------------
+
+    Add a limit on the number of messages allocated per-client, and track that in the message factory.
+
+    If too many messages are allocated, return NULL. This should disconnect that particular client.
+
+    Perhaps the message factory should detect NULL message being allocated, and set an error flag that can be checked later -> disconnect.
+
+    Add a unit test to verify this is actually working.
+
+    ------------------
+
+    Add a limit on the # of bytes allocated in the stream allocator. If a stream allocation fails, it is the responsibility
+    of the serialize function to handle this and return false.
+
+    Check the stream allocator per-client each advance time, if it is in an error state, disconnect that client.
+
+    ------------------
+
+    Add a unit test that actually exercises the stream allocator.
+
+    ------------------
+
+    Add a unit test that intentionally exhausts the stream allocator.
+
+    ------------------
+
+    Actually implement a proper allocator for messages and stream allocations.
+
+    Look for a good allocator with arenas, pools, small block support etc.
+
+    The key thing is that a proper allocator will allow me to:
+
+    a) Bound the allocations to a maximum memory size, which is important.
+
+    These allocators should be used and tested inside yojimbo by default.
+
+    While it's nice that yojimbo lets you override the allocators and use your own, not ever project will have their own allocators setup.
+
+    It's important for the security of yojimbo that messages come from a finite pool, and stream allocations come from a finite pool.
+
+    ------------------
+    

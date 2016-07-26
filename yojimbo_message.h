@@ -146,6 +146,14 @@ namespace yojimbo
         int m_blockSize;
     };
 
+    enum MessageFactoryError
+    {
+        MESSAGE_FACTORY_ERROR_NONE,
+        MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,
+        MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED
+        // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.
+    };
+
     class MessageFactory
     {        
         #if YOJIMBO_DEBUG_MESSAGE_LEAKS
@@ -153,8 +161,8 @@ namespace yojimbo
         #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
         Allocator * m_allocator;
-
         int m_numTypes;
+        int m_error;
 
     public:
 
@@ -162,11 +170,13 @@ namespace yojimbo
         {
             m_allocator = &allocator;
             m_numTypes = numTypes;
+            m_error = MESSAGE_FACTORY_ERROR_NONE;
         }
 
         ~MessageFactory()
         {
             assert( m_allocator );
+
             m_allocator = NULL;
 
             #if YOJIMBO_DEBUG_MESSAGE_LEAKS
@@ -192,7 +202,11 @@ namespace yojimbo
 
             Message * message = CreateInternal( type );
 
-            assert( message );
+            if ( !message )
+            {
+                m_error = MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE;
+                return NULL;
+            }
 
             #if YOJIMBO_DEBUG_MESSAGE_LEAKS
             allocated_messages[message] = 1;
@@ -205,7 +219,7 @@ namespace yojimbo
         void AddRef( Message * message )
         {
             assert( message );
-            
+
             message->AddRef();
         }
 
@@ -237,6 +251,11 @@ namespace yojimbo
         {
             assert( m_allocator );
             return *m_allocator;
+        }
+
+        int GetError() const
+        {
+            return m_allocator->GetError() ? MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED : m_error;
         }
 
     protected:

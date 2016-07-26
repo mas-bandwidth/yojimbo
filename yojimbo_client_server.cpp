@@ -1048,7 +1048,7 @@ namespace yojimbo
         memset( m_privateKey, 0, KeyBytes );
         memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
         memset( m_clientContext, 0, sizeof( m_clientContext ) );
-        memset( m_messageFactory, 0, sizeof( m_messageFactory ) );
+        memset( m_clientMessageFactory, 0, sizeof( m_clientMessageFactory ) );
         memset( m_connection, 0, sizeof( m_connection ) );
         memset( m_clientSequence, 0, sizeof( m_clientSequence ) );
         memset( m_counters, 0, sizeof( m_counters ) );
@@ -1119,9 +1119,9 @@ namespace yojimbo
         {
             for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
             {
-                m_messageFactory[clientIndex] = CreateMessageFactory( clientIndex );
+                m_clientMessageFactory[clientIndex] = CreateMessageFactory( clientIndex );
 
-                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory[clientIndex], m_connectionConfig );
+                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_clientMessageFactory[clientIndex], m_connectionConfig );
                
                 m_connection[clientIndex]->SetListener( this );
 
@@ -1159,7 +1159,7 @@ namespace yojimbo
 
             YOJIMBO_DELETE( *m_allocator, Connection, m_connection[clientIndex] );
 
-            YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory[clientIndex] );
+            YOJIMBO_DELETE( *m_allocator, MessageFactory, m_clientMessageFactory[clientIndex] );
 
             YOJIMBO_DELETE( *m_allocator, Allocator, m_clientStreamAllocator[clientIndex] );
         }
@@ -1216,8 +1216,8 @@ namespace yojimbo
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
-        assert( m_messageFactory[clientIndex] );
-        return m_messageFactory[clientIndex]->Create( type );
+        assert( m_clientMessageFactory[clientIndex] );
+        return m_clientMessageFactory[clientIndex]->Create( type );
     }
 
     bool Server::CanSendMessage( int clientIndex ) const
@@ -1231,7 +1231,7 @@ namespace yojimbo
         if ( !IsClientConnected( clientIndex ) )
             return false;
 
-        assert( m_messageFactory );
+        assert( m_clientMessageFactory );
         assert( m_connection[clientIndex] );
 
         return m_connection[clientIndex]->CanSendMessage();
@@ -1241,11 +1241,11 @@ namespace yojimbo
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
-        assert( m_messageFactory[clientIndex] );
+        assert( m_clientMessageFactory[clientIndex] );
 
         if ( !m_clientConnected[clientIndex] )
         {
-            m_messageFactory[clientIndex]->Release( message );
+            m_clientMessageFactory[clientIndex]->Release( message );
             return;
         }
 
@@ -1256,7 +1256,7 @@ namespace yojimbo
 
     Message * Server::ReceiveMessage( int clientIndex )
     {
-        assert( m_messageFactory );
+        assert( m_clientMessageFactory );
 
         if ( !m_clientConnected[clientIndex] )
             return NULL;
@@ -1271,16 +1271,16 @@ namespace yojimbo
         assert( message );
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
-        assert( m_messageFactory[clientIndex] );
-        m_messageFactory[clientIndex]->Release( message );
+        assert( m_clientMessageFactory[clientIndex] );
+        m_clientMessageFactory[clientIndex]->Release( message );
     }
 
     MessageFactory & Server::GetMessageFactory( int clientIndex )
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
-        assert( m_messageFactory[clientIndex] );
-        return *m_messageFactory[clientIndex];
+        assert( m_clientMessageFactory[clientIndex] );
+        return *m_clientMessageFactory[clientIndex];
     }
 
     void Server::SendPackets()
@@ -1361,18 +1361,18 @@ namespace yojimbo
 
         const double time = GetTime();
 
-        for ( int i = 0; i < m_maxClients; ++i )
+        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
-            if ( !m_clientConnected[i] )
+            if ( !m_clientConnected[clientIndex] )
                 continue;
 
-            if ( m_clientData[i].lastPacketReceiveTime + ConnectionTimeOut < time )
+            if ( m_clientData[clientIndex].lastPacketReceiveTime + ConnectionTimeOut < time )
             {
-                OnClientTimedOut( i );
+                OnClientError( clientIndex, SERVER_CLIENT_ERROR_TIMEOUT );
 
-                m_counters[SERVER_COUNTER_CLIENT_TIMEOUT_DISCONNECTS]++;
+                m_counters[SERVER_COUNTER_CLIENT_TIMEOUTS]++;
 
-                DisconnectClient( i, false );
+                DisconnectClient( clientIndex, false );
             }
         }
     }
@@ -1383,19 +1383,48 @@ namespace yojimbo
 
         m_time = time;
 
-        for ( int i = 0; i < m_maxClients; ++i )
+        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
-            if ( IsClientConnected( i ) )
+            if ( IsClientConnected( clientIndex ) )
             {
-                if ( m_connection[i] )
+                // check for stream allocator error
+
+                if ( m_clientStreamAllocator[clientIndex]->GetError() )
                 {
-                    m_connection[i]->AdvanceTime( time );
+                    OnClientError( clientIndex, SERVER_CLIENT_ERROR_STREAM_ALLOCATOR );
 
-                    if ( m_connection[i]->GetError() )
+                    m_counters[SERVER_COUNTER_CLIENT_STREAM_ALLOCATOR_ERRORS]++;
+
+                    DisconnectClient( clientIndex, true );
+                }
+
+                // check for message factory error
+
+                if ( m_clientMessageFactory[clientIndex] )
+                {
+                    if ( m_clientMessageFactory[clientIndex]->GetError() )
                     {
-                        m_counters[SERVER_COUNTER_CONNECTION_ERRORS]++;
+                        OnClientError( clientIndex, SERVER_CLIENT_ERROR_MESSAGE_FACTORY );
 
-                        DisconnectClient( i, true );
+                        m_counters[SERVER_COUNTER_CLIENT_MESSAGE_FACTORY_ERRORS]++;
+
+                        DisconnectClient( clientIndex, true );
+                    }
+                }
+
+                // check for connection error
+
+                if ( m_connection[clientIndex] )
+                {
+                    m_connection[clientIndex]->AdvanceTime( time );
+
+                    if ( m_connection[clientIndex]->GetError() )
+                    {
+                        OnClientError( clientIndex, SERVER_CLIENT_ERROR_CONNECTION );
+
+                        m_counters[SERVER_COUNTER_CLIENT_CONNECTION_ERRORS]++;
+
+                        DisconnectClient( clientIndex, true );
                     }
                 }
             }
