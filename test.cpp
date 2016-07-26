@@ -2076,7 +2076,7 @@ void test_client_server_connection_request_timeout()
     }
 
     check( client.ConnectionFailed() );
-    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 }
 
 void test_client_server_connection_response_timeout()
@@ -2160,7 +2160,7 @@ void test_client_server_connection_response_timeout()
     }
 
     check( client.ConnectionFailed() );
-    check( client.GetClientState() == CLIENT_STATE_CHALLENGE_RESPONSE_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT );
 }
 
 void test_client_server_client_side_timeout()
@@ -2383,7 +2383,7 @@ void test_client_server_server_side_timeout()
     }
 
     check( !client.IsConnected() );
-    check( client.GetClientState() == CLIENT_STATE_CONNECTION_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_TIMEOUT );
 }
 
 struct ClientData
@@ -2755,7 +2755,7 @@ void test_client_server_connect_token_reuse()
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
-    check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED ) > 0 );
 }
 
@@ -2841,7 +2841,7 @@ void test_client_server_connect_token_expiry()
 
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_EXPIRED ) > 0 );
-    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 }
 
 void test_client_server_connect_token_whitelist()
@@ -2934,7 +2934,7 @@ void test_client_server_connect_token_whitelist()
 
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_SERVER_ADDRESS_NOT_IN_WHITELIST ) > 0 );
-    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 }
 
 void test_client_server_connect_token_invalid()
@@ -3010,7 +3010,7 @@ void test_client_server_connect_token_invalid()
 
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_FAILED_TO_DECRYPT ) > 0 );
-    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 }
 
 void test_client_server_game_packets()
@@ -3261,7 +3261,7 @@ void test_client_server_insecure_connect_timeout()
     check( !client.IsConnecting() );
     check( !client.IsConnected() );
     check( client.ConnectionFailed() );
-    check( client.GetClientState() == CLIENT_STATE_INSECURE_CONNECT_TIMED_OUT );
+    check( client.GetClientState() == CLIENT_STATE_INSECURE_CONNECT_TIMEOUT );
 }
 
 #endif // #if YOJIMBO_INSECURE_CONNECT

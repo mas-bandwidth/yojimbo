@@ -64,6 +64,14 @@ namespace yojimbo
         Packet & operator = ( const Packet & other );
     };
 
+    enum PacketFactoryError
+    {
+        PACKET_FACTORY_ERROR_NONE,
+        PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,
+        PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED
+        // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.
+    };
+
     class PacketFactory
     {        
     public:
@@ -77,6 +85,10 @@ namespace yojimbo
         void DestroyPacket( Packet * packet );
 
         int GetNumPacketTypes() const;
+
+        int GetError() const;
+
+        void ClearError();
 
     protected:
 
@@ -96,6 +108,7 @@ namespace yojimbo
 
         Allocator * m_allocator;
 
+        int m_error;
         int m_numPacketTypes;
         int m_numAllocatedPackets;
 

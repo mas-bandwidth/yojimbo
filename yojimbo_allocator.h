@@ -52,6 +52,8 @@ namespace yojimbo
 
         virtual int GetError() const = 0;
 
+        virtual void ClearError() = 0;
+
     private:
 
         Allocator( const Allocator & other );
@@ -82,6 +84,8 @@ namespace yojimbo
         void Free( void * p );
 
         int GetError() const;
+
+        void ClearError();
     };
 }
 

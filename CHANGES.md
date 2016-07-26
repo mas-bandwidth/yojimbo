@@ -17,6 +17,18 @@ because if that allocator is exhausted (eg. block fragments, dynamically allocat
 
 Added counters for each of these so it would be easy to instrument and can see if they are happening via telemetry on live servers.
 
+Add client error states corresponding to stream error, message factory error, packet factory error.
+
+Hook these states up in the client advance time function. Add // todo for packet factory error once it is added.
+
+Add the concept of packet factory error, same as message factory basically. Handle allocator exhaustion as well.
+
+Hook up packet factory error in client.
+
+Fixed bug where client was not resetting connection on disconnect.
+
+Added notes for stuff to do for global stream allocator and packet factory error.
+
 
 Monday July 25th, 2016
 ======================

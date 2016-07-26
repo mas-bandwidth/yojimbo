@@ -219,6 +219,8 @@ namespace yojimbo
         void AddRef( Message * message )
         {
             assert( message );
+            if ( !message )
+                return;
 
             message->AddRef();
         }
@@ -226,6 +228,8 @@ namespace yojimbo
         void Release( Message * message )
         {
             assert( message );
+            if ( !message )
+                return;
 
             message->Release();
             
@@ -256,6 +260,12 @@ namespace yojimbo
         int GetError() const
         {
             return m_allocator->GetError() ? MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED : m_error;
+        }
+
+        void ClearError()
+        {
+            m_allocator->ClearError();
+            m_error = MESSAGE_FACTORY_ERROR_NONE;
         }
 
     protected:

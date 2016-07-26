@@ -76,4 +76,9 @@ namespace yojimbo
     {
         return ALLOCATOR_ERROR_NONE;
     }
+
+    void DefaultAllocator::ClearError()
+    {
+        // clear error state once it exists
+    }
 }

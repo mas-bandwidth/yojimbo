@@ -208,6 +208,7 @@ cleanup:
 
     PacketFactory::PacketFactory( Allocator & allocator, int numPacketTypes )
     {
+        m_error = PACKET_FACTORY_ERROR_NONE;
         m_numPacketTypes = numPacketTypes;
         m_numAllocatedPackets = 0;
         m_allocator = &allocator;
@@ -238,8 +239,12 @@ cleanup:
         assert( type < m_numPacketTypes );
 
         Packet * packet = CreateInternal( type );
+        
         if ( !packet )
+        {
+            m_error = PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET;
             return NULL;
+        }
 
 #if YOJIMBO_DEBUG_PACKET_LEAKS
         allocated_packets[packet] = type;
@@ -254,7 +259,6 @@ cleanup:
     void PacketFactory::DestroyPacket( Packet * packet )
     {
         assert( packet );
-
         if ( !packet )
             return;
 
@@ -277,6 +281,7 @@ cleanup:
 
     void PacketFactory::SetPacketType( Packet * packet, int type )
     {
+        assert( packet );
         if ( packet )
             packet->SetType( type );
     }
@@ -285,5 +290,16 @@ cleanup:
     {
         assert( m_allocator );
         return *m_allocator;
+    }
+
+    int PacketFactory::GetError() const
+    {
+        return m_allocator->GetError() ? PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED : m_error;
+    }
+
+    void PacketFactory::ClearError()
+    {
+        m_allocator->ClearError();
+        m_error = PACKET_FACTORY_ERROR_NONE;
     }
 }
