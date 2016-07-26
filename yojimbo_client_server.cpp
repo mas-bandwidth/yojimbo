@@ -1080,6 +1080,7 @@ namespace yojimbo
         memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
         memset( m_clientContext, 0, sizeof( m_clientContext ) );
         memset( m_clientMessageFactory, 0, sizeof( m_clientMessageFactory ) );
+        memset( m_clientPacketFactory, 0, sizeof( m_clientPacketFactory ) );
         memset( m_connection, 0, sizeof( m_connection ) );
         memset( m_clientSequence, 0, sizeof( m_clientSequence ) );
         memset( m_counters, 0, sizeof( m_counters ) );
@@ -1152,6 +1153,10 @@ namespace yojimbo
             {
                 m_clientMessageFactory[clientIndex] = CreateMessageFactory( clientIndex );
 
+                m_clientPacketFactory[clientIndex] = CreatePacketFactory( clientIndex );
+
+                // todo: once I fix up per-client packet factories to actually work, bring this back
+//                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_connectionConfig );
                 m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_clientMessageFactory[clientIndex], m_connectionConfig );
                
                 m_connection[clientIndex]->SetListener( this );
@@ -1189,6 +1194,8 @@ namespace yojimbo
             YOJIMBO_DELETE( *m_allocator, ClientServerContext, m_clientContext[clientIndex] );
 
             YOJIMBO_DELETE( *m_allocator, Connection, m_connection[clientIndex] );
+
+            YOJIMBO_DELETE( *m_allocator, PacketFactory, m_clientPacketFactory[clientIndex] );
 
             YOJIMBO_DELETE( *m_allocator, MessageFactory, m_clientMessageFactory[clientIndex] );
 
@@ -1563,7 +1570,7 @@ namespace yojimbo
         return YOJIMBO_NEW( *m_allocator, DefaultAllocator );
     }
 
-    PacketFactory * Server::CreatePacketFactory( ServerResourceType /*type*/, int /*clientIndex*/ )
+    PacketFactory * Server::CreatePacketFactory( int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
     }

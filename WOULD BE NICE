@@ -2,6 +2,14 @@ WOULD BE NICE
 
     ------------------
 
+    It's somewhat risky that the server must override the packet factory, but the default implementation is the client/server packet factory.
+
+    I think people are going to pass in their custom packet factory in the constructor, but then wonder why their custom packets aren't getting created properly.
+
+    Add a check between the transport packet factory and the client packet factory to make sure they are compatible (eg. same # of types)    
+
+    ------------------
+
     Add tests to make sure the client can recover and reconnect after one of the error states below. eg. error is properly cleared.
 
     ------------------
@@ -53,3 +61,6 @@ WOULD BE NICE
 
     ------------------
     
+    Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Use the ones in shared.h
+
+    ------------------
