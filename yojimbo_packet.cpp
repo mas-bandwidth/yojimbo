@@ -128,13 +128,22 @@ namespace yojimbo
         for ( int i = 0; i < info.prefixBytes; ++i )
         {
             uint32_t dummy = 0;
-            stream.SerializeBits( dummy, 8 );
+            if ( !stream.SerializeBits( dummy, 8 ) )
+            {
+                debug_printf( "serialize prefix byte failed (read packet)\n" );
+                return 0;
+            }
         }
 
         uint32_t read_crc32 = 0;
+        
         if ( !info.rawFormat )
         {
-            stream.SerializeBits( read_crc32, 32 );
+            if ( !stream.SerializeBits( read_crc32, 32 ) )
+            {
+                debug_printf( "serialize crc32 failed (read packet)\n" );
+                return 0;
+            }
 
             uint32_t network_protocolId = host_to_network( info.protocolId );
             uint32_t crc32 = calculate_crc32( (const uint8_t*) &network_protocolId, 4 );
