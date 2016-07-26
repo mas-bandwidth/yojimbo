@@ -10,12 +10,22 @@ TODO
 
     Perhaps the message factory should detect NULL message being allocated, and set an error flag that can be checked later -> disconnect.
 
+    Add a unit test to verify this is actually working.
+
     ------------------
 
     Add a limit on the # of bytes allocated in the stream allocator. If a stream allocation fails, it is the responsibility
     of the serialize function to handle this and return false.
 
     Check the stream allocator per-client each advance time, if it is in an error state, disconnect that client.
+
+    ------------------
+
+    Add a unit test that actually exercises the stream allocator.
+
+    ------------------
+
+    Add a unit test that intentionally exhausts the stream allocator.
 
     ------------------
 
