@@ -397,7 +397,7 @@ namespace yojimbo
         else
         {
             uint32_t a = messageId1;
-            uint32_t b;
+            uint32_t b = 0;
             serialize_int_relative( stream, a, b );
             if ( b >= 65536 )
                 b -= 65536;
