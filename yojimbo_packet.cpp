@@ -51,13 +51,23 @@ namespace yojimbo
         for ( int i = 0; i < info.prefixBytes; ++i )
         {
             uint8_t zero = 0;
-            stream.SerializeBits( zero, 8 );
+            if ( !stream.SerializeBits( zero, 8 ) )
+            {
+                debug_printf( "serialize prefix byte failed (write packet)\n" );
+                return 0;
+            }
         }
 
         uint32_t crc32 = 0;
 
         if ( !info.rawFormat )
-            stream.SerializeBits( crc32, 32 );
+        {
+            if ( !stream.SerializeBits( crc32, 32 ) )
+            {
+                debug_printf( "serialize crc32 failed (write packet)\n" );
+                return 0;
+            }
+        }
 
         int packetType = packet->GetType();
 
@@ -65,7 +75,8 @@ namespace yojimbo
 
         if ( numPacketTypes > 1 )
         {
-            stream.SerializeInteger( packetType, 0, numPacketTypes - 1 );
+            if ( !stream.SerializeInteger( packetType, 0, numPacketTypes - 1 ) )
+                return 0;
         }
 
         if ( !packet->SerializeInternal( stream ) )
@@ -74,7 +85,11 @@ namespace yojimbo
             return 0;
         }
 
-        stream.SerializeCheck( "end of packet" );
+        if ( !stream.SerializeCheck( "end of packet" ) )
+        {
+            debug_printf( "serialize check at end of packed failed (write packet)\n" );
+            return 0;
+        }
 
         stream.Flush();
 
