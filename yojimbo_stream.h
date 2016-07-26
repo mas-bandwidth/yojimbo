@@ -98,9 +98,11 @@ namespace yojimbo
         bool SerializeCheck( const char * string )
         {
 #if YOJIMBO_SERIALIZE_CHECKS
-            SerializeAlign();
+            if ( !SerializeAlign() )
+                return false;
             const uint32_t magic = hash_string( string, 0 );
-            SerializeBits( magic, 32 );
+            if ( !SerializeBits( magic, 32 ) )
+                return false;
 #else // #if YOJIMBO_SERIALIZE_CHECKS
             (void)string;
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
@@ -231,10 +233,11 @@ namespace yojimbo
         bool SerializeCheck( const char * string )
         {
 #if YOJIMBO_SERIALIZE_CHECKS            
-            SerializeAlign();
+            if ( !SerializeAlign() )
+                return false;
             uint32_t value = 0;
-            SerializeAlign();
-            SerializeBits( value, 32 );
+            if ( !SerializeBits( value, 32 ) )
+                return false;
             const uint32_t magic = hash_string( string, 0 );
 #ifdef DEBUG
             if ( magic != value )

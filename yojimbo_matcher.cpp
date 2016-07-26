@@ -189,7 +189,7 @@ namespace yojimbo
             if ( ret <= 0 )
                 break;
 
-            char * json = strstr( (const char*)buf, "\r\n\r\n" );
+            const char * json = strstr( (const char*)buf, "\r\n\r\n" );
 
             if ( !json )
                 break;
