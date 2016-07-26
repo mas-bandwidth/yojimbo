@@ -1,4 +1,23 @@
 
+Tuesday July 26th, 2016
+=======================
+
+Add concept of error state to to allocator.
+
+Keep the error state free-form, for now. 0 is no error, non-zero is an error. Possible different error types for different types of allocations. Sort this out later when we have real allocator implementations built in to yojimbo.
+
+If any of the per-client message factories or allocators are exhausted, set an error state, if the per-client resource is in error state, disconnect that client with an error.
+
+Made this a general concept: SERVER_CLIENT_ERROR_*
+
+Rolling timeout into this, and connection error. This way we have a single point where all errors server-side that lead to client disconnection can be handled. No point having a separate "OnClientTimedOut" method in this case.
+
+Added error state to message factory. Also, added special case code for checking error state on the allocator owned by the message factory,
+because if that allocator is exhausted (eg. block fragments, dynamically allocated message packets), then that client should also be disconnected as soon as possible.
+
+Added counters for each of these so it would be easy to instrument and can see if they are happening via telemetry on live servers.
+
+
 Monday July 25th, 2016
 ======================
 

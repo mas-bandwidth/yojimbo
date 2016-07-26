@@ -71,4 +71,9 @@ namespace yojimbo
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
         free( p );
     }
+
+    int DefaultAllocator::GetError() const
+    {
+        return ALLOCATOR_ERROR_NONE;
+    }
 }

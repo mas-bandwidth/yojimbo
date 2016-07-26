@@ -33,6 +33,11 @@
 
 namespace yojimbo
 {
+    enum
+    {
+        ALLOCATOR_ERROR_NONE = 0
+    };
+
     class Allocator
     {
     public:
@@ -44,6 +49,8 @@ namespace yojimbo
         virtual void * Allocate( uint32_t size ) = 0;
 
         virtual void Free( void * p ) = 0;
+
+        virtual int GetError() const = 0;
 
     private:
 
@@ -73,6 +80,8 @@ namespace yojimbo
         void * Allocate( uint32_t size );
 
         void Free( void * p );
+
+        int GetError() const;
     };
 }
 

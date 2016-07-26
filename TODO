@@ -4,51 +4,6 @@ TODO
 
     ------------------
 
-    Add a limit on the number of messages allocated per-client, and track that in the message factory.
-
-    If too many messages are allocated, return NULL. This should disconnect that particular client.
-
-    Perhaps the message factory should detect NULL message being allocated, and set an error flag that can be checked later -> disconnect.
-
-    Add a unit test to verify this is actually working.
-
-    ------------------
-
-    Add a limit on the # of bytes allocated in the stream allocator. If a stream allocation fails, it is the responsibility
-    of the serialize function to handle this and return false.
-
-    Check the stream allocator per-client each advance time, if it is in an error state, disconnect that client.
-
-    ------------------
-
-    Add a unit test that actually exercises the stream allocator.
-
-    ------------------
-
-    Add a unit test that intentionally exhausts the stream allocator.
-
-    ------------------
-
-    Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Use the ones in shared.h
-
-    ------------------
-
-    Add a test for client server sending messages with multiple clients.
-
-    This test ensures the context is working correctly, message factories are setup correctly etc.
-
-    Right now there is only a test that sends messages from between client 0 and server. This means I have to run profile.cpp to test that context manager is working correctly.
-
-    ------------------
-
-    Implement test_client_server_stream_allocator.
-
-    Need a packet and/or message type that tests dynamic allocations using the stream allocator for that particular client.
-
-    This is a feature so there needs to be a functional test that check the feature is actually working to find regressions.
-
-    ------------------
-
     Now I need to work out how to get a separate packet factory per-client going.
 
     There needs to be a global packet factory, and a per-client packet factory.
@@ -57,7 +12,12 @@ TODO
 
     If too many packets allocated (eg. NULL packet allocation) set an error level and disconnect that client.
 
-    If it's a global packet allocator, ignore, but log it. We're probably getting DDOS'd.
+    If it's a global packet allocator, ignore, but log it. We're probably getting DDOS'd. Maybe if the global packet allocator is in an error state,
+    clear that error state, and then engage a mode where clients get a complicated challenge that takes time to compute, eg. TNL style.
+
+    ------------------
+
+    Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Use the ones in shared.h
 
     ------------------
 
@@ -69,6 +29,6 @@ TODO
 
     ------------------
 
-    v0.3.0 final release (!!!) YEY! :D
+    v0.3.0 release (!!!) YEY! :D
 
     ------------------

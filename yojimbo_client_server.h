@@ -311,6 +311,15 @@ namespace yojimbo
         SERVER_RESOURCE_PER_CLIENT                                  // this resource is for a particular client slot. see client index.
     };
 
+    enum ServerClientError
+    {
+        SERVER_CLIENT_ERROR_TIMEOUT,                                // the client timed out on the server
+        SERVER_CLIENT_ERROR_CONNECTION,                             // the connection is in error state for this client
+        SERVER_CLIENT_ERROR_STREAM_ALLOCATOR,                       // the stream allocator is in error state for this client
+        SERVER_CLIENT_ERROR_MESSAGE_FACTORY,                        // the message factory is in error state for this client
+        SERVER_CLIENT_ERROR_PACKET_FACTORY,                         // the packet factory is in error state for this client
+    };
+
     struct ServerClientData
     {
         Address address;
@@ -564,8 +573,11 @@ namespace yojimbo
         SERVER_COUNTER_CLIENT_CONNECTS,
         SERVER_COUNTER_CLIENT_DISCONNECTS,
         SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS,
-        SERVER_COUNTER_CLIENT_TIMEOUT_DISCONNECTS,
-        SERVER_COUNTER_CONNECTION_ERRORS,
+        SERVER_COUNTER_CLIENT_TIMEOUTS,
+        SERVER_COUNTER_CLIENT_CONNECTION_ERRORS,
+        SERVER_COUNTER_CLIENT_STREAM_ALLOCATOR_ERRORS,
+        SERVER_COUNTER_CLIENT_MESSAGE_FACTORY_ERRORS,
+        SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS,
         SERVER_COUNTER_NUM_COUNTERS
     };
 
@@ -656,7 +668,7 @@ namespace yojimbo
 
         virtual void OnClientDisconnect( int /*clientIndex*/ ) {}
 
-        virtual void OnClientTimedOut( int /*clientIndex*/ ) {}
+        virtual void OnClientError( int /*clientIndex*/, ServerClientError /*error*/ ) {}
 
         virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
 
@@ -742,11 +754,11 @@ namespace yojimbo
 
         Transport * m_transport;                                            // transport interface for sending and receiving packets.
 
-        MessageFactory * m_messageFactory[MaxClients];                      // message factory for creating and destroying messages. per-client and optional.
-
         ClientServerContext * m_globalContext;                              // global serialization context for client/server packets. used prior to connection.
 
         ClientServerContext * m_clientContext[MaxClients];                  // per-client serialization context for client/server packets once connected.
+
+        MessageFactory * m_clientMessageFactory[MaxClients];                // message factory for creating and destroying messages. per-client and optional.
 
         uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
 
