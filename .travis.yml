@@ -18,7 +18,6 @@ install:
   - cd libsodium-1.0.10
   - ./configure
   - make
-  - make check
   - sudo make install
   - popd
   - sudo ldconfig
