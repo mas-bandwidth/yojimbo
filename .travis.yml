@@ -30,6 +30,12 @@ install:
   - sudo make install
   - popd
   - sudo ldconfig
+  
+script: 
   - ./premake5 gmake
-
-script: make all
+  - make all config=debug_x64
+  - ./bin/test
+  - ./premake5 clean
+  - ./premake5 gmake
+  - make all config=release_x64
+  - ./bin/test
