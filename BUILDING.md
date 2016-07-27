@@ -83,7 +83,7 @@ IMPORTANT: The premake docker action takes a long time initially, because it has
 
 3. Download, build and install premake5
 
-4. Download, build and install libsodium and libucl
+4. Download, build and install libsodium
 
 5. Build release version of libyojimbo, run tests
 
