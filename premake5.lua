@@ -38,15 +38,15 @@ solution "Yojimbo"
         defines { "NDEBUG" }
         
 project "test"
-    files { "test.cpp" }
+    files { "tests/test.cpp" }
     links { "yojimbo" }
 
 project "connect"
-    files { "connect.cpp" }
+    files { "tests/connect.cpp" }
     links { "yojimbo" }
 
 project "info"
-    files { "info.cpp" }
+    files { "tests/info.cpp" }
     links { "yojimbo" }
 
 project "yojimbo"
@@ -54,32 +54,32 @@ project "yojimbo"
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp" }
 
 project "client"
-    files { "client.cpp", "shared.h" }
+    files { "tests/client.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
 project "server"
-    files { "server.cpp", "shared.h" }
+    files { "tests/server.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
 project "secure_server"
-    files { "server.cpp", "shared.h" }
+    files { "tests/server.cpp", "tests/shared.h" }
     links { "yojimbo" }
     defines { "SECURE_SERVER=1" }
 
 project "client_server"
-    files { "client_server.cpp", "shared.h" }
+    files { "tests/client_server.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
 project "soak"
-    files { "soak.cpp", "shared.h" }
+    files { "tests/soak.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
 project "profile"
-    files { "profile.cpp", "shared.h" }
+    files { "tests/profile.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
 project "simple_messages"
-    files { "simple_messages.cpp", "shared.h" }
+    files { "tests/simple_messages.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
 if not os.is "windows" then
