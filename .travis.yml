@@ -28,6 +28,7 @@ install:
   - cmake .
   - make
   - sudo make install
+  - popd
   - sudo ldconfig
   - ./premake5 gmake
 
