@@ -9,6 +9,8 @@ https://gist.github.com/jonathanpmartins/2510f38abee1e65c6d92
 
 Is there a prebuilt version of mbedtls I can use as well?
 
+Caching in travis may also help speed up builds: https://docs.travis-ci.com/user/caching/
+
 # Allocators for yojimbo
 
 https://github.com/mattconte/tlsf
