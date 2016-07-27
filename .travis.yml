@@ -7,3 +7,6 @@ compiler:
   - clang
   - gcc
 
+install: premake5 gmake
+
+script: make all
