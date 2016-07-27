@@ -19,7 +19,7 @@ install:
   - ./configure
   - make
   - make check
-  - make install
+  - sudo make install
   - popd
   - sudo ldconfig
   - ./premake5 gmake
