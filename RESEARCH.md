@@ -1,6 +1,12 @@
 Research
 ========
 
+# Allocators for yojimbo
+
+https://github.com/mattconte/tlsf
+
+create_mspace_with_base with dlmalloc?
+
 # Multithreaded design for yojimbo. 
 
 Start profiling it. Is this necessary? What would need to change to make multithreading easier?
