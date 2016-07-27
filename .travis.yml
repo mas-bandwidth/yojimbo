@@ -1,14 +1,13 @@
-before_script:
-  - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha9/premake-5.0.0-alpha9-linux.tar.gz -O /tmp/premake5.tar.gz
-  - tar -xvf /tmp/premake5.tar.gz
-  - export PATH=$PATH:/tmp
+language: cpp
 
 compiler:
   - clang
   - gcc
 
-install: premake5 gmake
+install:
+  - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha9/premake-5.0.0-alpha9-linux.tar.gz -O /tmp/premake5.tar.gz
+  - tar -xvf /tmp/premake5.tar.gz
+  - export PATH=$PATH:/tmp
+  - premake5 gmake
 
 script: make all
-
-language: cpp
