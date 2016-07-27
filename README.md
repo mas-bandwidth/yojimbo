@@ -1,6 +1,4 @@
-[![Travis Build Status](https://travis-ci.org/networkprotocol/libyojimbo.svg?branch=master)](https://travis-ci.org/networkprotocol/libyojimbo)
-
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/9652/badge.svg)](https://scan.coverity.com/projects/9652)
+[![Travis Build Status](https://travis-ci.org/networkprotocol/libyojimbo.svg?branch=master)](https://travis-ci.org/networkprotocol/libyojimbo) [![Coverity Scan Build Status](https://scan.coverity.com/projects/9652/badge.svg)](https://scan.coverity.com/projects/9652)
 
 # libyojimbo
 
