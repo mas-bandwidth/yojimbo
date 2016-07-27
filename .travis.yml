@@ -11,6 +11,7 @@ install:
   - sudo apt-get install -y libc6
   - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha9/premake-5.0.0-alpha9-linux.tar.gz -O /tmp/premake5.tar.gz
   - tar -xvf /tmp/premake5.tar.gz
+  - ldconfig
   - ./premake5 gmake
 
 script: make all
