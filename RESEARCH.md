@@ -1,6 +1,14 @@
 Research
 ========
 
+# Travis
+
+Faster way to install libsodium on trusty
+
+https://gist.github.com/jonathanpmartins/2510f38abee1e65c6d92
+
+Is there a prebuilt version of mbedtls I can use as well?
+
 # Allocators for yojimbo
 
 https://github.com/mattconte/tlsf
