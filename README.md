@@ -1,3 +1,5 @@
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/9652/badge.svg)](https://scan.coverity.com/projects/9652)
+
 # libyojimbo
 
 **libyojimbo** is a new, easy-to-use library for creating secure client/server network protocols over UDP.
