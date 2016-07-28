@@ -11,6 +11,8 @@ Is there a prebuilt version of mbedtls I can use as well?
 
 Caching in travis may also help speed up builds: https://docs.travis-ci.com/user/caching/
 
+Setup MacOSX build: https://docs.travis-ci.com/user/multi-os/
+
 # Allocators for yojimbo
 
 https://github.com/mattconte/tlsf
