@@ -525,7 +525,8 @@ namespace yojimbo
     {
         assert( clientState <= CLIENT_STATE_DISCONNECTED );
 
-        const bool disconnected = m_clientState != clientState;
+        if ( m_clientState != clientState )
+            OnDisconnect();
 
         if ( sendDisconnectPacket && m_clientState > CLIENT_STATE_DISCONNECTED )
         {
@@ -541,11 +542,6 @@ namespace yojimbo
         }
 
         ResetConnectionData( clientState );
-
-        if ( disconnected )
-        {
-            OnDisconnect();
-        }
     }
 
     Message * Client::CreateMessage( int type )
@@ -1213,6 +1209,8 @@ namespace yojimbo
         assert( m_numConnectedClients > 0 );
         assert( m_clientConnected[clientIndex] );
 
+        OnClientDisconnect( clientIndex );
+
         if ( sendDisconnectPacket )
         {
             for ( int i = 0; i < NumDisconnectPackets; ++i )
@@ -1235,8 +1233,6 @@ namespace yojimbo
         m_counters[SERVER_COUNTER_CLIENT_DISCONNECTS]++;
 
         m_numConnectedClients--;
-
-        OnClientDisconnect( clientIndex );
     }
 
     void Server::DisconnectAllClients( bool sendDisconnectPacket )
