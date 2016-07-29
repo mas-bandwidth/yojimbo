@@ -1,10 +1,9 @@
 @echo off
 rmdir /s /q libyojimbo
 mkdir libyojimbo
+mkdir libyojimbo\tests
 copy ..\*.h libyojimbo
 copy ..\*.cpp libyojimbo
+copy ..\tests\*.* libyojimbo\tests
 copy ..\premake5.lua libyojimbo
 robocopy /MIR /DCOPY:T ..\rapidjson libyojimbo\rapidjson
-
-REM if not exist libyojimbo\rapidjson mkdir libyojimbo\rapidjson
-REM copy ..\rapidjson\*.h libyojimbo\rapidjson\*.h
