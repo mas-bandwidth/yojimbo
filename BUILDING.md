@@ -57,7 +57,7 @@ If you see an error like this while building on MacOS:
     
 You have an older version of MacOS that premake5 is generating incorrect makefiles for :(
 
-You can workaround this bug by manually removing "-L/usr/lib64", "--start-group", and "--end-group" from the generated makefiles.
+You can workaround this bug by manually removing "--start-group" and "--end-group" from the generated makefiles, and replacing "-L/usr/lib64" with "-L/usr/lib".
 
 There is an issue about this problem: https://github.com/premake/premake-core/issues/473
 
