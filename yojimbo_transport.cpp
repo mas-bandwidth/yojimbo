@@ -104,6 +104,14 @@ namespace yojimbo
         m_allocator = NULL;
     }
 
+    void BaseTransport::Reset()
+    {
+        ClearSendQueue();
+        ClearReceiveQueue();
+        ResetContextMappings();
+        ResetEncryptionMappings();
+    }
+
     void BaseTransport::ClearSendQueue()
     {
         for ( int i = 0; i < m_sendQueue.GetNumEntries(); ++i )
