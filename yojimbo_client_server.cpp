@@ -1108,6 +1108,7 @@ namespace yojimbo
 
     Server::~Server()
     {
+        // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop
         Stop();
 
         YOJIMBO_DELETE( *m_allocator, Allocator, m_globalStreamAllocator );
@@ -1145,6 +1146,8 @@ namespace yojimbo
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
+            m_clientPacketFactory[clientIndex] = CreatePacketFactory( clientIndex );
+
             m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
         }
 
@@ -1154,11 +1157,7 @@ namespace yojimbo
             {
                 m_clientMessageFactory[clientIndex] = CreateMessageFactory( clientIndex );
 
-                m_clientPacketFactory[clientIndex] = CreatePacketFactory( clientIndex );
-
-                // todo: once I fix up per-client packet factories to actually work, bring this back
-//                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_connectionConfig );
-                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_clientMessageFactory[clientIndex], m_connectionConfig );
+                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_connectionConfig );
                
                 m_connection[clientIndex]->SetListener( this );
 
@@ -1186,9 +1185,7 @@ namespace yojimbo
 
         DisconnectAllClients();
 
-        m_transport->ResetContextMappings();
-
-        m_transport->ResetEncryptionMappings();
+        m_transport->Reset();
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
@@ -1220,7 +1217,7 @@ namespace yojimbo
         {
             for ( int i = 0; i < NumDisconnectPackets; ++i )
             {
-                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );
+                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );
 
                 if ( packet )
                 {
@@ -1320,6 +1317,19 @@ namespace yojimbo
         assert( clientIndex < m_maxClients );
         assert( m_clientMessageFactory[clientIndex] );
         return *m_clientMessageFactory[clientIndex];
+    }
+
+    Packet * Server::CreateGlobalPacket( int type )
+    {
+        return m_transport->CreatePacket( type );
+    }
+
+    Packet * Server::CreateClientPacket( int clientIndex, int type )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_clientPacketFactory[clientIndex] );
+        return m_clientPacketFactory[clientIndex]->CreatePacket( type );
     }
 
     void Server::SendPackets()
@@ -1894,7 +1904,7 @@ namespace yojimbo
             return;
         }
 
-        ConnectionChallengePacket * connectionChallengePacket = (ConnectionChallengePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE );
+        ConnectionChallengePacket * connectionChallengePacket = (ConnectionChallengePacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE );
         if ( !connectionChallengePacket )
         {
             debug_printf( "null connection challenge packet\n" );
@@ -1958,7 +1968,7 @@ namespace yojimbo
         if ( m_numConnectedClients == m_maxClients )
         {
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
-            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
                 SendPacket( address, connectionDeniedPacket );
@@ -2023,7 +2033,7 @@ namespace yojimbo
         if ( m_numConnectedClients == m_maxClients )
         {
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
-            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
                 SendPacket( address, connectionDeniedPacket );
@@ -2130,7 +2140,7 @@ namespace yojimbo
 
     ConnectionHeartBeatPacket * Server::CreateHeartBeatPacket( int clientIndex )
     {
-        ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+        ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) CreateClientPacket( clientIndex, CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
         if ( packet )
         {

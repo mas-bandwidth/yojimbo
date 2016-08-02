@@ -12,6 +12,31 @@ The simplest solution seems to be to store the packet factory in each packet, so
 
 This is a bit clumsy, and I'm not a huge fan of it, but the requirements of silo'ing each client set of packet factories from each other is quite important, so even though it is less than perfectly convenient, this seems like the correct choice.
 
+Next, when a packet is being created on the server, add two support functions:
+
+    CreateGlobalPacket( int type )
+    CreateClientPacket( int clientIndex, int type )
+
+And call the appropriate packet create function depending on context.
+
+Pass in the per-client packet factory to the connection.
+
+All tests pass.
+
+Actually, they pass sometimes. Othertimes, in client_server_connect I get packet leaks.
+
+What is going on? Ordering issues with deletion of packets relative to the factory getting cleaned up? 
+
+The packet type being leaked is a connection packet (4)
+
+It's probably the transport that needs to have some sort of flush event. eg. flush all packets in send and receive queues.
+
+Yeah. I'm pretty sure the transport just is randomly having some packets still in send/receive queues at the point of stop and they're not getting cleared.
+
+Added a "Reset" method to transport interface. It will clear all packets in queues. Should fix it.
+
+Oh great that definitely fixed it. It was absolutely needed too, because you really don't want anything before Server::Stop spilling across into the next Server::Start.
+
 
 Tuesday July 26th, 2016
 =======================

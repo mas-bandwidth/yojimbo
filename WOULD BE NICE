@@ -2,6 +2,22 @@ WOULD BE NICE
 
     ------------------
 
+    Definitely need more usage documentation and samples showing how to do stuff.
+
+    I don't know that it's immediately obvious how to use libyojimbo from the samples. Or, what exactly libyojimbo does or what it's for?
+
+    Also, better documentation could be added explaining what yojimbo is for (dedicated servers), and how its protocol works.
+
+    Perhaps a bunch of posts to gafferongames.com would be a good idea to start?
+
+    ------------------
+
+    Make sure that all code that creates packets is aware that it could get a NULL value returned. 
+
+    All message and packet create should gracefully handle packet create being NULL and set an error condition on the connection, or ignore, whichever is appropriate.
+
+    ------------------
+
     AEAD idea. Protocol is currently vulnerable to being spammed invalid connect tokens.
 
     Of course, an invalid connect token won't decrypt, but a connect token that is an old stale token (reply attack) *will* decrypt.

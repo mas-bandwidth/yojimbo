@@ -68,6 +68,8 @@ namespace yojimbo
 
         virtual ~Transport() {}
 
+        virtual void Reset() = 0;
+
         virtual Packet * CreatePacket( int type ) = 0;
 
         virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
@@ -130,6 +132,8 @@ namespace yojimbo
                        int receiveQueueSize = 1024 );
 
         ~BaseTransport();
+
+        void Reset();
 
         Packet * CreatePacket( int type );
 

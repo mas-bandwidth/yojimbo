@@ -625,6 +625,10 @@ namespace yojimbo
 
         MessageFactory & GetMessageFactory( int clientIndex );
 
+        Packet * CreateGlobalPacket( int type );
+
+        Packet * CreateClientPacket( int clientIndex, int type );
+
         void SendPackets();
 
         void ReceivePackets();
