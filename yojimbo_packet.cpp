@@ -33,6 +33,15 @@
 
 namespace yojimbo
 {
+    void Packet::Destroy()
+    {
+        assert( m_packetFactory );
+
+        m_packetFactory->DestroyPacket( this );
+    }
+
+    // ------------------------------------------------------
+
     int WritePacket( const PacketReadWriteInfo & info, Packet * packet, uint8_t * buffer, int bufferSize )
     {
         assert( packet );
@@ -226,7 +235,9 @@ namespace yojimbo
         return packet;
 
 cleanup:
-        info.packetFactory->DestroyPacket( packet );
+
+        packet->Destroy();
+
         return NULL;
     }
 
@@ -308,6 +319,13 @@ cleanup:
         assert( packet );
         if ( packet )
             packet->SetType( type );
+    }
+
+    void PacketFactory::SetPacketFactory( Packet * packet )
+    {
+        assert( packet );
+        if ( packet )
+            packet->SetPacketFactory( *this );
     }
 
     Allocator & PacketFactory::GetAllocator()

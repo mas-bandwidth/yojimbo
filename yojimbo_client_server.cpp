@@ -721,7 +721,7 @@ namespace yojimbo
 
             ProcessPacket( packet, address, sequence );
 
-            m_transport->DestroyPacket( packet );
+            packet->Destroy();
         }
     }
 
@@ -897,7 +897,7 @@ namespace yojimbo
 
         if ( !IsConnected() )
         {
-            m_transport->DestroyPacket( packet );
+            packet->Destroy();
             return;
         }
 
@@ -1389,7 +1389,7 @@ namespace yojimbo
             if ( IsRunning() )
                 ProcessPacket( packet, address, sequence );
 
-            m_transport->DestroyPacket( packet );
+            packet->Destroy();
         }
     }
 

@@ -70,8 +70,6 @@ namespace yojimbo
 
         virtual Packet * CreatePacket( int type ) = 0;
 
-        virtual void DestroyPacket( Packet * packet ) = 0;
-
         virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
 
         virtual Packet * ReceivePacket( Address & from, uint64_t * sequence = NULL ) = 0;
@@ -134,8 +132,6 @@ namespace yojimbo
         ~BaseTransport();
 
         Packet * CreatePacket( int type );
-
-        void DestroyPacket( Packet * packet );
 
         void SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate );
 
