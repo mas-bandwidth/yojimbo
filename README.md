@@ -12,7 +12,7 @@ It is designed around the networking requirements of competitive realtime multip
 
 Current work is focused on implement security features that silo client connections into their own heaps, so a malicious attacker is not able to mount protocol level attacks to exhaust server resources. Any attack of this nature will result in resources being depleted for only that client, triggering the malicious client to be disconnected. Next, packet fragmentation and reassembly will be implemented and at this point libyojimbo 0.3 will be ready for release.
 
-For more details refer to the [roadmap](https://github.com/networkprotocol/libyojimbo/blob/master/ROADMAP.md).
+For more details please refer to the [roadmap](https://github.com/networkprotocol/libyojimbo/blob/master/ROADMAP.md).
 
 ## Author
 
