@@ -37,17 +37,21 @@
 
 namespace yojimbo
 {
+    class PacketFactory;
+
     class Packet : public Serializable
     {
     public:        
         
-        Packet() : m_type( 0 ) {}
+        Packet() : m_packetFactory( NULL ), m_type( 0 ) {}
 
-        virtual ~Packet() { m_type = -1; }
+        void Destroy();
 
         bool IsValid() const { return m_type >= 0; }
 
         int GetType() const { return m_type; }
+
+        PacketFactory & GetPacketFactory() { return *m_packetFactory; }
 
     protected:
 
@@ -55,12 +59,18 @@ namespace yojimbo
 
         void SetType( int type) { m_type = type; }
 
-        int m_type;
+        void SetPacketFactory( PacketFactory & packetFactory ) { m_packetFactory = &packetFactory; }
+
+        virtual ~Packet() { m_packetFactory = NULL; m_type = -1; }
 
     private:
 
+        PacketFactory * m_packetFactory;
+
+        int m_type;
+
         Packet( const Packet & other );
-        
+
         Packet & operator = ( const Packet & other );
     };
 
@@ -82,8 +92,6 @@ namespace yojimbo
 
         Packet * CreatePacket( int type );
 
-        void DestroyPacket( Packet * packet );
-
         int GetNumPacketTypes() const;
 
         int GetError() const;
@@ -92,7 +100,13 @@ namespace yojimbo
 
     protected:
 
+        friend class Packet;
+
+        void DestroyPacket( Packet * packet );
+
         void SetPacketType( Packet * packet, int type );
+
+        void SetPacketFactory( Packet * packet );
 
         Allocator & GetAllocator();
 
@@ -174,6 +188,7 @@ namespace yojimbo
                     if ( !packet )                                                                                  \
                         return NULL;                                                                                \
                     SetPacketType( packet, packet_type );                                                           \
+                    SetPacketFactory( packet );                                                                     \
                     return packet;        
 
 #define YOJIMBO_PACKET_FACTORY_FINISH()                                                                             \

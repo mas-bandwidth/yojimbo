@@ -112,7 +112,7 @@ namespace yojimbo
             assert( entry.packet );
             assert( entry.packet->IsValid() );
             assert( entry.address.IsValid() );
-            m_packetFactory->DestroyPacket( entry.packet );
+            entry.packet->Destroy();
             entry.address = Address();
             entry.packet = NULL;
         }
@@ -128,7 +128,7 @@ namespace yojimbo
             assert( entry.packet );
             assert( entry.packet->IsValid() );
             assert( entry.address.IsValid() );
-            m_packetFactory->DestroyPacket( entry.packet );
+            entry.packet->Destroy();
             entry.address = Address();
             entry.packet = NULL;
         }
@@ -140,12 +140,6 @@ namespace yojimbo
     {
         assert( m_packetFactory );
         return m_packetFactory->CreatePacket( type );
-    }
-
-    void BaseTransport::DestroyPacket( Packet * packet )
-    {
-        assert( m_packetFactory );
-        m_packetFactory->DestroyPacket( packet );
     }
 
     void BaseTransport::SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate )
@@ -163,7 +157,7 @@ namespace yojimbo
 
             WriteAndFlushPacket( address, packet, sequence );
 
-            m_packetFactory->DestroyPacket( packet );
+            packet->Destroy();
         }
         else
         {
@@ -180,7 +174,7 @@ namespace yojimbo
             {
                 debug_printf( "base transport send queue overflow\n" );
                 m_counters[TRANSPORT_COUNTER_SEND_QUEUE_OVERFLOW]++;
-                m_packetFactory->DestroyPacket( packet );
+                packet->Destroy();
                 return;
             }
         }
@@ -228,7 +222,7 @@ namespace yojimbo
 
             WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
 
-            m_packetFactory->DestroyPacket( entry.packet );
+            entry.packet->Destroy();
         }
     }
 

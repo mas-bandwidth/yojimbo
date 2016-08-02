@@ -456,9 +456,9 @@ void test_packets()
     check( b->GetType() == TEST_PACKET_B );
     check( c->GetType() == TEST_PACKET_C );
 
-    packetFactory.DestroyPacket( a );
-    packetFactory.DestroyPacket( b );
-    packetFactory.DestroyPacket( c );
+    a->Destroy();
+    b->Destroy();
+    c->Destroy();
 }
 
 void test_address_ipv4()
@@ -3530,7 +3530,7 @@ void test_connection_counters()
 
         check( connection.ProcessPacket( packet ) );
 
-        packetFactory.DestroyPacket( packet );
+        packet->Destroy();
         packet = NULL;
 
         if ( connection.GetCounter( CONNECTION_COUNTER_PACKETS_ACKED ) >= NumAcks )
@@ -3583,7 +3583,7 @@ void test_connection_acks()
             }
         }
 
-        packetFactory.DestroyPacket( packet );
+        packet->Destroy();
         packet = NULL;
     }
 
@@ -3687,7 +3687,7 @@ void test_connection_reliable_ordered_messages()
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
                 sender.ProcessPacket( (ConnectionPacket*) packet );
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -3702,7 +3702,7 @@ void test_connection_reliable_ordered_messages()
                 receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -3828,7 +3828,7 @@ void test_connection_reliable_ordered_blocks()
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
                 sender.ProcessPacket( (ConnectionPacket*) packet );
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -3843,7 +3843,7 @@ void test_connection_reliable_ordered_blocks()
                 receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -3993,7 +3993,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
                 sender.ProcessPacket( (ConnectionPacket*) packet );
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -4008,7 +4008,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
                 receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -4182,7 +4182,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
                 sender.ProcessPacket( (ConnectionPacket*) packet );
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -4197,7 +4197,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                 receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         for ( int channelId = 0; channelId < NumChannels; ++channelId )
@@ -4364,7 +4364,7 @@ void test_connection_unreliable_unordered_messages()
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
                 sender.ProcessPacket( (ConnectionPacket*) packet );
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -4379,7 +4379,7 @@ void test_connection_unreliable_unordered_messages()
                 receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         int numMessagesReceived = 0;
@@ -4504,7 +4504,7 @@ void test_connection_unreliable_unordered_blocks()
             if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
                 sender.ProcessPacket( (ConnectionPacket*) packet );
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         while ( true )
@@ -4519,7 +4519,7 @@ void test_connection_unreliable_unordered_blocks()
                 receiver.ProcessPacket( (ConnectionPacket*) packet );
             }
 
-            packetFactory.DestroyPacket( packet );
+            packet->Destroy();
         }
 
         int numMessagesReceived = 0;

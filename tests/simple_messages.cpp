@@ -331,7 +331,7 @@ bool ReadConnectionPacket( Connection & connection, MemoryTransport & transport,
 
     if ( packet->GetType() != CONNECTION_PACKET )
     {
-        transport.DestroyPacket( packet );
+        packet->Destroy();
         return false;
     }
 
@@ -339,7 +339,7 @@ bool ReadConnectionPacket( Connection & connection, MemoryTransport & transport,
 
     connection.ProcessPacket( connectionPacket );
 
-    transport.DestroyPacket( packet );
+    packet->Destroy();
 
     return true;
 }
