@@ -2,38 +2,26 @@ DONE
 
 TODO
 
-    Next: start with hooking up the per-client packet factories on the server.
+    Start with instantiating the per-client packet factories on the server.
 
     Base this on exactly how the per-client message factories are created. In fact, just search and duplicate.
 
-    Now that per-client packet factories are hooked up to connection, these packets are being created with different factories, but being processed in the one place.
-
-    The problem is that now, when packets are sent, you don't know where they came from, so how do you find which factory to destroy them with?
-
-    It seems inescapable now that packets need to back reference the factory that created them with a pointer.
-
-    This changes how packets should be destroyed. They need a packet->Destroy() method now?
-
-    Otherwise, it will be something very awkward, like YOJIMBO_DELETE( packet->GetAllocator(), Packet, packet ); Blergh. =p
-
-    Also, will need to modify code on the client to create the packet with the appropriate factory. All of the packets inside client are created via the transport factory. This will need to change:
-
-    eg:
+    Next, when a packet is being sent on the server, add two support functions:
 
         CreateGlobalPacket( int type )
         CreateClientPacket( int clientIndex, int type )
 
-    Then switch over to packets having pointers to their allocator and a "Release" function.
+    And call the appropriate packet create function depending on context.
 
-    This should get it into the correct place where I can safely implement packet fragmentation and reassembly securely.
+    Next, add the packet factory to the context.
 
-    So I can check in work in progress, commenting out the code that passes in the per-client packet factory into the connection on create.
+    Now when a packet is read in, see if a context exists, and if it does, use the packet factory in the context instead of the global factory on the transport.
 
-    Will break that back once:
+    At this point, packets should be getting allocated from the per-client packet factories where appropriate, and the global packet factory for all other packets.
 
-        1. Global vs. client packet creation is implemented in server
+    ------------------
 
-        2. Packets have a pointer to their factory with "Release" function
+    Make sure that all code that creates packets is aware that it could get a NULL value returned. All message and packet create should gracefully handle packet create being NULL and set an error condition on the connection, or ignore, whichever is appropriate.
 
     ------------------
 
