@@ -356,6 +356,7 @@ else
         description = "Launch 64 connect instances to stress the matcher and server",
         execute = function ()
             for i = 0, 63 do
+                -- todo: test if bin\\x64\\Debug\\connect exists, abort if it doesn't
                 os.execute "start /B bin\\x64\\Debug\\connect"
             end
         end

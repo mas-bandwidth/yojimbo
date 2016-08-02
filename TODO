@@ -1,10 +1,12 @@
 DONE    
 
-    Start with hooking up the per-client packet factories on the server.
+TODO
+
+    Next: start with hooking up the per-client packet factories on the server.
 
     Base this on exactly how the per-client message factories are created. In fact, just search and duplicate.
 
-    Now that per-client packet factories are hooked up to connection, these packets are being created with the 
+    Now that per-client packet factories are hooked up to connection, these packets are being created with different factories, but being processed in the one place.
 
     The problem is that now, when packets are sent, you don't know where they came from, so how do you find which factory to destroy them with?
 
@@ -32,10 +34,6 @@ DONE
         1. Global vs. client packet creation is implemented in server
 
         2. Packets have a pointer to their factory with "Release" function
-
-    Done. Checking in and taking a break.
-
-TODO
 
     ------------------
 
