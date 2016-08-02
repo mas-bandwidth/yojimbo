@@ -1,4 +1,18 @@
 
+Tuesday August 2nd, 2016
+========================
+
+We need multiple packet factories in the server, a global packet factory, and per-client factories.
+
+The problem is that now, when packets are sent or received, at the point where the packet is being destroyed, you don't know where they came from, so how do you find which factory to destroy the packet with?
+
+It's too much to expect the user to know which factory a packet should be destroyed with. Similarly, the transport code and a bunch of other code at the point where it needs to destroy packets, doesn't really have the information it needs passed in to work it which packet factory should be used to destroy the packet.
+
+The simplest solution seems to be to store the packet factory in each packet, so it knows how to destroy itself. eg: packet->Destroy()
+
+This is a bit clumsy, and I'm not a huge fan of it, but the requirements of silo'ing each client set of packet factories from each other is quite important, so even though it is less than perfectly convenient, this seems like the correct choice.
+
+
 Tuesday July 26th, 2016
 =======================
 
