@@ -76,7 +76,7 @@ Added counters for each of these so it would be easy to instrument and can see i
 
 Add client error states corresponding to stream error, message factory error, packet factory error.
 
-Hook these states up in the client advance time function. Add // todo for packet factory error once it is added.
+Hook these states up in the client advance time function. Add todo for packet factory error once it is added.
 
 Add the concept of packet factory error, same as message factory basically. Handle allocator exhaustion as well.
 

@@ -151,7 +151,6 @@ namespace yojimbo
         MESSAGE_FACTORY_ERROR_NONE,
         MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,
         MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED
-        // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.
     };
 
     class MessageFactory

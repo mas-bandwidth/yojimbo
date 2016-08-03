@@ -32,7 +32,6 @@
 
 namespace yojimbo
 {
-    // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.
     const int MaxContextMappings = 1024;
 
     class Allocator;

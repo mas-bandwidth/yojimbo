@@ -370,13 +370,13 @@ namespace yojimbo
 
         m_listener = NULL;
 
-        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
+        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.sendQueueSize );
         
-        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, *m_allocator, m_config.sentPacketsSize );
+        m_messageSentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, *m_allocator, m_config.sentPacketBufferSize );
         
-        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
+        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.receiveQueueSize );
         
-        m_sentPacketMessageIds = (uint16_t*) m_allocator->Allocate( sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.messageSendQueueSize );
+        m_sentPacketMessageIds = (uint16_t*) m_allocator->Allocate( sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.sendQueueSize );
 
         if ( !config.disableBlocks )
         {
@@ -601,14 +601,14 @@ namespace yojimbo
 
         numMessageIds = 0;
 
-        if ( m_config.messagePacketBudget > 0 )
-            availableBits = min( m_config.messagePacketBudget * 8, availableBits );
+        if ( m_config.packetBudget > 0 )
+            availableBits = min( m_config.packetBudget * 8, availableBits );
 
         const int giveUpBits = 4 * 8;
 
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
-        const int messageLimit = min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize ) / 2;
+        const int messageLimit = min( m_config.sendQueueSize, m_config.receiveQueueSize ) / 2;
 
         uint16_t previousMessageId = 0;
 
@@ -621,7 +621,7 @@ namespace yojimbo
             if ( availableBits - usedBits < giveUpBits )
                 break;
 
-            if ( giveUpCounter > m_config.messageSendQueueSize )
+            if ( giveUpCounter > m_config.sendQueueSize )
                 break;
 
             uint16_t messageId = m_oldestUnackedMessageId + i;
@@ -706,7 +706,7 @@ namespace yojimbo
             sentPacket->acked = 0;
             sentPacket->block = 0;
             sentPacket->timeSent = m_time;
-            sentPacket->messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketsSize ) * m_config.maxMessagesPerPacket ];
+            sentPacket->messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketBufferSize ) * m_config.maxMessagesPerPacket ];
             sentPacket->numMessageIds = numMessageIds;            
             for ( int i = 0; i < numMessageIds; ++i )
                 sentPacket->messageIds[i] = messageIds[i];
@@ -716,7 +716,7 @@ namespace yojimbo
     void ReliableOrderedChannel::ProcessPacketMessages( int numMessages, Message ** messages )
     {
         const uint16_t minMessageId = m_receiveMessageId;
-        const uint16_t maxMessageId = m_receiveMessageId + m_config.messageReceiveQueueSize - 1;
+        const uint16_t maxMessageId = m_receiveMessageId + m_config.receiveQueueSize - 1;
 
         for ( int i = 0; i < (int) numMessages; ++i )
         {
@@ -978,8 +978,6 @@ namespace yojimbo
         }
     }
 
-    // todo: should probably be able to return false to say, HEY, STOP PROCESSING THIS PACKET NAO!
-
     void ReliableOrderedChannel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )
     {  
         assert( !m_config.disableBlocks );
@@ -1115,9 +1113,9 @@ namespace yojimbo
 
         m_listener = NULL;
 
-        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.messageSendQueueSize );
+        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.sendQueueSize );
         
-        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.messageReceiveQueueSize );
+        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.receiveQueueSize );
 
         Reset();
     }
@@ -1214,8 +1212,8 @@ namespace yojimbo
         if ( m_messageSendQueue->IsEmpty() )
             return 0;
 
-        if ( m_config.messagePacketBudget > 0 )
-            availableBits = min( m_config.messagePacketBudget * 8, availableBits );
+        if ( m_config.packetBudget > 0 )
+            availableBits = min( m_config.packetBudget * 8, availableBits );
 
         const int giveUpBits = 4 * 8;
 

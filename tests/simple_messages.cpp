@@ -384,9 +384,9 @@ int MessagesMain()
     connectionConfig.maxPacketSize = MaxPacketSize;
     connectionConfig.numChannels = NUM_CHANNELS;
     connectionConfig.channelConfig[UNRELIABLE_CHANNEL].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    connectionConfig.channelConfig[UNRELIABLE_CHANNEL].messagePacketBudget = 2 * 1024;
+    connectionConfig.channelConfig[UNRELIABLE_CHANNEL].packetBudget = 2 * 1024;
     connectionConfig.channelConfig[RELIABLE_CHANNEL].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    connectionConfig.channelConfig[RELIABLE_CHANNEL].messagePacketBudget = 2 * 1024;
+    connectionConfig.channelConfig[RELIABLE_CHANNEL].packetBudget = 2 * 1024;
 
     Connection sender( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
     Connection receiver( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig );
