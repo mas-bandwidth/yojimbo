@@ -446,6 +446,9 @@ namespace yojimbo
 
     Client::~Client()
     {
+        // IMPORTANT: Please disconnect the client before destroying it
+        assert( !IsConnected() );
+
         assert( m_allocator );
 
         YOJIMBO_DELETE( *m_allocator, Connection, m_connection );

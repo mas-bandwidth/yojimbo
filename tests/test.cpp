@@ -1591,6 +1591,10 @@ void test_client_server_connect()
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 void test_client_server_reconnect()
@@ -1762,6 +1766,10 @@ void test_client_server_reconnect()
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 void test_client_server_client_side_disconnect()
@@ -1886,6 +1894,10 @@ void test_client_server_client_side_disconnect()
     }
 
     check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 void test_client_server_server_side_disconnect()
@@ -2010,6 +2022,10 @@ void test_client_server_server_side_disconnect()
     }
 
     check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 void test_client_server_connection_request_timeout()
@@ -2164,6 +2180,10 @@ void test_client_server_connection_response_timeout()
 
     check( client.ConnectionFailed() );
     check( client.GetClientState() == CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 void test_client_server_client_side_timeout()
@@ -2275,6 +2295,10 @@ void test_client_server_client_side_timeout()
     }
 
     check( server.GetNumConnectedClients() == 0 );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 void test_client_server_server_side_timeout()
@@ -2387,6 +2411,10 @@ void test_client_server_server_side_timeout()
 
     check( !client.IsConnected() );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_TIMEOUT );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 struct ClientData
@@ -2620,7 +2648,10 @@ void test_client_server_server_is_full()
     for ( int i = 0; i < NumClients; ++i )
     {
         check( clientData[i].client->IsConnected() );
+        clientData[i].client->Disconnect();
     }
+
+    server.Stop();
 }
 
 void test_client_server_connect_token_reuse()
@@ -2760,6 +2791,11 @@ void test_client_server_connect_token_reuse()
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
     check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED ) > 0 );
+
+    client.Disconnect();
+    client2.Disconnect();
+
+    server.Stop();
 }
 
 void test_client_server_connect_token_expiry()
@@ -2845,6 +2881,8 @@ void test_client_server_connect_token_expiry()
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_EXPIRED ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
+
+    server.Stop();
 }
 
 void test_client_server_connect_token_whitelist()
@@ -2938,6 +2976,8 @@ void test_client_server_connect_token_whitelist()
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_SERVER_ADDRESS_NOT_IN_WHITELIST ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
+
+    server.Stop();
 }
 
 void test_client_server_connect_token_invalid()
@@ -3014,6 +3054,8 @@ void test_client_server_connect_token_invalid()
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_FAILED_TO_DECRYPT ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
+
+    server.Stop();
 }
 
 void test_client_server_game_packets()
@@ -3143,6 +3185,10 @@ void test_client_server_game_packets()
     }
 
     check( client.GetNumGamePacketsReceived() >= NumGamePackets && server.GetNumGamePacketsReceived( clientIndex ) >= NumGamePackets );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 #if YOJIMBO_INSECURE_CONNECT
@@ -3216,6 +3262,10 @@ void test_client_server_insecure_connect()
     check( !client.IsConnecting() );
     check( client.IsConnected() );
     check( server.GetNumConnectedClients() == 1 );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 void test_client_server_insecure_connect_timeout()
@@ -4854,6 +4904,10 @@ void test_connection_client_server()
 
     check( numMessagesReceivedFromClient == NumMessagesSent );
     check( numMessagesReceivedFromServer == NumMessagesSent );
+
+    client.Disconnect();
+
+    server.Stop();
 }
 
 int main()

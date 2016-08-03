@@ -253,6 +253,10 @@ int SoakMain()
         printf( "\nstopped\n" );
     }
 
+    client.Disconnect();
+    
+    server.Stop();
+
     return 0;
 }
 

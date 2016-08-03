@@ -99,7 +99,7 @@ int ServerMain()
 
     printf( "\nserver stopped\n" );
 
-    server.DisconnectAllClients();
+    server.Stop();
 
     return 0;
 }

@@ -137,8 +137,7 @@ int ConnectMain( int argc, char * argv[] )
 
     printf( "\n" );
 
-    if ( client.IsConnected() )
-        client.Disconnect();
+    client.Disconnect();
 
     return 0;
 }
