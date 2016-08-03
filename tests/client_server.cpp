@@ -117,6 +117,10 @@ int ClientServerMain()
         serverTransport.AdvanceTime( time );
     }
 
+    client.Disconnect();
+
+    server.Stop();
+
     return 0;
 }
 

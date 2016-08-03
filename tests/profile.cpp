@@ -61,6 +61,7 @@ struct ServerData
     {
         if ( server )
         {
+            server->Stop();
             delete server;
             server = NULL;
         }
@@ -104,6 +105,7 @@ struct ClientData
     {
         if ( client )
         {
+            client->Disconnect();
             delete client;
             client = NULL;
         }

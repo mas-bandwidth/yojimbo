@@ -57,6 +57,12 @@ It's probably a good idea to create a yojimbo release now. Go home and test on w
 
 Worked through minor todo fixes before the next preview release.
 
+You now have to call Server::Stop before it is destroyed. Reason: stop calls virtuals (OnStop) and they won't work properly if called during a destructor.
+
+Code will assert if you forget to call stop.
+
+Same treatment for client. Realized "Disconnect" was missing in the dtor. You really want to disconnect clean if possible. Again, can't call virtuals in destructor so this is the safest option.
+
 
 Tuesday July 26th, 2016
 =======================

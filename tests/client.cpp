@@ -105,8 +105,7 @@ int ClientMain( int argc, char * argv[] )
     if ( quit )
         printf( "\nclient stopped\n" );
 
-    if ( client.IsConnected() )
-        client.Disconnect();
+    client.Disconnect();
 
     return 0;
 }
