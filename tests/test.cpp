@@ -1070,8 +1070,6 @@ YOJIMBO_PACKET_FACTORY_START( GamePacketFactory, ClientServerPacketFactory, GAME
     YOJIMBO_DECLARE_PACKET_TYPE( GAME_PACKET, GamePacket );
 YOJIMBO_PACKET_FACTORY_FINISH();
 
-// todo: this code is all in shared. just port over what is needed and use that. why duplicate it
-
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
     static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };

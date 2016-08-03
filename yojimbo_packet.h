@@ -79,7 +79,6 @@ namespace yojimbo
         PACKET_FACTORY_ERROR_NONE,
         PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,
         PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED
-        // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.
     };
 
     class PacketFactory

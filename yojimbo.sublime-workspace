@@ -4,132 +4,12 @@
 		"selected_items":
 		[
 			[
-				"PACKET",
-				"PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED"
-			],
-			[
-				"SERVER_CLIENT_ERROR",
-				"SERVER_CLIENT_ERROR_STREAM_ALLOCATOR"
-			],
-			[
-				"MESSA",
-				"MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE"
-			],
-			[
-				"SERVER_RES",
-				"SERVER_RESOURCE_PER_CLIENT"
-			],
-			[
-				"m_m",
-				"m_maxClients"
-			],
-			[
-				"Reset",
-				"ResetEncryptionMappings"
-			],
-			[
-				"m_streamAllo",
-				"m_clientStreamAllocator"
-			],
-			[
-				"m_stream",
-				"m_clientStreamAllocator"
-			],
-			[
-				"m_global",
+				"m_glob",
 				"m_globalStreamAllocator"
 			],
 			[
-				"m_alloc",
-				"m_allocateConnections"
-			],
-			[
-				"ADDRESS_FILTER",
-				"ADDRESS_FILTER_IPV6_ONLY"
-			],
-			[
-				"ADDR",
-				"ADDRESS_FILTER_IPV4_ONLY"
-			],
-			[
-				"numMes",
-				"numMessagesSent"
-			],
-			[
-				"Max",
-				"MaxSmallMessageSize"
-			],
-			[
-				"sender",
-				"senderToReceiverPrivateKey"
-			],
-			[
-				"numCh",
-				"numChannelsWithData"
-			],
-			[
-				"allocat",
-				"Allocator"
-			],
-			[
-				"clienttransport",
-				"clientTransport2"
-			],
-			[
-				"m_send",
-				"m_messageSendQueue"
-			],
-			[
-				"CONNECTION",
-				"CONNECTION_COUNTER_PACKETS_READ"
-			],
-			[
-				"m_mess",
-				"m_messageSentPackets"
-			],
-			[
-				"numMess",
-				"numMessagesReceivedFromClient"
-			],
-			[
 				"num",
-				"numMessagesReceivedFromClient"
-			],
-			[
-				"last",
-				"lastHeartBeatSendTime"
-			],
-			[
-				"CLIENT_",
-				"CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT"
-			],
-			[
-				"Proc",
-				"ProcessMessageAck"
-			],
-			[
-				"SentPac",
-				"MessageSentPacketEntry"
-			],
-			[
-				"Con",
-				"ConnectionConfig"
-			],
-			[
-				"maxMes",
-				"maxMessagesPerPacket"
-			],
-			[
-				"ERROR",
-				"CONNECTION_ERROR_NONE"
-			],
-			[
-				"Mess",
-				"MessageMagic"
-			],
-			[
-				"TEST_PACK",
-				"TEST_PACKET_CONNECTION"
+				"numServerAddresses"
 			],
 			[
 				"Connet",
@@ -272,12 +152,20 @@
 				"decryptedMessageLength"
 			],
 			[
+				"CONNECTION",
+				"CONNECTION_DENIED_ALREADY_CONNECTED"
+			],
+			[
 				"CLIENT_STATE_CONN",
 				"CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT"
 			],
 			[
 				"CLIENT_STAT",
 				"CLIENT_STATE_SENDING_CHALLENGE_RESPONSE"
+			],
+			[
+				"last",
+				"last_packet_send_time"
 			],
 			[
 				"m_last",
@@ -392,6 +280,10 @@
 				"PacketBufferEntry"
 			],
 			[
+				"Max",
+				"MaxFragmentSize"
+			],
+			[
 				"SERIALIZE_",
 				"PROTOCOL2_SERIALIZE_OBJECT"
 			],
@@ -472,6 +364,10 @@
 				"time_last_packet_received"
 			],
 			[
+				"PACKET",
+				"PACKET_TYPE_CONNECTION_REQUEST"
+			],
+			[
 				"PACKET_TYPE",
 				"PACKET_TYPE_INPUT"
 			],
@@ -514,11 +410,245 @@
 			[
 				"Position",
 				"QuantizedPositionBoundXY"
+			],
+			[
+				"Quantiz",
+				"QuantizedSnapshotWithVelocity"
+			],
+			[
+				"Qua",
+				"QuantizedCubeState"
+			],
+			[
+				"linera_",
+				"linear_velocity_y"
+			],
+			[
+				"DELTA_MODE",
+				"DELTA_MODE_RELATIVE_INDEX"
+			],
+			[
+				"COMPRESSION_MODE",
+				"COMPRESSION_MODE_POSITION"
+			],
+			[
+				"abso",
+				"absolute_position_bits"
+			],
+			[
+				"absol",
+				"absolute_quaternion_bits"
+			],
+			[
+				"ab",
+				"absolute_quaternion_bits"
+			],
+			[
+				"Rel",
+				"RelativeQuaternionLargeW"
+			],
+			[
+				"quater",
+				"quaternion_negative_w"
+			],
+			[
+				"COMPRESSION",
+				"COMPRESSION_MODE_QUANTIZE_POSITION"
+			],
+			[
+				"QuantizedPosition",
+				"QuantizedPositionBoundXY"
+			],
+			[
+				"snap",
+				"snapshot_sequence_buffer"
+			],
+			[
+				"CONTEXT_SNAP",
+				"CONTEXT_SNAPSHOT_SLIDING_WINDOW"
+			],
+			[
+				"ntework",
+				"network_simulator"
+			],
+			[
+				"snapshot",
+				"snapshot_sliding_window"
+			],
+			[
+				"m_ba",
+				"m_bandwidthExclude"
+			],
+			[
+				"received",
+				"received_snapshot_this_frame"
+			],
+			[
+				"COMPRES",
+				"COMPRESSION_MODE_UNCOMPRESSED"
+			],
+			[
+				"INT",
+				"SNAPSHOT_INTERPOLATION_HERMITE"
+			],
+			[
+				"SNAPSHOT_MODE_",
+				"SNAPSHOT_MODE_LINEAR_INTERPOLATION_10PPS"
+			],
+			[
+				"SNAPSHOT_MODE",
+				"SNAPSHOT_MODE_NAIVE_60PPS_JITTER"
+			],
+			[
+				"interpo",
+				"interpolation_start_time"
+			],
+			[
+				"inter",
+				"interpolation_start_time"
+			],
+			[
+				"SNAPSHOT_IN",
+				"SNAPSHOT_INTERPOLATION_HERMITE"
+			],
+			[
+				"SNAPSHOT",
+				"SNAPSHOT_INTERPOLATION_LINEAR"
 			]
 		]
 	},
 	"buffers":
 	[
+		{
+			"file": "premake5.lua",
+			"settings":
+			{
+				"buffer_size": 12853,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "Searching 348 files for \"// todo\" (case sensitive)\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\CHANGES.md:\n   77  Add client error states corresponding to stream error, message factory error, packet factory error.\n   78  \n   79: Hook these states up in the client advance time function. Add // todo for packet factory error once it is added.\n   80  \n   81  Add the concept of packet factory error, same as message factory basically. Handle allocator exhaustion as well.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\Yojimbo.VC.VC.opendb:\n    ERROR: Unable to open file\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_channel.cpp:\n  979      }\n  980  \n  981:     // todo: should probably be able to return false to say, HEY, STOP PROCESSING THIS PACKET NAO!\n  982  \n  983      void ReliableOrderedChannel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop\n 1112          Stop();\n 1113  \n ....\n 1436          m_time = time;\n 1437  \n 1438:         // todo: check for global stream allocator error, increment counter, clear error.\n 1439  \n 1440:         // todo: check for global packet factory error, increment counter, clear error.\n 1441  \n 1442          for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )\n ....\n 1469                  }\n 1470  \n 1471:                 // todo: check for packet factory error\n 1472  \n 1473                  // check for connection error\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_channel.cpp:\n  979      }\n  980  \n  981:     // todo: should probably be able to return false to say, HEY, STOP PROCESSING THIS PACKET NAO!\n  982  \n  983      void ReliableOrderedChannel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop\n 1112          Stop();\n 1113  \n ....\n 1436          m_time = time;\n 1437  \n 1438:         // todo: check for global stream allocator error, increment counter, clear error.\n 1439  \n 1440:         // todo: check for global packet factory error, increment counter, clear error.\n 1441  \n 1442          for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )\n ....\n 1469                  }\n 1470  \n 1471:                 // todo: check for packet factory error\n 1472  \n 1473                  // check for connection error\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\n31 matches across 21 files\n\n\nSearching 348 files for \"// todo\" (case sensitive)\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\CHANGES.md:\n   77  Add client error states corresponding to stream error, message factory error, packet factory error.\n   78  \n   79: Hook these states up in the client advance time function. Add // todo for packet factory error once it is added.\n   80  \n   81  Add the concept of packet factory error, same as message factory basically. Handle allocator exhaustion as well.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\Yojimbo.VC.VC.opendb:\n    ERROR: Unable to open file\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_channel.cpp:\n  979      }\n  980  \n  981:     // todo: should probably be able to return false to say, HEY, STOP PROCESSING THIS PACKET NAO!\n  982  \n  983      void ReliableOrderedChannel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop\n 1112          Stop();\n 1113  \n ....\n 1436          m_time = time;\n 1437  \n 1438:         // todo: check for global stream allocator error, increment counter, clear error.\n 1439  \n 1440:         // todo: check for global packet factory error, increment counter, clear error.\n 1441  \n 1442          for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )\n ....\n 1469                  }\n 1470  \n 1471:                 // todo: check for packet factory error\n 1472  \n 1473                  // check for connection error\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop\n 1112          Stop();\n 1113  \n ....\n 1436          m_time = time;\n 1437  \n 1438:         // todo: check for global stream allocator error, increment counter, clear error.\n 1439  \n 1440:         // todo: check for global packet factory error, increment counter, clear error.\n 1441  \n 1442          for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )\n ....\n 1469                  }\n 1470  \n 1471:                 // todo: check for packet factory error\n 1472  \n 1473                  // check for connection error\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\n30 matches across 20 files\n\n\nSearching 543 files for \"// todo\" (case sensitive)\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\Yojimbo.VC.VC.opendb:\n    ERROR: Unable to open file\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop. what to do? require the user to manually stop the server before the destructor is called? Hmmm. Not ideal but I don't see a way around it\n 1112          Stop();\n 1113  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop\n 1112          Stop();\n 1113  \n ....\n 1436          m_time = time;\n 1437  \n 1438:         // todo: check for global stream allocator error, increment counter, clear error.\n 1439  \n 1440:         // todo: check for global packet factory error, increment counter, clear error.\n 1441  \n 1442          for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )\n ....\n 1469                  }\n 1470  \n 1471:                 // todo: check for packet factory error\n 1472  \n 1473                  // check for connection error\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\n25 matches across 18 files\n\n\nSearching 543 files for \"// todo\" (case sensitive)\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\Yojimbo.VC.VC.opendb:\n    ERROR: Unable to open file\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop. \n 1112  		// what to do? require the user to manually stop the server before the destructor is called? Hmmm. Not ideal but I don't see a way around it\n 1113          Stop();\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop\n 1112          Stop();\n 1113  \n ....\n 1436          m_time = time;\n 1437  \n 1438:         // todo: check for global stream allocator error, increment counter, clear error.\n 1439  \n 1440:         // todo: check for global packet factory error, increment counter, clear error.\n 1441  \n 1442          for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )\n ....\n 1469                  }\n 1470  \n 1471:                 // todo: check for packet factory error\n 1472  \n 1473                  // check for connection error\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\n22 matches across 16 files\n\n\nSearching 543 files for \"// todo\" (case sensitive)\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\Yojimbo.VC.VC.opendb:\n    ERROR: Unable to open file\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop\n 1112          Stop();\n 1113  \n ....\n 1436          m_time = time;\n 1437  \n 1438:         // todo: check for global stream allocator error, increment counter, clear error.\n 1439  \n 1440:         // todo: check for global packet factory error, increment counter, clear error.\n 1441  \n 1442          for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )\n ....\n 1469                  }\n 1470  \n 1471:                 // todo: check for packet factory error\n 1472  \n 1473                  // check for connection error\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\n17 matches across 12 files\n\n\nSearching 543 files for \"// todo\" (case sensitive)\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\Yojimbo.VC.VC.opendb:\n    ERROR: Unable to open file\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_channel.h:\n   59          bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.\n   60  \n   61:         // todo: packetBudget is nicer than \"messagePacketBudget\". \"sendQueueSize\" is better than \"messageSendQueueSize\".\n   62  \n   63:         // todo: sentPacketsSize is a bad name. a user would find this confusing (\"the size of packets to send?\")\n   64  \n   65          ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_client_server.cpp:\n 1109      Server::~Server()\n 1110      {\n 1111:         // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop\n 1112          Stop();\n 1113  \n ....\n 1436          m_time = time;\n 1437  \n 1438:         // todo: check for global stream allocator error, increment counter, clear error.\n 1439  \n 1440:         // todo: check for global packet factory error, increment counter, clear error.\n 1441  \n 1442          for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )\n ....\n 1469                  }\n 1470  \n 1471:                 // todo: check for packet factory error\n 1472  \n 1473                  // check for connection error\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_connection.h:\n  133      struct ConnectionSentPacketData \n  134      { \n  135:         uint8_t acked;                              // todo: put send time in here for RTT estimate\n  136      };\n  137  \n  138:     struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate\n  139  \n  140      class Connection : public ChannelListener\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_context.h:\n   33  namespace yojimbo\n   34  {\n   35:     // todo: this should go away and be replaced with a dynamic allocation on transport driven by # of simultaneous connections expected.\n   36      const int MaxContextMappings = 1024;\n   37  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_encryption.h:\n   62                                const uint8_t * key );\n   63  \n   64:     // todo: this is what was limiting to max 1024 clients\n   65      // it would be nicer if it was dynamically passed in as a function of max clients, eg. 4X max clients.\n   66      // also, on the client, you need very few, it's only on the server it must be allocated some multiple of num clients.\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_message.h:\n  152          MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,\n  153          MESSAGE_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n  154:         // todo: might want to add an optional limit on the # of messages allocated as well, INT_MAX if no limit.\n  155      };\n  156  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_packet.h:\n   80          PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,\n   81          PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED\n   82:         // todo: might want to add an optional limit on the # of packets allocated as well, INT_MAX if no limit.\n   83      };\n   84  \n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\yojimbo_simulator.cpp:\n  142      uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )\n  143      { \n  144:         // todo: profiling shows this function is quite slow. it should be optimized\n  145  \n  146          int oldestEntryIndex = -1;\n\nC:\\Users\\Glenn Fiedler\\libyojimbo\\docker\\libyojimbo\\tests\\test.cpp:\n 1071  YOJIMBO_PACKET_FACTORY_FINISH();\n 1072  \n 1073: // todo: this code is all in shared. just port over what is needed and use that. why duplicate it\n 1074  \n 1075  inline int GetNumBitsForMessage( uint16_t sequence )\n\n14 matches across 9 files\n",
+			"settings":
+			{
+				"buffer_size": 39726,
+				"line_ending": "Windows",
+				"name": "Find Results",
+				"scratch": true
+			}
+		},
+		{
+			"file": "yojimbo_message.h",
+			"settings":
+			{
+				"buffer_size": 16711,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "yojimbo_packet.h",
+			"settings":
+			{
+				"buffer_size": 8901,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "yojimbo_simulator.cpp",
+			"settings":
+			{
+				"buffer_size": 9322,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "CHANGES.md",
+			"settings":
+			{
+				"buffer_size": 131837,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "yojimbo_channel.cpp",
+			"settings":
+			{
+				"buffer_size": 43192,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "yojimbo_channel.h",
+			"settings":
+			{
+				"buffer_size": 13766,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "WOULD BE NICE",
+			"settings":
+			{
+				"buffer_size": 5891,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "yojimbo_client_server.cpp",
+			"settings":
+			{
+				"buffer_size": 70359,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "yojimbo_connection.h",
+			"settings":
+			{
+				"buffer_size": 8212,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "TODO",
+			"settings":
+			{
+				"buffer_size": 353,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "docker/libyojimbo/yojimbo_channel.cpp",
+			"settings":
+			{
+				"buffer_size": 43273,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "docker/buildServer.bat",
+			"settings":
+			{
+				"buffer_size": 61,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "yojimbo_client_server.h",
+			"settings":
+			{
+				"buffer_size": 34771,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "docker/copyFiles.bat",
+			"settings":
+			{
+				"buffer_size": 278,
+				"line_ending": "Windows"
+			}
+		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -615,7 +745,7 @@
 	"build_varint": "",
 	"command_palette":
 	{
-		"height": 27.0,
+		"height": 87.0,
 		"last_filter": "",
 		"selected_items":
 		[
@@ -710,142 +840,141 @@
 	},
 	"expanded_folders":
 	[
-		"/Users/gaffer/git/libyojimbo"
 	],
 	"file_history":
 	[
-		"/Users/gaffer/git/libyojimbo/premake5.lua",
-		"/Users/gaffer/git/libyojimbo/TODO",
-		"/Users/gaffer/Desktop/star citizen/SERVER MIGRATION NOTES",
-		"/Users/gaffer/Desktop/star citizen/OWNERSHIP AUTHORITY NOTES",
-		"/Users/gaffer/Desktop/star citizen/NOTES",
-		"/Users/gaffer/Desktop/star citizen/SERIALIZED COMPONENT NOTES",
-		"/Users/gaffer/Desktop/star citizen/KEY POINTS",
-		"/Users/gaffer/Desktop/star citizen/log.txt",
-		"/Users/gaffer/git/libyojimbo/RESEARCH.md",
+		"/C/Users/Glenn Fiedler/libyojimbo/profile.cpp",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_packet_processor.h",
+		"/C/Users/Glenn Fiedler/libyojimbo/server.cpp",
+		"/C/Users/Glenn Fiedler/libyojimbo/shared.h",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_client_server.cpp",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_client_server.h",
+		"/C/Users/Glenn Fiedler/libyojimbo/TODO",
+		"/C/Users/Glenn Fiedler/libyojimbo/README.md",
+		"/C/Users/Glenn Fiedler/libyojimbo/test.cpp",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_queue.h",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_packet.cpp",
+		"/C/Users/Glenn Fiedler/protocol2/premake5.lua",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_connection.cpp",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_channel.h",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_channel.cpp",
+		"/C/Users/Glenn Fiedler/libyojimbo/info.cpp",
+		"/C/Users/Glenn Fiedler/libyojimbo/premake5.lua",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_interface.cpp",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_interface.h",
+		"/C/Users/Glenn Fiedler/libyojimbo/yojimbo_packet.h",
+		"/Users/gaffer/git/libyojimbo/TODO.md",
 		"/Users/gaffer/git/libyojimbo/yojimbo_client_server.cpp",
-		"/Users/gaffer/git/libyojimbo/windows/sodium/randombytes_sysrandom.h",
-		"/Users/gaffer/Desktop/star citizen/QUESTIONS",
-		"/Users/gaffer/git/libyojimbo/.travis.yml",
-		"/Users/gaffer/git/libyojimbo/docker/matcher/Dockerfile",
-		"/Users/gaffer/git/libyojimbo/CHANGES.md",
-		"/Users/gaffer/git/libyojimbo/tests/server.cpp",
-		"/Users/gaffer/git/libyojimbo/BUILDING.md",
-		"/Users/gaffer/git/libyojimbo/docker/Dockerfile",
-		"/Users/gaffer/git/libyojimbo/docker/copyFiles.bat",
-		"/Users/gaffer/git/libyojimbo/.git/MERGE_MSG",
-		"/Users/gaffer/Desktop/star citizen/intro.txt",
-		"/Users/gaffer/git/libyojimbo/.travis.yaml",
-		"/Users/gaffer/Desktop/yojimbo_model.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_stream.h",
-		"/Users/gaffer/git/libyojimbo/server.cpp",
-		"/Users/gaffer/git/libyojimbo/shared.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_channel.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_serialize.h",
-		"/Users/gaffer/git/libyojimbo/simple_messages.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_matcher.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_client_server.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_packet.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_packet.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_message.h",
+		"/Users/gaffer/git/libyojimbo/premake5.lua",
 		"/Users/gaffer/git/libyojimbo/test.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_allocator.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_allocator.cpp",
-		"/Users/gaffer/git/libyojimbo/WOULD BE NICE",
-		"/Users/gaffer/git/libyojimbo/NOTES",
-		"/Users/gaffer/git/libyojimbo/yojimbo_config.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_network.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_connection.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_transport.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_connection.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_context.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_context.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_transport.cpp",
-		"/Users/gaffer/git/libyojimbo/windows/mbedtls/padlock.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_packet_processor.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_channel.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_packet_processor.h",
-		"/Users/gaffer/git/libyojimbo/bin/client_server",
-		"/Users/gaffer/git/libyojimbo/yojimbo_encryption.h",
-		"/Users/gaffer/git/libyojimbo/profile.cpp",
-		"/Users/gaffer/git/libyojimbo/rapidjson/stream.h",
-		"/Users/gaffer/git/libyojimbo/soak.cpp",
-		"/Users/gaffer/git/libyojimbo/connect.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_network.h",
-		"/Users/gaffer/git/libyojimbo/cov-int/build-log.txt",
-		"/Users/gaffer/git/libyojimbo/.gitignore",
-		"/Users/gaffer/git/libyojimbo/rapidjson/stringbuffer.h",
-		"/Users/gaffer/git/libyojimbo/rapidjson/schema.h",
-		"/Users/gaffer/git/libyojimbo/rapidjson/pointer.h",
-		"/Users/gaffer/git/libyojimbo/rapidjson/filereadstream.h",
-		"/Users/gaffer/git/libyojimbo/rapidjson/document.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_address.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_common.cpp",
-		"/Users/gaffer/git/libyojimbo/rapidjson/reader.h",
-		"/Users/gaffer/git/libyojimbo/info.cpp",
-		"/Users/gaffer/git/libyojimbo/DESIGN.md",
-		"/Users/gaffer/git/libyojimbo/memory.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_common.h",
-		"/Users/gaffer/git/libyojimbo/messages.cpp",
-		"/Users/gaffer/git/libyojimbo/client_server.cpp",
+		"/Users/gaffer/git/libyojimbo/shared.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_matcher.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_sockets.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_simulator.h",
-		"/Users/gaffer/git/libyojimbo/docker/runServer.bat",
-		"/Users/gaffer/git/libyojimbo/docker/matcher/matcher.go",
-		"/Users/gaffer/git/libyojimbo/rapidjson/internal/strtod.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_simulator.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_sockets.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_encryption.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_interface.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_address.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_sequence_buffer.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_bitpack.h",
-		"/Users/gaffer/git/libyojimbo/client.cpp",
-		"/Users/gaffer/git/protocol/src/Core/Log.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_queue.h",
-		"/usr/include/assert.h",
-		"/Users/gaffer/git/libyojimbo/output.txt",
-		"/Users/gaffer/git/libyojimbo/yojimbo_interface.h",
-		"/Users/gaffer/git/libyojimbo/cppcheck.txt",
-		"/Users/gaffer/git/libyojimbo/test.make",
+		"/Users/gaffer/git/libyojimbo/yojimbo_client_server.h",
+		"/Users/gaffer/git/libyojimbo/server.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_packet.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_stream.h",
+		"/Users/gaffer/git/libyojimbo/rapidjson/stream.h",
 		"/Users/gaffer/git/libyojimbo/yojimbo_platform.cpp",
-		"/Users/gaffer/git/libyojimbo/yojimbo_helpers.h",
-		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/new",
+		"/Users/gaffer/git/libyojimbo/yojimbo_sockets.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_allocator.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_matcher.cpp",
+		"/Users/gaffer/git/libyojimbo/windows/mbedtls/base64.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_common.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_network.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_address.cpp",
+		"/Users/gaffer/git/libyojimbo/CHANGES.md",
+		"/Users/gaffer/git/libyojimbo/BUILDING.md",
+		"/Users/gaffer/git/libyojimbo/errorlist.txt",
+		"/Users/gaffer/git/libyojimbo/cppcheck.txt",
+		"/Users/gaffer/git/libyojimbo/lint.txt",
+		"/Users/gaffer/git/libyojimbo/client.cpp",
+		"/Users/gaffer/git/libyojimbo/connect.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_packet.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_interface.cpp",
+		"/Users/gaffer/git/libyojimbo/rapidjson/msinttypes/inttypes.h",
+		"/Users/gaffer/git/libyojimbo/docker/matcher/matcher.go",
+		"/Users/gaffer/git/libyojimbo/client_server.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_packet_processor.cpp",
+		"/Users/gaffer/git/libyojimbo/windows/mbedtls/error.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_config.h",
 		"/Users/gaffer/git/libyojimbo/ROADMAP.md",
-		"/Users/gaffer/Documents/KARAOKI",
-		"/Users/gaffer/git/libyojimbo/rapidjson/allocators.h",
-		"/Users/gaffer/git/libyojimbo/rapidjson/encodedstream.h",
-		"/Users/gaffer/git/protocol/src/Protocol/ReliableMessageChannel.cpp",
-		"/Users/gaffer/git/libyojimbo/windows/sodium/crypto_onetimeauth_poly1305.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_bit_array.h",
-		"/Users/gaffer/git/protocol/src/Protocol/ReliableMessageChannel.h",
-		"/Users/gaffer/git/libyojimbo/test.txt",
-		"/Users/gaffer/git/protocol/tests/Protocol/TestReliableMessageChannel.cpp",
-		"/Users/gaffer/git/libyojimbo/windows/sodium/crypto_hash_sha256.h",
-		"/Users/gaffer/git/libyojimbo/windows/mbedtls/ssl_internal.h",
-		"/Users/gaffer/git/libyojimbo/windows/mbedtls/sha512.h",
-		"/Users/gaffer/git/libyojimbo/windows/mbedtls/sha256.h",
-		"/Users/gaffer/git/libyojimbo/windows/mbedtls/sha1.h",
-		"/Users/gaffer/git/libyojimbo/windows/mbedtls/ripemd160.h",
-		"/Users/gaffer/git/libyojimbo/windows/mbedtls/md5.h",
-		"/Users/gaffer/git/libyojimbo/windows/mbedtls/md4.h",
-		"/Users/gaffer/git/libyojimbo/yojimbo_sliding_window.h",
-		"/Users/gaffer/git/protocol/src/Protocol/Stream.h",
-		"/Users/gaffer/git/protocol/src/Protocol/ConnectionPacket.h",
-		"/Users/gaffer/git/protocol/src/Protocol/Connection.cpp",
-		"/Users/gaffer/git/protocol/src/Protocol/Connection.h",
-		"/Users/gaffer/git/protocol/tests/Protocol/TestMessages.h",
-		"/Users/gaffer/git/protocol/src/Protocol/BlockMessage.h",
-		"/Users/gaffer/git/protocol/src/Protocol/MessageChannel.h",
-		"/Users/gaffer/git/protocol/tests/Protocol/TestConnection.cpp",
-		"/Users/gaffer/git/protocol/src/Protocol/MessageFactory.h",
-		"/Users/gaffer/git/protocol/src/Protocol/Message.h"
+		"/Users/gaffer/git/libyojimbo/mbedtls/compat-1.3.h",
+		"/Users/gaffer/git/libyojimbo/mbedtls/entropy.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_encryption.cpp",
+		"/Users/gaffer/git/libyojimbo/.git/MERGE_MSG",
+		"/Users/gaffer/git/libyojimbo/LICENCE.md",
+		"/Users/gaffer/Downloads/mbedtls-mbedtls-2.1.5/LICENSE",
+		"/Users/gaffer/Downloads/mbedtls-mbedtls-2.1.5/include/mbedtls/aesni.h",
+		"/Users/gaffer/Downloads/mbedtls-mbedtls-2.1.5/apache-2.0.txt",
+		"/Users/gaffer/git/libyojimbo/rapidjson/license.txt",
+		"/Users/gaffer/git/libyojimbo/README.md",
+		"/Users/gaffer/git/libyojimbo/docker/Dockerfile",
+		"/Users/gaffer/git/libyojimbo/docker/matcher/Dockerfile",
+		"/Users/gaffer/git/libyojimbo/yojimbo_address.h",
+		"/Users/gaffer/simp_le-master/simp_le.py",
+		"/Users/gaffer/simp_le-master/README.rst",
+		"/Users/gaffer/git/libyojimbo/BUG",
+		"/Users/gaffer/git/libyojimbo/yojimbo_common.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_encryption.h",
+		"/Users/gaffer/Downloads/libsodium-go-master/cryptoaead/crypto_aead_aes256gcm.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/support/support.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/cryptosecretbox/crypto_secretbox_easy.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/cryptoauth/crypto_auth.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/cryptosecretbox/crypto_secretbox.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/sodium/utils.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/scalarmult/crypto_scalarmult.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/cryptobox/crypto_box_easy.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/sodium/runtime.go",
+		"/Users/gaffer/Downloads/libsodium-go-master/sodium/core.go",
+		"/Users/gaffer/git/libyojimbo/backend/matcher.go",
+		"/Users/gaffer/git/jsmn/example/simple.c",
+		"/Users/gaffer/git/libyojimbo/docker/buildServer.bat",
+		"/Users/gaffer/git/libyojimbo/docker/buildServer.sh",
+		"/Users/gaffer/git/libyojimbo/docker/copyFiles.sh",
+		"/Users/gaffer/git/libyojimbo/docker/runServer.sh",
+		"/Users/gaffer/git/libyojimbo/docker/runServer.bat",
+		"/Users/gaffer/libucl-0.8.0/include/ucl.h",
+		"/Users/gaffer/git/libyojimbo/docker/Dockerfile-ass",
+		"/Users/gaffer/libucl-0.8.0/examples/ucl_cpp.cc",
+		"/Users/gaffer/git/libyojimbo/yojimbo_json.h",
+		"/Users/gaffer/msgpack-c/QUICKSTART-C.md",
+		"/Users/gaffer/git/libyojimbo/CHANGES",
+		"/Users/gaffer/git/libyojimbo/TODO",
+		"/Users/gaffer/.Trash/libb64-1.2/src/cdecode.c",
+		"/Users/gaffer/.Trash/libb64-1.2/src/cencode.c",
+		"/Users/gaffer/git/libyojimbo/BUILDING",
+		"/Users/gaffer/Downloads/libb64-1.2/include/b64/encode.h",
+		"/Users/gaffer/Downloads/libb64-1.2/include/b64/decode.h",
+		"/Users/gaffer/git/libyojimbo/cencode.h",
+		"/Users/gaffer/git/libyojimbo/cdecode.h",
+		"/Users/gaffer/Downloads/libb64-1.2/base64/base64.cc",
+		"/Users/gaffer/git/libyojimbo/cencode.c",
+		"/Users/gaffer/git/libyojimbo/cdecode.c",
+		"/Users/gaffer/git/libyojimbo/yojimbo_bitpack.h",
+		"/Users/gaffer/git/libyojimbo/Makefile",
+		"/Users/gaffer/git/libyojimbo/yojimbo_simulator.cpp",
+		"/Users/gaffer/docker/Dockerfile",
+		"/Users/gaffer/docker/commands.txt",
+		"/Users/gaffer/git/libyojimbo-fucked/premake5.lua",
+		"/Users/gaffer/libsodium-1.0.10/README.markdown",
+		"/Users/gaffer/git/libyojimbo/yojimbo_network.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_interface.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_simulator.h",
+		"/Users/gaffer/docker/DockerFile",
+		"/Users/gaffer/git/libyojimbo/yojimbo_simulator_interface.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_base_interface.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_simulator_interface.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_network_simulator.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_base_interface.cpp",
+		"/Users/gaffer/git/libyojimbo/yojimbo_network_interface.h",
+		"/Users/gaffer/git/libyojimbo/yojimbo_socket_interface.cpp"
 	],
 	"find":
 	{
-		"height": 35.0
+		"height": 43.0
 	},
 	"find_in_files":
 	{
@@ -892,134 +1021,134 @@
 		"case_sensitive": true,
 		"find_history":
 		[
-			"CreateGlobalPacket",
-			"libyojimbo",
-			"OnDisconnect",
-			"Disconnect",
-			"make all ",
-			"release",
-			"make all ",
-			"x64",
-			"release",
-			"libucl",
-			"SerializeAlign",
-			"SerializeCheck",
-			"WritePacket",
-			"RELIABLE_CHANNEL",
-			"CreatePacketFactory",
-			"m_clientMessag",
-			"ResetConnectionData",
-			"OnDisconnect",
-			"::Disconnect",
-			"Disconnect()",
-			"\"client disconnected",
-			"\"client disconnected\"",
-			"OnClientDisconnect",
-			"MessageFactory",
-			"Server::",
-			"SECURE",
-			"m_clientContext",
-			"SetContext",
-			"m_context",
-			"m_clientContext",
-			"CreateContext",
-			"m_context = ",
-			"SetContext",
-			"CreateContext",
-			"SetEncryptedPacketTypes",
-			"CreateMessageFactory",
+			"// todo",
+			"MaxEncryptionMappings",
+			"MaxEncryptionMappings\n",
+			"// todo",
+			"\"docke\"",
+			">>>",
 			"InitializeContext",
-			"ClientServerContext",
-			"CreateMessageFactory",
-			"m_clientStreamAllocator",
-			"streamAllocat",
-			"SetContext",
-			"m_streamAllocator = ",
-			"m_transport->SetStream",
-			"::WritePacket",
-			"m_messageFactory",
-			"ConnectClient",
-			"ResetEncryption",
-			"ResetEncrypt",
-			"ReadPacket",
-			"m_streamAllocator",
-			"SetContext",
-			"MessageFactory",
-			"::Start",
-			"::Connect",
-			"ClientServerResource",
-			"ResourceType",
-			"Allocator & GetDefaultAllocator",
-			"GetDefaultAllocator",
-			"MallocAllocator",
-			"Create",
-			"Allocator",
-			"assert( !",
-			"~Client",
-			"~Server",
-			"Release",
-			"InitializeContext",
+			"EnablePacketEncryption",
+			"CONNECTION_REQUEST",
+			"SetEncrypt",
+			"Encryption",
+			"ClientPort",
+			"m_entries",
+			"64",
+			"m_packetProcessor",
+			"204",
+			"SendQueue",
+			"\"processed packet",
+			"Malloc",
+			"MallocA",
+			"len = ret",
+			"::ReceivePackets",
+			"float",
+			"memset",
+			"clean",
+			"never used",
 			"GameServer",
-			"CreateMessageFactory",
-			"ClientMessageFactory",
-			"CreateMessageFactory",
-			"MessageFactory",
-			"MessageFactory ",
-			"MessageFactory",
-			"ReleaseMessage",
-			"MessageFactory",
-			"Connect",
-			"m_messageFactory",
-			"Server( ",
-			"base transport key",
-			"SetEncryptedPacketTypes",
-			"[256]",
-			"= '\\0'",
-			"= '\\'",
-			" = '\\0'",
-			"'\\0'",
-			"MACOS",
-			"messageData",
-			"GetFirstNetworkAddress",
-			"OnChannelFragmentReceived",
-			"expectedPacket",
-			"MaxPacket",
-			"random_int",
-			"Fragment",
-			"messages",
-			"ProcessPacketMessages",
-			"ProcessPacketData",
-			"printf",
-			"Recev",
-			"ReceivePacketData",
-			"COUNTER_",
-			"Connection",
-			"Game",
-			"PACKET_FACTORY",
-			"PacketFactory",
-			"maxPacketSize",
-			"50000",
-			"= 50000",
-			"50000",
-			"m_protocolId",
-			"protocolId",
-			"RECVBUF",
-			"client %d connect failed",
-			"received fragment",
-			"MaxClients",
-			"client id already connected",
-			"client id is already connected",
-			"SPAM",
+			"Cppcheck cannot find all the include files",
+			"winsock",
+			"wsock",
+			"windows.h",
+			"<windows.h>",
+			"#undef min",
+			"#define min",
+			"new ",
+			"ClientServerPacketFactory",
+			"alloca(",
+			"alloca",
+			"m_alloc_map",
+			"htons",
+			"PRI",
+			"PRux64",
+			"PRIux",
+			"client state is not",
+			"client sent packet %d",
+			"low-level",
+			"low-leel",
+			"received ",
+			"printf(",
+			"print_bytes",
+			"sequence == 0",
+			"ProcessPacket",
+			"NETWORK_INTERFACE_FLAG_INSECURE_MODE",
+			"WritePacket",
+			"ReceivePacket",
 			"ReadPacket",
+			"clientToServer",
+			"SendPacketToServer",
+			"ProcessConnection",
+			"ProcessConnectionResponse",
+			"Parse",
+			"connectData",
+			"Connect( ",
+			"Connect",
+			"PRIi64",
+			"PRIu64",
 			"printf",
-			"unordered_blocks",
-			"_block",
-			"unordered",
-			"blocks",
-			"SERIALIZE_MEASURE_FAILED",
-			"SerializeMeasureFailed",
-			"serialize_bytes",
-			"unordered"
+			"// todo",
+			"GetDefaultAllocator",
+			"YOJIMBO_DELETE",
+			"Allocator & allocator",
+			"mbedtls_entropy_func",
+			"entropy_func",
+			"mbedtls_entropy_func",
+			"alloca",
+			"alloca()",
+			"alloca",
+			"ucl",
+			"printf",
+			"m_match",
+			"#include <ucl.h",
+			"libucl.h",
+			"#include <libucl",
+			"libucl",
+			"PRI",
+			"my_debug",
+			"\"info'	",
+			"PrintBytes",
+			"print_bytes",
+			"private_key",
+			"key,",
+			"insecure_connect_timeout",
+			"nonce",
+			"private_key",
+			"shared.h",
+			"( private_key",
+			"private_key",
+			"ch",
+			"cha",
+			"SetPort(",
+			"GameNetworkInterface",
+			"SetPort",
+			"m_address",
+			"GetAddress",
+			"Matcher",
+			"print_bytes",
+			"PrintByte",
+			"PrintBytes",
+			"EncryptConnectToken",
+			"Encrypt_AEAD",
+			"ConnectTokenBytes",
+			"Encrypt_AEAD",
+			"AEAD",
+			"Read",
+			"/home",
+			"zip",
+			"_json",
+			"char * json",
+			"strlen",
+			"printf",
+			"decode_data",
+			"string_",
+			"string(",
+			"fromstring",
+			"array_find",
+			"ucl_array_find_index",
+			"ConnectToken",
+			"json"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1066,14 +1195,1055 @@
 	"groups":
 	[
 		{
+			"selected": 1,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "premake5.lua",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12853,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								11508,
+								11508
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Lua/Lua.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 5511.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 39726,
+						"regions":
+						{
+							"match":
+							{
+								"flags": 112,
+								"regions":
+								[
+									[
+										282,
+										289
+									],
+									[
+										637,
+										644
+									],
+									[
+										1176,
+										1183
+									],
+									[
+										1313,
+										1320
+									],
+									[
+										1618,
+										1625
+									],
+									[
+										1785,
+										1792
+									],
+									[
+										1890,
+										1897
+									],
+									[
+										2126,
+										2133
+									],
+									[
+										2401,
+										2408
+									],
+									[
+										2530,
+										2537
+									],
+									[
+										2741,
+										2748
+									],
+									[
+										3067,
+										3074
+									],
+									[
+										3559,
+										3566
+									],
+									[
+										3877,
+										3884
+									],
+									[
+										4200,
+										4207
+									],
+									[
+										4433,
+										4440
+									],
+									[
+										4990,
+										4997
+									],
+									[
+										5127,
+										5134
+									],
+									[
+										5450,
+										5457
+									],
+									[
+										5617,
+										5624
+									],
+									[
+										5722,
+										5729
+									],
+									[
+										5958,
+										5965
+									],
+									[
+										6251,
+										6258
+									],
+									[
+										6380,
+										6387
+									],
+									[
+										6609,
+										6616
+									],
+									[
+										6953,
+										6960
+									],
+									[
+										7463,
+										7470
+									],
+									[
+										7799,
+										7806
+									],
+									[
+										8140,
+										8147
+									],
+									[
+										8391,
+										8398
+									],
+									[
+										8663,
+										8670
+									],
+									[
+										9141,
+										9148
+									],
+									[
+										9496,
+										9503
+									],
+									[
+										10035,
+										10042
+									],
+									[
+										10172,
+										10179
+									],
+									[
+										10477,
+										10484
+									],
+									[
+										10644,
+										10651
+									],
+									[
+										10749,
+										10756
+									],
+									[
+										10985,
+										10992
+									],
+									[
+										11260,
+										11267
+									],
+									[
+										11389,
+										11396
+									],
+									[
+										11600,
+										11607
+									],
+									[
+										11926,
+										11933
+									],
+									[
+										12418,
+										12425
+									],
+									[
+										12736,
+										12743
+									],
+									[
+										13059,
+										13066
+									],
+									[
+										13422,
+										13429
+									],
+									[
+										13559,
+										13566
+									],
+									[
+										13882,
+										13889
+									],
+									[
+										14049,
+										14056
+									],
+									[
+										14154,
+										14161
+									],
+									[
+										14390,
+										14397
+									],
+									[
+										14683,
+										14690
+									],
+									[
+										14812,
+										14819
+									],
+									[
+										15041,
+										15048
+									],
+									[
+										15385,
+										15392
+									],
+									[
+										15895,
+										15902
+									],
+									[
+										16231,
+										16238
+									],
+									[
+										16572,
+										16579
+									],
+									[
+										16823,
+										16830
+									],
+									[
+										17095,
+										17102
+									],
+									[
+										17648,
+										17655
+									],
+									[
+										17785,
+										17792
+									],
+									[
+										18090,
+										18097
+									],
+									[
+										18511,
+										18518
+									],
+									[
+										18640,
+										18647
+									],
+									[
+										18851,
+										18858
+									],
+									[
+										19177,
+										19184
+									],
+									[
+										19669,
+										19676
+									],
+									[
+										19987,
+										19994
+									],
+									[
+										20310,
+										20317
+									],
+									[
+										20673,
+										20680
+									],
+									[
+										20810,
+										20817
+									],
+									[
+										21133,
+										21140
+									],
+									[
+										21300,
+										21307
+									],
+									[
+										21405,
+										21412
+									],
+									[
+										21641,
+										21648
+									],
+									[
+										21934,
+										21941
+									],
+									[
+										22063,
+										22070
+									],
+									[
+										22292,
+										22299
+									],
+									[
+										22636,
+										22643
+									],
+									[
+										23146,
+										23153
+									],
+									[
+										23482,
+										23489
+									],
+									[
+										23823,
+										23830
+									],
+									[
+										24074,
+										24081
+									],
+									[
+										24346,
+										24353
+									],
+									[
+										24800,
+										24807
+									],
+									[
+										25226,
+										25233
+									],
+									[
+										25355,
+										25362
+									],
+									[
+										25566,
+										25573
+									],
+									[
+										25950,
+										25957
+									],
+									[
+										26268,
+										26275
+									],
+									[
+										26591,
+										26598
+									],
+									[
+										26954,
+										26961
+									],
+									[
+										27091,
+										27098
+									],
+									[
+										27414,
+										27421
+									],
+									[
+										27581,
+										27588
+									],
+									[
+										27686,
+										27693
+									],
+									[
+										27922,
+										27929
+									],
+									[
+										28215,
+										28222
+									],
+									[
+										28344,
+										28351
+									],
+									[
+										28573,
+										28580
+									],
+									[
+										28917,
+										28924
+									],
+									[
+										29427,
+										29434
+									],
+									[
+										29763,
+										29770
+									],
+									[
+										30104,
+										30111
+									],
+									[
+										30355,
+										30362
+									],
+									[
+										30627,
+										30634
+									],
+									[
+										31156,
+										31163
+									],
+									[
+										31474,
+										31481
+									],
+									[
+										31797,
+										31804
+									],
+									[
+										32160,
+										32167
+									],
+									[
+										32297,
+										32304
+									],
+									[
+										32620,
+										32627
+									],
+									[
+										32787,
+										32794
+									],
+									[
+										32892,
+										32899
+									],
+									[
+										33128,
+										33135
+									],
+									[
+										33421,
+										33428
+									],
+									[
+										33550,
+										33557
+									],
+									[
+										33779,
+										33786
+									],
+									[
+										34123,
+										34130
+									],
+									[
+										34633,
+										34640
+									],
+									[
+										34969,
+										34976
+									],
+									[
+										35310,
+										35317
+									],
+									[
+										35561,
+										35568
+									],
+									[
+										36132,
+										36139
+									],
+									[
+										36269,
+										36276
+									],
+									[
+										36592,
+										36599
+									],
+									[
+										36759,
+										36766
+									],
+									[
+										36864,
+										36871
+									],
+									[
+										37100,
+										37107
+									],
+									[
+										37393,
+										37400
+									],
+									[
+										37522,
+										37529
+									],
+									[
+										37751,
+										37758
+									],
+									[
+										38095,
+										38102
+									],
+									[
+										38605,
+										38612
+									],
+									[
+										38941,
+										38948
+									],
+									[
+										39282,
+										39289
+									],
+									[
+										39533,
+										39540
+									]
+								],
+								"scope": ""
+							}
+						},
+						"selection":
+						[
+							[
+								37037,
+								37037
+							]
+						],
+						"settings":
+						{
+							"detect_indentation": false,
+							"line_numbers": false,
+							"output_tag": 6,
+							"result_base_dir": "",
+							"result_file_regex": "^([^ 	].*):$",
+							"result_line_regex": "^ +([0-9]+):",
+							"scroll_past_end": true,
+							"syntax": "Packages/Default/Find Results.hidden-tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 14202.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "yojimbo_message.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 16711,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4707,
+								4707
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 2132.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "yojimbo_packet.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8901,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2922,
+								2922
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 836.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "yojimbo_simulator.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9322,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4974,
+								4974
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1952.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "CHANGES.md",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 131837,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4899,
+								4899
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Markdown/Markdown.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 836.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "yojimbo_channel.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 43192,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								32819,
+								32819
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 17018.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "yojimbo_channel.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 13766,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3638,
+								3638
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 458.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "WOULD BE NICE",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5891,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3227,
+								3227
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "yojimbo_client_server.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 70359,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								35962,
+								35962
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 19404.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "yojimbo_connection.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8212,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								5006,
+								5006
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1790.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "TODO",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 353,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								107,
+								107
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 12,
+					"file": "docker/libyojimbo/yojimbo_channel.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 43273,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								32819,
+								32819
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 17558.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 11,
+					"type": "text"
+				},
+				{
+					"buffer": 13,
+					"file": "docker/buildServer.bat",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 61,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								10,
+								10
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Batch File/Batch File.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 14,
+					"type": "text"
+				},
+				{
+					"buffer": 14,
+					"file": "yojimbo_client_server.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 34771,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 810.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 15,
+					"type": "text"
+				},
+				{
+					"buffer": 15,
+					"file": "docker/copyFiles.bat",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 278,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								278,
+								278
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Batch File/Batch File.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 13,
+					"type": "text"
+				}
 			]
 		}
 	],
 	"incremental_find":
 	{
-		"height": 25.0
+		"height": 26.0
 	},
 	"input":
 	{
@@ -1104,7 +2274,7 @@
 	"menu_visible": true,
 	"output.exec":
 	{
-		"height": 370.0
+		"height": 524.0
 	},
 	"output.find_results":
 	{
@@ -1114,7 +2284,7 @@
 	"project": "yojimbo.sublime-project",
 	"replace":
 	{
-		"height": 46.0
+		"height": 50.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -1124,499 +2294,295 @@
 		"selected_items":
 		[
 			[
+				"would",
+				"libyojimbo\\WOULD BE NICE"
+			],
+			[
 				"todo",
-				"libyojimbo/TODO"
+				"libyojimbo\\TODO"
 			],
 			[
-				"re",
-				"libyojimbo/RESEARCH.md"
+				"wouldbe",
+				"libyojimbo\\WOULD BE NICE"
 			],
 			[
-				"client_server.",
-				"libyojimbo/yojimbo_client_server.cpp"
-			],
-			[
-				"notes",
-				"libyojimbo/windows/sodium/randombytes_sysrandom.h"
-			],
-			[
-				"copy",
-				"libyojimbo/docker/copyFiles.bat"
+				"buildser",
+				"libyojimbo\\docker\\buildServer.bat"
 			],
 			[
 				"premake5.lua",
-				"libyojimbo/premake5.lua"
+				"libyojimbo\\premake5.lua"
 			],
 			[
-				"docker",
-				"libyojimbo/docker/Dockerfile"
-			],
-			[
-				"dockerfile",
-				"libyojimbo/docker/matcher/Dockerfile"
-			],
-			[
-				"server.",
-				"libyojimbo/yojimbo_client_server.cpp"
-			],
-			[
-				"server.cpp",
-				"libyojimbo/tests/server.cpp"
-			],
-			[
-				"research",
-				"libyojimbo/RESEARCH.md"
-			],
-			[
-				"change",
-				"libyojimbo/CHANGES.md"
-			],
-			[
-				"res",
-				"libyojimbo/RESEARCH.md"
-			],
-			[
-				"buiding.md",
-				"libyojimbo/BUILDING.md"
-			],
-			[
-				"log.txt",
-				"~/Desktop/star citizen/log.txt"
-			],
-			[
-				".tra",
-				"libyojimbo/.travis.yml"
-			],
-			[
-				"trav",
-				"libyojimbo/.travis.yml"
-			],
-			[
-				"matcher.cpp",
-				"libyojimbo/yojimbo_matcher.cpp"
-			],
-			[
-				"stream.h",
-				"libyojimbo/yojimbo_stream.h"
-			],
-			[
-				"packet.cpp",
-				"libyojimbo/yojimbo_packet.cpp"
-			],
-			[
-				"simple_messages.cpp",
-				"libyojimbo/simple_messages.cpp"
-			],
-			[
-				"yojimbo_serialize.h",
-				"libyojimbo/yojimbo_serialize.h"
-			],
-			[
-				"channel.cpp",
-				"libyojimbo/yojimbo_channel.cpp"
-			],
-			[
-				"would",
-				"libyojimbo/WOULD BE NICE"
-			],
-			[
-				"client.cpp",
-				"libyojimbo/yojimbo_client_server.cpp"
-			],
-			[
-				"server.h",
-				"libyojimbo/yojimbo_client_server.h"
-			],
-			[
-				"client_server.h",
-				"libyojimbo/yojimbo_client_server.h"
-			],
-			[
-				"changes",
-				"libyojimbo/CHANGES.md"
-			],
-			[
-				"woludbenice",
-				"libyojimbo/WOULD BE NICE"
-			],
-			[
-				"client_server.cpp",
-				"libyojimbo/yojimbo_client_server.cpp"
-			],
-			[
-				"packet.h",
-				"libyojimbo/yojimbo_packet.h"
-			],
-			[
-				"message.h",
-				"libyojimbo/yojimbo_message.h"
-			],
-			[
-				"allocator.h",
-				"libyojimbo/yojimbo_allocator.h"
-			],
-			[
-				"client_server",
-				"libyojimbo/yojimbo_client_server.cpp"
-			],
-			[
-				"client.h",
-				"libyojimbo/yojimbo_client_server.h"
-			],
-			[
-				"block.h",
-				"libyojimbo/windows/mbedtls/padlock.h"
-			],
-			[
-				"allocatr.h",
-				"libyojimbo/yojimbo_allocator.h"
-			],
-			[
-				"server",
-				"libyojimbo/yojimbo_client_server.cpp"
-			],
-			[
-				"config.h",
-				"libyojimbo/yojimbo_config.h"
-			],
-			[
-				"transport.cpp",
-				"libyojimbo/yojimbo_transport.cpp"
-			],
-			[
-				"context.cpp",
-				"libyojimbo/yojimbo_context.cpp"
-			],
-			[
-				"connection.cpp",
-				"libyojimbo/yojimbo_connection.cpp"
-			],
-			[
-				"connection.h",
-				"libyojimbo/yojimbo_connection.h"
-			],
-			[
-				"packet_processor.cpp",
-				"libyojimbo/yojimbo_packet_processor.cpp"
-			],
-			[
-				"packet_processor.h",
-				"libyojimbo/yojimbo_packet_processor.h"
-			],
-			[
-				"transport.h",
-				"libyojimbo/yojimbo_transport.h"
-			],
-			[
-				"",
-				"libyojimbo/yojimbo_client_server.h"
-			],
-			[
-				"network.cpp",
-				"libyojimbo/yojimbo_network.cpp"
-			],
-			[
-				"context.h",
-				"libyojimbo/yojimbo_context.h"
-			],
-			[
-				"encryption.cpp",
-				"libyojimbo/yojimbo_encryption.cpp"
-			],
-			[
-				"encrypt",
-				"libyojimbo/yojimbo_encryption.h"
-			],
-			[
-				"yojimbo.h",
-				"libyojimbo/yojimbo.h"
-			],
-			[
-				"en",
-				"libyojimbo/yojimbo_encryption.h"
+				"copy",
+				"libyojimbo\\docker\\copyFiles.bat"
 			],
 			[
 				"profile.cpp",
-				"libyojimbo/profile.cpp"
+				"libyojimbo\\profile.cpp"
 			],
 			[
-				"shared.h",
-				"libyojimbo/shared.h"
-			],
-			[
-				"client_srever.cpp",
-				"libyojimbo/yojimbo_client_server.cpp"
-			],
-			[
-				"client",
-				"libyojimbo/yojimbo_client_server.h"
-			],
-			[
-				"yojimbo_allocator.h",
-				"libyojimbo/yojimbo_allocator.h"
-			],
-			[
-				"yojimbo.cpp",
-				"libyojimbo/yojimbo.cpp"
-			],
-			[
-				"yoj",
-				"libyojimbo/yojimbo.cpp"
-			],
-			[
-				"yojimob.h",
-				"libyojimbo/yojimbo.h"
-			],
-			[
-				"channel.h",
-				"libyojimbo/yojimbo_channel.h"
-			],
-			[
-				"stream",
-				"libyojimbo/yojimbo_stream.h"
-			],
-			[
-				"soak.cpp",
-				"libyojimbo/soak.cpp"
-			],
-			[
-				"test.cpp",
-				"libyojimbo/test.cpp"
-			],
-			[
-				"sahred.h",
-				"libyojimbo/shared.h"
-			],
-			[
-				"pre",
-				"libyojimbo/premake5.lua"
+				"client_server",
+				"libyojimbo\\yojimbo_client_server.h"
 			],
 			[
 				"premake5",
-				"libyojimbo/premake5.lua"
+				"libyojimbo\\premake5.lua"
 			],
 			[
-				".git",
-				"libyojimbo/.gitignore"
+				"premake",
+				"libyojimbo\\premake5.lua"
 			],
 			[
-				"simpl",
-				"libyojimbo/simple_messages.cpp"
+				"connection.cpp",
+				"libyojimbo\\yojimbo_connection.cpp"
 			],
 			[
-				"address.cpp",
-				"libyojimbo/yojimbo_address.cpp"
+				"channel.h",
+				"libyojimbo\\yojimbo_channel.h"
+			],
+			[
+				"channel.cpp",
+				"libyojimbo\\yojimbo_channel.cpp"
+			],
+			[
+				"client_server.cpp",
+				"libyojimbo\\yojimbo_client_server.cpp"
+			],
+			[
+				"server.cpp",
+				"libyojimbo\\server.cpp"
+			],
+			[
+				"interface.h",
+				"libyojimbo\\yojimbo_interface.h"
+			],
+			[
+				"shared.h",
+				"libyojimbo\\shared.h"
+			],
+			[
+				"packet.h",
+				"libyojimbo\\yojimbo_packet.h"
+			],
+			[
+				"client_server.h",
+				"libyojimbo\\yojimbo_client_server.h"
+			],
+			[
+				"test.cpp",
+				"libyojimbo\\test.cpp"
+			],
+			[
+				"pre",
+				"libyojimbo\\premake5.lua"
+			],
+			[
+				"queue.h",
+				"libyojimbo\\yojimbo_queue.h"
+			],
+			[
+				"proc",
+				"libyojimbo\\yojimbo_packet_processor.h"
+			],
+			[
+				"inter",
+				"libyojimbo\\yojimbo_interface.cpp"
+			],
+			[
+				"process",
+				"libyojimbo\\yojimbo_packet_processor.h"
+			],
+			[
+				"read",
+				"libyojimbo\\README.md"
+			],
+			[
+				"interface.cpp",
+				"libyojimbo\\yojimbo_interface.cpp"
+			],
+			[
+				"processor.h",
+				"libyojimbo\\yojimbo_packet_processor.h"
+			],
+			[
+				"queue",
+				"libyojimbo\\yojimbo_queue.h"
+			],
+			[
+				"packet.cpp",
+				"libyojimbo\\yojimbo_packet.cpp"
+			],
+			[
+				"info.cpp",
+				"libyojimbo\\info.cpp"
 			],
 			[
 				"building.md",
 				"libyojimbo/BUILDING.md"
 			],
 			[
-				"memory.cpp",
-				"libyojimbo/memory.cpp"
+				"changes",
+				"libyojimbo/CHANGES.md"
 			],
 			[
-				"memor",
-				"libyojimbo/memory.cpp"
+				"allocator.h",
+				"libyojimbo/yojimbo_allocator.h"
 			],
 			[
-				"channelc.pp",
-				"libyojimbo/yojimbo_channel.cpp"
+				"yojimbo.h",
+				"libyojimbo/yojimbo.h"
 			],
 			[
-				"messages.cpp",
-				"libyojimbo/messages.cpp"
+				"yojimbo.cpp",
+				"libyojimbo/yojimbo.cpp"
 			],
 			[
-				"mess",
-				"libyojimbo/messages.cpp"
-			],
-			[
-				"pr",
-				"libyojimbo/premake5.lua"
-			],
-			[
-				"transpo",
-				"libyojimbo/yojimbo_transport.h"
-			],
-			[
-				"simulator.cpp",
-				"libyojimbo/yojimbo_simulator.cpp"
-			],
-			[
-				"socket",
-				"libyojimbo/yojimbo_sockets.h"
-			],
-			[
-				"cs.cpp",
-				"libyojimbo/client_server.cpp"
-			],
-			[
-				"connect",
-				"libyojimbo/yojimbo_connection.cpp"
-			],
-			[
-				"sockets.cpp",
-				"libyojimbo/yojimbo_sockets.cpp"
-			],
-			[
-				"clint_server.h",
-				"libyojimbo/yojimbo_client_server.h"
-			],
-			[
-				"premake5.lu",
-				"libyojimbo/premake5.lua"
-			],
-			[
-				"socket.cpp",
-				"libyojimbo/yojimbo_sockets.cpp"
-			],
-			[
-				"inter",
-				"libyojimbo/yojimbo_interface.cpp"
-			],
-			[
-				"address.h",
-				"libyojimbo/yojimbo_address.h"
-			],
-			[
-				"process",
-				"libyojimbo/yojimbo_packet_processor.cpp"
-			],
-			[
-				"common.h",
-				"libyojimbo/yojimbo_common.h"
-			],
-			[
-				"cliet_server",
-				"libyojimbo/yojimbo_client_server.h"
-			],
-			[
-				"mesage.h",
-				"libyojimbo/yojimbo_message.h"
-			],
-			[
-				"serialize.h",
-				"libyojimbo/yojimbo_serialize.h"
-			],
-			[
-				"queue.h",
-				"libyojimbo/yojimbo_queue.h"
-			],
-			[
-				"yojimbo_packet.cpp",
-				"libyojimbo/yojimbo_packet.cpp"
-			],
-			[
-				"sequence",
-				"libyojimbo/yojimbo_sequence_buffer.h"
-			],
-			[
-				"bitpack.h",
-				"libyojimbo/yojimbo_bitpack.h"
-			],
-			[
-				"output.txt",
-				"libyojimbo/output.txt"
-			],
-			[
-				"output.tx",
-				"libyojimbo/output.txt"
-			],
-			[
-				"channel",
-				"libyojimbo/yojimbo_channel.h"
-			],
-			[
-				"sockets.h",
-				"libyojimbo/yojimbo_sockets.h"
-			],
-			[
-				"interface.h",
-				"libyojimbo/yojimbo_interface.h"
-			],
-			[
-				"packte.h",
-				"libyojimbo/yojimbo_packet.h"
-			],
-			[
-				"channel.",
-				"libyojimbo/yojimbo_channel.h"
-			],
-			[
-				"conenction.h",
-				"libyojimbo/yojimbo_connection.h"
-			],
-			[
-				"build",
-				"libyojimbo/BUILDING.md"
-			],
-			[
-				"test.make",
-				"libyojimbo/test.make"
-			],
-			[
-				"platform.cpp",
-				"libyojimbo/yojimbo_platform.cpp"
+				"client_ser",
+				"libyojimbo/yojimbo_client_server.cpp"
 			],
 			[
 				"common.cpp",
 				"libyojimbo/yojimbo_common.cpp"
 			],
 			[
-				"seuence_bufer",
-				"libyojimbo/yojimbo_sequence_buffer.h"
+				"err",
+				"libyojimbo/errorlist.txt"
 			],
 			[
-				"sequence.h",
-				"libyojimbo/yojimbo_sequence_buffer.h"
+				"test",
+				"libyojimbo/test.cpp"
 			],
 			[
-				"simulator.h",
-				"libyojimbo/yojimbo_simulator.h"
+				"errorlist.txt",
+				"libyojimbo/errorlist.txt"
 			],
 			[
-				"profil",
-				"libyojimbo/profile.cpp"
+				"base",
+				"libyojimbo/windows/mbedtls/base64.h"
 			],
 			[
-				"packets.h",
-				"libyojimbo/yojimbo_packet_processor.h"
+				"base64h",
+				"libyojimbo/windows/mbedtls/base64.h"
 			],
 			[
-				"yojimbo_packet.h",
-				"libyojimbo/yojimbo_packet.h"
+				"common",
+				"libyojimbo/yojimbo_common.cpp"
 			],
 			[
-				"interface.cpp",
+				"mach",
+				"libyojimbo/yojimbo_matcher.cpp"
+			],
+			[
+				"base64",
+				"libyojimbo/windows/mbedtls/base64.h"
+			],
+			[
+				"error",
+				"libyojimbo/errorlist.txt"
+			],
+			[
+				"sockets.cpp",
+				"libyojimbo/yojimbo_sockets.cpp"
+			],
+			[
+				"address",
+				"libyojimbo/yojimbo_address.cpp"
+			],
+			[
+				"matcher.h",
+				"libyojimbo/yojimbo_matcher.h"
+			],
+			[
+				"socket.h",
+				"libyojimbo/yojimbo_sockets.h"
+			],
+			[
+				"server",
+				"libyojimbo/server.cpp"
+			],
+			[
+				"stream.h",
+				"libyojimbo/yojimbo_stream.h"
+			],
+			[
+				"yojimbo_stream.h",
+				"libyojimbo/yojimbo_stream.h"
+			],
+			[
+				"cppcheck",
+				"libyojimbo/cppcheck.txt"
+			],
+			[
+				"cppcheck.txt",
+				"libyojimbo/cppcheck.txt"
+			],
+			[
+				"network.cpp",
+				"libyojimbo/yojimbo_network.cpp"
+			],
+			[
+				"lint.txt",
+				"libyojimbo/lint.txt"
+			],
+			[
+				"socket",
+				"libyojimbo/yojimbo_sockets.cpp"
+			],
+			[
+				"connect.cpp",
+				"libyojimbo/connect.cpp"
+			],
+			[
+				"client.cpp",
+				"libyojimbo/client.cpp"
+			],
+			[
+				"matcher",
+				"libyojimbo/yojimbo_matcher.cpp"
+			],
+			[
+				"packet_processor.cpp",
+				"libyojimbo/yojimbo_packet_processor.cpp"
+			],
+			[
+				"interfac",
 				"libyojimbo/yojimbo_interface.cpp"
 			],
 			[
-				"yojimbo_message.h",
-				"libyojimbo/yojimbo_message.h"
+				"matcher.go",
+				"libyojimbo/docker/matcher/matcher.go"
 			],
 			[
-				"connecton.h",
-				"libyojimbo/yojimbo_connection.h"
+				"client_server.",
+				"libyojimbo/yojimbo_client_server.cpp"
 			],
 			[
-				"conection.h",
-				"libyojimbo/yojimbo_connection.h"
+				"yojimbo_con",
+				"libyojimbo/yojimbo_config.h"
+			],
+			[
+				"connect",
+				"libyojimbo/connect.cpp"
+			],
+			[
+				"match.h",
+				"libyojimbo/yojimbo_matcher.h"
+			],
+			[
+				"roadma",
+				"libyojimbo/ROADMAP.md"
 			],
 			[
 				"roadmap.md",
 				"libyojimbo/ROADMAP.md"
 			],
 			[
-				"yojimbo_ser",
-				"libyojimbo/yojimbo_serialize.h"
+				"matcher.cpp",
+				"libyojimbo/yojimbo_matcher.cpp"
 			],
 			[
-				"mesage",
-				"libyojimbo/yojimbo_message.h"
-			],
-			[
-				"client_ser",
+				"client_serve",
 				"libyojimbo/yojimbo_client_server.h"
 			],
 			[
@@ -1624,16 +2590,220 @@
 				"libyojimbo/yojimbo_encryption.cpp"
 			],
 			[
-				"yjimbo.h",
+				"yoj",
 				"libyojimbo/yojimbo.h"
 			],
 			[
-				"soak",
-				"libyojimbo/soak.cpp"
+				"client.cp",
+				"libyojimbo/client.cpp"
 			],
 			[
-				"bit_array",
-				"libyojimbo/yojimbo_bit_array.h"
+				"client",
+				"libyojimbo/yojimbo_client_server.h"
+			],
+			[
+				"lic",
+				"libyojimbo/rapidjson/license.txt"
+			],
+			[
+				"matche.cpp",
+				"libyojimbo/yojimbo_matcher.cpp"
+			],
+			[
+				"b",
+				"libyojimbo/BUILDING.md"
+			],
+			[
+				"docker",
+				"libyojimbo/docker/Dockerfile"
+			],
+			[
+				"dockerfile",
+				"libyojimbo/docker/Dockerfile"
+			],
+			[
+				"yo",
+				"libyojimbo/yojimbo_address.h"
+			],
+			[
+				"road",
+				"libyojimbo/ROADMAP.md"
+			],
+			[
+				"",
+				"libyojimbo/yojimbo_client_server.cpp"
+			],
+			[
+				"cs",
+				"libyojimbo/client_server.cpp"
+			],
+			[
+				"bug",
+				"libyojimbo/BUG"
+			],
+			[
+				"enc",
+				"libyojimbo/yojimbo_encryption.cpp"
+			],
+			[
+				"clinet_server.cpp",
+				"libyojimbo/client_server.cpp"
+			],
+			[
+				"encrypt",
+				"libyojimbo/yojimbo_encryption.cpp"
+			],
+			[
+				"match",
+				"libyojimbo/docker/matcher/matcher.go"
+			],
+			[
+				"address.cpp",
+				"libyojimbo/yojimbo_address.cpp"
+			],
+			[
+				"common.h",
+				"libyojimbo/yojimbo_common.h"
+			],
+			[
+				"client_srev",
+				"libyojimbo/yojimbo_client_server.cpp"
+			],
+			[
+				"encryption",
+				"libyojimbo/yojimbo_encryption.h"
+			],
+			[
+				"encryt",
+				"libyojimbo/yojimbo_encryption.h"
+			],
+			[
+				"client_s",
+				"libyojimbo/yojimbo_client_server.cpp"
+			],
+			[
+				"dock",
+				"libyojimbo/docker/matcher/Dockerfile"
+			],
+			[
+				"go",
+				"libyojimbo/docker/matcher/matcher.go"
+			],
+			[
+				"todo.md",
+				"libyojimbo/TODO.md"
+			],
+			[
+				"encry",
+				"libyojimbo/yojimbo_encryption.h"
+			],
+			[
+				"doc",
+				"libyojimbo/docker/Dockerfile"
+			],
+			[
+				"cha",
+				"libyojimbo/CHANGES.md"
+			],
+			[
+				"changes.md",
+				"libyojimbo/CHANGES.md"
+			],
+			[
+				"runserver.bat",
+				"libyojimbo/docker/runServer.bat"
+			],
+			[
+				"buildserver.bat",
+				"libyojimbo/docker/buildServer.bat"
+			],
+			[
+				"buildserver.sh",
+				"libyojimbo/docker/buildServer.sh"
+			],
+			[
+				"copyfiles.sh",
+				"libyojimbo/docker/copyFiles.sh"
+			],
+			[
+				"client_sere",
+				"libyojimbo/yojimbo_client_server.h"
+			],
+			[
+				"ucl",
+				"~/libucl-0.8.0/include/ucl.h"
+			],
+			[
+				"tset.cpp",
+				"libyojimbo/test.cpp"
+			],
+			[
+				"client_",
+				"libyojimbo/client_server.cpp"
+			],
+			[
+				"client_serer.",
+				"libyojimbo/yojimbo_client_server.h"
+			],
+			[
+				"yojimbo_client",
+				"libyojimbo/yojimbo_client_server.h"
+			],
+			[
+				"y",
+				"libyojimbo/yojimbo.h"
+			],
+			[
+				"json",
+				"libyojimbo/yojimbo_json.h"
+			],
+			[
+				"pr",
+				"libyojimbo/premake5.lua"
+			],
+			[
+				"config",
+				"libyojimbo/yojimbo_config.h"
+			],
+			[
+				"readm",
+				"libyojimbo/README.md"
+			],
+			[
+				"cencode.h",
+				"libyojimbo/cencode.h"
+			],
+			[
+				"yojimbo_config.h",
+				"libyojimbo/yojimbo_config.h"
+			],
+			[
+				"build",
+				"libyojimbo/BUILDING"
+			],
+			[
+				"make",
+				"libyojimbo/Makefile"
+			],
+			[
+				"config.h",
+				"libyojimbo/yojimbo_config.h"
+			],
+			[
+				"building",
+				"libyojimbo/BUILDING"
+			],
+			[
+				"simulator",
+				"libyojimbo/yojimbo_simulator.cpp"
+			],
+			[
+				"yojimbo_sim",
+				"yojimbo_simulator.cpp"
+			],
+			[
+				"cient.cpp",
+				"client.cpp"
 			]
 		],
 		"width": 0.0

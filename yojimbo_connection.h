@@ -132,10 +132,10 @@ namespace yojimbo
 
     struct ConnectionSentPacketData 
     { 
-        uint8_t acked;                              // todo: put send time in here for RTT estimate
+        uint8_t acked;
     };
 
-    struct ConnectionReceivedPacketData {};         // todo: put receive time in here for RTT estimate
+    struct ConnectionReceivedPacketData {};
 
     class Connection : public ChannelListener
     {

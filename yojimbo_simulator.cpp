@@ -141,7 +141,7 @@ namespace yojimbo
 
     uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )
     { 
-        // todo: profiling shows this function is quite slow. it should be optimized
+        // profiling shows that this function is quite slow. if you plan to use the network simulator in production, please let me know. this function would need to be optimized in that case.
 
         int oldestEntryIndex = -1;
         double oldestEntryTime = 0;

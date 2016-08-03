@@ -1108,8 +1108,8 @@ namespace yojimbo
 
     Server::~Server()
     {
-        // todo: can't really call stop here. stop calls in to virtuals - eg. OnStop
-        Stop();
+		// IMPORTANT: Please call stop on the server before you destroy it. 
+		assert( !IsRunning() );
 
         YOJIMBO_DELETE( *m_allocator, Allocator, m_globalStreamAllocator );
 
@@ -1435,9 +1435,25 @@ namespace yojimbo
 
         m_time = time;
 
-        // todo: check for global stream allocator error, increment counter, clear error.
+        // check for global stream allocator error, increase counter and clear error. nothing we can do but take note.
 
-        // todo: check for global packet factory error, increment counter, clear error.
+        if ( m_globalStreamAllocator->GetError() )
+        {
+            m_counters[SERVER_COUNTER_GLOBAL_STREAM_ALLOCATOR_ERRORS]++;
+
+            m_globalStreamAllocator->ClearError();
+        }
+
+        // check for global packet factory error, increase counter and clear error. nothing we can do but take note.
+
+		PacketFactory * globalPacketFactory = m_transport->GetPacketFactory();
+
+        if ( globalPacketFactory->GetError() )
+        {
+            m_counters[SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS]++;
+
+            globalPacketFactory->ClearError();
+        }
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
@@ -1468,7 +1484,16 @@ namespace yojimbo
                     }
                 }
 
-                // todo: check for packet factory error
+                // check for packet factory error
+
+                if ( m_clientPacketFactory[clientIndex]->GetError() )
+                {
+                    OnClientError( clientIndex, SERVER_CLIENT_ERROR_PACKET_FACTORY );
+
+                    m_counters[SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS]++;
+
+                    DisconnectClient( clientIndex, true );
+                }
 
                 // check for connection error
 

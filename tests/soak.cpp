@@ -81,7 +81,7 @@ int SoakMain()
     ConnectionConfig connectionConfig;
     connectionConfig.maxPacketSize = 1100;
     connectionConfig.numChannels = 1;
-    connectionConfig.channelConfig[0].messagePacketBudget = 256;
+    connectionConfig.channelConfig[0].packetBudget = 256;
     connectionConfig.channelConfig[0].maxMessagesPerPacket = 256;
 
     GameClient client( GetDefaultAllocator(), clientTransport, connectionConfig );

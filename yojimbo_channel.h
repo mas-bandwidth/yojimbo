@@ -47,32 +47,28 @@ namespace yojimbo
     struct ChannelConfig
     {
         ChannelType type;                                       // channel type: reliable ordered or unreliable unordered.
-        int messagePacketBudget;                                // maximum bytes of message data per-packet. -1 = no limit
+        int packetBudget;                                       // maximum bytes of message data per-packet. -1 = no limit
+        int sendQueueSize;										// message send queue size
+        int receiveQueueSize;									// message receive queue size
         int maxMessagesPerPacket;                               // maximum number of messages per-packet
-        int messageSendQueueSize;                               // message send queue size
-        int messageReceiveQueueSize;                            // receive queue size
         float messageResendTime;                                // message resend time (seconds)
         int maxBlockSize;                                       // maximum block size in bytes
         int fragmentSize;                                       // block fragments size in bytes
         float fragmentResendTime;                               // fragment resend time (seconds)
-        int sentPacketsSize;                                    // size of sent packets buffer (maps packet level acks to messages & fragments)
+        int sentPacketBufferSize;                               // size of sent packets buffer in # of packets stored (maps packet level acks to messages & fragments)
         bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.
-
-        // todo: packetBudget is nicer than "messagePacketBudget". "sendQueueSize" is better than "messageSendQueueSize".
-
-        // todo: sentPacketsSize is a bad name. a user would find this confusing ("the size of packets to send?")
 
         ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )
         {
-            messagePacketBudget = 1100;
+            packetBudget = 1100;
+            sendQueueSize = 1024;
+            receiveQueueSize = 1024;
             maxMessagesPerPacket = 64;
-            messageSendQueueSize = 1024;
-            messageReceiveQueueSize = 1024;
             messageResendTime = 0.1f;
             maxBlockSize = 256 * 1024;
             fragmentSize = 1024;
             fragmentResendTime = 0.25f;
-            sentPacketsSize = 1024;
+            sentPacketBufferSize = 1024;
             disableBlocks = false;
         }
 
