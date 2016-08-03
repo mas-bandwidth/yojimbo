@@ -38,7 +38,7 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientMain( int argc, char * argv[] )
 {   
-    GamePacketFactory packetFactory;
+    ClientServerPacketFactory packetFactory;
 
     GameNetworkTransport clientTransport( packetFactory );
 

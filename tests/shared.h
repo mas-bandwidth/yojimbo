@@ -98,7 +98,7 @@ struct GameBlockMessage : public BlockMessage
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-enum MessageType
+enum GameMessageType
 {
     GAME_MESSAGE,
     GAME_BLOCK_MESSAGE,
@@ -365,17 +365,11 @@ public:
 
 #endif // #if CLIENT
 
-class GamePacketFactory : public ClientServerPacketFactory
-{
-public:
-    GamePacketFactory() : ClientServerPacketFactory( GetDefaultAllocator(), CLIENT_SERVER_NUM_PACKETS ) {}
-};
-
 class GameNetworkTransport : public SocketTransport
 {   
 public:
 
-    GameNetworkTransport( GamePacketFactory & packetFactory, const Address & address = Address( "0.0.0.0" ) ) 
+    GameNetworkTransport( PacketFactory & packetFactory, const Address & address = Address( "0.0.0.0" ) ) 
         : SocketTransport( GetDefaultAllocator(), packetFactory, address, ProtocolId )
     {
         // ...

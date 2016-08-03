@@ -160,7 +160,7 @@ int ProfileMain()
 {
     srand( (unsigned int) time( NULL ) );
 
-    GamePacketFactory packetFactory;
+    ClientServerPacketFactory packetFactory;
 
     ServerData * serverData = new ServerData();
     serverData->address = Address( "::1", ServerPort );

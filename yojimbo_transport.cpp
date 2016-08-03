@@ -60,7 +60,7 @@ namespace yojimbo
 
         m_packetFactory = &packetFactory;
         
-        m_packetProcessor = YOJIMBO_NEW( allocator, PacketProcessor, allocator, packetFactory, m_protocolId, maxPacketSize );
+        m_packetProcessor = YOJIMBO_NEW( allocator, PacketProcessor, allocator, m_protocolId, maxPacketSize );
         
         const int numPacketTypes = m_packetFactory->GetNumPacketTypes();
 
@@ -245,13 +245,7 @@ namespace yojimbo
         assert( packetType >= 0 );
         assert( packetType < m_packetFactory->GetNumPacketTypes() );
 
-        const double time = GetTime();
-
-        int packetBytes;
-
-        const Context * context = m_contextManager.GetContext( address );
-
-        const uint8_t * key = m_encryptionManager.GetSendKey( address, time );
+        const uint8_t * key = m_encryptionManager.GetSendKey( address, GetTime() );
 
 #if YOJIMBO_INSECURE_CONNECT
         const bool encrypt = ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packetType ) && key : IsEncryptedPacketType( packetType );
@@ -259,13 +253,20 @@ namespace yojimbo
         const bool encrypt = IsEncryptedPacketType( packetType );
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
+        int packetBytes;
+
+        const Context * context = m_contextManager.GetContext( address );
+
         Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
+        PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
 
         assert( streamAllocator );
+        assert( packetFactory );
+        assert( packetFactory->GetNumPacketTypes() == m_packetFactory->GetNumPacketTypes() );
 
         m_packetProcessor->SetContext( context ? context->contextData : m_context );
 
-        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, *streamAllocator );
+        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, *streamAllocator, *packetFactory );
 
         if ( !packetData )
         {
@@ -335,16 +336,6 @@ namespace yojimbo
                 break;
             }
 
-            uint64_t sequence = 0;
-
-            const Context * context = m_contextManager.GetContext( address );
-
-            Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
-
-            assert( streamAllocator );
-
-            const uint8_t * key = m_encryptionManager.GetReceiveKey( address, GetTime() );
-
             bool encrypted = false;
 
             const uint8_t * encryptedPacketTypes = m_packetTypeIsEncrypted;
@@ -357,10 +348,23 @@ namespace yojimbo
                 unencryptedPacketTypes = m_allPacketTypes;
             }
 #endif // #if YOJIMBO_INSECURE_CONNECT
+
+            const uint8_t * key = m_encryptionManager.GetReceiveKey( address, GetTime() );
            
+            uint64_t sequence = 0;
+
+            const Context * context = m_contextManager.GetContext( address );
+
+            Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
+            PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
+    
+            assert( streamAllocator );
+            assert( packetFactory );
+            assert( packetFactory->GetNumPacketTypes() == m_packetFactory->GetNumPacketTypes() );
+
             m_packetProcessor->SetContext( context ? context->contextData : m_context );
 
-            Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator );
+            Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator, *packetFactory );
 
             if ( !packet )
             {
@@ -468,9 +472,9 @@ namespace yojimbo
         m_encryptionManager.ResetEncryptionMappings();
     }
 
-    bool BaseTransport::AddContextMapping( const Address & address, Allocator & streamAllocator, void * contextData )
+    bool BaseTransport::AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData )
     {
-        return m_contextManager.AddContextMapping( address, streamAllocator, contextData );
+        return m_contextManager.AddContextMapping( address, streamAllocator, packetFactory, contextData );
     }
 
     bool BaseTransport::RemoveContextMapping( const Address & address )

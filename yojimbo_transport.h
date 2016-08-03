@@ -98,7 +98,7 @@ namespace yojimbo
 
         virtual void ResetEncryptionMappings() = 0;
 
-        virtual bool AddContextMapping( const Address & address, Allocator & streamAllocator, void * contextData ) = 0;
+        virtual bool AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData ) = 0;
 
         virtual bool RemoveContextMapping( const Address & address ) = 0;
 
@@ -163,7 +163,7 @@ namespace yojimbo
 
         void ResetEncryptionMappings();
 
-        bool AddContextMapping( const Address & address, Allocator & streamAllocator, void * contextData );
+        bool AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData );
 
         bool RemoveContextMapping( const Address & address );
 

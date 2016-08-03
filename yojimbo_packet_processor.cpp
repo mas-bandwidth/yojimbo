@@ -36,11 +36,9 @@ namespace yojimbo
 
     const int CryptoOverhead = MacBytes;
 
-    PacketProcessor::PacketProcessor( Allocator & allocator, PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize )
+    PacketProcessor::PacketProcessor( Allocator & allocator, uint32_t protocolId, int maxPacketSize )
     {
         m_allocator = &allocator;
-
-        m_packetFactory = &packetFactory;
 
         m_protocolId = protocolId;
 
@@ -76,7 +74,7 @@ namespace yojimbo
 
     static const int ENCRYPTED_PACKET_FLAG = (1<<7);
 
-    const uint8_t * PacketProcessor::WritePacket( Packet * packet, uint64_t sequence, int & packetBytes, bool encrypt, const uint8_t * key, Allocator & streamAllocator )
+    const uint8_t * PacketProcessor::WritePacket( Packet * packet, uint64_t sequence, int & packetBytes, bool encrypt, const uint8_t * key, Allocator & streamAllocator, PacketFactory & packetFactory )
     {
         m_error = PACKET_PROCESSOR_ERROR_NONE;
 
@@ -97,7 +95,7 @@ namespace yojimbo
             PacketReadWriteInfo info;
             info.context = m_context;
             info.protocolId = m_protocolId;
-            info.packetFactory = m_packetFactory;
+            info.packetFactory = &packetFactory;
             info.streamAllocator = &streamAllocator;
             info.rawFormat = 1;
 
@@ -135,7 +133,7 @@ namespace yojimbo
             PacketReadWriteInfo info;
             info.context = m_context;
             info.protocolId = m_protocolId;
-            info.packetFactory = m_packetFactory;
+            info.packetFactory = &packetFactory;
             info.streamAllocator = &streamAllocator;
             info.prefixBytes = 1;
 
@@ -161,7 +159,8 @@ namespace yojimbo
                                           const uint8_t * key, 
                                           const uint8_t * encryptedPacketTypes, 
                                           const uint8_t * unencryptedPacketTypes,
-                                          Allocator & streamAllocator )
+                                          Allocator & streamAllocator,
+                                          PacketFactory & packetFactory )
     {
         m_error = PACKET_PROCESSOR_ERROR_NONE;
 
@@ -203,7 +202,7 @@ namespace yojimbo
             PacketReadWriteInfo info;
             info.context = m_context;
             info.protocolId = m_protocolId;
-            info.packetFactory = m_packetFactory;
+            info.packetFactory = &packetFactory;
             info.streamAllocator = &streamAllocator;
             info.allowedPacketTypes = encryptedPacketTypes;
             info.rawFormat = 1;
@@ -226,7 +225,7 @@ namespace yojimbo
             PacketReadWriteInfo info;
             info.context = m_context;
             info.protocolId = m_protocolId;
-            info.packetFactory = m_packetFactory;
+            info.packetFactory = &packetFactory;
             info.streamAllocator = &streamAllocator;
             info.allowedPacketTypes = unencryptedPacketTypes;
             info.prefixBytes = 1;

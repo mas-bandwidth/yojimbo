@@ -41,11 +41,13 @@ namespace yojimbo
     struct Context
     {
         Allocator * streamAllocator;
+        PacketFactory * packetFactory;
         void * contextData;
 
         Context()
         {
             streamAllocator = NULL;
+            packetFactory = NULL;
             contextData = NULL;
         }
     };
@@ -56,7 +58,7 @@ namespace yojimbo
 
         ContextManager();
 
-        bool AddContextMapping( const Address & address, Allocator & streamAllocator, void * contextData );
+        bool AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData );
 
         bool RemoveContextMapping( const Address & address );
 

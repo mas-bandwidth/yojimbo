@@ -63,7 +63,7 @@ int SoakMain()
         return 1;
     }
 
-    GamePacketFactory packetFactory;
+    ClientServerPacketFactory packetFactory;
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
