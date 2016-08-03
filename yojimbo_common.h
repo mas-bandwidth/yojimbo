@@ -229,7 +229,7 @@ namespace yojimbo
     {
         int s1 = _s1;
         int s2 = _s2;
-        if ( abs( s1 - s2 ) >= 32786 )
+        if ( abs( s1 - s2 ) >= 32768 )
         {
             if ( s1 > s2 )
                 s2 += 65536;
