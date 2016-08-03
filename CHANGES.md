@@ -55,6 +55,8 @@ Cleaned up shared.h by removing concept of custom game packets. So no custom fac
 
 It's probably a good idea to create a yojimbo release now. Go home and test on windows and release the next preview. There is a bunch of changes in here relative to the last preview, eg. interface changes for packet factories, message factories, different way to destroy packets, plus a bunch of coverity fixes. So get this release out before starting any work on packet fragmentation and reassembly.
 
+Worked through minor todo fixes before the next preview release.
+
 
 Tuesday July 26th, 2016
 =======================
