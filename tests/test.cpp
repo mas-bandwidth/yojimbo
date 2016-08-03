@@ -1169,6 +1169,11 @@ public:
         return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
     }
 
+    PacketFactory * CreatePacketFactory( int /*clientIndex*/ )
+    {
+        return YOJIMBO_NEW( GetDefaultAllocator(), GamePacketFactory, GetDefaultAllocator() );
+    }
+
     void OnClientConnect( int clientIndex )
     {
         assert( clientIndex >= 0 );

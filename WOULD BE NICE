@@ -2,6 +2,14 @@ WOULD BE NICE
 
     ------------------
 
+    Would really like a nice way in debug builds to warn the user about stuff, eg. better than an assert, an assert with a message.
+
+    For example, a lot of asserts seem really low level, but they just mean, OK, you added your own packet types, but forgot to override the callback "CreatePacketFactory".
+
+    The last thing I want is a user experiencing a bunch of really obscure low-level asserts when they are just trying to use the library.
+    
+    ------------------
+
     Definitely need more usage documentation and samples showing how to do stuff.
 
     I don't know that it's immediately obvious how to use libyojimbo from the samples. Or, what exactly libyojimbo does or what it's for?

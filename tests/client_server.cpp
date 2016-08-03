@@ -51,7 +51,7 @@ int ClientServerMain()
         return 1;
     }
 
-    GamePacketFactory packetFactory;
+    ClientServerPacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );

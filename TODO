@@ -4,14 +4,6 @@ TODO
 
     ------------------
 
-    Next, add the packet factory to the context.
-
-    Now when a packet is read in, see if a context exists, and if it does, use the packet factory in the context instead of the global factory on the transport.
-
-    At this point, packets should be getting allocated from the per-client packet factories where appropriate, and the global packet factory for all other packets.
-
-    ------------------
-
     Packet fragmentation and reassembly.
 
     Definitely needed for large snapshot blocks.

@@ -37,6 +37,24 @@ Added a "Reset" method to transport interface. It will clear all packets in queu
 
 Oh great that definitely fixed it. It was absolutely needed too, because you really don't want anything before Server::Stop spilling across into the next Server::Start.
 
+Next, add the packet factory to the context.
+
+Now when a packet is read in, see if a context exists, and if it does, use the packet factory in the context instead of the global factory on the transport.
+
+Some asserts in test. Somehow a NULL packet factory is getting through? Not sure what is going on.
+
+Enabling debug logs show that the packet type '12' is somehow coming through and failing the packet read.
+
+Something wrong with the packet factory passed in? Is it because I have the default packet factory in the server base class, not the overridden one in test.cpp? I'll bet that's it. It would be great to put a check in there on packet factory, to make sure they have the same # of packet types. They must be compatible.
+
+Yep. That's it. Added an early assert
+
+Added an even earlier assert 
+
+Cleaned up shared.h by removing concept of custom game packets. So no custom factory is required there. It's only done in test.
+
+It's probably a good idea to create a yojimbo release now. Go home and test on windows and release the next preview. There is a bunch of changes in here relative to the last preview, eg. interface changes for packet factories, message factories, different way to destroy packets, plus a bunch of coverity fixes. So get this release out before starting any work on packet fragmentation and reassembly.
+
 
 Tuesday July 26th, 2016
 =======================

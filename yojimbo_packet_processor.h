@@ -45,7 +45,7 @@ namespace yojimbo
     {
     public:
 
-        PacketProcessor( Allocator & allocator, PacketFactory & packetFactory, uint32_t protocolId, int maxPacketSize );
+        PacketProcessor( Allocator & allocator, uint32_t protocolId, int maxPacketSize );
 
         ~PacketProcessor();
 
@@ -56,7 +56,8 @@ namespace yojimbo
                                      int & packetBytes, 
                                      bool encrypt,
                                      const uint8_t * key,
-                                     Allocator & streamAllocator );
+                                     Allocator & streamAllocator,
+                                     PacketFactory & packetFactory );
 
         Packet * ReadPacket( const uint8_t * packetData,  
                              uint64_t & sequence, 
@@ -65,7 +66,8 @@ namespace yojimbo
                              const uint8_t * key, 
                              const uint8_t * encryptedPacketTypes, 
                              const uint8_t * unencryptedPacketTypes, 
-                             Allocator & streamAllocator );
+                             Allocator & streamAllocator,
+                             PacketFactory & packetFactory );
 
         int GetMaxPacketSize() const { return m_maxPacketSize; }
 
@@ -85,8 +87,6 @@ namespace yojimbo
         uint8_t * m_scratchBuffer;
 
         void * m_context;
-
-        PacketFactory * m_packetFactory;
     };
 }
 

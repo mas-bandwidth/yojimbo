@@ -1148,6 +1148,9 @@ namespace yojimbo
         {
             m_clientPacketFactory[clientIndex] = CreatePacketFactory( clientIndex );
 
+            assert( m_clientPacketFactory[clientIndex] );
+            assert( m_clientPacketFactory[clientIndex]->GetNumPacketTypes() == m_transport->GetPacketFactory()->GetNumPacketTypes() );
+
             m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
         }
 
@@ -1156,7 +1159,7 @@ namespace yojimbo
             for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
             {
                 m_clientMessageFactory[clientIndex] = CreateMessageFactory( clientIndex );
-
+                
                 m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_connectionConfig );
                
                 m_connection[clientIndex]->SetListener( this );
@@ -1741,7 +1744,10 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketReceiveTime = time;
         m_clientData[clientIndex].fullyConnected = false;
 
-        m_transport->AddContextMapping( clientAddress, *m_clientStreamAllocator[clientIndex], m_clientContext[clientIndex] );
+        assert( m_clientPacketFactory[clientIndex] );
+        assert( m_clientStreamAllocator[clientIndex] );
+
+        m_transport->AddContextMapping( clientAddress, *m_clientStreamAllocator[clientIndex], *m_clientPacketFactory[clientIndex], m_clientContext[clientIndex] );
 
         OnClientConnect( clientIndex );
 

@@ -79,7 +79,7 @@ int ConnectMain( int argc, char * argv[] )
 
     printf( "received match response\n" );
 
-    GamePacketFactory packetFactory;
+    ClientServerPacketFactory packetFactory;
 
     GameNetworkTransport clientTransport( packetFactory );
 

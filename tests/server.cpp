@@ -36,7 +36,7 @@ void interrupt_handler( int /*dummy*/ )
 
 int ServerMain()
 {
-    GamePacketFactory packetFactory;
+    ClientServerPacketFactory packetFactory;
 
 #if SECURE_SERVER 
     printf( "secure server started on port %d\n", ServerPort );
