@@ -322,9 +322,9 @@ namespace yojimbo
             }
 
 #if YOJIMBO_VALIDATE_PACKET_BUDGET
-            if ( channelConfig.messagePacketBudget > 0 )
+            if ( channelConfig.packetBudget > 0 )
             {
-                assert( stream.GetBitsProcessed() - startBits <= channelConfig.messagePacketBudget * 8 );
+                assert( stream.GetBitsProcessed() - startBits <= channelConfig.packetBudget * 8 );
             }
 #endif // #if YOJIMBO_VALIDATE_PACKET_BUDGET
         }
@@ -358,9 +358,9 @@ namespace yojimbo
     ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
         : m_config( config )
     {
-        assert( ( 65536 % config.sentPacketsSize ) == 0 );
-        assert( ( 65536 % config.messageSendQueueSize ) == 0 );
-        assert( ( 65536 % config.messageReceiveQueueSize ) == 0 );
+        assert( ( 65536 % config.sendQueueSize ) == 0 );
+        assert( ( 65536 % config.receiveQueueSize ) == 0 );
+        assert( ( 65536 % config.sentPacketBufferSize ) == 0 );
 
         SetChannelId( channelId );
 

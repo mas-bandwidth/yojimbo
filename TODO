@@ -2,8 +2,6 @@ DONE
 
 TODO
 
-	Working through minor todo fixes before the next preview release.
-
     ------------------
 
     Packet fragmentation and reassembly.
@@ -11,6 +9,18 @@ TODO
     Definitely needed for large snapshot blocks.
 
     Default to maximum packet size of 8k, so up to 7 ~1200 MTU packets
+
+    ------------------
+
+    Idea: instead of doing it at the packet level, do it at the message level. 
+
+    So if a large block is sent, send n connection packets instead of just one, each connection packet would include a fragment of the unreliable block.
+
+    This is probably the easiest way to implement, vs. trying to pull it out and implementing it somehow at the transport layer as a proper, OK end result MTU packets need to be split up.
+
+    It would probably involve much less copying as well.
+
+    Think it through. Pros and cons.
 
     ------------------
 
