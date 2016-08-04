@@ -290,7 +290,7 @@ int ProfileMain()
 
                     serverData->numMessagesSent[i]++;
                 }
-            }
+            } 
         }            
 
         for ( int i = 0; i < MaxClients; ++i )
