@@ -384,7 +384,9 @@ newaction
             "*.vcproj",
             "*.vcxproj",
             "*.vcxproj.user",
-            "*.sln"
+            "*.sln",
+            "*.xcodeproj",
+            "*.xcworkspace"
         }
 
         directories_to_delete = 
