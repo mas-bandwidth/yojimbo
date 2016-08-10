@@ -432,6 +432,8 @@ namespace yojimbo
                 m_messageFactory->Release( entry->message );
         }
 
+        // todo: need to release messages in the m_messageSentPackets here
+
         m_messageSendQueue->Reset();
         m_messageSentPackets->Reset();
         m_messageReceiveQueue->Reset();
@@ -608,7 +610,7 @@ namespace yojimbo
 
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
-        const int messageLimit = min( m_config.sendQueueSize, m_config.receiveQueueSize ) / 2;
+        const int messageLimit = min( m_config.sendQueueSize, m_config.receiveQueueSize );
 
         uint16_t previousMessageId = 0;
 
@@ -709,7 +711,10 @@ namespace yojimbo
             sentPacket->messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketBufferSize ) * m_config.maxMessagesPerPacket ];
             sentPacket->numMessageIds = numMessageIds;            
             for ( int i = 0; i < numMessageIds; ++i )
+            {
+                // todo: actually need to addref here
                 sentPacket->messageIds[i] = messageIds[i];
+            }
         }
     }
 
@@ -768,6 +773,8 @@ namespace yojimbo
             return;
 
         assert( !sentPacketEntry->acked );
+
+        // todo: need to decrease release messages in the sentPacketEntry here
 
         for ( int i = 0; i < (int) sentPacketEntry->numMessageIds; ++i )
         {
