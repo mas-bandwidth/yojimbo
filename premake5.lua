@@ -82,6 +82,18 @@ project "simple_messages"
     files { "tests/simple_messages.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
+project "gtest"
+    kind "StaticLib"
+    files { "ext/googletest/googletest/src/gtest-all.cc", "ext/googletest/googletest/src/gtest_main.cc" }
+    includedirs { "ext/googletest/googletest", "ext/googletest/googletest/include" }
+
+project "exampletests"
+    targetname "exampletests"
+    files { "exampletests/*.cpp" }
+    links { "gtest", "yojimbo" }
+    includedirs {"src", "ext/googletest/googletest/include"}
+
+
 if not os.is "windows" then
 
     -- MacOSX and Linux.
