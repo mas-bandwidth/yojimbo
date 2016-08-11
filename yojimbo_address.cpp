@@ -221,7 +221,6 @@ namespace yojimbo
     {
         m_type = ADDRESS_NONE;
         memset( m_address_ipv6, 0, sizeof( m_address_ipv6 ) );
-        m_address_ipv4 = 0;
         m_port = 0;
     }
 
