@@ -1,6 +1,13 @@
 WOULD BE NICE
 
     ------------------
+    
+    Add a test for a very large message send queue (and large # of messages per-packet) with a tiny message receive queue.
+    
+    This would make sure we never send messages that the reciever can't buffer. Right now it's possible for all the unit tests 
+    to pass, even if the code under stress will send messages that the reciever can't buffer.
+
+    ------------------
 
     const int MaxEncryptionMappings = 1024;
 
