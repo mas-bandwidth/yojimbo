@@ -6,4 +6,5 @@ copy ..\*.h libyojimbo
 copy ..\*.cpp libyojimbo
 copy ..\tests\*.* libyojimbo\tests
 copy ..\premake5.lua libyojimbo
-robocopy /MIR /DCOPY:T ..\rapidjson libyojimbo\rapidjson && echo success || echo failure!
+robocopy /MIR /DCOPY:T ..\tlsf libyojimbo\tlsf
+robocopy /MIR /DCOPY:T ..\rapidjson libyojimbo\rapidjson

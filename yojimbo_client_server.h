@@ -54,6 +54,32 @@ namespace yojimbo
     const float InsecureConnectTimeOut = 5.0f;
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
+    const int DefaultGlobalMemory = 2 * 1024 * 1024;
+    const int DefaultClientMemory = 2 * 1024 * 1024;
+
+    struct ClientConfig
+    {
+        int clientMemory;                                                   // global memory allocated for connection request handling (bytes)
+
+        ClientConfig()
+        {
+            clientMemory = DefaultGlobalMemory;
+        }        
+    };
+
+    struct ServerConfig
+    {
+        int globalMemory;                                                   // global memory allocated for connection request handling (bytes)
+
+        int clientMemory;                                                   // per-client memory allocated for each client in start (bytes)
+
+        ServerConfig()
+        {
+            globalMemory = DefaultGlobalMemory;
+            clientMemory = DefaultClientMemory;
+        }        
+    };
+
     struct ConnectToken
     {
         uint32_t protocolId;                                                // the protocol id this connect token corresponds to.
@@ -390,9 +416,9 @@ namespace yojimbo
     {
     public:
 
-        explicit Client( Allocator & allocator, Transport & transport );
+        explicit Client( Allocator & allocator, Transport & transport, const ClientConfig & clientConfig = ClientConfig() );
 
-        explicit Client( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig );
+        explicit Client( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig, const ClientConfig & clientConfig = ClientConfig() );
 
         virtual ~Client();
 
@@ -508,6 +534,8 @@ namespace yojimbo
 
         void Defaults();
 
+        ClientConfig m_clientConfig;                                        // client configuration.
+
         ConnectionConfig m_connectionConfig;                                // connection configuration.
 
         Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
@@ -597,9 +625,9 @@ namespace yojimbo
     {
     public:
 
-        Server( Allocator & allocator, Transport & transport );
+        Server( Allocator & allocator, Transport & transport, const ServerConfig & serverConfig = ServerConfig() );
 
-        Server( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig );
+        Server( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig, const ServerConfig & serverConfig = ServerConfig() );
 
         virtual ~Server();
 
@@ -752,6 +780,8 @@ namespace yojimbo
     private:
 
         void Defaults();
+
+        ServerConfig m_serverConfig;                                        // server configuration.
 
         ConnectionConfig m_connectionConfig;                                // connection configuration.
 

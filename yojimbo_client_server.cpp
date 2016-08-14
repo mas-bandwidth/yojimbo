@@ -427,18 +427,20 @@ namespace yojimbo
         m_sequence = 0;
     }
 
-    Client::Client( Allocator & allocator, Transport & transport )
+    Client::Client( Allocator & allocator, Transport & transport, const ClientConfig & clientConfig )
     {
         Defaults();
         m_allocator = &allocator;
         m_transport = &transport;
+        m_clientConfig = clientConfig;
     }
 
-    Client::Client( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig )
+    Client::Client( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig, const ClientConfig & clientConfig )
     {
         Defaults();
         m_allocator = &allocator;
         m_transport = &transport;
+        m_clientConfig = clientConfig;
         m_connectionConfig = connectionConfig;
         m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
         m_allocateConnection = true;
@@ -1092,19 +1094,21 @@ namespace yojimbo
             ResetClientState( i );
     }
 
-    Server::Server( Allocator & allocator, Transport & transport )
+    Server::Server( Allocator & allocator, Transport & transport, const ServerConfig & serverConfig )
     {
         Defaults();
         m_allocator = &allocator;
         m_transport = &transport;
+        m_serverConfig = serverConfig;
     }
 
-    Server::Server( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig )
+    Server::Server( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig, const ServerConfig & serverConfig )
     {
         Defaults();
         m_allocator = &allocator;
         m_transport = &transport;
         m_allocateConnections = true;
+        m_serverConfig = serverConfig;
         m_connectionConfig = connectionConfig;
         m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
     }
