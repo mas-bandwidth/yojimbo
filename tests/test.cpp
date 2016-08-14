@@ -4910,6 +4910,58 @@ void test_connection_client_server()
     server.Stop();
 }
 
+void test_allocator_tlsf()
+{
+    printf( "test_allocator_tlsf\n" );
+
+    const int NumBlocks = 256;
+    const int BlockSize = 1024;
+    const int MemorySize = NumBlocks * BlockSize;
+
+    uint8_t * memory[MemorySize];
+
+    TLSFAllocator allocator( memory, MemorySize );
+
+    uint8_t * blockData[NumBlocks];
+    memset( blockData, 0, sizeof( blockData ) );
+
+    int stopIndex = 0;
+
+    for ( int i = 0; i < NumBlocks; ++i )
+    {
+        blockData[i] = (uint8_t*) allocator.Allocate( BlockSize );
+        
+        if ( !blockData[i] )
+        {
+            check( allocator.GetError() == ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            allocator.ClearError();
+            check( allocator.GetError() == ALLOCATOR_ERROR_NONE );
+            stopIndex = i;
+            break;
+        }
+        
+        check( blockData[i] );
+        check( allocator.GetError() == ALLOCATOR_ERROR_NONE );
+        
+        memset( blockData[i], i + 10, BlockSize );
+    }
+
+    check( stopIndex > NumBlocks / 2 );
+
+    for ( int i = 0; i < NumBlocks - 1; ++i )
+    {
+        if ( blockData[i] )
+        {
+            for ( int j = 0; j < BlockSize; ++j )
+                check( blockData[i][j] == uint8_t( i + 10 ) );
+        }
+
+        allocator.Free( blockData[i] );
+
+        blockData[i] = NULL;
+    }
+}
+
 int main()
 {
     srand( time( NULL ) );
@@ -4971,6 +5023,7 @@ int main()
         test_connection_unreliable_unordered_messages();
         test_connection_unreliable_unordered_blocks();
         test_connection_client_server();
+        test_allocator_tlsf();
 
 #if SOAK
         if ( quit )

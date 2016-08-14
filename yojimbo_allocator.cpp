@@ -30,7 +30,7 @@ namespace yojimbo
 {
     DefaultAllocator::DefaultAllocator() 
     {
-        // ...
+        m_error = ALLOCATOR_ERROR_NONE;
     }
 
     DefaultAllocator::~DefaultAllocator()
@@ -50,14 +50,20 @@ namespace yojimbo
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
 
-    void * DefaultAllocator::Allocate( uint32_t size )
+    void * DefaultAllocator::Allocate( size_t size )
     {
         void * p = malloc( size );
+
         if ( !p )
+        {
+            m_error = ALLOCATOR_ERROR_FAILED_TO_ALLOCATE;
             return NULL;
+        }
+
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         m_alloc_map[p] = size;
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
         return p;
     }
 
@@ -65,20 +71,90 @@ namespace yojimbo
     {
         if ( !p )
             return;
+
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         assert( m_alloc_map.find( p ) != m_alloc_map.end() );
         m_alloc_map.erase( p );
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
         free( p );
     }
 
     int DefaultAllocator::GetError() const
     {
-        return ALLOCATOR_ERROR_NONE;
+        return m_error;
     }
 
     void DefaultAllocator::ClearError()
     {
-        // clear error state once it exists
+        m_error = ALLOCATOR_ERROR_NONE;
+    }
+
+    // =============================================
+
+    TLSFAllocator::TLSFAllocator( void * memory, size_t size ) 
+    {
+        m_error = ALLOCATOR_ERROR_NONE;
+
+        m_tlsf = tlsf_create_with_pool( memory, size );
+    }
+
+    TLSFAllocator::~TLSFAllocator()
+    {
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        if ( m_alloc_map.size() )
+        {
+            printf( "you leaked memory!\n" );
+            typedef std::map<void*,uint32_t>::iterator itor_type;
+            for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i ) 
+            {
+                void *p = i->first;
+                printf( "leaked block %p (%d bytes)\n", p, i->second );
+            }
+            exit(1);
+        }
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+        tlsf_destroy( m_tlsf );
+    }
+
+    void * TLSFAllocator::Allocate( size_t size )
+    {
+        void * p = tlsf_malloc( m_tlsf, size );
+
+        if ( !p )
+        {
+            m_error = ALLOCATOR_ERROR_FAILED_TO_ALLOCATE;
+            return NULL;
+        }
+
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        m_alloc_map[p] = size;
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+        
+        return p;
+    }
+
+    void TLSFAllocator::Free( void * p ) 
+    {
+        if ( !p )
+            return;
+
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        assert( m_alloc_map.find( p ) != m_alloc_map.end() );
+        m_alloc_map.erase( p );
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+        tlsf_free( m_tlsf, p );
+    }
+
+    int TLSFAllocator::GetError() const
+    {
+        return m_error;
+    }
+
+    void TLSFAllocator::ClearError()
+    {
+        m_error = ALLOCATOR_ERROR_NONE;
     }
 }

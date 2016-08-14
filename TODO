@@ -2,18 +2,19 @@ DONE
 
 TODO
 
-    ------------------
+    Next step is to specify in the server configuration a per-client amount of memory in bytes, and a global allocator number of bytes.
 
-    Should probably take the effort now to integrate proper allocators.
+    Then, setup a function to create an allocator for each client, as well as a global allocator.
 
-    No point doing all the work for separate allocators and factories when the actual allocators just shim to malloc
-    
-    This is important too because I think I will want to rework the server to have one allocator per-client (for simplicity),
-    and from this allocator create the message factory, pass in as stream allocator, use for packet factory and so on.
+    Leave the client and server using default allocator (malloc) by default, except for the global and per-client allocator that use tlsf.
 
-    ------------------
-    
-    First step, build an allocator on top of tcmalloc
+    Now make sure all the packet factory, message factory and stream allocator go through the same allocator: 
+
+    Add an interface something like this:
+
+        GetGlobalAllocator()
+
+        GetClientAllocator( int clientIndex )
 
     ------------------
 

@@ -31,11 +31,14 @@
 #include <map>
 #endif // YOJIMBO_DEBUG_MEMORY_LEAKS
 
+#include "tlsf/tlsf.h"
+
 namespace yojimbo
 {
     enum
     {
-        ALLOCATOR_ERROR_NONE = 0
+        ALLOCATOR_ERROR_NONE = 0,
+        ALLOCATOR_ERROR_FAILED_TO_ALLOCATE
     };
 
     class Allocator
@@ -46,7 +49,7 @@ namespace yojimbo
 
         virtual ~Allocator() {}
         
-        virtual void * Allocate( uint32_t size ) = 0;
+        virtual void * Allocate( size_t size ) = 0;
 
         virtual void Free( void * p ) = 0;
 
@@ -73,13 +76,39 @@ namespace yojimbo
         std::map<void*,uint32_t> m_alloc_map;
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
+        int m_error;
+
     public:
 
         DefaultAllocator();
 
         ~DefaultAllocator();
 
-        void * Allocate( uint32_t size );
+        void * Allocate( size_t size );
+
+        void Free( void * p );
+
+        int GetError() const;
+
+        void ClearError();
+    };
+
+    class TLSFAllocator : public Allocator
+    {
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        std::map<void*,uint32_t> m_alloc_map;
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+        int m_error;
+        tlsf_t m_tlsf;
+
+    public:
+
+        TLSFAllocator( void * memory, size_t bytes );
+
+        ~TLSFAllocator();
+
+        void * Allocate( size_t size );
 
         void Free( void * p );
 

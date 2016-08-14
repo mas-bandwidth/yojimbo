@@ -1,4 +1,25 @@
 
+Sunday August 14, 2016
+======================
+
+Should probably take the effort now to integrate proper allocators.
+
+No point doing all the work for separate allocators and factories when the actual allocators just shim to malloc
+
+This is important too because I think I will want to rework the server to have one allocator per-client (for simplicity),
+and from this allocator create the message factory, pass in as stream allocator, use for packet factory and so on.
+
+Copied in tlsf allocator from github. It is licenced BSD.
+
+Now set it up in premake5 as a library and make sure it gets included in release zips.
+
+Changed allocator interface to take size_t for bytes because why not.
+
+Added new "TLSFAllocator" implementation. Beautifully simple to integrate this allocator. Love it.
+
+Added new test: "test_allocator_tlsf"
+
+
 Tuesday August 2nd, 2016
 ========================
 
