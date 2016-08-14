@@ -7,6 +7,13 @@ TODO
     Should probably take the effort now to integrate proper allocators.
 
     No point doing all the work for separate allocators and factories when the actual allocators just shim to malloc
+    
+    This is important too because I think I will want to rework the server to have one allocator per-client (for simplicity),
+    and from this allocator create the message factory, pass in as stream allocator, use for packet factory and so on.
+
+    ------------------
+    
+    First step, build an allocator on top of tcmalloc
 
     ------------------
 
