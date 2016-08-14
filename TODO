@@ -2,6 +2,16 @@ DONE
 
 TODO
 
+    Server needs its own config now. So does the client. Config is required for the # of bytes to create for the allocators.
+
+    ServerConfig, ClientConfig.
+
+    Use the globals for the default values (which are shared between client and server)
+
+    Move as many of these as possible into the config.
+
+    ------------------
+
     Next step is to specify in the server configuration a per-client amount of memory in bytes, and a global allocator number of bytes.
 
     Then, setup a function to create an allocator for each client, as well as a global allocator.

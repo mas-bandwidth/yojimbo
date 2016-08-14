@@ -13,7 +13,7 @@ WOULD BE NICE
 
     This should go away. Dynamically allocate max encryption mappings as a function of max clients in the server when started.
 
-    (This is the reason when I tried to increase above 1024 clients)
+    (This is the reason I was getting silent client connect failures when I tried to increase above 1024 clients...)
 
     ------------------
 
@@ -57,31 +57,11 @@ WOULD BE NICE
 
     So I think the key way to avoid replay attacks being effective, is to store the timestamp in the additional data section of the AEAD of the connect token.
 
-    That way a reused connect token can be discarded quickly, by just checking the timestamp. The test for checking the additional data vs. the HMAC of the payload will quickly reject replayed connect tokens, vs. right now which has to decrypt all of the connect token in order to check it.
+    That way a reused connect token can be discarded quickly, by just checking the timestamp. 
 
-    ------------------
+    If the timestamp is modified, then the signature check will quickly reject before the decrypt. 
 
-    Idea: at the transport layer, implement an interface that can be set on the transport, to filter packets. This way, a packet can be inspected at the byte level (before serialization), and trivially rejected. Then, implement something like this for both the connect token. This will make it cheap to reject replay tokens.
-
-    If early reject happens for a particular IP address, implement a transport level BAN of that IP for a period of time (eg. 5 minutes), and then continue to discard any IP addresses that match that ban.
-
-    Do this IP level ban in such a way it's not vulnerable to worst case hash behavior.
-
-    Oh wait. No. Can't do this ban... it would give people a way to effectively DDOS other people, by spoofing their IP. Goddamnit... =p
-
-    ------------------
-
-    Security idea from Ben Garney.
-
-    Don't perform any allocation while processing 'connection request' packets or it's a DDOS attack vector.
-
-    ------------------
-
-    It's somewhat risky that the server must override the packet factory, but the default implementation is the client/server packet factory.
-
-    I think people are going to pass in their custom packet factory in the constructor, but then wonder why their custom packets aren't getting created properly.
-
-    Add a check between the transport packet factory and the client packet factory to make sure they are compatible (eg. same # of types)    
+    This way, attackers cannot force an expensive decrypt connect token without actaully getting a token from the matcher (in the last 30 seconds...)
 
     ------------------
 
@@ -97,45 +77,10 @@ WOULD BE NICE
 
     ------------------
 
-    Add a limit on the number of messages allocated per-client, and track that in the message factory.
-
-    If too many messages are allocated, return NULL. This should disconnect that particular client.
-
-    Add a unit test to verify this is actually working.
-
-    ------------------
-
-    Add a limit on the # of bytes allocated in the stream allocator. If a stream allocation fails, it is the responsibility
-    of the serialize function to handle this and return false.
-
-    Check the stream allocator per-client each advance time, if it is in an error state, disconnect that client.
-
-    ------------------
-
     Add a unit test that actually exercises the stream allocator.
 
     ------------------
 
     Add a unit test that intentionally exhausts the stream allocator.
-
-    ------------------
-
-    Actually implement a proper allocator for messages and stream allocations.
-
-    Look for a good allocator with arenas, pools, small block support etc.
-
-    The key thing is that a proper allocator will allow me to:
-
-    a) Bound the allocations to a maximum memory size, which is important.
-
-    These allocators should be used and tested inside yojimbo by default.
-
-    While it's nice that yojimbo lets you override the allocators and use your own, not ever project will have their own allocators setup.
-
-    It's important for the security of yojimbo that messages come from a finite pool, and stream allocations come from a finite pool.
-
-    ------------------
-    
-    Consolidate the message factories, server class, client class so they are not duplicated in test.cpp. Use the ones in shared.h
 
     ------------------
