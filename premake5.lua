@@ -51,7 +51,7 @@ project "info"
 
 project "yojimbo"
     kind "StaticLib"
-    files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp" }
+    files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp", "tlsf/*.h", "tlsf/*.c" }
 
 project "client"
     files { "tests/client.cpp", "tests/shared.h" }
@@ -300,7 +300,7 @@ if not os.is "windows" then
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
-            files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker rapidjson windows"
+            files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker rapidjson tlsf windows"
             os.execute( "rm -rf *.zip *.tar.gz *.7z" );
             os.execute( "rm -rf docker/libyojimbo" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )
