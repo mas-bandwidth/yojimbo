@@ -1,10 +1,32 @@
 DONE    
 
-TODO
-
     Server needs its own config now. So does the client. Config is required for the # of bytes to create for the allocators.
 
     ServerConfig, ClientConfig.
+
+    Passed the server config into the server constructor. A bit awkward with the existing connection config being passed in.
+
+    Same for client constructor. Again, awkward.
+
+    I think I should move the connection config inside the respective client/server configs, and have a bool in there "bool enableConnection" or something similar.
+
+TODO
+
+    I'm seeing a chicken and egg thing here that I don't like.
+ 
+    The packet factory is passed in to the transport.
+
+    But I want the global packet factory to be created/owned by the server, so by default it is backed by a proper allocator (eg. the global allocator) on the server.
+
+    But to do this, I need a way to override the transport packet factory and to create a transport without initially specifying a packet factory.
+
+    I think I do need to do this though, because I don't want special treatment of the global packets vs. the per-client packets.
+
+    They should all go through allocators managed by the server instance.
+
+    Think about what is the best solution here. Really, this comes about beacuse I designed the transport and packet factories before I created the client/server.
+
+    ------------------
 
     Use the globals for the default values (which are shared between client and server)
 

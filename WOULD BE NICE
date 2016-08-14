@@ -1,6 +1,22 @@
 WOULD BE NICE
 
     ------------------
+
+    Seems a bit annoying now having both server config and connection config.
+
+    Probably should move the connection config inside the server and client config.
+
+    Think about it.    
+
+    ------------------
+
+    Default allocator should store block size in 4 bytes preceding the allocated block
+
+    This way the default allocator can report on # of bytes allocated.
+
+    Right now it cannot.
+
+    ------------------
     
     Add a test for a very large message send queue (and large # of messages per-packet) with a tiny message receive queue.
     
