@@ -1290,11 +1290,6 @@ class GameClient : public Client
 
 public:
 
-    explicit GameClient( Allocator & allocator, Transport & transport ) : Client( allocator, transport )
-    {
-        Initialize();
-    }
-
     explicit GameClient( Allocator & allocator, Transport & transport, const ClientServerConfig & config ) : Client( allocator, transport, config )
     {
         Initialize();
@@ -2075,7 +2070,10 @@ void test_client_server_connection_request_timeout()
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientTransport );
+    ClientServerConfig config;
+    config.enableConnection = false;
+
+    GameClient client( GetDefaultAllocator(), clientTransport, config );
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
 
@@ -3320,7 +3318,10 @@ void test_client_server_insecure_connect_timeout()
 
     double time = 0.0;
 
-    GameClient client( GetDefaultAllocator(), clientTransport );
+    ClientServerConfig config;
+    config.enableConnection = false;
+
+    GameClient client( GetDefaultAllocator(), clientTransport, config );
 
     clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
 
