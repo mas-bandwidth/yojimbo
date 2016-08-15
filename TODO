@@ -4,35 +4,41 @@ TODO
 
     ------------------
 
-    Next step is to specify in the server configuration a per-client amount of memory in bytes, and a global allocator number of bytes.
+    Next create global and per-client allocators on server, and one allocator on client.
 
-    Then, setup a function to create an allocator for each client, as well as a global allocator.
+    Make sure these allocators are dynamically created according to config via virtual functions. 
 
-    Leave the client and server using default allocator (malloc) by default, except for the global and per-client allocator that use tlsf.
-
-    Now make sure all the packet factory, message factory and stream allocator go through the same allocator: 
-
-    Add an interface something like this:
+    Add an interface something like this to the server:
 
         GetGlobalAllocator()
 
         GetClientAllocator( int clientIndex )
 
+    And for the client, just:
+
+        GetClientAllocator()
+
     ------------------
 
-    I'm seeing a chicken and egg thing here that I don't like.
- 
-    The packet factory is passed in to the transport.
+    Rework the transport so it can be created optionally without a packet factory.
 
-    But I want the global packet factory to be created/owned by the server, so by default it is backed by a proper allocator (eg. the global allocator) on the server.
+    Add a SetPacketFactory method
 
-    But to do this, I need a way to override the transport packet factory and to create a transport without initially specifying a packet factory.
+    Create the packet factory for client and server internally via a virtual.
 
-    I think I do need to do this though, because I don't want special treatment of the global packets vs. the per-client packets.
+    Make sure it the transport has SetPacketFactory called on it.
 
-    They should all go through allocators managed by the server instance.
+    ------------------
 
-    Think about what is the best solution here. Really, this comes about beacuse I designed the transport and packet factories before I created the client/server.
+    Make sure that all client/serevr test cases in test.cpp and elsewhere remove the packet factory from setup.
+
+    ------------------
+
+    Now make sure all the packet factory, message factory and stream allocator go through the same allocator: 
+
+    ------------------
+
+    Make sure all tests pass with limited memory per-client.
 
     ------------------
 
