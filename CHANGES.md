@@ -43,6 +43,8 @@ Was a bug where the connection was being allocated but the packet factory was NU
 
 However, if connection packets were processed, this could happen, and would have been a NULL pointer crash triggered by feeding connection packet types into the client/server. Fixed this by checking for message factory, and if NULL return false.
 
+Moved as many variables as possible into the config.
+
 
 Tuesday August 2nd, 2016
 ========================

@@ -137,7 +137,7 @@ public:
         serverAddresses[0] = Address( "::1", ServerPort );
 
         ConnectToken token;
-        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
+        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId, 10 );
 
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
         memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );

@@ -73,13 +73,13 @@ namespace yojimbo
         return ! ( (*this) == other );
     }
 
-    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId )
+    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId, int expirySeconds )
     {
         uint64_t timestamp = (uint64_t) time( NULL );
         
         token.protocolId = protocolId;
         token.clientId = clientId;
-        token.expiryTimestamp = timestamp + ConnectTokenExpirySeconds;
+        token.expiryTimestamp = timestamp + expirySeconds;
         
         assert( numServerAddresses > 0 );
         assert( numServerAddresses <= MaxServersPerConnectToken );
@@ -518,7 +518,7 @@ namespace yojimbo
 
         if ( sendDisconnectPacket && m_clientState > CLIENT_STATE_DISCONNECTED )
         {
-            for ( int i = 0; i < NumDisconnectPackets; ++i )
+            for ( int i = 0; i < m_config.numDisconnectPackets; ++i )
             {
                 ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );            
 
@@ -619,7 +619,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_INSECURE_CONNECT:
             {
-                if ( m_lastPacketSendTime + InsecureConnectSendRate > time )
+                if ( m_lastPacketSendTime + m_config.insecureConnectSendRate > time )
                     return;
 
                 InsecureConnectPacket * packet = (InsecureConnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
@@ -635,7 +635,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
             {
-                if ( m_lastPacketSendTime + ConnectionRequestSendRate > time )
+                if ( m_lastPacketSendTime + m_config.connectionRequestSendRate > time )
                     return;
 
                 ConnectionRequestPacket * packet = (ConnectionRequestPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
@@ -651,7 +651,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:
             {
-                if ( m_lastPacketSendTime + ConnectionResponseSendRate > time )
+                if ( m_lastPacketSendTime + m_config.connectionResponseSendRate > time )
                     return;
 
                 ConnectionResponsePacket * packet = (ConnectionResponsePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_RESPONSE );
@@ -677,7 +677,7 @@ namespace yojimbo
                     }
                 }
 
-                if ( m_lastPacketSendTime + ConnectionHeartBeatRate <= time )
+                if ( m_lastPacketSendTime + m_config.connectionHeartBeatRate <= time )
                 {
                     ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
 
@@ -720,7 +720,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_INSECURE_CONNECT:
             {
-                if ( m_lastPacketReceiveTime + InsecureConnectTimeOut < time )
+                if ( m_lastPacketReceiveTime + m_config.insecureConnectTimeOut < time )
                 {
                     Disconnect( CLIENT_STATE_INSECURE_CONNECT_TIMEOUT, false );
                     return;
@@ -732,7 +732,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
             {
-                if ( m_lastPacketReceiveTime + ConnectionRequestTimeOut < time )
+                if ( m_lastPacketReceiveTime + m_config.connectionRequestTimeOut < time )
                 {
                     Disconnect( CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT, false );
                     return;
@@ -742,7 +742,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:
             {
-                if ( m_lastPacketReceiveTime + ChallengeResponseTimeOut < time )
+                if ( m_lastPacketReceiveTime + m_config.challengeResponseTimeOut < time )
                 {
                     Disconnect( CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT, false );
                     return;
@@ -752,7 +752,7 @@ namespace yojimbo
 
             case CLIENT_STATE_CONNECTED:
             {
-                if ( m_lastPacketReceiveTime + ConnectionTimeOut < time )
+                if ( m_lastPacketReceiveTime + m_config.connectionTimeOut < time )
                 {
                     Disconnect( CLIENT_STATE_CONNECTION_TIMEOUT, false );
                     return;
@@ -817,6 +817,8 @@ namespace yojimbo
 
     void Client::InitializeConnection()
     {
+        // todo: this is a bit rough. maybe clean up, or make this non-virtual. if the client wants to create their own context, they have no way to do it.
+
         if ( !m_streamAllocator )
         {
             m_streamAllocator = CreateStreamAllocator();
@@ -1217,7 +1219,7 @@ namespace yojimbo
 
         if ( sendDisconnectPacket )
         {
-            for ( int i = 0; i < NumDisconnectPackets; ++i )
+            for ( int i = 0; i < m_config.numDisconnectPackets; ++i )
             {
                 ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );
 
@@ -1358,7 +1360,7 @@ namespace yojimbo
                     }
                 }
 
-                if ( m_clientData[i].lastPacketSendTime + ConnectionHeartBeatRate <= time )
+                if ( m_clientData[i].lastPacketSendTime + m_config.connectionHeartBeatRate <= time )
                 {
                     ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( i );
 
@@ -1372,7 +1374,7 @@ namespace yojimbo
             }
             else
             {
-                if ( m_clientData[i].lastHeartBeatSendTime + ConnectionHeartBeatRate <= time )
+                if ( m_clientData[i].lastHeartBeatSendTime + m_config.connectionHeartBeatRate <= time )
                 {
                     ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( i );
 
@@ -1417,7 +1419,7 @@ namespace yojimbo
             if ( !m_clientConnected[clientIndex] )
                 continue;
 
-            if ( m_clientData[clientIndex].lastPacketReceiveTime + ConnectionTimeOut < time )
+            if ( m_clientData[clientIndex].lastPacketReceiveTime + m_config.connectionTimeOut < time )
             {
                 OnClientError( clientIndex, SERVER_CLIENT_ERROR_TIMEOUT );
 
@@ -1981,7 +1983,7 @@ namespace yojimbo
             assert( existingClientIndex >= 0 );
             assert( existingClientIndex < m_maxClients );
 
-            if ( m_clientData[existingClientIndex].lastPacketSendTime + ConnectionConfirmSendRate < time )
+            if ( m_clientData[existingClientIndex].lastPacketSendTime + m_config.connectionConfirmSendRate < time )
             {
                 ConnectionHeartBeatPacket * connectionHeartBeatPacket = CreateHeartBeatPacket( existingClientIndex );
 

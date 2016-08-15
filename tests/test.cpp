@@ -904,7 +904,7 @@ void test_client_server_tokens()
 
     {
         ConnectToken token;
-        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
+        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId, 10 );
 
         char json[2048];
 
@@ -1002,7 +1002,7 @@ public:
         serverAddresses[0] = Address( "::1", serverPortOverride == -1 ? ServerPort : serverPortOverride );
 
         ConnectToken token;
-        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId );
+        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId, 10 );
         token.expiryTimestamp += timestampOffsetInSeconds;
 
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
