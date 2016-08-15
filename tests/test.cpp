@@ -2768,7 +2768,7 @@ void test_client_server_connect_token_reuse()
 
     TestNetworkTransport clientTransport2( packetFactory, networkSimulator, clientAddress2 );
     
-    GameClient client2( GetDefaultAllocator(), clientTransport2 );
+    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
 
     client2.AdvanceTime( time );
 
