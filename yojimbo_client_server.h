@@ -40,38 +40,58 @@ namespace yojimbo
     const int ConnectTokenBytes = 1024;
     const int ChallengeTokenBytes = 256;
     const int MaxServersPerConnectToken = 8;
-    const int ConnectTokenExpirySeconds = 30;
-    const int NumDisconnectPackets = 10;
-    const float ConnectionRequestSendRate = 0.1f;
-    const float ConnectionResponseSendRate = 0.1f;
-    const float ConnectionConfirmSendRate = 0.1f;
-    const float ConnectionHeartBeatRate = 1.0f;
-    const float ConnectionRequestTimeOut = 5.0f;
-    const float ChallengeResponseTimeOut = 5.0f;
-    const float ConnectionTimeOut = 10.0f;
-#if YOJIMBO_INSECURE_CONNECT
-    const float InsecureConnectSendRate = 0.1f;
-    const float InsecureConnectTimeOut = 5.0f;
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-    const int DefaultGlobalMemory = 2 * 1024 * 1024;
-    const int DefaultClientMemory = 2 * 1024 * 1024;
 
     struct ClientServerConfig
     {
         int globalMemory;                                                   // memory allocated for connection request handling on the server only (bytes)
 
         int clientMemory;                                                   // per-client memory allocated once on the client and per-client slot on the server (bytes)
-        
-        bool enableConnection;                                              // enable per-client connection and messages.
+
+        int numDisconnectPackets;                                           // number of disconnect packets to spam on clean disconnect. avoids timeout.
+
+        float connectionRequestSendRate;                                    // seconds between connection request packets sent.
+
+        float connectionResponseSendRate;                                   // seconds between connection response packets sent.
+
+        float connectionConfirmSendRate;                                    // seconds between heartbeat packets sent from server -> client prior to connection confirmation.
+            
+        float connectionHeartBeatRate;                                      // seconds between heartbeat packets sent after connection has been confirmed. sent only if other packets are not sent.
+
+        float connectionRequestTimeOut;                                     // seconds before client connection requests gives up and times out.
+
+        float challengeResponseTimeOut;                                     // seconds before challenge response times out.
+
+        float connectionTimeOut;                                            // seconds before connection times out after connection has been established.
+
+#if YOJIMBO_INSECURE_CONNECT
+
+        float insecureConnectSendRate;                                      // seconds between insecure connect packets sent.
+
+        float insecureConnectTimeOut;                                       // time in seconds after with an insecure connection request times out.
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+        bool enableConnection;                                              // enable per-client connection and messages. enabled by default.
 
         ConnectionConfig connectionConfig;                                  // connection configuration.
 
         ClientServerConfig()
         {
-            globalMemory = DefaultGlobalMemory;
-            clientMemory = DefaultClientMemory;
+            globalMemory = 2 * 1024 * 1024;
+            clientMemory = 2 * 1024 * 1024;
+            numDisconnectPackets = 10;
+            connectionRequestSendRate = 0.1f;
+            connectionResponseSendRate = 0.1f;
+            connectionConfirmSendRate = 0.1f;
+            connectionHeartBeatRate = 1.0f;
+            connectionRequestTimeOut = 10.0f;
+            challengeResponseTimeOut = 5.0f;
+            connectionTimeOut = 5.0f;
             enableConnection = true;
+#if YOJIMBO_INSECURE_CONNECT
+            insecureConnectSendRate = 0.1f;
+            insecureConnectTimeOut = 5.0f;
+#endif // #if YOJIMBO_INSECURE_CONNECT
         }        
     };
 
@@ -167,7 +187,7 @@ namespace yojimbo
         }
     };
 
-    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId );
+    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId, int expirySeconds );
 
     bool EncryptConnectToken( const ConnectToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
 
