@@ -19,6 +19,30 @@ Added new "TLSFAllocator" implementation. Beautifully simple to integrate this a
 
 Added new test: "test_allocator_tlsf"
 
+Server needs its own config now. So does the client. Config is required for the # of bytes to create for the allocators.
+
+ServerConfig, ClientConfig.
+
+Passed the server config into the server constructor. A bit awkward with the existing connection config being passed in.
+
+Same for client constructor. Again, awkward.
+
+I think I should move the connection config inside the respective client/server configs, and have a bool in there "bool enableConnection" or something similar.
+
+Moving connection config inside client/server configs.
+
+Anything else doesn't really make sense.
+
+Maybe combine client and server config into the same struct.
+
+Otherwise, there will be duplicates and the possibility of desyncing the client and server configs.
+
+Some desync in the test.cpp with connection config not being setup properly in context.
+
+Was a bug where the connection was being allocated but the packet factory was NULL.
+
+However, if connection packets were processed, this could happen, and would have been a NULL pointer crash triggered by feeding connection packet types into the client/server. Fixed this by checking for message factory, and if NULL return false.
+
 
 Tuesday August 2nd, 2016
 ========================

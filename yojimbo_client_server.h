@@ -57,26 +57,21 @@ namespace yojimbo
     const int DefaultGlobalMemory = 2 * 1024 * 1024;
     const int DefaultClientMemory = 2 * 1024 * 1024;
 
-    struct ClientConfig
+    struct ClientServerConfig
     {
-        int clientMemory;                                                   // global memory allocated for connection request handling (bytes)
+        int globalMemory;                                                   // memory allocated for connection request handling on the server only (bytes)
 
-        ClientConfig()
-        {
-            clientMemory = DefaultGlobalMemory;
-        }        
-    };
+        int clientMemory;                                                   // per-client memory allocated once on the client and per-client slot on the server (bytes)
+        
+        bool enableConnection;                                              // enable per-client connection and messages.
 
-    struct ServerConfig
-    {
-        int globalMemory;                                                   // global memory allocated for connection request handling (bytes)
+        ConnectionConfig connectionConfig;                                  // connection configuration.
 
-        int clientMemory;                                                   // per-client memory allocated for each client in start (bytes)
-
-        ServerConfig()
+        ClientServerConfig()
         {
             globalMemory = DefaultGlobalMemory;
             clientMemory = DefaultClientMemory;
+            enableConnection = true;
         }        
     };
 
@@ -416,9 +411,7 @@ namespace yojimbo
     {
     public:
 
-        explicit Client( Allocator & allocator, Transport & transport, const ClientConfig & clientConfig = ClientConfig() );
-
-        explicit Client( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig, const ClientConfig & clientConfig = ClientConfig() );
+        explicit Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config = ClientServerConfig() );
 
         virtual ~Client();
 
@@ -492,7 +485,7 @@ namespace yojimbo
 
     protected:
 
-        virtual void InitializeContext();
+        virtual void InitializeConnection();
 
         virtual void SetEncryptedPacketTypes();
 
@@ -534,9 +527,7 @@ namespace yojimbo
 
         void Defaults();
 
-        ClientConfig m_clientConfig;                                        // client configuration.
-
-        ConnectionConfig m_connectionConfig;                                // connection configuration.
+        ClientServerConfig m_config;                                        // client/server configuration.
 
         Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
 
@@ -625,9 +616,7 @@ namespace yojimbo
     {
     public:
 
-        Server( Allocator & allocator, Transport & transport, const ServerConfig & serverConfig = ServerConfig() );
-
-        Server( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig, const ServerConfig & serverConfig = ServerConfig() );
+        Server( Allocator & allocator, Transport & transport, const ClientServerConfig & config = ClientServerConfig() );
 
         virtual ~Server();
 
@@ -693,7 +682,7 @@ namespace yojimbo
 
         uint64_t GetFlags() const;
 
-        const ConnectionConfig & GetConnectionConfig() const { return m_connectionConfig; }
+        const ConnectionConfig & GetConnectionConfig() const { return m_config.connectionConfig; }
 
     protected:
 
@@ -781,9 +770,7 @@ namespace yojimbo
 
         void Defaults();
 
-        ServerConfig m_serverConfig;                                        // server configuration.
-
-        ConnectionConfig m_connectionConfig;                                // connection configuration.
+        ClientServerConfig m_config;                                        // client/server configuration.
 
         Allocator * m_allocator;                                            // allocator used for creating connections per-client.
 

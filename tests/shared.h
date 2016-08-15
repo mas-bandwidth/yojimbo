@@ -164,8 +164,8 @@ public:
         SetPrivateKey( private_key );
     }
 
-    explicit GameServer( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig ) 
-        : Server( allocator, transport, connectionConfig )
+    explicit GameServer( Allocator & allocator, Transport & transport, const ClientServerConfig & config ) 
+        : Server( allocator, transport, config )
     {
         SetPrivateKey( private_key );
     }
@@ -271,8 +271,8 @@ public:
         // ...
     }
 
-    explicit GameClient( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig ) 
-        : Client( allocator, transport, connectionConfig )
+    explicit GameClient( Allocator & allocator, Transport & transport, const ClientServerConfig & config ) 
+        : Client( allocator, transport, config )
     {
         // ...
     }

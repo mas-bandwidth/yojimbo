@@ -78,15 +78,15 @@ int SoakMain()
     SimulatorTransport clientTransport( GetDefaultAllocator(), networkSimulator, packetFactory, clientAddress, ProtocolId );
     SimulatorTransport serverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, serverAddress, ProtocolId );
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.maxPacketSize = 1100;
-    connectionConfig.numChannels = 1;
-    connectionConfig.channelConfig[0].packetBudget = 256;
-    connectionConfig.channelConfig[0].maxMessagesPerPacket = 256;
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.connectionConfig.maxPacketSize = 1100;
+    clientServerConfig.connectionConfig.numChannels = 1;
+    clientServerConfig.connectionConfig.channelConfig[0].packetBudget = 256;
+    clientServerConfig.connectionConfig.channelConfig[0].maxMessagesPerPacket = 256;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, connectionConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, connectionConfig );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
 
