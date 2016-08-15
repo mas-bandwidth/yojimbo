@@ -427,23 +427,14 @@ namespace yojimbo
         m_sequence = 0;
     }
 
-    Client::Client( Allocator & allocator, Transport & transport, const ClientConfig & clientConfig )
+    Client::Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config )
     {
         Defaults();
         m_allocator = &allocator;
         m_transport = &transport;
-        m_clientConfig = clientConfig;
-    }
-
-    Client::Client( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig, const ClientConfig & clientConfig )
-    {
-        Defaults();
-        m_allocator = &allocator;
-        m_transport = &transport;
-        m_clientConfig = clientConfig;
-        m_connectionConfig = connectionConfig;
-        m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
-        m_allocateConnection = true;
+        m_config = config;
+        m_config.connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
+        m_allocateConnection = m_config.enableConnection;
     }
 
     Client::~Client()
@@ -470,6 +461,8 @@ namespace yojimbo
     {
         Disconnect();
 
+        InitializeConnection();
+
         m_serverAddress = address;
 
         OnConnect( address );
@@ -494,26 +487,13 @@ namespace yojimbo
                           const uint8_t * clientToServerKey,
                           const uint8_t * serverToClientKey )
     {
-        if ( !m_streamAllocator )
-        {
-            m_streamAllocator = CreateStreamAllocator();
-            m_transport->SetStreamAllocator( *m_streamAllocator );
-        }
-
-        if ( m_allocateConnection && !m_connection )
-        {
-            m_messageFactory = CreateMessageFactory();
-            m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_connectionConfig );
-            m_connection->SetListener( this );
-        }
-
-        InitializeContext();
-
         Disconnect();
 
-        SetEncryptedPacketTypes();
+        InitializeConnection();
 
         m_serverAddress = address;
+
+        SetEncryptedPacketTypes();
 
         OnConnect( address );
 
@@ -525,8 +505,6 @@ namespace yojimbo
         m_lastPacketReceiveTime = time;
         memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
         memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
-
-        m_transport->ResetEncryptionMappings();
 
         m_transport->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
     }
@@ -552,6 +530,8 @@ namespace yojimbo
         }
 
         ResetConnectionData( clientState );
+
+        m_transport->ResetEncryptionMappings();
     }
 
     Message * Client::CreateMessage( int type )
@@ -835,11 +815,32 @@ namespace yojimbo
         return m_clientIndex;
     }
 
-    void Client::InitializeContext()
+    void Client::InitializeConnection()
     {
-        m_context.messageFactory = m_messageFactory;
-        m_context.connectionConfig = &m_connectionConfig;
-        m_transport->SetContext( &m_context );
+        if ( !m_streamAllocator )
+        {
+            m_streamAllocator = CreateStreamAllocator();
+            m_transport->SetStreamAllocator( *m_streamAllocator );
+        }
+
+        if ( m_config.enableConnection )
+        {
+            if ( m_allocateConnection && !m_connection )
+            {
+                m_messageFactory = CreateMessageFactory();
+                m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_config.connectionConfig );
+                m_connection->SetListener( this );
+            }
+
+            m_context.messageFactory = m_messageFactory;
+            m_context.connectionConfig = &m_config.connectionConfig;
+            
+            m_transport->SetContext( &m_context );
+        }
+        else
+        {
+            m_transport->SetContext( NULL );
+        }
     }
 
     void Client::SetEncryptedPacketTypes()
@@ -1094,23 +1095,14 @@ namespace yojimbo
             ResetClientState( i );
     }
 
-    Server::Server( Allocator & allocator, Transport & transport, const ServerConfig & serverConfig )
+    Server::Server( Allocator & allocator, Transport & transport, const ClientServerConfig & config )
     {
         Defaults();
         m_allocator = &allocator;
         m_transport = &transport;
-        m_serverConfig = serverConfig;
-    }
-
-    Server::Server( Allocator & allocator, Transport & transport, const ConnectionConfig & connectionConfig, const ServerConfig & serverConfig )
-    {
-        Defaults();
-        m_allocator = &allocator;
-        m_transport = &transport;
-        m_allocateConnections = true;
-        m_serverConfig = serverConfig;
-        m_connectionConfig = connectionConfig;
-        m_connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
+        m_config = config;
+        m_config.connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
+        m_allocateConnections = m_config.enableConnection;
     }
 
     Server::~Server()
@@ -1167,7 +1159,7 @@ namespace yojimbo
             {
                 m_clientMessageFactory[clientIndex] = CreateMessageFactory( clientIndex );
                 
-                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_connectionConfig );
+                m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_config.connectionConfig );
                
                 m_connection[clientIndex]->SetListener( this );
 
@@ -1601,6 +1593,7 @@ namespace yojimbo
     void Server::InitializeGlobalContext()
     {
         m_globalContext = CreateContext( SERVER_RESOURCE_GLOBAL, -1 );
+        assert( m_globalContext );
         assert( m_globalContext->magic == ConnectionContextMagic );
         m_transport->SetContext( m_globalContext );
     }

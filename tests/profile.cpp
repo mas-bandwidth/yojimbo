@@ -197,10 +197,10 @@ int ProfileMain()
     for ( int i = 0; i < MaxClients; ++i )
         clientData[i].transport = new SocketTransport( GetDefaultAllocator(), packetFactory, clientData[i].address, ProtocolId );
 
-    serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, ConnectionConfig() );
+    serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, ClientServerConfig() );
 
     for ( int i = 0; i < MaxClients; ++i )
-        clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].transport, ConnectionConfig() );
+        clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].transport, ClientServerConfig() );
 
     serverData->server->SetServerAddress( serverData->address );
 

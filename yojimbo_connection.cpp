@@ -71,6 +71,9 @@ namespace yojimbo
     {
         ConnectionContext * context = (ConnectionContext*) stream.GetContext();
 
+        if ( !context )
+            return false;
+
         assert( context );
         assert( context->magic == ConnectionContextMagic );
         assert( context->messageFactory );
