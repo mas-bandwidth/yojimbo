@@ -145,7 +145,7 @@ namespace yojimbo
             uint64_t int_value;
         };
 
-		DoubleInt tmp = { 0 };
+        DoubleInt tmp = { 0 };
         if ( Stream::IsWriting )
             tmp.double_value = value;
 
