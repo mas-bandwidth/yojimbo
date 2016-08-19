@@ -400,14 +400,14 @@ namespace yojimbo
     class factory_class : public base_factory_class                                                                 \
     {                                                                                                               \
     public:                                                                                                         \
-        factory_class( Allocator & allocator = GetDefaultAllocator(), int numMessageTypes = num_message_types )     \
+        factory_class( Allocator & allocator = yojimbo::GetDefaultAllocator(), int numMessageTypes = num_message_types ) \
          : base_factory_class( allocator, numMessageTypes ) {}                                                      \
-        Message * CreateInternal( int type )                                                                        \
+        yojimbo::Message * CreateInternal( int type )                                                               \
         {                                                                                                           \
-            Message * message = base_factory_class::CreateInternal( type );                                         \
+            yojimbo::Message * message = base_factory_class::CreateInternal( type );                                \
             if ( message )                                                                                          \
                 return message;                                                                                     \
-            Allocator & allocator = GetAllocator();                                                                 \
+            yojimbo::Allocator & allocator = GetAllocator();                                                        \
             (void)allocator;                                                                                        \
             switch ( type )                                                                                         \
             {                                                                                                       \
