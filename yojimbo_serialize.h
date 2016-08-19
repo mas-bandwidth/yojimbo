@@ -36,7 +36,7 @@ namespace yojimbo
         do                                                              \
         {                                                               \
             assert( min < max );                                        \
-            int32_t int32_value;                                        \
+            int32_t int32_value = 0;                                    \
             if ( Stream::IsWriting )                                    \
             {                                                           \
                 assert( int64_t(value) >= int64_t(min) );               \
@@ -59,7 +59,7 @@ namespace yojimbo
         {                                                               \
             assert( bits > 0 );                                         \
             assert( bits <= 32 );                                       \
-            uint32_t uint32_value;                                      \
+            uint32_t uint32_value = 0;                                  \
             if ( Stream::IsWriting )                                    \
                 uint32_value = (uint32_t) value;                        \
             if ( !stream.SerializeBits( uint32_value, bits ) )          \
@@ -71,7 +71,7 @@ namespace yojimbo
     #define serialize_bool( stream, value )                             \
         do                                                              \
         {                                                               \
-            uint32_t uint32_bool_value;                                 \
+            uint32_t uint32_bool_value = 0;                             \
             if ( Stream::IsWriting )                                    \
                 uint32_bool_value = value ? 1 : 0;                      \
             serialize_bits( stream, uint32_bool_value, 1 );             \
@@ -82,7 +82,7 @@ namespace yojimbo
     #define serialize_enum( stream, value, type, num_entries )          \
         do                                                              \
         {                                                               \
-            uint32_t int_value;                                         \
+            uint32_t int_value = 0;                                     \
             if ( Stream::IsWriting )                                    \
                 int_value = value;                                      \
             serialize_int( stream, int_value, 0, num_entries - 1 );     \
@@ -117,7 +117,7 @@ namespace yojimbo
 
     template <typename Stream> bool serialize_uint64_internal( Stream & stream, uint64_t & value )
     {
-        uint32_t hi,lo;
+        uint32_t hi = 0, lo = 0;
         if ( Stream::IsWriting )
         {
             lo = value & 0xFFFFFFFF;
@@ -145,7 +145,7 @@ namespace yojimbo
             uint64_t int_value;
         };
 
-        DoubleInt tmp;
+        DoubleInt tmp = { 0 };
         if ( Stream::IsWriting )
             tmp.double_value = value;
 
@@ -178,7 +178,7 @@ namespace yojimbo
 
     template <typename Stream> bool serialize_string_internal( Stream & stream, char* string, int buffer_size )
     {
-        int length;
+        int length = 0;
         if ( Stream::IsWriting )
         {
             length = (int) strlen( string );
@@ -251,7 +251,7 @@ namespace yojimbo
 
     template <typename Stream, typename T> bool serialize_int_relative_internal( Stream & stream, T previous, T & current )
     {
-        uint32_t difference;
+        uint32_t difference = 0;
 
         if ( Stream::IsWriting )
         {
@@ -259,7 +259,7 @@ namespace yojimbo
             difference = current - previous;
         }
 
-        bool oneBit;
+        bool oneBit = false;
         if ( Stream::IsWriting )
             oneBit = difference == 1;
         serialize_bool( stream, oneBit );
@@ -270,7 +270,7 @@ namespace yojimbo
             return true;
         }
 
-        bool twoBits;
+        bool twoBits = false;
         if ( Stream::IsWriting )
             twoBits = difference <= 6;
         serialize_bool( stream, twoBits );
@@ -282,7 +282,7 @@ namespace yojimbo
             return true;
         }
 
-        bool fourBits;
+        bool fourBits = false;
         if ( Stream::IsWriting )
             fourBits = difference <= 23;
         serialize_bool( stream, fourBits );
@@ -294,7 +294,7 @@ namespace yojimbo
             return true;
         }
 
-        bool eightBits;
+        bool eightBits = false;
         if ( Stream::IsWriting )
             eightBits = difference <= 280;
         serialize_bool( stream, eightBits );
@@ -306,7 +306,7 @@ namespace yojimbo
             return true;
         }
 
-        bool twelveBits;
+        bool twelveBits = false;
         if ( Stream::IsWriting )
             twelveBits = difference <= 4377;
         serialize_bool( stream, twelveBits );
@@ -318,7 +318,7 @@ namespace yojimbo
             return true;
         }
 
-        bool sixteenBits;
+        bool sixteenBits = false;
         if ( Stream::IsWriting ) 
             sixteenBits = difference <= 69914;
         serialize_bool( stream, sixteenBits );
@@ -419,7 +419,7 @@ namespace yojimbo
     {                                                                                       \
         assert( bits > 0 );                                                                 \
         assert( bits <= 32 );                                                               \
-        uint32_t uint32_value;                                                              \
+        uint32_t uint32_value= 0;                                                           \
         if ( !stream.SerializeBits( uint32_value, bits ) )                                  \
             return false;                                                                   \
         value = uint32_value;                                                               \
@@ -429,7 +429,7 @@ namespace yojimbo
         do                                                                                  \
         {                                                                                   \
             assert( min < max );                                                            \
-            int32_t int32_value;                                                            \
+            int32_t int32_value = 0;                                                        \
             if ( !stream.SerializeInteger( int32_value, min, max ) )                        \
                 return false;                                                               \
             value = int32_value;                                                            \
