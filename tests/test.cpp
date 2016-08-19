@@ -4959,7 +4959,7 @@ void test_allocator_tlsf()
     const int BlockSize = 1024;
     const int MemorySize = NumBlocks * BlockSize;
 
-    uint8_t * memory[MemorySize];
+    uint8_t * memory = (uint8_t*) alloca( MemorySize );
 
     TLSFAllocator allocator( memory, MemorySize );
 
