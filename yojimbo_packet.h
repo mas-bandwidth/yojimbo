@@ -163,20 +163,21 @@ namespace yojimbo
     Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, int * errorCode = NULL );
 }
 
-#define YOJIMBO_PACKET_FACTORY_START( factory_class, base_factory_class, num_packet_types )                         \
-                                                                                                                    \
-    class factory_class : public base_factory_class                                                                 \
-    {                                                                                                               \
-    public:                                                                                                         \
-        factory_class( Allocator & allocator = GetDefaultAllocator(), int numPacketTypes = num_packet_types )       \
-         : base_factory_class( allocator, numPacketTypes ) {}                                                       \
-        Packet * CreateInternal( int type )                                                                         \
-        {                                                                                                           \
-            Packet * packet = base_factory_class::CreateInternal( type );                                           \
-            if ( packet )                                                                                           \
-                return packet;                                                                                      \
-            Allocator & allocator = GetAllocator();                                                                 \
-            switch ( type )                                                                                         \
+#define YOJIMBO_PACKET_FACTORY_START( factory_class, base_factory_class, num_packet_types )                                         \
+                                                                                                                                    \
+    class factory_class : public base_factory_class                                                                                 \
+    {                                                                                                                               \
+    public:                                                                                                                         \
+        factory_class( yojimbo::Allocator & allocator = yojimbo::GetDefaultAllocator(), int numPacketTypes = num_packet_types )     \
+         : base_factory_class( allocator, numPacketTypes ) {}                                                                       \
+        yojimbo::Packet * CreateInternal( int type )                                                                                \
+        {                                                                                                                           \
+            yojimbo::Packet * packet = base_factory_class::CreateInternal( type );                                                  \
+            if ( packet )                                                                                                           \
+                return packet;                                                                                                      \
+            yojimbo::Allocator & allocator = GetAllocator();                                                                        \
+            (void)allocator;                                                                                                        \
+            switch ( type )                                                                                                         \
             {                                                                                                       
 
 

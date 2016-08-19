@@ -395,22 +395,22 @@ namespace yojimbo
     };
 }
 
-#define YOJIMBO_MESSAGE_FACTORY_START( factory_class, base_factory_class, num_message_types )                       \
-                                                                                                                    \
-    class factory_class : public base_factory_class                                                                 \
-    {                                                                                                               \
-    public:                                                                                                         \
-        factory_class( Allocator & allocator = yojimbo::GetDefaultAllocator(), int numMessageTypes = num_message_types ) \
-         : base_factory_class( allocator, numMessageTypes ) {}                                                      \
-        yojimbo::Message * CreateInternal( int type )                                                               \
-        {                                                                                                           \
-            yojimbo::Message * message = base_factory_class::CreateInternal( type );                                \
-            if ( message )                                                                                          \
-                return message;                                                                                     \
-            yojimbo::Allocator & allocator = GetAllocator();                                                        \
-            (void)allocator;                                                                                        \
-            switch ( type )                                                                                         \
-            {                                                                                                       \
+#define YOJIMBO_MESSAGE_FACTORY_START( factory_class, base_factory_class, num_message_types )                                           \
+                                                                                                                                        \
+    class factory_class : public base_factory_class                                                                                     \
+    {                                                                                                                                   \
+    public:                                                                                                                             \
+        factory_class( yojimbo::Allocator & allocator = yojimbo::GetDefaultAllocator(), int numMessageTypes = num_message_types )       \
+         : base_factory_class( allocator, numMessageTypes ) {}                                                                          \
+        yojimbo::Message * CreateInternal( int type )                                                                                   \
+        {                                                                                                                               \
+            yojimbo::Message * message = base_factory_class::CreateInternal( type );                                                    \
+            if ( message )                                                                                                              \
+                return message;                                                                                                         \
+            yojimbo::Allocator & allocator = GetAllocator();                                                                            \
+            (void)allocator;                                                                                                            \
+            switch ( type )                                                                                                             \
+            {                                                                                                                           \
 
 
 #define YOJIMBO_DECLARE_MESSAGE_TYPE( message_type, message_class )                                                 \
