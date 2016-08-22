@@ -84,9 +84,9 @@ namespace yojimbo
             connectionResponseSendRate = 0.1f;
             connectionConfirmSendRate = 0.1f;
             connectionHeartBeatRate = 1.0f;
-            connectionRequestTimeOut = 10.0f;
+            connectionRequestTimeOut = 5.0f;
             challengeResponseTimeOut = 5.0f;
-            connectionTimeOut = 5.0f;
+            connectionTimeOut = 10.0f;
             enableConnection = true;
 #if YOJIMBO_INSECURE_CONNECT
             insecureConnectSendRate = 0.1f;

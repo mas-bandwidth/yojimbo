@@ -1414,9 +1414,9 @@ public:
     TestNetworkSimulator() : NetworkSimulator( GetDefaultAllocator() )
     {
         SetJitter( 250 );
-        SetLatency( 1000 );
-        SetDuplicates( 25 );
-        SetPacketLoss( 25 );
+        SetLatency( 256 );
+        SetDuplicates( 5 );
+        SetPacketLoss( 10 );
     }   
 };
 
@@ -4959,7 +4959,7 @@ void test_allocator_tlsf()
     const int BlockSize = 1024;
     const int MemorySize = NumBlocks * BlockSize;
 
-    uint8_t * memory = (uint8_t*) alloca( MemorySize );
+    uint8_t * memory = (uint8_t*) malloc( MemorySize );
 
     TLSFAllocator allocator( memory, MemorySize );
 
@@ -5001,6 +5001,8 @@ void test_allocator_tlsf()
 
         blockData[i] = NULL;
     }
+
+    free( memory );
 }
 
 int main()

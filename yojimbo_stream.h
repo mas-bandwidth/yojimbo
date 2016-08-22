@@ -304,7 +304,7 @@ namespace yojimbo
         enum { IsReading = 0 };
 
         explicit MeasureStream( Allocator & allocator = GetDefaultAllocator() ) 
-            : m_allocator( &allocator ), m_context( NULL ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_bitsWritten(0) {}
+            : m_allocator( &allocator ), m_context( NULL ), m_bitsWritten(0) {}
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {   
@@ -390,7 +390,7 @@ namespace yojimbo
 
         int GetError() const
         {
-            return m_error;
+            return YOJIMBO_PROTOCOL_ERROR_NONE;
         }
 
         Allocator & GetAllocator()
@@ -402,7 +402,6 @@ namespace yojimbo
 
         Allocator * m_allocator;
         void * m_context;
-        int m_error;
         int m_bitsWritten;
     };
 }

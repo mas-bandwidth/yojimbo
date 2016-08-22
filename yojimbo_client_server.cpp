@@ -1421,6 +1421,8 @@ namespace yojimbo
 
             if ( m_clientData[clientIndex].lastPacketReceiveTime + m_config.connectionTimeOut < time )
             {
+                printf( "client timed out\n" );
+
                 OnClientError( clientIndex, SERVER_CLIENT_ERROR_TIMEOUT );
 
                 m_counters[SERVER_COUNTER_CLIENT_TIMEOUTS]++;
