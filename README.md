@@ -10,7 +10,7 @@ It is designed around the networking requirements of competitive realtime multip
 
 **libyojimbo** is currently in pre-release for early feedback. Right now it provides support for: cryptographically secure authentication, client/server connection management, encryption for packets sent over UDP, as well as a bitpacker and a framework for extending the protocol with custom packet types. Preliminary support for reliable-ordered messages is included in the latest preview release.
 
-Current work is focused on implementing security features that silo client connections into their own heaps, so a malicious attacker is not able to mount protocol level attacks to exhaust server resources. Once this is finished, packet fragmentation and reassembly will be implemented and libyojimbo 0.3 will be ready for release.
+Current work is focused on implementing security features that silo client connections into their own heaps, so an attacker is unable to mount protocol level attacks to exhaust server resources. Once this is finished, packet fragmentation and reassembly will be implemented and version 0.3 is ready for release.
 
 For more details please refer to the [roadmap](https://github.com/networkprotocol/libyojimbo/blob/master/ROADMAP.md).
 
