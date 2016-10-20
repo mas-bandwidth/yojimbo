@@ -112,7 +112,7 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "cs",
+        trigger     = "client_server",
         description = "Build and run client/server testbed",     
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"

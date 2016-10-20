@@ -33,10 +33,6 @@ This creates makefiles which you can use to build the source via "make all", or 
 
     premake5 test           // build and run unit tests
 
-    premake5 info           // build and run network info (prints list of local network interface IP addresses)
-
-    premake5 cs             // build and run the local client/server testbed with secure connect tokens
-
     premake5 server         // build run your own yojimbo server on localhost on UDP port 40000
 
     premake5 client         // build and run the client that connects to the server running on localhost
