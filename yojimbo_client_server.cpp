@@ -1,5 +1,5 @@
  /*
-    Yojimbo Client/Server Network Library.
+    Yojimbo Client/Server Network Protocol Library.
     
     Copyright © 2016, The Network Protocol Company, Inc.
 
@@ -817,7 +817,7 @@ namespace yojimbo
 
     void Client::InitializeConnection()
     {
-        // todo: this is a bit rough. maybe clean up, or make this non-virtual. if the client wants to create their own context, they have no way to do it.
+        // todo: this is a bit rough. maybe clean up, or make this non-virtual. if the client wants to create their own context, they currently have no way to do it.
 
         if ( !m_streamAllocator )
         {

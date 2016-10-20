@@ -1,5 +1,5 @@
 /*
-    Yojimbo Client/Server Network Library.
+    Yojimbo Client/Server Network Protocol Library.
 
     Copyright © 2016, The Network Protocol Company, Inc.
     
