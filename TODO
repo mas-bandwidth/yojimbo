@@ -2,15 +2,13 @@ DONE
 
 TODO
 
-    It's been a few months since I worked on libyojimbo, so take a good look around and evaluate the next steps.
+    All the work below is likely to be disruptive, it should be done in a branch, and then merged from that branch to mainline when completed!
 
-    Key things to implement from my point of view:
+    ------------------
 
-        1. Finish custom allocator integration per-client on server
+    IMPORTANT: When creating allocators, don't rely on the user overriding to configure the amount of memory available for each allocator. 
 
-        2. Do anything I can do to make integration of the libyojimbo library easier
-
-        3. Look over all existing code and see if there are any obvious problems.
+    Put this in the config, this way the user can reasonably setup an allocator.
 
     ------------------
 
@@ -31,6 +29,12 @@ TODO
     ------------------
 
     Rework the transport so it can be created optionally without a packet factory.
+
+    ^--- I must be missing something from the last time I worked on this. Why am I doing this?
+
+    ^--- I think this is because I want the transport to be able to use the packet factory belonging to the client/server?
+
+    ------------------
 
     Add a SetPacketFactory method
 
@@ -57,6 +61,12 @@ TODO
     Definitely needed for large snapshot blocks.
 
     Default to maximum packet size of 8k, so up to 7 ~1200 MTU packets
+
+    ------------------
+
+    Ideal, don't allow fragmentation from client -> server, at least by default, because it is a security risk.
+
+    If it is allowed, provide the user of the library with a way to configure whether it is or isn't supported.
 
     ------------------
 

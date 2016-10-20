@@ -2,6 +2,22 @@ WOULD BE NICE
 
     ------------------
 
+    AEAD idea. Protocol is currently vulnerable to being spammed invalid connect tokens.
+
+    Of course, an invalid connect token won't decrypt, but a connect token that is an old stale token (reply attack) *will* decrypt.
+
+    So I think the key way to avoid replay attacks being effective, is to store the timestamp in the additional data section of the AEAD of the connect token.
+
+    That way a reused connect token can be discarded quickly, by just checking the timestamp. 
+
+    If the timestamp is modified, then the signature check will quickly reject before the decrypt. 
+
+    This way, attackers cannot force an expensive decrypt connect token without actaully getting a token from the matcher (in the last 30 seconds...)
+
+    ^---- This is important. This should be fixed.
+
+    ------------------
+
     Seems a bit annoying now having both server config and connection config.
 
     Probably should move the connection config inside the server and client config.
@@ -64,20 +80,6 @@ WOULD BE NICE
     Make sure that all code that creates packets is aware that it could get a NULL value returned. 
 
     All message and packet create should gracefully handle packet create being NULL and set an error condition on the connection, or ignore, whichever is appropriate.
-
-    ------------------
-
-    AEAD idea. Protocol is currently vulnerable to being spammed invalid connect tokens.
-
-    Of course, an invalid connect token won't decrypt, but a connect token that is an old stale token (reply attack) *will* decrypt.
-
-    So I think the key way to avoid replay attacks being effective, is to store the timestamp in the additional data section of the AEAD of the connect token.
-
-    That way a reused connect token can be discarded quickly, by just checking the timestamp. 
-
-    If the timestamp is modified, then the signature check will quickly reject before the decrypt. 
-
-    This way, attackers cannot force an expensive decrypt connect token without actaully getting a token from the matcher (in the last 30 seconds...)
 
     ------------------
 
