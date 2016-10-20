@@ -384,6 +384,7 @@ newaction
             "*.vcproj",
             "*.vcxproj",
             "*.vcxproj.user",
+            "*.vcxproj.filters",
             "*.sln",
             "*.xcodeproj",
             "*.xcworkspace"
