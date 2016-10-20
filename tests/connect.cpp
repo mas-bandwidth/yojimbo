@@ -1,5 +1,5 @@
 /*
-    Client/Server Testbed
+    Client Connect via Matcher.
 
     Copyright © 2016, The Network Protocol Company, Inc.
 

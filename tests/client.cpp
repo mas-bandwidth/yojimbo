@@ -1,5 +1,5 @@
 /*
-    Client/Server Testbed
+    Test Client
 
     Copyright © 2016, The Network Protocol Company, Inc.
 

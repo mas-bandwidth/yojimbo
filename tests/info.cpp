@@ -1,5 +1,5 @@
 /*
-    Yojimbo Client/Server Network Protocol Library.
+    Info Testbed.
 
     Copyright © 2016, The Network Protocol Company, Inc.
 

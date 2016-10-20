@@ -1,4 +1,29 @@
 
+
+Thursday October 20th, 2016
+===========================
+
+Investigated the cause of issue where a truncated HTTPS response was getting received from the matcher.
+
+Investigation showed that curl returned a non-truncated version, the bug then is in my code or mbedtls.
+
+Futher investigation showed that the example code for reading the HTTPS response from mbedtls was flawed. 
+
+It was coded in such a way that it expected to read all the data in one call to mbedtls_ssl_read, but the data comes in in multiple reads.
+
+This is probably the thing that changed with the docker upgrade. My guess is it is some sort of MTU split being enforced by the network layer change in Docker. 
+
+I think this is the case because set of reads looks like this:
+
+	1179 bytes (suspiciously close to a 1200 MTU like value...)
+	528 bytes
+	- negative return (stop reading)
+
+I adjusted the code so it is able to read the response in multiple calls and that fixes the issue.
+
+I wish I had the time to fix this sooner, this wasn't actually that hard to track down in the end, even though it was frustrating that it broke without any changes on my end. It was ultimately a bug in the code on my side, under my control.
+
+
 Sunday August 14, 2016
 ======================
 

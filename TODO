@@ -2,6 +2,16 @@ DONE
 
 TODO
 
+    It's been a few months since I worked on libyojimbo, so take a good look around and evaluate the next steps.
+
+    Key things to implement from my point of view:
+
+        1. Finish custom allocator integration per-client on server
+
+        2. Do anything I can do to make integration of the libyojimbo library easier
+
+        3. Look over all existing code and see if there are any obvious problems.
+
     ------------------
 
     Next create global and per-client allocators on server, and one allocator on client.
@@ -30,7 +40,7 @@ TODO
 
     ------------------
 
-    Make sure that all client/serevr test cases in test.cpp and elsewhere remove the packet factory from setup.
+    Make sure that all client/server test cases in test.cpp and elsewhere remove the packet factory from setup.
 
     ------------------
 

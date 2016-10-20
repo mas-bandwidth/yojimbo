@@ -109,10 +109,12 @@ namespace yojimbo
     {
         assert( m_initialized );
 
-        int ret, len;
+        int ret;
         uint32_t flags;
         char buf[4*1024];
         char request[1024];
+		int bytesRead = 0;
+		const char * json;
 
         if ( ( ret = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
@@ -133,7 +135,7 @@ namespace yojimbo
         mbedtls_ssl_conf_ca_chain( &m_internal->conf, &m_internal->cacert, NULL );
         mbedtls_ssl_conf_rng( &m_internal->conf, mbedtls_ctr_drbg_random, &m_internal->ctr_drbg );
 
-        if( ( ret = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
+        if ( ( ret = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
         {
             m_status = MATCHER_FAILED;
             goto cleanup;
@@ -174,11 +176,11 @@ namespace yojimbo
             }
         }
 
+        memset( buf, 0, sizeof( buf ) );
+
         do
         {
-            len = sizeof( buf ) - 1;
-            memset( buf, 0, sizeof( buf ) );
-            ret = mbedtls_ssl_read( &m_internal->ssl, (uint8_t*) buf, len );
+            ret = mbedtls_ssl_read( &m_internal->ssl, (uint8_t*) ( buf + bytesRead ), sizeof( buf ) - bytesRead - 1 );
 
             if ( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
                 continue;
@@ -189,24 +191,20 @@ namespace yojimbo
             if ( ret <= 0 )
                 break;
 
-            const char * json = strstr( (const char*)buf, "\r\n\r\n" );
-
-            if ( !json )
-                break;
-
-            if ( !ParseMatchResponse( json, m_matchResponse ) )
-            {
-                m_status = MATCHER_FAILED;
-                goto cleanup;
-            }
-
-            m_status = MATCHER_READY;
-
-            goto cleanup;
+			bytesRead += ret;
         }
         while( 1 );
 
-        m_status = MATCHER_FAILED;
+        json = strstr( (const char*)buf, "\r\n\r\n" );
+
+        if ( json && ParseMatchResponse( json, m_matchResponse ) )
+        {
+	        m_status = MATCHER_READY;
+        }
+		else
+		{
+			m_status = MATCHER_FAILED;
+		}
 
     cleanup:
 
