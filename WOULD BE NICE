@@ -102,3 +102,10 @@ WOULD BE NICE
     Add a unit test that intentionally exhausts the stream allocator.
 
     ------------------
+
+    At some point I'm going to want to clean up some old large binary files in the repository that were accidentally committed
+
+    https://git-scm.com/book/en/v2/Git-Internals-Maintenance-and-Data-Recovery
+
+    ------------------
+    
