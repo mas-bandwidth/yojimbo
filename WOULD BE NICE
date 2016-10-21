@@ -108,4 +108,9 @@ WOULD BE NICE
     https://git-scm.com/book/en/v2/Git-Internals-Maintenance-and-Data-Recovery
 
     ------------------
-    
+
+    Or to optimize the repository to remove stale accidentally added binaries with this tool:
+
+    https://www.theguardian.com/info/developer-blog/2013/apr/29/rewrite-git-history-with-the-bfg
+
+    ------------------
