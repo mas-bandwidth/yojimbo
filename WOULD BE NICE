@@ -103,14 +103,11 @@ WOULD BE NICE
 
     ------------------
 
-    At some point I'm going to want to clean up some old large binary files in the repository that were accidentally committed
+    Its frustrating that by default the server doesn't print out any reason why it's ignoring a connection request
 
-    https://git-scm.com/book/en/v2/Git-Internals-Maintenance-and-Data-Recovery
+    This make it hard to see what is going on when something is wrong, and requires I turn on extra logs with #define YOJIMBO_DEBUG_SPAM 1
 
-    ------------------
-
-    Or to optimize the repository to remove stale accidentally added binaries with this tool:
-
-    https://www.theguardian.com/info/developer-blog/2013/apr/29/rewrite-git-history-with-the-bfg
+    It would much be better if it logged these things all the time during client/server/connect tests. The only place it should not log is in unit tests, where lots of failures will occur intentionally, and we don't want to see those spammed to the console.
 
     ------------------
+    

@@ -4,6 +4,36 @@ Friday Octobor 21st, 2016
 
 Creating new preview release 9 with the matcher fix on Windows.
 
+Preparing 0.3 preview 9 release.
+
+Testing the release...
+
+There was some weird issue with make inside "premake5 docker" complaining about certain files being in the future.
+
+Worked around by touching these files in the docker build step.
+
+There is a bug where the "connect" through matcher is not working for server instances not running through docker.
+
+Why?! It connects fine to "pm docker" server, but doesn't work for "pm server" or "pm secure_server". What the fuck.
+
+Insecure connects work, it's just the connect token that's not working. What's going on?!
+
+Turn on spammy logs in yojimbo_config.h to debug this:
+
+    #define YOJIMBO_DEBUG_SPAM                          1
+
+It's saying "connect token expired".
+
+The problem here is that there is some funny clock skew that started happening in my docker instance?!
+
+The same thing that was causing the clock skew in the make. I worked around it with "touch", but this workaround is not a good thing. I'm going to remove it.
+
+Rebooting the Docker VM fixed the clock skew.
+
+Oh docker =p
+
+OK. Back to testing the release.
+
 
 Thursday October 20th, 2016
 ===========================
