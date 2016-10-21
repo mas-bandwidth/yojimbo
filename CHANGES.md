@@ -1,4 +1,9 @@
 
+Friday Octobor 21st, 2016
+=========================
+
+Creating new preview release 9 with the matcher fix on Windows.
+
 
 Thursday October 20th, 2016
 ===========================
@@ -19,9 +24,17 @@ I think this is the case because set of reads looks like this:
 	528 bytes
 	- negative return (stop reading)
 
-I adjusted the code so it is able to read the response in multiple calls and that fixes the issue.
+I adjusted the code so it is able to read the response in multiple calls and that fixed the issue.
 
 I wish I had the time to fix this sooner, this wasn't actually that hard to track down in the end, even though it was frustrating that it broke without any changes on my end. It was ultimately a bug in the code on my side, under my control.
+
+Also spent some time optimizing the git repository with this tool:
+
+https://www.theguardian.com/info/developer-blog/2013/apr/29/rewrite-git-history-with-the-bfg
+
+Which allowed me to remove some large files that were committed accidentally from the git repository.
+
+This tool rewrites the github history, so if you have cloned or forked you probably want to do that again.
 
 
 Sunday August 14, 2016
