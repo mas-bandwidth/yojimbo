@@ -4,13 +4,13 @@ WOULD BE NICE
 
     AEAD idea. Protocol is currently vulnerable to being spammed invalid connect tokens.
 
-    Of course, an invalid connect token won't decrypt, but a connect token that is an old stale token (reply attack) *will* decrypt.
+    Of course, an invalid connect token won't decrypt, but a connect token that is an old stale token (replay attack) *will* decrypt.
 
     So I think the key way to avoid replay attacks being effective, is to store the timestamp in the additional data section of the AEAD of the connect token.
 
     That way a reused connect token can be discarded quickly, by just checking the timestamp. 
 
-    If the timestamp is modified, then the signature check will quickly reject before the decrypt. 
+    If the timestamp is modified to pass the trivial check, then the signature check will quickly reject before the decrypt. Signature check is much faster than decrypt.
 
     This way, attackers cannot force an expensive decrypt connect token without actaully getting a token from the matcher (in the last 30 seconds...)
 
@@ -108,6 +108,10 @@ WOULD BE NICE
     This make it hard to see what is going on when something is wrong, and requires I turn on extra logs with #define YOJIMBO_DEBUG_SPAM 1
 
     It would much be better if it logged these things all the time during client/server/connect tests. The only place it should not log is in unit tests, where lots of failures will occur intentionally, and we don't want to see those spammed to the console.
+
+    ------------------
+
+    ^---- To solve this, provide a callback on connection request deny, challenge response denied, so the user can print out a callback, then print that out in shared.h but only if not in logging mode (unit tests).
 
     ------------------
     

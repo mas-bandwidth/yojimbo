@@ -32,7 +32,39 @@ Rebooting the Docker VM fixed the clock skew.
 
 Oh docker =p
 
-OK. Back to testing the release.
+Some more info here. I suspect it might be a problem with the latest MacOS Sierro.
+
+https://forums.docker.com/t/syncing-clock-with-host/10432/15
+
+OK. Back to testing the release...
+
+Ok. I'm getting the clock skew again. This seems to be a serious issue.
+
+More information here:
+
+https://docs.docker.com/docker-for-mac/troubleshoot/#issues
+
+It seems I need to solve this, because the drift seems to be quite severe on MacOS.
+
+Need to test this on Windows as well, in case a workaround is required there too.
+
+So indeed, on MacOSX fixing the time with this workaround does it:
+
+    docker run --rm --privileged alpine hwclock -s
+
+This is somewhat frustrating, but now I need to run this on each docker action in addition to other steps? Ouch. Docker...
+
+Added the action to sync time on each docker run. Frustrating, but seems I have to do this.
+
+I think it's still possible to desync time if the Mac sleeps while the matcher or server are running.
+
+In a production environment this would be no problem, since the server and matcher would have time synched via NTP.
+
+But for people testing out yojimbo, this is annoying. Make sure to test this on Windows, in case that has gone backwards as well.
+
+Also, added a note to print out connection request deny / challenge response deny logs, so we can see *why* a client connection request is denied by the server.
+
+Right now its a bit too silent and mysterious. This is not good when anything goes wrong, you *must* see why.
 
 
 Thursday October 20th, 2016
