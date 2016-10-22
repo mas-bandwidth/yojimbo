@@ -22,6 +22,8 @@ WOULD BE NICE
 
     Probably should move the connection config inside the server and client config.
 
+    Or maybe unify the client/server config into one struct, with the connection config being shared?
+
     Think about it.    
 
     ------------------

@@ -172,7 +172,7 @@ namespace yojimbo
             m_error = MESSAGE_FACTORY_ERROR_NONE;
         }
 
-        ~MessageFactory()
+        virtual ~MessageFactory()
         {
             assert( m_allocator );
 

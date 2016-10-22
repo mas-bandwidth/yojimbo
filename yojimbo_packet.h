@@ -87,7 +87,7 @@ namespace yojimbo
 
         PacketFactory( class Allocator & allocator, int numTypes );
 
-        ~PacketFactory();
+        virtual ~PacketFactory();
 
         Packet * CreatePacket( int type );
 
