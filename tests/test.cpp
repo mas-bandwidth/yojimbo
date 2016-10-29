@@ -2790,6 +2790,41 @@ void test_client_server_connect_token_reuse()
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
+    // disconnect the client, otherwise the server complains about the client id already being connected instead
+
+    client.Disconnect();
+
+    while ( true )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
+
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( server.GetNumConnectedClients() == 0 )
+            break;
+
+        time += 0.1f;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
+    }
+
+    check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+
     // now try to connect a second client (different address) using the same token. the connect should be ignored
 
     Address clientAddress2( "::1", ClientPort + 1 );
@@ -2838,7 +2873,6 @@ void test_client_server_connect_token_reuse()
         serverTransport.AdvanceTime( time );
     }
 
-    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
     check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
     check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED ) > 0 );
 

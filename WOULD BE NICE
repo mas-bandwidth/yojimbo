@@ -2,13 +2,11 @@ WOULD BE NICE
 
     ------------------
 
-    Its frustrating that by default the server doesn't print out any reason why it's ignoring a connection request
+    Should have a unit test to verify a client cannot connect with same address, and that this does not disturb the existing connected client
 
-    This make it hard to see what is going on when something is wrong, and requires I turn on extra logs with #define YOJIMBO_DEBUG_SPAM 1
+    ------------------
 
-    It would much be better if it logged these things all the time during client/server/connect tests. 
-
-    The only place it should not log is in unit tests, where lots of failures will occur intentionally and we don't want to see those.
+    Should have a unit test to verify that a client cannot connect with the same client id (but a different connect token)
 
     ------------------
 

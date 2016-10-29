@@ -800,6 +800,7 @@ namespace yojimbo
 
         if ( m_flags & SERVER_FLAG_IGNORE_CONNECTION_REQUESTS )
         {
+            debug_printf( "ignored connection request: flag is set\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET, packet, address, ConnectToken() );
             m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET]++;
             return;
@@ -811,6 +812,7 @@ namespace yojimbo
 
         if ( packet.connectTokenExpireTimestamp <= timestamp )
         {
+            debug_printf( "ignored connection request: connect token has expired\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED, packet, address, ConnectToken() );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_EXPIRED]++;
             return;
@@ -819,6 +821,7 @@ namespace yojimbo
         ConnectToken connectToken;
         if ( !DecryptConnectToken( packet.connectTokenData, connectToken, packet.connectTokenNonce, m_privateKey, packet.connectTokenExpireTimestamp ) )
         {
+            debug_printf( "ignored connection request: failed to decrypt connect token\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN, packet, address, ConnectToken() );
             m_counters[SERVER_COUNTER_FAILED_TO_DECRYPT_CONNECT_TOKEN]++;
             return;
@@ -837,6 +840,7 @@ namespace yojimbo
 
         if ( !serverAddressInConnectTokenWhiteList )
         {
+            debug_printf( "ignored connection request: server address not in whitelist\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST, packet, address, connectToken );
             m_counters[SERVER_COUNTER_SERVER_ADDRESS_NOT_IN_WHITELIST]++;
             return;
@@ -844,6 +848,7 @@ namespace yojimbo
 
         if ( connectToken.clientId == 0 )
         {
+            debug_printf( "ignored connection request: client id is zero\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO, packet, address, connectToken );
             m_counters[SERVER_COUNTER_CLIENT_ID_IS_ZERO]++;
             return;
@@ -851,6 +856,7 @@ namespace yojimbo
 
         if ( FindAddress( address ) >= 0 )
         {
+            debug_printf( "ignored connection request: address already connected\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED, packet, address, connectToken );
             m_counters[SERVER_COUNTER_ADDRESS_ALREADY_CONNECTED]++;
             return;
@@ -858,6 +864,7 @@ namespace yojimbo
 
         if ( FindClientId( connectToken.clientId ) >= 0 )
         {
+            debug_printf( "ignored connection request: client id already connected\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED, packet, address, connectToken );
             m_counters[SERVER_COUNTER_CLIENT_ID_ALREADY_CONNECTED]++;
             return;
@@ -867,6 +874,7 @@ namespace yojimbo
         {
             if ( !m_transport->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
             {
+                debug_printf( "ignored connection request: failed to add encryption mapping\n" );
                 OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING, packet, address, connectToken );
                 m_counters[SERVER_COUNTER_FAILED_TO_ADD_ENCRYPTION_MAPPING]++;
                 return;
@@ -878,6 +886,7 @@ namespace yojimbo
 
         if ( m_numConnectedClients == m_maxClients )
         {
+            debug_printf( "denied connection request: server is full\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL, packet, address, connectToken );
             m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
@@ -890,6 +899,7 @@ namespace yojimbo
 
         if ( !FindOrAddConnectTokenEntry( address, packet.connectTokenData ) )
         {
+            debug_printf( "ignored connection request: connect token already used\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED, packet, address, connectToken );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED]++;
             return;
@@ -898,6 +908,7 @@ namespace yojimbo
         ChallengeToken challengeToken;
         if ( !GenerateChallengeToken( connectToken, packet.connectTokenData, challengeToken ) )
         {
+            debug_printf( "ignored connection request: failed to generate challenge token\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN, packet, address, connectToken );
             m_counters[SERVER_COUNTER_FAILED_TO_GENERATE_CHALLENGE_TOKEN]++;
             return;
@@ -906,8 +917,9 @@ namespace yojimbo
         ConnectionChallengePacket * connectionChallengePacket = (ConnectionChallengePacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE );
         if ( !connectionChallengePacket )
         {
-            OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CHALLENGE_PACKET_IS_NULL, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_CHALLENGE_PACKET_IS_NULL]++;
+            debug_printf( "ignored connection request: failed to allocate challenge packet\n" );
+            OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET, packet, address, connectToken );
+            m_counters[SERVER_COUNTER_FAILED_TO_ALLOCATE_CHALLENGE_PACKET]++;
             return;
         }
 
@@ -915,6 +927,7 @@ namespace yojimbo
 
         if ( !EncryptChallengeToken( challengeToken, connectionChallengePacket->challengeTokenData, NULL, 0, connectionChallengePacket->challengeTokenNonce, m_privateKey ) )
         {
+            debug_printf( "ignored connection request: failed to encrypt challenge token\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN, packet, address, connectToken );
             m_counters[SERVER_COUNTER_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN]++;
             return;

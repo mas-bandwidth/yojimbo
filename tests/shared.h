@@ -179,6 +179,66 @@ public:
 
 protected:
 
+    void OnConnectionRequest( ServerConnectionRequestAction action, const ConnectionRequestPacket & packet, const Address & address, const ConnectToken & connectToken )
+    {
+        char addressString[MaxAddressLength];
+        address.ToString( addressString, sizeof( addressString ) );
+
+        switch ( action )
+        {
+            case SERVER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET:
+                printf( "ignored connection request from %s. flag is set to ignore connection requests\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED:
+                printf( "ignored connection request from %s. connect token has expired (expire timestamp = %" PRIx64 ", current time = %" PRIx64 ")\n", addressString, packet.connectTokenExpireTimestamp, (uint64_t) ::time( NULL ) );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN:
+                printf( "ignored connection request from %s. failed to decrypt connect token\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST:
+                printf( "ignored connection request from %s. server address not in whitelist\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO:
+                printf( "ignored connection request from %s. client id is zero\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED:
+                printf( "ignored connection request from %s. address already connected\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED:
+                printf( "ignored connection request from %s. client id %" PRIx64 " already connected\n", addressString, connectToken.clientId );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING:
+                printf( "ignored connection request from %s. failed to add encryption mapping\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED:
+                printf( "ignored connection request from %s. connect token already used\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN:
+                printf( "ignored connection request from %s. failed to generate challenge token\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET:
+                printf( "ignored connection request from %s. failed to allocate challenge packet\n", addressString );
+                break;
+
+            case SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN:
+                printf( "ignored connection request from %s. failed to encrypt challenge token\n", addressString );
+                break;
+
+            default:
+                break;
+        }
+    }
+
     void OnClientConnect( int clientIndex )
     {
         char addressString[MaxAddressLength];

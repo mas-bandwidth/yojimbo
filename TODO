@@ -2,7 +2,11 @@ DONE
 
 TODO
 
-    Would be nice to move tlsf into yojimbo_tlsf.h/cpp so all the yojimbo source files fit into one directory. This is good for integrators into game projects. Of course, take care to make sure tlsf is identified as its own licenced source code, separately to yojimbo.
+    ------------------
+
+    Need to apply same treatment to OnConnectionResponse processing, so logs can be added to these cases as well.
+
+    Users getting tripped up by errors at this step will be much less common than connection request, but it could still happen, and it should still log why by default.
 
     ------------------
 

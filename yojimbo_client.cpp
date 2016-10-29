@@ -168,6 +168,9 @@ namespace yojimbo
     {
         assert( clientState <= CLIENT_STATE_DISCONNECTED );
 
+        if ( m_clientState <= CLIENT_STATE_DISCONNECTED )
+            return;
+
         if ( m_clientState != clientState )
             OnDisconnect();
 

@@ -52,6 +52,48 @@ Ahh. the token is being generated in matcher.go but was not updated with timesta
 
 Fixed it. All working now. Trying a stress test. Works fine. Checking in.
 
+Would be nice to move tlsf into yojimbo_tlsf.h/cpp so all the yojimbo source files fit into one directory. This is good for integrators into game projects. Of course, take care to make sure tlsf is identified as its own licenced source code, separately to yojimbo. Done.
+
+Next, I'm fixing this:
+
+    Its frustrating that by default the server doesn't print out any reason why it's ignoring a connection request
+
+    This make it hard to see what is going on when something is wrong, and requires I turn on extra logs with #define YOJIMBO_DEBUG_SPAM 1
+
+    It would much be better if it logged these things all the time during client/server/connect tests. 
+
+    The only place it should not log is in unit tests, where lots of failures will occur intentionally and we don't want to see those.
+
+My solution is to create an enum for all actions taken when processing a connection request, and then calling through to a callback with the action taken and the information required for printing (packet data, address sent from, decrypted connect token, when applicable)
+
+This will allow me to override the GameServer to print out logs when this is called, so I can get the behavior I want, eg. by default logging of ignored connection requests.
+
+This is important because a new user of this library could encounter a bug with connection, much like the timer skew that I had with matcher in docker, and server without, but the current setup of the test programs for libyojimbo failed silently.
+
+Now the user in this situation would at least see the server printing out "ignored connection request from X - connect token timed out", which at least points to the cause of the error!
+
+Failing something like this, the user would just conclude that the library is unreliable.
+
+OK. so back to work, need to hook up the log now. just keep it basic.
+
+Adding some tests for the logs, make sure they fire and provide useful information.
+
+They work quite well. I'm not 100% happy with the formatting.
+
+Found a bug in the rejection of existing connects by address and client id, and fixed that (so neither can be the same to an already connected client). Previous logic was only filtering out connections if they had both same address and client id, but the encryption mapping doesn't support multiple clients by the same address anyway.
+
+This bug triggered a problem in the token reuse check, because it filtered out on same client id already being connected. Updated that test so it disconnects the client before trying to reconnect with the same token again, and that is fixed.
+
+Added notes that I need to add tests for clients connecting with the same address being ignored (eg. a client with same address, but different connect token), and a test for clients connecting with different address but same client id.
+
+Also, added debug_printf to the error cases in process connection response, simply because in unit tests, i just need to see what case is getting hit when I debug something, and the client/server in unit tests aren't setup to print those logs via the callback i just added (and won't even be).
+
+Fixed a small error where the client having "Disconnect" called before destruction was clearing from a timed out disconnect state, to the disconnected state, and losing information. Also, calling "OnDisconnect" twice. Now if a disconnect is called while in a state <= Disconnected, early out.
+
+Need to flesh out the error prints for all connection request cases now...
+
+All done. Works quite well. I like it.
+
 
 Friday October 21st, 2016
 =========================
