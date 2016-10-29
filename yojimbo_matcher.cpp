@@ -264,7 +264,7 @@ namespace yojimbo
 
         memcpy( &matchResponse.connectTokenNonce, &connectTokenNonce, 8 );
 
-        uint64_t connectTokenExpireTimestamp = atoll( doc["connectTokenNonce"].GetString() );
+        uint64_t connectTokenExpireTimestamp = atoll( doc["connectTokenExpireTimestamp"].GetString() );
 
         memcpy( &matchResponse.connectTokenExpireTimestamp, &connectTokenExpireTimestamp, 8 );
 

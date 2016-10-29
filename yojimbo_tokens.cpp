@@ -96,7 +96,7 @@ namespace yojimbo
         GenerateKey( token.random );
     }
 
-    bool EncryptConnectToken( const ConnectToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
+    bool EncryptConnectToken( const ConnectToken & token, uint8_t * encryptedMessage, const uint8_t * nonce, const uint8_t * key )
     {
         char message[ConnectTokenBytes-AuthBytes];
         memset( message, 0, ConnectTokenBytes - AuthBytes );
@@ -105,7 +105,9 @@ namespace yojimbo
 
         uint64_t encryptedLength;
 
-        if ( !Encrypt_AEAD( (const uint8_t*)message, ConnectTokenBytes - AuthBytes, encryptedMessage, encryptedLength, additional, additionalLength, nonce, key ) )
+        // todo: expire timestamp must be converted to little endian if this is a big endian machine
+
+        if ( !Encrypt_AEAD( (const uint8_t*)message, ConnectTokenBytes - AuthBytes, encryptedMessage, encryptedLength, (const uint8_t*) &token.expireTimestamp, 8, nonce, key ) )
             return false;
 
         assert( encryptedLength == ConnectTokenBytes );
@@ -113,14 +115,16 @@ namespace yojimbo
         return true;
     }
 
-    bool DecryptConnectToken( const uint8_t * encryptedMessage, ConnectToken & decryptedToken, const uint8_t * additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
+    bool DecryptConnectToken( const uint8_t * encryptedMessage, ConnectToken & decryptedToken, const uint8_t * nonce, const uint8_t * key, uint64_t expireTimestamp )
     {
         const int encryptedMessageLength = ConnectTokenBytes;
 
         uint64_t decryptedMessageLength;
         uint8_t decryptedMessage[ConnectTokenBytes];
 
-        if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, additional, additionalLength, nonce, key ) )
+        // todo: expire timestamp must be converted to little endian if this is a big endian machine
+
+        if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, (const uint8_t*) &expireTimestamp, 8, nonce, key ) )
             return false;
 
         assert( decryptedMessageLength == ConnectTokenBytes - AuthBytes );

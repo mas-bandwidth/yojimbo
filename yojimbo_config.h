@@ -89,9 +89,10 @@
 
 #endif // #if DEBUG
 
-//#define YOJIMBO_DEBUG_SPAM                          1
+#define YOJIMBO_DEBUG_SPAM                          0
 
 #include <stdint.h>
+#include <stdlib.h>
 
 namespace yojimbo
 {
@@ -215,6 +216,22 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
         }        
     };
+
+   struct ConnectionContext
+    {
+        uint32_t magic;
+        class MessageFactory * messageFactory;
+        const ConnectionConfig * connectionConfig;
+
+        ConnectionContext()
+        {
+            magic = ConnectionContextMagic;
+            messageFactory = NULL;
+            connectionConfig = NULL;
+        }
+    };
+
+    struct ClientServerContext : public ConnectionContext {};
 }
 
 #endif // #ifndef YOJIMBO_CONFIG_H

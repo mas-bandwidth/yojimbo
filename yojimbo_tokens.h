@@ -127,9 +127,9 @@ namespace yojimbo
 
     void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId, int expirySeconds );
 
-    bool EncryptConnectToken( const ConnectToken & token, uint8_t * encryptedMessage, const uint8_t * additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
+    bool EncryptConnectToken( const ConnectToken & token, uint8_t * encryptedMessage, const uint8_t * nonce, const uint8_t * key );
 
-    bool DecryptConnectToken( const uint8_t * encryptedMessage, ConnectToken & decryptedToken, const uint8_t * additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
+    bool DecryptConnectToken( const uint8_t * encryptedMessage, ConnectToken & decryptedToken, const uint8_t * nonce, const uint8_t * key, uint64_t expireTimestamp );
 
     bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize );
 

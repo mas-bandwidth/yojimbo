@@ -142,7 +142,7 @@ public:
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
         memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
 
-        if ( !EncryptConnectToken( token, tokenData, NULL, 0, (const uint8_t*) &m_nonce, private_key ) )
+        if ( !EncryptConnectToken( token, tokenData, (const uint8_t*) &m_nonce, private_key ) )
             return false;
 
         assert( NonceBytes == 8 );

@@ -51,7 +51,7 @@ func PrintBytes( label string, data [] byte ) {
     fmt.Printf( "\n" )
 }
 
-func Encrypt( message [] byte, nonce uint64, key [] byte ) ( []byte, bool ) {
+func Encrypt( message [] byte, additional [] byte, nonce uint64, key [] byte ) ( []byte, bool ) {
     nonceBytes := make( []byte, 8 )
     binary.LittleEndian.PutUint64( nonceBytes, nonce )
     encrypted := make( []byte, len(message) + AuthBytes )
@@ -61,8 +61,8 @@ func Encrypt( message [] byte, nonce uint64, key [] byte ) ( []byte, bool ) {
         &encryptedLengthLongLong,
         (*C.uchar) ( &message[0] ),
         (C.ulonglong) ( len( message ) ),
-        (*C.uchar) ( nil ),
-        (C.ulonglong) ( 0 ),
+        (*C.uchar) ( &additional[0] ),
+        (C.ulonglong) ( len( additional ) ),
         (*C.uchar) ( nil ),
         (*C.uchar) ( &nonceBytes[0] ),
         (*C.uchar) ( &key[0] ) ) ) == 0
@@ -89,7 +89,10 @@ func EncryptConnectToken( connectToken ConnectToken, nonce uint64 ) ( []byte, bo
     tokenData := make( []byte, ConnectTokenBytes - AuthBytes )
     for i := 0; i < len( connectTokenJSON ); i++ { tokenData[i] = connectTokenJSON[i] }
     if ( error != nil ) { return []byte(nil), false }
-    return Encrypt( tokenData, nonce, PrivateKey )
+    expireTimestamp, _ := strconv.ParseUint( connectToken.ExpireTimestamp, 10, 64 );
+    additionalData := make( []byte, 8 )
+    binary.LittleEndian.PutUint64( additionalData, expireTimestamp )
+    return Encrypt( tokenData, additionalData, nonce, PrivateKey )
 }
 
 type MatchResponse struct {

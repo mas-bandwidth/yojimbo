@@ -902,9 +902,13 @@ void test_client_server_tokens()
 
     memset( connectTokenNonce, 0, NonceBytes );
 
+    uint64_t connectTokenExpireTimestamp;
+
     {
         ConnectToken token;
         GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId, 10 );
+
+        connectTokenExpireTimestamp = token.expireTimestamp;
 
         char json[2048];
 
@@ -919,7 +923,7 @@ void test_client_server_tokens()
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
         memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
 
-        if ( !EncryptConnectToken( token, connectTokenData, NULL, 0, connectTokenNonce, key ) )
+        if ( !EncryptConnectToken( token, connectTokenData, connectTokenNonce, key ) )
         {
             printf( "error: failed to encrypt connect token\n" );
             exit( 1 );
@@ -927,7 +931,7 @@ void test_client_server_tokens()
     }
 
     ConnectToken connectToken;
-    if ( !DecryptConnectToken( connectTokenData, connectToken, NULL, 0, connectTokenNonce, key ) )
+    if ( !DecryptConnectToken( connectTokenData, connectToken, connectTokenNonce, key, connectTokenExpireTimestamp ) )
     {
         printf( "error: failed to decrypt connect token\n" );
         exit( 1 );
@@ -1009,7 +1013,7 @@ public:
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
         memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
 
-        if ( !EncryptConnectToken( token, tokenData, NULL, 0, (const uint8_t*) &m_nonce, private_key ) )
+        if ( !EncryptConnectToken( token, tokenData, (const uint8_t*) &m_nonce, private_key ) )
             return false;
 
         check( NonceBytes == 8 );

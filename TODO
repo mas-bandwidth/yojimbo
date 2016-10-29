@@ -32,10 +32,25 @@ DONE
 
     Moved some constants out to yojimbo_config.h
 
-TODO
+    Moved packet definitions for yojimbo client server into yojimbo_client_server_packets.h/cpp
+
+    Split apart yojimbo_client_server.* into yojimbo_client.* and yojimbo_server.*
 
     Now I need to implement the plumbing that takes the connect token expire timestamp and uses it as the additional data for AEAD.
 
+    To do this I need to extend the code that encrypts tokens to use the expire timestamp as the additional data.
+
+    OK. Passed over everything and it seems to be working in client_server.cpp
+
+    Testing in docker with matcher...
+
+    Not quite working yet. I'll bet it's not properly passing the timestamp through the json yet. Add some logs to see what's going on.
+
+    Ahh. the token is being generated in matcher.go but was not updated with timestamp as additional data, of course it doesn't decrypt. Fixing.
+
+    Fixed it. All working now. Trying a stress test.
+
+TODO
 
 
     ------------------
@@ -43,6 +58,8 @@ TODO
     IMPORTANT: When creating allocators, don't rely on the user overriding to configure the amount of memory available for each allocator. 
 
     Put this in the config, this way the user can reasonably setup an allocator.
+
+    Note, I think I might have already done this? See config.globalMemory, config.clientMemory?
 
     ------------------
 

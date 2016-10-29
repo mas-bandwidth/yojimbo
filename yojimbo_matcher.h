@@ -27,7 +27,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_client_server.h"
+#include "yojimbo_tokens.h"
 
 namespace yojimbo
 {
