@@ -31,7 +31,7 @@ solution "Yojimbo"
     rtti "Off"
     flags { "ExtraWarnings", "StaticRuntime", "FloatFast", "EnableSSE2" }
     configuration "Debug"
-        flags { "Symbols" }
+        symbols "On"
         defines { "DEBUG" }
     configuration "Release"
         optimize "Speed"

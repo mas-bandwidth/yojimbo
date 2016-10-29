@@ -412,6 +412,7 @@ namespace yojimbo
 
     void Client::Defaults()
     {
+        m_context = NULL;
         m_allocator = NULL;
         m_streamAllocator = NULL;
         m_transport = NULL;
@@ -449,6 +450,8 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
 
         YOJIMBO_DELETE( *m_allocator, Allocator, m_streamAllocator );
+
+        YOJIMBO_DELETE( *m_allocator, ClientServerContext, m_context );
 
         m_messageFactory = NULL;
         m_transport = NULL;
@@ -817,11 +820,10 @@ namespace yojimbo
 
     void Client::InitializeConnection()
     {
-        // todo: this is a bit rough. maybe clean up, or make this non-virtual. if the client wants to create their own context, they currently have no way to do it.
-
         if ( !m_streamAllocator )
         {
             m_streamAllocator = CreateStreamAllocator();
+
             m_transport->SetStreamAllocator( *m_streamAllocator );
         }
 
@@ -834,10 +836,9 @@ namespace yojimbo
                 m_connection->SetListener( this );
             }
 
-            m_context.messageFactory = m_messageFactory;
-            m_context.connectionConfig = &m_config.connectionConfig;
+            m_context = CreateContext();
             
-            m_transport->SetContext( &m_context );
+            m_transport->SetContext( m_context );
         }
         else
         {
@@ -867,10 +868,26 @@ namespace yojimbo
         return NULL;
     }
 
+    ClientServerContext * Client::CreateContext()
+    {
+        ClientServerContext * context = YOJIMBO_NEW( *m_allocator, ClientServerContext );
+        
+        assert( context );
+        assert( context->magic == ConnectionContextMagic );
+
+        context->connectionConfig = &m_config.connectionConfig;
+
+        context->messageFactory = &GetMessageFactory();
+        
+        return context;
+    }
+
     void Client::SetClientState( int clientState )
     {
         const int previous = m_clientState;
+
         m_clientState = (ClientState) clientState;
+
         if ( clientState != previous )
             OnClientStateChange( previous, clientState );
     }

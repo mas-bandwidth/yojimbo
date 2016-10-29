@@ -334,6 +334,7 @@ namespace yojimbo
     };
 
     YOJIMBO_PACKET_FACTORY_START( ClientServerPacketFactory, PacketFactory, CLIENT_SERVER_NUM_PACKETS );
+
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION_REQUEST,       ConnectionRequestPacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION_DENIED,        ConnectionDeniedPacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE,     ConnectionChallengePacket );
@@ -344,6 +345,7 @@ namespace yojimbo
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_INSECURE_CONNECT,         InsecureConnectPacket );
 #endif // #if YOJIMBO_INSECURE_CONNECT
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION,               ConnectionPacket );
+        
     YOJIMBO_PACKET_FACTORY_FINISH()
 
     enum ServerResourceType
@@ -515,6 +517,8 @@ namespace yojimbo
 
         virtual MessageFactory * CreateMessageFactory();
 
+        virtual ClientServerContext * CreateContext();
+
         void SetClientState( int clientState );
 
         void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
@@ -561,7 +565,7 @@ namespace yojimbo
 
         int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
 
-        ClientServerContext m_context;                                      // serialization context for client/server packets.
+        ClientServerContext * m_context;                                    // serialization context for client/server packets.
 
         ClientState m_clientState;                                          // current client state
 

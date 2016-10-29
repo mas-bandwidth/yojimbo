@@ -1,10 +1,14 @@
 DONE    
 
+    All the work below is likely to be disruptive, it should be done in a branch, and then merged from that branch to mainline when completed!
+
+    Created branch "development" where I can do my work without dicking up the main branch. This way I can apply fixes to the main branch easily as they come in, even if I'm in the middle of a bunch of disruptive work.
+
 TODO
 
     ------------------
 
-    All the work below is likely to be disruptive, it should be done in a branch, and then merged from that branch to mainline when completed!
+    Client should have a virtual to create context. Server does, client needs one too.
 
     ------------------
 
