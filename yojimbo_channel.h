@@ -32,52 +32,6 @@
 
 namespace yojimbo
 {
-    const int MaxChannels = 64;
-    const int ConservativeConnectionPacketHeaderEstimate = 128;
-    const int ConservativeMessageHeaderEstimate = 32;
-    const int ConservativeFragmentHeaderEstimate = 64;
-    const int ConservativeChannelHeaderEstimate = 32;
-
-    enum ChannelType
-    {
-        CHANNEL_TYPE_RELIABLE_ORDERED,                          // reliable ordered stream of messages
-        CHANNEL_TYPE_UNRELIABLE_UNORDERED                       // unreliable unordered stream of messages
-    };
-
-    struct ChannelConfig
-    {
-        ChannelType type;                                       // channel type: reliable ordered or unreliable unordered.
-        int packetBudget;                                       // maximum bytes of message data per-packet. -1 = no limit
-        int sendQueueSize;										// message send queue size
-        int receiveQueueSize;									// message receive queue size
-        int maxMessagesPerPacket;                               // maximum number of messages per-packet
-        float messageResendTime;                                // message resend time (seconds)
-        int maxBlockSize;                                       // maximum block size in bytes
-        int fragmentSize;                                       // block fragments size in bytes
-        float fragmentResendTime;                               // fragment resend time (seconds)
-        int sentPacketBufferSize;                               // size of sent packets buffer in # of packets stored (maps packet level acks to messages & fragments)
-        bool disableBlocks;                                     // disable blocks for this channel. saves maxBlockSize * 2 in memory.
-
-        ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )
-        {
-            packetBudget = 1100;
-            sendQueueSize = 1024;
-            receiveQueueSize = 1024;
-            maxMessagesPerPacket = 64;
-            messageResendTime = 0.1f;
-            maxBlockSize = 256 * 1024;
-            fragmentSize = 1024;
-            fragmentResendTime = 0.25f;
-            sentPacketBufferSize = 1024;
-            disableBlocks = false;
-        }
-
-        int GetMaxFragmentsPerBlock() const
-        {
-            return maxBlockSize / fragmentSize;
-        }
-    };
-
     struct ChannelPacketData
     {
         uint32_t channelId : 16;

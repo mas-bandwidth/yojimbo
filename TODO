@@ -24,7 +24,18 @@ DONE
 
     Actually, the building.md was fine, it just points to the download page, added a note to get at least beta 10.
 
+    I'm getting sick of having a bunch of stuff in the yojimbo_client_server.*
+
+    Did a bunch of cleanup.
+
+    Moved the token stuff out into yojimbo_tokens.h/cpp
+
+    Moved some constants out to yojimbo_config.h
+
 TODO
+
+    Now I need to implement the plumbing that takes the connect token expire timestamp and uses it as the additional data for AEAD.
+
 
 
     ------------------

@@ -17,24 +17,6 @@ WOULD BE NICE
 
     ------------------
 
-    const int MaxEncryptionMappings = 1024;
-
-    This should go away. Dynamically allocate max encryption mappings as a function of max clients in the server when started.
-
-    (This is the reason I was getting silent client connect failures when I tried to increase above 1024 clients...)
-
-    ------------------
-
-    This should go away as well
-
-    const int MaxContextMappings = 1024;
-
-    It doesn't need to be 1024. You only need one context mapping per-connected client.
-
-    Once it's dynamically sized, it can be tighter.
-
-    ------------------
-
     Would really like a nice way in debug builds to warn the user about stuff, eg. better than an assert, an assert with a message.
 
     For example, a lot of asserts seem really low level, but they just mean, OK, you added your own packet types, but forgot to override the callback "CreatePacketFactory".

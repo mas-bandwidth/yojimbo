@@ -34,8 +34,6 @@ namespace yojimbo
 {
     const int MaxPrefixBytes = 9;
 
-    const int CryptoOverhead = MacBytes;
-
     PacketProcessor::PacketProcessor( Allocator & allocator, uint32_t protocolId, int maxPacketSize )
     {
         m_allocator = &allocator;
@@ -49,7 +47,7 @@ namespace yojimbo
         assert( m_maxPacketSize % 4 == 0 );
         assert( m_maxPacketSize >= maxPacketSize );
 
-        m_absoluteMaxPacketSize = maxPacketSize + MaxPrefixBytes + CryptoOverhead;
+        m_absoluteMaxPacketSize = maxPacketSize + MaxPrefixBytes + MacBytes;
 
         m_context = NULL;
 

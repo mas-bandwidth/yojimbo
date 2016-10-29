@@ -32,11 +32,6 @@
 
 namespace yojimbo
 {
-    const int NonceBytes = 8;
-    const int KeyBytes = 32;
-    const int AuthBytes = 16;
-    const int MacBytes = 16;
-
     extern void GenerateKey( uint8_t * key );
 
     extern void RandomBytes( uint8_t * data, int bytes );
@@ -60,10 +55,6 @@ namespace yojimbo
                               const uint8_t * additional, uint64_t additionalLength,
                               const uint8_t * nonce,
                               const uint8_t * key );
-
-    const int MaxEncryptionMappings = 1024;
-
-    const double DefaultEncryptionMappingTimeout = 10;
 
     class EncryptionManager
     {

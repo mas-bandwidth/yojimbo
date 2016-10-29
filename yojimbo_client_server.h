@@ -32,176 +32,11 @@
 #include "yojimbo_encryption.h"
 #include "yojimbo_connection.h"
 #include "yojimbo_packet_processor.h"
+#include "yojimbo_tokens.h"
 
 namespace yojimbo
 {
-    const int MaxClients = 64;
-    const int MaxConnectTokenEntries = MaxClients * 16;
-    const int ConnectTokenBytes = 1024;
-    const int ChallengeTokenBytes = 256;
-    const int MaxServersPerConnectToken = 8;
-
-    struct ClientServerConfig
-    {
-        int globalMemory;                                                   // memory allocated for connection request handling on the server only (bytes)
-
-        int clientMemory;                                                   // per-client memory allocated once on the client and per-client slot on the server (bytes)
-
-        int numDisconnectPackets;                                           // number of disconnect packets to spam on clean disconnect. avoids timeout.
-
-        float connectionRequestSendRate;                                    // seconds between connection request packets sent.
-
-        float connectionResponseSendRate;                                   // seconds between connection response packets sent.
-
-        float connectionConfirmSendRate;                                    // seconds between heartbeat packets sent from server -> client prior to connection confirmation.
-            
-        float connectionHeartBeatRate;                                      // seconds between heartbeat packets sent after connection has been confirmed. sent only if other packets are not sent.
-
-        float connectionRequestTimeOut;                                     // seconds before client connection requests gives up and times out.
-
-        float challengeResponseTimeOut;                                     // seconds before challenge response times out.
-
-        float connectionTimeOut;                                            // seconds before connection times out after connection has been established.
-
-#if YOJIMBO_INSECURE_CONNECT
-
-        float insecureConnectSendRate;                                      // seconds between insecure connect packets sent.
-
-        float insecureConnectTimeOut;                                       // time in seconds after with an insecure connection request times out.
-
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-        bool enableConnection;                                              // enable per-client connection and messages. enabled by default.
-
-        ConnectionConfig connectionConfig;                                  // connection configuration.
-
-        ClientServerConfig()
-        {
-            globalMemory = 2 * 1024 * 1024;
-            clientMemory = 2 * 1024 * 1024;
-            numDisconnectPackets = 10;
-            connectionRequestSendRate = 0.1f;
-            connectionResponseSendRate = 0.1f;
-            connectionConfirmSendRate = 0.1f;
-            connectionHeartBeatRate = 1.0f;
-            connectionRequestTimeOut = 5.0f;
-            challengeResponseTimeOut = 5.0f;
-            connectionTimeOut = 10.0f;
-            enableConnection = true;
-#if YOJIMBO_INSECURE_CONNECT
-            insecureConnectSendRate = 0.1f;
-            insecureConnectTimeOut = 5.0f;
-#endif // #if YOJIMBO_INSECURE_CONNECT
-        }        
-    };
-
-    struct ConnectToken
-    {
-        uint32_t protocolId;                                                // the protocol id this connect token corresponds to
-     
-        uint64_t clientId;                                                  // the unique client id. max one connection per-client id, per-server
-     
-        uint64_t expireTimestamp;                                           // timestamp of when this connect token expires
-     
-        int numServerAddresses;                                             // the number of server addresses in the connect token whitelist
-    
-        Address serverAddresses[MaxServersPerConnectToken];                 // connect token only allows connection to these server addresses
-     
-        uint8_t clientToServerKey[KeyBytes];                                // the key for encrypted communication from client -> server
-     
-        uint8_t serverToClientKey[KeyBytes];                                // the key for encrypted communication from server -> client
-
-        uint8_t random[KeyBytes];                                           // random data the client cannot possibly know
-
-        ConnectToken()
-        {
-            protocolId = 0;
-            clientId = 0;
-            expireTimestamp = 0;
-            numServerAddresses = 0;
-            memset( clientToServerKey, 0, KeyBytes );
-            memset( serverToClientKey, 0, KeyBytes );
-            memset( random, 0, KeyBytes );
-        }
-
-        template <typename Stream> bool Serialize( Stream & stream )
-        {
-            serialize_uint32( stream, protocolId );
-
-            serialize_uint64( stream, clientId );
-            
-            serialize_uint64( stream, expireTimestamp );
-            
-            serialize_int( stream, numServerAddresses, 0, MaxServersPerConnectToken - 1 );
-            
-            for ( int i = 0; i < numServerAddresses; ++i )
-                serialize_address( stream, serverAddresses[i] );
-
-            serialize_bytes( stream, clientToServerKey, KeyBytes );
-
-            serialize_bytes( stream, serverToClientKey, KeyBytes );
-
-            serialize_bytes( stream, random, KeyBytes );
-
-            return true;
-        }
-
-        bool operator == ( const ConnectToken & other ) const;
-        bool operator != ( const ConnectToken & other ) const;
-    };
-
-    struct ChallengeToken
-    {
-        uint64_t clientId;                                                  // the unique client id. max one connection per-client id, per-server.
-
-        uint8_t connectTokenMac[MacBytes];                                  // mac of the initial connect token this challenge corresponds to.
-     
-        uint8_t clientToServerKey[KeyBytes];                                // the key for encrypted communication from client -> server.
-     
-        uint8_t serverToClientKey[KeyBytes];                                // the key for encrypted communication from server -> client.
-
-        uint8_t random[KeyBytes];                                           // random bytes the client cannot possibly know.
-
-        ChallengeToken()
-        {
-            clientId = 0;
-            memset( connectTokenMac, 0, MacBytes );
-            memset( clientToServerKey, 0, KeyBytes );
-            memset( serverToClientKey, 0, KeyBytes );
-            memset( random, 0, KeyBytes );
-        }
-
-        template <typename Stream> bool Serialize( Stream & stream )
-        {
-            serialize_uint64( stream, clientId );
-
-            serialize_bytes( stream, connectTokenMac, MacBytes );
-
-            serialize_bytes( stream, clientToServerKey, KeyBytes );
-
-            serialize_bytes( stream, serverToClientKey, KeyBytes );
-
-            serialize_bytes( stream, random, KeyBytes );
-
-            return true;
-        }
-    };
-
-    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId, int expirySeconds );
-
-    bool EncryptConnectToken( const ConnectToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
-
-    bool DecryptConnectToken( const uint8_t * encryptedMessage, ConnectToken & decryptedToken, const uint8_t * additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
-
-    bool WriteConnectTokenToJSON( const ConnectToken & connectToken, char * output, int outputSize );
-
-    bool ReadConnectTokenFromJSON( const char * json, ConnectToken & connectToken );
-
-    bool GenerateChallengeToken( const ConnectToken & connectToken, const uint8_t * connectTokenMac, ChallengeToken & challengeToken );
-
-    bool EncryptChallengeToken( ChallengeToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
-
-    bool DecryptChallengeToken( const uint8_t * encryptedMessage, ChallengeToken & decryptedToken, const uint8_t * additional, int additionalLength, const uint8_t * nonce, const uint8_t * key );
+    // todo: move into yojimbo_packets.h ?
 
     struct ConnectionRequestPacket : public Packet
     {
@@ -299,6 +134,7 @@ namespace yojimbo
     };
 
 #if YOJIMBO_INSECURE_CONNECT
+
     struct InsecureConnectPacket : public Packet
     {
         uint64_t clientSalt;
@@ -316,6 +152,7 @@ namespace yojimbo
 
         YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
+
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
     enum ClientServerPacketTypes

@@ -32,25 +32,6 @@
 
 namespace yojimbo
 {
-    struct ConnectionConfig
-    {
-        int maxPacketSize;                                      // maximum connection packet size in bytes
-        int slidingWindowSize;                                  // sliding window size for packet ack system (# of packets)
-        int connectionPacketType;                               // connection packet type (so you may override it)
-        int numChannels;                                        // number of channels: [1,MaxChannels]
-        ChannelConfig channelConfig[MaxChannels];
-
-        ConnectionConfig()
-        {
-            maxPacketSize = 4 * 1024;
-            slidingWindowSize = 1024;
-            numChannels = 1;
-            connectionPacketType = 0;
-        }
-    };
-
-    const uint32_t ConnectionContextMagic = 0x11223344;
-
     struct ConnectionContext
     {
         uint32_t magic;

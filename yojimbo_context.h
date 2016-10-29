@@ -32,8 +32,6 @@
 
 namespace yojimbo
 {
-    const int MaxContextMappings = 1024;
-
     class Allocator;
     class MessageFactory;
 
