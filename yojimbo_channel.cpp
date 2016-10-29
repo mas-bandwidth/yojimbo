@@ -36,8 +36,10 @@ namespace yojimbo
             {
                 for ( int i = 0; i < message.numMessages; ++i )
                 {
-                    assert( message.messages[i] );
-                    messageFactory.Release( message.messages[i] );
+                    if ( message.messages[i] )
+                    {
+                        messageFactory.Release( message.messages[i] );
+                    }
                 }
 
                 allocator.Free( message.messages );
@@ -95,6 +97,9 @@ namespace yojimbo
                 Allocator & allocator = messageFactory.GetAllocator();
 
                 messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
+
+                for ( int i = 0; i < numMessages; ++i )
+                    messages[i] = NULL;
             }
 
             serialize_bits( stream, messageIds[0], 16 );
@@ -190,6 +195,9 @@ namespace yojimbo
                 Allocator & allocator = messageFactory.GetAllocator();
 
                 messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
+
+                for ( int i = 0; i < numMessages; ++i )
+                    messages[i] = NULL;
             }
 
             for ( int i = 0; i < numMessages; ++i )
