@@ -1,55 +1,5 @@
 DONE    
 
-    All the work below is likely to be disruptive, it should be done in a branch, and then merged from that branch to mainline when completed!
-
-    Created branch "development" where I can do my work without dicking up the main branch. This way I can apply fixes to the main branch easily as they come in, even if I'm in the middle of a bunch of disruptive work.
-
-    Client should have a virtual to create context. Server does, client needs one too.
-
-    Done.
-
-    Fix the security hole for replay attacks by putting the 64 bit timestamp in the extra data for the token AEAD
-
-    What do I need to do this? First look on the C++ side in client_server.cpp
-
-    Converted the local matcher so it returns the timestamp.
-
-    Then went through the go matcher, and the code that parses json and added the connectTokenExpireTimestamp entry to JSON.
-
-    Should be passed through end-to-end from matcher to client connect now.
-
-    So the remaining work is to plumb it through the "connection request" packet now.
-
-    Since I upgraded to premake5 beta 10, I need to update building.md, and as well the Dockerfile so it grabs this version for linux, because: Symbols "On" doesn't exist in premake5 beta 8, jeez these guys are just garbage with backwards compatibility and transitioning premake files from old to newer versions... =p
-
-    Actually, the building.md was fine, it just points to the download page, added a note to get at least beta 10.
-
-    I'm getting sick of having a bunch of stuff in the yojimbo_client_server.*
-
-    Did a bunch of cleanup.
-
-    Moved the token stuff out into yojimbo_tokens.h/cpp
-
-    Moved some constants out to yojimbo_config.h
-
-    Moved packet definitions for yojimbo client server into yojimbo_client_server_packets.h/cpp
-
-    Split apart yojimbo_client_server.* into yojimbo_client.* and yojimbo_server.*
-
-    Now I need to implement the plumbing that takes the connect token expire timestamp and uses it as the additional data for AEAD.
-
-    To do this I need to extend the code that encrypts tokens to use the expire timestamp as the additional data.
-
-    OK. Passed over everything and it seems to be working in client_server.cpp
-
-    Testing in docker with matcher...
-
-    Not quite working yet. I'll bet it's not properly passing the timestamp through the json yet. Add some logs to see what's going on.
-
-    Ahh. the token is being generated in matcher.go but was not updated with timestamp as additional data, of course it doesn't decrypt. Fixing.
-
-    Fixed it. All working now. Trying a stress test.
-
 TODO
 
 
