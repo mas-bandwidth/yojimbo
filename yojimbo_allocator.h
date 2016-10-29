@@ -31,7 +31,7 @@
 #include <map>
 #endif // YOJIMBO_DEBUG_MEMORY_LEAKS
 
-#include "tlsf/tlsf.h"
+#include "yojimbo_tlsf.h"
 
 namespace yojimbo
 {

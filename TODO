@@ -2,6 +2,7 @@ DONE
 
 TODO
 
+    Would be nice to move tlsf into yojimbo_tlsf.h/cpp so all the yojimbo source files fit into one directory. This is good for integrators into game projects. Of course, take care to make sure tlsf is identified as its own licenced source code, separately to yojimbo.
 
     ------------------
 
