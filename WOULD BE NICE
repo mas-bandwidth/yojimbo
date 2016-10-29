@@ -2,6 +2,16 @@ WOULD BE NICE
 
     ------------------
 
+    Its frustrating that by default the server doesn't print out any reason why it's ignoring a connection request
+
+    This make it hard to see what is going on when something is wrong, and requires I turn on extra logs with #define YOJIMBO_DEBUG_SPAM 1
+
+    It would much be better if it logged these things all the time during client/server/connect tests. 
+
+    The only place it should not log is in unit tests, where lots of failures will occur intentionally and we don't want to see those.
+
+    ------------------
+
     Default allocator should store block size in 4 bytes preceding the allocated block
 
     This way the default allocator can report on # of bytes allocated.
@@ -22,6 +32,10 @@ WOULD BE NICE
     For example, a lot of asserts seem really low level, but they just mean, OK, you added your own packet types, but forgot to override the callback "CreatePacketFactory".
 
     The last thing I want is a user experiencing a bunch of really obscure low-level asserts when they are just trying to use the library.
+
+    So there should be this idea of checks which print out a nice error message, hey, you didn't do a thing.
+
+    Ideally, when working with a client integrating this library, find whatever pain points they experience on first integration, and then add checks to guard against these and save time for the next client.
     
     ------------------
 
@@ -35,17 +49,7 @@ WOULD BE NICE
 
     ------------------
 
-    Make sure that all code that creates packets is aware that it could get a NULL value returned. 
-
-    All message and packet create should gracefully handle packet create being NULL and set an error condition on the connection, or ignore, whichever is appropriate.
-
-    ------------------
-
     Add tests to make sure the client can recover and reconnect after one of the error states below. eg. error is properly cleared.
-
-    ------------------
-
-    Add unit tests for all the new client error states:
 
         CLIENT_STATE_PACKET_FACTORY_ERROR
         CLIENT_STATE_MESSAGE_FACTORY_ERROR
@@ -61,19 +65,13 @@ WOULD BE NICE
 
     ------------------
 
-    Its frustrating that by default the server doesn't print out any reason why it's ignoring a connection request
-
-    This make it hard to see what is going on when something is wrong, and requires I turn on extra logs with #define YOJIMBO_DEBUG_SPAM 1
-
-    It would much be better if it logged these things all the time during client/server/connect tests. The only place it should not log is in unit tests, where lots of failures will occur intentionally, and we don't want to see those spammed to the console.
-
-    ------------------
-
     ^---- To solve this, provide a callback on connection request deny, challenge response denied, so the user can print out a callback, then print that out in shared.h but only if not in logging mode (unit tests).
 
     ------------------
     
-    Add a test case for both unordered and ordered messages to show that it properly handles a message failing to serialize, eg. properly cleans up, sets error state, shuts down the connection.
+    Add a test case for both unordered and ordered messages to show that it properly handles a message failing to serialize, 
+
+    eg. properly cleans up, sets error state, shuts down the connection.
 
     Previously, a bug snuck through where messages were not getting cleaned up properly and the server would crash in this situation.
 
@@ -86,15 +84,5 @@ WOULD BE NICE
     ------------------
 
     Really need to make the matcher HTTPS request asynchronous, can't have it blocking the main thread like it does now!
-
-    ------------------
-
-    There are two local matcher implementations:
-
-        Matcher in test.cpp
-
-        LocalMatcher in shared.h
-
-    There should be only one.
 
     ------------------

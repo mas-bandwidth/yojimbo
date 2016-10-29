@@ -2848,9 +2848,9 @@ void test_client_server_connect_token_reuse()
     server.Stop();
 }
 
-void test_client_server_connect_token_expiry()
+void test_client_server_connect_token_expired()
 {
-    printf( "test_client_server_connect_token_expiry\n" );
+    printf( "test_client_server_connect_token_expired\n" );
 
     TestMatcher matcher;
 
@@ -3035,7 +3035,7 @@ void test_client_server_connect_token_whitelist()
     }
 
     check( client.ConnectionFailed() );
-    check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_SERVER_ADDRESS_NOT_IN_WHITELIST ) > 0 );
+    check( server.GetCounter( SERVER_COUNTER_SERVER_ADDRESS_NOT_IN_WHITELIST ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
@@ -3084,7 +3084,7 @@ void test_client_server_connect_token_invalid()
     
     server.Start();
 
-    uint64_t connectTokenExpireTimestamp = 0;
+    uint64_t connectTokenExpireTimestamp = ::time( NULL ) + 100;
 
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
@@ -3118,7 +3118,7 @@ void test_client_server_connect_token_invalid()
     }
 
     check( client.ConnectionFailed() );
-    check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_FAILED_TO_DECRYPT ) > 0 );
+    check( server.GetCounter( SERVER_COUNTER_FAILED_TO_DECRYPT_CONNECT_TOKEN ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
@@ -5090,7 +5090,7 @@ int main()
         test_client_server_server_side_timeout();
         test_client_server_server_is_full();
         test_client_server_connect_token_reuse();
-        test_client_server_connect_token_expiry();
+        test_client_server_connect_token_expired();
         test_client_server_connect_token_whitelist();
         test_client_server_connect_token_invalid();
         test_client_server_game_packets();
