@@ -180,7 +180,7 @@ First it is necessary to make some modifications to premake5.lua so you have deb
 In the solution "Yojimbo" section near the top of premake5, add symbols to the release configuration:
 
     configuration "Release"
-        flags { "Symbols" }             --  add this line!
+        Symbols "On"             --  add this line!"
         optimize "Speed"
         defines { "NDEBUG" }
 
