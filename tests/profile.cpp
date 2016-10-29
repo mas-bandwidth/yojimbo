@@ -90,6 +90,8 @@ struct ClientData
     uint8_t clientToServerKey[KeyBytes];
     uint8_t serverToClientKey[KeyBytes];
 
+    uint64_t connectTokenExpireTimestamp;
+
     int numServerAddresses;
     Address serverAddresses[MaxServersPerConnectToken];
 
@@ -181,7 +183,8 @@ int ProfileMain()
                                     clientData[i].connectTokenData, 
                                     clientData[i].connectTokenNonce, 
                                     clientData[i].clientToServerKey, 
-                                    clientData[i].serverToClientKey, 
+                                    clientData[i].serverToClientKey,
+                                    clientData[i].connectTokenExpireTimestamp, 
                                     clientData[i].numServerAddresses, 
                                     clientData[i].serverAddresses ) )
         {
@@ -212,10 +215,11 @@ int ProfileMain()
                                        clientData[i].connectTokenData, 
                                        clientData[i].connectTokenNonce, 
                                        clientData[i].clientToServerKey, 
-                                       clientData[i].serverToClientKey );
+                                       clientData[i].serverToClientKey,
+                                       clientData[i].connectTokenExpireTimestamp );
     }
 
-    signal( SIGINT, interrupt_handler );    
+    signal( SIGINT, interrupt_handler ); 
 
     double time = 0.0;
 

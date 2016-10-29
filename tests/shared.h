@@ -128,7 +128,7 @@ public:
         m_nonce = 0;
     }
 
-    bool RequestMatch( uint64_t clientId, uint8_t * tokenData, uint8_t * tokenNonce, uint8_t * clientToServerKey, uint8_t * serverToClientKey, int & numServerAddresses, Address * serverAddresses )
+    bool RequestMatch( uint64_t clientId, uint8_t * tokenData, uint8_t * tokenNonce, uint8_t * clientToServerKey, uint8_t * serverToClientKey, uint64_t & connectTokenExpireTimestamp, int & numServerAddresses, Address * serverAddresses )
     {
         if ( clientId == 0 )
             return false;
@@ -148,6 +148,8 @@ public:
         assert( NonceBytes == 8 );
 
         memcpy( tokenNonce, &m_nonce, NonceBytes );
+
+        connectTokenExpireTimestamp = token.expireTimestamp;
 
         m_nonce++;
 

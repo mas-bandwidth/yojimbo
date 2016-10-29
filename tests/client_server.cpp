@@ -45,7 +45,9 @@ int ClientServerMain()
 
     memset( connectTokenNonce, 0, NonceBytes );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         return 1;
@@ -77,7 +79,7 @@ int ClientServerMain()
 
     server.Start();
     
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     for ( int i = 0; i < NumIterations; ++i )
     {

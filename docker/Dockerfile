@@ -16,9 +16,9 @@ RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodiu
     rm -rf libsodium* && \
     ldconfig
 
-RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha9/premake-5.0.0-alpha9-linux.tar.gz && \ 
-    tar -zxvf premake-5.0.0-alpha9-linux.tar.gz && \
-    rm premake-5.0.0-alpha9-linux.tar.gz && \
+RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha10/premake-5.0.0-alpha10-linux.tar.gz && \ 
+    tar -zxvf premake-*.tar.gz && \
+    rm premake-*.tar.gz && \
     mv premake5 /usr/local/bin
 
 RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.1.5.tar.gz && \

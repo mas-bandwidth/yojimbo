@@ -48,6 +48,7 @@ namespace yojimbo
             memset( connectTokenNonce, 0, sizeof( connectTokenNonce ) );
             memset( clientToServerKey, 0, sizeof( clientToServerKey ) );
             memset( serverToClientKey, 0, sizeof( serverToClientKey ) );
+            connectTokenExpireTimestamp = 0;
         }
 
         int numServerAddresses;
@@ -56,6 +57,7 @@ namespace yojimbo
         uint8_t connectTokenNonce[NonceBytes];
         uint8_t clientToServerKey[KeyBytes];
         uint8_t serverToClientKey[KeyBytes];
+        uint64_t connectTokenExpireTimestamp;
     };
 
     class Matcher

@@ -162,7 +162,7 @@ namespace yojimbo
         {
             // could not verify certificate (eg. it is self-signed)
 
-            // IMPORTANT: this should be locked down #if YOJIMBO_SECURE
+            // IMPORTANT: this should be locked down in gold build. Add #define YOJIMBO_SECURE 1 or something like that
         }
 
         sprintf( request, "GET /match/%d/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
@@ -263,6 +263,10 @@ namespace yojimbo
         uint64_t connectTokenNonce = atoll( doc["connectTokenNonce"].GetString() );
 
         memcpy( &matchResponse.connectTokenNonce, &connectTokenNonce, 8 );
+
+        uint64_t connectTokenExpireTimestamp = atoll( doc["connectTokenNonce"].GetString() );
+
+        memcpy( &matchResponse.connectTokenExpireTimestamp, &connectTokenExpireTimestamp, 8 );
 
         matchResponse.numServerAddresses = 0;
 

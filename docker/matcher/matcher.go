@@ -25,13 +25,13 @@ const AuthBytes = 16
 const MacBytes = 16
 const ConnectTokenBytes = 1024
 const MaxServersPerConnectToken = 8
-const ConnectTokenExpirySeconds = 30
+const ConnectTokenExpireSeconds = 30
 const ServerAddress = "127.0.0.1:40000"
 
 type ConnectToken struct {
     ProtocolId         string `json:"protocolId"`
     ClientId           string `json:"clientId"`
-    ExpiryTimestamp    string `json:"expiryTimestamp"`
+    ExpireTimestamp    string `json:"expireTimestamp"`
     NumServerAddresses string `json:"numServerAddresses"`
     ServerAddresses [] string `json:"serverAddresses"`
     ClientToServerKey  string `json:"clientToServerKey"`
@@ -75,7 +75,7 @@ func GenerateConnectToken( protocolId uint32, clientId uint64, serverAddresses [
     connectToken := ConnectToken {}
     connectToken.ProtocolId = strconv.FormatUint( uint64(protocolId), 10 )
     connectToken.ClientId = strconv.FormatUint( clientId, 10 )
-    connectToken.ExpiryTimestamp = strconv.FormatUint( uint64( time.Now().Unix() + ConnectTokenExpirySeconds ), 10 )
+    connectToken.ExpireTimestamp = strconv.FormatUint( uint64( time.Now().Unix() + ConnectTokenExpireSeconds ), 10 )
     connectToken.NumServerAddresses = strconv.Itoa( len( serverAddresses ) )
     connectToken.ServerAddresses = serverAddresses
     connectToken.ClientToServerKey = base64.StdEncoding.EncodeToString( GenerateKey() )
@@ -93,11 +93,12 @@ func EncryptConnectToken( connectToken ConnectToken, nonce uint64 ) ( []byte, bo
 }
 
 type MatchResponse struct {
-    ConnectTokenData   string `json:"connectTokenData"`
-    ConnectTokenNonce  string `json:"connectTokenNonce"`
-    ServerAddresses [] string `json:"serverAddresses"`
-    ClientToServerKey  string `json:"clientToServerKey"`
-    ServerToClientKey  string `json:"serverToClientKey"`
+    ConnectTokenData                string `json:"connectTokenData"`
+    ConnectTokenNonce               string `json:"connectTokenNonce"`
+    ServerAddresses []              string `json:"serverAddresses"`
+    ClientToServerKey               string `json:"clientToServerKey"`
+    ServerToClientKey               string `json:"serverToClientKey"`
+    ConnectTokenExpireTimestamp     string `json:"connectTokenExpireTimestamp"`
 }
 
 func GenerateMatchResponse( connectToken ConnectToken, nonce uint64 ) ( MatchResponse, bool ) {
@@ -108,6 +109,7 @@ func GenerateMatchResponse( connectToken ConnectToken, nonce uint64 ) ( MatchRes
     matchResponse.ServerAddresses = connectToken.ServerAddresses
     matchResponse.ClientToServerKey = connectToken.ClientToServerKey
     matchResponse.ServerToClientKey = connectToken.ServerToClientKey
+    matchResponse.ConnectTokenExpireTimestamp = connectToken.ExpireTimestamp
     return matchResponse, ok
 }
 

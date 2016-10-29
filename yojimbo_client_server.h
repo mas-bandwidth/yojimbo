@@ -97,27 +97,27 @@ namespace yojimbo
 
     struct ConnectToken
     {
-        uint32_t protocolId;                                                // the protocol id this connect token corresponds to.
+        uint32_t protocolId;                                                // the protocol id this connect token corresponds to
      
-        uint64_t clientId;                                                  // the unique client id. max one connection per-client id, per-server.
+        uint64_t clientId;                                                  // the unique client id. max one connection per-client id, per-server
      
-        uint64_t expiryTimestamp;                                           // timestamp the connect token expires (eg. ~10 seconds after token creation)
+        uint64_t expireTimestamp;                                           // timestamp of when this connect token expires
      
-        int numServerAddresses;                                             // the number of server addresses in the connect token whitelist.
+        int numServerAddresses;                                             // the number of server addresses in the connect token whitelist
+    
+        Address serverAddresses[MaxServersPerConnectToken];                 // connect token only allows connection to these server addresses
      
-        Address serverAddresses[MaxServersPerConnectToken];                 // connect token only allows connection to these server addresses.
+        uint8_t clientToServerKey[KeyBytes];                                // the key for encrypted communication from client -> server
      
-        uint8_t clientToServerKey[KeyBytes];                                // the key for encrypted communication from client -> server.
-     
-        uint8_t serverToClientKey[KeyBytes];                                // the key for encrypted communication from server -> client.
+        uint8_t serverToClientKey[KeyBytes];                                // the key for encrypted communication from server -> client
 
-        uint8_t random[KeyBytes];                                           // random data the client cannot possibly know.
+        uint8_t random[KeyBytes];                                           // random data the client cannot possibly know
 
         ConnectToken()
         {
             protocolId = 0;
             clientId = 0;
-            expiryTimestamp = 0;
+            expireTimestamp = 0;
             numServerAddresses = 0;
             memset( clientToServerKey, 0, KeyBytes );
             memset( serverToClientKey, 0, KeyBytes );
@@ -130,7 +130,7 @@ namespace yojimbo
 
             serialize_uint64( stream, clientId );
             
-            serialize_uint64( stream, expiryTimestamp );
+            serialize_uint64( stream, expireTimestamp );
             
             serialize_int( stream, numServerAddresses, 0, MaxServersPerConnectToken - 1 );
             
@@ -345,7 +345,7 @@ namespace yojimbo
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_INSECURE_CONNECT,         InsecureConnectPacket );
 #endif // #if YOJIMBO_INSECURE_CONNECT
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION,               ConnectionPacket );
-        
+
     YOJIMBO_PACKET_FACTORY_FINISH()
 
     enum ServerResourceType
@@ -445,7 +445,8 @@ namespace yojimbo
                       const uint8_t * connectTokenData, 
                       const uint8_t * connectTokenNonce,
                       const uint8_t * clientToServerKey,
-                      const uint8_t * serverToClientKey );
+                      const uint8_t * serverToClientKey,
+                      uint64_t connectTokenExpireTimestamp );
 
         bool IsConnecting() const;
 
@@ -568,6 +569,8 @@ namespace yojimbo
         ClientServerContext * m_context;                                    // serialization context for client/server packets.
 
         ClientState m_clientState;                                          // current client state
+
+        uint64_t m_connectTokenExpireTimestamp;                             // expire timestamp for connect token used in secure connect.
 
         Address m_serverAddress;                                            // server address we are connecting or connected to.
 

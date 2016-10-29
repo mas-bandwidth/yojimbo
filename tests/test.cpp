@@ -990,6 +990,7 @@ public:
                        uint8_t * tokenNonce, 
                        uint8_t * clientToServerKey, 
                        uint8_t * serverToClientKey, 
+                       uint64_t & connectTokenExpireTimestamp,
                        int & numServerAddresses, 
                        Address * serverAddresses, 
                        int timestampOffsetInSeconds = 0, 
@@ -1003,7 +1004,7 @@ public:
 
         ConnectToken token;
         GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId, 10 );
-        token.expiryTimestamp += timestampOffsetInSeconds;
+        token.expireTimestamp += timestampOffsetInSeconds;
 
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
         memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
@@ -1014,6 +1015,8 @@ public:
         check( NonceBytes == 8 );
 
         memcpy( tokenNonce, &m_nonce, NonceBytes );
+
+        connectTokenExpireTimestamp = token.expireTimestamp;
 
         m_nonce++;
 
@@ -1517,7 +1520,9 @@ void test_client_server_connect()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -1546,7 +1551,7 @@ void test_client_server_connect()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -1636,13 +1641,15 @@ void test_client_server_reconnect()
 
     // connect client to the server
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
     }
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -1718,13 +1725,13 @@ void test_client_server_reconnect()
 
     // now verify the client is able to reconnect to the same server with a new connect token
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed (2)\n" );
         exit( 1 );
     }
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -1814,13 +1821,15 @@ void test_client_server_client_side_disconnect()
 
     // connect client to the server
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
     }
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -1945,13 +1954,15 @@ void test_client_server_server_side_disconnect()
 
     // connect client to the server
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
     }
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -2051,7 +2062,9 @@ void test_client_server_connection_request_timeout()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -2075,7 +2088,7 @@ void test_client_server_connection_request_timeout()
 
     GameClient client( GetDefaultAllocator(), clientTransport, config );
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2124,7 +2137,9 @@ void test_client_server_connection_response_timeout()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -2155,7 +2170,7 @@ void test_client_server_connection_response_timeout()
 
     server.SetFlags( SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES );
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -2215,7 +2230,9 @@ void test_client_server_client_side_timeout()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -2244,7 +2261,7 @@ void test_client_server_client_side_timeout()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -2333,7 +2350,9 @@ void test_client_server_server_side_timeout()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -2362,7 +2381,7 @@ void test_client_server_server_side_timeout()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -2443,6 +2462,7 @@ struct ClientData
     uint8_t connectTokenNonce[NonceBytes];
     uint8_t clientToServerKey[KeyBytes];
     uint8_t serverToClientKey[KeyBytes];
+    uint64_t connectTokenExpireTimestamp;
 
     ClientData()
     {
@@ -2455,6 +2475,7 @@ struct ClientData
         memset( connectTokenNonce, 0, NonceBytes );
         memset( clientToServerKey, 0, KeyBytes );
         memset( serverToClientKey, 0, KeyBytes );
+        connectTokenExpireTimestamp = 0;
     }
 
     ~ClientData()
@@ -2500,6 +2521,7 @@ void test_client_server_server_is_full()
                                     clientData[i].connectTokenNonce, 
                                     clientData[i].clientToServerKey, 
                                     clientData[i].serverToClientKey, 
+                                    clientData[i].connectTokenExpireTimestamp,
                                     clientData[i].numServerAddresses, 
                                     clientData[i].serverAddresses ) )
         {
@@ -2530,7 +2552,8 @@ void test_client_server_server_is_full()
                                        clientData[i].connectTokenData, 
                                        clientData[i].connectTokenNonce, 
                                        clientData[i].clientToServerKey, 
-                                       clientData[i].serverToClientKey );
+                                       clientData[i].serverToClientKey,
+                                       clientData[i].connectTokenExpireTimestamp );
     }
 
     while ( true )
@@ -2614,7 +2637,8 @@ void test_client_server_server_is_full()
                                             clientData[NumClients].connectTokenData, 
                                             clientData[NumClients].connectTokenNonce, 
                                             clientData[NumClients].clientToServerKey, 
-                                            clientData[NumClients].serverToClientKey );
+                                            clientData[NumClients].serverToClientKey,
+                                            clientData[NumClients].connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -2692,7 +2716,9 @@ void test_client_server_connect_token_reuse()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -2721,7 +2747,7 @@ void test_client_server_connect_token_reuse()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -2770,7 +2796,7 @@ void test_client_server_connect_token_reuse()
 
     client2.AdvanceTime( time );
 
-    client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -2839,7 +2865,9 @@ void test_client_server_connect_token_expiry()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses, -100 ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses, -100 ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -2870,7 +2898,7 @@ void test_client_server_connect_token_expiry()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2929,11 +2957,14 @@ void test_client_server_connect_token_whitelist()
 
     GenerateKey( private_key );
 
+    uint64_t connectTokenExpireTimestamp;
+
     if ( !matcher.RequestMatch( clientId, 
                                 connectTokenData, 
                                 connectTokenNonce, 
                                 clientToServerKey, 
-                                serverToClientKey, 
+                                serverToClientKey,
+                                connectTokenExpireTimestamp, 
                                 numServerAddresses, 
                                 serverAddresses, 
                                 0, 
@@ -2968,7 +2999,7 @@ void test_client_server_connect_token_whitelist()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -3049,7 +3080,9 @@ void test_client_server_connect_token_invalid()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    uint64_t connectTokenExpireTimestamp = 0;
+
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -3108,7 +3141,9 @@ void test_client_server_game_packets()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -3137,7 +3172,7 @@ void test_client_server_game_packets()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -3359,6 +3394,9 @@ void test_client_server_insecure_connect_timeout()
 
 void test_matcher()
 {
+    // todo: need to update this with some data captured from matcher.go once I extend to include the connectTokenExpireTimestamp
+
+    /*
     printf( "test_matcher\n" );
 
     uint8_t key[] = { 0x60,0x6a,0xbe,0x6e,0xc9,0x19,0x10,0xea,0x9a,0x65,0x62,0xf6,0x6f,0x2b,0x30,0xe4,0x43,0x71,0xd6,0x2c,0xd1,0x99,0x27,0x26,0x6b,0x3c,0x60,0xf4,0xb7,0x15,0xab,0xa1 };
@@ -3406,6 +3444,7 @@ void test_matcher()
         ConnectToken connectToken;
         check( DecryptConnectToken( encryptedConnectToken, connectToken, NULL, 0, (const uint8_t*) &nonce, key ) );
     }
+    */
 }
 
 void test_bit_array()
@@ -4682,7 +4721,9 @@ void test_connection_client_server()
 
     GenerateKey( private_key );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         exit( 1 );
@@ -4717,7 +4758,7 @@ void test_connection_client_server()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {

@@ -97,7 +97,8 @@ int ConnectMain( int argc, char * argv[] )
                     matchResponse.connectTokenData, 
                     matchResponse.connectTokenNonce, 
                     matchResponse.clientToServerKey,
-                    matchResponse.serverToClientKey );
+                    matchResponse.serverToClientKey,
+                    matchResponse.connectTokenExpireTimestamp );
 
     double time = 0.0;
 

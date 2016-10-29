@@ -44,7 +44,7 @@ namespace yojimbo
         if ( clientId != other.clientId )
             return false;
             
-        if ( expiryTimestamp != other.expiryTimestamp )
+        if ( expireTimestamp != other.expireTimestamp )
             return false;
             
         if ( numServerAddresses != other.numServerAddresses )
@@ -73,13 +73,13 @@ namespace yojimbo
         return ! ( (*this) == other );
     }
 
-    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId, int expirySeconds )
+    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId, int expireSeconds )
     {
         uint64_t timestamp = (uint64_t) time( NULL );
         
         token.protocolId = protocolId;
         token.clientId = clientId;
-        token.expiryTimestamp = timestamp + expirySeconds;
+        token.expireTimestamp = timestamp + expireSeconds;
         
         assert( numServerAddresses > 0 );
         assert( numServerAddresses <= MaxServersPerConnectToken );
@@ -151,7 +151,7 @@ namespace yojimbo
 
         insert_number_as_string( writer, "clientId", connectToken.clientId );
 
-        insert_number_as_string( writer, "expiryTimestamp", connectToken.expiryTimestamp );
+        insert_number_as_string( writer, "expireTimestamp", connectToken.expireTimestamp );
 
         insert_number_as_string( writer, "numServerAddresses", connectToken.numServerAddresses );
 
@@ -264,7 +264,7 @@ namespace yojimbo
         if ( !read_uint64_from_string( doc, "clientId", connectToken.clientId ) )
             return false;
 
-        if ( !read_uint64_from_string( doc, "expiryTimestamp", connectToken.expiryTimestamp ) )
+        if ( !read_uint64_from_string( doc, "expireTimestamp", connectToken.expireTimestamp ) )
             return false;
 
         if ( !read_int_from_string( doc, "numServerAddresses", connectToken.numServerAddresses ) )
@@ -420,6 +420,7 @@ namespace yojimbo
         m_allocateConnection = false;
         m_connection = NULL;
         m_time = 0.0;
+        m_connectTokenExpireTimestamp = 0;
         m_clientState = CLIENT_STATE_DISCONNECTED;
         m_clientIndex = -1;
         m_lastPacketSendTime = 0.0;
@@ -488,7 +489,8 @@ namespace yojimbo
                           const uint8_t * connectTokenData, 
                           const uint8_t * connectTokenNonce,
                           const uint8_t * clientToServerKey,
-                          const uint8_t * serverToClientKey )
+                          const uint8_t * serverToClientKey,
+                          uint64_t connectTokenExpireTimestamp )
     {
         Disconnect();
 
@@ -510,6 +512,8 @@ namespace yojimbo
         memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
 
         m_transport->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
+
+        m_connectTokenExpireTimestamp = connectTokenExpireTimestamp;
     }
 
     void Client::Disconnect( int clientState, bool sendDisconnectPacket )
@@ -1907,7 +1911,7 @@ namespace yojimbo
 
         uint64_t timestamp = (uint64_t) ::time( NULL );
 
-        if ( connectToken.expiryTimestamp <= timestamp )
+        if ( connectToken.expireTimestamp <= timestamp )
         {
             debug_printf( "connect token expired\n" );
             m_counters[SERVER_COUNTER_CONNECT_TOKEN_EXPIRED]++;

@@ -3,7 +3,7 @@ Building libyojimbo
 
 ## Building on Windows
 
-Download [premake 5](https://premake.github.io/download.html) and copy the **premake5** executable somewhere in your path.
+Download [premake 5](https://premake.github.io/download.html) and copy the **premake5** executable somewhere in your path. Please make sure you have at least premake5 alpha 10.
 
 If you don't have Visual Studio 2015 you can [download the community edition for free](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx).
 
@@ -29,7 +29,7 @@ Next go to the command line under the libyojimbo directory and enter:
 
     premake5 gmake
 
-This creates makefiles which you can use to build the source via "make all", or if you prefer you can use the following shortcuts. These shortcuts are smart enough to 
+This creates makefiles which you can use to build the source via "make all", or if you prefer you can use the following shortcuts. These shortcuts are smart enough to build the makefiles if necessary.
 
     premake5 test           // build and run unit tests
 

@@ -1,5 +1,5 @@
 
-Friday Octobor 21st, 2016
+Friday October 21st, 2016
 =========================
 
 Creating new preview release 9 with the matcher fix on Windows.

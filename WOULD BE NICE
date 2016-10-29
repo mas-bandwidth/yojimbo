@@ -2,32 +2,6 @@ WOULD BE NICE
 
     ------------------
 
-    AEAD idea. Protocol is currently vulnerable to being spammed invalid connect tokens.
-
-    Of course, an invalid connect token won't decrypt, but a connect token that is an old stale token (replay attack) *will* decrypt.
-
-    So I think the key way to avoid replay attacks being effective, is to store the timestamp in the additional data section of the AEAD of the connect token.
-
-    That way a reused connect token can be discarded quickly, by just checking the timestamp. 
-
-    If the timestamp is modified to pass the trivial check, then the signature check will quickly reject before the decrypt. Signature check is much faster than decrypt.
-
-    This way, attackers cannot force an expensive decrypt connect token without actaully getting a token from the matcher (in the last 30 seconds...)
-
-    ^---- This is important. This should be fixed.
-
-    ------------------
-
-    Seems a bit annoying now having both server config and connection config.
-
-    Probably should move the connection config inside the server and client config.
-
-    Or maybe unify the client/server config into one struct, with the connection config being shared?
-
-    Think about it.    
-
-    ------------------
-
     Default allocator should store block size in 4 bytes preceding the allocated block
 
     This way the default allocator can report on # of bytes allocated.
@@ -122,5 +96,23 @@ WOULD BE NICE
     Previously, a bug snuck through where messages were not getting cleaned up properly and the server would crash in this situation.
 
     Adding these tests will make sure this never happens again.
+
+    ------------------
+
+    Would be nice if a secure client connect accepted a list of servers to try to connect to, instead of having the user need to do that iteration manually, outside the client class. This is how it is meant to be used, after all.
+
+    ------------------
+
+    Really need to make the matcher HTTPS request asynchronous, can't have it blocking the main thread like it does now!
+
+    ------------------
+
+    There are two local matcher implementations:
+
+        Matcher in test.cpp
+
+        LocalMatcher in shared.h
+
+    There should be only one.
 
     ------------------

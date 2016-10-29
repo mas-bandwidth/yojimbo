@@ -57,7 +57,9 @@ int SoakMain()
 
     memset( connectTokenNonce, 0, NonceBytes );
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, numServerAddresses, serverAddresses ) )
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
     {
         printf( "error: request match failed\n" );
         return 1;
@@ -92,7 +94,7 @@ int SoakMain()
 
     server.Start();
     
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey );
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     uint64_t numMessagesSentToServer = 0;
     uint64_t numMessagesReceivedFromClient = 0;

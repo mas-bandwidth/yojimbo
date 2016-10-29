@@ -4,11 +4,28 @@ DONE
 
     Created branch "development" where I can do my work without dicking up the main branch. This way I can apply fixes to the main branch easily as they come in, even if I'm in the middle of a bunch of disruptive work.
 
+    Client should have a virtual to create context. Server does, client needs one too.
+
+    Done.
+
+    Fix the security hole for replay attacks by putting the 64 bit timestamp in the extra data for the token AEAD
+
+    What do I need to do this? First look on the C++ side in client_server.cpp
+
+    Converted the local matcher so it returns the timestamp.
+
+    Then went through the go matcher, and the code that parses json and added the connectTokenExpireTimestamp entry to JSON.
+
+    Should be passed through end-to-end from matcher to client connect now.
+
+    So the remaining work is to plumb it through the "connection request" packet now.
+
+    Since I upgraded to premake5 beta 10, I need to update building.md, and as well the Dockerfile so it grabs this version for linux, because: Symbols "On" doesn't exist in premake5 beta 8, jeez these guys are just garbage with backwards compatibility and transitioning premake files from old to newer versions... =p
+
+    Actually, the building.md was fine, it just points to the download page, added a note to get at least beta 10.
+
 TODO
 
-    ------------------
-
-    Client should have a virtual to create context. Server does, client needs one too.
 
     ------------------
 
