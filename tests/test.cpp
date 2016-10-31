@@ -67,6 +67,31 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
+void test_endian()
+{
+    printf( "test_endian\n" );
+
+    uint32_t value = 0x11223344;
+
+    const char * bytes = (const char*) &value;
+
+#if YOJIMBO_LITTLE_ENDIAN
+
+    check( bytes[0] == 0x44 );
+    check( bytes[1] == 0x33 );
+    check( bytes[2] == 0x22 );
+    check( bytes[3] == 0x11 );
+
+#else // #if YOJIMBO_LITTLE_ENDIAN
+
+    check( bytes[3] == 0x44 );
+    check( bytes[2] == 0x33 );
+    check( bytes[1] == 0x22 );
+    check( bytes[0] == 0x11 );
+
+#endif // #if YOJIMBO_LITTLE_ENDIAN
+}
+
 void test_queue()
 {
     printf( "test_queue\n" );
@@ -5085,6 +5110,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        test_endian();
         test_queue();
         test_base64();
         test_bitpacker();
