@@ -104,3 +104,11 @@ WOULD BE NICE
     Really need to make the matcher HTTPS request asynchronous, can't have it blocking the main thread like it does now!
 
     ------------------
+
+    Need to get coverity setup to run with a travis job. Right now, it needs to be run manually, by somebody.
+
+    It should be setup to run automatically on each commit to "coverity" branch, then I can create a premake action to determine current branch, mainline or development, and integrate across current head to that branch.
+
+    eg. pm coverity
+
+    ------------------
