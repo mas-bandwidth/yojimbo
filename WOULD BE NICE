@@ -2,6 +2,38 @@ WOULD BE NICE
 
     ------------------
 
+    One thing to keep in mind is that an attacker who can sniff packets can replay packets, worst case.
+
+    From this point of view, it's probably a good idea to write some code in secure mode to drive the reliability system
+    from the 64bit sequence number included as nonce, rather than using the wrapping 16 bit sequence number, since a well timed
+    attack with wrapping sequence # would possibly let an attacker corrupt the state of reliable ordered messages.
+    
+    ------------------
+
+    Does a similar attack existing with challenge responses?
+
+    Yes. You could compose any encrypted packet type, and store a valid encrypted packet, and replay that as an attack.
+
+    But it would only work for that one particular connected client, and for packets spoofed fram that address.
+
+    So the attack possible would be to connect a client, and then send lots of replays of the same packet sequence #
+
+    In this case, it might be possible to detect lots of spammed packets coming in (duplicates of packets).
+
+    Also, it might be possible to put the sequence # as part of the additional data in AEAD, so it can't be modified without breaking the packet.
+
+    Then, implement some code to quickly filter out any sequence numbers older than current sequence minus some amount, like 1024.
+
+    Then implement a sequence buffer with uint64_t sequence numbers, and if a packet has already been received (according to 64 bit sequence number), or if it is older than the current sequence # minus 1024, then discard it (without decryptiong it...)
+
+    This will fix this attack. Nice!
+
+    ------------------
+
+    ^---- When I think about this, there is no need to do anything except filter out old packets by the 64bit sequence #, and discard duplicate packets, and whatever protocol is inside those packets should be fine. Duplicate packets won't be allowed to arrive, because each sequence # is unique 64bit for secure packets.
+
+    ------------------
+
     Should have a unit test to verify a client cannot connect with same address, and that this does not disturb the existing connected client
 
     ------------------

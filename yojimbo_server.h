@@ -95,22 +95,29 @@ namespace yojimbo
     enum ServerCounters
     {
         SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED,
+        SERVER_COUNTER_CONNECTION_REQUEST_CHALLENGE_PACKETS_SENT,
+        SERVER_COUNTER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL,
         SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET,
-        SERVER_COUNTER_FAILED_TO_DECRYPT_CONNECT_TOKEN,
-        SERVER_COUNTER_SERVER_ADDRESS_NOT_IN_WHITELIST,
-        SERVER_COUNTER_CLIENT_ID_IS_ZERO,
-        SERVER_COUNTER_ADDRESS_ALREADY_CONNECTED,
-        SERVER_COUNTER_CLIENT_ID_ALREADY_CONNECTED,
-        SERVER_COUNTER_CONNECT_TOKEN_EXPIRED,
-        SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED,
-        SERVER_COUNTER_FAILED_TO_ADD_ENCRYPTION_MAPPING,
-        SERVER_COUNTER_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,
-        SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL,
-        SERVER_COUNTER_FAILED_TO_GENERATE_CHALLENGE_TOKEN,
-        SERVER_COUNTER_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN,
-        SERVER_COUNTER_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,
-        SERVER_COUNTER_CHALLENGE_PACKETS_SENT,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN,
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN,
+
+        SERVER_COUNTER_CHALLENGE_RESPONSE_ACCEPTED,
+        SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET,
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,
         SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED,
+        
         SERVER_COUNTER_CLIENT_CONNECTS,
         SERVER_COUNTER_CLIENT_DISCONNECTS,
         SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS,
@@ -121,12 +128,13 @@ namespace yojimbo
         SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS,
         SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS,
         SERVER_COUNTER_GLOBAL_STREAM_ALLOCATOR_ERRORS,
+        
         SERVER_COUNTER_NUM_COUNTERS
     };
 
     enum ServerConnectionRequestAction
     {
-        SERVER_CONNECTION_REQUEST_ACCEPTED,
+        SERVER_CONNECTION_REQUEST_CHALLENGE_PACKET_SENT,
         SERVER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL,
         SERVER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET,
         SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED,
@@ -140,6 +148,16 @@ namespace yojimbo
         SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN,
         SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,
         SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN
+    };
+
+    enum ServerChallengeResponseAction
+    {
+        SERVER_CHALLENGE_RESPONSE_ACCEPTED,
+        SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,
+        SERVER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET,
+        SERVER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,
+        SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,
+        SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,
     };
 
     enum ServerFlags
@@ -229,6 +247,8 @@ namespace yojimbo
 
         virtual void OnConnectionRequest( ServerConnectionRequestAction /*action*/, const ConnectionRequestPacket & /*packet*/, const Address & /*address*/, const ConnectToken & /*connectToken*/ ) {}
 
+        virtual void OnChallengeResponse( ServerChallengeResponseAction /*action*/, const ChallengeResponsePacket & /*packet*/, const Address & /*address*/, const ChallengeToken & /*challengeToken*/ ) {}
+
         virtual void OnClientConnect( int /*clientIndex*/ ) {}
 
         virtual void OnClientDisconnect( int /*clientIndex*/ ) {}
@@ -287,11 +307,11 @@ namespace yojimbo
 
         void ProcessConnectionRequest( const ConnectionRequestPacket & packet, const Address & address );
 
-        void ProcessConnectionResponse( const ConnectionResponsePacket & packet, const Address & address );
+        void ProcessChallengeResponse( const ChallengeResponsePacket & packet, const Address & address );
 
-        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address );
+        void ProcessHeartBeat( const HeartBeatPacket & /*packet*/, const Address & address );
 
-        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address );
+        void ProcessDisconnect( const DisconnectPacket & /*packet*/, const Address & address );
 
 #if YOJIMBO_INSECURE_CONNECT
         void ProcessInsecureConnect( const InsecureConnectPacket & /*packet*/, const Address & address );
@@ -301,7 +321,7 @@ namespace yojimbo
 
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
 
-        ConnectionHeartBeatPacket * CreateHeartBeatPacket( int clientIndex );
+        HeartBeatPacket * CreateHeartBeatPacket( int clientIndex );
 
         Transport * GetTransport() { return m_transport; }
 

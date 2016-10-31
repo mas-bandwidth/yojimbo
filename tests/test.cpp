@@ -1214,10 +1214,10 @@ public:
 
         switch ( packetType )
         {
-            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:        packetTypeString = "connection denied";     break;
+            case CLIENT_SERVER_PACKET_CHALLENGE:                packetTypeString = "challenge";             break;
+            case CLIENT_SERVER_PACKET_HEARTBEAT:                packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_DISCONNECT:               packetTypeString = "disconnect";            break;
 
             default:
                 return;
@@ -1238,9 +1238,9 @@ public:
         switch ( packetType )
         {
             case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+            case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
+            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
 
             default:
                 return;
@@ -1358,9 +1358,9 @@ public:
         switch ( packetType )
         {
             case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+            case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
+            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
 
             default:
                 return;
@@ -1381,9 +1381,9 @@ public:
         switch ( packetType )
         {
             case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+            case CLIENT_SERVER_PACKET_CHALLENGE:                  packetTypeString = "challenge";             break;
+            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";            break;
 
             default:
                 return;
@@ -1460,12 +1460,12 @@ void test_unencrypted_packets()
     clientTransport.EnablePacketEncryption();
     serverTransport.EnablePacketEncryption();
 
-    check( clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
-    check( serverTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
+    check( clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_HEARTBEAT ) );
+    check( serverTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_HEARTBEAT ) );
 
-    clientTransport.DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+    clientTransport.DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_HEARTBEAT );
 
-    check( !clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT ) );
+    check( !clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_HEARTBEAT ) );
 
     const int NumIterations = 32;
 
@@ -1475,7 +1475,7 @@ void test_unencrypted_packets()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * sendPacket = clientTransport.CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+        Packet * sendPacket = clientTransport.CreatePacket( CLIENT_SERVER_PACKET_HEARTBEAT );
         check( sendPacket );
         clientTransport.SendPacket( serverAddress, sendPacket, 0, false );
 
@@ -1490,7 +1490,7 @@ void test_unencrypted_packets()
             Packet * packet = serverTransport.ReceivePacket( address, &sequence );
             if ( !packet )
                 break;
-            if ( packet->GetType() == CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT )
+            if ( packet->GetType() == CLIENT_SERVER_PACKET_HEARTBEAT )
                 numPacketsReceived++;
         }
 
@@ -2874,7 +2874,7 @@ void test_client_server_connect_token_reuse()
     }
 
     check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
-    check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED ) > 0 );
+    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED ) > 0 );
 
     client.Disconnect();
     client2.Disconnect();
@@ -2968,7 +2968,7 @@ void test_client_server_connect_token_expired()
     }
 
     check( client.ConnectionFailed() );
-    check( server.GetCounter( SERVER_COUNTER_CONNECT_TOKEN_EXPIRED ) > 0 );
+    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
@@ -3069,7 +3069,7 @@ void test_client_server_connect_token_whitelist()
     }
 
     check( client.ConnectionFailed() );
-    check( server.GetCounter( SERVER_COUNTER_SERVER_ADDRESS_NOT_IN_WHITELIST ) > 0 );
+    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
@@ -3152,7 +3152,7 @@ void test_client_server_connect_token_invalid()
     }
 
     check( client.ConnectionFailed() );
-    check( server.GetCounter( SERVER_COUNTER_FAILED_TO_DECRYPT_CONNECT_TOKEN ) > 0 );
+    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();

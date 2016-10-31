@@ -166,11 +166,11 @@ namespace yojimbo
 
         void ProcessConnectionDenied( const ConnectionDeniedPacket & packet, const Address & address );
 
-        void ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address );
+        void ProcessChallenge( const ChallengePacket & packet, const Address & address );
 
-        void ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & packet, const Address & address );
+        void ProcessHeartBeat( const HeartBeatPacket & packet, const Address & address );
 
-        void ProcessConnectionDisconnect( const ConnectionDisconnectPacket & packet, const Address & address );
+        void ProcessDisconnect( const DisconnectPacket & packet, const Address & address );
 
         void ProcessConnectionPacket( ConnectionPacket & packet, const Address & address );
 

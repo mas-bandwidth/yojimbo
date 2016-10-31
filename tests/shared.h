@@ -186,6 +186,10 @@ protected:
 
         switch ( action )
         {
+            case SERVER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL:
+                printf( "denied connection request from %s. server is full\n", addressString );
+                break;
+
             case SERVER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET:
                 printf( "ignored connection request from %s. flag is set to ignore connection requests\n", addressString );
                 break;
@@ -239,6 +243,38 @@ protected:
         }
     }
 
+    void OnChallengeResponse( ServerChallengeResponseAction action, const ChallengeResponsePacket & /*packet*/, const Address & address, const ChallengeToken & challengeToken )
+    {
+        char addressString[MaxAddressLength];
+        address.ToString( addressString, sizeof( addressString ) );
+
+        switch ( action )
+        {
+            case SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL:
+                printf( "denied challenge response from %s. server is full\n", addressString );
+                break;
+
+            case SERVER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET:
+                printf( "ignored challenge response from %s. flag is set to ignore challenge responses\n", addressString );
+                break;
+
+            case SERVER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN:
+                printf( "ignored challenge response from %s. failed to decrypt challenge token\n", addressString );
+                break;
+
+            case SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED:
+                printf( "ignored challenge response from %s. address already connected\n", addressString );
+                break;
+
+            case SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED:
+                printf( "ignored connection response from %s. client id %" PRIx64 " already connected\n", addressString, challengeToken.clientId );
+                break;
+
+            default:
+                break;
+        }
+    }
+
     void OnClientConnect( int clientIndex )
     {
         char addressString[MaxAddressLength];
@@ -269,9 +305,9 @@ protected:
         switch ( packetType )
         {
             case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+            case CLIENT_SERVER_PACKET_CHALLENGE:                  packetTypeString = "challenge";             break;
+            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";            break;
 
             default:
                 return;
@@ -292,9 +328,9 @@ protected:
         switch ( packetType )
         {
             case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+            case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
+            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
 
             default:
                 return;
@@ -383,9 +419,9 @@ public:
         switch ( packetType )
         {
             case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:        packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";                 break;  
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";                break;
+            case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
+            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
 
             default:
                 return;
@@ -406,9 +442,9 @@ public:
         switch ( packetType )
         {
             case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:       packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:       packetTypeString = "heartbeat";             break;
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:      packetTypeString = "disconnect";            break;
+            case CLIENT_SERVER_PACKET_CHALLENGE:                  packetTypeString = "challenge";             break;
+            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";            break;
 
             default:
                 return;

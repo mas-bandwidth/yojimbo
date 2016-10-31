@@ -178,7 +178,7 @@ namespace yojimbo
         {
             for ( int i = 0; i < m_config.numDisconnectPackets; ++i )
             {
-                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );            
+                DisconnectPacket * packet = (DisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_DISCONNECT );            
 
                 if ( packet )
                 {
@@ -314,7 +314,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + m_config.connectionResponseSendRate > time )
                     return;
 
-                ConnectionResponsePacket * packet = (ConnectionResponsePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_RESPONSE );
+                ChallengeResponsePacket * packet = (ChallengeResponsePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE );
                 
                 if ( packet )
                 {
@@ -340,7 +340,7 @@ namespace yojimbo
 
                 if ( m_lastPacketSendTime + m_config.connectionHeartBeatRate <= time )
                 {
-                    ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+                    HeartBeatPacket * packet = (HeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_HEARTBEAT );
 
                     if ( packet )
                     {
@@ -611,7 +611,7 @@ namespace yojimbo
         SetClientState( CLIENT_STATE_CONNECTION_DENIED );
     }
 
-    void Client::ProcessConnectionChallenge( const ConnectionChallengePacket & packet, const Address & address )
+    void Client::ProcessChallenge( const ChallengePacket & packet, const Address & address )
     {
         if ( m_clientState != CLIENT_STATE_SENDING_CONNECTION_REQUEST )
             return;
@@ -664,7 +664,7 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
     }
 
-    void Client::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & packet, const Address & address )
+    void Client::ProcessHeartBeat( const HeartBeatPacket & packet, const Address & address )
     {
         if ( !IsPendingConnect() && !IsConnected() )
             return;
@@ -678,7 +678,7 @@ namespace yojimbo
         m_lastPacketReceiveTime = GetTime();
     }
 
-    void Client::ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address )
+    void Client::ProcessDisconnect( const DisconnectPacket & /*packet*/, const Address & address )
     {
         if ( m_clientState != CLIENT_STATE_CONNECTED )
             return;
@@ -713,16 +713,16 @@ namespace yojimbo
                 ProcessConnectionDenied( *(ConnectionDeniedPacket*)packet, address );
                 return;
 
-            case CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE:
-                ProcessConnectionChallenge( *(ConnectionChallengePacket*)packet, address );
+            case CLIENT_SERVER_PACKET_CHALLENGE:
+                ProcessChallenge( *(ChallengePacket*)packet, address );
                 return;
 
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:
-                ProcessConnectionHeartBeat( *(ConnectionHeartBeatPacket*)packet, address );
+            case CLIENT_SERVER_PACKET_HEARTBEAT:
+                ProcessHeartBeat( *(HeartBeatPacket*)packet, address );
                 return;
 
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:
-                ProcessConnectionDisconnect( *(ConnectionDisconnectPacket*)packet, address );
+            case CLIENT_SERVER_PACKET_DISCONNECT:
+                ProcessDisconnect( *(DisconnectPacket*)packet, address );
                 return;
 
             case CLIENT_SERVER_PACKET_CONNECTION:

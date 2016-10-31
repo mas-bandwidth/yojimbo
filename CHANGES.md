@@ -1,4 +1,16 @@
 
+Sunday October 30th, 2016
+=========================
+
+Cleaned up packet types and names.
+
+Cleaned up server counter and connection request / challenge response enums to be consistent.
+
+Implement OnChallengeResponse callback to match the OnConnectionRequest callback implemented yesterday.
+
+Added some notes for how to protoct against replay attacks w. sniffed packets to WOULD BE NICE.
+
+
 Saturday October 29th, 2016
 ===========================
 

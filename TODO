@@ -4,12 +4,6 @@ TODO
 
     ------------------
 
-    Need to apply same treatment to OnConnectionResponse processing, so logs can be added to these cases as well.
-
-    Users getting tripped up by errors at this step will be much less common than connection request, but it could still happen, and it should still log why by default.
-
-    ------------------
-
     IMPORTANT: When creating allocators, don't rely on the user overriding to configure the amount of memory available for each allocator. 
 
     Put this in the config, this way the user can reasonably setup an allocator.

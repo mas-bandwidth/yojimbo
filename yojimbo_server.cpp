@@ -179,7 +179,7 @@ namespace yojimbo
         {
             for ( int i = 0; i < m_config.numDisconnectPackets; ++i )
             {
-                ConnectionDisconnectPacket * packet = (ConnectionDisconnectPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT );
+                DisconnectPacket * packet = (DisconnectPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_DISCONNECT );
 
                 if ( packet )
                 {
@@ -320,7 +320,7 @@ namespace yojimbo
 
                 if ( m_clientData[i].lastPacketSendTime + m_config.connectionHeartBeatRate <= time )
                 {
-                    ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( i );
+                    HeartBeatPacket * packet = CreateHeartBeatPacket( i );
 
                     if ( packet )
                     {
@@ -334,7 +334,7 @@ namespace yojimbo
             {
                 if ( m_clientData[i].lastHeartBeatSendTime + m_config.connectionHeartBeatRate <= time )
                 {
-                    ConnectionHeartBeatPacket * packet = CreateHeartBeatPacket( i );
+                    HeartBeatPacket * packet = CreateHeartBeatPacket( i );
 
                     if ( packet )
                     {
@@ -736,11 +736,11 @@ namespace yojimbo
 
         OnClientConnect( clientIndex );
 
-        ConnectionHeartBeatPacket * connectionHeartBeatPacket = CreateHeartBeatPacket( clientIndex );
+        HeartBeatPacket * heartBeatPacket = CreateHeartBeatPacket( clientIndex );
 
-        if ( connectionHeartBeatPacket )
+        if ( heartBeatPacket )
         {
-            SendPacketToConnectedClient( clientIndex, connectionHeartBeatPacket );
+            SendPacketToConnectedClient( clientIndex, heartBeatPacket );
         }
     }
 
@@ -814,7 +814,7 @@ namespace yojimbo
         {
             debug_printf( "ignored connection request: connect token has expired\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED, packet, address, ConnectToken() );
-            m_counters[SERVER_COUNTER_CONNECT_TOKEN_EXPIRED]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED]++;
             return;
         }
 
@@ -823,7 +823,7 @@ namespace yojimbo
         {
             debug_printf( "ignored connection request: failed to decrypt connect token\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN, packet, address, ConnectToken() );
-            m_counters[SERVER_COUNTER_FAILED_TO_DECRYPT_CONNECT_TOKEN]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN]++;
             return;
         }
 
@@ -842,7 +842,7 @@ namespace yojimbo
         {
             debug_printf( "ignored connection request: server address not in whitelist\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_SERVER_ADDRESS_NOT_IN_WHITELIST]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST]++;
             return;
         }
 
@@ -850,7 +850,7 @@ namespace yojimbo
         {
             debug_printf( "ignored connection request: client id is zero\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_CLIENT_ID_IS_ZERO]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO]++;
             return;
         }
 
@@ -858,7 +858,7 @@ namespace yojimbo
         {
             debug_printf( "ignored connection request: address already connected\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_ADDRESS_ALREADY_CONNECTED]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED]++;
             return;
         }
 
@@ -866,7 +866,7 @@ namespace yojimbo
         {
             debug_printf( "ignored connection request: client id already connected\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_CLIENT_ID_ALREADY_CONNECTED]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED]++;
             return;
         }
 
@@ -876,7 +876,7 @@ namespace yojimbo
             {
                 debug_printf( "ignored connection request: failed to add encryption mapping\n" );
                 OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING, packet, address, connectToken );
-                m_counters[SERVER_COUNTER_FAILED_TO_ADD_ENCRYPTION_MAPPING]++;
+                m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING]++;
                 return;
             }
         }
@@ -888,7 +888,7 @@ namespace yojimbo
         {
             debug_printf( "denied connection request: server is full\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
@@ -901,7 +901,7 @@ namespace yojimbo
         {
             debug_printf( "ignored connection request: connect token already used\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_CONNECT_TOKEN_ALREADY_USED]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED]++;
             return;
         }
 
@@ -910,100 +910,103 @@ namespace yojimbo
         {
             debug_printf( "ignored connection request: failed to generate challenge token\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_FAILED_TO_GENERATE_CHALLENGE_TOKEN]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN]++;
             return;
         }
 
-        ConnectionChallengePacket * connectionChallengePacket = (ConnectionChallengePacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_CHALLENGE );
-        if ( !connectionChallengePacket )
+        ChallengePacket * challengePacket = (ChallengePacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CHALLENGE );
+        if ( !challengePacket )
         {
             debug_printf( "ignored connection request: failed to allocate challenge packet\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_FAILED_TO_ALLOCATE_CHALLENGE_PACKET]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET]++;
             return;
         }
 
-        memcpy( connectionChallengePacket->challengeTokenNonce, (uint8_t*) &m_challengeTokenNonce, NonceBytes );
+        memcpy( challengePacket->challengeTokenNonce, (uint8_t*) &m_challengeTokenNonce, NonceBytes );
 
-        if ( !EncryptChallengeToken( challengeToken, connectionChallengePacket->challengeTokenData, NULL, 0, connectionChallengePacket->challengeTokenNonce, m_privateKey ) )
+        if ( !EncryptChallengeToken( challengeToken, challengePacket->challengeTokenData, NULL, 0, challengePacket->challengeTokenNonce, m_privateKey ) )
         {
             debug_printf( "ignored connection request: failed to encrypt challenge token\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN, packet, address, connectToken );
-            m_counters[SERVER_COUNTER_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN]++;
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN]++;
             return;
         }
 
-        m_counters[SERVER_COUNTER_CHALLENGE_PACKETS_SENT]++;
+        m_counters[SERVER_COUNTER_CONNECTION_REQUEST_CHALLENGE_PACKETS_SENT]++;
 
-        SendPacket( address, connectionChallengePacket );
+        SendPacket( address, challengePacket );
 
-        OnConnectionRequest( SERVER_CONNECTION_REQUEST_ACCEPTED, packet, address, connectToken );
+        OnConnectionRequest( SERVER_CONNECTION_REQUEST_CHALLENGE_PACKET_SENT, packet, address, connectToken );
     }
 
-    void Server::ProcessConnectionResponse( const ConnectionResponsePacket & packet, const Address & address )
+    void Server::ProcessChallengeResponse( const ChallengeResponsePacket & packet, const Address & address )
     {
         assert( IsRunning() );
 
         if ( m_flags & SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES )
+        {
+            debug_printf( "ignored challenge response: flag is set\n" );
+            OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET, packet, address, ChallengeToken() );
+            m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET]++;
             return;
-
-        const double time = GetTime();
+        }
 
         m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED]++;
 
         ChallengeToken challengeToken;
         if ( !DecryptChallengeToken( packet.challengeTokenData, challengeToken, NULL, 0, packet.challengeTokenNonce, m_privateKey ) )
         {
-            debug_printf( "failed to decrypt challenge token\n" );
-            m_counters[SERVER_COUNTER_FAILED_TO_DECRYPT_CHALLENGE_TOKEN]++;
-            return;
-        }
-
-        const int existingClientIndex = FindExistingClientIndex( address, challengeToken.clientId );
-        if ( existingClientIndex != -1 )
-        {
-            assert( existingClientIndex >= 0 );
-            assert( existingClientIndex < m_maxClients );
-
-            if ( m_clientData[existingClientIndex].lastPacketSendTime + m_config.connectionConfirmSendRate < time )
-            {
-                ConnectionHeartBeatPacket * connectionHeartBeatPacket = CreateHeartBeatPacket( existingClientIndex );
-
-                if ( connectionHeartBeatPacket )
-                {
-                    SendPacketToConnectedClient( existingClientIndex, connectionHeartBeatPacket );
-                }
-            }
-
-            debug_printf( "client is already connected: %" PRIx64 " (challenge response)\n", challengeToken.clientId );
-
+            debug_printf( "ignored challenge response: failed to decrypt challenge token\n" );
+            OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN, packet, address, challengeToken );
+            m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN]++;
             return;
         }
 
         if ( m_numConnectedClients == m_maxClients )
         {
-            m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
+            debug_printf( "challenge response denied: server is full\n" );
+            OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL, packet, address, challengeToken );
+            m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL]++;
+
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+
             if ( connectionDeniedPacket )
             {
                 SendPacket( address, connectionDeniedPacket );
             }
+
+            return;
+        }
+
+        if ( FindAddress( address ) >= 0 )
+        {
+            debug_printf( "ignored challenge response: address already connected\n" );
+            OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED, packet, address, challengeToken );
+            m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED]++;
+            return;
+        }
+
+        if ( FindClientId( challengeToken.clientId ) >= 0 )
+        {
+            debug_printf( "ignored challenge response: client id already connected\n" );
+            OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED, packet, address, challengeToken );
+            m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED]++;
             return;
         }
 
         const int clientIndex = FindFreeClientIndex();
 
         assert( clientIndex != -1 );
-        if ( clientIndex == -1 )
-        {
-            debug_printf( "ignoring challenge response because there is no free client slot\n" );
-            return;
-        }
+
+        debug_printf( "challenge response accepted\n" );
+        OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_ACCEPTED, packet, address, challengeToken );
+        m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_ACCEPTED]++;
 
         ConnectClient( clientIndex, address, challengeToken.clientId );
     }
 
-    void Server::ProcessConnectionHeartBeat( const ConnectionHeartBeatPacket & /*packet*/, const Address & address )
+    void Server::ProcessHeartBeat( const HeartBeatPacket & /*packet*/, const Address & address )
     {
         assert( IsRunning() );
 
@@ -1021,7 +1024,7 @@ namespace yojimbo
         m_clientData[clientIndex].fullyConnected = true;
     }
 
-    void Server::ProcessConnectionDisconnect( const ConnectionDisconnectPacket & /*packet*/, const Address & address )
+    void Server::ProcessDisconnect( const DisconnectPacket & /*packet*/, const Address & address )
     {
         assert( IsRunning() );
 
@@ -1047,7 +1050,7 @@ namespace yojimbo
 
         if ( m_numConnectedClients == m_maxClients )
         {
-            m_counters[SERVER_COUNTER_CONNECTION_DENIED_SERVER_IS_FULL]++;
+            m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
@@ -1064,11 +1067,11 @@ namespace yojimbo
         {
             if ( m_clientData[clientIndex].clientSalt == clientSalt )
             {
-                ConnectionHeartBeatPacket * connectionHeartBeatPacket = CreateHeartBeatPacket( clientIndex );
+                HeartBeatPacket * heartBeatPacket = CreateHeartBeatPacket( clientIndex );
 
-                if ( connectionHeartBeatPacket )
+                if ( heartBeatPacket )
                 {
-                    SendPacketToConnectedClient( clientIndex, connectionHeartBeatPacket );
+                    SendPacketToConnectedClient( clientIndex, heartBeatPacket );
                 }
             }
 
@@ -1114,16 +1117,16 @@ namespace yojimbo
                 ProcessConnectionRequest( *(ConnectionRequestPacket*)packet, address );
                 return;
 
-            case CLIENT_SERVER_PACKET_CONNECTION_RESPONSE:
-                ProcessConnectionResponse( *(ConnectionResponsePacket*)packet, address );
+            case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:
+                ProcessChallengeResponse( *(ChallengeResponsePacket*)packet, address );
                 return;
 
-            case CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT:
-                ProcessConnectionHeartBeat( *(ConnectionHeartBeatPacket*)packet, address );
+            case CLIENT_SERVER_PACKET_HEARTBEAT:
+                ProcessHeartBeat( *(HeartBeatPacket*)packet, address );
                 return;
 
-            case CLIENT_SERVER_PACKET_CONNECTION_DISCONNECT:
-                ProcessConnectionDisconnect( *(ConnectionDisconnectPacket*)packet, address );
+            case CLIENT_SERVER_PACKET_DISCONNECT:
+                ProcessDisconnect( *(DisconnectPacket*)packet, address );
                 return;
 
 #if YOJIMBO_INSECURE_CONNECT
@@ -1153,9 +1156,9 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketReceiveTime = GetTime();
     }
 
-    ConnectionHeartBeatPacket * Server::CreateHeartBeatPacket( int clientIndex )
+    HeartBeatPacket * Server::CreateHeartBeatPacket( int clientIndex )
     {
-        ConnectionHeartBeatPacket * packet = (ConnectionHeartBeatPacket*) CreateClientPacket( clientIndex, CLIENT_SERVER_PACKET_CONNECTION_HEARTBEAT );
+        HeartBeatPacket * packet = (HeartBeatPacket*) CreateClientPacket( clientIndex, CLIENT_SERVER_PACKET_HEARTBEAT );
 
         if ( packet )
         {
