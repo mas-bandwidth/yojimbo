@@ -1,4 +1,4 @@
- /*
+/*
     Yojimbo Client/Server Network Protocol Library.
     
     Copyright © 2016, The Network Protocol Company, Inc.
@@ -68,13 +68,17 @@ namespace yojimbo
         m_allocateConnection = false;
         m_connection = NULL;
         m_time = 0.0;
-        m_connectTokenExpireTimestamp = 0;
         m_clientState = CLIENT_STATE_DISCONNECTED;
         m_clientIndex = -1;
         m_lastPacketSendTime = 0.0;
         m_lastPacketReceiveTime = 0.0;
         m_clientSalt = 0;
         m_sequence = 0;
+        m_connectTokenExpireTimestamp = 0;
+        memset( m_connectTokenData, 0, sizeof( m_connectTokenData ) );
+        memset( m_connectTokenNonce, 0, sizeof( m_connectTokenNonce ) );
+        memset( m_challengeTokenData, 0, sizeof( m_challengeTokenData ) );
+        memset( m_challengeTokenNonce, 0, sizeof( m_challengeTokenNonce ) );
     }
 
     Client::Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config )

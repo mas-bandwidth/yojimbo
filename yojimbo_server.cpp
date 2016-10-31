@@ -1,4 +1,4 @@
- /*
+/*
     Yojimbo Client/Server Network Protocol Library.
     
     Copyright © 2016, The Network Protocol Company, Inc.
@@ -107,8 +107,11 @@ namespace yojimbo
         {
             m_clientPacketFactory[clientIndex] = CreatePacketFactory( clientIndex );
 
+#ifdef DEBUG
+            PacketFactory * packetFactory = m_transport->GetPacketFactory();
+#endif // #if _DEBUG
             assert( m_clientPacketFactory[clientIndex] );
-            assert( m_clientPacketFactory[clientIndex]->GetNumPacketTypes() == m_transport->GetPacketFactory()->GetNumPacketTypes() );
+            assert( m_clientPacketFactory[clientIndex]->GetNumPacketTypes() == packetFactory->GetNumPacketTypes() );
 
             m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
         }
@@ -593,6 +596,8 @@ namespace yojimbo
         {
             assert( clientIndex >= 0 );
             assert( clientIndex < m_maxClients );
+            if ( clientIndex < 0 || clientIndex >= m_maxClients )
+                return NULL;
             context->messageFactory = &GetMessageFactory( clientIndex );
         }
         

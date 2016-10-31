@@ -524,4 +524,9 @@ namespace yojimbo
     {
         return m_packetFactory;
     }
+
+    const PacketFactory * BaseTransport::GetPacketFactory() const
+    {
+        return m_packetFactory;
+    }
 }

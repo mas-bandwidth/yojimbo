@@ -117,6 +117,8 @@ namespace yojimbo
         virtual const Address & GetAddress() const = 0;
 
         virtual PacketFactory * GetPacketFactory() = 0;
+
+        virtual const PacketFactory * GetPacketFactory() const = 0;
     };
 
     class BaseTransport : public Transport
@@ -182,6 +184,8 @@ namespace yojimbo
         const Address & GetAddress() const;
 
         PacketFactory * GetPacketFactory();
+
+        const PacketFactory * GetPacketFactory() const;
 
     protected:
 
