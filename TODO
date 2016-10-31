@@ -2,6 +2,10 @@ DONE
 
 TODO
 
+    Need to write a routine to convert a big-endian 64bit integer to little endian.
+
+    This is required because the timestamp binary is fed into the AEAD, and it needs to be passed into the decryption with a uniform endianness.
+    
     ------------------
 
     IMPORTANT: When creating allocators, don't rely on the user overriding to configure the amount of memory available for each allocator. 
@@ -61,6 +65,10 @@ TODO
     Definitely needed for large snapshot blocks.
 
     Default to maximum packet size of 8k, so up to 7 ~1200 MTU packets
+
+    Idea: don't allow fragmentation from client -> server, because it is a security risk?
+
+    Alternatively, only allow fragmented packets if they are encrypted in secure mode. Unencrypted ones will not be accepted.   
 
     ------------------
 

@@ -162,6 +162,18 @@ namespace yojimbo
 
 #endif // #ifdef __GNUC__
 
+    inline uint32_t bswap( uint64_t value )
+    {
+#ifdef __GNUC__
+        return __builtin_bswap64( value );
+#else // #ifdef __GNUC__
+        value = ( value & 0x00000000FFFFFFFF ) << 32 | ( value & 0xFFFFFFFF00000000 ) >> 32;
+        value = ( value & 0x0000FFFF0000FFFF ) << 16 | ( value & 0xFFFF0000FFFF0000 ) >> 16;
+        value = ( value & 0x00FF00FF00FF00FF ) << 8  | ( value & 0xFF00FF00FF00FF00 ) >> 8;
+        return value;
+#endif // #ifdef __GNUC__
+    }
+
     inline uint32_t bswap( uint32_t value )
     {
 #ifdef __GNUC__
@@ -178,7 +190,7 @@ namespace yojimbo
 
     // IMPORTANT: These functions consider network order to be little endian because most modern processors are little endian. Least amount of work!
 
-    inline uint32_t host_to_network( uint32_t value )
+    template <typename T> T host_to_network( T value )
     {
 #if YOJIMBO_BIG_ENDIAN
         return bswap( value );
@@ -187,25 +199,7 @@ namespace yojimbo
 #endif // #if YOJIMBO_BIG_ENDIAN
     }
 
-    inline uint32_t network_to_host( uint32_t value )
-    {
-#if YOJIMBO_BIG_ENDIAN
-        return bswap( value );
-#else // #if YOJIMBO_BIG_ENDIAN
-        return value;
-#endif // #if YOJIMBO_BIG_ENDIAN
-    }
-
-    inline uint16_t host_to_network( uint16_t value )
-    {
-#if YOJIMBO_BIG_ENDIAN
-        return bswap( value );
-#else // #if YOJIMBO_BIG_ENDIAN
-        return value;
-#endif // #if YOJIMBO_BIG_ENDIAN
-    }
-
-    inline uint16_t network_to_host( uint16_t value )
+    template <typename T> T network_to_host( T value )
     {
 #if YOJIMBO_BIG_ENDIAN
         return bswap( value );

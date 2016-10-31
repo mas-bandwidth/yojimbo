@@ -16,7 +16,9 @@ WOULD BE NICE
 
     Then, implement some code to quickly filter out any sequence numbers older than current sequence minus some amount, like 1024.
 
-    Then implement a sequence buffer with uint64_t sequence numbers, and if a packet has already been received (according to 64 bit sequence number), or if it is older than the current sequence # minus 1024, then discard it (without decryptiong it...)
+    Then implement a sequence buffer with uint64_t sequence numbers, and if a packet has already been received (according to 64 bit sequence number), or if it is older than the current sequence # minus 1024, discard it (without decryptiong it...)
+
+    I can do this because the nonce (the sequence) is implicitly secure. Change the value, and the data won't decrypt.
 
     This will fix this attack. Nice!
 
