@@ -105,9 +105,9 @@ namespace yojimbo
 
         uint64_t encryptedLength;
 
-        // todo: expire timestamp must be converted to little endian if this is a big endian machine
+        uint64_t expireTimestampNetworkOrder = host_to_network( token.expireTimestamp );        // network order is little endian
 
-        if ( !Encrypt_AEAD( (const uint8_t*)message, ConnectTokenBytes - AuthBytes, encryptedMessage, encryptedLength, (const uint8_t*) &token.expireTimestamp, 8, nonce, key ) )
+        if ( !Encrypt_AEAD( (const uint8_t*)message, ConnectTokenBytes - AuthBytes, encryptedMessage, encryptedLength, (const uint8_t*) &expireTimestampNetworkOrder, 8, nonce, key ) )
             return false;
 
         assert( encryptedLength == ConnectTokenBytes );
@@ -122,9 +122,9 @@ namespace yojimbo
         uint64_t decryptedMessageLength;
         uint8_t decryptedMessage[ConnectTokenBytes];
 
-        // todo: expire timestamp must be converted to little endian if this is a big endian machine
+        uint64_t expireTimestampNetworkOrder = host_to_network( expireTimestamp );              // network order is little endian
 
-        if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, (const uint8_t*) &expireTimestamp, 8, nonce, key ) )
+        if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, (const uint8_t*) &expireTimestampNetworkOrder, 8, nonce, key ) )
             return false;
 
         assert( decryptedMessageLength == ConnectTokenBytes - AuthBytes );
