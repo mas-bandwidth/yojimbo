@@ -116,6 +116,8 @@ namespace yojimbo
 
         int GetClientIndex() const;
 
+        Allocator & GetAllocator();
+
     protected:
 
         virtual void OnConnect( const Address & /*address*/ ) {}
@@ -189,6 +191,8 @@ namespace yojimbo
         Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
 
         Allocator * m_streamAllocator;                                      // stream allocator passed in to the packet serialize for in-place allocations.
+
+        PacketFactory * m_packetFactory;                                    // packet factory for creating and destroying messages. created via CreatePacketFactory.
 
         MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional.
 

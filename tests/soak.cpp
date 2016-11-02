@@ -81,7 +81,6 @@ int SoakMain()
     SimulatorTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId );
     SimulatorTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId );
 
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     ClientServerConfig clientServerConfig;

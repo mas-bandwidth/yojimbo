@@ -11,6 +11,10 @@ Windows has issues with #define SendMessage screwing with my functions, renamed 
 
 Thanks Windows =p
 
+Created the packet factory for client internally via a virtual function
+
+Removed all the code that manually set packet factory on client transports in test code
+
 
 Sunday October 30th, 2016
 =========================

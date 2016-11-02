@@ -64,6 +64,7 @@ namespace yojimbo
         m_allocator = NULL;
         m_streamAllocator = NULL;
         m_transport = NULL;
+        m_packetFactory = NULL;
         m_messageFactory = NULL;
         m_allocateConnection = false;
         m_connection = NULL;
@@ -99,6 +100,8 @@ namespace yojimbo
         assert( m_allocator );
 
         YOJIMBO_DELETE( *m_allocator, Connection, m_connection );
+
+        YOJIMBO_DELETE( *m_allocator, PacketFactory, m_packetFactory );
 
         YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
 
@@ -480,11 +483,28 @@ namespace yojimbo
         return m_clientIndex;
     }
 
+    Allocator & Client::GetAllocator()
+    {
+        assert( m_allocator );
+        return *m_allocator;
+    }
+
     void Client::InitializeConnection()
     {
+        if ( !m_packetFactory )
+        {
+            m_packetFactory = CreatePacketFactory();
+
+            assert( m_packetFactory );
+
+            m_transport->SetPacketFactory( *m_packetFactory );
+        }
+
         if ( !m_streamAllocator )
         {
             m_streamAllocator = CreateStreamAllocator();
+
+            assert( m_streamAllocator );
 
             m_transport->SetStreamAllocator( *m_streamAllocator );
         }
@@ -494,11 +514,14 @@ namespace yojimbo
             if ( m_allocateConnection && !m_connection )
             {
                 m_messageFactory = CreateMessageFactory();
+                assert( m_messageFactory );
                 m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_config.connectionConfig );
                 m_connection->SetListener( this );
             }
 
             m_context = CreateContext();
+
+            assert( m_context );
             
             m_transport->SetContext( m_context );
         }

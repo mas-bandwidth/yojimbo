@@ -63,7 +63,6 @@ int ClientServerMain()
     GameNetworkTransport serverTransport( serverAddress );
 
     // todo: remove this once client and server create their own packet factory
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE || serverTransport.GetError() != SOCKET_ERROR_NONE )

@@ -38,12 +38,8 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientMain( int argc, char * argv[] )
 {   
-    // todo: remove this once client and server create their own packet factory
-    ClientServerPacketFactory packetFactory;
-
     GameNetworkTransport clientTransport;
-    clientTransport.SetPacketFactory( packetFactory );
-
+    
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
     {
         printf( "error: failed to initialize client socket\n" );

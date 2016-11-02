@@ -4,15 +4,13 @@ TODO
 
     ------------------
 
-    Create the packet factory for client and server internally via a virtual.
-
     Set the transport packet factory to the client/server packet factory created internally.
 
     Remove the code marked with "// todo" that should be removed once client/server packet factory has 
 
     ------------------
 
-    Create global and per-client allocators on server, and one allocator on client.
+    Create global and per-client allocators on server.
 
     Make sure these allocators are dynamically created according to config via virtual functions. 
 
@@ -21,10 +19,6 @@ TODO
         GetGlobalAllocator()
 
         GetClientAllocator( int clientIndex )
-
-    And for the client, just:
-
-        GetAllocator()
 
     ------------------
 
@@ -36,23 +30,13 @@ TODO
 
     ------------------
 
-    Make sure all tests pass with limited memory per-client.
+    Make sure there are good errors if the client fails to allocate something big, like message factory, packet factory etc.
+
+    This can happen, especially now that memory is intentionally limited.
 
     ------------------
 
-    Next create global and per-client allocators on server, and one allocator on client.
-
-    Make sure these allocators are dynamically created according to config via virtual functions. 
-
-    Add an interface something like this to the server:
-
-        GetGlobalAllocator()
-
-        GetClientAllocator( int clientIndex )
-
-    And for the client, just:
-
-        GetClientAllocator()
+    Make sure all tests pass with limited memory per-client.
 
     ------------------
 
@@ -71,6 +55,8 @@ TODO
     Ideal, don't allow fragmentation from client -> server, at least by default, because it is a security risk.
 
     If it is allowed, provide the user of the library with a way to configure whether it is or isn't supported.
+
+    Perhaps it is OK to allow, but only on encrypted packet types, don't allow it on connection request packets.
 
     ------------------
 

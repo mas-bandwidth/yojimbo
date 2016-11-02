@@ -262,10 +262,6 @@ protected:
                 printf( "ignored challenge response from %s. failed to decrypt challenge token\n", addressString );
                 break;
 
-            case SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED:
-                printf( "ignored challenge response from %s. address already connected\n", addressString );
-                break;
-
             case SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED:
                 printf( "ignored connection response from %s. client id %" PRIx64 " already connected\n", addressString, challengeToken.clientId );
                 break;

@@ -204,8 +204,6 @@ int ProfileMain()
     for ( int i = 0; i < MaxClients; ++i )
     {
         clientData[i].transport = new SocketTransport( GetDefaultAllocator(), clientData[i].address, ProtocolId );
-        // todo: remove this once client and server create their own packet factory
-        clientData[i].transport->SetPacketFactory( packetFactory );
     }
 
     serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, ClientServerConfig() );

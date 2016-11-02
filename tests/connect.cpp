@@ -79,12 +79,7 @@ int ConnectMain( int argc, char * argv[] )
 
     printf( "received match response\n" );
 
-    // todo: remove this once client and server create their own packet factory
-    ClientServerPacketFactory packetFactory;
-
     GameNetworkTransport clientTransport;
-    // todo: remove this once client and server create their own packet factory
-    clientTransport.SetPacketFactory( packetFactory );    
 
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
     {

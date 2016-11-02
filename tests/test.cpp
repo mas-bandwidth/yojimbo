@@ -1376,6 +1376,11 @@ public:
         }
     }
 
+    PacketFactory * CreatePacketFactory()
+    {
+        return YOJIMBO_NEW( GetAllocator(), GamePacketFactory, *m_allocator );
+    }
+
     void OnPacketSent( int packetType, const Address & to, bool immediate )
     {
         const char * packetTypeString = NULL;
@@ -1570,7 +1575,6 @@ void test_client_server_connect()
     TestNetworkTransport clientTransport( networkSimulator, clientAddress );
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -1662,7 +1666,6 @@ void test_client_server_reconnect()
     TestNetworkTransport clientInterface( networkSimulator, clientAddress );
     TestNetworkTransport serverInterface( networkSimulator, serverAddress );
 
-    clientInterface.SetPacketFactory( packetFactory );
     serverInterface.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -1846,7 +1849,6 @@ void test_client_server_client_side_disconnect()
     TestNetworkTransport clientInterface( networkSimulator, clientAddress );
     TestNetworkTransport serverInterface( networkSimulator, serverAddress );
 
-    clientInterface.SetPacketFactory( packetFactory );
     serverInterface.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -1983,7 +1985,6 @@ void test_client_server_server_side_disconnect()
     TestNetworkTransport clientInterface( networkSimulator, clientAddress );
     TestNetworkTransport serverInterface( networkSimulator, serverAddress );
 
-    clientInterface.SetPacketFactory( packetFactory );
     serverInterface.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -2117,16 +2118,12 @@ void test_client_server_connection_request_timeout()
         exit( 1 );
     }
 
-    GamePacketFactory packetFactory;
-
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     TestNetworkSimulator networkSimulator;
 
     TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-
-    clientTransport.SetPacketFactory( packetFactory );
 
     const int NumIterations = 20;
 
@@ -2206,7 +2203,6 @@ void test_client_server_connection_response_timeout()
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
     // todo: remove this once client/server create their own packet factories
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -2292,7 +2288,8 @@ void test_client_server_client_side_timeout()
         exit( 1 );
     }
 
-    GamePacketFactory packetFactory;                            // todo: remove this once client/server manage their own packet factories
+    // todo: remove this once client/server manage their own packet factories
+    GamePacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -2302,9 +2299,9 @@ void test_client_server_client_side_timeout()
     TestNetworkTransport clientTransport( networkSimulator, clientAddress );
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
+    // todo: remove this once client/server manage their own packet factories
     serverTransport.SetPacketFactory( packetFactory );
-    clientTransport.SetPacketFactory( packetFactory );          // todo: remove this once client/server manage their own packet factories
-
+    
     double time = 0.0;
 
     ClientServerConfig clientServerConfig;
@@ -2428,7 +2425,6 @@ void test_client_server_server_side_timeout()
     TestNetworkTransport serverInterface( networkSimulator, serverAddress );
 
     // todo: remove this once client/server create their own packet factories
-    clientInterface.SetPacketFactory( packetFactory );
     serverInterface.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -2579,9 +2575,6 @@ void test_client_server_server_is_full()
         Address clientAddress( "::1", ClientPort + i );
 
         clientData[i].transport = YOJIMBO_NEW( allocator, TestNetworkTransport, networkSimulator, clientAddress );
-
-        // todo: remove this once client/server create their own packet factories
-        clientData[i].transport->SetPacketFactory( packetFactory );
 
         if ( !matcher.RequestMatch( clientData[i].clientId, 
                                     clientData[i].connectTokenData, 
@@ -2806,7 +2799,6 @@ void test_client_server_connect_token_reuse()
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
     // todo: remove this once client/server create their own packet factories
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -2902,9 +2894,6 @@ void test_client_server_connect_token_reuse()
 
     TestNetworkTransport clientTransport2( networkSimulator, clientAddress2 );
     
-    // todo: remove this once client/server create their own packet factories
-    clientTransport2.SetPacketFactory( packetFactory );
-
     GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
 
     client2.AdvanceTime( time );
@@ -2997,7 +2986,6 @@ void test_client_server_connect_token_expired()
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
     // todo: remove this once client/server create their own packet factories
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     const int NumIterations = 1000;
@@ -3102,7 +3090,6 @@ void test_client_server_connect_token_whitelist()
     TestNetworkTransport clientTransport( networkSimulator, clientAddress );
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     const int NumIterations = 1000;
@@ -3188,7 +3175,6 @@ void test_client_server_connect_token_invalid()
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
     // todo: remove this once client/server create their own packet factories
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     const int NumIterations = 1000;
@@ -3287,7 +3273,6 @@ void test_client_server_game_packets()
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
     // todo: remove this once client/server create their own packet factories
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -3408,7 +3393,6 @@ void test_client_server_insecure_connect()
     TestNetworkTransport serverInterface( networkSimulator, serverAddress );
 
     // todo: remove this once client/server create their own packet factories
-    clientInterface.SetPacketFactory( packetFactory );
     serverInterface.SetPacketFactory( packetFactory );
 
     double time = 0.0;
@@ -3479,18 +3463,12 @@ void test_client_server_insecure_connect_timeout()
 {
     printf( "test_client_server_insecure_connect_timeout\n" );
 
-    // todo: remove this once client/server create their own packet factories
-    GamePacketFactory packetFactory;
-
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     TestNetworkSimulator networkSimulator;
 
     TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-
-    // todo: remove this once client/server create their own packet factories
-    clientTransport.SetPacketFactory( packetFactory );
 
     double time = 0.0;
 
@@ -4884,7 +4862,6 @@ void test_connection_client_server()
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
     // todo: remove this once client and server create their own packet factory
-    clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
     double time = 0.0;
