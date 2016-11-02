@@ -43,6 +43,7 @@ namespace yojimbo
         m_challengeTokenNonce = 0;
         m_globalSequence = 0;
         m_globalContext = NULL;
+        m_globalPacketFactory = NULL;
         memset( m_privateKey, 0, KeyBytes );
         memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
         memset( m_clientContext, 0, sizeof( m_clientContext ) );
@@ -70,6 +71,8 @@ namespace yojimbo
 		// IMPORTANT: Please call stop on the server before you destroy it. 
 		assert( !IsRunning() );
 
+        YOJIMBO_DELETE( *m_allocator, PacketFactory, m_globalPacketFactory );
+
         YOJIMBO_DELETE( *m_allocator, Allocator, m_globalStreamAllocator );
 
         assert( m_transport );
@@ -96,16 +99,29 @@ namespace yojimbo
 
         m_maxClients = maxClients;
 
+        if ( !m_globalPacketFactory )
+        {
+            m_globalPacketFactory = CreatePacketFactory( SERVER_RESOURCE_GLOBAL, -1 );
+
+            assert( m_globalPacketFactory );
+
+            m_transport->SetPacketFactory( *m_globalPacketFactory );
+        }
+
         if ( !m_globalStreamAllocator )
         {
             m_globalStreamAllocator = CreateStreamAllocator( SERVER_RESOURCE_GLOBAL, -1 );
+
+            assert( m_globalStreamAllocator );
 
             m_transport->SetStreamAllocator( *m_globalStreamAllocator );
         }
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
-            m_clientPacketFactory[clientIndex] = CreatePacketFactory( clientIndex );
+            m_clientPacketFactory[clientIndex] = CreatePacketFactory( SERVER_RESOURCE_PER_CLIENT, clientIndex );
+
+            assert( m_clientPacketFactory[clientIndex] );
 
 #ifdef DEBUG
             PacketFactory * packetFactory = m_transport->GetPacketFactory();
@@ -572,7 +588,7 @@ namespace yojimbo
         return YOJIMBO_NEW( *m_allocator, DefaultAllocator );
     }
 
-    PacketFactory * Server::CreatePacketFactory( int /*clientIndex*/ )
+    PacketFactory * Server::CreatePacketFactory( ServerResourceType /*type*/, int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
     }

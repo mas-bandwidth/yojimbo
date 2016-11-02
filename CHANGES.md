@@ -15,6 +15,10 @@ Created the packet factory for client internally via a virtual function
 
 Removed all the code that manually set packet factory on client transports in test code
 
+Set the transport packet factory to the client/server packet factory created internally.
+
+Remove the code marked with "// todo" that should be removed once server packet factory is used.
+
 
 Sunday October 30th, 2016
 =========================

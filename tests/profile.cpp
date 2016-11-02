@@ -164,9 +164,6 @@ int ProfileMain()
 {
     srand( (unsigned int) time( NULL ) );
 
-    // todo: remove this once client and server create their own packet factory
-    ClientServerPacketFactory packetFactory;
-
     ServerData * serverData = new ServerData();
     serverData->address = Address( "::1", ServerPort );
 
@@ -197,9 +194,6 @@ int ProfileMain()
     }
 
     serverData->transport = new SocketTransport( GetDefaultAllocator(), serverData->address, ProtocolId );
-
-    // todo: remove this once client and server create their own packet factory
-    serverData->transport->SetPacketFactory( packetFactory );
 
     for ( int i = 0; i < MaxClients; ++i )
     {

@@ -53,17 +53,11 @@ int ClientServerMain()
         return 1;
     }
 
-    // todo: remove this once client and server create their own packet factory
-    ClientServerPacketFactory packetFactory;
-
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     GameNetworkTransport clientTransport( clientAddress );
     GameNetworkTransport serverTransport( serverAddress );
-
-    // todo: remove this once client and server create their own packet factory
-    serverTransport.SetPacketFactory( packetFactory );
 
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE || serverTransport.GetError() != SOCKET_ERROR_NONE )
     {

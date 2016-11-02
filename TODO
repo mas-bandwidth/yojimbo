@@ -4,12 +4,6 @@ TODO
 
     ------------------
 
-    Set the transport packet factory to the client/server packet factory created internally.
-
-    Remove the code marked with "// todo" that should be removed once server packet factory is used.
-
-    ------------------
-
     Create global and per-client allocators on server.
 
     Make sure these allocators are dynamically created according to config via virtual functions. 

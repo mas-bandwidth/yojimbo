@@ -277,7 +277,7 @@ namespace yojimbo
 
         virtual Allocator * CreateStreamAllocator( ServerResourceType type, int clientIndex );
 
-        virtual PacketFactory * CreatePacketFactory( int clientIndex );
+        virtual PacketFactory * CreatePacketFactory( ServerResourceType type, int clientIndex );
 
         virtual MessageFactory * CreateMessageFactory( int clientIndex );
 
@@ -343,9 +343,12 @@ namespace yojimbo
 
         ClientServerContext * m_clientContext[MaxClients];                  // per-client serialization context for client/server packets once connected.
 
-        MessageFactory * m_clientMessageFactory[MaxClients];                // message factory for creating and destroying messages. per-client and optional.
+        PacketFactory * m_globalPacketFactory;                              // packet factory for global packets (eg. conection request, challenge response packets prior to connection).
 
         PacketFactory * m_clientPacketFactory[MaxClients];                  // packet factory for creating and destroying packets. per-client. required.
+
+        MessageFactory * m_clientMessageFactory[MaxClients];                // message factory for creating and destroying messages. per-client and optional.
+
 
         uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
 
