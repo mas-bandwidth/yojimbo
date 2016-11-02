@@ -172,9 +172,9 @@ public:
         SetPrivateKey( private_key );
     }
 
-    MessageFactory * CreateMessageFactory( int /*clientIndex*/ )
+    MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
     {
-        return YOJIMBO_NEW( GetDefaultAllocator(), GameMessageFactory, GetDefaultAllocator() );
+        return YOJIMBO_NEW( allocator, GameMessageFactory, allocator );
     }
 
 protected:

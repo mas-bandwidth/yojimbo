@@ -10,9 +10,9 @@ TODO
 
     Add an interface something like this to the server:
 
-        GetGlobalAllocator()
+        GetAllocator( ServerResourceType, int clientIndex )
 
-        GetClientAllocator( int clientIndex )
+    This way the functions that create resources (and delete them) can trivially get the correct allocator.
 
     ------------------
 
@@ -20,13 +20,7 @@ TODO
 
     ------------------
 
-    Setup client/server with limited memory allocator per-client by default, eg. TLSF
-
-    ------------------
-
-    Make sure there are good errors if the client fails to allocate something big, like message factory, packet factory etc.
-
-    This can happen, especially now that memory is intentionally limited.
+    Setup client/server with limited memory per-client by default, eg. TLSF allocator for the per-client and global allocators.
 
     ------------------
 

@@ -1189,14 +1189,14 @@ public:
         Initialize();
     }
 
-    MessageFactory * CreateMessageFactory( int /*clientIndex*/ )
+    MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
     {
-        return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
+        return YOJIMBO_NEW( allocator, TestMessageFactory, allocator );
     }
 
-    PacketFactory * CreatePacketFactory( ServerResourceType /*type*/, int /*clientIndex*/ )
+    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
     {
-        return YOJIMBO_NEW( GetDefaultAllocator(), GamePacketFactory, GetDefaultAllocator() );
+        return YOJIMBO_NEW( allocator, GamePacketFactory, allocator );
     }
 
     void OnClientConnect( int clientIndex )

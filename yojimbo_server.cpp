@@ -99,9 +99,11 @@ namespace yojimbo
 
         m_maxClients = maxClients;
 
+        Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL, -1 );
+
         if ( !m_globalPacketFactory )
         {
-            m_globalPacketFactory = CreatePacketFactory( SERVER_RESOURCE_GLOBAL, -1 );
+            m_globalPacketFactory = CreatePacketFactory( globalAllocator, SERVER_RESOURCE_GLOBAL, -1 );
 
             assert( m_globalPacketFactory );
 
@@ -110,7 +112,7 @@ namespace yojimbo
 
         if ( !m_globalStreamAllocator )
         {
-            m_globalStreamAllocator = CreateStreamAllocator( SERVER_RESOURCE_GLOBAL, -1 );
+            m_globalStreamAllocator = CreateStreamAllocator( globalAllocator, SERVER_RESOURCE_GLOBAL, -1 );
 
             assert( m_globalStreamAllocator );
 
@@ -119,7 +121,9 @@ namespace yojimbo
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
-            m_clientPacketFactory[clientIndex] = CreatePacketFactory( SERVER_RESOURCE_PER_CLIENT, clientIndex );
+            Allocator & clientAllocator = GetAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
+
+            m_clientPacketFactory[clientIndex] = CreatePacketFactory( clientAllocator, SERVER_RESOURCE_PER_CLIENT, clientIndex );
 
             assert( m_clientPacketFactory[clientIndex] );
 
@@ -129,14 +133,16 @@ namespace yojimbo
             assert( m_clientPacketFactory[clientIndex] );
             assert( m_clientPacketFactory[clientIndex]->GetNumPacketTypes() == packetFactory->GetNumPacketTypes() );
 
-            m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
+            m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( clientAllocator, SERVER_RESOURCE_PER_CLIENT, clientIndex );
         }
 
         if ( m_allocateConnections )
         {
             for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
             {
-                m_clientMessageFactory[clientIndex] = CreateMessageFactory( clientIndex );
+                Allocator & clientAllocator = GetAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
+
+                m_clientMessageFactory[clientIndex] = CreateMessageFactory( clientAllocator, SERVER_RESOURCE_PER_CLIENT, clientIndex );
                 
                 m_connection[clientIndex] = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_config.connectionConfig );
                
@@ -144,7 +150,7 @@ namespace yojimbo
 
                 m_connection[clientIndex]->SetClientIndex( clientIndex );
 
-                m_clientContext[clientIndex] = CreateContext( SERVER_RESOURCE_PER_CLIENT, clientIndex );
+                m_clientContext[clientIndex] = CreateContext( clientAllocator, SERVER_RESOURCE_PER_CLIENT, clientIndex );
 
                 assert( m_clientContext[clientIndex]->magic == ConnectionContextMagic );
             }
@@ -571,7 +577,8 @@ namespace yojimbo
 
     void Server::InitializeGlobalContext()
     {
-        m_globalContext = CreateContext( SERVER_RESOURCE_GLOBAL, -1 );
+        Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL, -1 );
+        m_globalContext = CreateContext( globalAllocator, SERVER_RESOURCE_GLOBAL, -1 );
         assert( m_globalContext );
         assert( m_globalContext->magic == ConnectionContextMagic );
         m_transport->SetContext( m_globalContext );
@@ -583,25 +590,35 @@ namespace yojimbo
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
-    Allocator * Server::CreateStreamAllocator( ServerResourceType /*type*/, int /*clientIndex*/ )
+    Allocator & Server::GetAllocator( ServerResourceType type, int clientIndex )
     {
-        return YOJIMBO_NEW( *m_allocator, DefaultAllocator );
+        (void)type;
+        (void)clientIndex;
+        assert( type == SERVER_RESOURCE_GLOBAL && clientIndex == -1 || type == SERVER_RESOURCE_PER_CLIENT && clientIndex >= 0 && clientIndex < m_maxClients );
+        // todo: setup different allocators
+        assert( m_allocator );
+        return *m_allocator;
     }
 
-    PacketFactory * Server::CreatePacketFactory( ServerResourceType /*type*/, int /*clientIndex*/ )
+    Allocator * Server::CreateStreamAllocator( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
     {
-        return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
+        return YOJIMBO_NEW( allocator, DefaultAllocator );      // todo: should be TLSF allocator by default, need config for stream allocator size
     }
 
-    MessageFactory * Server::CreateMessageFactory( int /*clientIndex*/ )
+    PacketFactory * Server::CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
     {
-        assert( !"you need to override Server::CreateMessageFactory if you want to use messages" );
+        return YOJIMBO_NEW( allocator, ClientServerPacketFactory, allocator );
+    }
+
+    MessageFactory * Server::CreateMessageFactory( Allocator & /*allocator*/, ServerResourceType /*type*/, int /*clientIndex*/ )
+    {
+        assert( !"override Server::CreateMessageFactory if you want to use messages" );
         return NULL;
     }
 
-    ClientServerContext * Server::CreateContext( ServerResourceType type, int clientIndex )
+    ClientServerContext * Server::CreateContext( Allocator & allocator, ServerResourceType type, int clientIndex )
     {
-        ClientServerContext * context = YOJIMBO_NEW( *m_allocator, ClientServerContext );
+        ClientServerContext * context = YOJIMBO_NEW( allocator, ClientServerContext );
         
         assert( context );
         assert( context->magic == ConnectionContextMagic );

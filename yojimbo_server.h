@@ -275,13 +275,15 @@ namespace yojimbo
 
         virtual void SetEncryptedPacketTypes();
 
-        virtual Allocator * CreateStreamAllocator( ServerResourceType type, int clientIndex );
+        Allocator & GetAllocator( ServerResourceType type, int clientIndex );
 
-        virtual PacketFactory * CreatePacketFactory( ServerResourceType type, int clientIndex );
+        virtual Allocator * CreateStreamAllocator( Allocator & allocator, ServerResourceType type, int clientIndex );
 
-        virtual MessageFactory * CreateMessageFactory( int clientIndex );
+        virtual PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType type, int clientIndex );
 
-        virtual ClientServerContext * CreateContext( ServerResourceType type, int clientIndex );
+        virtual MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType type, int clientIndex );
+
+        virtual ClientServerContext * CreateContext( Allocator & allocator, ServerResourceType type, int clientIndex );
 
         virtual void ResetClientState( int clientIndex );
 
