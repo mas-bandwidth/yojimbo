@@ -92,17 +92,17 @@ namespace yojimbo
 
         void Disconnect( int clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
 
-        bool CanSendMessage();
+        Message * CreateMsg( int type );
 
-        Message * CreateMessage( int type );
+        bool CanSendMsg();
 
-        void SendMessage( Message * message );
+        void SendMsg( Message * message );
 
-        Message * ReceiveMessage();
+        Message * ReceiveMsg();
 
-        void ReleaseMessage( Message * message );
+        void ReleaseMsg( Message * message );
 
-        MessageFactory & GetMessageFactory();
+        MessageFactory & GetMsgFactory();
 
         void SendPackets();
 

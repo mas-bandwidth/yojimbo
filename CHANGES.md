@@ -7,6 +7,10 @@ Reworked the transport so it can be created optionally without a packet factory.
 
 Add a SetPacketFactory method to the transport
 
+Windows has issues with #define SendMessage screwing with my functions, renamed "SendMessage" to "SendMsg" and so on, for all message related functions in channels, connection and client/server. Most pragmatic option.
+
+Thanks Windows =p
+
 
 Sunday October 30th, 2016
 =========================

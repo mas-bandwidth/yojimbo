@@ -187,17 +187,17 @@ namespace yojimbo
 
         void DisconnectAllClients( bool sendDisconnectPacket = true );
 
-        Message * CreateMessage( int clientIndex, int type );
+        Message * CreateMsg( int clientIndex, int type );
 
-        bool CanSendMessage( int clientIndex ) const;
+        bool CanSendMsg( int clientIndex ) const;
 
-        void SendMessage( int clientIndex, Message * message );
+        void SendMsg( int clientIndex, Message * message );
 
-        Message * ReceiveMessage( int clientIndex );
+        Message * ReceiveMsg( int clientIndex );
 
-        void ReleaseMessage( int clientIndex, Message * message );
+        void ReleaseMsg( int clientIndex, Message * message );
 
-        MessageFactory & GetMessageFactory( int clientIndex );
+        MessageFactory & GetMsgFactory( int clientIndex );
 
         Packet * CreateGlobalPacket( int type );
 

@@ -208,25 +208,25 @@ namespace yojimbo
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
-    bool Connection::CanSendMessage( int channelId ) const
+    bool Connection::CanSendMsg( int channelId ) const
     {
         assert( channelId >= 0 );
         assert( channelId < m_config.numChannels );
-        return m_channel[channelId]->CanSendMessage();
+        return m_channel[channelId]->CanSendMsg();
     }
 
-    void Connection::SendMessage( Message * message, int channelId )
+    void Connection::SendMsg( Message * message, int channelId )
     {
         assert( channelId >= 0 );
         assert( channelId < m_config.numChannels );
-        return m_channel[channelId]->SendMessage( message );
+        return m_channel[channelId]->SendMsg( message );
     }
 
-    Message * Connection::ReceiveMessage( int channelId )
+    Message * Connection::ReceiveMsg( int channelId )
     {
         assert( channelId >= 0 );
         assert( channelId < m_config.numChannels );
-        return m_channel[channelId]->ReceiveMessage();
+        return m_channel[channelId]->ReceiveMsg();
     }
 
     ConnectionPacket * Connection::GeneratePacket()

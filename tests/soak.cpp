@@ -135,25 +135,25 @@ int SoakMain()
 
             for ( int i = 0; i < messagesToSend; ++i )
             {
-                if ( !client.CanSendMessage() )
+                if ( !client.CanSendMsg() )
                     break;
 
                 if ( rand() % 100 )
                 {
-                    GameMessage * message = (GameMessage*) client.CreateMessage( GAME_MESSAGE );
+                    GameMessage * message = (GameMessage*) client.CreateMsg( GAME_MESSAGE );
                     
                     if ( message )
                     {
                         message->sequence = (uint16_t) numMessagesSentToServer;
                         
-                        client.SendMessage( message );
+                        client.SendMsg( message );
 
                         numMessagesSentToServer++;
                     }
                 }
                 else
                 {
-                    GameBlockMessage * blockMessage = (GameBlockMessage*) client.CreateMessage( GAME_BLOCK_MESSAGE );
+                    GameBlockMessage * blockMessage = (GameBlockMessage*) client.CreateMsg( GAME_BLOCK_MESSAGE );
 
                     if ( blockMessage )
                     {
@@ -161,7 +161,7 @@ int SoakMain()
 
                         const int blockSize = 1 + ( int( numMessagesSentToServer ) * 33 ) % MaxBlockSize;
 
-                        Allocator & messageAllocator = client.GetMessageFactory().GetAllocator();
+                        Allocator & messageAllocator = client.GetMsgFactory().GetAllocator();
 
                         uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
 
@@ -172,7 +172,7 @@ int SoakMain()
 
                             blockMessage->AttachBlock( messageAllocator, blockData, blockSize );
 
-                            client.SendMessage( blockMessage );
+                            client.SendMsg( blockMessage );
 
                             numMessagesSentToServer++;
                         }
@@ -184,7 +184,7 @@ int SoakMain()
 
             while ( true )
             {
-                Message * message = server.ReceiveMessage( clientIndex );
+                Message * message = server.ReceiveMsg( clientIndex );
 
                 if ( !message )
                     break;
@@ -201,7 +201,7 @@ int SoakMain()
 
                         printf( "received message %d\n", gameMessage->sequence );
 
-                        server.ReleaseMessage( clientIndex, message );
+                        server.ReleaseMsg( clientIndex, message );
 
                         numMessagesReceivedFromClient++;
                     }
@@ -238,7 +238,7 @@ int SoakMain()
 
                         printf( "received block %d\n", uint16_t( numMessagesReceivedFromClient ) );
 
-                        server.ReleaseMessage( clientIndex, message );
+                        server.ReleaseMsg( clientIndex, message );
 
                         numMessagesReceivedFromClient++;
                     }

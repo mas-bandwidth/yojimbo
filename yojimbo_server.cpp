@@ -213,7 +213,7 @@ namespace yojimbo
         }
     }
 
-    Message * Server::CreateMessage( int clientIndex, int type )
+    Message * Server::CreateMsg( int clientIndex, int type )
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
@@ -221,7 +221,7 @@ namespace yojimbo
         return m_clientMessageFactory[clientIndex]->Create( type );
     }
 
-    bool Server::CanSendMessage( int clientIndex ) const
+    bool Server::CanSendMsg( int clientIndex ) const
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
@@ -235,10 +235,10 @@ namespace yojimbo
         assert( m_clientMessageFactory );
         assert( m_connection[clientIndex] );
 
-        return m_connection[clientIndex]->CanSendMessage();
+        return m_connection[clientIndex]->CanSendMsg();
     }
 
-    void Server::SendMessage( int clientIndex, Message * message )
+    void Server::SendMsg( int clientIndex, Message * message )
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
@@ -252,10 +252,10 @@ namespace yojimbo
 
         assert( m_connection[clientIndex] );
 
-        m_connection[clientIndex]->SendMessage( message );
+        m_connection[clientIndex]->SendMsg( message );
     }
 
-    Message * Server::ReceiveMessage( int clientIndex )
+    Message * Server::ReceiveMsg( int clientIndex )
     {
         assert( m_clientMessageFactory );
 
@@ -264,10 +264,10 @@ namespace yojimbo
 
         assert( m_connection[clientIndex] );
 
-        return m_connection[clientIndex]->ReceiveMessage();
+        return m_connection[clientIndex]->ReceiveMsg();
     }
 
-    void Server::ReleaseMessage( int clientIndex, Message * message )
+    void Server::ReleaseMsg( int clientIndex, Message * message )
     {
         assert( message );
         assert( clientIndex >= 0 );
@@ -276,7 +276,7 @@ namespace yojimbo
         m_clientMessageFactory[clientIndex]->Release( message );
     }
 
-    MessageFactory & Server::GetMessageFactory( int clientIndex )
+    MessageFactory & Server::GetMsgFactory( int clientIndex )
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
@@ -598,7 +598,7 @@ namespace yojimbo
             assert( clientIndex < m_maxClients );
             if ( clientIndex < 0 || clientIndex >= m_maxClients )
                 return NULL;
-            context->messageFactory = &GetMessageFactory( clientIndex );
+            context->messageFactory = &GetMsgFactory( clientIndex );
         }
         
         return context;

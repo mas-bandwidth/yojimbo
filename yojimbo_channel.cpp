@@ -463,17 +463,17 @@ namespace yojimbo
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
-    bool ReliableOrderedChannel::CanSendMessage() const
+    bool ReliableOrderedChannel::CanSendMsg() const
     {
         assert( m_messageSendQueue );
 
         return m_messageSendQueue->Available( m_sendMessageId );
     }
 
-    void ReliableOrderedChannel::SendMessage( Message * message )
+    void ReliableOrderedChannel::SendMsg( Message * message )
     {
         assert( message );
-        assert( CanSendMessage() );
+        assert( CanSendMsg() );
 
         if ( GetError() != CHANNEL_ERROR_NONE )
         {
@@ -481,7 +481,7 @@ namespace yojimbo
             return;
         }
 
-        if ( !CanSendMessage() )
+        if ( !CanSendMsg() )
         {
             SetError( CHANNEL_ERROR_SEND_QUEUE_FULL );
             m_messageFactory->Release( message );
@@ -525,7 +525,7 @@ namespace yojimbo
         m_sendMessageId++;
     }
 
-    Message * ReliableOrderedChannel::ReceiveMessage()
+    Message * ReliableOrderedChannel::ReceiveMsg()
     {
         if ( GetError() != CHANNEL_ERROR_NONE )
             return NULL;
@@ -1154,17 +1154,17 @@ namespace yojimbo
         memset( m_counters, 0, sizeof( m_counters ) );
     }
 
-    bool UnreliableUnorderedChannel::CanSendMessage() const
+    bool UnreliableUnorderedChannel::CanSendMsg() const
     {
         assert( m_messageSendQueue );
 
         return !m_messageSendQueue->IsFull();
     }
 
-    void UnreliableUnorderedChannel::SendMessage( Message * message )
+    void UnreliableUnorderedChannel::SendMsg( Message * message )
     {
         assert( message );
-        assert( CanSendMessage() );
+        assert( CanSendMsg() );
 
         if ( GetError() != CHANNEL_ERROR_NONE )
         {
@@ -1172,7 +1172,7 @@ namespace yojimbo
             return;
         }
 
-        if ( !CanSendMessage() )
+        if ( !CanSendMsg() )
         {
             SetError( CHANNEL_ERROR_SEND_QUEUE_FULL );
             m_messageFactory->Release( message );
@@ -1199,7 +1199,7 @@ namespace yojimbo
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
     }
 
-    Message * UnreliableUnorderedChannel::ReceiveMessage()
+    Message * UnreliableUnorderedChannel::ReceiveMsg()
     {
         if ( GetError() != CHANNEL_ERROR_NONE )
             return NULL;

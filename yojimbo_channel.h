@@ -115,11 +115,11 @@ namespace yojimbo
 
         virtual void Reset() = 0;
 
-        virtual bool CanSendMessage() const = 0;
+        virtual bool CanSendMsg() const = 0;
 
-        virtual void SendMessage( Message * message ) = 0;
+        virtual void SendMsg( Message * message ) = 0;
 
-        virtual Message * ReceiveMessage() = 0;
+        virtual Message * ReceiveMsg() = 0;
 
         virtual void AdvanceTime( double time ) = 0;
 
@@ -164,11 +164,11 @@ namespace yojimbo
 
         void Reset();
 
-        bool CanSendMessage() const;
+        bool CanSendMsg() const;
 
-        void SendMessage( Message * message );
+        void SendMsg( Message * message );
 
-        Message * ReceiveMessage();
+        Message * ReceiveMsg();
 
         void AdvanceTime( double time );
 
@@ -255,11 +255,11 @@ namespace yojimbo
 
         void Reset();
 
-        bool CanSendMessage() const;
+        bool CanSendMsg() const;
 
-        void SendMessage( Message * message );
+        void SendMsg( Message * message );
 
-        Message * ReceiveMessage();
+        Message * ReceiveMsg();
 
         void AdvanceTime( double time );
 

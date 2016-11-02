@@ -423,14 +423,14 @@ int MessagesMain()
 
             for ( int i = 0; i < messagesToSend; ++i )
             {
-                if ( !sender.CanSendMessage( channelId ) )
+                if ( !sender.CanSendMsg( channelId ) )
                     break;
 
                 Message * message = GenerateRandomMessage( messageFactory, numMessagesSent[channelId], channelId );
 
                 if ( message )
                 {
-                    sender.SendMessage( message, channelId );
+                    sender.SendMsg( message, channelId );
                     numMessagesSent[channelId]++;
                 }
             }
@@ -466,7 +466,7 @@ int MessagesMain()
         {
             while ( true )
             {
-                Message * message = receiver.ReceiveMessage( channelId );
+                Message * message = receiver.ReceiveMsg( channelId );
                 if ( !message )
                     break;
 

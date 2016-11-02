@@ -3885,7 +3885,7 @@ void test_connection_reliable_ordered_messages()
         TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
         check( message );
         message->sequence = i;
-        sender.SendMessage( message );
+        sender.SendMsg( message );
     }
 
     TestNetworkSimulator networkSimulator;
@@ -3964,7 +3964,7 @@ void test_connection_reliable_ordered_messages()
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage();
+            Message * message = receiver.ReceiveMsg();
 
             if ( !message )
                 break;
@@ -4029,7 +4029,7 @@ void test_connection_reliable_ordered_blocks()
         for ( int j = 0; j < blockSize; ++j )
             blockData[j] = i + j;
         message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
-        sender.SendMessage( message );
+        sender.SendMsg( message );
     }
 
     TestNetworkSimulator networkSimulator;
@@ -4108,7 +4108,7 @@ void test_connection_reliable_ordered_blocks()
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage();
+            Message * message = receiver.ReceiveMsg();
 
             if ( !message )
                 break;
@@ -4184,7 +4184,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
             TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
             check( message );
             message->sequence = i;
-            sender.SendMessage( message );
+            sender.SendMsg( message );
         }
         else
         {
@@ -4196,7 +4196,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
             message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
-            sender.SendMessage( message );
+            sender.SendMsg( message );
         }
     }
 
@@ -4276,7 +4276,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage();
+            Message * message = receiver.ReceiveMsg();
 
             if ( !message )
                 break;
@@ -4374,7 +4374,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                 TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
                 check( message );
                 message->sequence = i;
-                sender.SendMessage( message, channelId );
+                sender.SendMsg( message, channelId );
             }
             else
             {
@@ -4386,7 +4386,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                 for ( int j = 0; j < blockSize; ++j )
                     blockData[j] = i + j;
                 message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
-                sender.SendMessage( message, channelId );
+                sender.SendMsg( message, channelId );
             }
         }
     }
@@ -4470,7 +4470,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
         {
             while ( true )
             {
-                Message * message = receiver.ReceiveMessage( channelId );
+                Message * message = receiver.ReceiveMsg( channelId );
 
                 if ( !message )
                     break;
@@ -4605,7 +4605,7 @@ void test_connection_unreliable_unordered_messages()
             TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
             check( message );
             message->sequence = j;
-            sender.SendMessage( message );
+            sender.SendMsg( message );
         }
 
         Packet * senderPacket = sender.GeneratePacket();
@@ -4655,7 +4655,7 @@ void test_connection_unreliable_unordered_messages()
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage();
+            Message * message = receiver.ReceiveMsg();
 
             if ( !message )
                 break;
@@ -4748,7 +4748,7 @@ void test_connection_unreliable_unordered_blocks()
             for ( int k = 0; k < blockSize; ++k )
                 blockData[k] = j + k;
             message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
-            sender.SendMessage( message );
+            sender.SendMsg( message );
         }
 
         Packet * senderPacket = sender.GeneratePacket();
@@ -4798,7 +4798,7 @@ void test_connection_unreliable_unordered_blocks()
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage();
+            Message * message = receiver.ReceiveMsg();
 
             if ( !message )
                 break;
@@ -4951,23 +4951,23 @@ void test_connection_client_server()
     {
         if ( rand() % 10 )
         {
-            TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
+            TestMessage * message = (TestMessage*) client.CreateMsg( TEST_MESSAGE );
             check( message );
             message->sequence = i;
-            client.SendMessage( message );
+            client.SendMsg( message );
         }
         else
         {
-            TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
+            TestBlockMessage * message = (TestBlockMessage*) client.CreateMsg( TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            Allocator & messageAllocator = client.GetMessageFactory().GetAllocator();
+            Allocator & messageAllocator = client.GetMsgFactory().GetAllocator();
             uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
             message->AttachBlock( messageAllocator, blockData, blockSize );
-            client.SendMessage( message );
+            client.SendMsg( message );
         }
     }
 
@@ -4977,23 +4977,23 @@ void test_connection_client_server()
 
         if ( rand() % 2 )
         {
-            TestMessage * message = (TestMessage*) server.CreateMessage( clientIndex, TEST_MESSAGE );
+            TestMessage * message = (TestMessage*) server.CreateMsg( clientIndex, TEST_MESSAGE );
             check( message );
             message->sequence = i;
-            server.SendMessage( clientIndex, message );
+            server.SendMsg( clientIndex, message );
         }
         else
         {
-            TestBlockMessage * message = (TestBlockMessage*) server.CreateMessage( clientIndex, TEST_BLOCK_MESSAGE );
+            TestBlockMessage * message = (TestBlockMessage*) server.CreateMsg( clientIndex, TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            Allocator & messageAllocator = client.GetMessageFactory().GetAllocator();
+            Allocator & messageAllocator = client.GetMsgFactory().GetAllocator();
             uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
             message->AttachBlock( messageAllocator, blockData, blockSize );
-            server.SendMessage( client.GetClientIndex(), message );
+            server.SendMsg( client.GetClientIndex(), message );
         }
     }
 
@@ -5021,7 +5021,7 @@ void test_connection_client_server()
 
         while ( true )
         {
-            Message * message = client.ReceiveMessage();
+            Message * message = client.ReceiveMsg();
 
             if ( !message )
                 break;
@@ -5064,14 +5064,14 @@ void test_connection_client_server()
                 break;
             }
 
-            client.ReleaseMessage( message );
+            client.ReleaseMsg( message );
         }
 
         while ( true )
         {
             const int clientIndex = client.GetClientIndex();
 
-            Message * message = server.ReceiveMessage( clientIndex );
+            Message * message = server.ReceiveMsg( clientIndex );
 
             if ( !message )
                 break;
@@ -5114,7 +5114,7 @@ void test_connection_client_server()
                 break;
             }
 
-            server.ReleaseMessage( clientIndex, message );
+            server.ReleaseMsg( clientIndex, message );
         }
 
         if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )

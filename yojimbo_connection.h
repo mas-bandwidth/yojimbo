@@ -114,11 +114,11 @@ namespace yojimbo
 
         void Reset();
 
-        bool CanSendMessage( int channelId = 0 ) const;
+        bool CanSendMsg( int channelId = 0 ) const;
 
-        void SendMessage( Message * message, int channelId = 0 );
+        void SendMsg( Message * message, int channelId = 0 );
 
-        Message * ReceiveMessage( int channelId = 0 );
+        Message * ReceiveMsg( int channelId = 0 );
 
         ConnectionPacket * GeneratePacket();
 

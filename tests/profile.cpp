@@ -271,14 +271,14 @@ int ProfileMain()
 
             for ( int j = 0; j < messagesToSend; ++j )
             {
-                if ( !clientData[i].client->CanSendMessage() )
+                if ( !clientData[i].client->CanSendMsg() )
                     break;
 
-                Message * message = CreateRandomMessage( clientData[i].client->GetMessageFactory(), clientData[i].numMessagesSent );
+                Message * message = CreateRandomMessage( clientData[i].client->GetMsgFactory(), clientData[i].numMessagesSent );
 
                 if ( message )
                 {
-                    clientData[i].client->SendMessage( message );
+                    clientData[i].client->SendMsg( message );
 
                     clientData[i].numMessagesSent++;
                 }
@@ -291,14 +291,14 @@ int ProfileMain()
 
             for ( int j = 0; j < messagesToSend; ++j )
             {
-                if ( !serverData->server->CanSendMessage( i ) )
+                if ( !serverData->server->CanSendMsg( i ) )
                     break;
 
-                Message * message = CreateRandomMessage( serverData->server->GetMessageFactory( i ), serverData->numMessagesSent[i] );
+                Message * message = CreateRandomMessage( serverData->server->GetMsgFactory( i ), serverData->numMessagesSent[i] );
 
                 if ( message )
                 {
-                    serverData->server->SendMessage( i, message );
+                    serverData->server->SendMsg( i, message );
 
                     serverData->numMessagesSent[i]++;
                 }
@@ -309,7 +309,7 @@ int ProfileMain()
         {
             while ( true )
             {
-                Message * message = serverData->server->ReceiveMessage( i );
+                Message * message = serverData->server->ReceiveMsg( i );
 
                 if ( !message )
                     break;
@@ -318,7 +318,7 @@ int ProfileMain()
 
 //                printf( "server received message %d from client %d\n", message->GetId(), i );
 
-				serverData->server->ReleaseMessage( i, message );
+				serverData->server->ReleaseMsg( i, message );
             }
         }
 
@@ -326,7 +326,7 @@ int ProfileMain()
         {
             while ( true )
             {
-                Message * message = clientData[i].client->ReceiveMessage();
+                Message * message = clientData[i].client->ReceiveMsg();
                 
                 if ( !message )
                     break;
@@ -335,7 +335,7 @@ int ProfileMain()
 
 //                printf( "client received message %d from client %d\n", message->GetId(), i );
 
-				clientData[i].client->ReleaseMessage( message );
+				clientData[i].client->ReleaseMsg( message );
             }
         }
 

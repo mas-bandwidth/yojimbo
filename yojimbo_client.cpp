@@ -196,13 +196,13 @@ namespace yojimbo
         m_transport->ResetEncryptionMappings();
     }
 
-    Message * Client::CreateMessage( int type )
+    Message * Client::CreateMsg( int type )
     {
         assert( m_messageFactory );
         return m_messageFactory->Create( type );
     }
 
-    bool Client::CanSendMessage()
+    bool Client::CanSendMsg()
     {
         if ( !IsConnected() )
             return false;
@@ -210,18 +210,18 @@ namespace yojimbo
         assert( m_messageFactory );
         assert( m_connection );
         
-        return m_connection->CanSendMessage();
+        return m_connection->CanSendMsg();
     }
 
-    void Client::SendMessage( Message * message )
+    void Client::SendMsg( Message * message )
     {
         assert( IsConnected() );
         assert( m_messageFactory );
         assert( m_connection );
-        m_connection->SendMessage( message );
+        m_connection->SendMsg( message );
     }
 
-    Message * Client::ReceiveMessage()
+    Message * Client::ReceiveMsg()
     {
         assert( m_messageFactory );
 
@@ -230,17 +230,17 @@ namespace yojimbo
 
         assert( m_connection );
 
-        return m_connection->ReceiveMessage();
+        return m_connection->ReceiveMsg();
     }
 
-    void Client::ReleaseMessage( Message * message )
+    void Client::ReleaseMsg( Message * message )
     {
         assert( message );
         assert( m_messageFactory );
         m_messageFactory->Release( message );
     }
 
-    MessageFactory & Client::GetMessageFactory()
+    MessageFactory & Client::GetMsgFactory()
     {
         assert( m_messageFactory );
         return *m_messageFactory;
@@ -539,7 +539,7 @@ namespace yojimbo
 
         context->connectionConfig = &m_config.connectionConfig;
 
-        context->messageFactory = &GetMessageFactory();
+        context->messageFactory = &GetMsgFactory();
         
         return context;
     }
