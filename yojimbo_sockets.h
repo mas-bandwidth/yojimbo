@@ -90,7 +90,6 @@ namespace yojimbo
     public:
 
         SocketTransport( Allocator & allocator,
-                         PacketFactory & packetFactory, 
                          const Address & address,
                          uint32_t protocolId,
                          int maxPacketSize = 4 * 1024,

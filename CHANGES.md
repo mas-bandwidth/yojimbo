@@ -1,4 +1,13 @@
 
+
+Wednesday November 2nd, 2016
+============================
+
+Reworked the transport so it can be created optionally without a packet factory.
+
+Add a SetPacketFactory method to the transport
+
+
 Sunday October 30th, 2016
 =========================
 

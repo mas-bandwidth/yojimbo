@@ -70,6 +70,8 @@ namespace yojimbo
 
         virtual void Reset() = 0;
 
+        virtual void SetPacketFactory( PacketFactory & packetFactory ) = 0;
+
         virtual Packet * CreatePacket( int type ) = 0;
 
         virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
@@ -126,12 +128,13 @@ namespace yojimbo
     public:
 
         BaseTransport( Allocator & allocator,
-                       PacketFactory & packetFactory, 
                        const Address & address,
                        uint32_t protocolId,
                        int maxPacketSize = 4 * 1024,
                        int sendQueueSize = 1024,
                        int receiveQueueSize = 1024 );
+
+        void SetPacketFactory( PacketFactory & packetFactory );
 
         ~BaseTransport();
 

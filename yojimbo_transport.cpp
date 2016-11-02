@@ -30,7 +30,6 @@
 namespace yojimbo
 {
     BaseTransport::BaseTransport( Allocator & allocator, 
-                                  PacketFactory & packetFactory, 
                                   const Address & address,
                                   uint32_t protocolId,
                                   int maxPacketSize, 
@@ -58,10 +57,19 @@ namespace yojimbo
 
         m_protocolId = protocolId;
 
-        m_packetFactory = &packetFactory;
+        m_packetFactory = NULL;
         
         m_packetProcessor = YOJIMBO_NEW( allocator, PacketProcessor, allocator, m_protocolId, maxPacketSize );
         
+        memset( m_counters, 0, sizeof( m_counters ) );
+    }
+
+    void BaseTransport::SetPacketFactory( PacketFactory & packetFactory )
+    {
+        assert( m_packetFactory == NULL );
+
+        m_packetFactory = &packetFactory;
+
         const int numPacketTypes = m_packetFactory->GetNumPacketTypes();
 
         assert( numPacketTypes > 0 );
@@ -78,8 +86,6 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
         memset( m_packetTypeIsEncrypted, 0, m_packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
-
-        memset( m_counters, 0, sizeof( m_counters ) );
     }
 
     BaseTransport::~BaseTransport()
@@ -236,6 +242,8 @@ namespace yojimbo
 
     void BaseTransport::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
     {
+        assert( m_packetFactory );
+
         assert( packet );
         assert( packet->IsValid() );
         assert( address.IsValid() );
@@ -438,12 +446,14 @@ namespace yojimbo
 
     void BaseTransport::EnablePacketEncryption()
     {
+        assert( m_packetFactory );
         memset( m_packetTypeIsEncrypted, 1, m_packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsUnencrypted, 0, m_packetFactory->GetNumPacketTypes() );
     }
 
     void BaseTransport::DisableEncryptionForPacketType( int type )
     {
+        assert( m_packetFactory );
         assert( type >= 0 );
         assert( type < m_packetFactory->GetNumPacketTypes() );
         m_packetTypeIsEncrypted[type] = 0;
@@ -452,6 +462,7 @@ namespace yojimbo
 
     bool BaseTransport::IsEncryptedPacketType( int type ) const
     {
+        assert( m_packetFactory );
         assert( type >= 0 );
         assert( type < m_packetFactory->GetNumPacketTypes() );
         return m_packetTypeIsEncrypted[type] != 0;

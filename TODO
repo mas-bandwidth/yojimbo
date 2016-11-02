@@ -2,17 +2,41 @@ DONE
 
 TODO
 
-    Need to write a routine to convert a big-endian 64bit integer to little endian.
-
-    This is required because the timestamp binary is fed into the AEAD, and it needs to be passed into the decryption with a uniform endianness.
-    
     ------------------
 
-    IMPORTANT: When creating allocators, don't rely on the user overriding to configure the amount of memory available for each allocator. 
+    Create the packet factory for client and server internally via a virtual.
 
-    Put this in the config, this way the user can reasonably setup an allocator.
+    Set the transport packet factory to the client/server packet factory created internally.
 
-    Note, I think I might have already done this? See config.globalMemory, config.clientMemory?
+    Remove the code marked with "// todo" that should be removed once client/server packet factory has 
+
+    ------------------
+
+    Create global and per-client allocators on server, and one allocator on client.
+
+    Make sure these allocators are dynamically created according to config via virtual functions. 
+
+    Add an interface something like this to the server:
+
+        GetGlobalAllocator()
+
+        GetClientAllocator( int clientIndex )
+
+    And for the client, just:
+
+        GetAllocator()
+
+    ------------------
+
+    Now make sure all the packet factory, message factory and stream allocator go through the same allocator.
+
+    ------------------
+
+    Setup client/server with limited memory allocator per-client by default, eg. TLSF
+
+    ------------------
+
+    Make sure all tests pass with limited memory per-client.
 
     ------------------
 
@@ -29,34 +53,6 @@ TODO
     And for the client, just:
 
         GetClientAllocator()
-
-    ------------------
-
-    Rework the transport so it can be created optionally without a packet factory.
-
-    ^--- I must be missing something from the last time I worked on this. Why am I doing this?
-
-    ^--- I think this is because I want the transport to be able to use the packet factory belonging to the client/server?
-
-    ------------------
-
-    Add a SetPacketFactory method
-
-    Create the packet factory for client and server internally via a virtual.
-
-    Make sure it the transport has SetPacketFactory called on it.
-
-    ------------------
-
-    Make sure that all client/server test cases in test.cpp and elsewhere remove the packet factory from setup.
-
-    ------------------
-
-    Now make sure all the packet factory, message factory and stream allocator go through the same allocator: 
-
-    ------------------
-
-    Make sure all tests pass with limited memory per-client.
 
     ------------------
 

@@ -36,6 +36,7 @@ void interrupt_handler( int /*dummy*/ )
 
 int ServerMain()
 {
+    // todo: remove this once client and server create their own packet factory
     ClientServerPacketFactory packetFactory;
 
 #if SECURE_SERVER 
@@ -48,7 +49,9 @@ int ServerMain()
 
     Address serverPublicAddress( "127.0.0.1", ServerPort );
 
-    GameNetworkTransport serverTransport( packetFactory, serverBindAddress );
+    GameNetworkTransport serverTransport( serverBindAddress );
+
+    serverTransport.SetPacketFactory( packetFactory );
 
     if ( serverTransport.GetError() != SOCKET_ERROR_NONE )
     {

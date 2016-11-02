@@ -104,7 +104,6 @@ namespace yojimbo
 
         SimulatorTransport( Allocator & allocator,
                             NetworkSimulator & networkSimulator,
-                            PacketFactory & packetFactory, 
                             const Address & address,
                             uint32_t protocolId,
                             int maxPacketSize = 4 * 1024,

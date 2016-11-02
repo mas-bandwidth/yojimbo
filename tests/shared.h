@@ -467,8 +467,8 @@ class GameNetworkTransport : public SocketTransport
 {   
 public:
 
-    GameNetworkTransport( PacketFactory & packetFactory, const Address & address = Address( "0.0.0.0" ) ) 
-        : SocketTransport( GetDefaultAllocator(), packetFactory, address, ProtocolId )
+    GameNetworkTransport( const Address & address = Address( "0.0.0.0" ) ) 
+        : SocketTransport( GetDefaultAllocator(), address, ProtocolId )
     {
         // ...
     }

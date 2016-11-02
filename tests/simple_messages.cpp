@@ -40,8 +40,8 @@ class MemoryTransport : public BaseTransport
 {
 public:
 
-    MemoryTransport( Allocator & allocator, PacketFactory & packetFactory, const Address & address )
-        : BaseTransport( allocator, packetFactory, address, ProtocolId, MaxPacketSize, 32, 32 )
+    MemoryTransport( Allocator & allocator, const Address & address )
+        : BaseTransport( allocator, address, ProtocolId, MaxPacketSize, 32, 32 )
     {
         m_sentPacketSize = 0;
         m_sentPacketData = NULL;
@@ -363,8 +363,11 @@ int MessagesMain()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    MemoryTransport senderTransport( GetDefaultAllocator(), packetFactory, senderAddress );
-    MemoryTransport receiverTransport( GetDefaultAllocator(), packetFactory, receiverAddress );
+    MemoryTransport senderTransport( GetDefaultAllocator(), senderAddress );
+    MemoryTransport receiverTransport( GetDefaultAllocator(), receiverAddress );
+
+    senderTransport.SetPacketFactory( packetFactory );
+    receiverTransport.SetPacketFactory( packetFactory );
 
     senderTransport.EnablePacketEncryption();
     receiverTransport.EnablePacketEncryption();

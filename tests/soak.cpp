@@ -65,6 +65,7 @@ int SoakMain()
         return 1;
     }
 
+    // todo: remove this once client and server create their own packet factory
     ClientServerPacketFactory packetFactory;
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
@@ -77,8 +78,11 @@ int SoakMain()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    SimulatorTransport clientTransport( GetDefaultAllocator(), networkSimulator, packetFactory, clientAddress, ProtocolId );
-    SimulatorTransport serverTransport( GetDefaultAllocator(), networkSimulator, packetFactory, serverAddress, ProtocolId );
+    SimulatorTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId );
+    SimulatorTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId );
+
+    clientTransport.SetPacketFactory( packetFactory );
+    serverTransport.SetPacketFactory( packetFactory );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.connectionConfig.maxPacketSize = 1100;

@@ -316,7 +316,6 @@ namespace yojimbo
     }
 
     SocketTransport::SocketTransport( Allocator & allocator, 
-                                      PacketFactory & packetFactory, 
                                       const Address & address,
                                       uint32_t protocolId,
                                       int maxPacketSize, 
@@ -324,7 +323,6 @@ namespace yojimbo
                                       int receiveQueueSize,
                                       int bufferSize )
         : BaseTransport( allocator, 
-                         packetFactory, 
                          address,
                          protocolId,
                          maxPacketSize,

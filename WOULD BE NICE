@@ -114,3 +114,7 @@ WOULD BE NICE
     eg. pm coverity
 
     ------------------
+
+    You should be able to put a network simulator in front of a real BSD socket transport, so bad network conditions can be simulated on top of a real socket.
+
+    ------------------

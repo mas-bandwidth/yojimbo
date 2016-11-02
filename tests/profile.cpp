@@ -164,6 +164,7 @@ int ProfileMain()
 {
     srand( (unsigned int) time( NULL ) );
 
+    // todo: remove this once client and server create their own packet factory
     ClientServerPacketFactory packetFactory;
 
     ServerData * serverData = new ServerData();
@@ -195,10 +196,17 @@ int ProfileMain()
         }
     }
 
-    serverData->transport = new SocketTransport( GetDefaultAllocator(), packetFactory, serverData->address, ProtocolId );
+    serverData->transport = new SocketTransport( GetDefaultAllocator(), serverData->address, ProtocolId );
+
+    // todo: remove this once client and server create their own packet factory
+    serverData->transport->SetPacketFactory( packetFactory );
 
     for ( int i = 0; i < MaxClients; ++i )
-        clientData[i].transport = new SocketTransport( GetDefaultAllocator(), packetFactory, clientData[i].address, ProtocolId );
+    {
+        clientData[i].transport = new SocketTransport( GetDefaultAllocator(), clientData[i].address, ProtocolId );
+        // todo: remove this once client and server create their own packet factory
+        clientData[i].transport->SetPacketFactory( packetFactory );
+    }
 
     serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, ClientServerConfig() );
 
