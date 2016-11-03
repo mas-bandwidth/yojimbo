@@ -62,6 +62,8 @@ namespace yojimbo
     {
         m_context = NULL;
         m_allocator = NULL;
+        m_clientMemory = NULL;
+        m_clientAllocator = NULL;
         m_transport = NULL;
         m_packetFactory = NULL;
         m_messageFactory = NULL;
@@ -75,10 +77,37 @@ namespace yojimbo
         m_clientSalt = 0;
         m_sequence = 0;
         m_connectTokenExpireTimestamp = 0;
+        m_shouldDisconnect = false;
         memset( m_connectTokenData, 0, sizeof( m_connectTokenData ) );
         memset( m_connectTokenNonce, 0, sizeof( m_connectTokenNonce ) );
         memset( m_challengeTokenData, 0, sizeof( m_challengeTokenData ) );
         memset( m_challengeTokenNonce, 0, sizeof( m_challengeTokenNonce ) );
+    }
+
+    void Client::CreateAllocator()
+    {
+        assert( m_allocator );
+
+        assert( m_clientMemory == NULL );
+
+        m_clientMemory = (uint8_t*) m_allocator->Allocate( m_config.clientMemory );
+
+        m_clientAllocator = YOJIMBO_NEW( *m_allocator, TLSF_Allocator, m_clientMemory, m_config.clientMemory );
+    }
+
+    void Client::DestroyAllocator()
+    {
+        assert( m_allocator );
+
+        assert( m_clientMemory != NULL );
+
+        YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );
+
+        if ( m_clientMemory )
+        {
+            m_allocator->Free( m_clientMemory );
+            m_clientMemory = NULL;
+        }
     }
 
     Client::Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config )
@@ -96,17 +125,6 @@ namespace yojimbo
         // IMPORTANT: Please disconnect the client before destroying it
         assert( !IsConnected() );
 
-        assert( m_allocator );
-
-        YOJIMBO_DELETE( *m_allocator, Connection, m_connection );
-
-        YOJIMBO_DELETE( *m_allocator, PacketFactory, m_packetFactory );
-
-        YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
-
-        YOJIMBO_DELETE( *m_allocator, ClientServerContext, m_context );
-
-        m_messageFactory = NULL;
         m_transport = NULL;
         m_allocator = NULL;
     }
@@ -172,11 +190,10 @@ namespace yojimbo
     {
         assert( clientState <= CLIENT_STATE_DISCONNECTED );
 
-        if ( m_clientState <= CLIENT_STATE_DISCONNECTED )
+        if ( m_clientState <= CLIENT_STATE_DISCONNECTED || m_clientState == clientState )
             return;
 
-        if ( m_clientState != clientState )
-            OnDisconnect();
+        OnDisconnect();
 
         if ( sendDisconnectPacket && m_clientState > CLIENT_STATE_DISCONNECTED )
         {
@@ -194,6 +211,8 @@ namespace yojimbo
         ResetConnectionData( clientState );
 
         m_transport->ResetEncryptionMappings();
+
+        ShutdownConnection();
     }
 
     Message * Client::CreateMsg( int type )
@@ -379,6 +398,12 @@ namespace yojimbo
     {
         const double time = GetTime();
 
+        if ( m_shouldDisconnect )
+        {
+            Disconnect( CLIENT_STATE_DISCONNECTED, false );
+            return;
+        }
+
         switch ( m_clientState )
         {
 #if YOJIMBO_INSECURE_CONNECT
@@ -436,10 +461,10 @@ namespace yojimbo
 
         m_time = time;
 
-        if ( m_allocator->GetError() )
+        if ( m_clientAllocator && m_clientAllocator->GetError() )
         {
             Disconnect( CLIENT_STATE_ALLOCATOR_ERROR, true );
-            m_allocator->ClearError();
+            m_clientAllocator->ClearError();
             return;
         }
 
@@ -450,11 +475,10 @@ namespace yojimbo
             return;
         }
 
-        PacketFactory * packetFactory = m_transport->GetPacketFactory();
-        if ( packetFactory && packetFactory->GetError() )
+        if ( m_packetFactory && m_packetFactory->GetError() )
         {
             Disconnect( CLIENT_STATE_PACKET_FACTORY_ERROR, true );
-            packetFactory->ClearError();
+            m_packetFactory->ClearError();
             return;
         }
 
@@ -480,38 +504,47 @@ namespace yojimbo
         return m_clientIndex;
     }
 
-    Allocator & Client::GetAllocator()
+    Allocator & Client::GetClientAllocator()
     {
-        assert( m_allocator );
-        return *m_allocator;
+        assert( m_clientAllocator );
+        return *m_clientAllocator;
     }
 
     void Client::InitializeConnection()
     {
-        assert( m_allocator );
+        CreateAllocator();
 
-        m_transport->SetStreamAllocator( *m_allocator );
+        assert( m_clientAllocator );
 
-        if ( !m_packetFactory )
-        {
-            m_packetFactory = CreatePacketFactory( *m_allocator );
+        m_transport->SetStreamAllocator( *m_clientAllocator );
 
-            assert( m_packetFactory );
+        assert( !m_packetFactory );
 
-            m_transport->SetPacketFactory( *m_packetFactory );
-        }
+        m_packetFactory = CreatePacketFactory( *m_clientAllocator );
+
+        assert( m_packetFactory );
+
+        m_transport->SetPacketFactory( *m_packetFactory );
 
         if ( m_config.enableConnection )
         {
-            if ( m_allocateConnection && !m_connection )
+            if ( m_allocateConnection )
             {
-                m_messageFactory = CreateMessageFactory( *m_allocator );
+                assert( !m_connection );
+                assert( !m_messageFactory );
+
+                m_messageFactory = CreateMessageFactory( *m_clientAllocator );
+                
                 assert( m_messageFactory );
-                m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_config.connectionConfig );
+                
+                m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_config.connectionConfig );
+                
+                assert( m_connection );
+
                 m_connection->SetListener( this );
             }
 
-            m_context = CreateContext( *m_allocator );
+            m_context = CreateContext( *m_clientAllocator );
 
             assert( m_context );
             
@@ -523,9 +556,25 @@ namespace yojimbo
         }
     }
 
+    void Client::ShutdownConnection()
+    {
+        m_transport->ClearPacketFactory();
+
+        YOJIMBO_DELETE( *m_clientAllocator, Connection, m_connection );
+
+        YOJIMBO_DELETE( *m_clientAllocator, PacketFactory, m_packetFactory );
+
+        YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
+
+        YOJIMBO_DELETE( *m_clientAllocator, ClientServerContext, m_context );
+
+        DestroyAllocator();
+    }
+
     void Client::SetEncryptedPacketTypes()
     {
         m_transport->EnablePacketEncryption();
+
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
@@ -581,6 +630,7 @@ namespace yojimbo
 #if YOJIMBO_INSECURE_CONNECT
         m_clientSalt = 0;
 #endif // #if YOJIMBO_INSECURE_CONNECT
+        m_shouldDisconnect = false;
         if ( m_connection )
         {
             m_connection->Reset();
@@ -700,7 +750,7 @@ namespace yojimbo
         if ( address != m_serverAddress )
             return;
 
-        Disconnect( CLIENT_STATE_DISCONNECTED, false );
+        m_shouldDisconnect = true;
     }
 
     void Client::ProcessConnectionPacket( ConnectionPacket & packet, const Address & address )

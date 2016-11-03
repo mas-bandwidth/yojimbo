@@ -118,3 +118,15 @@ WOULD BE NICE
     You should be able to put a network simulator in front of a real BSD socket transport, so bad network conditions can be simulated on top of a real socket.
 
     ------------------
+
+    Add a test to verify that server start/stop/start with a different number of clients works correctly.
+
+    I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
+
+    ------------------
+
+    Probably best to also fix the server so it doesn't immediately disconnect the client in the middle of processing packets either.
+
+    eg. Set a "shouldDisconnect" flag per-client, which is handled in the next "CheckForTimeouts"
+
+    ------------------

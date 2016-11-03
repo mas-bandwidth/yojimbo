@@ -155,7 +155,7 @@ int SoakMain()
 
                         const int blockSize = 1 + ( int( numMessagesSentToServer ) * 33 ) % MaxBlockSize;
 
-                        Allocator & messageAllocator = client.GetMsgFactory().GetAllocator();
+                        Allocator & messageAllocator = client.GetClientAllocator();
 
                         uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
 

@@ -53,7 +53,7 @@ namespace yojimbo
 
         m_allocator = &allocator;
                 
-        m_streamAllocator = &GetDefaultAllocator();
+        m_streamAllocator = &allocator;
 
         m_protocolId = protocolId;
 
@@ -88,7 +88,7 @@ namespace yojimbo
         memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
     }
 
-    BaseTransport::~BaseTransport()
+    void BaseTransport::ClearPacketFactory()
     {
         ClearSendQueue();
         ClearReceiveQueue();
@@ -99,14 +99,22 @@ namespace yojimbo
         m_allocator->Free( m_packetTypeIsEncrypted );
         m_allocator->Free( m_packetTypeIsUnencrypted );
 
-        YOJIMBO_DELETE( GetAllocator(), PacketProcessor, m_packetProcessor );
-
         m_packetFactory = NULL;
 #if YOJIMBO_INSECURE_CONNECT
         m_allPacketTypes = NULL;
 #endif // #if YOJIMBO_INSECURE_CONNECT
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
+
+        m_packetFactory = NULL;
+    }
+
+    BaseTransport::~BaseTransport()
+    {
+        ClearPacketFactory();
+
+        YOJIMBO_DELETE( GetAllocator(), PacketProcessor, m_packetProcessor );
+
         m_allocator = NULL;
     }
 
@@ -198,6 +206,9 @@ namespace yojimbo
 
     Packet * BaseTransport::ReceivePacket( Address & from, uint64_t * sequence )
     {
+        if ( !m_packetFactory )
+            return NULL;
+
         assert( m_allocator );
         assert( m_packetFactory );
 
@@ -222,6 +233,9 @@ namespace yojimbo
 
     void BaseTransport::WritePackets()
     {
+        if ( !m_packetFactory )
+            return;
+
         assert( m_allocator );
         assert( m_packetFactory );
         assert( m_packetProcessor );
@@ -320,6 +334,9 @@ namespace yojimbo
 
     void BaseTransport::ReadPackets()
     {
+        if ( !m_packetFactory )
+            return;
+
         assert( m_allocator );
         assert( m_packetFactory );
         assert( m_packetProcessor );

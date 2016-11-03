@@ -1,4 +1,56 @@
 
+Thursday November 3rd, 2016
+===========================
+
+Fixed a bug in server where it was not cleaning up the client allocators on each call to stop.
+
+Client should create its own limited allocator with a configured amount of memory for everything underneath it.
+
+Otherwise, the default allocator passed in will be unlimited for tests and will not exercise the limited memory of TLSF.
+
+Done. Hooking up client allocations to use this allocator.
+
+After a bunch of debugging, it's not a good idea to clean up allocators and tidy up in the middle of disconnect.
+
+The reason being is that disconnect can get called in the middle of packet processing.
+
+I could fix this by setting a flag "should disconnect", and next update processing it inside "CheckForTimeouts".
+
+Let's try it...
+
+OK. This works great.
+
+There is an intermittent crash on the server shutdown in "test_connection_client_server".
+
+I'm not sure why it's happening, but I think it's because I'm now destroying the per-client allocators in stop.
+
+Repro is only 1 in 5.
+
+What's going on?
+
+    frame #0: 0x000000010002483c test`yojimbo::BlockMessage::~BlockMessage(this=0x0000000100637488) + 60 at yojimbo_message.h:98
+    frame #1: 0x00000001000247a5 test`yojimbo::BlockMessage::~BlockMessage(this=0x0000000100637488) + 21 at yojimbo_message.h:95
+    frame #2: 0x00000001000246a5 test`TestBlockMessage::~TestBlockMessage(this=0x0000000100637488) + 21 at test.cpp:1141
+    frame #3: 0x00000001000152b8 test`yojimbo::MessageFactory::Release(this=0x00000001006019d0, message=0x0000000100637488) + 840 at yojimbo_message.h:244
+    frame #4: 0x000000010002c4f5 test`yojimbo::ReliableOrderedChannel::Reset(this=0x0000000100602778) + 165 at yojimbo_channel.cpp:433
+    frame #5: 0x000000010003a48e test`yojimbo::Connection::Reset(this=0x0000000100601a08) + 78 at yojimbo_connection.cpp:203
+    frame #6: 0x000000010003a542 test`yojimbo::Connection::~Connection(this=0x0000000100601a08) + 34 at yojimbo_connection.cpp:189
+    frame #7: 0x000000010003a765 test`yojimbo::Connection::~Connection(this=0x0000000100601a08) + 21 at yojimbo_connection.cpp:188
+    frame #8: 0x00000001000403b0 test`yojimbo::Server::Stop(this=0x00007fff5face708) + 224 at yojimbo_server.cpp:179
+    frame #9: 0x000000010001b624 test`test_connection_client_server() + 5796 at test.cpp:5030
+    frame #10: 0x000000010001bc4b test`main + 123 at test.cpp:5151
+    frame #11: 0x00007fffe3060255 libdyld.dylib`start + 1
+
+I think there is an allocator mixup with the block message, such that the allocator is nuked somehow by the time the message is cleaned up.
+
+But this is weird, because I haven't deleted the allocators yet for the client...
+
+OK. I see what's going on, I was accidentally creating the block for a server message with the client message factory allocator, so the client got cleaned up first and with my latest change, nukes that allocator on disconnect, so that exposed this bug.
+
+The actual bug is not in my client/server code, it's in the test itself.
+
+Fixed.
+
 
 Wednesday November 2nd, 2016
 ============================

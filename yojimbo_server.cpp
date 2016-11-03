@@ -70,7 +70,7 @@ namespace yojimbo
 
     Server::~Server()
     {
-		// IMPORTANT: Please call stop on the server before you destroy it. 
+		// IMPORTANT: You must stop the server before you destroy it
 		assert( !IsRunning() );
 
         assert( m_transport );
@@ -172,13 +172,13 @@ namespace yojimbo
         {
             Allocator & clientAllocator = GetAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
 
-            YOJIMBO_DELETE( clientAllocator, ClientServerContext, m_clientContext[clientIndex] );
-
             YOJIMBO_DELETE( clientAllocator, Connection, m_connection[clientIndex] );
+
+            YOJIMBO_DELETE( clientAllocator, MessageFactory, m_clientMessageFactory[clientIndex] );
 
             YOJIMBO_DELETE( clientAllocator, PacketFactory, m_clientPacketFactory[clientIndex] );
 
-            YOJIMBO_DELETE( clientAllocator, MessageFactory, m_clientMessageFactory[clientIndex] );
+            YOJIMBO_DELETE( clientAllocator, ClientServerContext, m_clientContext[clientIndex] );
         }
 
         Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL, -1 );
@@ -594,6 +594,13 @@ namespace yojimbo
     {
         assert( m_globalMemory != NULL );
 
+        for ( int i = 0; i < m_maxClients; ++i )
+        {
+            YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
+            m_allocator->Free( m_clientMemory[i] );
+            m_clientMemory[i] = NULL;
+        }
+
         YOJIMBO_DELETE( *m_allocator, Allocator, m_globalAllocator );
 
         if ( m_globalMemory )
@@ -622,10 +629,21 @@ namespace yojimbo
 
     void Server::InitializeGlobalContext()
     {
-        m_globalContext = CreateContext( *m_allocator, SERVER_RESOURCE_GLOBAL, -1 );
-        assert( m_globalContext );
-        assert( m_globalContext->magic == ConnectionContextMagic );
-        m_transport->SetContext( m_globalContext );
+        // todo: should probably be created inside global allocator and created/destroyed with start/stop?
+
+        if ( m_allocateConnections )       
+        {
+            m_globalContext = CreateContext( *m_allocator, SERVER_RESOURCE_GLOBAL, -1 );
+    
+            assert( m_globalContext );
+            assert( m_globalContext->magic == ConnectionContextMagic );
+    
+            m_transport->SetContext( m_globalContext );
+        }
+        else
+        {
+            m_transport->SetContext( NULL );
+        }
     }
 
     void Server::SetEncryptedPacketTypes()
@@ -1030,22 +1048,6 @@ namespace yojimbo
             return;
         }
 
-        if ( m_numConnectedClients == m_maxClients )
-        {
-            debug_printf( "challenge response denied: server is full\n" );
-            OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL, packet, address, challengeToken );
-            m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL]++;
-
-            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
-
-            if ( connectionDeniedPacket )
-            {
-                SendPacket( address, connectionDeniedPacket );
-            }
-
-            return;
-        }
-
         if ( FindAddress( address ) >= 0 )
         {
             debug_printf( "ignored challenge response: address already connected\n" );
@@ -1059,6 +1061,22 @@ namespace yojimbo
             debug_printf( "ignored challenge response: client id already connected\n" );
             OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED, packet, address, challengeToken );
             m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED]++;
+            return;
+        }
+
+        if ( m_numConnectedClients == m_maxClients )
+        {
+            debug_printf( "challenge response denied: server is full\n" );
+            OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL, packet, address, challengeToken );
+            m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL]++;
+
+            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+
+            if ( connectionDeniedPacket )
+            {
+                SendPacket( address, connectionDeniedPacket );
+            }
+
             return;
         }
 

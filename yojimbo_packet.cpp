@@ -254,6 +254,7 @@ cleanup:
 #if YOJIMBO_DEBUG_PACKET_LEAKS
         if ( allocated_packets.size() )
         {
+            assert( false );
             printf( "you leaked packets!\n" );
             printf( "%d packets leaked\n", m_numAllocatedPackets );
             typedef std::map<void*,int>::iterator itor_type;

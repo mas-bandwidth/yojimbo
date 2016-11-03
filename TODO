@@ -4,13 +4,9 @@ TODO
 
     ------------------
 
-    It would be nice to setup the client the same way, with a configurable block of memory that all allocations are made from?
+    Probably time to make a new preview release now.
 
-    It's not currently possible to switch out a different allocator for the server.
-
-    ------------------
-
-    Probably time to make a new release now.
+    But before this need to retest completely on windows, because I've made significant changes.
 
     ------------------
 
@@ -23,14 +19,6 @@ TODO
     Idea: don't allow fragmentation from client -> server, because it is a security risk?
 
     Alternatively, only allow fragmented packets if they are encrypted in secure mode. Unencrypted ones will not be accepted.   
-
-    ------------------
-
-    Ideal, don't allow fragmentation from client -> server, at least by default, because it is a security risk.
-
-    If it is allowed, provide the user of the library with a way to configure whether it is or isn't supported.
-
-    Perhaps it is OK to allow, but only on encrypted packet types, don't allow it on connection request packets.
 
     ------------------
 

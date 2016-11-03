@@ -116,7 +116,7 @@ namespace yojimbo
 
         int GetClientIndex() const;
 
-        Allocator & GetAllocator();
+        Allocator & GetClientAllocator();
 
     protected:
 
@@ -143,6 +143,8 @@ namespace yojimbo
     protected:
 
         virtual void InitializeConnection();
+
+        virtual void ShutdownConnection();
 
         virtual void SetEncryptedPacketTypes();
 
@@ -184,9 +186,17 @@ namespace yojimbo
 
         void Defaults();
 
+        virtual void CreateAllocator();
+
+        virtual void DestroyAllocator();
+
         ClientServerConfig m_config;                                        // client/server configuration.
 
-        Allocator * m_allocator;                                            // the allocator used for all client data.
+        Allocator * m_allocator;                                            // the allocator passed in to the client on creation.
+
+        uint8_t * m_clientMemory;                                           // memory backing the client allocator.
+
+        Allocator * m_clientAllocator;                                      // client allocator. everything after connect is allocated via this allocated.
 
         PacketFactory * m_packetFactory;                                    // packet factory for creating and destroying messages. created via CreatePacketFactory.
 
@@ -211,6 +221,8 @@ namespace yojimbo
         double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
 
         Transport * m_transport;                                            // transport for sending and receiving packets
+
+        bool m_shouldDisconnect;                                            // set to true when we receive a disconnect packet from the server
 
         double m_time;                                                      // current client time (see "AdvanceTime")
 

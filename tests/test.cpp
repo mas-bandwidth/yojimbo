@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-//#define SOAK 1
+#define SOAK 0
 
 #if SOAK
 #include <signal.h>
@@ -4852,11 +4852,11 @@ void test_connection_client_server()
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            Allocator & messageAllocator = client.GetMsgFactory().GetAllocator();
-            uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
+            Allocator & allocator = client.GetClientAllocator();
+            uint8_t * blockData = (uint8_t*) allocator.Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->AttachBlock( messageAllocator, blockData, blockSize );
+            message->AttachBlock( allocator, blockData, blockSize );
             client.SendMsg( message );
         }
     }
@@ -4878,11 +4878,11 @@ void test_connection_client_server()
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            Allocator & messageAllocator = client.GetMsgFactory().GetAllocator();
-            uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
+            Allocator & allocator = server.GetClientAllocator( clientIndex );
+            uint8_t * blockData = (uint8_t*) allocator.Allocate( blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->AttachBlock( messageAllocator, blockData, blockSize );
+            message->AttachBlock( allocator, blockData, blockSize );
             server.SendMsg( client.GetClientIndex(), message );
         }
     }

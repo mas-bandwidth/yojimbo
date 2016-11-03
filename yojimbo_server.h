@@ -239,6 +239,10 @@ namespace yojimbo
 
         const ConnectionConfig & GetConnectionConfig() const { return m_config.connectionConfig; }
 
+        Allocator & GetGlobalAllocator() { assert( m_globalAllocator ); return *m_globalAllocator; }
+
+        Allocator & GetClientAllocator( int clientIndex ) { assert( clientIndex >= 0 ); assert( clientIndex < m_maxClients ); assert( m_clientAllocator[clientIndex] ); return *m_clientAllocator[clientIndex]; }
+
     protected:
 
         virtual void OnStart( int /*maxClients*/ ) {}
@@ -271,9 +275,9 @@ namespace yojimbo
 
     protected:
 
-        void CreateAllocators();
+        virtual void CreateAllocators();
 
-        void DestroyAllocators(); 
+        virtual void DestroyAllocators(); 
 
         Allocator & GetAllocator( ServerResourceType type, int clientIndex );
 
