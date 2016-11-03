@@ -92,14 +92,14 @@ namespace yojimbo
 
     // =============================================
 
-    TLSFAllocator::TLSFAllocator( void * memory, size_t size ) 
+    TLSF_Allocator::TLSF_Allocator( void * memory, size_t size ) 
     {
         m_error = ALLOCATOR_ERROR_NONE;
 
         m_tlsf = tlsf_create_with_pool( memory, size );
     }
 
-    TLSFAllocator::~TLSFAllocator()
+    TLSF_Allocator::~TLSF_Allocator()
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         if ( m_alloc_map.size() )
@@ -118,7 +118,7 @@ namespace yojimbo
         tlsf_destroy( m_tlsf );
     }
 
-    void * TLSFAllocator::Allocate( size_t size )
+    void * TLSF_Allocator::Allocate( size_t size )
     {
         void * p = tlsf_malloc( m_tlsf, size );
 
@@ -135,7 +135,7 @@ namespace yojimbo
         return p;
     }
 
-    void TLSFAllocator::Free( void * p ) 
+    void TLSF_Allocator::Free( void * p ) 
     {
         if ( !p )
             return;
@@ -148,12 +148,12 @@ namespace yojimbo
         tlsf_free( m_tlsf, p );
     }
 
-    int TLSFAllocator::GetError() const
+    int TLSF_Allocator::GetError() const
     {
         return m_error;
     }
 
-    void TLSFAllocator::ClearError()
+    void TLSF_Allocator::ClearError()
     {
         m_error = ALLOCATOR_ERROR_NONE;
     }

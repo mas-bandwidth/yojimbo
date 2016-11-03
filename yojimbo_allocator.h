@@ -93,7 +93,7 @@ namespace yojimbo
         void ClearError();
     };
 
-    class TLSFAllocator : public Allocator
+    class TLSF_Allocator : public Allocator
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         std::map<void*,uint32_t> m_alloc_map;
@@ -104,9 +104,9 @@ namespace yojimbo
 
     public:
 
-        TLSFAllocator( void * memory, size_t bytes );
+        TLSF_Allocator( void * memory, size_t bytes );
 
-        ~TLSFAllocator();
+        ~TLSF_Allocator();
 
         void * Allocate( size_t size );
 

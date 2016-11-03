@@ -4,30 +4,6 @@ TODO
 
     ------------------
 
-    Create global and per-client allocators on server.
-
-    Make sure these allocators are dynamically created according to config via virtual functions. 
-
-    Add an interface something like this to the server:
-
-        GetAllocator( ServerResourceType, int clientIndex )
-
-    This way the functions that create resources (and delete them) can trivially get the correct allocator.
-
-    ------------------
-
-    Now make sure all the packet factory, message factory and stream allocator go through the same allocator.
-
-    ------------------
-
-    Setup client/server with limited memory per-client by default, eg. TLSF allocator for the per-client and global allocators.
-
-    ------------------
-
-    Make sure all tests pass with limited memory per-client.
-
-    ------------------
-
     Packet fragmentation and reassembly.
 
     Definitely needed for large snapshot blocks.

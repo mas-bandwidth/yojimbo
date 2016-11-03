@@ -378,6 +378,7 @@ public:
 
     MessageFactory * CreateMessageFactory()
     {
+        // todo: pass the allocator in
         return YOJIMBO_NEW( GetDefaultAllocator(), GameMessageFactory, GetDefaultAllocator() );
     }
 

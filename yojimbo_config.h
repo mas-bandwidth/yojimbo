@@ -33,6 +33,8 @@
 #define YOJIMBO_MINOR_VERSION 3
 #define YOJIMBO_PATCH_VERSION 0
 
+#define YOJIMBO_DEBUG_MEMORY_LEAKS 1
+
 #if YOJIMBO_DEBUG_PACKET_LEAKS
 #include <stdio.h>
 #include <map>
@@ -177,9 +179,11 @@ namespace yojimbo
 
     struct ClientServerConfig
     {
-        int globalMemory;                                                   // memory allocated for connection request handling on the server only (bytes)
-        int clientMemory;                                                   // per-client memory allocated once on the client and per-client slot on the server (bytes)
+        int serverGlobalMemory;                                             // memory allocated for connection request handling on the server only (bytes)
+        int serverPerClientMemory;                                          // per-client memory allocated once on the client and per-client slot on the server (bytes)
+
         int numDisconnectPackets;                                           // number of disconnect packets to spam on clean disconnect. avoids timeout.
+        
         float connectionRequestSendRate;                                    // seconds between connection request packets sent.
         float connectionResponseSendRate;                                   // seconds between connection response packets sent.
         float connectionConfirmSendRate;                                    // seconds between heartbeat packets sent from server -> client prior to connection confirmation.
@@ -199,8 +203,8 @@ namespace yojimbo
 
         ClientServerConfig()
         {
-            globalMemory = 2 * 1024 * 1024;
-            clientMemory = 2 * 1024 * 1024;
+            serverGlobalMemory = 2 * 1024 * 1024;
+            serverPerClientMemory = 2 * 1024 * 1024;
             numDisconnectPackets = 10;
             connectionRequestSendRate = 0.1f;
             connectionResponseSendRate = 0.1f;

@@ -271,11 +271,15 @@ namespace yojimbo
 
     protected:
 
+        void CreateAllocators();
+
+        void DestroyAllocators(); 
+
+        Allocator & GetAllocator( ServerResourceType type, int clientIndex );
+
         virtual void InitializeGlobalContext();
 
         virtual void SetEncryptedPacketTypes();
-
-        Allocator & GetAllocator( ServerResourceType type, int clientIndex );
 
         virtual Allocator * CreateStreamAllocator( Allocator & allocator, ServerResourceType type, int clientIndex );
 
@@ -335,6 +339,15 @@ namespace yojimbo
 
         Allocator * m_allocator;                                            // allocator used for creating connections per-client.
 
+        uint8_t * m_globalMemory;                                           // memory backing the global allocator.
+
+        uint8_t * m_clientMemory[MaxClients];                               // memory backing the client allocators.
+
+        Allocator * m_globalAllocator;                                      // global allocator 
+
+        Allocator * m_clientAllocator[MaxClients];                          // per-client allocator
+
+        // todo: why even support a global stream allocator? risky.
         Allocator * m_globalStreamAllocator;                                // stream allocator for global packets. eg. packets not corresponding to an active client slot.
 
         Allocator * m_clientStreamAllocator[MaxClients];                    // stream allocator for per-client packets. this allocator is used once a connection is established.
@@ -350,7 +363,6 @@ namespace yojimbo
         PacketFactory * m_clientPacketFactory[MaxClients];                  // packet factory for creating and destroying packets. per-client. required.
 
         MessageFactory * m_clientMessageFactory[MaxClients];                // message factory for creating and destroying messages. per-client and optional.
-
 
         uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
 

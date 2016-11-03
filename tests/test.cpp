@@ -1337,6 +1337,7 @@ public:
 
     MessageFactory * CreateMessageFactory()
     {
+        // todo: should create inside a fixed client allocator instead. pass it in!
         return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
     }
 
@@ -1378,6 +1379,7 @@ public:
 
     PacketFactory * CreatePacketFactory()
     {
+        // todo: should pass in allocator
         return YOJIMBO_NEW( GetAllocator(), GamePacketFactory, *m_allocator );
     }
 
@@ -5040,7 +5042,7 @@ void test_allocator_tlsf()
 
     uint8_t * memory = (uint8_t*) malloc( MemorySize );
 
-    TLSFAllocator allocator( memory, MemorySize );
+    TLSF_Allocator allocator( memory, MemorySize );
 
     uint8_t * blockData[NumBlocks];
     memset( blockData, 0, sizeof( blockData ) );
@@ -5114,6 +5116,7 @@ int main()
         test_encrypt_and_decrypt();
         test_encryption_manager();
         test_unencrypted_packets();
+        test_allocator_tlsf();
         test_client_server_tokens();
         test_client_server_connect();
         test_client_server_reconnect();
@@ -5146,7 +5149,6 @@ int main()
         test_connection_unreliable_unordered_messages();
         test_connection_unreliable_unordered_blocks();
         test_connection_client_server();
-        test_allocator_tlsf();
 
 #if SOAK
         if ( quit )

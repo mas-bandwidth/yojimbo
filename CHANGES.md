@@ -19,6 +19,34 @@ Set the transport packet factory to the client/server packet factory created int
 
 Remove the code marked with "// todo" that should be removed once server packet factory is used.
 
+Create global and per-client allocators on server.
+
+Make sure these allocators are dynamically created according to config via virtual functions. 
+
+Add an interface something like this to the server:
+
+    GetAllocator( ServerResourceType, int clientIndex )
+
+This way the functions that create resources (and delete them) can trivially get the correct allocator.
+
+I have the global allocator hooked up, but objects are not being freed with the correct allocator.
+
+Need to find all cases where the global allocator is used, and make sure those objects are freed with the global allocator as well.
+
+It was the global allocator and the global packet factory. Moved those into lifecycle of start/stop, and hooked them up to the global allocator. All tests pass now.
+
+Added code to create per-client memory and allocators.
+
+Hook up client objects to use per-client allocators.
+
+Setup client/server with limited memory per-client by default, eg. TLSF allocator for the per-client and global allocators.
+
+Make sure all tests pass with limited memory per-client.
+
+Some breakage with the per-client allocators. TSLF complaining about a double free? Can't see how that would happen though.
+
+Oh yeah, just the wrong allocator passed into the connection new. Fixed.
+
 
 Sunday October 30th, 2016
 =========================
