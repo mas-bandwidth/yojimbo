@@ -4,6 +4,16 @@ TODO
 
     ------------------
 
+    It would be nice to setup the client the same way, with a configurable block of memory that all allocations are made from?
+
+    It's not currently possible to switch out a different allocator for the server.
+
+    ------------------
+
+    Probably time to make a new release now.
+
+    ------------------
+
     Packet fragmentation and reassembly.
 
     Definitely needed for large snapshot blocks.

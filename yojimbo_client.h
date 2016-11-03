@@ -44,7 +44,7 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
         CLIENT_STATE_PACKET_FACTORY_ERROR = -8,
         CLIENT_STATE_MESSAGE_FACTORY_ERROR = -7,
-        CLIENT_STATE_STREAM_ALLOCATOR_ERROR = -6,
+        CLIENT_STATE_ALLOCATOR_ERROR = -6,
         CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT = -5,
         CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT = -4,
         CLIENT_STATE_CONNECTION_TIMEOUT = -3,
@@ -146,13 +146,11 @@ namespace yojimbo
 
         virtual void SetEncryptedPacketTypes();
 
-        virtual Allocator * CreateStreamAllocator();
+        virtual PacketFactory * CreatePacketFactory( Allocator & allocator );
 
-        virtual PacketFactory * CreatePacketFactory();
+        virtual MessageFactory * CreateMessageFactory( Allocator & allocator );
 
-        virtual MessageFactory * CreateMessageFactory();
-
-        virtual ClientServerContext * CreateContext();
+        virtual ClientServerContext * CreateContext( Allocator & allocator );
 
         void SetClientState( int clientState );
 
@@ -188,9 +186,7 @@ namespace yojimbo
 
         ClientServerConfig m_config;                                        // client/server configuration.
 
-        Allocator * m_allocator;                                            // the allocator used to create and destroy the client connection object.
-
-        Allocator * m_streamAllocator;                                      // stream allocator passed in to the packet serialize for in-place allocations.
+        Allocator * m_allocator;                                            // the allocator used for all client data.
 
         PacketFactory * m_packetFactory;                                    // packet factory for creating and destroying messages. created via CreatePacketFactory.
 

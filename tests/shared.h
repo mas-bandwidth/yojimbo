@@ -376,10 +376,9 @@ public:
         // ...
     }
 
-    MessageFactory * CreateMessageFactory()
+    MessageFactory * CreateMessageFactory( Allocator & allocator )
     {
-        // todo: pass the allocator in
-        return YOJIMBO_NEW( GetDefaultAllocator(), GameMessageFactory, GetDefaultAllocator() );
+        return YOJIMBO_NEW( allocator, GameMessageFactory, allocator );
     }
 
 #ifndef QUIET

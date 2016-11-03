@@ -1335,10 +1335,9 @@ public:
         SendPacketToServer( packet );
     }
 
-    MessageFactory * CreateMessageFactory()
+    MessageFactory * CreateMessageFactory( Allocator & allocator )
     {
-        // todo: should create inside a fixed client allocator instead. pass it in!
-        return YOJIMBO_NEW( GetDefaultAllocator(), TestMessageFactory, GetDefaultAllocator() );
+        return YOJIMBO_NEW( allocator, TestMessageFactory, allocator );
     }
 
     void OnConnect( const Address & address )
@@ -1377,10 +1376,9 @@ public:
         }
     }
 
-    PacketFactory * CreatePacketFactory()
+    PacketFactory * CreatePacketFactory( Allocator & allocator )
     {
-        // todo: should pass in allocator
-        return YOJIMBO_NEW( GetAllocator(), GamePacketFactory, *m_allocator );
+        return YOJIMBO_NEW( allocator, GamePacketFactory, allocator );
     }
 
     void OnPacketSent( int packetType, const Address & to, bool immediate )

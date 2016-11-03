@@ -46,8 +46,8 @@ namespace yojimbo
     enum ServerClientError
     {
         SERVER_CLIENT_ERROR_TIMEOUT,                                // the client timed out on the server
+        SERVER_CLIENT_ERROR_ALLOCATOR,                              // the allocator is in error state for this client
         SERVER_CLIENT_ERROR_CONNECTION,                             // the connection is in error state for this client
-        SERVER_CLIENT_ERROR_STREAM_ALLOCATOR,                       // the stream allocator is in error state for this client
         SERVER_CLIENT_ERROR_MESSAGE_FACTORY,                        // the message factory is in error state for this client
         SERVER_CLIENT_ERROR_PACKET_FACTORY,                         // the packet factory is in error state for this client
     };
@@ -122,12 +122,12 @@ namespace yojimbo
         SERVER_COUNTER_CLIENT_DISCONNECTS,
         SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS,
         SERVER_COUNTER_CLIENT_TIMEOUTS,
+        SERVER_COUNTER_CLIENT_ALLOCATOR_ERRORS,
         SERVER_COUNTER_CLIENT_CONNECTION_ERRORS,
-        SERVER_COUNTER_CLIENT_STREAM_ALLOCATOR_ERRORS,
         SERVER_COUNTER_CLIENT_MESSAGE_FACTORY_ERRORS,
         SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS,
         SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS,
-        SERVER_COUNTER_GLOBAL_STREAM_ALLOCATOR_ERRORS,
+        SERVER_COUNTER_GLOBAL_ALLOCATOR_ERRORS,
         
         SERVER_COUNTER_NUM_COUNTERS
     };
@@ -281,8 +281,6 @@ namespace yojimbo
 
         virtual void SetEncryptedPacketTypes();
 
-        virtual Allocator * CreateStreamAllocator( Allocator & allocator, ServerResourceType type, int clientIndex );
-
         virtual PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType type, int clientIndex );
 
         virtual MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType type, int clientIndex );
@@ -346,11 +344,6 @@ namespace yojimbo
         Allocator * m_globalAllocator;                                      // global allocator 
 
         Allocator * m_clientAllocator[MaxClients];                          // per-client allocator
-
-        // todo: why even support a global stream allocator? risky.
-        Allocator * m_globalStreamAllocator;                                // stream allocator for global packets. eg. packets not corresponding to an active client slot.
-
-        Allocator * m_clientStreamAllocator[MaxClients];                    // stream allocator for per-client packets. this allocator is used once a connection is established.
 
         Transport * m_transport;                                            // transport interface for sending and receiving packets.
 

@@ -177,27 +177,27 @@ namespace yojimbo
 
     struct ClientServerConfig
     {
-        int serverGlobalMemory;                                             // memory allocated for connection request handling on the server only (bytes)
-        int serverPerClientMemory;                                          // per-client memory allocated once on the client and per-client slot on the server (bytes)
+        int serverGlobalMemory;                                 // memory allocated for connection request handling on the server only (bytes)
+        int serverPerClientMemory;                              // per-client memory allocated once on the client and per-client slot on the server (bytes)
 
-        int numDisconnectPackets;                                           // number of disconnect packets to spam on clean disconnect. avoids timeout.
+        int numDisconnectPackets;                               // number of disconnect packets to spam on clean disconnect. avoids timeout.
         
-        float connectionRequestSendRate;                                    // seconds between connection request packets sent.
-        float connectionResponseSendRate;                                   // seconds between connection response packets sent.
-        float connectionConfirmSendRate;                                    // seconds between heartbeat packets sent from server -> client prior to connection confirmation.
-        float connectionHeartBeatRate;                                      // seconds between heartbeat packets sent after connection has been confirmed. sent only if other packets are not sent.
-        float connectionRequestTimeOut;                                     // seconds before client connection requests gives up and times out.
-        float challengeResponseTimeOut;                                     // seconds before challenge response times out.
-        float connectionTimeOut;                                            // seconds before connection times out after connection has been established.
+        float connectionRequestSendRate;                        // seconds between connection request packets sent.
+        float connectionResponseSendRate;                       // seconds between connection response packets sent.
+        float connectionConfirmSendRate;                        // seconds between heartbeat packets sent from server -> client prior to connection confirmation.
+        float connectionHeartBeatRate;                          // seconds between heartbeat packets sent after connection has been confirmed. sent only if other packets are not sent.
+        float connectionRequestTimeOut;                         // seconds before client connection requests gives up and times out.
+        float challengeResponseTimeOut;                         // seconds before challenge response times out.
+        float connectionTimeOut;                                // seconds before connection times out after connection has been established.
 
 #if YOJIMBO_INSECURE_CONNECT
-        float insecureConnectSendRate;                                      // seconds between insecure connect packets sent.
-        float insecureConnectTimeOut;                                       // time in seconds after with an insecure connection request times out.
+        float insecureConnectSendRate;                          // seconds between insecure connect packets sent.
+        float insecureConnectTimeOut;                           // time in seconds after with an insecure connection request times out.
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-        bool enableConnection;                                              // enable per-client connection and messages.
+        bool enableConnection;                                  // enable per-client connection and messages.
 
-        ConnectionConfig connectionConfig;                                  // connection configuration.
+        ConnectionConfig connectionConfig;                      // connection configuration.
 
         ClientServerConfig()
         {
@@ -219,7 +219,7 @@ namespace yojimbo
         }        
     };
 
-   struct ConnectionContext
+    struct ConnectionContext
     {
         uint32_t magic;
         class MessageFactory * messageFactory;

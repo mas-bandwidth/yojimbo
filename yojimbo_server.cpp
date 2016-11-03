@@ -35,7 +35,6 @@ namespace yojimbo
         m_allocator = NULL;
         m_globalMemory = NULL;
         m_globalAllocator = NULL;
-        m_globalStreamAllocator = NULL;
         m_transport = NULL;
         m_allocateConnections = false;
         m_time = 0.0;
@@ -50,7 +49,6 @@ namespace yojimbo
         memset( m_clientMemory, 0, sizeof( m_clientMemory ) );
         memset( m_clientAllocator, 0, sizeof( m_clientAllocator ) );
         memset( m_clientContext, 0, sizeof( m_clientContext ) );
-        memset( m_clientStreamAllocator, 0, sizeof( m_clientStreamAllocator ) );
         memset( m_clientMessageFactory, 0, sizeof( m_clientMessageFactory ) );
         memset( m_clientPacketFactory, 0, sizeof( m_clientPacketFactory ) );
         memset( m_connection, 0, sizeof( m_connection ) );
@@ -103,6 +101,8 @@ namespace yojimbo
 
         Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL, -1 );
 
+        m_transport->SetStreamAllocator( globalAllocator );
+
         if ( !m_globalPacketFactory )
         {
             m_globalPacketFactory = CreatePacketFactory( globalAllocator, SERVER_RESOURCE_GLOBAL, -1 );
@@ -110,15 +110,6 @@ namespace yojimbo
             assert( m_globalPacketFactory );
 
             m_transport->SetPacketFactory( *m_globalPacketFactory );
-        }
-
-        if ( !m_globalStreamAllocator )
-        {
-            m_globalStreamAllocator = CreateStreamAllocator( globalAllocator, SERVER_RESOURCE_GLOBAL, -1 );
-
-            assert( m_globalStreamAllocator );
-
-            m_transport->SetStreamAllocator( *m_globalStreamAllocator );
         }
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
@@ -134,8 +125,6 @@ namespace yojimbo
 #endif // #if _DEBUG
             assert( m_clientPacketFactory[clientIndex] );
             assert( m_clientPacketFactory[clientIndex]->GetNumPacketTypes() == packetFactory->GetNumPacketTypes() );
-
-            m_clientStreamAllocator[clientIndex] = CreateStreamAllocator( clientAllocator, SERVER_RESOURCE_PER_CLIENT, clientIndex );
         }
 
         if ( m_allocateConnections )
@@ -190,15 +179,11 @@ namespace yojimbo
             YOJIMBO_DELETE( clientAllocator, PacketFactory, m_clientPacketFactory[clientIndex] );
 
             YOJIMBO_DELETE( clientAllocator, MessageFactory, m_clientMessageFactory[clientIndex] );
-
-            YOJIMBO_DELETE( clientAllocator, Allocator, m_clientStreamAllocator[clientIndex] );
         }
 
         Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL, -1 );
 
         YOJIMBO_DELETE( globalAllocator, PacketFactory, m_globalPacketFactory );
-
-        YOJIMBO_DELETE( globalAllocator, Allocator, m_globalStreamAllocator );
 
         DestroyAllocators();
 
@@ -433,13 +418,13 @@ namespace yojimbo
 
         m_time = time;
 
-        // check for global stream allocator error, increase counter and clear error. nothing we can do but take note.
+        // check for global allocator error, increase counter and clear error. nothing we can do but take note.
 
-        if ( m_globalStreamAllocator->GetError() )
+        if ( m_globalAllocator->GetError() )
         {
-            m_counters[SERVER_COUNTER_GLOBAL_STREAM_ALLOCATOR_ERRORS]++;
+            m_counters[SERVER_COUNTER_GLOBAL_ALLOCATOR_ERRORS]++;
 
-            m_globalStreamAllocator->ClearError();
+            m_globalAllocator->ClearError();
         }
 
         // check for global packet factory error, increase counter and clear error. nothing we can do but take note.
@@ -457,13 +442,13 @@ namespace yojimbo
         {
             if ( IsClientConnected( clientIndex ) )
             {
-                // check for stream allocator error
+                // check for allocator error
 
-                if ( m_clientStreamAllocator[clientIndex]->GetError() )
+                if ( m_clientAllocator[clientIndex]->GetError() )
                 {
-                    OnClientError( clientIndex, SERVER_CLIENT_ERROR_STREAM_ALLOCATOR );
+                    OnClientError( clientIndex, SERVER_CLIENT_ERROR_ALLOCATOR );
 
-                    m_counters[SERVER_COUNTER_CLIENT_STREAM_ALLOCATOR_ERRORS]++;
+                    m_counters[SERVER_COUNTER_CLIENT_ALLOCATOR_ERRORS]++;
 
                     DisconnectClient( clientIndex, true );
                 }
@@ -649,11 +634,6 @@ namespace yojimbo
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
-    Allocator * Server::CreateStreamAllocator( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
-    {
-        return YOJIMBO_NEW( allocator, DefaultAllocator );      // todo: should be TLSF allocator by default, need config for stream allocator size
-    }
-
     PacketFactory * Server::CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
     {
         return YOJIMBO_NEW( allocator, ClientServerPacketFactory, allocator );
@@ -817,9 +797,9 @@ namespace yojimbo
         m_clientData[clientIndex].fullyConnected = false;
 
         assert( m_clientPacketFactory[clientIndex] );
-        assert( m_clientStreamAllocator[clientIndex] );
+        assert( m_clientAllocator[clientIndex] );
 
-        m_transport->AddContextMapping( clientAddress, *m_clientStreamAllocator[clientIndex], *m_clientPacketFactory[clientIndex], m_clientContext[clientIndex] );
+        m_transport->AddContextMapping( clientAddress, *m_clientAllocator[clientIndex], *m_clientPacketFactory[clientIndex], m_clientContext[clientIndex] );
 
         OnClientConnect( clientIndex );
 

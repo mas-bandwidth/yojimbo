@@ -47,6 +47,10 @@ Some breakage with the per-client allocators. TSLF complaining about a double fr
 
 Oh yeah, just the wrong allocator passed into the connection new. Fixed.
 
+Decided to remove separate stream allocators. the global and per-client allocators are the stream allocators now.
+
+Passed the allocator into the "CreateX" functions in client for consistency w. server.
+
 
 Sunday October 30th, 2016
 =========================

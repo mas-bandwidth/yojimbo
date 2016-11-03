@@ -39,7 +39,7 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
             case CLIENT_STATE_PACKET_FACTORY_ERROR:             return "packet factory error";
             case CLIENT_STATE_MESSAGE_FACTORY_ERROR:            return "message factory error";
-            case CLIENT_STATE_STREAM_ALLOCATOR_ERROR:           return "stream allocator error";
+            case CLIENT_STATE_ALLOCATOR_ERROR:                  return "allocator error";
             case CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT:       return "connection request timeout";
             case CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT:       return "challenge response timeout";
             case CLIENT_STATE_CONNECTION_TIMEOUT:               return "connection timeout";
@@ -62,7 +62,6 @@ namespace yojimbo
     {
         m_context = NULL;
         m_allocator = NULL;
-        m_streamAllocator = NULL;
         m_transport = NULL;
         m_packetFactory = NULL;
         m_messageFactory = NULL;
@@ -104,8 +103,6 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, PacketFactory, m_packetFactory );
 
         YOJIMBO_DELETE( *m_allocator, MessageFactory, m_messageFactory );
-
-        YOJIMBO_DELETE( *m_allocator, Allocator, m_streamAllocator );
 
         YOJIMBO_DELETE( *m_allocator, ClientServerContext, m_context );
 
@@ -439,10 +436,10 @@ namespace yojimbo
 
         m_time = time;
 
-        if ( m_streamAllocator && m_streamAllocator->GetError() )
+        if ( m_allocator->GetError() )
         {
-            Disconnect( CLIENT_STATE_STREAM_ALLOCATOR_ERROR, true );
-            m_streamAllocator->ClearError();
+            Disconnect( CLIENT_STATE_ALLOCATOR_ERROR, true );
+            m_allocator->ClearError();
             return;
         }
 
@@ -491,35 +488,30 @@ namespace yojimbo
 
     void Client::InitializeConnection()
     {
+        assert( m_allocator );
+
+        m_transport->SetStreamAllocator( *m_allocator );
+
         if ( !m_packetFactory )
         {
-            m_packetFactory = CreatePacketFactory();
+            m_packetFactory = CreatePacketFactory( *m_allocator );
 
             assert( m_packetFactory );
 
             m_transport->SetPacketFactory( *m_packetFactory );
         }
 
-        if ( !m_streamAllocator )
-        {
-            m_streamAllocator = CreateStreamAllocator();
-
-            assert( m_streamAllocator );
-
-            m_transport->SetStreamAllocator( *m_streamAllocator );
-        }
-
         if ( m_config.enableConnection )
         {
             if ( m_allocateConnection && !m_connection )
             {
-                m_messageFactory = CreateMessageFactory();
+                m_messageFactory = CreateMessageFactory( *m_allocator );
                 assert( m_messageFactory );
                 m_connection = YOJIMBO_NEW( *m_allocator, Connection, *m_allocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_config.connectionConfig );
                 m_connection->SetListener( this );
             }
 
-            m_context = CreateContext();
+            m_context = CreateContext( *m_allocator );
 
             assert( m_context );
             
@@ -537,25 +529,20 @@ namespace yojimbo
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
-    Allocator * Client::CreateStreamAllocator()
+    PacketFactory * Client::CreatePacketFactory( Allocator & allocator )
     {
-        return YOJIMBO_NEW( *m_allocator, DefaultAllocator );
+        return YOJIMBO_NEW( allocator, ClientServerPacketFactory, allocator );
     }
 
-    PacketFactory * Client::CreatePacketFactory()
-    {
-        return YOJIMBO_NEW( *m_allocator, ClientServerPacketFactory, *m_allocator );
-    }
-
-    MessageFactory * Client::CreateMessageFactory()
+    MessageFactory * Client::CreateMessageFactory( Allocator & /*allocator*/ )
     {
         assert( !"you need to override Client::CreateMessageFactory if you want to use messages" );
         return NULL;
     }
 
-    ClientServerContext * Client::CreateContext()
+    ClientServerContext * Client::CreateContext( Allocator & allocator )
     {
-        ClientServerContext * context = YOJIMBO_NEW( *m_allocator, ClientServerContext );
+        ClientServerContext * context = YOJIMBO_NEW( allocator, ClientServerContext );
         
         assert( context );
         assert( context->magic == ConnectionContextMagic );
