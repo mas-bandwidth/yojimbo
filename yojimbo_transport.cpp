@@ -62,7 +62,17 @@ namespace yojimbo
         m_packetProcessor = YOJIMBO_NEW( allocator, PacketProcessor, allocator, m_protocolId, maxPacketSize );
         
         memset( m_counters, 0, sizeof( m_counters ) );
-    }
+
+#if YOJIMBO_INSECURE_CONNECT
+        m_allPacketTypes = NULL;
+#endif // #if YOJIMBO_INSECURE_CONNECT
+        m_packetTypeIsEncrypted = NULL;
+        m_packetTypeIsUnencrypted = NULL;
+
+		m_contextManager = YOJIMBO_NEW( allocator, ContextManager );
+
+		m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
+	}
 
     void BaseTransport::SetPacketFactory( PacketFactory & packetFactory )
     {
@@ -90,6 +100,9 @@ namespace yojimbo
 
     void BaseTransport::ClearPacketFactory()
     {
+		if ( !m_packetFactory )
+			return;
+
         ClearSendQueue();
         ClearReceiveQueue();
 
@@ -113,7 +126,9 @@ namespace yojimbo
     {
         ClearPacketFactory();
 
-        YOJIMBO_DELETE( GetAllocator(), PacketProcessor, m_packetProcessor );
+        YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
+		YOJIMBO_DELETE( *m_allocator, ContextManager, m_contextManager );
+		YOJIMBO_DELETE( *m_allocator, EncryptionManager, m_encryptionManager );
 
         m_allocator = NULL;
     }
@@ -267,7 +282,7 @@ namespace yojimbo
         assert( packetType >= 0 );
         assert( packetType < m_packetFactory->GetNumPacketTypes() );
 
-        const uint8_t * key = m_encryptionManager.GetSendKey( address, GetTime() );
+        const uint8_t * key = m_encryptionManager->GetSendKey( address, GetTime() );
 
 #if YOJIMBO_INSECURE_CONNECT
         const bool encrypt = ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packetType ) && key : IsEncryptedPacketType( packetType );
@@ -277,7 +292,7 @@ namespace yojimbo
 
         int packetBytes;
 
-        const Context * context = m_contextManager.GetContext( address );
+        const Context * context = m_contextManager->GetContext( address );
 
         Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
         PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
@@ -374,11 +389,11 @@ namespace yojimbo
             }
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-            const uint8_t * key = m_encryptionManager.GetReceiveKey( address, GetTime() );
+            const uint8_t * key = m_encryptionManager->GetReceiveKey( address, GetTime() );
            
             uint64_t sequence = 0;
 
-            const Context * context = m_contextManager.GetContext( address );
+            const Context * context = m_contextManager->GetContext( address );
 
             Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
             PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
@@ -487,32 +502,32 @@ namespace yojimbo
 
     bool BaseTransport::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey )
     {
-        return m_encryptionManager.AddEncryptionMapping( address, sendKey, receiveKey, GetTime() );
+        return m_encryptionManager->AddEncryptionMapping( address, sendKey, receiveKey, GetTime() );
     }
 
     bool BaseTransport::RemoveEncryptionMapping( const Address & address )
     {
-        return m_encryptionManager.RemoveEncryptionMapping( address, GetTime() );
+        return m_encryptionManager->RemoveEncryptionMapping( address, GetTime() );
     }
 
     void BaseTransport::ResetEncryptionMappings()
     {
-        m_encryptionManager.ResetEncryptionMappings();
+        m_encryptionManager->ResetEncryptionMappings();
     }
 
     bool BaseTransport::AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData )
     {
-        return m_contextManager.AddContextMapping( address, streamAllocator, packetFactory, contextData );
+        return m_contextManager->AddContextMapping( address, streamAllocator, packetFactory, contextData );
     }
 
     bool BaseTransport::RemoveContextMapping( const Address & address )
     {
-        return m_contextManager.RemoveContextMapping( address );
+        return m_contextManager->RemoveContextMapping( address );
     }
 
     void BaseTransport::ResetContextMappings()
     {
-        m_contextManager.ResetContextMappings();
+        m_contextManager->ResetContextMappings();
     }
 
     void BaseTransport::AdvanceTime( double time )
