@@ -4,12 +4,6 @@ TODO
 
     ------------------
 
-    Probably time to make a new preview release now.
-
-    Test on windows.
-
-    ------------------
-
     Packet fragmentation and reassembly.
 
     Definitely needed for large snapshot blocks.

@@ -51,6 +51,8 @@ The actual bug is not in my client/server code, it's in the test itself.
 
 Fixed.
 
+Tested on windows. Hitting a nasty stack trash in tests because of the larger maximum size for context and encryption mapping.
+
 
 Wednesday November 2nd, 2016
 ============================
