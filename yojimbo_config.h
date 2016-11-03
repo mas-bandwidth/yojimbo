@@ -33,8 +33,6 @@
 #define YOJIMBO_MINOR_VERSION 3
 #define YOJIMBO_PATCH_VERSION 0
 
-#define YOJIMBO_DEBUG_MEMORY_LEAKS 1
-
 #if YOJIMBO_DEBUG_PACKET_LEAKS
 #include <stdio.h>
 #include <map>
