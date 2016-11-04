@@ -1,4 +1,12 @@
 
+Friday November 4th, 2016
+=========================
+
+Added a unit test to verify that a client cannot connect with same address as an already connected client.
+
+Added a unit test to verify that a client cannot connect with the same client id as an already connected client.
+
+
 Thursday November 3rd, 2016
 ===========================
 

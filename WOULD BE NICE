@@ -2,33 +2,23 @@ WOULD BE NICE
 
     ------------------
 
-    Does a similar attack existing with challenge responses?
+    Add a test to verify that server start/stop/start with a different number of clients works correctly.
 
-    Yes. You could compose any encrypted packet type, and store a valid encrypted packet, and replay that as an attack, and potentially spam millions of the same packets over and over in an attempt to flood the server.
-
-    But it would only work for that one particular connected client, and for packets spoofed fram that address.
-
-    So the attack possible would be to connect a client, and then send lots of replays of the same packet sequence #
-
-    In this case, it might be possible to detect lots of spammed packets coming in (duplicates of packets)...
-
-    Also, it might be possible to put the sequence # as part of the additional data in AEAD, so it can't be modified without breaking the packet.
-
-    Then, implement some code to quickly filter out any sequence numbers older than current sequence minus some amount, like 1024.
-
-    Then implement a sequence buffer with uint64_t sequence numbers, and if a packet has already been received (according to 64 bit sequence number), or if it is older than the current sequence # minus 1024, discard it (without decryptiong it...)
-
-    I can do this because the nonce (the sequence) is implicitly secure. Change the value, and the data won't decrypt.
-
-    This will fix this attack. Nice!
+    I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
 
     ------------------
 
-    Should have a unit test to verify a client cannot connect with same address, and that this does not disturb the existing connected client
+    Probably best to also fix the server so it doesn't immediately disconnect the client in the middle of processing packets either.
+
+    eg. Set a "shouldDisconnect" flag per-client, which is handled in the next "CheckForTimeouts"
 
     ------------------
 
-    Should have a unit test to verify that a client cannot connect with the same client id (but a different connect token)
+    Implement "replay" protection. 
+
+    This means, create a sliding window of last 1024 packets per-encryption mapping. 
+
+    =================================================================
 
     ------------------
 
@@ -69,6 +59,10 @@ WOULD BE NICE
 
     ------------------
 
+    Add tests to make sure the server disconnects a client 
+
+    ------------------
+
     Add tests to make sure the client can recover and reconnect after one of the error states below. eg. error is properly cleared.
 
         CLIENT_STATE_PACKET_FACTORY_ERROR
@@ -77,15 +71,7 @@ WOULD BE NICE
 
     ------------------
 
-    Add a unit test that actually exercises the stream allocator.
-
-    ------------------
-
     Add a unit test that intentionally exhausts the stream allocator.
-
-    ------------------
-
-    ^---- To solve this, provide a callback on connection request deny, challenge response denied, so the user can print out a callback, then print that out in shared.h but only if not in logging mode (unit tests).
 
     ------------------
     
@@ -116,17 +102,5 @@ WOULD BE NICE
     ------------------
 
     You should be able to put a network simulator in front of a real BSD socket transport, so bad network conditions can be simulated on top of a real socket.
-
-    ------------------
-
-    Add a test to verify that server start/stop/start with a different number of clients works correctly.
-
-    I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
-
-    ------------------
-
-    Probably best to also fix the server so it doesn't immediately disconnect the client in the middle of processing packets either.
-
-    eg. Set a "shouldDisconnect" flag per-client, which is handled in the next "CheckForTimeouts"
 
     ------------------

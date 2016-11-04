@@ -101,8 +101,8 @@ namespace yojimbo
     const int AuthBytes = 16;
     const int MacBytes = 16;
 
-    const int MaxContextMappings = MaxClients * 64;
-    const int MaxEncryptionMappings = MaxClients * 64;
+    const int MaxContextMappings = MaxClients;
+    const int MaxEncryptionMappings = MaxClients * 16;
     const double DefaultEncryptionMappingTimeout = 10;
 
     const int MaxChannels = 64;

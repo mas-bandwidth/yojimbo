@@ -2852,23 +2852,18 @@ void test_client_server_connect_token_reuse()
 
     while ( true )
     {
-        client.SendPackets();
         client2.SendPackets();
         server.SendPackets();
 
-        clientTransport.WritePackets();
         clientTransport2.WritePackets();
         serverTransport.WritePackets();
 
-        clientTransport.ReadPackets();
         clientTransport2.ReadPackets();
         serverTransport.ReadPackets();
 
-        client.ReceivePackets();
         client2.ReceivePackets();
         server.ReceivePackets();
 
-        client.CheckForTimeOut();
         client2.CheckForTimeOut();
         server.CheckForTimeOut();
 
@@ -2877,11 +2872,9 @@ void test_client_server_connect_token_reuse()
         if ( client2.ConnectionFailed() )
             break;
 
-        client.AdvanceTime( time );
         client2.AdvanceTime( time );
         server.AdvanceTime( time );
 
-        clientTransport.AdvanceTime( time );
         clientTransport2.AdvanceTime( time );
         serverTransport.AdvanceTime( time );
     }
@@ -2889,7 +2882,6 @@ void test_client_server_connect_token_reuse()
     check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
     check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED ) > 0 );
 
-    client.Disconnect();
     client2.Disconnect();
 
     server.Stop();
@@ -3161,6 +3153,308 @@ void test_client_server_connect_token_invalid()
     check( client.ConnectionFailed() );
     check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN ) > 0 );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
+
+    server.Stop();
+}
+
+void test_client_server_connect_address_already_connected()
+{
+    printf( "test_client_server_connect_address_already_connected\n" );
+
+    TestMatcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+
+    double time = 0.0;
+
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.enableConnection = false;
+
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
+
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+
+    while ( true )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
+
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    // now try to connect a second client with the same address, but a different connect token and client id. this connect should be ignored
+
+    if ( !matcher.RequestMatch( clientId + 1, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestNetworkTransport clientTransport2( networkSimulator, clientAddress );
+    
+    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
+
+    client2.AdvanceTime( time );
+
+    client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+
+    while ( true )
+    {
+        client.SendPackets();
+        client2.SendPackets();
+        server.SendPackets();
+
+        clientTransport.WritePackets();
+        clientTransport2.WritePackets();
+        serverTransport.WritePackets();
+
+        clientTransport.ReadPackets();
+        clientTransport2.ReadPackets();
+        serverTransport.ReadPackets();
+
+        client.ReceivePackets();
+        client2.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        client2.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        time += 0.1;
+
+        if ( client2.ConnectionFailed() )
+            break;
+
+        client.AdvanceTime( time );
+        client2.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientTransport.AdvanceTime( time );
+        clientTransport2.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
+    }
+
+    check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
+    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED ) > 0 );
+
+    client.Disconnect();
+    client2.Disconnect();
+
+    server.Stop();
+}
+
+void test_client_server_connect_client_id_already_connected()
+{
+    printf( "test_client_server_connect_client_id_already_connected\n" );
+
+    TestMatcher matcher;
+
+    uint64_t clientId = 1;
+
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddresses;
+    Address serverAddresses[MaxServersPerConnectToken];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    GenerateKey( private_key );
+
+    uint64_t connectTokenExpireTimestamp;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    TestNetworkSimulator networkSimulator;
+
+    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
+    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+
+    double time = 0.0;
+
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.enableConnection = false;
+
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
+
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+
+    while ( true )
+    {
+        client.SendPackets();
+        server.SendPackets();
+
+        clientTransport.WritePackets();
+        serverTransport.WritePackets();
+
+        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
+
+        client.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        time += 0.1f;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+
+        client.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientTransport.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    // now try to connect a second client with a different address and connect token, but the same client id. this connect should be ignored
+
+    Address clientAddress2( "::1", ClientPort + 1 );
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    TestNetworkTransport clientTransport2( networkSimulator, clientAddress2 );
+    
+    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
+
+    client2.AdvanceTime( time );
+
+    client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+
+    while ( true )
+    {
+        client.SendPackets();
+        client2.SendPackets();
+        server.SendPackets();
+
+        clientTransport.WritePackets();
+        clientTransport2.WritePackets();
+        serverTransport.WritePackets();
+
+        clientTransport.ReadPackets();
+        clientTransport2.ReadPackets();
+        serverTransport.ReadPackets();
+
+        client.ReceivePackets();
+        client2.ReceivePackets();
+        server.ReceivePackets();
+
+        client.CheckForTimeOut();
+        client2.CheckForTimeOut();
+        server.CheckForTimeOut();
+
+        time += 0.1;
+
+        if ( client2.ConnectionFailed() )
+            break;
+
+        client.AdvanceTime( time );
+        client2.AdvanceTime( time );
+        server.AdvanceTime( time );
+
+        clientTransport.AdvanceTime( time );
+        clientTransport2.AdvanceTime( time );
+        serverTransport.AdvanceTime( time );
+    }
+
+    check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
+    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED ) > 0 );
+
+    client.Disconnect();
+    client2.Disconnect();
 
     server.Stop();
 }
@@ -5129,6 +5423,8 @@ int main()
         test_client_server_connect_token_expired();
         test_client_server_connect_token_whitelist();
         test_client_server_connect_token_invalid();
+        test_client_server_connect_address_already_connected();
+        test_client_server_connect_client_id_already_connected();
         test_client_server_game_packets();
 #if YOJIMBO_INSECURE_CONNECT
         test_client_server_insecure_connect();
