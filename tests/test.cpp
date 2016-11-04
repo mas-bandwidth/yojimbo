@@ -3298,6 +3298,7 @@ void test_client_server_connect_address_already_connected()
         serverTransport.AdvanceTime( time );
     }
 
+    check( client.GetClientState() == CLIENT_STATE_CONNECTED );
     check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
     check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED ) > 0 );
 
@@ -3450,6 +3451,7 @@ void test_client_server_connect_client_id_already_connected()
         serverTransport.AdvanceTime( time );
     }
 
+    check( client.GetClientState() == CLIENT_STATE_CONNECTED );
     check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
     check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED ) > 0 );
 
@@ -5034,9 +5036,165 @@ void test_connection_unreliable_unordered_blocks()
     }
 }
 
-void test_connection_client_server()
+void SendClientToServerMessages( Client & client, int numMessagesToSend )
 {
-    printf( "test_connection_client_server\n" );
+    for ( int i = 0; i < numMessagesToSend; ++i )
+    {
+        if ( rand() % 10 )
+        {
+            TestMessage * message = (TestMessage*) client.CreateMsg( TEST_MESSAGE );
+            check( message );
+            message->sequence = i;
+            client.SendMsg( message );
+        }
+        else
+        {
+            TestBlockMessage * message = (TestBlockMessage*) client.CreateMsg( TEST_BLOCK_MESSAGE );
+            check( message );
+            message->sequence = i;
+            const int blockSize = 1 + ( ( i * 901 ) % 1001 );
+            Allocator & allocator = client.GetClientAllocator();
+            uint8_t * blockData = (uint8_t*) allocator.Allocate( blockSize );
+            for ( int j = 0; j < blockSize; ++j )
+                blockData[j] = i + j;
+            message->AttachBlock( allocator, blockData, blockSize );
+            client.SendMsg( message );
+        }
+    }
+}
+
+void SendServerToClientMessages( Server & server, int clientIndex, int numMessagesToSend )
+{
+    for ( int i = 0; i < numMessagesToSend; ++i )
+    {
+        if ( rand() % 2 )
+        {
+            TestMessage * message = (TestMessage*) server.CreateMsg( clientIndex, TEST_MESSAGE );
+            check( message );
+            message->sequence = i;
+            server.SendMsg( clientIndex, message );
+        }
+        else
+        {
+            TestBlockMessage * message = (TestBlockMessage*) server.CreateMsg( clientIndex, TEST_BLOCK_MESSAGE );
+            check( message );
+            message->sequence = i;
+            const int blockSize = 1 + ( ( i * 901 ) % 1001 );
+            Allocator & allocator = server.GetClientAllocator( clientIndex );
+            uint8_t * blockData = (uint8_t*) allocator.Allocate( blockSize );
+            for ( int j = 0; j < blockSize; ++j )
+                blockData[j] = i + j;
+            message->AttachBlock( allocator, blockData, blockSize );
+            server.SendMsg( clientIndex, message );
+        }
+    }
+}
+
+void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFromServer )
+{
+    while ( true )
+    {
+        Message * message = client.ReceiveMsg();
+
+        if ( !message )
+            break;
+
+        check( message->GetId() == (int) numMessagesReceivedFromServer );
+        
+        switch ( message->GetType() )
+        {
+            case TEST_MESSAGE:
+            {
+                TestMessage * testMessage = (TestMessage*) message;
+
+                check( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
+
+                ++numMessagesReceivedFromServer;
+            }
+            break;
+
+            case TEST_BLOCK_MESSAGE:
+            {
+                TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+
+                check( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
+
+                const int blockSize = blockMessage->GetBlockSize();
+
+                check( blockSize == 1 + ( ( numMessagesReceivedFromServer * 901 ) % 1001 ) );
+    
+                const uint8_t * blockData = blockMessage->GetBlockData();
+
+                check( blockData );
+
+                for ( int j = 0; j < blockSize; ++j )
+                {
+                    check( blockData[j] == uint8_t( numMessagesReceivedFromServer + j ) );
+                }
+
+                ++numMessagesReceivedFromServer;
+            }
+            break;
+        }
+
+        client.ReleaseMsg( message );
+    }
+}
+
+void ProcessClientToServerMessages( Server & server, int clientIndex, int & numMessagesReceivedFromClient )
+{
+    while ( true )
+    {
+        Message * message = server.ReceiveMsg( clientIndex );
+
+        if ( !message )
+            break;
+
+        check( message->GetId() == (int) numMessagesReceivedFromClient );
+
+        switch ( message->GetType() )
+        {
+            case TEST_MESSAGE:
+            {
+                TestMessage * testMessage = (TestMessage*) message;
+
+                check( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+
+                ++numMessagesReceivedFromClient;
+            }
+            break;
+
+            case TEST_BLOCK_MESSAGE:
+            {
+                TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+
+                check( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+
+                const int blockSize = blockMessage->GetBlockSize();
+
+                check( blockSize == 1 + ( ( numMessagesReceivedFromClient * 901 ) % 1001 ) );
+    
+                const uint8_t * blockData = blockMessage->GetBlockData();
+
+                check( blockData );
+
+                for ( int j = 0; j < blockSize; ++j )
+                {
+                    check( blockData[j] == uint8_t( numMessagesReceivedFromClient + j ) );
+                }
+
+                ++numMessagesReceivedFromClient;
+            }
+            break;
+        }
+
+        server.ReleaseMsg( clientIndex, message );
+    }
+}
+
+void test_client_server_messages()
+{
+    printf( "test_client_server_messages\n" );
 
     TestMatcher matcher;
 
@@ -5131,55 +5289,9 @@ void test_connection_client_server()
 
     const int NumMessagesSent = 64;
 
-    for ( int i = 0; i < NumMessagesSent; ++i )
-    {
-        if ( rand() % 10 )
-        {
-            TestMessage * message = (TestMessage*) client.CreateMsg( TEST_MESSAGE );
-            check( message );
-            message->sequence = i;
-            client.SendMsg( message );
-        }
-        else
-        {
-            TestBlockMessage * message = (TestBlockMessage*) client.CreateMsg( TEST_BLOCK_MESSAGE );
-            check( message );
-            message->sequence = i;
-            const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            Allocator & allocator = client.GetClientAllocator();
-            uint8_t * blockData = (uint8_t*) allocator.Allocate( blockSize );
-            for ( int j = 0; j < blockSize; ++j )
-                blockData[j] = i + j;
-            message->AttachBlock( allocator, blockData, blockSize );
-            client.SendMsg( message );
-        }
-    }
+    SendClientToServerMessages( client, NumMessagesSent );
 
-    for ( int i = 0; i < NumMessagesSent; ++i )
-    {
-        const int clientIndex = client.GetClientIndex();
-
-        if ( rand() % 2 )
-        {
-            TestMessage * message = (TestMessage*) server.CreateMsg( clientIndex, TEST_MESSAGE );
-            check( message );
-            message->sequence = i;
-            server.SendMsg( clientIndex, message );
-        }
-        else
-        {
-            TestBlockMessage * message = (TestBlockMessage*) server.CreateMsg( clientIndex, TEST_BLOCK_MESSAGE );
-            check( message );
-            message->sequence = i;
-            const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            Allocator & allocator = server.GetClientAllocator( clientIndex );
-            uint8_t * blockData = (uint8_t*) allocator.Allocate( blockSize );
-            for ( int j = 0; j < blockSize; ++j )
-                blockData[j] = i + j;
-            message->AttachBlock( allocator, blockData, blockSize );
-            server.SendMsg( client.GetClientIndex(), message );
-        }
-    }
+    SendServerToClientMessages( server, client.GetClientIndex(), NumMessagesSent );
 
     int numMessagesReceivedFromClient = 0;
     int numMessagesReceivedFromServer = 0;
@@ -5203,103 +5315,8 @@ void test_connection_client_server()
         client.CheckForTimeOut();
         server.CheckForTimeOut();
 
-        while ( true )
-        {
-            Message * message = client.ReceiveMsg();
-
-            if ( !message )
-                break;
-
-            check( message->GetId() == (int) numMessagesReceivedFromServer );
-            
-            switch ( message->GetType() )
-            {
-                case TEST_MESSAGE:
-                {
-                    TestMessage * testMessage = (TestMessage*) message;
-
-                    check( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
-
-                    ++numMessagesReceivedFromServer;
-                }
-                break;
-
-                case TEST_BLOCK_MESSAGE:
-                {
-                    TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-
-                    check( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
-
-                    const int blockSize = blockMessage->GetBlockSize();
-
-                    check( blockSize == 1 + ( ( numMessagesReceivedFromServer * 901 ) % 1001 ) );
-        
-                    const uint8_t * blockData = blockMessage->GetBlockData();
-
-                    check( blockData );
-
-                    for ( int j = 0; j < blockSize; ++j )
-                    {
-                        check( blockData[j] == uint8_t( numMessagesReceivedFromServer + j ) );
-                    }
-
-                    ++numMessagesReceivedFromServer;
-                }
-                break;
-            }
-
-            client.ReleaseMsg( message );
-        }
-
-        while ( true )
-        {
-            const int clientIndex = client.GetClientIndex();
-
-            Message * message = server.ReceiveMsg( clientIndex );
-
-            if ( !message )
-                break;
-
-            check( message->GetId() == (int) numMessagesReceivedFromClient );
-
-            switch ( message->GetType() )
-            {
-                case TEST_MESSAGE:
-                {
-                    TestMessage * testMessage = (TestMessage*) message;
-
-                    check( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
-
-                    ++numMessagesReceivedFromClient;
-                }
-                break;
-
-                case TEST_BLOCK_MESSAGE:
-                {
-                    TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-
-                    check( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
-
-                    const int blockSize = blockMessage->GetBlockSize();
-
-                    check( blockSize == 1 + ( ( numMessagesReceivedFromClient * 901 ) % 1001 ) );
-        
-                    const uint8_t * blockData = blockMessage->GetBlockData();
-
-                    check( blockData );
-
-                    for ( int j = 0; j < blockSize; ++j )
-                    {
-                        check( blockData[j] == uint8_t( numMessagesReceivedFromClient + j ) );
-                    }
-
-                    ++numMessagesReceivedFromClient;
-                }
-                break;
-            }
-
-            server.ReleaseMsg( clientIndex, message );
-        }
+        ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
+        ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
 
         if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
             break;
@@ -5396,6 +5413,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        /*
         test_endian();
         test_queue();
         test_base64();
@@ -5442,7 +5460,9 @@ int main()
         test_connection_reliable_ordered_messages_and_blocks_multiple_channels();
         test_connection_unreliable_unordered_messages();
         test_connection_unreliable_unordered_blocks();
-        test_connection_client_server();
+        */
+        test_client_server_messages();
+//        test_client_server_start_stop();
 
 #if SOAK
         if ( quit )

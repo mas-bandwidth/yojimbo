@@ -6,6 +6,8 @@ Added a unit test to verify that a client cannot connect with same address as an
 
 Added a unit test to verify that a client cannot connect with the same client id as an already connected client.
 
+Cleaned up client/server test with messages, so message processing is done in helper functions. Much smaller now.
+
 
 Thursday November 3rd, 2016
 ===========================

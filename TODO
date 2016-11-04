@@ -2,6 +2,8 @@ DONE
 
 TODO
 
+    Can tests be reduced further with smart helper functions? especially, functions to pump client/server updates.
+     
     ------------------
 
     Packet fragmentation and reassembly.

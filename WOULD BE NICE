@@ -7,16 +7,40 @@ WOULD BE NICE
     I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
 
     ------------------
+    
+    Add a test case for both unordered and ordered messages to show that it properly handles a message failing to serialize, 
 
-    Probably best to also fix the server so it doesn't immediately disconnect the client in the middle of processing packets either.
+    eg. properly cleans up, sets error state, shuts down the connection.
 
-    eg. Set a "shouldDisconnect" flag per-client, which is handled in the next "CheckForTimeouts"
+    Previously, a bug snuck through where messages were not getting cleaned up properly and the server would crash in this situation.
+
+    Adding these tests will make sure this never happens again.
+
+    ------------------
+
+    Add a unit test that intentionally exhausts the client allocator.
+
+    Make sure the server detects this and disconnects that client.
+
+    Make sure client can reconnect to the slot that was exhausted (eg. it is properly cleared).
 
     ------------------
 
     Implement "replay" protection. 
 
-    This means, create a sliding window of last 1024 packets per-encryption mapping. 
+    Create a sliding window of last 1024 packets per-encryption mapping.
+
+    If any packet comes in in the last 1024, check if it has already been received, if so, ignore it (don't decrypt). 
+
+    If any packet comes in with sequence # older than the sliding window, discard it.
+
+    Otherwise, process the packet normally.
+
+    ------------------
+
+    You should be able to put a network simulator in front of a real BSD socket transport.
+
+    This would allow users to simulate bad network conditions on top of a real socket over LAN.
 
     =================================================================
 
@@ -59,37 +83,13 @@ WOULD BE NICE
 
     ------------------
 
-    Add tests to make sure the server disconnects a client 
-
-    ------------------
-
-    Add tests to make sure the client can recover and reconnect after one of the error states below. eg. error is properly cleared.
-
-        CLIENT_STATE_PACKET_FACTORY_ERROR
-        CLIENT_STATE_MESSAGE_FACTORY_ERROR
-        CLIENT_STATE_STREAM_ALLOCATOR_ERROR
-
-    ------------------
-
-    Add a unit test that intentionally exhausts the stream allocator.
-
-    ------------------
-    
-    Add a test case for both unordered and ordered messages to show that it properly handles a message failing to serialize, 
-
-    eg. properly cleans up, sets error state, shuts down the connection.
-
-    Previously, a bug snuck through where messages were not getting cleaned up properly and the server would crash in this situation.
-
-    Adding these tests will make sure this never happens again.
-
-    ------------------
-
-    Would be nice if a secure client connect accepted a list of servers to try to connect to, instead of having the user need to do that iteration manually, outside the client class. This is how it is meant to be used, after all.
-
-    ------------------
-
     Really need to make the matcher HTTPS request asynchronous, can't have it blocking the main thread like it does now!
+
+    ------------------
+
+    Would be nice if a secure client connect accepted a list of servers to try to connect to, instead of having the user need to do that iteration manually outside of the client class. This is how it is meant to be used, after all.
+
+    ^---- Do this later when the matchmaker actually returns multiple results.
 
     ------------------
 
@@ -98,9 +98,5 @@ WOULD BE NICE
     It should be setup to run automatically on each commit to "coverity" branch, then I can create a premake action to determine current branch, mainline or development, and integrate across current head to that branch.
 
     eg. pm coverity
-
-    ------------------
-
-    You should be able to put a network simulator in front of a real BSD socket transport, so bad network conditions can be simulated on top of a real socket.
 
     ------------------
