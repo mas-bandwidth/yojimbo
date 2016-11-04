@@ -1536,6 +1536,60 @@ void test_unencrypted_packets()
     check( numPacketsReceived == 0 );
 }
 
+void test_allocator_tlsf()
+{
+    printf( "test_allocator_tlsf\n" );
+
+    const int NumBlocks = 256;
+    const int BlockSize = 1024;
+    const int MemorySize = NumBlocks * BlockSize;
+
+    uint8_t * memory = (uint8_t*) malloc( MemorySize );
+
+    TLSF_Allocator allocator( memory, MemorySize );
+
+    uint8_t * blockData[NumBlocks];
+    memset( blockData, 0, sizeof( blockData ) );
+
+    int stopIndex = 0;
+
+    for ( int i = 0; i < NumBlocks; ++i )
+    {
+        blockData[i] = (uint8_t*) allocator.Allocate( BlockSize );
+        
+        if ( !blockData[i] )
+        {
+            check( allocator.GetError() == ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            allocator.ClearError();
+            check( allocator.GetError() == ALLOCATOR_ERROR_NONE );
+            stopIndex = i;
+            break;
+        }
+        
+        check( blockData[i] );
+        check( allocator.GetError() == ALLOCATOR_ERROR_NONE );
+        
+        memset( blockData[i], i + 10, BlockSize );
+    }
+
+    check( stopIndex > NumBlocks / 2 );
+
+    for ( int i = 0; i < NumBlocks - 1; ++i )
+    {
+        if ( blockData[i] )
+        {
+            for ( int j = 0; j < BlockSize; ++j )
+                check( blockData[i][j] == uint8_t( i + 10 ) );
+        }
+
+        allocator.Free( blockData[i] );
+
+        blockData[i] = NULL;
+    }
+
+    free( memory );
+}
+
 void test_client_server_connect()
 {
     printf( "test_client_server_connect\n" );
@@ -5192,14 +5246,48 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
     }
 }
 
-void test_client_server_messages()
+void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports )
 {
-    printf( "test_client_server_messages\n" );
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->SendPackets();
 
-    TestMatcher matcher;
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->SendPackets();
 
-    uint64_t clientId = 1;
+    for ( int i = 0; i < numTransports; ++i )
+        transport[i]->WritePackets();
 
+    for ( int i = 0; i < numTransports; ++i )
+        transport[i]->ReadPackets();
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->ReceivePackets();
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->ReceivePackets();
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->CheckForTimeOut();
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->CheckForTimeOut();
+
+    time += 0.1;
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numTransports; ++i )
+        transport[i]->AdvanceTime( time );
+}
+
+static TestMatcher matcher;
+
+void ConnectClient( Client & client, uint64_t clientId, const Address & serverAddress )
+{
     uint8_t connectTokenData[ConnectTokenBytes];
     uint8_t connectTokenNonce[NonceBytes];
 
@@ -5211,8 +5299,6 @@ void test_client_server_messages()
 
     memset( connectTokenNonce, 0, NonceBytes );
 
-    GenerateKey( private_key );
-
     uint64_t connectTokenExpireTimestamp;
 
     if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
@@ -5221,51 +5307,48 @@ void test_client_server_messages()
         exit( 1 );
     }
 
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+}
+
+void test_client_server_messages()
+{
+    printf( "test_client_server_messages\n" );
+
+    GenerateKey( private_key );
+
+    const uint64_t clientId = 1;
+
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     TestNetworkSimulator networkSimulator;
-
     TestNetworkTransport clientTransport( networkSimulator, clientAddress );
     TestNetworkTransport serverTransport( networkSimulator, serverAddress );
 
     double time = 0.0;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.maxPacketSize = 256;
-    connectionConfig.numChannels = 1;
-    connectionConfig.channelConfig[0].maxBlockSize = 1024;
-    connectionConfig.channelConfig[0].fragmentSize = 200;
-
     ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig = connectionConfig;
+    clientServerConfig.connectionConfig.maxPacketSize = 256;
+    clientServerConfig.connectionConfig.numChannels = 1;
+    clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
+    clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -5273,16 +5356,8 @@ void test_client_server_messages()
             exit( 1 );
         }
 
-        time += 0.1;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -5300,37 +5375,18 @@ void test_client_server_messages()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
+
         ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
 
         if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
             break;
-
-        time += 0.1;
-
-        if ( !client.IsConnected() && server.GetNumConnectedClients() == 1 )
-            break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( numMessagesReceivedFromClient == NumMessagesSent );
@@ -5339,60 +5395,6 @@ void test_client_server_messages()
     client.Disconnect();
 
     server.Stop();
-}
-
-void test_allocator_tlsf()
-{
-    printf( "test_allocator_tlsf\n" );
-
-    const int NumBlocks = 256;
-    const int BlockSize = 1024;
-    const int MemorySize = NumBlocks * BlockSize;
-
-    uint8_t * memory = (uint8_t*) malloc( MemorySize );
-
-    TLSF_Allocator allocator( memory, MemorySize );
-
-    uint8_t * blockData[NumBlocks];
-    memset( blockData, 0, sizeof( blockData ) );
-
-    int stopIndex = 0;
-
-    for ( int i = 0; i < NumBlocks; ++i )
-    {
-        blockData[i] = (uint8_t*) allocator.Allocate( BlockSize );
-        
-        if ( !blockData[i] )
-        {
-            check( allocator.GetError() == ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
-            allocator.ClearError();
-            check( allocator.GetError() == ALLOCATOR_ERROR_NONE );
-            stopIndex = i;
-            break;
-        }
-        
-        check( blockData[i] );
-        check( allocator.GetError() == ALLOCATOR_ERROR_NONE );
-        
-        memset( blockData[i], i + 10, BlockSize );
-    }
-
-    check( stopIndex > NumBlocks / 2 );
-
-    for ( int i = 0; i < NumBlocks - 1; ++i )
-    {
-        if ( blockData[i] )
-        {
-            for ( int j = 0; j < BlockSize; ++j )
-                check( blockData[i][j] == uint8_t( i + 10 ) );
-        }
-
-        allocator.Free( blockData[i] );
-
-        blockData[i] = NULL;
-    }
-
-    free( memory );
 }
 
 int main()
@@ -5462,7 +5464,6 @@ int main()
         test_connection_unreliable_unordered_blocks();
         */
         test_client_server_messages();
-//        test_client_server_start_stop();
 
 #if SOAK
         if ( quit )

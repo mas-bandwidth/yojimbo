@@ -3,7 +3,14 @@ DONE
 TODO
 
     Can tests be reduced further with smart helper functions? especially, functions to pump client/server updates.
-     
+
+    This would shrink the largest tests, that are basically just copypaste pumps for clients, servers and transports.
+
+    Another way to reduce the amount of test code would be to unify the tests so they all work from the same matcher and client/server implementation
+    inside shared.h, this way the bulk of the definitions for messages, packets and so on, could be done only once. 
+
+    This would shrink test.cpp considerably.
+
     ------------------
 
     Packet fragmentation and reassembly.
