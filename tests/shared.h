@@ -44,6 +44,55 @@ const int ServerPort = 40000;
 
 static bool verbose_logging = false;
 
+struct GamePacket : public Packet
+{
+    uint32_t sequence;
+    uint32_t a,b,c;
+
+    GamePacket()
+    {
+        sequence = 0;
+        a = 0;
+        b = 0;
+        c = 0;
+    }
+
+    void Initialize( uint32_t seq )
+    {
+        sequence = seq;
+        a = seq % 2;
+        b = seq % 3;
+        c = seq % 5;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream ) 
+    { 
+        serialize_bits( stream, sequence, 32 );
+        
+        serialize_bits( stream, a, 32 );
+        serialize_bits( stream, b, 32 );
+        serialize_bits( stream, c, 32 );
+
+        assert( a == sequence % 2 );
+        assert( b == sequence % 3 );
+        assert( c == sequence % 5 );
+
+        return true;
+    }
+
+    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+enum GamePackets
+{
+    GAME_PACKET = CLIENT_SERVER_NUM_PACKETS,
+    GAME_NUM_PACKETS
+};
+
+YOJIMBO_PACKET_FACTORY_START( GamePacketFactory, ClientServerPacketFactory, GAME_NUM_PACKETS );
+    YOJIMBO_DECLARE_PACKET_TYPE( GAME_PACKET, GamePacket );
+YOJIMBO_PACKET_FACTORY_FINISH();
+
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
     static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };

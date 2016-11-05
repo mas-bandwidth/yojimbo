@@ -1,17 +1,18 @@
 DONE    
 
+    Unified the TestMatcher and the LocalMacher. It's all in shared.h now.
+
+    Moved LocalMatcher matcher to a static instance, so it doesn't have to be declared in each test that uses it.    
+
+    Moved the GamePacket and packet factory into shared.h
+
 TODO
 
-    -------------------
+    Next step, need to unify all the client/server functionality from the test.cpp game client/server instances to the shared.h game/server classes.
 
-    Can tests be reduced further with smart helper functions? especially, functions to pump client/server updates.
+    Also need to solve for logging, need an option to completely disable logging in shared.h (can be #define), because I'm not going to want to see any logging while tests are running.
 
-    This would shrink the largest tests, that are basically just copypaste pumps for clients, servers and transports.
-
-    Another way to reduce the amount of test code would be to unify the tests so they all work from the same matcher and client/server implementation
-    inside shared.h, this way the bulk of the definitions for messages, packets and so on, could be done only once. 
-
-    This would shrink test.cpp considerably.
+    Reduce remaining client/server tests with helper functions for pump update, client connect etc.
 
     ------------------
 
