@@ -2870,8 +2870,6 @@ void test_client_server_connect_token_reuse()
 
 void test_client_server_connect_token_expired()
 {
-#if 0 // todo: need the option to reduce the timestamp of the generated token here
-
     printf( "test_client_server_connect_token_expired\n" );
 
     uint64_t clientId = 1;
@@ -2956,16 +2954,10 @@ void test_client_server_connect_token_expired()
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_connect_token_whitelist()
 {
-    // todo: need to unify both matcher instances
-
-#if 0
-
     printf( "test_client_server_connect_token_whitelist\n" );
 
     uint64_t clientId = 1;
@@ -3059,8 +3051,6 @@ void test_client_server_connect_token_whitelist()
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
-
-#endif 
 }
 
 void test_client_server_connect_token_invalid()

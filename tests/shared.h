@@ -128,16 +128,26 @@ public:
         m_nonce = 0;
     }
 
-    bool RequestMatch( uint64_t clientId, uint8_t * tokenData, uint8_t * tokenNonce, uint8_t * clientToServerKey, uint8_t * serverToClientKey, uint64_t & connectTokenExpireTimestamp, int & numServerAddresses, Address * serverAddresses )
+    bool RequestMatch( uint64_t clientId, 
+                       uint8_t * tokenData, 
+                       uint8_t * tokenNonce, 
+                       uint8_t * clientToServerKey, 
+                       uint8_t * serverToClientKey, 
+                       uint64_t & connectTokenExpireTimestamp,
+                       int & numServerAddresses, 
+                       Address * serverAddresses, 
+                       int timestampOffsetInSeconds = 0, 
+                       int serverPortOverride = -1 )
     {
         if ( clientId == 0 )
             return false;
 
         numServerAddresses = 1;
-        serverAddresses[0] = Address( "::1", ServerPort );
+        serverAddresses[0] = Address( "::1", serverPortOverride == -1 ? ServerPort : serverPortOverride );
 
         ConnectToken token;
         GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId, 10 );
+        token.expireTimestamp += timestampOffsetInSeconds;
 
         memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
         memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
