@@ -317,7 +317,7 @@ namespace yojimbo
 
         void ProcessChallengeResponse( const ChallengeResponsePacket & packet, const Address & address );
 
-        void ProcessHeartBeat( const HeartBeatPacket & /*packet*/, const Address & address );
+        void ProcessKeepAlive( const KeepAlivePacket & /*packet*/, const Address & address );
 
         void ProcessDisconnect( const DisconnectPacket & /*packet*/, const Address & address );
 
@@ -329,7 +329,7 @@ namespace yojimbo
 
         void ProcessPacket( Packet * packet, const Address & address, uint64_t sequence );
 
-        HeartBeatPacket * CreateHeartBeatPacket( int clientIndex );
+        KeepAlivePacket * CreateKeepAlivePacket( int clientIndex );
 
         Transport * GetTransport() { return m_transport; }
 

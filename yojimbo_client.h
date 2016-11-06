@@ -170,7 +170,7 @@ namespace yojimbo
 
         void ProcessChallenge( const ChallengePacket & packet, const Address & address );
 
-        void ProcessHeartBeat( const HeartBeatPacket & packet, const Address & address );
+        void ProcessKeepAlive( const KeepAlivePacket & packet, const Address & address );
 
         void ProcessDisconnect( const DisconnectPacket & packet, const Address & address );
 

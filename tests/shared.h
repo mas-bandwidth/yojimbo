@@ -103,11 +103,11 @@ inline int GetNumBitsForMessage( uint16_t sequence )
     return messageBitsArray[index];
 }
 
-struct GameMessage : public Message
+struct TestMessage : public Message
 {
     uint16_t sequence;
 
-    GameMessage()
+    TestMessage()
     {
         sequence = 0;
     }
@@ -131,11 +131,11 @@ struct GameMessage : public Message
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-struct GameBlockMessage : public BlockMessage
+struct TestBlockMessage : public BlockMessage
 {
     uint16_t sequence;
 
-    GameBlockMessage()
+    TestBlockMessage()
     {
         sequence = 0;
     }
@@ -149,24 +149,28 @@ struct GameBlockMessage : public BlockMessage
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-enum GameMessageType
+enum TestMessageType
 {
-    GAME_MESSAGE,
-    GAME_BLOCK_MESSAGE,
-    NUM_MESSAGE_TYPES
+    TEST_MESSAGE,
+    TEST_BLOCK_MESSAGE,
+    NUM_TEST_MESSAGE_TYPES
 };
 
-YOJIMBO_MESSAGE_FACTORY_START( GameMessageFactory, MessageFactory, NUM_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( GAME_MESSAGE, GameMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( GAME_BLOCK_MESSAGE, GameBlockMessage );
+YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_TEST_MESSAGE_TYPES );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
-#if SERVER
+#if SERVER || MATCHER
 
 static uint8_t private_key[KeyBytes] = { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea, 
                                          0x9a, 0x65, 0x62, 0xf6, 0x6f, 0x2b, 0x30, 0xe4, 
                                          0x43, 0x71, 0xd6, 0x2c, 0xd1, 0x99, 0x27, 0x26,
                                          0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1 };
+
+#endif // #if SERVER || MATCHER
+
+#if MATCHER
 
 class LocalMatcher
 {
@@ -217,6 +221,10 @@ public:
         return true;
     }
 };
+
+#endif // #if MATCHER
+
+#if SERVER
 
 class GameServer : public Server
 {
@@ -276,7 +284,7 @@ protected:
 
     YOJIMBO_SERVER_PACKET_FACTORY( GamePacketFactory );
 
-    YOJIMBO_SERVER_MESSAGE_FACTORY( GameMessageFactory );
+    YOJIMBO_SERVER_MESSAGE_FACTORY( TestMessageFactory );
 
 #if LOGGING
 
@@ -401,7 +409,7 @@ protected:
         {
             case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
             case CLIENT_SERVER_PACKET_CHALLENGE:                  packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_KEEPALIVE:                  packetTypeString = "keep alive";            break;
             case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";            break;
 
             default:
@@ -424,7 +432,7 @@ protected:
         {
             case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
             case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_KEEPALIVE:                  packetTypeString = "keep alive";                break;  
             case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
 
             default:
@@ -511,7 +519,7 @@ protected:
 
     YOJIMBO_CLIENT_PACKET_FACTORY( GamePacketFactory );
 
-    YOJIMBO_CLIENT_MESSAGE_FACTORY( GameMessageFactory );
+    YOJIMBO_CLIENT_MESSAGE_FACTORY( TestMessageFactory );
 
 #if LOGGING
 
@@ -548,7 +556,7 @@ protected:
         {
             case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
             case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";                 break;  
+            case CLIENT_SERVER_PACKET_KEEPALIVE:                  packetTypeString = "keep alive";                break;  
             case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
 
             default:
@@ -571,7 +579,7 @@ protected:
         {
             case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
             case CLIENT_SERVER_PACKET_CHALLENGE:                  packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";             break;
+            case CLIENT_SERVER_PACKET_KEEPALIVE:                  packetTypeString = "keep alive";            break;
             case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";            break;
 
             default:

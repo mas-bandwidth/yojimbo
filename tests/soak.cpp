@@ -137,7 +137,7 @@ int SoakMain()
 
                 if ( rand() % 100 )
                 {
-                    GameMessage * message = (GameMessage*) client.CreateMsg( GAME_MESSAGE );
+                    TestMessage * message = (TestMessage*) client.CreateMsg( TEST_MESSAGE );
                     
                     if ( message )
                     {
@@ -150,7 +150,7 @@ int SoakMain()
                 }
                 else
                 {
-                    GameBlockMessage * blockMessage = (GameBlockMessage*) client.CreateMsg( GAME_BLOCK_MESSAGE );
+                    TestBlockMessage * blockMessage = (TestBlockMessage*) client.CreateMsg( TEST_BLOCK_MESSAGE );
 
                     if ( blockMessage )
                     {
@@ -190,13 +190,13 @@ int SoakMain()
 
                 switch ( message->GetType() )
                 {
-                    case GAME_MESSAGE:
+                    case TEST_MESSAGE:
                     {
-                        GameMessage * gameMessage = (GameMessage*) message;
+                        TestMessage * testMessage = (TestMessage*) message;
 
-                        assert( gameMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+                        assert( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
 
-                        printf( "received message %d\n", gameMessage->sequence );
+                        printf( "received message %d\n", testMessage->sequence );
 
                         server.ReleaseMsg( clientIndex, message );
 
@@ -204,9 +204,9 @@ int SoakMain()
                     }
                     break;
 
-                    case GAME_BLOCK_MESSAGE:
+                    case TEST_BLOCK_MESSAGE:
                     {
-                        GameBlockMessage * blockMessage = (GameBlockMessage*) message;
+                        TestBlockMessage * blockMessage = (TestBlockMessage*) message;
 
                         assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
 

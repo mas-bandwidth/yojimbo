@@ -1005,70 +1005,6 @@ void test_client_server_tokens()
     check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
 }
 
-// todo: no need to duplicate these here
-
-struct TestMessage : public Message
-{
-    uint16_t sequence;
-
-    TestMessage()
-    {
-        sequence = 0;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {        
-        serialize_bits( stream, sequence, 16 );
-
-        int numBits = GetNumBitsForMessage( sequence );
-        int numWords = numBits / 32;
-        uint32_t dummy = 0;
-        for ( int i = 0; i < numWords; ++i )
-            serialize_bits( stream, dummy, 32 );
-        int numRemainderBits = numBits - numWords * 32;
-        if ( numRemainderBits > 0 )
-            serialize_bits( stream, dummy, numRemainderBits );
-
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-struct TestBlockMessage : public BlockMessage
-{
-    uint16_t sequence;
-
-    TestBlockMessage()
-    {
-        sequence = 0;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {        
-        serialize_bits( stream, sequence, 16 );
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-// todo: do we really need specific test messages here? probably not
-
-enum MessageType
-{
-    TEST_MESSAGE,
-    TEST_BLOCK_MESSAGE,
-    TEST_NUM_MESSAGE_TYPES
-};
-
-YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, TEST_NUM_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
-YOJIMBO_MESSAGE_FACTORY_FINISH();
-
-// all of this just to set the network conditions of the simulator by default. seems annoying?
-
 class TestNetworkSimulator : public NetworkSimulator
 {
 public:
@@ -1113,17 +1049,15 @@ void test_unencrypted_packets()
     clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
 
-    // make sure that encrypted packet types will *not* be received if they are sent as unencrypted
-
     clientTransport.EnablePacketEncryption();
     serverTransport.EnablePacketEncryption();
 
-    check( clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_HEARTBEAT ) );
-    check( serverTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_HEARTBEAT ) );
+    check( clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_KEEPALIVE ) );
+    check( serverTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_KEEPALIVE ) );
 
-    clientTransport.DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_HEARTBEAT );
+    clientTransport.DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_KEEPALIVE );
 
-    check( !clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_HEARTBEAT ) );
+    check( !clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_KEEPALIVE ) );
 
     const int NumIterations = 32;
 
@@ -1133,7 +1067,7 @@ void test_unencrypted_packets()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * sendPacket = clientTransport.CreatePacket( CLIENT_SERVER_PACKET_HEARTBEAT );
+        Packet * sendPacket = clientTransport.CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
         check( sendPacket );
         clientTransport.SendPacket( serverAddress, sendPacket, 0, false );
 
@@ -1148,7 +1082,7 @@ void test_unencrypted_packets()
             Packet * packet = serverTransport.ReceivePacket( address, &sequence );
             if ( !packet )
                 break;
-            if ( packet->GetType() == CLIENT_SERVER_PACKET_HEARTBEAT )
+            if ( packet->GetType() == CLIENT_SERVER_PACKET_KEEPALIVE )
                 numPacketsReceived++;
         }
 
@@ -3494,15 +3428,11 @@ void test_bit_array()
     }
 }
 
-struct TestPacketData
+struct TestSequenceData
 {
-    TestPacketData()
-        : sequence(0xFFFF) {}
-
-    explicit TestPacketData( uint16_t _sequence )
-        : sequence( _sequence ) {}
-
-    uint32_t sequence : 16;                 // packet sequence #
+    TestSequenceData() : sequence(0xFFFF) {}
+    explicit TestSequenceData( uint16_t _sequence ) : sequence( _sequence ) {}
+    uint16_t sequence;
 };
 
 void test_sequence_buffer()
@@ -3511,14 +3441,14 @@ void test_sequence_buffer()
 
     const int Size = 256;
 
-    SequenceBuffer<TestPacketData> sequence_buffer( GetDefaultAllocator(), Size );
+    SequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
 
     for ( int i = 0; i < Size; ++i )
         check( sequence_buffer.Find(i) == NULL );
 
     for ( int i = 0; i <= Size*4; ++i )
     {
-        TestPacketData * entry = sequence_buffer.Insert( i );
+        TestSequenceData * entry = sequence_buffer.Insert( i );
         entry->sequence = i;
         check( sequence_buffer.GetSequence() == i + 1 );
     }
@@ -3526,14 +3456,14 @@ void test_sequence_buffer()
     for ( int i = 0; i <= Size; ++i )
     {
         // note: outside bounds!
-        TestPacketData * entry = sequence_buffer.Insert( i );
+        TestSequenceData * entry = sequence_buffer.Insert( i );
         check( !entry );
     }    
 
     int index = Size * 4;
     for ( int i = 0; i < Size; ++i )
     {
-        TestPacketData * entry = sequence_buffer.Find( index );
+        TestSequenceData * entry = sequence_buffer.Find( index );
         check( entry );
         check( entry->sequence == uint32_t( index ) );
         index--;
@@ -3553,7 +3483,7 @@ void test_generate_ack_bits()
 
     const int Size = 256;
 
-    SequenceBuffer<TestPacketData> received_packets( GetDefaultAllocator(), Size );
+    SequenceBuffer<TestSequenceData> received_packets( GetDefaultAllocator(), Size );
 
     uint16_t ack = 0xFFFF;
     uint32_t ack_bits = 0xFFFF;
@@ -3608,9 +3538,9 @@ void test_connection_counters()
 {
     printf( "test_connection_counters\n" );
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
@@ -3651,9 +3581,9 @@ void test_connection_acks()
     memset( receivedPackets, 0, sizeof( receivedPackets ) );
     memset( ackedPackets, 0, sizeof( ackedPackets ) );
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
@@ -3706,9 +3636,9 @@ void test_connection_reliable_ordered_messages()
 {
     printf( "test_connection_reliable_ordered_messages\n" );
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
@@ -3847,9 +3777,9 @@ void test_connection_reliable_ordered_blocks()
 {
     printf( "test_connection_reliable_ordered_blocks\n" );
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
@@ -4007,9 +3937,9 @@ void test_connection_reliable_ordered_messages_and_blocks()
 {
     printf( "test_connection_reliable_ordered_messages_and_blocks\n" );
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
@@ -4194,9 +4124,9 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
     const int NumChannels = 2;
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
@@ -4403,9 +4333,9 @@ void test_connection_unreliable_unordered_messages()
 {
     printf( "test_connection_unreliable_unordered_messages\n" );
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
@@ -4541,9 +4471,9 @@ void test_connection_unreliable_unordered_blocks()
 {
     printf( "test_connection_unreliable_unordered_blocks\n" );
 
-    TestPacketFactory packetFactory( GetDefaultAllocator() );
+    TestPacketFactory packetFactory;
 
-    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;

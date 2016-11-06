@@ -104,11 +104,11 @@ namespace yojimbo
         YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
-    struct HeartBeatPacket : public Packet
+    struct KeepAlivePacket : public Packet
     {
         int clientIndex;
 
-        HeartBeatPacket()
+        KeepAlivePacket()
         {
             clientIndex = 0;
         }
@@ -157,7 +157,7 @@ namespace yojimbo
         CLIENT_SERVER_PACKET_CONNECTION_DENIED,                     // server denies client connection request.
         CLIENT_SERVER_PACKET_CHALLENGE,                             // server response to client connection request.
         CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE,                    // client response to server connection challenge.
-        CLIENT_SERVER_PACKET_HEARTBEAT,                             // heartbeat packet sent at some low rate (once per-second) to keep the connection alive.
+        CLIENT_SERVER_PACKET_KEEPALIVE,                             // keepalive packet sent at some low rate (once per-second) to keep the connection alive.
         CLIENT_SERVER_PACKET_DISCONNECT,                            // courtesy packet to indicate that the other side has disconnected. better than a timeout.
 #if YOJIMBO_INSECURE_CONNECT
         CLIENT_SERVER_PACKET_INSECURE_CONNECT,                      // client requests an insecure connection (dev only!)
@@ -172,7 +172,7 @@ namespace yojimbo
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION_DENIED,        ConnectionDeniedPacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CHALLENGE,                ChallengePacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE,       ChallengeResponsePacket );
-        YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_HEARTBEAT,                HeartBeatPacket );
+        YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_KEEPALIVE,                KeepAlivePacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_DISCONNECT,               DisconnectPacket );
 #if YOJIMBO_INSECURE_CONNECT
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_INSECURE_CONNECT,         InsecureConnectPacket );

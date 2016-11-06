@@ -341,31 +341,17 @@ namespace yojimbo
                         SendPacketToConnectedClient( i, packet );
                     }
                 }
-
-                if ( m_clientData[i].lastPacketSendTime + m_config.connectionHeartBeatRate <= time )
-                {
-                    HeartBeatPacket * packet = CreateHeartBeatPacket( i );
-
-                    if ( packet )
-                    {
-                        SendPacketToConnectedClient( i, packet );
-
-                        m_clientData[i].lastHeartBeatSendTime = GetTime();
-                    }
-                }
             }
-            else
+
+            if ( m_clientData[i].lastPacketSendTime + m_config.connectionKeepAliveRate <= time )
             {
-                if ( m_clientData[i].lastHeartBeatSendTime + m_config.connectionHeartBeatRate <= time )
+                KeepAlivePacket * packet = CreateKeepAlivePacket( i );
+
+                if ( packet )
                 {
-                    HeartBeatPacket * packet = CreateHeartBeatPacket( i );
+                    SendPacketToConnectedClient( i, packet );
 
-                    if ( packet )
-                    {
-                        SendPacketToConnectedClient( i, packet );
-
-                        m_clientData[i].lastHeartBeatSendTime = GetTime();
-                    }
+                    m_clientData[i].lastHeartBeatSendTime = GetTime();
                 }
             }
         }
@@ -821,11 +807,11 @@ namespace yojimbo
 
         OnClientConnect( clientIndex );
 
-        HeartBeatPacket * heartBeatPacket = CreateHeartBeatPacket( clientIndex );
+        KeepAlivePacket * keepAlivePacket = CreateKeepAlivePacket( clientIndex );
 
-        if ( heartBeatPacket )
+        if ( keepAlivePacket )
         {
-            SendPacketToConnectedClient( clientIndex, heartBeatPacket );
+            SendPacketToConnectedClient( clientIndex, keepAlivePacket );
         }
     }
 
@@ -1091,7 +1077,7 @@ namespace yojimbo
         ConnectClient( clientIndex, address, challengeToken.clientId );
     }
 
-    void Server::ProcessHeartBeat( const HeartBeatPacket & /*packet*/, const Address & address )
+    void Server::ProcessKeepAlive( const KeepAlivePacket & /*packet*/, const Address & address )
     {
         assert( IsRunning() );
 
@@ -1152,11 +1138,11 @@ namespace yojimbo
         {
             if ( m_clientData[clientIndex].clientSalt == clientSalt )
             {
-                HeartBeatPacket * heartBeatPacket = CreateHeartBeatPacket( clientIndex );
+                KeepAlivePacket * keepAlivePacket = CreateKeepAlivePacket( clientIndex );
 
-                if ( heartBeatPacket )
+                if ( keepAlivePacket )
                 {
-                    SendPacketToConnectedClient( clientIndex, heartBeatPacket );
+                    SendPacketToConnectedClient( clientIndex, keepAlivePacket );
                 }
             }
 
@@ -1206,8 +1192,8 @@ namespace yojimbo
                 ProcessChallengeResponse( *(ChallengeResponsePacket*)packet, address );
                 return;
 
-            case CLIENT_SERVER_PACKET_HEARTBEAT:
-                ProcessHeartBeat( *(HeartBeatPacket*)packet, address );
+            case CLIENT_SERVER_PACKET_KEEPALIVE:
+                ProcessKeepAlive( *(KeepAlivePacket*)packet, address );
                 return;
 
             case CLIENT_SERVER_PACKET_DISCONNECT:
@@ -1241,9 +1227,9 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketReceiveTime = GetTime();
     }
 
-    HeartBeatPacket * Server::CreateHeartBeatPacket( int clientIndex )
+    KeepAlivePacket * Server::CreateKeepAlivePacket( int clientIndex )
     {
-        HeartBeatPacket * packet = (HeartBeatPacket*) CreateClientPacket( clientIndex, CLIENT_SERVER_PACKET_HEARTBEAT );
+        KeepAlivePacket * packet = (KeepAlivePacket*) CreateClientPacket( clientIndex, CLIENT_SERVER_PACKET_KEEPALIVE );
 
         if ( packet )
         {

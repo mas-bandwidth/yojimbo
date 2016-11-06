@@ -8,6 +8,16 @@ TODO
 
     ------------------
 
+    Unify the set of packets between shared.h and test
+
+    Rename "GamePacketFactory" to "TestPacketFactory".
+
+    ------------------
+
+    Implement counters for client and then move the user packets sent/received into counters in base client and server classes.
+
+    ------------------
+
     Rename "SimulatorTransport" to "LocalTransport" and move it into it's own file (or yojimbo_transport.*)
 
     Move the simulator hook up functionality into the transport by default, so all transport implementations can turn it on.

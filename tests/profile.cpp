@@ -124,7 +124,7 @@ Message * CreateRandomMessage( MessageFactory & messageFactory, uint64_t numMess
 {
     if ( rand() % 100 )
     {
-        GameMessage * message = (GameMessage*) messageFactory.Create( GAME_MESSAGE );
+        TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
         
         if ( message )
         {
@@ -135,7 +135,7 @@ Message * CreateRandomMessage( MessageFactory & messageFactory, uint64_t numMess
     }
     else
     {
-        GameBlockMessage * blockMessage = (GameBlockMessage*) messageFactory.Create( GAME_BLOCK_MESSAGE );
+        TestBlockMessage * blockMessage = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
 
         if ( blockMessage )
         {

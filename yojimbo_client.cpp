@@ -361,9 +361,9 @@ namespace yojimbo
                     }
                 }
 
-                if ( m_lastPacketSendTime + m_config.connectionHeartBeatRate <= time )
+                if ( m_lastPacketSendTime + m_config.connectionKeepAliveRate <= time )
                 {
-                    HeartBeatPacket * packet = (HeartBeatPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_HEARTBEAT );
+                    KeepAlivePacket * packet = (KeepAlivePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
 
                     if ( packet )
                     {
@@ -728,7 +728,7 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
     }
 
-    void Client::ProcessHeartBeat( const HeartBeatPacket & packet, const Address & address )
+    void Client::ProcessKeepAlive( const KeepAlivePacket & packet, const Address & address )
     {
         if ( !IsPendingConnect() && !IsConnected() )
             return;
@@ -781,8 +781,8 @@ namespace yojimbo
                 ProcessChallenge( *(ChallengePacket*)packet, address );
                 return;
 
-            case CLIENT_SERVER_PACKET_HEARTBEAT:
-                ProcessHeartBeat( *(HeartBeatPacket*)packet, address );
+            case CLIENT_SERVER_PACKET_KEEPALIVE:
+                ProcessKeepAlive( *(KeepAlivePacket*)packet, address );
                 return;
 
             case CLIENT_SERVER_PACKET_DISCONNECT:

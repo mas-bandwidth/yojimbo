@@ -30,6 +30,12 @@ Removed passing in uint64_t to callbacks. It would be frustrating to users, sinc
 
 Renamed "ProcessGamePacket" to "ProcessUserPacket". Whatever derives from client/server may not necessarily be a game.
 
+Unified the set of messages between shared.h and test
+
+Renamed GameMessageFactory to TestMessageFactory
+
+Renamed heartbeat packets to keep alive. A heart beat is constant, keep alive packets are not sent unless other packets are sent. Heartbeat is therefore a bad name.
+
 
 Saturday November 5th, 2016
 ===========================
