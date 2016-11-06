@@ -629,7 +629,7 @@ namespace yojimbo
 
     void Server::InitializeGlobalContext()
     {
-        // todo: should probably be created inside global allocator and created/destroyed with start/stop?
+        // todo: simplify context. there is no need to create these dynamically. split out user stuff into "user context" concept.
 
         if ( m_allocateConnections )       
         {

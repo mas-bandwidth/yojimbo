@@ -42,7 +42,9 @@ const uint32_t ProtocolId = 0x12341651;
 const int ClientPort = 30000;
 const int ServerPort = 40000;
 
+#if LOGGING
 static bool verbose_logging = false;
+#endif // #if LOGGING
 
 struct GamePacket : public Packet
 {
@@ -478,14 +480,13 @@ public:
         Initialize();
     }
 
+    // todo: could maybe move this counter into the base client/server classes on user packet processing
     uint64_t GetNumGamePacketsReceived() const
     {
         return m_numGamePacketsReceived;
     }
 
-    // todo: I don't like the idea of "GamePacket". whatever client or server implementation that derives from yojimbo base client and server, it's not necesasrily a game.
-    // I would suggest that "UserPacket" is a better name. Think about it.
-
+    // todo: move this into helpers in test.cpp -- doesn't need to live here in shared.
     void SendGamePacketToServer()
     {
         // todo: need an easy way to create a packet
@@ -495,6 +496,7 @@ public:
         SendPacketToServer( packet );
     }
 
+    // todo: count this in the base class
     bool ProcessUserPacket( Packet * packet )
     {
         if ( packet->GetType() == GAME_PACKET )

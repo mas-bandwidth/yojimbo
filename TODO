@@ -18,6 +18,12 @@ TODO
 
     ------------------
 
+    Move the user packet sent and received counters into the base client and game server.
+
+    Remove the functions to send/receive game packets from shared client/server and into tests.
+
+    =========================================
+
     Packet fragmentation and reassembly.
 
     Definitely needed for large snapshot blocks.

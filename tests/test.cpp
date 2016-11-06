@@ -1005,6 +1005,8 @@ void test_client_server_tokens()
     check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
 }
 
+// todo: no need to duplicate these here
+
 struct TestMessage : public Message
 {
     uint16_t sequence;
