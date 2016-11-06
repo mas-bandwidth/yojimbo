@@ -253,13 +253,14 @@ public:
         assert( clientIndex >= 0 );
         assert( clientIndex < GetMaxClients() );
         assert( IsClientConnected( clientIndex ) );
+        // todo: need a way to create packet easily with client index allocator
         GamePacket * packet = (GamePacket*) GetTransport()->CreatePacket( GAME_PACKET );
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToConnectedClient( clientIndex, packet );
     }
 
-    bool ProcessGamePacket( int clientIndex, Packet * packet, uint64_t /*sequence*/ )
+    bool ProcessUserPacket( int clientIndex, Packet * packet )
     {
         if ( packet->GetType() == GAME_PACKET )
         {
@@ -414,7 +415,7 @@ protected:
         }
     }
 
-    void OnPacketReceived( int packetType, const Address & from, uint64_t /*sequence*/ )
+    void OnPacketReceived( int packetType, const Address & from )
     {
         const char * packetTypeString = NULL;
 
@@ -455,10 +456,10 @@ protected:
 
 class GameClient : public Client
 {
-public:
-
     uint64_t m_numGamePacketsReceived;
     uint32_t m_gamePacketSequence;
+
+public:
 
     void Initialize()
     {
@@ -475,6 +476,34 @@ public:
         : Client( allocator, transport, config )
     {
         Initialize();
+    }
+
+    uint64_t GetNumGamePacketsReceived() const
+    {
+        return m_numGamePacketsReceived;
+    }
+
+    // todo: I don't like the idea of "GamePacket". whatever client or server implementation that derives from yojimbo base client and server, it's not necesasrily a game.
+    // I would suggest that "UserPacket" is a better name. Think about it.
+
+    void SendGamePacketToServer()
+    {
+        // todo: need an easy way to create a packet
+        GamePacket * packet = (GamePacket*) m_transport->CreatePacket( GAME_PACKET );
+        assert( packet );
+        packet->Initialize( ++m_gamePacketSequence );
+        SendPacketToServer( packet );
+    }
+
+    bool ProcessUserPacket( Packet * packet )
+    {
+        if ( packet->GetType() == GAME_PACKET )
+        {
+            m_numGamePacketsReceived++;
+            return true;
+        }
+
+        return false;
     }
 
 protected:
@@ -533,7 +562,7 @@ protected:
         }
     }
 
-    void OnPacketReceived( int packetType, const Address & from, uint64_t /*sequence*/ )
+    void OnPacketReceived( int packetType, const Address & from )
     {
         const char * packetTypeString = NULL;
 

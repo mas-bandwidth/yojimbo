@@ -2,9 +2,19 @@ DONE
 
 TODO
 
-    Next step, need to unify all the client/server functionality from the test.cpp game client/server instances to the shared.h game/server classes.
+    ------------------
 
     Reduce remaining client/server tests with helper functions for pump update, client connect etc.
+
+    ------------------
+
+    Rename "SimulatorTransport" to "LocalTransport" and move it into it's own file (or yojimbo_transport.*)
+
+    Move the simulator hook up functionality into the transport by default, so all transport implementations can turn it on.
+
+    Add a function to set all the network conditions on the base transport.
+
+    Clean up test code to use the "LocalTransport" instead of deriving its own simulator / simulator transport.
 
     ------------------
 

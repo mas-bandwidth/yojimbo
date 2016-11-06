@@ -1192,9 +1192,9 @@ namespace yojimbo
         m_clientData[clientIndex].fullyConnected = true;
     }
 
-    void Server::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
+    void Server::ProcessPacket( Packet * packet, const Address & address, uint64_t /*sequence*/ )
     {
-        OnPacketReceived( packet->GetType(), address, sequence );
+        OnPacketReceived( packet->GetType(), address );
         
         switch ( packet->GetType() )
         {
@@ -1235,7 +1235,7 @@ namespace yojimbo
 
         m_clientData[clientIndex].fullyConnected = true;
 
-        if ( !ProcessGamePacket( clientIndex, packet, sequence ) )
+        if ( !ProcessUserPacket( clientIndex, packet ) )
             return;
 
         m_clientData[clientIndex].lastPacketReceiveTime = GetTime();

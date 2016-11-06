@@ -1051,6 +1051,8 @@ struct TestBlockMessage : public BlockMessage
     YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
+// todo: do we really need specific test messages here? probably not
+
 enum MessageType
 {
     TEST_MESSAGE,
@@ -1063,146 +1065,7 @@ YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, TEST_NUM_MESS
     YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
-#if 0
-
-// todo: integrate this functionality into the shared.h GameServer and GameClient
-
-class GameClient : public Client
-{
-    uint64_t m_numGamePacketsReceived;
-    uint32_t m_gamePacketSequence;
-
-    void Initialize()
-    {
-        m_numGamePacketsReceived = 0;
-        m_gamePacketSequence = 0;
-    }
-
-public:
-
-    explicit GameClient( Allocator & allocator, Transport & transport, const ClientServerConfig & config ) : Client( allocator, transport, config )
-    {
-        Initialize();
-    }
-
-    void SendGamePacketToServer()
-    {
-        GamePacket * packet = (GamePacket*) m_transport->CreatePacket( GAME_PACKET );
-        assert( packet );
-        packet->Initialize( ++m_gamePacketSequence );
-        SendPacketToServer( packet );
-    }
-
-    MessageFactory * CreateMessageFactory( Allocator & allocator )
-    {
-        return YOJIMBO_NEW( allocator, TestMessageFactory, allocator );
-    }
-
-    void OnConnect( const Address & address )
-    {
-        m_numGamePacketsReceived = 0;
-
-        if ( verbose_logging )
-        {
-            char addressString[MaxAddressLength];
-            address.ToString( addressString, MaxAddressLength );
-            printf( "client connecting to %s\n", addressString );
-        }
-    }
-
-    void OnClientStateChange( int previousState, int currentState )
-    {
-        if ( verbose_logging )
-        {
-            assert( previousState != currentState );
-            const char * previousStateString = GetClientStateName( previousState );
-            const char * currentStateString = GetClientStateName( currentState );
-            printf( "client changed state from '%s' to '%s'\n", previousStateString, currentStateString );
-
-            if ( currentState == CLIENT_STATE_CONNECTED )
-            {
-                printf( "client connected as client %d\n", GetClientIndex() );
-            }
-        }
-    }
-
-    void OnDisconnect()
-    {
-        if ( verbose_logging )
-        {
-            printf( "client disconnected\n" );
-        }
-    }
-
-    PacketFactory * CreatePacketFactory( Allocator & allocator )
-    {
-        return YOJIMBO_NEW( allocator, GamePacketFactory, allocator );
-    }
-
-    void OnPacketSent( int packetType, const Address & to, bool immediate )
-    {
-        const char * packetTypeString = NULL;
-
-        switch ( packetType )
-        {
-            case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";                 break;  
-            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
-
-            default:
-                return;
-        }
-
-        if ( verbose_logging )
-        {
-            char addressString[MaxAddressLength];
-            to.ToString( addressString, MaxAddressLength );
-            printf( "client sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
-        }
-    }
-
-    void OnPacketReceived( int packetType, const Address & from, uint64_t /*sequence*/ )
-    {
-        const char * packetTypeString = NULL;
-
-        switch ( packetType )
-        {
-            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case CLIENT_SERVER_PACKET_CHALLENGE:                  packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_HEARTBEAT:                  packetTypeString = "heartbeat";             break;
-            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";            break;
-
-            default:
-                return;
-        }
-
-        if ( verbose_logging )
-        {
-            char addressString[MaxAddressLength];
-            from.ToString( addressString, MaxAddressLength );
-            printf( "client received %s packet from %s\n", packetTypeString, addressString );
-        }
-    }
-
-    uint64_t GetNumGamePacketsReceived() const
-    {
-        return m_numGamePacketsReceived;
-    }
-
-    bool ProcessGamePacket( Packet * packet, uint64_t /*sequence*/ )
-    {
-        if ( packet->GetType() == GAME_PACKET )
-        {
-            m_numGamePacketsReceived++;
-            return true;
-        }
-
-        return false;
-    }
-};
-
-#endif
+// all of this just to set the network conditions of the simulator by default. seems annoying?
 
 class TestNetworkSimulator : public NetworkSimulator
 {
@@ -1212,7 +1075,7 @@ public:
     {
         SetJitter( 250 );
         SetLatency( 256 );
-        SetDuplicates( 5 );
+        SetDuplicate( 5 );
         SetPacketLoss( 10 );
     }   
 };
@@ -3247,11 +3110,9 @@ void test_client_server_connect_client_id_already_connected()
     server.Stop();
 }
 
-void test_client_server_game_packets()
+void test_client_server_user_packets()
 {
-#if 0 // todo: bring across "SendGamePacketToServer" etc. helper functions
-
-    printf( "test_client_server_game_packets\n" );
+    printf( "test_client_server_user_packets\n" );
 
     uint64_t clientId = 1;
 
@@ -3381,8 +3242,6 @@ void test_client_server_game_packets()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 #if YOJIMBO_INSECURE_CONNECT
@@ -3872,9 +3731,11 @@ void test_connection_reliable_ordered_messages()
 
     TestNetworkSimulator networkSimulator;
 
+    // todo: make it easier to create simulator with network conditions setup
+
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
-    networkSimulator.SetDuplicates( 50 );
+    networkSimulator.SetDuplicate( 50 );
     networkSimulator.SetPacketLoss( 50 );
 
     const int SenderPort = 10000;
@@ -4016,9 +3877,11 @@ void test_connection_reliable_ordered_blocks()
 
     TestNetworkSimulator networkSimulator;
 
+    // todo: make it easier to create a simulator with initial conditions
+
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
-    networkSimulator.SetDuplicates( 50 );
+    networkSimulator.SetDuplicate( 50 );
     networkSimulator.SetPacketLoss( 50 );
 
     const int SenderPort = 10000;
@@ -4182,11 +4045,13 @@ void test_connection_reliable_ordered_messages_and_blocks()
         }
     }
 
+    // todo: make it easier to do this
+
     TestNetworkSimulator networkSimulator;
 
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
-    networkSimulator.SetDuplicates( 50 );
+    networkSimulator.SetDuplicate( 50 );
     networkSimulator.SetPacketLoss( 50 );
 
     const int SenderPort = 10000;
@@ -4373,11 +4238,13 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
         }
     }
 
+    // todo: make it easier to do this
+
     TestNetworkSimulator networkSimulator;
 
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
-    networkSimulator.SetDuplicates( 50 );
+    networkSimulator.SetDuplicate( 50 );
     networkSimulator.SetPacketLoss( 50 );
 
     const int SenderPort = 10000;
@@ -4553,10 +4420,10 @@ void test_connection_unreliable_unordered_messages()
 
     TestNetworkSimulator networkSimulator;
 
-    networkSimulator.SetPacketLoss( 0 );
     networkSimulator.SetLatency( 0 );
     networkSimulator.SetJitter( 0 );
-    networkSimulator.SetDuplicates( 0 );
+    networkSimulator.SetDuplicate( 0 );
+    networkSimulator.SetPacketLoss( 0 );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -4694,7 +4561,7 @@ void test_connection_unreliable_unordered_blocks()
     networkSimulator.SetPacketLoss( 0 );
     networkSimulator.SetLatency( 0 );
     networkSimulator.SetJitter( 0 );
-    networkSimulator.SetDuplicates( 0 );
+    networkSimulator.SetDuplicate( 0 );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -5176,7 +5043,7 @@ int main()
         test_client_server_connect_token_invalid();
         test_client_server_connect_address_already_connected();
         test_client_server_connect_client_id_already_connected();
-        test_client_server_game_packets();
+        test_client_server_user_packets();
 #if YOJIMBO_INSECURE_CONNECT
         test_client_server_insecure_connect();
         test_client_server_insecure_connect_timeout();

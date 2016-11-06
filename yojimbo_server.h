@@ -261,7 +261,7 @@ namespace yojimbo
 
         virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
 
-        virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/, uint64_t /*sequence*/ ) {}
+        virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/ ) {}
 
         virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
@@ -271,7 +271,7 @@ namespace yojimbo
 
         virtual void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*channelId*/ ) {}
 
-        virtual bool ProcessGamePacket( int /*clientIndex*/, Packet * /*packet*/, uint64_t /*sequence*/ ) { return false; }
+        virtual bool ProcessUserPacket( int /*clientIndex*/, Packet * /*packet*/ ) { return false; }
 
     protected:
 

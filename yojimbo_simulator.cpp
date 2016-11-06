@@ -81,7 +81,7 @@ namespace yojimbo
         m_packetLoss = percent;
     }
 
-    void NetworkSimulator::SetDuplicates( float percent )
+    void NetworkSimulator::SetDuplicate( float percent )
     {
         m_duplicates = percent;
     }

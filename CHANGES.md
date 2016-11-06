@@ -20,6 +20,16 @@ Doing the same for server packet factories.
 
 This is pretty good. Makes it easier to use the library and adapt sample code.
 
+Unified all the client/server functionality from the test.cpp game client/server instances to the shared.h game/server classes.
+
+Added notes for simulator refactor.
+
+Added more notes for client/server cleanup.
+
+Removed passing in uint64_t to callbacks. It would be frustrating to users, since the sequence # is only available with secure packets (libsodium), as it is the nonce. For insecure packets it will always be zero. This will trip somebody up. Best not to pass it in, and keep it to a transport specific concept for security only.
+
+Renamed "ProcessGamePacket" to "ProcessUserPacket". Whatever derives from client/server may not necessarily be a game.
+
 
 Saturday November 5th, 2016
 ===========================

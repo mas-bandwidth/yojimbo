@@ -104,3 +104,9 @@ WOULD BE NICE
     eg. pm coverity
 
     ------------------
+
+    I don't like the current context idea. It would be good for the stream to have a concept of client/server context, and separate "User Context" concept that can be just passed in. I don't like the idea of the user having to derive from my client/server context just to pass in their own context.
+
+    stream.GetUserContext() is the ideal here.
+
+    ------------------

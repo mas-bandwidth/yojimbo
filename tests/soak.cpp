@@ -67,9 +67,11 @@ int SoakMain()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
+    // todo: make it easier to create a network simulator with initial conditions setup
+
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 250 );
-    networkSimulator.SetDuplicates( 10 );
+    networkSimulator.SetDuplicate( 10 );
     networkSimulator.SetPacketLoss( 50 );
 
     Address clientAddress( "::1", ClientPort );

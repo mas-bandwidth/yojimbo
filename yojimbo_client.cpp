@@ -767,9 +767,9 @@ namespace yojimbo
         m_lastPacketReceiveTime = GetTime();
     }
 
-    void Client::ProcessPacket( Packet * packet, const Address & address, uint64_t sequence )
+    void Client::ProcessPacket( Packet * packet, const Address & address, uint64_t /*sequence*/ )
     {
-        OnPacketReceived( packet->GetType(), address, sequence );
+        OnPacketReceived( packet->GetType(), address );
         
         switch ( packet->GetType() )
         {
@@ -803,7 +803,7 @@ namespace yojimbo
         if ( address != m_serverAddress )
             return;
 
-        if ( !ProcessGamePacket( packet, sequence ) )
+        if ( !ProcessUserPacket( packet ) )
             return;
 
         m_lastPacketReceiveTime = GetTime();

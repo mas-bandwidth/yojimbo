@@ -49,7 +49,7 @@ namespace yojimbo
 
         void SetPacketLoss( float percent );
 
-        void SetDuplicates( float percent );
+        void SetDuplicate( float percent );
         
         void SendPacket( const Address & from, const Address & to, uint8_t * packetData, int packetSize );
 
@@ -97,6 +97,8 @@ namespace yojimbo
 
         PacketEntry * m_packetEntries;                  // pointer to dynamically allocated packet entries. this is where buffered packets are stored.
     };
+
+    // todo: rename this to "LocalTransport", and then move functionality for passing packets through simulator into base transport so all transports can use it.
 
     class SimulatorTransport : public BaseTransport
     {
