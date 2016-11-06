@@ -32,6 +32,7 @@
 #define SERVER 1
 #define CLIENT 1
 #define MATCHER 1
+#define LOGGING 0
 
 #include "shared.h"
 

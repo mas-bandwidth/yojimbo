@@ -218,17 +218,27 @@ public:
 
 class GameServer : public Server
 {
+    uint32_t m_gamePacketSequence;
+    uint64_t m_numGamePacketsReceived[MaxClients];
+
+    void Initialize()
+    {
+        SetPrivateKey( private_key );
+        m_gamePacketSequence = 0;
+        memset( m_numGamePacketsReceived, 0, sizeof( m_numGamePacketsReceived ) );
+    }
+
 public:
 
     explicit GameServer( Allocator & allocator, Transport & transport ) : Server( allocator, transport )
     {
-        SetPrivateKey( private_key );
+        Initialize();
     }
 
     explicit GameServer( Allocator & allocator, Transport & transport, const ClientServerConfig & config ) 
         : Server( allocator, transport, config )
     {
-        SetPrivateKey( private_key );
+        Initialize();
     }
 
     MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
@@ -237,6 +247,8 @@ public:
     }
 
 protected:
+
+#if LOGGING
 
     void OnConnectionRequest( ServerConnectionRequestAction action, const ConnectionRequestPacket & packet, const Address & address, const ConnectToken & connectToken )
     {
@@ -351,8 +363,6 @@ protected:
         printf( "client %d timed out (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
-#ifndef QUIET
-
     void OnPacketSent( int packetType, const Address & to, bool immediate )
     {
         const char * packetTypeString = NULL;
@@ -408,7 +418,7 @@ protected:
 #endif // #if !YOJIMBO_DEBUG_SPAM
     }
 
-#endif // #ifndef QUIET
+#endif // #if LOGGING
 };
 
 #endif // #if SERVER
@@ -440,7 +450,7 @@ public:
         return YOJIMBO_NEW( allocator, GameMessageFactory, allocator );
     }
 
-#ifndef QUIET
+#if LOGGING
 
     void OnConnect( const Address & address )
     {
@@ -513,7 +523,7 @@ public:
         }
     }
 
-#endif // #ifndef QUIET
+#endif // #if LOGGING
 };
 
 #endif // #if CLIENT

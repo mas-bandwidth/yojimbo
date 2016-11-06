@@ -23,6 +23,7 @@
 */
 
 #define SERVER 1
+#define LOGGING 1
 
 #include "shared.h"
 #include <signal.h>

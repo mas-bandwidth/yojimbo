@@ -1,4 +1,20 @@
 
+Sunday November 6th, 2016
+=========================
+
+Added #define LOGGING 1 inside shared.h and disabled logging for test.cpp include. This way no logs during tests unless I want them.
+
+
+Saturday November 5th, 2016
+===========================
+
+Unified the TestMatcher and the LocalMacher. It's all in shared.h now.
+
+Moved LocalMatcher matcher to a static instance, so it doesn't have to be declared in each test that uses it.    
+
+Moved the GamePacket and packet factory into shared.h
+
+
 Friday November 4th, 2016
 =========================
 
