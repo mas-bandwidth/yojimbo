@@ -255,8 +255,7 @@ public:
         assert( clientIndex >= 0 );
         assert( clientIndex < GetMaxClients() );
         assert( IsClientConnected( clientIndex ) );
-        // todo: need a way to create packet easily with client index allocator
-        GamePacket * packet = (GamePacket*) GetTransport()->CreatePacket( GAME_PACKET );
+        GamePacket * packet = (GamePacket*) CreateClientPacket( clientIndex, GAME_PACKET );
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToConnectedClient( clientIndex, packet );

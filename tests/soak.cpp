@@ -25,6 +25,7 @@
 #define SERVER 1
 #define CLIENT 1
 #define MATCHER 1
+#define LOGGING 1
 
 #include "shared.h"
 #include <signal.h>
@@ -267,7 +268,6 @@ int main()
     printf( "\nsoak test\n\n" );
 
     verbose_logging = true;
-
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize Yojimbo!\n" );

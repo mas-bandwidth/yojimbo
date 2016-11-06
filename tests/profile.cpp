@@ -365,8 +365,6 @@ int main()
 {
     printf( "\nprofile test\n\n" );
 
-    verbose_logging = true;
-
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize Yojimbo!\n" );
