@@ -241,12 +241,40 @@ public:
         Initialize();
     }
 
-    MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )
+    uint64_t GetNumGamePacketsReceived( int clientIndex ) const
     {
-        return YOJIMBO_NEW( allocator, GameMessageFactory, allocator );
+        assert( clientIndex >= 0 );
+        assert( clientIndex < GetMaxClients() );
+        return m_numGamePacketsReceived[clientIndex];
+    }
+
+    void SendGamePacketToClient( int clientIndex )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < GetMaxClients() );
+        assert( IsClientConnected( clientIndex ) );
+        GamePacket * packet = (GamePacket*) GetTransport()->CreatePacket( GAME_PACKET );
+        assert( packet );
+        packet->Initialize( ++m_gamePacketSequence );
+        SendPacketToConnectedClient( clientIndex, packet );
+    }
+
+    bool ProcessGamePacket( int clientIndex, Packet * packet, uint64_t /*sequence*/ )
+    {
+        if ( packet->GetType() == GAME_PACKET )
+        {
+            m_numGamePacketsReceived[clientIndex]++;
+            return true;
+        }
+
+        return false;
     }
 
 protected:
+
+    YOJIMBO_SERVER_PACKET_FACTORY( GamePacketFactory );
+
+    YOJIMBO_SERVER_MESSAGE_FACTORY( GameMessageFactory );
 
 #if LOGGING
 
@@ -429,26 +457,31 @@ class GameClient : public Client
 {
 public:
 
+    uint64_t m_numGamePacketsReceived;
+    uint32_t m_gamePacketSequence;
+
+    void Initialize()
+    {
+        m_numGamePacketsReceived = 0;
+        m_gamePacketSequence = 0;
+    }
+
     explicit GameClient( Allocator & allocator, Transport & transport ) : Client( allocator, transport )
     {
-        // ...
+        Initialize();
     }
 
     explicit GameClient( Allocator & allocator, Transport & transport, const ClientServerConfig & config ) 
         : Client( allocator, transport, config )
     {
-        // ...
+        Initialize();
     }
 
-    ~GameClient()
-    {
-        // ...
-    }
+protected:
 
-    MessageFactory * CreateMessageFactory( Allocator & allocator )
-    {
-        return YOJIMBO_NEW( allocator, GameMessageFactory, allocator );
-    }
+    YOJIMBO_CLIENT_PACKET_FACTORY( GamePacketFactory );
+
+    YOJIMBO_CLIENT_MESSAGE_FACTORY( GameMessageFactory );
 
 #if LOGGING
 

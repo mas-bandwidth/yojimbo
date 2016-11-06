@@ -4,6 +4,22 @@ Sunday November 6th, 2016
 
 Added #define LOGGING 1 inside shared.h and disabled logging for test.cpp include. This way no logs during tests unless I want them.
 
+Added macros:
+
+    YOJIMBO_CLIENT_PACKET_FACTORY( GamePacketFactory );
+
+    YOJIMBO_CLIENT_MESSAGE_FACTORY( GameMessageFactory );
+
+To make it easier to declare client packet factories vs. overriding the function manually. Easier for users of the library.
+
+Doing the same for server packet factories.
+
+    YOJIMBO_CLIENT_PACKET_FACTORY( GamePacketFactory );
+
+    YOJIMBO_CLIENT_MESSAGE_FACTORY( GameMessageFactory );
+
+This is pretty good. Makes it easier to use the library and adapt sample code.
+
 
 Saturday November 5th, 2016
 ===========================

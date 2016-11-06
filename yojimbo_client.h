@@ -248,4 +248,16 @@ namespace yojimbo
     };
 }
 
+#define YOJIMBO_CLIENT_PACKET_FACTORY( packet_factory_class )                                           \
+    PacketFactory * CreatePacketFactory( Allocator & allocator )                                        \
+    {                                                                                                   \
+        return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                               \
+    }
+
+#define YOJIMBO_CLIENT_MESSAGE_FACTORY( message_factory_class )                                         \
+    MessageFactory * CreateMessageFactory( Allocator & allocator )                                      \
+    {                                                                                                   \
+        return YOJIMBO_NEW( allocator, message_factory_class, allocator );                              \
+    }
+
 #endif // #ifndef YOJIMBO_CLIENT_H

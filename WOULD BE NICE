@@ -7,6 +7,10 @@ WOULD BE NICE
     I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
 
     ------------------
+
+    Add a YOJIMBO_CLIENT_ALLOCATOR( CustomAllocatorClass ), and a server version of this, which could implement a virtual to create the allocator around the class that the user wants to substitute for the allocator in client/server.
+
+    ------------------
     
     Add a test case for both unordered and ordered messages to show that it properly handles a message failing to serialize, 
 

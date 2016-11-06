@@ -403,4 +403,16 @@ namespace yojimbo
     };
 }
 
+#define YOJIMBO_SERVER_PACKET_FACTORY( packet_factory_class )                                                           \
+    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )      \
+    {                                                                                                                   \
+        return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                                               \
+    }
+
+#define YOJIMBO_SERVER_MESSAGE_FACTORY( message_factory_class )                                                         \
+    MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )    \
+    {                                                                                                                   \
+        return YOJIMBO_NEW( allocator, message_factory_class, allocator );                                              \
+    }
+
 #endif // #ifndef YOJIMBO_SERVER_H
