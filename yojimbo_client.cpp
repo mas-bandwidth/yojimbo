@@ -199,7 +199,7 @@ namespace yojimbo
         {
             for ( int i = 0; i < m_config.numDisconnectPackets; ++i )
             {
-                DisconnectPacket * packet = (DisconnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_DISCONNECT );            
+                DisconnectPacket * packet = (DisconnectPacket*) CreatePacket( CLIENT_SERVER_PACKET_DISCONNECT );            
 
                 if ( packet )
                 {
@@ -290,6 +290,11 @@ namespace yojimbo
         return m_clientState;
     }
 
+    Packet * Client::CreatePacket( int type )
+    {
+        return m_packetFactory->CreatePacket( type );
+    }
+
     void Client::SendPackets()
     {
         const double time = GetTime();
@@ -303,7 +308,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + m_config.insecureConnectSendRate > time )
                     return;
 
-                InsecureConnectPacket * packet = (InsecureConnectPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
+                InsecureConnectPacket * packet = (InsecureConnectPacket*) CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
                 if ( packet )
                 {
                     packet->clientSalt = m_clientSalt;
@@ -319,7 +324,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + m_config.connectionRequestSendRate > time )
                     return;
 
-                ConnectionRequestPacket * packet = (ConnectionRequestPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
+                ConnectionRequestPacket * packet = (ConnectionRequestPacket*) CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
 
                 if ( packet )
                 {
@@ -337,7 +342,7 @@ namespace yojimbo
                 if ( m_lastPacketSendTime + m_config.connectionResponseSendRate > time )
                     return;
 
-                ChallengeResponsePacket * packet = (ChallengeResponsePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE );
+                ChallengeResponsePacket * packet = (ChallengeResponsePacket*) CreatePacket( CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE );
                 
                 if ( packet )
                 {
@@ -363,7 +368,7 @@ namespace yojimbo
 
                 if ( m_lastPacketSendTime + m_config.connectionKeepAliveRate <= time )
                 {
-                    KeepAlivePacket * packet = (KeepAlivePacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
+                    KeepAlivePacket * packet = (KeepAlivePacket*) CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
 
                     if ( packet )
                     {
@@ -502,6 +507,13 @@ namespace yojimbo
     int Client::GetClientIndex() const
     {
         return m_clientIndex;
+    }
+
+    uint64_t Client::GetCounter( int index ) const 
+    {
+        assert( index >= 0 );
+        assert( index < NUM_CLIENT_COUNTERS );
+        return m_counters[index];
     }
 
     Allocator & Client::GetClientAllocator()

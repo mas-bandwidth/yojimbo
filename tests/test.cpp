@@ -987,7 +987,7 @@ void test_unencrypted_packets()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * sendPacket = clientTransport.CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
+        Packet * sendPacket = packetFactory.CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
         check( sendPacket );
         clientTransport.SendPacket( serverAddress, sendPacket, 0, false );
 
@@ -3059,7 +3059,7 @@ void test_client_server_user_packets()
 
     check( clientIndex != -1 );
 
-    const int NumGamePackets = 32;
+    const int NumUserPackets = 32;
 
     while ( true )
     {
@@ -3083,7 +3083,7 @@ void test_client_server_user_packets()
 
         time += 0.1f;
 
-        if ( client.GetNumGamePacketsReceived() >= NumGamePackets && server.GetNumGamePacketsReceived( clientIndex ) >= NumGamePackets )
+        if ( client.GetNumUserPacketsReceived() >= NumUserPackets && server.GetNumUserPacketsReceived( clientIndex ) >= NumUserPackets )
             break;
 
         client.AdvanceTime( time );
@@ -3093,7 +3093,7 @@ void test_client_server_user_packets()
         serverTransport.AdvanceTime( time );
     }
 
-    check( client.GetNumGamePacketsReceived() >= NumGamePackets && server.GetNumGamePacketsReceived( clientIndex ) >= NumGamePackets );
+    check( client.GetNumUserPacketsReceived() >= NumUserPackets && server.GetNumUserPacketsReceived( clientIndex ) >= NumUserPackets );
 
     client.Disconnect();
 

@@ -129,7 +129,7 @@ namespace yojimbo
         SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS,
         SERVER_COUNTER_GLOBAL_ALLOCATOR_ERRORS,
         
-        SERVER_COUNTER_NUM_COUNTERS
+        NUM_SERVER_COUNTERS
     };
 
     enum ServerConnectionRequestAction
@@ -393,7 +393,7 @@ namespace yojimbo
 
         ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
 
-        uint64_t m_counters[SERVER_COUNTER_NUM_COUNTERS];
+        uint64_t m_counters[NUM_SERVER_COUNTERS];
 
     private:
 

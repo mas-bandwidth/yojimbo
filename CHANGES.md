@@ -8,6 +8,14 @@ Renamed "GamePacketFactory" to "TestPacketFactory".
 
 This makes a lot of sense because the shared.h currently is the best example of how to extend client/server, so it should show how to take the client/server packets and extend them with custom user packets.
 
+Sketched out counters for client. No counters added yet, but the enum is there and all the functions so they can be added later.
+
+Removed "CreatePacket" from transport. Now that client/server manages the packet factory itself, it makes sense for create packets to be done there instead of transport. If a user is managing their own packet factory, they can still create packets via the packet factory.
+
+Added a "CreatePacket" method to client.
+
+Removed a bunch of old packet creates that were going through transports.
+
 
 Sunday November 6th, 2016
 =========================

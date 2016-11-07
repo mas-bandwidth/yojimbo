@@ -8,12 +8,6 @@ TODO
 
     ------------------
 
-    Implement counters for client
-
-    Move the user packets sent/received into counters in base client and server classes.
-
-    ------------------
-
     Rename "SimulatorTransport" to "LocalTransport" and move it into it's own file (or yojimbo_transport.*)
 
     Move the simulator hook up functionality into the transport by default, so all transport implementations can turn it on.
@@ -21,12 +15,6 @@ TODO
     Add a function to set all the network conditions on the base transport.
 
     Clean up test code to use the "LocalTransport" instead of deriving its own simulator / simulator transport.
-
-    ------------------
-
-    Move the user packet sent and received counters into the base client and game server.
-
-    Remove the functions to send/receive game packets from shared client/server and into tests.
 
     =========================================
 

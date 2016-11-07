@@ -298,14 +298,14 @@ public:
 
 class GameServer : public Server
 {
-    uint32_t m_gamePacketSequence;
-    uint64_t m_numGamePacketsReceived[MaxClients];
+    uint32_t m_userPacketSequence;
+    uint64_t m_numUserPacketsReceived[MaxClients];
 
     void Initialize()
     {
         SetPrivateKey( private_key );
-        m_gamePacketSequence = 0;
-        memset( m_numGamePacketsReceived, 0, sizeof( m_numGamePacketsReceived ) );
+        m_userPacketSequence = 0;
+        memset( m_numUserPacketsReceived, 0, sizeof( m_numUserPacketsReceived ) );
     }
 
 public:
@@ -321,11 +321,11 @@ public:
         Initialize();
     }
 
-    uint64_t GetNumGamePacketsReceived( int clientIndex ) const
+    uint64_t GetNumUserPacketsReceived( int clientIndex ) const
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < GetMaxClients() );
-        return m_numGamePacketsReceived[clientIndex];
+        return m_numUserPacketsReceived[clientIndex];
     }
 
     void SendUserPacketToClient( int clientIndex )
@@ -335,16 +335,15 @@ public:
         assert( IsClientConnected( clientIndex ) );
         TestUserPacket * packet = (TestUserPacket*) CreateClientPacket( clientIndex, TEST_USER_PACKET );
         assert( packet );
-        packet->Initialize( ++m_gamePacketSequence );
+        packet->Initialize( ++m_userPacketSequence );
         SendPacketToConnectedClient( clientIndex, packet );
     }
 
     bool ProcessUserPacket( int clientIndex, Packet * packet )
     {
-        // todo: move this counter into base class
         if ( packet->GetType() == TEST_USER_PACKET )
         {
-            m_numGamePacketsReceived[clientIndex]++;
+            m_numUserPacketsReceived[clientIndex]++;
             return true;
         }
 
@@ -558,25 +557,19 @@ public:
         Initialize();
     }
 
-    // todo: could maybe move this counter into the base client/server classes on user packet processing
-    uint64_t GetNumGamePacketsReceived() const
+    uint64_t GetNumUserPacketsReceived() const
     {
         return m_numGamePacketsReceived;
     }
 
-    // todo: move this into helpers in test.cpp -- doesn't need to live here in shared.
     void SendUserPacketToServer()
     {
-        // todo: need an easy way to create a packet
-        TestUserPacket * packet = (TestUserPacket*) m_transport->CreatePacket( TEST_USER_PACKET );
+        TestUserPacket * packet = (TestUserPacket*) CreatePacket( TEST_USER_PACKET );
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToServer( packet );
     }
 
-    // todo: maybe at the transport layer, counters for read/write per-packet type?
-
-    // todo: count this in the base class
     bool ProcessUserPacket( Packet * packet )
     {
         if ( packet->GetType() == TEST_USER_PACKET )

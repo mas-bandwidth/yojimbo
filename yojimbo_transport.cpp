@@ -173,12 +173,6 @@ namespace yojimbo
         m_receiveQueue.Clear();
     }
 
-    Packet * BaseTransport::CreatePacket( int type )
-    {
-        assert( m_packetFactory );
-        return m_packetFactory->CreatePacket( type );
-    }
-
     void BaseTransport::SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate )
     {
         assert( m_allocator );

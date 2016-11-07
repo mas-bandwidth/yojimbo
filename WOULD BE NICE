@@ -8,7 +8,9 @@ WOULD BE NICE
 
     ------------------
 
-    Add a YOJIMBO_CLIENT_ALLOCATOR( CustomAllocatorClass ), and a server version of this, which could implement a virtual to create the allocator around the class that the user wants to substitute for the allocator in client/server.
+    Add a YOJIMBO_ALLOCATOR( CustomAllocatorClass ) macro, so you can easily override inside client/server.
+
+    Users of the library are going to want the ability to do this easily. Not everybody will want to use TLSF (even though it's great).
 
     ------------------
     
@@ -108,5 +110,17 @@ WOULD BE NICE
     I don't like the current context idea. It would be good for the stream to have a concept of client/server context, and separate "User Context" concept that can be just passed in. I don't like the idea of the user having to derive from my client/server context just to pass in their own context.
 
     stream.GetUserContext() is the ideal here.
+
+    ------------------
+
+    It would be great to have stats inside the packet factory for the number of packets created of each type (uint64_t)
+
+    ------------------
+
+    Counters per-packet type in the packet processor, along with stats for the size of each packet serialized would be useful.
+
+    ------------------
+
+    Similarly, per-message type counters inside the connection would be great to help track down large messages (eg. min/max/average per-message type)
 
     ------------------

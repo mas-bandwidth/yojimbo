@@ -59,6 +59,13 @@ namespace yojimbo
         CLIENT_STATE_CONNECTED
     };
 
+    enum ClientCounters
+    {
+        CLIENT_COUNTER_SOMETHING,                                   // todo: should really add some client counters. they are useful for debugging
+        
+        NUM_CLIENT_COUNTERS
+    };
+
     const char * GetClientStateName( int clientState );
 
     class Client : public ConnectionListener
@@ -104,6 +111,8 @@ namespace yojimbo
 
         MessageFactory & GetMsgFactory();
 
+        Packet * CreatePacket( int type );
+
         void SendPackets();
 
         void ReceivePackets();
@@ -115,6 +124,8 @@ namespace yojimbo
         double GetTime() const;
 
         int GetClientIndex() const;
+
+        uint64_t GetCounter( int index ) const;
 
         Allocator & GetClientAllocator();
 
@@ -231,6 +242,8 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
         uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
+
+        uint64_t m_counters[NUM_CLIENT_COUNTERS];                           // counters to aid with debugging and stats
 
         uint8_t m_connectTokenData[ConnectTokenBytes];                      // encrypted connect token data for connection request packet
 

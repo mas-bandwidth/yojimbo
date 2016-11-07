@@ -307,7 +307,7 @@ namespace yojimbo
 
     Packet * Server::CreateGlobalPacket( int type )
     {
-        return m_transport->CreatePacket( type );
+        return m_globalPacketFactory->CreatePacket( type );
     }
 
     Packet * Server::CreateClientPacket( int clientIndex, int type )
@@ -546,7 +546,7 @@ namespace yojimbo
     uint64_t Server::GetCounter( int index ) const 
     {
         assert( index >= 0 );
-        assert( index < SERVER_COUNTER_NUM_COUNTERS );
+        assert( index < NUM_SERVER_COUNTERS );
         return m_counters[index];
     }
 
@@ -960,7 +960,7 @@ namespace yojimbo
             debug_printf( "denied connection request: server is full\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL, packet, address, connectToken );
             m_counters[SERVER_COUNTER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL]++;
-            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) m_transport->CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
+            ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
             {
                 SendPacket( address, connectionDeniedPacket );

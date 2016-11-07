@@ -33,6 +33,7 @@ solution "Yojimbo"
     configuration "Debug"
         symbols "On"
         defines { "DEBUG" }
+        defines { "_DEBUG" }
     configuration "Release"
         optimize "Speed"
         defines { "NDEBUG" }
