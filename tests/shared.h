@@ -46,12 +46,74 @@ const int ServerPort = 40000;
 static bool verbose_logging = false;
 #endif // #if LOGGING
 
-struct GamePacket : public Packet
+struct TestPacketA : public Packet
+{
+    int a,b,c;
+
+    TestPacketA()
+    {
+        a = 1;
+        b = 2;
+        c = 3;        
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {
+        serialize_int( stream, a, -10, 10 );
+        serialize_int( stream, b, -20, 20 );
+        serialize_int( stream, c, -30, 30 );
+        return true;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+struct TestPacketB : public Packet
+{
+    int x,y;
+
+    TestPacketB()
+    {
+        x = 0;
+        y = 1;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {
+        serialize_int( stream, x, -5, +5 );
+        serialize_int( stream, y, -5, +5 );
+        return true;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+struct TestPacketC : public Packet
+{
+    uint8_t data[16];
+
+    TestPacketC()
+    {
+        for ( int i = 0; i < (int) sizeof( data ); ++i )
+            data[i] = (uint8_t) i;
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {
+        for ( int i = 0; i < (int) sizeof( data ); ++i )
+            serialize_int( stream, data[i], 0, 255 );
+        return true;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
+struct TestUserPacket : public Packet
 {
     uint32_t sequence;
     uint32_t a,b,c;
 
-    GamePacket()
+    TestUserPacket()
     {
         sequence = 0;
         a = 0;
@@ -82,17 +144,25 @@ struct GamePacket : public Packet
         return true;
     }
 
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
-enum GamePackets
+enum TestPacketTypes
 {
-    GAME_PACKET = CLIENT_SERVER_NUM_PACKETS,
-    GAME_NUM_PACKETS
+    TEST_PACKET_A = CLIENT_SERVER_NUM_PACKETS,          // because we are extending client/server packets
+    TEST_PACKET_B,
+    TEST_PACKET_C,
+    TEST_USER_PACKET,
+    NUM_TEST_PACKETS
 };
 
-YOJIMBO_PACKET_FACTORY_START( GamePacketFactory, ClientServerPacketFactory, GAME_NUM_PACKETS );
-    YOJIMBO_DECLARE_PACKET_TYPE( GAME_PACKET, GamePacket );
+static const int TEST_PACKET_CONNECTION = CLIENT_SERVER_PACKET_CONNECTION;
+
+YOJIMBO_PACKET_FACTORY_START( TestPacketFactory, ClientServerPacketFactory, NUM_TEST_PACKETS );
+    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_A, TestPacketA );
+    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_B, TestPacketB );
+    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_C, TestPacketC );
+    YOJIMBO_DECLARE_PACKET_TYPE( TEST_USER_PACKET, TestUserPacket );
 YOJIMBO_PACKET_FACTORY_FINISH();
 
 inline int GetNumBitsForMessage( uint16_t sequence )
@@ -128,7 +198,7 @@ struct TestMessage : public Message
         return true;
     }
 
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 struct TestBlockMessage : public BlockMessage
@@ -146,7 +216,7 @@ struct TestBlockMessage : public BlockMessage
         return true;
     }
 
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 enum TestMessageType
@@ -258,12 +328,12 @@ public:
         return m_numGamePacketsReceived[clientIndex];
     }
 
-    void SendGamePacketToClient( int clientIndex )
+    void SendUserPacketToClient( int clientIndex )
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < GetMaxClients() );
         assert( IsClientConnected( clientIndex ) );
-        GamePacket * packet = (GamePacket*) CreateClientPacket( clientIndex, GAME_PACKET );
+        TestUserPacket * packet = (TestUserPacket*) CreateClientPacket( clientIndex, TEST_USER_PACKET );
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToConnectedClient( clientIndex, packet );
@@ -271,7 +341,8 @@ public:
 
     bool ProcessUserPacket( int clientIndex, Packet * packet )
     {
-        if ( packet->GetType() == GAME_PACKET )
+        // todo: move this counter into base class
+        if ( packet->GetType() == TEST_USER_PACKET )
         {
             m_numGamePacketsReceived[clientIndex]++;
             return true;
@@ -282,7 +353,7 @@ public:
 
 protected:
 
-    YOJIMBO_SERVER_PACKET_FACTORY( GamePacketFactory );
+    YOJIMBO_SERVER_PACKET_FACTORY( TestPacketFactory );
 
     YOJIMBO_SERVER_MESSAGE_FACTORY( TestMessageFactory );
 
@@ -494,19 +565,21 @@ public:
     }
 
     // todo: move this into helpers in test.cpp -- doesn't need to live here in shared.
-    void SendGamePacketToServer()
+    void SendUserPacketToServer()
     {
         // todo: need an easy way to create a packet
-        GamePacket * packet = (GamePacket*) m_transport->CreatePacket( GAME_PACKET );
+        TestUserPacket * packet = (TestUserPacket*) m_transport->CreatePacket( TEST_USER_PACKET );
         assert( packet );
         packet->Initialize( ++m_gamePacketSequence );
         SendPacketToServer( packet );
     }
 
+    // todo: maybe at the transport layer, counters for read/write per-packet type?
+
     // todo: count this in the base class
     bool ProcessUserPacket( Packet * packet )
     {
-        if ( packet->GetType() == GAME_PACKET )
+        if ( packet->GetType() == TEST_USER_PACKET )
         {
             m_numGamePacketsReceived++;
             return true;
@@ -517,7 +590,7 @@ public:
 
 protected:
 
-    YOJIMBO_CLIENT_PACKET_FACTORY( GamePacketFactory );
+    YOJIMBO_CLIENT_PACKET_FACTORY( TestPacketFactory );
 
     YOJIMBO_CLIENT_MESSAGE_FACTORY( TestMessageFactory );
 

@@ -347,7 +347,7 @@ struct TestObject : public Serializable
         return true;
     }
 
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 
     bool operator == ( const TestObject & other ) const
     {
@@ -391,86 +391,6 @@ void test_stream()
 
     check( readObject == writeObject );
 }
-
-struct TestPacketA : public Packet
-{
-    int a,b,c;
-
-    TestPacketA()
-    {
-        a = 1;
-        b = 2;
-        c = 3;        
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {
-        serialize_int( stream, a, -10, 10 );
-        serialize_int( stream, b, -20, 20 );
-        serialize_int( stream, c, -30, 30 );
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-struct TestPacketB : public Packet
-{
-    int x,y;
-
-    TestPacketB()
-    {
-        x = 0;
-        y = 1;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {
-        serialize_int( stream, x, -5, +5 );
-        serialize_int( stream, y, -5, +5 );
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-struct TestPacketC : public Packet
-{
-    uint8_t data[16];
-
-    TestPacketC()
-    {
-        for ( int i = 0; i < (int) sizeof( data ); ++i )
-            data[i] = (uint8_t) i;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {
-        for ( int i = 0; i < (int) sizeof( data ); ++i )
-            serialize_int( stream, data[i], 0, 255 );
-        return true;
-    }
-
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-enum TestPacketTypes
-{
-    TEST_PACKET_A,
-    TEST_PACKET_B,
-    TEST_PACKET_C,
-    TEST_PACKET_CONNECTION,
-    TEST_PACKET_NUM_TYPES
-};
-
-YOJIMBO_PACKET_FACTORY_START( TestPacketFactory, PacketFactory, TEST_PACKET_NUM_TYPES );
-
-    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_A, TestPacketA );
-    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_B, TestPacketB );
-    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_C, TestPacketC );
-    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_CONNECTION, ConnectionPacket );
-
-YOJIMBO_PACKET_FACTORY_FINISH();
 
 void test_packets()
 {
@@ -1036,7 +956,7 @@ void test_unencrypted_packets()
 {
     printf( "test_unencrypted_packets\n" );
 
-    GamePacketFactory packetFactory;
+    TestPacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -3143,8 +3063,8 @@ void test_client_server_user_packets()
 
     while ( true )
     {
-        client.SendGamePacketToServer();
-        server.SendGamePacketToClient( clientIndex );
+        client.SendUserPacketToServer();
+        server.SendUserPacketToClient( clientIndex );
 
         client.SendPackets();
         server.SendPackets();

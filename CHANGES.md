@@ -1,4 +1,14 @@
 
+Monday November 7th, 2016
+=========================
+
+Unified the set of packets between shared.h and test
+
+Renamed "GamePacketFactory" to "TestPacketFactory".
+
+This makes a lot of sense because the shared.h currently is the best example of how to extend client/server, so it should show how to take the client/server packets and extend them with custom user packets.
+
+
 Sunday November 6th, 2016
 =========================
 

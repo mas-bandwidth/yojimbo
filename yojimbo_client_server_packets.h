@@ -52,14 +52,14 @@ namespace yojimbo
             return true;
         }
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
     struct ConnectionDeniedPacket : public Packet
     {
         template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return true; }
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
     struct ChallengePacket : public Packet
@@ -80,7 +80,7 @@ namespace yojimbo
             return true;
         }
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
     struct ChallengeResponsePacket : public Packet
@@ -101,7 +101,7 @@ namespace yojimbo
             return true;
         }
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
     struct KeepAlivePacket : public Packet
@@ -119,14 +119,14 @@ namespace yojimbo
             return true; 
         }
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
     struct DisconnectPacket : public Packet
     {
         template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return true; }
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
 #if YOJIMBO_INSECURE_CONNECT
@@ -146,7 +146,7 @@ namespace yojimbo
             return true;
         }
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
 #endif // #if YOJIMBO_INSECURE_CONNECT

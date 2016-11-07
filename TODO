@@ -8,13 +8,9 @@ TODO
 
     ------------------
 
-    Unify the set of packets between shared.h and test
+    Implement counters for client
 
-    Rename "GamePacketFactory" to "TestPacketFactory".
-
-    ------------------
-
-    Implement counters for client and then move the user packets sent/received into counters in base client and server classes.
+    Move the user packets sent/received into counters in base client and server classes.
 
     ------------------
 

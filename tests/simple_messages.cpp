@@ -147,7 +147,7 @@ struct SmallMessage : public Message
     int messageSize;
     uint8_t messageData[MaxSmallMessageSize];
 
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 struct LargeMessage : public BlockMessage
@@ -156,7 +156,7 @@ struct LargeMessage : public BlockMessage
 
     template <typename Stream> bool Serialize( Stream & stream ) { (void)stream; return true; }
 
-    YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
 enum MessageType

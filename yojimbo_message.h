@@ -137,7 +137,7 @@ namespace yojimbo
 
         template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return true; }
 
-        YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 
     private:
 

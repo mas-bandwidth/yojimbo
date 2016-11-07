@@ -501,7 +501,7 @@ namespace yojimbo
         virtual bool SerializeInternal( class MeasureStream & stream ) = 0;
     };
 
-    #define YOJIMBO_ADD_VIRTUAL_SERIALIZE_FUNCTIONS()                                                           \
+    #define YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()                                                               \
         bool SerializeInternal( class yojimbo::ReadStream & stream ) { return Serialize( stream ); };           \
         bool SerializeInternal( class yojimbo::WriteStream & stream ) { return Serialize( stream ); };          \
         bool SerializeInternal( class yojimbo::MeasureStream & stream ) { return Serialize( stream ); };         
