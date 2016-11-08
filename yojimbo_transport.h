@@ -273,8 +273,8 @@ namespace yojimbo
         LocalTransport( Allocator & allocator,
                         NetworkSimulator & networkSimulator,
                         const Address & address,
-                        uint32_t protocolId = 0x12345,          // todo: default constants for this shared between base and local
-                        int maxPacketSize = 4 * 1024,
+                        uint32_t protocolId = 1,
+                        int maxPacketSize = 4 * 1024,                       // todo: shared default constants in yojimbo_config.h
                         int sendQueueSize = 1024,
                         int receiveQueueSize = 1024 )
             : BaseTransport( allocator, address, protocolId, maxPacketSize, sendQueueSize, receiveQueueSize, false ) 

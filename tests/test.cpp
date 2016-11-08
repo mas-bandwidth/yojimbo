@@ -2677,8 +2677,6 @@ void test_client_server_connect_token_invalid()
 
 void test_client_server_connect_address_already_connected()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connect_address_already_connected\n" );
 
     uint64_t clientId = 1;
@@ -2707,10 +2705,13 @@ void test_client_server_connect_address_already_connected()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -2772,7 +2773,7 @@ void test_client_server_connect_address_already_connected()
         exit( 1 );
     }
 
-    TestNetworkTransport clientTransport2( networkSimulator, clientAddress );
+    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress );
     
     GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
 
@@ -2824,14 +2825,10 @@ void test_client_server_connect_address_already_connected()
     client2.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_connect_client_id_already_connected()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connect_client_id_already_connected\n" );
 
     uint64_t clientId = 1;
@@ -2860,10 +2857,13 @@ void test_client_server_connect_client_id_already_connected()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -2927,7 +2927,7 @@ void test_client_server_connect_client_id_already_connected()
         exit( 1 );
     }
 
-    TestNetworkTransport clientTransport2( networkSimulator, clientAddress2 );
+    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress2 );
     
     GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
 
@@ -2979,14 +2979,10 @@ void test_client_server_connect_client_id_already_connected()
     client2.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_user_packets()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_user_packets\n" );
 
     uint64_t clientId = 1;
@@ -3015,10 +3011,13 @@ void test_client_server_user_packets()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -3117,25 +3116,24 @@ void test_client_server_user_packets()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 #if YOJIMBO_INSECURE_CONNECT
 
 void test_client_server_insecure_connect()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_insecure_connect\n" );
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -3199,22 +3197,18 @@ void test_client_server_insecure_connect()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_insecure_connect_timeout()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_insecure_connect_timeout\n" );
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
 
     double time = 0.0;
 
@@ -3253,8 +3247,6 @@ void test_client_server_insecure_connect_timeout()
     check( !client.IsConnected() );
     check( client.ConnectionFailed() );
     check( client.GetClientState() == CLIENT_STATE_INSECURE_CONNECT_TIMEOUT );
-
-#endif
 }
 
 #endif // #if YOJIMBO_INSECURE_CONNECT
@@ -3404,7 +3396,6 @@ void test_sequence_buffer()
 
     for ( int i = 0; i <= Size; ++i )
     {
-        // note: outside bounds!
         TestSequenceData * entry = sequence_buffer.Insert( i );
         check( !entry );
     }    
@@ -3583,8 +3574,6 @@ void test_connection_acks()
 
 void test_connection_reliable_ordered_messages()
 {
-#if 0 // todo: need local transport
-
     printf( "test_connection_reliable_ordered_messages\n" );
 
     TestPacketFactory packetFactory;
@@ -3612,9 +3601,7 @@ void test_connection_reliable_ordered_messages()
         sender.SendMsg( message );
     }
 
-    TestNetworkSimulator networkSimulator;
-
-    // todo: make it easier to create simulator with network conditions setup
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
@@ -3627,8 +3614,8 @@ void test_connection_reliable_ordered_messages()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -3722,14 +3709,10 @@ void test_connection_reliable_ordered_messages()
     }
 
     check( numMessagesReceived == NumMessagesSent );
-
-#endif
 }
 
 void test_connection_reliable_ordered_blocks()
 {
-#if 0 // todo: need local transport
-
     printf( "test_connection_reliable_ordered_blocks\n" );
 
     TestPacketFactory packetFactory;
@@ -3762,9 +3745,7 @@ void test_connection_reliable_ordered_blocks()
         sender.SendMsg( message );
     }
 
-    TestNetworkSimulator networkSimulator;
-
-    // todo: make it easier to create a simulator with initial conditions
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
@@ -3777,8 +3758,8 @@ void test_connection_reliable_ordered_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -3886,14 +3867,10 @@ void test_connection_reliable_ordered_blocks()
     }
 
     check( numMessagesReceived == NumMessagesSent );
-
-#endif
 }
 
 void test_connection_reliable_ordered_messages_and_blocks()
 {
-#if 0 // todo: need local transport
-
     printf( "test_connection_reliable_ordered_messages_and_blocks\n" );
 
     TestPacketFactory packetFactory;
@@ -3936,9 +3913,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
         }
     }
 
-    // todo: make it easier to do this
-
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
@@ -3951,8 +3926,8 @@ void test_connection_reliable_ordered_messages_and_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -4075,14 +4050,10 @@ void test_connection_reliable_ordered_messages_and_blocks()
     }
 
     check( numMessagesReceived == NumMessagesSent );
-
-#endif
 }
 
 void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 {
-#if 0 // todo: need local transport
-
     printf( "test_connection_reliable_ordered_messages_and_blocks_multiple_channels\n" );
 
     const int NumChannels = 2;
@@ -4133,9 +4104,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
         }
     }
 
-    // todo: make it easier to do this
-
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
     networkSimulator.SetJitter( 250 );
     networkSimulator.SetLatency( 1000 );
@@ -4148,8 +4117,8 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -4290,14 +4259,10 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     {
         check( numMessagesReceived[channelId] == NumMessagesSent );
     }
-
-#endif
 }
 
 void test_connection_unreliable_unordered_messages()
 {
-#if 0 // todo: need local transport
-
     printf( "test_connection_unreliable_unordered_messages\n" );
 
     TestPacketFactory packetFactory;
@@ -4317,12 +4282,7 @@ void test_connection_unreliable_unordered_messages()
     context.messageFactory = &messageFactory;
     context.connectionConfig = &connectionConfig;
 
-    TestNetworkSimulator networkSimulator;
-
-    networkSimulator.SetLatency( 0 );
-    networkSimulator.SetJitter( 0 );
-    networkSimulator.SetDuplicate( 0 );
-    networkSimulator.SetPacketLoss( 0 );
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -4330,8 +4290,8 @@ void test_connection_unreliable_unordered_messages()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -4432,14 +4392,10 @@ void test_connection_unreliable_unordered_messages()
 
         networkSimulator.AdvanceTime( time );
     }
-
-#endif
 }
 
 void test_connection_unreliable_unordered_blocks()
 {
-#if 0 // todo: need local transport
-
     printf( "test_connection_unreliable_unordered_blocks\n" );
 
     TestPacketFactory packetFactory;
@@ -4459,12 +4415,7 @@ void test_connection_unreliable_unordered_blocks()
     context.messageFactory = &messageFactory;
     context.connectionConfig = &connectionConfig;
 
-    TestNetworkSimulator networkSimulator;
-
-    networkSimulator.SetPacketLoss( 0 );
-    networkSimulator.SetLatency( 0 );
-    networkSimulator.SetJitter( 0 );
-    networkSimulator.SetDuplicate( 0 );
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -4472,8 +4423,8 @@ void test_connection_unreliable_unordered_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    SimulatorTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    SimulatorTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -4592,8 +4543,6 @@ void test_connection_unreliable_unordered_blocks()
 
         networkSimulator.AdvanceTime( time );
     }
-
-#endif
 }
 
 void SendClientToServerMessages( Client & client, int numMessagesToSend )
@@ -4816,8 +4765,6 @@ void ConnectClient( Client & client, uint64_t clientId, const Address & serverAd
 
 void test_client_server_messages()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_messages\n" );
 
     GenerateKey( private_key );
@@ -4827,9 +4774,10 @@ void test_client_server_messages()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+    
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
 
     double time = 0.0;
 
@@ -4901,8 +4849,6 @@ void test_client_server_messages()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 int main()

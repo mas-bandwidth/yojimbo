@@ -61,7 +61,7 @@ namespace yojimbo
 
     enum ClientCounters
     {
-        CLIENT_COUNTER_SOMETHING,                                   // todo: should really add some client counters. they are useful for debugging
+        CLIENT_COUNTER_SOMETHING,               // todo: add some client counters. they are useful for debugging
         
         NUM_CLIENT_COUNTERS
     };
