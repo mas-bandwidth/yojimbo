@@ -42,6 +42,8 @@ Base transport has a user context.
 
 Added SetUserContext functions to client and server. They just directly shim onto Transport::SetUserContext.
 
+Simplified global and per-client context in yojimbo server, now that they don't need to potentially be derived by the user, user can just use user context instead. Much simpler.
+
 
 Sunday November 6th, 2016
 =========================

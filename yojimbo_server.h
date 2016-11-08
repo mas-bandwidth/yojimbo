@@ -281,15 +281,15 @@ namespace yojimbo
 
         Allocator & GetAllocator( ServerResourceType type, int clientIndex );
 
-        virtual void InitializeGlobalContext();
+        virtual void InitializeGlobalContext( const ConnectionConfig & connectionConfig );
+
+        virtual void InitializeClientContext( int clientIndex, const ConnectionConfig & connectionConfig, MessageFactory & messageFactory );
 
         virtual void SetEncryptedPacketTypes();
 
         virtual PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType type, int clientIndex );
 
         virtual MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType type, int clientIndex );
-
-        virtual ClientServerContext * CreateContext( Allocator & allocator, ServerResourceType type, int clientIndex );
 
         virtual void ResetClientState( int clientIndex );
 
@@ -351,9 +351,9 @@ namespace yojimbo
 
         Transport * m_transport;                                            // transport interface for sending and receiving packets.
 
-        ClientServerContext * m_globalContext;                              // global serialization context for client/server packets. used prior to connection.
+        ClientServerContext m_globalContext;                                // global serialization context for client/server packets. used prior to connection.
 
-        ClientServerContext * m_clientContext[MaxClients];                  // per-client serialization context for client/server packets once connected.
+        ClientServerContext m_clientContext[MaxClients];                    // per-client serialization context for client/server packets once connected.
 
         PacketFactory * m_globalPacketFactory;                              // packet factory for global packets (eg. conection request, challenge response packets prior to connection).
 
@@ -404,7 +404,7 @@ namespace yojimbo
 }
 
 #define YOJIMBO_SERVER_PACKET_FACTORY( packet_factory_class )                                                           \
-    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )      \
+    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*client`dex*/ )      \
     {                                                                                                                   \
         return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                                               \
     }
