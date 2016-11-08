@@ -204,6 +204,8 @@ namespace yojimbo
         m_time = time;
     }
 
+#if 0 // todo: remove this or convert to "LocalTransport"
+
     SimulatorTransport::SimulatorTransport( Allocator & allocator, 
                                             NetworkSimulator & networkSimulator,
                                             const Address & address,
@@ -281,6 +283,8 @@ namespace yojimbo
 
         return packetSize;
     }
+
+#endif // #if 0
 }
 
 #endif // #if YOJIMBO_NETWORK_SIMULATOR

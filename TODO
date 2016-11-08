@@ -1,10 +1,8 @@
 DONE    
 
+    Removed 
+
 TODO
-
-    ------------------
-
-    Reduce remaining client/server tests with helper functions for pump update, client connect etc.
 
     ------------------
 
@@ -15,6 +13,10 @@ TODO
     Add a function to set all the network conditions on the base transport.
 
     Clean up test code to use the "LocalTransport" instead of deriving its own simulator / simulator transport.
+
+    ------------------
+
+    Reduce remaining client/server tests with helper functions for pump update, client connect etc.
 
     =========================================
 

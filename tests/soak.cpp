@@ -30,7 +30,8 @@
 #include "shared.h"
 #include <signal.h>
 
-static const int MaxBlockSize = 25 * 1024;
+// todo
+//static const int MaxBlockSize = 25 * 1024;
 
 static volatile int quit = 0;
 
@@ -65,6 +66,8 @@ int SoakMain()
         printf( "error: request match failed\n" );
         return 1;
     }
+
+#if 0 // todo: need local transport
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
@@ -259,6 +262,8 @@ int SoakMain()
     client.Disconnect();
     
     server.Stop();
+
+#endif
 
     return 0;
 }

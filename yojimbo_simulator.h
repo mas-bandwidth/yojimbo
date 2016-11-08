@@ -98,35 +98,6 @@ namespace yojimbo
         PacketEntry * m_packetEntries;                  // pointer to dynamically allocated packet entries. this is where buffered packets are stored.
     };
 
-    // todo: rename this to "LocalTransport", and then move functionality for passing packets through simulator into base transport so all transports can use it.
-
-    class SimulatorTransport : public BaseTransport
-    {
-    public:
-
-        SimulatorTransport( Allocator & allocator,
-                            NetworkSimulator & networkSimulator,
-                            const Address & address,
-                            uint32_t protocolId,
-                            int maxPacketSize = 4 * 1024,
-                            int sendQueueSize = 1024,
-                            int receiveQueueSize = 1024 );
-
-        ~SimulatorTransport();
-
-        void AdvanceTime( double time );
-
-    protected:
-
-        virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
-    
-        virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
-
-    private:
-
-        NetworkSimulator * m_networkSimulator;
-    };
-
 #endif // #if YOJIMBO_NETWORK_SIMULATOR
 }
 
