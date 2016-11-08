@@ -130,7 +130,18 @@ namespace yojimbo
 
     BaseTransport::~BaseTransport()
     {
+        assert( m_packetProcessor );
+        assert( m_contextManager );
+        assert( m_encryptionManager );
+#if YOJIMBO_NETWORK_SIMULATOR
+        assert( m_networkSimulator );
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+
         ClearPacketFactory();
+
+#if YOJIMBO_NETWORK_SIMULATOR
+        m_networkSimulator->DiscardPackets();
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
 		YOJIMBO_DELETE( *m_allocator, ContextManager, m_contextManager );

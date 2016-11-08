@@ -55,7 +55,9 @@ namespace yojimbo
 
         uint8_t * ReceivePacket( Address & from, const Address & to, int & packetSize );
 
-        void DiscardPackets( const Address & address );
+        void DiscardPackets();
+
+        void DiscardPacketsFromAddress( const Address & address );
 
         void AdvanceTime( double time );
 

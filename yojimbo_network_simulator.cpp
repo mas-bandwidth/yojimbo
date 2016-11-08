@@ -180,7 +180,22 @@ namespace yojimbo
         return packetData;
     }
 
-    void NetworkSimulator::DiscardPackets( const Address & address )
+    void NetworkSimulator::DiscardPackets()
+    {
+        for ( int i = 0; i < m_numPacketEntries; ++i )
+        {
+            PacketEntry & packetEntry = m_packetEntries[i];
+
+            if ( !packetEntry.packetData )
+                continue;
+
+            m_allocator->Free( packetEntry.packetData );
+
+            packetEntry = PacketEntry();
+        }
+    }
+
+    void NetworkSimulator::DiscardPacketsFromAddress( const Address & address )
     {
         for ( int i = 0; i < m_numPacketEntries; ++i )
         {
