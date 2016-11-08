@@ -258,7 +258,22 @@ namespace yojimbo
 
         EncryptionManager * m_encryptionManager;
 
+#if YOJIMBO_NETWORK_SIMULATOR
+        class NetworkSimulator * m_networkSimulator;
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+
         uint64_t m_counters[TRANSPORT_COUNTER_NUM_COUNTERS];
+    };
+
+    class LocalTransport : public BaseTransport
+    {
+    public:
+
+    protected:
+
+        bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
+    
+        int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
     };
 }
 

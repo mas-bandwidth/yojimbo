@@ -23,6 +23,7 @@
 */
 
 #include "yojimbo_transport.h"
+#include "yojimbo_network_simulator.h"
 #include "yojimbo_common.h"
 #include <stdint.h>
 #include <inttypes.h>
@@ -73,6 +74,10 @@ namespace yojimbo
 		m_contextManager = YOJIMBO_NEW( allocator, ContextManager );
 
 		m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
+
+#if YOJIMBO_NETWORK_SIMULATOR
+        m_networkSimulator = YOJIMBO_NEW( allocator, NetworkSimulator );
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
 	}
 
     void BaseTransport::SetPacketFactory( PacketFactory & packetFactory )
@@ -130,6 +135,9 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
 		YOJIMBO_DELETE( *m_allocator, ContextManager, m_contextManager );
 		YOJIMBO_DELETE( *m_allocator, EncryptionManager, m_encryptionManager );
+#if YOJIMBO_NETWORK_SIMULATOR
+        YOJIMBO_DELETE( *m_allocator, NetworkSimulator, m_networkSimulator );
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         m_allocator = NULL;
     }

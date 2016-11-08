@@ -22,7 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "yojimbo_simulator.h"
+#include "yojimbo_network_simulator.h"
 
 #if YOJIMBO_NETWORK_SIMULATOR
 

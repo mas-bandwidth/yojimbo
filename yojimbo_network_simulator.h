@@ -22,8 +22,8 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef YOJIMBO_SIMULATOR_H
-#define YOJIMBO_SIMULATOR_H
+#ifndef YOJIMBO_NETWORK_SIMULATOR_H
+#define YOJIMBO_NETWORK_SIMULATOR_H
 
 #include "yojimbo_config.h"
 #include "yojimbo_common.h"

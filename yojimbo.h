@@ -33,7 +33,7 @@
 #include "yojimbo_sockets.h"
 #include "yojimbo_matcher.h"
 #include "yojimbo_platform.h"
-#include "yojimbo_simulator.h"
+#include "yojimbo_network_simulator.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
