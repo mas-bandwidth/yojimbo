@@ -275,21 +275,21 @@ namespace yojimbo
 
     protected:
 
-        virtual void CreateAllocators();
-
-        virtual void DestroyAllocators(); 
-
-        Allocator & GetAllocator( ServerResourceType type, int clientIndex );
-
         virtual void InitializeGlobalContext( const ConnectionConfig & connectionConfig );
 
         virtual void InitializeClientContext( int clientIndex, const ConnectionConfig & connectionConfig, MessageFactory & messageFactory );
 
         virtual void SetEncryptedPacketTypes();
 
-        virtual PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType type, int clientIndex );
+        virtual void CreateAllocators();
 
-        virtual MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType type, int clientIndex );
+        virtual void DestroyAllocators(); 
+
+        Allocator & GetAllocator( ServerResourceType type, int clientIndex = 0 );
+
+        virtual PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType type, int clientIndex = 0 );
+
+        virtual MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType type, int clientIndex = 0 );
 
         virtual void ResetClientState( int clientIndex );
 

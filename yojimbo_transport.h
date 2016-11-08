@@ -210,7 +210,7 @@ namespace yojimbo
 
         Allocator & GetAllocator() { assert( m_allocator ); return *m_allocator; }
 
-    private:
+    protected:
 
         Address m_address;
 

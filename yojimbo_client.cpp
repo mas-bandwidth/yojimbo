@@ -77,6 +77,7 @@ namespace yojimbo
         m_sequence = 0;
         m_connectTokenExpireTimestamp = 0;
         m_shouldDisconnect = false;
+        memset( m_counters, 0, sizeof( m_counters ) );
         memset( m_connectTokenData, 0, sizeof( m_connectTokenData ) );
         memset( m_connectTokenNonce, 0, sizeof( m_connectTokenNonce ) );
         memset( m_challengeTokenData, 0, sizeof( m_challengeTokenData ) );
@@ -291,7 +292,8 @@ namespace yojimbo
 
     Packet * Client::CreatePacket( int type )
     {
-        return m_packetFactory->CreatePacket( type );
+        assert( m_packetFactory );
+        return m_packetFactory ? m_packetFactory->CreatePacket( type ) : NULL;
     }
 
     void Client::SendPackets()

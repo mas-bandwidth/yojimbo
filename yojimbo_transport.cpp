@@ -557,6 +557,9 @@ namespace yojimbo
     {
         assert( time >= m_time );
         m_time = time;
+#if YOJIMBO_NETWORK_SIMULATOR
+        m_networkSimulator->AdvanceTime( time );
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
     double BaseTransport::GetTime() const
@@ -594,5 +597,66 @@ namespace yojimbo
     const PacketFactory * BaseTransport::GetPacketFactory() const
     {
         return m_packetFactory;
+    }
+
+    bool LocalTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
+    {
+#if YOJIMBO_NETWORK_SIMULATOR
+
+        assert( m_networkSimulator );
+
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
+
+        if ( !packetDataCopy )
+            return false;
+
+        memcpy( packetDataCopy, packetData, packetBytes );
+
+        m_networkSimulator->SendPacket( GetAddress(), to, packetDataCopy, packetBytes );
+
+        return true;
+
+#else // #if YOJIMBO_NETWORK_SIMULATOR
+
+        assert( !"local transport requires network simulator. please #define YOJIMBO_NETWORK_SIMULATOR 1" );
+
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+    }
+
+    int LocalTransport::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
+    {
+#if YOJIMBO_NETWORK_SIMULATOR
+
+        (void) maxPacketSize;
+
+        assert( m_networkSimulator );
+
+        int packetSize = 0;
+
+        uint8_t * simulatorPacketData = m_networkSimulator->ReceivePacket( from, GetAddress(), packetSize );
+
+        if ( !simulatorPacketData )
+            return 0;
+
+        assert( packetSize > 0 );
+        assert( packetSize <= maxPacketSize );
+
+        memcpy( packetData, simulatorPacketData, packetSize );
+
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        allocator.Free( simulatorPacketData );
+
+        return packetSize;
+
+#else // #if YOJIMBO_NETWORK_SIMULATOR
+
+        assert( !"local transport requires network simulator. please #define YOJIMBO_NETWORK_SIMULATOR 1" );
+
+        return NULL;
+
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 }

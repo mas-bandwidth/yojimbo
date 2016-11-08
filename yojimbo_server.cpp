@@ -97,13 +97,13 @@ namespace yojimbo
 
         CreateAllocators();
 
-        Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL, -1 );
+        Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL );
 
         m_transport->SetStreamAllocator( globalAllocator );
 
         if ( !m_globalPacketFactory )
         {
-            m_globalPacketFactory = CreatePacketFactory( globalAllocator, SERVER_RESOURCE_GLOBAL, -1 );
+            m_globalPacketFactory = CreatePacketFactory( globalAllocator, SERVER_RESOURCE_GLOBAL );
 
             assert( m_globalPacketFactory );
 
@@ -170,7 +170,7 @@ namespace yojimbo
             YOJIMBO_DELETE( clientAllocator, PacketFactory, m_clientPacketFactory[clientIndex] );
         }
 
-        Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL, -1 );
+        Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL );
 
         YOJIMBO_DELETE( globalAllocator, PacketFactory, m_globalPacketFactory );
 
@@ -593,7 +593,6 @@ namespace yojimbo
     {
         if ( type == SERVER_RESOURCE_GLOBAL )
         {
-            assert( clientIndex == -1 );
             assert( m_globalAllocator );
             return *m_globalAllocator;
         }
