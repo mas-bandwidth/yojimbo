@@ -484,6 +484,41 @@ namespace yojimbo
         return m_packetProcessor->GetMaxPacketSize();
     }
 
+    void BaseTransport::SetNetworkConditions( float latency, float jitter, float packetLoss, float duplicate )
+    {
+#if YOJIMBO_NETWORK_SIMULATOR
+
+        assert( m_networkSimulator );
+        
+        m_networkSimulator->SetLatency( latency );
+        m_networkSimulator->SetJitter( jitter );
+        m_networkSimulator->SetPacketLoss( packetLoss );
+        m_networkSimulator->SetDuplicate( duplicate );
+
+#else // #if YOJIMBO_NETWORK_SIMULATOR
+
+        (void) latency;
+        (void) jitter;
+        (void) packetLoss;
+        (void) duplicate;
+
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+    }
+
+    void BaseTransport::ClearNetworkConditions()
+    {
+#if YOJIMBO_NETWORK_SIMULATOR
+
+        assert( m_networkSimulator );
+        
+        m_networkSimulator->SetLatency( 0.0f );
+        m_networkSimulator->SetJitter( 0.0f );
+        m_networkSimulator->SetPacketLoss( 0.0f );
+        m_networkSimulator->SetDuplicate( 0.0f );
+
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+    }
+
     void BaseTransport::SetContext( void * context )
     {
         m_context = context;
@@ -589,19 +624,13 @@ namespace yojimbo
         return m_address;
     }
 
-    PacketFactory * BaseTransport::GetPacketFactory()
-    {
-        return m_packetFactory;
-    }
-
-    const PacketFactory * BaseTransport::GetPacketFactory() const
-    {
-        return m_packetFactory;
-    }
+    // todo: it should be possible for local transport to work even without the simulator, directly call into InternalReceivePacket from InternalSendPacket
 
     bool LocalTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
 #if YOJIMBO_NETWORK_SIMULATOR
+
+        printf( "write packet\n" );
 
         assert( m_networkSimulator );
 
@@ -648,6 +677,8 @@ namespace yojimbo
         Allocator & allocator = m_networkSimulator->GetAllocator();
 
         allocator.Free( simulatorPacketData );
+
+        printf( "received %d byte packet\n", packetSize );
 
         return packetSize;
 

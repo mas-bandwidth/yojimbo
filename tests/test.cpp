@@ -32,7 +32,7 @@
 #define SERVER 1
 #define CLIENT 1
 #define MATCHER 1
-#define LOGGING 0
+#define LOGGING 1
 
 #include "shared.h"
 
@@ -925,52 +925,20 @@ void test_client_server_tokens()
     check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
 }
 
-class TestNetworkSimulator : public NetworkSimulator
-{
-public:
-
-    TestNetworkSimulator() : NetworkSimulator( GetDefaultAllocator() )
-    {
-        SetJitter( 250 );
-        SetLatency( 256 );
-        SetDuplicate( 5 );
-        SetPacketLoss( 10 );
-    }   
-};
-
-#if 0 // todo: use local transport directly
-
-class TestNetworkTransport : public SimulatorTransport
-{   
-public:
-
-    TestNetworkTransport( NetworkSimulator & networkSimulator, const Address & address ) 
-        : SimulatorTransport( GetDefaultAllocator(), networkSimulator, address, ProtocolId ) {}
-
-    ~TestNetworkTransport()
-    {
-        ClearSendQueue();
-        ClearReceiveQueue();
-    }
-};
-
-#endif // #if 0
-
 void test_unencrypted_packets()
 {
     printf( "test_unencrypted_packets\n" );
-
-#if 0 // todo: need local transport
 
     TestPacketFactory packetFactory;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    LocalTransport clientTransport( GetDefaultAllocator(), clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), serverAddress );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     clientTransport.SetPacketFactory( packetFactory );
     serverTransport.SetPacketFactory( packetFactory );
@@ -1019,8 +987,6 @@ void test_unencrypted_packets()
     }
 
     check( numPacketsReceived == 0 );
-
-#endif
 }
 
 void test_allocator_tlsf()
@@ -1079,8 +1045,6 @@ void test_allocator_tlsf()
 
 void test_client_server_connect()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connect\n" );
 
     uint64_t clientId = 1;
@@ -1109,10 +1073,11 @@ void test_client_server_connect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    LocalTransport clientTransport( GetDefaultAllocator(), clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), serverAddress );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1120,7 +1085,6 @@ void test_client_server_connect()
     clientServerConfig.enableConnection = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
@@ -1169,8 +1133,6 @@ void test_client_server_connect()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_reconnect()

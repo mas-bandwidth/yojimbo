@@ -84,6 +84,10 @@ namespace yojimbo
 
         virtual int GetMaxPacketSize() const = 0;
 
+        virtual void SetNetworkConditions( float latency, float jitter, float packetLoss, float duplicate ) = 0;
+
+        virtual void ClearNetworkConditions() = 0;
+
         virtual void SetContext( void * context ) = 0;
 
         virtual void SetUserContext( void * context ) = 0;
@@ -119,10 +123,6 @@ namespace yojimbo
         virtual uint64_t GetFlags() const = 0;
 
         virtual const Address & GetAddress() const = 0;
-
-        virtual PacketFactory * GetPacketFactory() = 0;
-
-        virtual const PacketFactory * GetPacketFactory() const = 0;
     };
 
     class BaseTransport : public Transport
@@ -153,6 +153,10 @@ namespace yojimbo
         void ReadPackets();
 
         int GetMaxPacketSize() const;
+
+        void SetNetworkConditions( float latency, float jitter, float packetLoss, float duplicate );
+
+        void ClearNetworkConditions();
 
         void SetContext( void * context );
 
@@ -189,10 +193,6 @@ namespace yojimbo
         uint64_t GetFlags() const;
 
         const Address & GetAddress() const;
-
-        PacketFactory * GetPacketFactory();
-
-        const PacketFactory * GetPacketFactory() const;
 
     protected:
 
@@ -268,6 +268,14 @@ namespace yojimbo
     class LocalTransport : public BaseTransport
     {
     public:
+
+        LocalTransport( Allocator & allocator,
+                        const Address & address,
+                        uint32_t protocolId = 0x12345,          // todo: default constants for this shared between base and local
+                        int maxPacketSize = 4 * 1024,
+                        int sendQueueSize = 1024,
+                        int receiveQueueSize = 1024 )
+            : BaseTransport( allocator, address, protocolId, maxPacketSize, sendQueueSize, receiveQueueSize ) {}
 
     protected:
 
