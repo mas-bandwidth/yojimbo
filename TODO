@@ -2,6 +2,14 @@ DONE
 
 TODO
 
+    Implement code in base transport for determining if packets should go through the simulator or not. 
+
+    Drive this code by the "allocateNetworkSimulator", so packets never go through simulator with "LocalTransport",
+
+    Also, check if the transport has network conditions set, and if any network conditions are enabled, (and allocate network simulator is set), shim the packets through the simulator before passing to InternalSendPacket.
+
+    This should provide all the functionality that clients need to simulate network conditions on top of an existing transport (eg. SocketTransport)
+
     ------------------
 
     Reduce remaining client/server tests with helper functions for pump update, client connect etc.
