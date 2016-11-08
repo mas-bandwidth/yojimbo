@@ -1986,17 +1986,13 @@ void test_client_server_server_side_timeout()
     server.Stop();
 }
 
-// todo: this is a bit naff
-
-#if 0 // todo: need local transport
-
 struct ClientData
 {
     Allocator * allocator;
     uint64_t clientId;
     int numServerAddresses;
     Address serverAddresses[MaxServersPerConnectToken];
-    TestNetworkTransport * transport;
+    LocalTransport * transport;
     GameClient * client;
     uint8_t connectTokenData[ConnectTokenBytes];
     uint8_t connectTokenNonce[NonceBytes];
@@ -2006,7 +2002,6 @@ struct ClientData
 
     ClientData()
     {
-        allocator = NULL;
         clientId = 0;
         numServerAddresses = 0;
         transport = NULL;
@@ -2020,17 +2015,13 @@ struct ClientData
 
     ~ClientData()
     {
-        YOJIMBO_DELETE( *allocator, TestNetworkTransport, transport );
-        YOJIMBO_DELETE( *allocator, GameClient, client );
+        YOJIMBO_DELETE( GetDefaultAllocator(), LocalTransport, transport );
+        YOJIMBO_DELETE( GetDefaultAllocator(), GameClient, client );
     }
 };
 
-#endif
-
 void test_client_server_server_is_full()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_server_is_full\n" );
 
     GenerateKey( private_key );
@@ -2039,22 +2030,20 @@ void test_client_server_server_is_full()
 
     ClientData clientData[NumClients+1];
 
-    TestNetworkSimulator networkSimulator;
-
-    Allocator & allocator = GetDefaultAllocator();
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
     for ( int i = 0; i < NumClients + 1; ++i )
     {
-        clientData[i].allocator = &allocator;
-
         clientData[i].clientId = i + 1;
 
         Address clientAddress( "::1", ClientPort + i );
 
-        clientData[i].transport = YOJIMBO_NEW( allocator, TestNetworkTransport, networkSimulator, clientAddress );
+        clientData[i].transport = YOJIMBO_NEW( GetDefaultAllocator(), LocalTransport, GetDefaultAllocator(), networkSimulator, clientAddress );
+
+        clientData[i].transport->SetNetworkConditions( 250, 250, 5, 10 );
 
         if ( !matcher.RequestMatch( clientData[i].clientId, 
                                     clientData[i].connectTokenData, 
@@ -2069,12 +2058,14 @@ void test_client_server_server_is_full()
             exit( 1 );
         }
 
-        clientData[i].client = YOJIMBO_NEW( allocator, GameClient, allocator, *clientData[i].transport, clientServerConfig );
-    }
+        clientData[i].client = YOJIMBO_NEW( GetDefaultAllocator(), GameClient, GetDefaultAllocator(), *clientData[i].transport, clientServerConfig );
+        }
 
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -2233,14 +2224,10 @@ void test_client_server_server_is_full()
     }
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_connect_token_reuse()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connect_token_reuse\n" );
 
     uint64_t clientId = 1;
@@ -2269,10 +2256,13 @@ void test_client_server_connect_token_reuse()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -2365,7 +2355,7 @@ void test_client_server_connect_token_reuse()
 
     Address clientAddress2( "::1", ClientPort + 1 );
 
-    TestNetworkTransport clientTransport2( networkSimulator, clientAddress2 );
+    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress2 );
     
     GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
 
@@ -2408,14 +2398,10 @@ void test_client_server_connect_token_reuse()
     client2.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_connect_token_expired()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connect_token_expired\n" );
 
     uint64_t clientId = 1;
@@ -2444,10 +2430,13 @@ void test_client_server_connect_token_expired()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     const int NumIterations = 1000;
 
@@ -2500,14 +2489,10 @@ void test_client_server_connect_token_expired()
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_connect_token_whitelist()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connect_token_whitelist\n" );
 
     uint64_t clientId = 1;
@@ -2545,10 +2530,13 @@ void test_client_server_connect_token_whitelist()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     const int NumIterations = 1000;
 
@@ -2601,14 +2589,10 @@ void test_client_server_connect_token_whitelist()
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_connect_token_invalid()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connect_token_invalid\n" );
 
     uint8_t connectTokenData[ConnectTokenBytes];
@@ -2628,10 +2612,13 @@ void test_client_server_connect_token_invalid()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     const int NumIterations = 1000;
 
@@ -2686,8 +2673,6 @@ void test_client_server_connect_token_invalid()
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
 
     server.Stop();
-
-#endif    
 }
 
 void test_client_server_connect_address_already_connected()
