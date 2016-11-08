@@ -16,6 +16,32 @@ Added a "CreatePacket" method to client.
 
 Removed a bunch of old packet creates that were going through transports.
 
+Simplify context.
+
+There is one client/server context on the stream, hard coded to ClientServerContext *, NULL by default.
+
+Also, there is a user context that can setup, and is of type void* so the user can pass in anything.
+
+The current context should become the user context, but also need to add the ClientServerContext.
+
+Most of the work will be plumbing this through client/server through to the packet processor to the packet read/write info, and to the stream.
+
+Scratch this, keep the existing void* context, and add a new void* user context concept.
+
+This is the easiest way, still lots of plumbing required, but existing stuff works fine.
+
+Added user context to all stream instances, as well as SetUserContext/GetUserContext functions.
+
+Add plumbing for user context.
+
+Added user context to PacketReadWriteInfo
+
+Added user context to PacketProcessor (just one global one, not per-client...)
+
+Base transport has a user context.
+
+Added SetUserContext functions to client and server. They just directly shim onto Transport::SetUserContext.
+
 
 Sunday November 6th, 2016
 =========================

@@ -50,6 +50,7 @@ namespace yojimbo
         m_absoluteMaxPacketSize = maxPacketSize + MaxPrefixBytes + MacBytes;
 
         m_context = NULL;
+        m_userContext = NULL;
 
         m_packetBuffer = (uint8_t*) allocator.Allocate( m_absoluteMaxPacketSize );
 
@@ -68,6 +69,11 @@ namespace yojimbo
     void PacketProcessor::SetContext( void * context )
     {
         m_context = context;
+    }
+
+    void PacketProcessor::SetUserContext( void * context )
+    {
+        m_userContext = context;
     }
 
     static const int ENCRYPTED_PACKET_FLAG = (1<<7);
@@ -92,6 +98,7 @@ namespace yojimbo
 
             PacketReadWriteInfo info;
             info.context = m_context;
+            info.userContext = m_userContext;
             info.protocolId = m_protocolId;
             info.packetFactory = &packetFactory;
             info.streamAllocator = &streamAllocator;
@@ -130,6 +137,7 @@ namespace yojimbo
         {
             PacketReadWriteInfo info;
             info.context = m_context;
+            info.userContext = m_userContext;
             info.protocolId = m_protocolId;
             info.packetFactory = &packetFactory;
             info.streamAllocator = &streamAllocator;

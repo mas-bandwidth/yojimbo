@@ -51,6 +51,8 @@ namespace yojimbo
 
         void SetContext( void * context );
 
+        void SetUserContext( void * context );
+
         const uint8_t * WritePacket( Packet * packet, 
                                      uint64_t sequence, 
                                      int & packetBytes, 
@@ -87,6 +89,7 @@ namespace yojimbo
         uint8_t * m_scratchBuffer;
 
         void * m_context;
+        void * m_userContext;
     };
 }
 

@@ -129,6 +129,8 @@ namespace yojimbo
 
         Allocator & GetClientAllocator();
 
+        void SetUserContext( void * context );
+
     protected:
 
         virtual void OnConnect( const Address & /*address*/ ) {}

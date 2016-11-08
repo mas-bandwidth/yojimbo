@@ -144,7 +144,9 @@ namespace yojimbo
 
         const uint8_t * allowedPacketTypes;         // array of allowed packet types. if a packet type is not allowed the serialize read or write will fail.
 
-        void * context;                             // context for the packet serialization (optional, you may pass in NULL)
+        void * context;                             // context for packet serialization (optional, you may pass in NULL)
+
+        void * userContext;                         // user context for packet serialization (optional, you may pass in NULL)
 
         PacketReadWriteInfo()
         {
@@ -155,6 +157,7 @@ namespace yojimbo
             streamAllocator = NULL;
             allowedPacketTypes = NULL;
             context = NULL;
+            userContext = NULL;
         }
     };
 

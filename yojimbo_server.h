@@ -213,7 +213,7 @@ namespace yojimbo
 
         void SetFlags( uint64_t flags );
 
-        // accessors
+        void SetUserContext( void * context );
 
         bool IsRunning() const;
 

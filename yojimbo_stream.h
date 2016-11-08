@@ -53,7 +53,11 @@ namespace yojimbo
         enum { IsReading = 0 };
 
         WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) 
-            : m_allocator( &allocator ), m_context( NULL ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_writer( buffer, bytes ) {}
+            : m_allocator( &allocator ), 
+              m_context( NULL ), 
+              m_userContext( NULL ), 
+              m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), 
+              m_writer( buffer, bytes ) {}
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {
@@ -129,7 +133,7 @@ namespace yojimbo
             return m_writer.GetBitsWritten();
         }
 
-        void SetContext( void *context )
+        void SetContext( void * context )
         {
             m_context = context;
         }
@@ -137,6 +141,16 @@ namespace yojimbo
         void * GetContext() const
         {
             return m_context;
+        }
+
+        void SetUserContext( void * context )
+        {
+            m_userContext = context;
+        }
+
+        void * GetUserContext() const
+        {
+            return m_userContext;
         }
 
         int GetError() const
@@ -153,6 +167,7 @@ namespace yojimbo
 
         Allocator * m_allocator;
         void * m_context;
+        void * m_userContext;
         int m_error;
         BitWriter m_writer;
     };
@@ -165,7 +180,12 @@ namespace yojimbo
         enum { IsReading = 1 };
 
         ReadStream( const uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) 
-            : m_allocator( &allocator ), m_context( NULL ), m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), m_bitsRead(0), m_reader( buffer, bytes ) {}
+            : m_allocator( &allocator ), 
+              m_context( NULL ), 
+              m_userContext( NULL ),
+              m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), 
+              m_bitsRead(0), 
+              m_reader( buffer, bytes ) {}
 
         bool SerializeInteger( int32_t & value, int32_t min, int32_t max )
         {
@@ -272,6 +292,16 @@ namespace yojimbo
             return m_context;
         }
 
+        void SetUserContext( void * context )
+        {
+            m_userContext = context;
+        }
+
+        void * GetUserContext() const
+        {
+            return m_userContext;
+        }
+
         int GetError() const
         {
             return m_error;
@@ -291,6 +321,7 @@ namespace yojimbo
 
         Allocator * m_allocator;
         void * m_context;
+        void * m_userContext;
         int m_error;
         int m_bitsRead;
         BitReader m_reader;
@@ -304,7 +335,10 @@ namespace yojimbo
         enum { IsReading = 0 };
 
         explicit MeasureStream( Allocator & allocator = GetDefaultAllocator() ) 
-            : m_allocator( &allocator ), m_context( NULL ), m_bitsWritten(0) {}
+            : m_allocator( &allocator ), 
+              m_context( NULL ), 
+              m_userContext( NULL ), 
+              m_bitsWritten(0) {}
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {   
@@ -388,6 +422,16 @@ namespace yojimbo
             return m_context;
         }
 
+        void SetUserContext( void * context )
+        {
+            m_userContext = context;
+        }
+
+        void * GetUserContext() const
+        {
+            return m_userContext;
+        }
+
         int GetError() const
         {
             return YOJIMBO_PROTOCOL_ERROR_NONE;
@@ -402,6 +446,7 @@ namespace yojimbo
 
         Allocator * m_allocator;
         void * m_context;
+        void * m_userContext;
         int m_bitsWritten;
     };
 }

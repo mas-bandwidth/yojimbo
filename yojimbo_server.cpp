@@ -488,6 +488,12 @@ namespace yojimbo
         m_flags = flags;
     }
 
+    void Server::SetUserContext( void * context )
+    {
+        assert( m_transport );
+        m_transport->SetUserContext( context );
+    }
+
     bool Server::IsRunning() const
     {
         return m_maxClients > 0;

@@ -50,6 +50,7 @@ namespace yojimbo
         m_flags = 0;
 
         m_context = NULL;
+        m_userContext = NULL;
 
         m_allocator = &allocator;
                 
@@ -297,6 +298,8 @@ namespace yojimbo
 
         m_packetProcessor->SetContext( context ? context->contextData : m_context );
 
+        m_packetProcessor->SetUserContext( m_userContext );
+
         const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, *streamAllocator, *packetFactory );
 
         if ( !packetData )
@@ -398,6 +401,8 @@ namespace yojimbo
 
             m_packetProcessor->SetContext( context ? context->contextData : m_context );
 
+            m_packetProcessor->SetUserContext( m_userContext );
+
             Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator, *packetFactory );
 
             if ( !packet )
@@ -463,6 +468,11 @@ namespace yojimbo
     void BaseTransport::SetContext( void * context )
     {
         m_context = context;
+    }
+
+    void BaseTransport::SetUserContext( void * context )
+    {
+        m_userContext = context;
     }
 
     void BaseTransport::SetStreamAllocator( Allocator & allocator )

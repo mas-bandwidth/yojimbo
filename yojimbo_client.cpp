@@ -522,6 +522,12 @@ namespace yojimbo
         return *m_clientAllocator;
     }
 
+    void Client::SetUserContext( void * context )
+    {
+        assert( m_transport );
+        m_transport->SetUserContext( context );
+    }
+
     void Client::InitializeConnection()
     {
         CreateAllocator();

@@ -2,16 +2,6 @@ DONE
 
 TODO
 
-    Simplify context.
-
-    There is one client/server context on the stream, hard coded to ClientServerContext *, NULL by default.
-
-    Also, there is a user context that can setup, and is of type void* so the user can pass in anything.
-
-    The current context should become the user context, but also need to add the ClientServerContext.
-
-    Most of the work will be plumbing this through client/server through to the packet processor to the packet read/write info, and to the stream.
-
     ------------------
 
     Reduce remaining client/server tests with helper functions for pump update, client connect etc.

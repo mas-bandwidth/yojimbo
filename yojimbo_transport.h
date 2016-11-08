@@ -86,6 +86,8 @@ namespace yojimbo
 
         virtual void SetContext( void * context ) = 0;
 
+        virtual void SetUserContext( void * context ) = 0;
+
         virtual void SetStreamAllocator( Allocator & allocator ) = 0;
 
         virtual void EnablePacketEncryption() = 0;
@@ -154,6 +156,8 @@ namespace yojimbo
 
         void SetContext( void * context );
 
+        void SetUserContext( void * context );
+
         void SetStreamAllocator( Allocator & allocator );
 
         void EnablePacketEncryption();
@@ -215,6 +219,8 @@ namespace yojimbo
         uint64_t m_flags;
 
         void * m_context;
+
+        void * m_userContext;
 
         uint32_t m_protocolId;
 
