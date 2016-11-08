@@ -1,24 +1,6 @@
 DONE    
 
-    Removed simulator transport.
-
-    Added a network simulator instance to base transport.
-
-    Removed get packet factory accessor to transport, you should know the packet factory you pass into it, you don't need to ever get it from the transport.
-
-    Sketched out local transport.
-
-    I think moving forward there needs to be a flag "useSimulator" set to true in the base transport when network conditions are set, so packets get delayed before being passed into the "InternalSendPacket" and so on, however for the local transport, this bit of code should be disabled, and it should always call the "InternalSendPacket" immediately, which goes through the simulator (for buffering, even if network conditions are set to zero latency etc).
-
-    Add a method to the base transport to set network conditions and clear them.
-
-    Should be ready to switch over all tests to local transport now.
-
 TODO
-
-    Oh boy, massive miscalculation. The local transport needs to *share* the same transport between the client and server, so packets can get across between multiple transports (a transport corresponds basically to one source UDP address).
-
-    This is unfortunate. I have to rethink how the local transport fits in with the base transport now.
 
     ------------------
 

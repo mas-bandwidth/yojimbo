@@ -35,7 +35,8 @@ namespace yojimbo
                                   uint32_t protocolId,
                                   int maxPacketSize, 
                                   int sendQueueSize, 
-                                  int receiveQueueSize )
+                                  int receiveQueueSize,
+                                  bool allocateNetworkSimulator )
     
         : m_sendQueue( allocator, sendQueueSize ),
           m_receiveQueue( allocator, receiveQueueSize )
@@ -76,7 +77,14 @@ namespace yojimbo
 		m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
 
 #if YOJIMBO_NETWORK_SIMULATOR
-        m_networkSimulator = YOJIMBO_NEW( allocator, NetworkSimulator );
+        if ( allocateNetworkSimulator )
+        {
+            m_networkSimulator = YOJIMBO_NEW( allocator, NetworkSimulator, allocator );
+        }
+        else
+        {
+            m_networkSimulator = NULL;
+        }
 #endif // #if YOJIMBO_NETWORK_SIMULATOR
 	}
 
@@ -133,14 +141,14 @@ namespace yojimbo
         assert( m_packetProcessor );
         assert( m_contextManager );
         assert( m_encryptionManager );
-#if YOJIMBO_NETWORK_SIMULATOR
-        assert( m_networkSimulator );
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         ClearPacketFactory();
 
 #if YOJIMBO_NETWORK_SIMULATOR
-        m_networkSimulator->DiscardPackets();
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->DiscardPackets();
+        }
 #endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
@@ -624,13 +632,18 @@ namespace yojimbo
         return m_address;
     }
 
-    // todo: it should be possible for local transport to work even without the simulator, directly call into InternalReceivePacket from InternalSendPacket
+    LocalTransport::~LocalTransport()
+    {
+#if YOJIMBO_NETWORK_SIMULATOR
+        assert( m_networkSimulator );
+        m_networkSimulator->DiscardPackets();
+        m_networkSimulator = NULL;
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+    }
 
     bool LocalTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
 #if YOJIMBO_NETWORK_SIMULATOR
-
-        printf( "write packet\n" );
 
         assert( m_networkSimulator );
 
@@ -677,8 +690,6 @@ namespace yojimbo
         Allocator & allocator = m_networkSimulator->GetAllocator();
 
         allocator.Free( simulatorPacketData );
-
-        printf( "received %d byte packet\n", packetSize );
 
         return packetSize;
 

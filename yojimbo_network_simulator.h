@@ -39,7 +39,7 @@ namespace yojimbo
     {
     public:
 
-        NetworkSimulator( Allocator & allocator = GetDefaultAllocator(), int numPackets = 4096 );
+        NetworkSimulator( Allocator & allocator, int numPackets = 4096 );
 
         ~NetworkSimulator();
 

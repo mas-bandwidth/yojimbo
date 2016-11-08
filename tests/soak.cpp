@@ -30,8 +30,7 @@
 #include "shared.h"
 #include <signal.h>
 
-// todo
-//static const int MaxBlockSize = 25 * 1024;
+static const int MaxBlockSize = 25 * 1024;
 
 static volatile int quit = 0;
 
@@ -67,22 +66,16 @@ int SoakMain()
         return 1;
     }
 
-#if 0 // todo: need local transport
-
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
-    // todo: make it easier to create a network simulator with initial conditions setup
-
-    networkSimulator.SetJitter( 250 );
-    networkSimulator.SetLatency( 250 );
-    networkSimulator.SetDuplicate( 10 );
-    networkSimulator.SetPacketLoss( 50 );
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    SimulatorTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId );
-    SimulatorTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId );
+
+    clientTransport.SetNetworkConditions( 250, 250, 10, 50 );
+    serverTransport.SetNetworkConditions( 250, 250, 10, 50 );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.connectionConfig.maxPacketSize = 1100;
@@ -262,8 +255,6 @@ int SoakMain()
     client.Disconnect();
     
     server.Stop();
-
-#endif
 
     return 0;
 }

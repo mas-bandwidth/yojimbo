@@ -1,4 +1,34 @@
 
+Tuesday November 8th, 2016
+==========================
+
+Removed simulator transport.
+
+Added a network simulator instance to base transport.
+
+Removed get packet factory accessor to transport, you should know the packet factory you pass into it, you don't need to ever get it from the transport.
+
+Sketched out local transport.
+
+I think moving forward there needs to be a flag "useSimulator" set to true in the base transport when network conditions are set, so packets get delayed before being passed into the "InternalSendPacket" and so on, however for the local transport, this bit of code should be disabled, and it should always call the "InternalSendPacket" immediately, which goes through the simulator (for buffering, even if network conditions are set to zero latency etc).
+
+Add a method to the base transport to set network conditions and clear them.
+
+Should be ready to switch over all tests to local transport now.
+
+Oh boy, massive miscalculation. The local transport needs to *share* the same transport between the client and server, so packets can get across between multiple transports (a transport corresponds basically to one source UDP address).
+
+This is unfortunate. I have to rethink how the local transport fits in with the base transport now.
+
+In the case of the base transport, I really do want a network simulator to exist per-transport, but for the local transport, it's ESSENTIAL that the local transport can share a common simulator with another transport in order to work.
+
+OK. Setup the constructor of the local transport to take a reference to transport (shared transport), and put a bool allocateTransport method in the constructor for base transport. default to true.
+
+Convert half of remaining tests to use local transport. 
+
+Removed default value for allocator passed into network simulator. As a rule, never set default parameters for allocators. Require the user to pass it in, that way they won't ever accidentally leave a default allocator when they it to point to an allocator they already passed in.
+
+
 Monday November 7th, 2016
 =========================
 

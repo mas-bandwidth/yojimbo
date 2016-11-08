@@ -32,7 +32,7 @@
 #define SERVER 1
 #define CLIENT 1
 #define MATCHER 1
-#define LOGGING 1
+#define LOGGING 0
 
 #include "shared.h"
 
@@ -934,8 +934,10 @@ void test_unencrypted_packets()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    LocalTransport clientTransport( GetDefaultAllocator(), clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), serverAddress );
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
 
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
@@ -1073,8 +1075,10 @@ void test_client_server_connect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    LocalTransport clientTransport( GetDefaultAllocator(), clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), serverAddress );
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
 
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
@@ -1137,8 +1141,6 @@ void test_client_server_connect()
 
 void test_client_server_reconnect()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_reconnect\n" );
 
     uint64_t clientId = 1;
@@ -1159,10 +1161,13 @@ void test_client_server_reconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1311,14 +1316,10 @@ void test_client_server_reconnect()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_client_side_disconnect()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_client_side_disconnect\n" );
 
     uint64_t clientId = 1;
@@ -1339,10 +1340,13 @@ void test_client_server_client_side_disconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1444,14 +1448,10 @@ void test_client_server_client_side_disconnect()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_server_side_disconnect()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_server_side_disconnect\n" );
 
     uint64_t clientId = 1;
@@ -1472,10 +1472,13 @@ void test_client_server_server_side_disconnect()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1577,14 +1580,10 @@ void test_client_server_server_side_disconnect()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_connection_request_timeout()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connection_request_timeout\n" );
 
     uint64_t clientId = 1;
@@ -1613,9 +1612,11 @@ void test_client_server_connection_request_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     const int NumIterations = 20;
 
@@ -1652,14 +1653,10 @@ void test_client_server_connection_request_timeout()
 
     check( client.ConnectionFailed() );
     check( client.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
-
-#endif
 }
 
 void test_client_server_connection_response_timeout()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_connection_response_timeout\n" );
 
     uint64_t clientId = 1;
@@ -1688,10 +1685,13 @@ void test_client_server_connection_response_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1745,14 +1745,10 @@ void test_client_server_connection_response_timeout()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_client_side_timeout()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_client_side_timeout\n" );
 
     uint64_t clientId = 1;
@@ -1781,10 +1777,13 @@ void test_client_server_client_side_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1865,14 +1864,10 @@ void test_client_server_client_side_timeout()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 void test_client_server_server_side_timeout()
 {
-#if 0 // todo: need local transport
-
     printf( "test_client_server_server_side_timeout\n" );
 
     uint64_t clientId = 1;
@@ -1901,10 +1896,13 @@ void test_client_server_server_side_timeout()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    TestNetworkSimulator networkSimulator;
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    TestNetworkTransport clientTransport( networkSimulator, clientAddress );
-    TestNetworkTransport serverTransport( networkSimulator, serverAddress );
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1986,8 +1984,6 @@ void test_client_server_server_side_timeout()
     client.Disconnect();
 
     server.Stop();
-
-#endif
 }
 
 // todo: this is a bit naff

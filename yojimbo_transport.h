@@ -134,7 +134,8 @@ namespace yojimbo
                        uint32_t protocolId,
                        int maxPacketSize = 4 * 1024,
                        int sendQueueSize = 1024,
-                       int receiveQueueSize = 1024 );
+                       int receiveQueueSize = 1024,
+                       bool allocateNetworkSimulator = true );
 
         void SetPacketFactory( PacketFactory & packetFactory );
 
@@ -270,12 +271,18 @@ namespace yojimbo
     public:
 
         LocalTransport( Allocator & allocator,
+                        NetworkSimulator & networkSimulator,
                         const Address & address,
                         uint32_t protocolId = 0x12345,          // todo: default constants for this shared between base and local
                         int maxPacketSize = 4 * 1024,
                         int sendQueueSize = 1024,
                         int receiveQueueSize = 1024 )
-            : BaseTransport( allocator, address, protocolId, maxPacketSize, sendQueueSize, receiveQueueSize ) {}
+            : BaseTransport( allocator, address, protocolId, maxPacketSize, sendQueueSize, receiveQueueSize, false ) 
+        { 
+            m_networkSimulator = &networkSimulator;
+        }
+
+        ~LocalTransport();
 
     protected:
 
