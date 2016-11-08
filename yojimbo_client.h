@@ -165,13 +165,13 @@ namespace yojimbo
 
         virtual MessageFactory * CreateMessageFactory( Allocator & allocator );
 
-        virtual ClientServerContext * CreateContext( Allocator & allocator );
+        virtual void InitializeContext( const ConnectionConfig & connectionConfig, MessageFactory & messageFactory );
 
-        void SetClientState( int clientState );
+        virtual void SetClientState( int clientState );
 
-        void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
+        virtual void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
 
-        void SendPacketToServer( Packet * packet );
+        virtual void SendPacketToServer( Packet * packet );
 
     private:
 
@@ -221,7 +221,7 @@ namespace yojimbo
 
         int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
 
-        ClientServerContext * m_context;                                    // serialization context for client/server packets.
+        ClientServerContext m_context;                                      // serialization context for client/server packets.
 
         ClientState m_clientState;                                          // current client state
 

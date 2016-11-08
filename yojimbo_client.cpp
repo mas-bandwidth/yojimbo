@@ -60,7 +60,6 @@ namespace yojimbo
 
     void Client::Defaults()
     {
-        m_context = NULL;
         m_allocator = NULL;
         m_clientMemory = NULL;
         m_clientAllocator = NULL;
@@ -555,18 +554,14 @@ namespace yojimbo
                 
                 assert( m_messageFactory );
                 
-                m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_transport->GetPacketFactory(), *m_messageFactory, m_config.connectionConfig );
+                m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_packetFactory, *m_messageFactory, m_config.connectionConfig );
                 
                 assert( m_connection );
 
                 m_connection->SetListener( this );
             }
 
-            m_context = CreateContext( *m_clientAllocator );
-
-            assert( m_context );
-            
-            m_transport->SetContext( m_context );
+            InitializeContext( m_config.connectionConfig, *m_messageFactory);
         }
         else
         {
@@ -583,8 +578,6 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_clientAllocator, PacketFactory, m_packetFactory );
 
         YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
-
-        YOJIMBO_DELETE( *m_clientAllocator, ClientServerContext, m_context );
 
         DestroyAllocator();
     }
@@ -607,18 +600,12 @@ namespace yojimbo
         return NULL;
     }
 
-    ClientServerContext * Client::CreateContext( Allocator & allocator )
+    void Client::InitializeContext( const ConnectionConfig & connectionConfig, MessageFactory & messageFactory )
     {
-        ClientServerContext * context = YOJIMBO_NEW( allocator, ClientServerContext );
-        
-        assert( context );
-        assert( context->magic == ConnectionContextMagic );
-
-        context->connectionConfig = &m_config.connectionConfig;
-
-        context->messageFactory = &GetMsgFactory();
-        
-        return context;
+        assert( m_transport );
+        m_context.connectionConfig = &connectionConfig;
+        m_context.messageFactory = &messageFactory;
+        m_transport->SetContext( &m_context );
     }
 
     void Client::SetClientState( int clientState )

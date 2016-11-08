@@ -118,11 +118,7 @@ namespace yojimbo
 
             assert( m_clientPacketFactory[clientIndex] );
 
-#ifdef DEBUG
-            PacketFactory * packetFactory = m_transport->GetPacketFactory();
-#endif // #if _DEBUG
-            assert( m_clientPacketFactory[clientIndex] );
-            assert( m_clientPacketFactory[clientIndex]->GetNumPacketTypes() == packetFactory->GetNumPacketTypes() );
+            assert( m_clientPacketFactory[clientIndex]->GetNumPacketTypes() == m_globalPacketFactory->GetNumPacketTypes() );
         }
 
         if ( m_allocateConnections )
@@ -408,13 +404,11 @@ namespace yojimbo
 
         // check for global packet factory error, increase counter and clear error. nothing we can do but take note.
 
-		PacketFactory * globalPacketFactory = m_transport->GetPacketFactory();
-
-        if ( globalPacketFactory->GetError() )
+        if ( m_globalPacketFactory->GetError() )
         {
             m_counters[SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS]++;
 
-            globalPacketFactory->ClearError();
+            m_globalPacketFactory->ClearError();
         }
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
