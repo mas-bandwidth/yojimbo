@@ -4275,7 +4275,6 @@ void test_connection_unreliable_unordered_messages()
     connectionConfig.channelConfig[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
     TestConnection sender( packetFactory, messageFactory, connectionConfig );
-
     TestConnection receiver( packetFactory, messageFactory, connectionConfig );
 
     ConnectionContext context;
@@ -4302,20 +4301,22 @@ void test_connection_unreliable_unordered_messages()
     double time = 0.0;
     double deltaTime = 0.1;
 
-    const int NumIterations = 16;
+    const int NumIterations = 256;
+
+    const int NumMessagesSent = 16;
+
+    for ( int j = 0; j < NumMessagesSent; ++j )
+    {
+        TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+        check( message );
+        message->sequence = j;
+        sender.SendMsg( message );
+    }
+
+    int numMessagesReceived = 0;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        const int NumMessagesSent = 16;
-
-        for ( int j = 0; j < NumMessagesSent; ++j )
-        {
-            TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
-            check( message );
-            message->sequence = j;
-            sender.SendMsg( message );
-        }
-
         Packet * senderPacket = sender.GeneratePacket();
         Packet * receiverPacket = receiver.GeneratePacket();
 
@@ -4359,8 +4360,6 @@ void test_connection_unreliable_unordered_messages()
             packet->Destroy();
         }
 
-        int numMessagesReceived = 0;
-
         while ( true )
         {
             Message * message = receiver.ReceiveMsg();
@@ -4368,7 +4367,6 @@ void test_connection_unreliable_unordered_messages()
             if ( !message )
                 break;
 
-            check( message->GetId() == uint16_t( i ) );
             check( message->GetType() == TEST_MESSAGE );
 
             TestMessage * testMessage = (TestMessage*) message;
@@ -4380,7 +4378,8 @@ void test_connection_unreliable_unordered_messages()
             messageFactory.Release( message );
         }
 
-        check( numMessagesReceived == NumMessagesSent );
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
 
         time += deltaTime;
 
@@ -4392,6 +4391,8 @@ void test_connection_unreliable_unordered_messages()
 
         networkSimulator.AdvanceTime( time );
     }
+
+    check( numMessagesReceived == NumMessagesSent );
 }
 
 void test_connection_unreliable_unordered_blocks()
@@ -4435,25 +4436,27 @@ void test_connection_unreliable_unordered_blocks()
     double time = 0.0;
     double deltaTime = 0.1;
 
-    const int NumIterations = 8;
+    const int NumIterations = 256;
+
+    const int NumMessagesSent = 8;
+
+    for ( int j = 0; j < NumMessagesSent; ++j )
+    {
+        TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+        check( message );
+        message->sequence = j;
+        const int blockSize = 1 + ( j * 7 );
+        uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+        for ( int k = 0; k < blockSize; ++k )
+            blockData[k] = j + k;
+        message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+        sender.SendMsg( message );
+    }
+
+    int numMessagesReceived = 0;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        const int NumMessagesSent = 8;
-
-        for ( int j = 0; j < NumMessagesSent; ++j )
-        {
-            TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
-            check( message );
-            message->sequence = j;
-            const int blockSize = 1 + ( j * 7 );
-            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
-            for ( int k = 0; k < blockSize; ++k )
-                blockData[k] = j + k;
-            message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
-            sender.SendMsg( message );
-        }
-
         Packet * senderPacket = sender.GeneratePacket();
         Packet * receiverPacket = receiver.GeneratePacket();
 
@@ -4497,8 +4500,6 @@ void test_connection_unreliable_unordered_blocks()
             packet->Destroy();
         }
 
-        int numMessagesReceived = 0;
-
         while ( true )
         {
             Message * message = receiver.ReceiveMsg();
@@ -4506,7 +4507,6 @@ void test_connection_unreliable_unordered_blocks()
             if ( !message )
                 break;
 
-            check( message->GetId() == uint16_t( i ) );
             check( message->GetType() == TEST_BLOCK_MESSAGE );
 
             TestBlockMessage * blockMessage = (TestBlockMessage*) message;
@@ -4531,7 +4531,8 @@ void test_connection_unreliable_unordered_blocks()
             messageFactory.Release( message );
         }
 
-        check( numMessagesReceived == NumMessagesSent );
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
 
         time += deltaTime;
 
@@ -4543,6 +4544,8 @@ void test_connection_unreliable_unordered_blocks()
 
         networkSimulator.AdvanceTime( time );
     }
+
+    check( numMessagesReceived == NumMessagesSent );
 }
 
 void SendClientToServerMessages( Client & client, int numMessagesToSend )

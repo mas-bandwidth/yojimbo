@@ -66,7 +66,7 @@ int ClientServerMain()
         return 1;
     }
 
-    // todo: turn this on as a test of the network simulator on top of a real transport
+    // todo: turn this on when the transport knows how to pump packet receive from simulator
     /*
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );

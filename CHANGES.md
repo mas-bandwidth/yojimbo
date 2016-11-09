@@ -6,6 +6,28 @@ Added m_active bool to simulator, which is set to true when any network conditio
 
 Cache the "allocateNetworkSimulator" flag passed to ctor for base transport, and if this is true, *and* the simulator is active, then my function "ShouldPacketGoThroughSimulator" returns true. This is also virtual so it can be overridden if necessary.
 
+Separated out code to write packets, so it can be reused between the code that writes packets for the packet simulator and the code that writes packets to pass to the network.
+
+Added code to client_server.cpp so that it runs packets through the network simulator.
+
+Split out code to read a packet from a buffer, so it can be called from multiple context (pumping packets from the simulator, and when pumping packets from the network).
+
+Need to upgrade the network simulator so it is capable of receiving a bunch of packets at a time.
+
+This breaks the O(n^2) bad performance it currently has, turning it into a more reasonable O(n).
+
+Getting started on this...
+
+OK. So what I need to do instead is to pop off all the packets ready to be delivered into an array.
+
+This array could be sorted, but the order of delivery within a frame doesn't really matter. So don't.
+
+Added pending receive buffer to simulator.
+
+Ouch, because multiple receives are done with different "to" addresses on the same simulator, it's still going to be O(n^2) when receiving packets.
+
+For the moment, it's the O(n)+O(m^2) where m is small. Hopefully m is small enough to not be a problem. If it is, then the interface for getting packets on a per-destination address can change, so the transport has an optimized function to call, and it becomes O(n) + O(m*p), where p is the num different addresses, m is the number of packets each frame to be received, and n is the size of the packet entry buffer in simulator.
+
 
 Tuesday November 8th, 2016
 ==========================

@@ -2,15 +2,25 @@ DONE
 
 TODO
 
-    Now I need to work out where to pump the simulator for sends.
+    Next step is to make the regular transport pump packet receive from the simulator.
 
-    One subtle point, if a packet is marked "immediate" (eg. disconnect packets), don't pump it through the simulator, just send it right away.
+    After this, enable simulated network conditions in client_server.cpp
 
-    
+    To make sure this always works, extend the travis job to run client_server.cpp.
 
     ------------------
 
     Reduce remaining client/server tests with helper functions for pump update, client connect etc.
+
+    Look through remaining todos
+
+    ------------------
+
+    Run a profile session in Windows to make sure no performance issues have crept in.
+
+    Run standard tests, make a new release.
+
+    ------------------
 
     =========================================
 

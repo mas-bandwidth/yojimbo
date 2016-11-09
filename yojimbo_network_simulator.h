@@ -69,6 +69,8 @@ namespace yojimbo
 
         void UpdateActive();
 
+        void UpdatePendingReceivePackets();
+
     private:
 
         Allocator * m_allocator;
@@ -106,6 +108,12 @@ namespace yojimbo
         int m_numPacketEntries;                         // number of elements in the packet entry array.
 
         PacketEntry * m_packetEntries;                  // pointer to dynamically allocated packet entries. this is where buffered packets are stored.
+
+        int m_numPendingReceivePackets;                 // number of pending receive packets.
+
+        PacketEntry * m_pendingReceivePackets;          // list of packets pending receive.
+
+        double m_lastPendingReceiveTime;                // time of last pending receive, used to work around multiple simulator updates from transports.
     };
 
 #endif // #if YOJIMBO_NETWORK_SIMULATOR

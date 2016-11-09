@@ -209,6 +209,8 @@ namespace yojimbo
 
         void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence );
 
+        Packet * ReadPacket( const Address & address, uint8_t * packetBuffer, int packetBytes, uint64_t & sequence );
+
         virtual bool ShouldPacketGoThroughSimulator();
 
         virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes ) = 0;

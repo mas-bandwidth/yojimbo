@@ -437,6 +437,87 @@ namespace yojimbo
         InternalSendPacket( address, packetData, packetBytes );
     }
 
+    Packet * BaseTransport::ReadPacket( const Address & address, uint8_t * packetBuffer, int packetBytes, uint64_t & sequence )
+    {
+        bool encrypted = false;
+
+        const uint8_t * encryptedPacketTypes = m_packetTypeIsEncrypted;
+        const uint8_t * unencryptedPacketTypes = m_packetTypeIsUnencrypted;
+
+#if YOJIMBO_INSECURE_CONNECT
+        if ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE )
+        {
+            encryptedPacketTypes = m_allPacketTypes;
+            unencryptedPacketTypes = m_allPacketTypes;
+        }
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+        const uint8_t * key = m_encryptionManager->GetReceiveKey( address, GetTime() );
+       
+        const Context * context = m_contextManager->GetContext( address );
+
+        Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
+        PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
+
+        assert( streamAllocator );
+        assert( packetFactory );
+        assert( packetFactory->GetNumPacketTypes() == m_packetFactory->GetNumPacketTypes() );
+
+        m_packetProcessor->SetContext( context ? context->contextData : m_context );
+
+        m_packetProcessor->SetUserContext( m_userContext );
+
+        Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator, *packetFactory );
+
+        if ( !packet )
+        {
+            switch ( m_packetProcessor->GetError() )
+            {
+                case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:
+                {
+                    debug_printf( "base transport key is null (read packet)\n" );
+                    m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;
+                }
+                break;
+
+                case PACKET_PROCESSOR_ERROR_DECRYPT_FAILED:
+                {
+                    debug_printf( "base transport decrypt failed (read packet)\n" );
+                    m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;
+                }
+                break;
+
+                case PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL:
+                {
+                    debug_printf( "base transport packet too small (read packet)\n" );
+                    m_counters[TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES]++;
+                }
+                break;
+
+                case PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED:
+                {
+                    debug_printf( "base transport read packet failed (read packet)\n" );
+                    m_counters[TRANSPORT_COUNTER_READ_PACKET_FAILURES]++;
+                }
+                break;
+
+                default:
+                    break;
+            }
+
+            return NULL;
+        }
+
+        m_counters[TRANSPORT_COUNTER_PACKETS_READ]++;
+
+        if ( encrypted )
+            m_counters[TRANSPORT_COUNTER_ENCRYPTED_PACKETS_READ]++;
+        else
+            m_counters[TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_READ]++;
+
+        return packet;
+    }
+
     void BaseTransport::ReadPackets()
     {
         if ( !m_packetFactory )
@@ -466,90 +547,13 @@ namespace yojimbo
                 break;
             }
 
-            bool encrypted = false;
-
-            const uint8_t * encryptedPacketTypes = m_packetTypeIsEncrypted;
-            const uint8_t * unencryptedPacketTypes = m_packetTypeIsUnencrypted;
-
-#if YOJIMBO_INSECURE_CONNECT
-            if ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE )
-            {
-                encryptedPacketTypes = m_allPacketTypes;
-                unencryptedPacketTypes = m_allPacketTypes;
-            }
-#endif // #if YOJIMBO_INSECURE_CONNECT
-
-            const uint8_t * key = m_encryptionManager->GetReceiveKey( address, GetTime() );
-           
-            uint64_t sequence = 0;
-
-            const Context * context = m_contextManager->GetContext( address );
-
-            Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
-            PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
-    
-            assert( streamAllocator );
-            assert( packetFactory );
-            assert( packetFactory->GetNumPacketTypes() == m_packetFactory->GetNumPacketTypes() );
-
-            m_packetProcessor->SetContext( context ? context->contextData : m_context );
-
-            m_packetProcessor->SetUserContext( m_userContext );
-
-            Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator, *packetFactory );
-
-            if ( !packet )
-            {
-                switch ( m_packetProcessor->GetError() )
-                {
-                    case PACKET_PROCESSOR_ERROR_KEY_IS_NULL:
-                    {
-                        debug_printf( "base transport key is null (read packet)\n" );
-                        m_counters[TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES]++;
-                    }
-                    break;
-
-                    case PACKET_PROCESSOR_ERROR_DECRYPT_FAILED:
-                    {
-                        debug_printf( "base transport decrypt failed (read packet)\n" );
-                        m_counters[TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES]++;
-                    }
-                    break;
-
-                    case PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL:
-                    {
-                        debug_printf( "base transport packet too small (read packet)\n" );
-                        m_counters[TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES]++;
-                    }
-                    break;
-
-                    case PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED:
-                    {
-                        debug_printf( "base transport read packet failed (read packet)\n" );
-                        m_counters[TRANSPORT_COUNTER_READ_PACKET_FAILURES]++;
-                    }
-                    break;
-
-                    default:
-                        break;
-                }
-
-                continue;
-            }
-
             PacketEntry entry;
-            entry.sequence = sequence;
-            entry.packet = packet;
             entry.address = address;
+            entry.packet = ReadPacket( address, packetBuffer, packetBytes, entry.sequence );
+            if ( !entry.packet )
+                continue;
 
             m_receiveQueue.Push( entry );
-
-            m_counters[TRANSPORT_COUNTER_PACKETS_READ]++;
-
-            if ( encrypted )
-                m_counters[TRANSPORT_COUNTER_ENCRYPTED_PACKETS_READ]++;
-            else
-                m_counters[TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_READ]++;
         }
     }
 

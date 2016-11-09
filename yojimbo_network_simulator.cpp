@@ -35,10 +35,14 @@ namespace yojimbo
         assert( numPackets > 0 );
 
         m_numPacketEntries = numPackets;
-
         m_packetEntries = (PacketEntry*) allocator.Allocate( sizeof( PacketEntry ) * numPackets );
-
         memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
+
+        m_numPendingReceivePackets = 0;
+        m_pendingReceivePackets = (PacketEntry*) allocator.Allocate( sizeof( PacketEntry ) * numPackets );
+        memset( m_pendingReceivePackets, 0, sizeof( PacketEntry ) * numPackets );
+
+        m_lastPendingReceiveTime = -10000.0;
 
         m_currentIndex = 0;
 
@@ -65,9 +69,22 @@ namespace yojimbo
             }
         }
 
-        m_allocator->Free( m_packetEntries );    m_packetEntries = NULL;
+        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
+        {
+            if ( m_pendingReceivePackets[i].packetData )
+            {
+                m_allocator->Free( m_pendingReceivePackets[i].packetData );
+            }
+        }
+
+        m_allocator->Free( m_pendingReceivePackets );    
+        m_allocator->Free( m_packetEntries );
+
+        m_pendingReceivePackets = NULL;
+        m_packetEntries = NULL;
         
         m_numPacketEntries = 0;
+        m_numPendingReceivePackets = 0;
     }
 
     void NetworkSimulator::SetLatency( float milliseconds )
@@ -102,6 +119,44 @@ namespace yojimbo
     void NetworkSimulator::UpdateActive()
     {
         m_active = m_latency != 0.0f || m_jitter != 0.0f || m_packetLoss != 0.0f || m_duplicate != 0.0f;
+    }
+
+    void NetworkSimulator::UpdatePendingReceivePackets()
+    {
+        // has time moved forward? double updates can happen with multiple local transports wrapping the same packet simulator
+
+        if ( m_lastPendingReceiveTime >= m_time )
+            return;
+
+        m_lastPendingReceiveTime = m_time;
+        
+        // free any pending receive packets that are still in the buffer
+
+        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
+        {
+            if ( m_pendingReceivePackets[i].packetData )
+            {
+                m_allocator->Free( m_pendingReceivePackets[i].packetData );
+                m_pendingReceivePackets[i].packetData = NULL;
+            }
+        }
+
+        m_numPendingReceivePackets = 0;
+
+        // walk across packet entries and move any that are ready to be received into the pending receive buffer
+
+        for ( int i = 0; i < m_numPacketEntries; ++i )
+        {
+            if ( !m_packetEntries[i].packetData )
+                continue;
+
+            if ( m_packetEntries[i].deliveryTime < m_time )
+            {
+                m_pendingReceivePackets[m_numPendingReceivePackets] = m_packetEntries[i];
+                m_numPendingReceivePackets++;
+                m_packetEntries[i].packetData = NULL;
+            }
+        }
     }
 
     void NetworkSimulator::SendPacket( const Address & from, const Address & to, uint8_t * packetData, int packetSize )
@@ -159,43 +214,26 @@ namespace yojimbo
 
     uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )
     { 
-        // IMPORTANT: profiling shows that this function is quite slow. if you plan to use the network simulator in production, please let me know.
-
-        int oldestEntryIndex = -1;
-        double oldestEntryTime = 0;
-
-        for ( int i = 0; i < m_numPacketEntries; ++i )
+        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
         {
-            const PacketEntry & packetEntry = m_packetEntries[i];
-
-            if ( !packetEntry.packetData )
+            if ( !m_pendingReceivePackets[i].packetData )
                 continue;
 
-            if ( packetEntry.to != to )
+            if ( m_pendingReceivePackets[i].to != to )
                 continue;
 
-            if ( oldestEntryIndex == -1 || m_packetEntries[i].deliveryTime < oldestEntryTime )
-            {
-                oldestEntryIndex = i;
-                oldestEntryTime = packetEntry.deliveryTime;
-            }
+            uint8_t * packetData = m_pendingReceivePackets[i].packetData;
+
+            from = m_pendingReceivePackets[i].from;
+            
+            packetSize = m_pendingReceivePackets[i].packetSize;
+
+            m_pendingReceivePackets[i].packetData = NULL;
+
+            return packetData;
         }
 
-        PacketEntry & packetEntry = m_packetEntries[oldestEntryIndex];
-
-        if ( oldestEntryIndex == -1 || packetEntry.deliveryTime > m_time )
-            return NULL;
-
-        assert( packetEntry.packetData );
-
-        uint8_t *packetData = packetEntry.packetData;
-
-        from = packetEntry.from;
-        packetSize = packetEntry.packetSize;
-
-        packetEntry = PacketEntry();
-
-        return packetData;
+        return NULL;
     }
 
     void NetworkSimulator::DiscardPackets()
@@ -234,7 +272,10 @@ namespace yojimbo
     void NetworkSimulator::AdvanceTime( double time )
     {
         assert( time >= m_time );
+
         m_time = time;
+
+        UpdatePendingReceivePackets();
     }
 }
 
