@@ -50,6 +50,8 @@ namespace yojimbo
         void SetPacketLoss( float percent );
 
         void SetDuplicate( float percent );
+
+        bool IsActive() const;
         
         void SendPacket( const Address & from, const Address & to, uint8_t * packetData, int packetSize );
 
@@ -63,6 +65,10 @@ namespace yojimbo
 
         Allocator & GetAllocator() { assert( m_allocator ); return *m_allocator; }
 
+    protected:
+
+        void UpdateActive();
+
     private:
 
         Allocator * m_allocator;
@@ -73,7 +79,9 @@ namespace yojimbo
 
         float m_packetLoss;                             // packet loss percentage
 
-        float m_duplicates;                             // duplicate packet percentage
+        float m_duplicate;                              // duplicate packet percentage
+
+        bool m_active;                                  // true if network simulator is active, eg. if any of the network settings above are enabled.
 
         struct PacketEntry
         {

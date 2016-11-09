@@ -201,9 +201,15 @@ namespace yojimbo
 
         void ClearReceiveQueue();
 
+#if YOJIMBO_NETWORK_SIMULATOR
+        void WritePacketToSimulator( const Address & address, Packet * packet, uint64_t sequence );
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+
         void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence );
 
     protected:
+
+        virtual bool ShouldPacketGoThroughSimulator();
 
         virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes ) = 0;
     
@@ -260,6 +266,7 @@ namespace yojimbo
         EncryptionManager * m_encryptionManager;
 
 #if YOJIMBO_NETWORK_SIMULATOR
+        bool m_allocateNetworkSimulator;
         class NetworkSimulator * m_networkSimulator;
 #endif // #if YOJIMBO_NETWORK_SIMULATOR
 

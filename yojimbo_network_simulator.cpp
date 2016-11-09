@@ -40,12 +40,16 @@ namespace yojimbo
 
         memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
 
+        m_currentIndex = 0;
+
         m_time = 0.0;
+
         m_latency = 0.0f;
         m_jitter = 0.0f;
         m_packetLoss = 0.0f;
-        m_duplicates = 0.0f;
-        m_currentIndex = 0;
+        m_duplicate = 0.0f;
+
+        UpdateActive();
     }
 
     NetworkSimulator::~NetworkSimulator()
@@ -69,21 +73,35 @@ namespace yojimbo
     void NetworkSimulator::SetLatency( float milliseconds )
     {
         m_latency = milliseconds;
+        UpdateActive();
     }
 
     void NetworkSimulator::SetJitter( float milliseconds )
     {
         m_jitter = milliseconds;
+        UpdateActive();
     }
 
     void NetworkSimulator::SetPacketLoss( float percent )
     {
         m_packetLoss = percent;
+        UpdateActive();
     }
 
     void NetworkSimulator::SetDuplicate( float percent )
     {
-        m_duplicates = percent;
+        m_duplicate = percent;
+        UpdateActive();
+    }
+
+    bool NetworkSimulator::IsActive() const
+    {
+        return m_active;
+    }
+
+    void NetworkSimulator::UpdateActive()
+    {
+        m_active = m_latency != 0.0f || m_jitter != 0.0f || m_packetLoss != 0.0f || m_duplicate != 0.0f;
     }
 
     void NetworkSimulator::SendPacket( const Address & from, const Address & to, uint8_t * packetData, int packetSize )
@@ -121,7 +139,7 @@ namespace yojimbo
 
         m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
 
-        if ( random_float( 0.0f, 100.0f ) <= m_duplicates )
+        if ( random_float( 0.0f, 100.0f ) <= m_duplicate )
         {
             uint8_t * duplicatePacketData = (uint8_t*) m_allocator->Allocate( packetSize );
 
@@ -141,7 +159,7 @@ namespace yojimbo
 
     uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )
     { 
-        // profiling shows that this function is quite slow. if you plan to use the network simulator in production, please let me know. this function would need to be optimized in that case.
+        // IMPORTANT: profiling shows that this function is quite slow. if you plan to use the network simulator in production, please let me know.
 
         int oldestEntryIndex = -1;
         double oldestEntryTime = 0;

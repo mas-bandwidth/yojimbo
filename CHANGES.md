@@ -1,4 +1,12 @@
 
+Wednesday November 9th, 2016
+============================
+
+Added m_active bool to simulator, which is set to true when any network condition vars are non zero. This is checked in "UpdateActive".
+
+Cache the "allocateNetworkSimulator" flag passed to ctor for base transport, and if this is true, *and* the simulator is active, then my function "ShouldPacketGoThroughSimulator" returns true. This is also virtual so it can be overridden if necessary.
+
+
 Tuesday November 8th, 2016
 ==========================
 

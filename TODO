@@ -2,13 +2,11 @@ DONE
 
 TODO
 
-    Implement code in base transport for determining if packets should go through the simulator or not. 
+    Now I need to work out where to pump the simulator for sends.
 
-    Drive this code by the "allocateNetworkSimulator", so packets never go through simulator with "LocalTransport",
+    One subtle point, if a packet is marked "immediate" (eg. disconnect packets), don't pump it through the simulator, just send it right away.
 
-    Also, check if the transport has network conditions set, and if any network conditions are enabled, (and allocate network simulator is set), shim the packets through the simulator before passing to InternalSendPacket.
-
-    This should provide all the functionality that clients need to simulate network conditions on top of an existing transport (eg. SocketTransport)
+    
 
     ------------------
 

@@ -77,6 +77,9 @@ namespace yojimbo
 		m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
 
 #if YOJIMBO_NETWORK_SIMULATOR
+
+        m_allocateNetworkSimulator = allocateNetworkSimulator;
+
         if ( allocateNetworkSimulator )
         {
             m_networkSimulator = YOJIMBO_NEW( allocator, NetworkSimulator, allocator );
@@ -85,6 +88,7 @@ namespace yojimbo
         {
             m_networkSimulator = NULL;
         }
+
 #endif // #if YOJIMBO_NETWORK_SIMULATOR
 	}
 
@@ -277,6 +281,10 @@ namespace yojimbo
         assert( m_packetFactory );
         assert( m_packetProcessor );
 
+#if YOJIMBO_NETWORK_SIMULATOR
+        bool useSimulator = ShouldPacketGoThroughSimulator();
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+
         while ( !m_sendQueue.IsEmpty() )
         {
             PacketEntry entry = m_sendQueue.Pop();
@@ -285,10 +293,61 @@ namespace yojimbo
             assert( entry.packet->IsValid() );
             assert( entry.address.IsValid() );
 
-            WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
+#if YOJIMBO_NETWORK_SIMULATOR
+            if ( useSimulator )
+            {
+                WritePacketToSimulator( entry.address, entry.packet, entry.sequence );
+            }
+            else
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+            {
+                WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
+            }
 
             entry.packet->Destroy();
         }
+    }
+
+    // todo: BaseTransport::WritePacket low-level function shared by both WriteAndFlush and WriteToSimulator
+
+    void BaseTransport::WritePacketToSimulator( const Address & address, Packet * packet, uint64_t sequence )
+    {
+        assert( packet );
+        assert( packet->IsValid() );
+        assert( address.IsValid() );
+
+#if YOJIMBO_NETWORK_SIMULATOR
+
+        (void) packet;
+        (void) address;
+        (void) sequence;
+
+        // todo: need lower-level function to write packet to buffer
+
+        /*
+        assert( m_networkSimulator );
+
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
+
+        if ( !packetDataCopy )
+            return false;
+
+        memcpy( packetDataCopy, packetData, packetBytes );
+
+        m_networkSimulator->SendPacket( GetAddress(), address, packetDataCopy, packetBytes );
+        */
+
+#else // #if YOJIMBO_NETWORK_SIMULATOR
+
+        (void) packet;
+        (void) address;
+        (void) sequence;
+
+        assert( !"network simulator is not enabled. see #define YOJIMBO_NETWORK_SIMULATOR" );
+
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
     void BaseTransport::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
@@ -524,6 +583,15 @@ namespace yojimbo
         m_networkSimulator->SetPacketLoss( 0.0f );
         m_networkSimulator->SetDuplicate( 0.0f );
 
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+    }
+
+    bool BaseTransport::ShouldPacketGoThroughSimulator()
+    {
+#if YOJIMBO_NETWORK_SIMULATOR
+        return m_allocateNetworkSimulator && m_networkSimulator->IsActive();
+#else // #if YOJIMBO_NETWORK_SIMULATOR
+        return false;
 #endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 

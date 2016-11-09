@@ -2,6 +2,12 @@ WOULD BE NICE
 
     ------------------
 
+    Network simulator is pretty slow.
+
+    It would be much faster to do one linear scan to determine the set of packets to dequeue inside the update pump, and then just pop those off.
+
+    ------------------
+
     Add a unit test for user context
 
     ------------------

@@ -65,7 +65,13 @@ int ClientServerMain()
         printf( "error: failed to initialize sockets\n" );
         return 1;
     }
-    
+
+    // todo: turn this on as a test of the network simulator on top of a real transport
+    /*
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    */
+
     const int NumIterations = 20;
 
     double time = 0.0;
