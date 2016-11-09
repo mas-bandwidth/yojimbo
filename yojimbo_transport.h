@@ -201,13 +201,13 @@ namespace yojimbo
 
         void ClearReceiveQueue();
 
+        const uint8_t * WritePacket( const Address & address, Packet * packet, uint64_t sequence, int & packetBytes );
+
 #if YOJIMBO_NETWORK_SIMULATOR
         void WritePacketToSimulator( const Address & address, Packet * packet, uint64_t sequence );
 #endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence );
-
-    protected:
 
         virtual bool ShouldPacketGoThroughSimulator();
 

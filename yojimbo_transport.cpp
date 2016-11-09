@@ -308,49 +308,7 @@ namespace yojimbo
         }
     }
 
-    // todo: BaseTransport::WritePacket low-level function shared by both WriteAndFlush and WriteToSimulator
-
-    void BaseTransport::WritePacketToSimulator( const Address & address, Packet * packet, uint64_t sequence )
-    {
-        assert( packet );
-        assert( packet->IsValid() );
-        assert( address.IsValid() );
-
-#if YOJIMBO_NETWORK_SIMULATOR
-
-        (void) packet;
-        (void) address;
-        (void) sequence;
-
-        // todo: need lower-level function to write packet to buffer
-
-        /*
-        assert( m_networkSimulator );
-
-        Allocator & allocator = m_networkSimulator->GetAllocator();
-
-        uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
-
-        if ( !packetDataCopy )
-            return false;
-
-        memcpy( packetDataCopy, packetData, packetBytes );
-
-        m_networkSimulator->SendPacket( GetAddress(), address, packetDataCopy, packetBytes );
-        */
-
-#else // #if YOJIMBO_NETWORK_SIMULATOR
-
-        (void) packet;
-        (void) address;
-        (void) sequence;
-
-        assert( !"network simulator is not enabled. see #define YOJIMBO_NETWORK_SIMULATOR" );
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
-    }
-
-    void BaseTransport::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
+    const uint8_t * BaseTransport::WritePacket( const Address & address, Packet * packet, uint64_t sequence, int & packetBytes )
     {
         assert( m_packetFactory );
 
@@ -370,8 +328,6 @@ namespace yojimbo
 #else // #if YOJIMBO_INSECURE_CONNECT
         const bool encrypt = IsEncryptedPacketType( packetType );
 #endif // #if YOJIMBO_INSECURE_CONNECT
-
-        int packetBytes;
 
         const Context * context = m_contextManager->GetContext( address );
 
@@ -417,10 +373,8 @@ namespace yojimbo
                     break;
             }
 
-            return;
+            return NULL;
         }
-
-        InternalSendPacket( address, packetData, packetBytes );
 
         m_counters[TRANSPORT_COUNTER_PACKETS_WRITTEN]++;
 
@@ -428,6 +382,59 @@ namespace yojimbo
             m_counters[TRANSPORT_COUNTER_ENCRYPTED_PACKETS_WRITTEN]++;
         else
             m_counters[TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_WRITTEN]++;
+
+        return packetData;
+    }
+
+    void BaseTransport::WritePacketToSimulator( const Address & address, Packet * packet, uint64_t sequence )
+    {
+        assert( packet );
+        assert( packet->IsValid() );
+        assert( address.IsValid() );
+
+#if YOJIMBO_NETWORK_SIMULATOR
+
+        int packetBytes = 0;
+
+        const uint8_t * packetData = WritePacket( address, packet, sequence, packetBytes );
+
+        if ( !packetData )
+            return;
+
+        assert( m_networkSimulator );
+
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
+
+        if ( !packetDataCopy )
+            return;
+
+        memcpy( packetDataCopy, packetData, packetBytes );
+
+        m_networkSimulator->SendPacket( GetAddress(), address, packetDataCopy, packetBytes );
+
+#else // #if YOJIMBO_NETWORK_SIMULATOR
+
+        (void) packet;
+        (void) address;
+        (void) sequence;
+
+        assert( !"network simulator is not enabled. see #define YOJIMBO_NETWORK_SIMULATOR" );
+
+#endif // #if YOJIMBO_NETWORK_SIMULATOR
+    }
+
+    void BaseTransport::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
+    {
+        int packetBytes = 0;
+
+        const uint8_t * packetData = WritePacket( address, packet, sequence, packetBytes );
+
+        if ( !packetData )
+            return;
+
+        InternalSendPacket( address, packetData, packetBytes );
     }
 
     void BaseTransport::ReadPackets()
