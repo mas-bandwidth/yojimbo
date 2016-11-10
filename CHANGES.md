@@ -36,6 +36,20 @@ Implemented it, enabled network conditions in client_server.cpp, but it's not wo
 
 Made client_server.cpp return 1 if the connection fails, this way it can be used as part of travis tests.
 
+OK. I've sorted it out, just a plumbing issue. need a way to receive a packet from the simulator for any address, and to get the to address from it, to pass to the internal send packet. Then it will work.
+
+Still some problems. Packet is being correctly sent through simulator, pulled out and sent/received internally, but server is just not receiving packets. 
+
+Why not?!
+
+I've worked out that somehow I've screwed up the wiring and it's sending packets back to itself (across sendto/recvfrom)
+
+This can only happen if the internal receive is sending to its own address, then recvfrom just does what it does.
+
+So how does it have the incorrect address to send to?
+
+Fixed. I had to/from params back the wrong way in the function implementation for ReceivePacket. o_O
+
 
 Tuesday November 8th, 2016
 ==========================

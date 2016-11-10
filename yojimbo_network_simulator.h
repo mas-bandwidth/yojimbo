@@ -55,7 +55,9 @@ namespace yojimbo
         
         void SendPacket( const Address & from, const Address & to, uint8_t * packetData, int packetSize );
 
-        uint8_t * ReceivePacket( Address & from, const Address & to, int & packetSize );
+        uint8_t * ReceivePacket( Address & from, Address & to, int & packetSize );
+
+        uint8_t * ReceivePacketSentToAddress( Address & from, const Address & to, int & packetSize );
 
         void DiscardPackets();
 

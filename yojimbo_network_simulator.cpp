@@ -212,7 +212,30 @@ namespace yojimbo
         }
     }
 
-    uint8_t * NetworkSimulator::ReceivePacket( Address & from, const Address & to, int & packetSize )
+    uint8_t * NetworkSimulator::ReceivePacket( Address & from, Address & to, int & packetSize )
+    { 
+        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
+        {
+            if ( !m_pendingReceivePackets[i].packetData )
+                continue;
+
+            uint8_t * packetData = m_pendingReceivePackets[i].packetData;
+
+            to = m_pendingReceivePackets[i].to;
+
+            from = m_pendingReceivePackets[i].from;            
+            
+            packetSize = m_pendingReceivePackets[i].packetSize;
+
+            m_pendingReceivePackets[i].packetData = NULL;
+
+            return packetData;
+        }
+
+        return NULL;
+    }
+
+    uint8_t * NetworkSimulator::ReceivePacketSentToAddress( Address & from, const Address & to, int & packetSize )
     { 
         for ( int i = 0; i < m_numPendingReceivePackets; ++i )
         {
@@ -249,6 +272,20 @@ namespace yojimbo
 
             packetEntry = PacketEntry();
         }
+
+        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
+        {
+            PacketEntry & packetEntry = m_pendingReceivePackets[i];
+
+            if ( !packetEntry.packetData )
+                continue;
+
+            m_allocator->Free( packetEntry.packetData );
+
+            packetEntry = PacketEntry();
+        }
+
+        m_numPendingReceivePackets = 0;
     }
 
     void NetworkSimulator::DiscardPacketsFromAddress( const Address & address )
@@ -267,6 +304,23 @@ namespace yojimbo
 
             packetEntry = PacketEntry();
         }
+
+        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
+        {
+            PacketEntry & packetEntry = m_pendingReceivePackets[i];
+
+            if ( !packetEntry.packetData )
+                continue;
+
+            if ( packetEntry.to != address && packetEntry.from != address )
+                continue;
+
+            m_allocator->Free( packetEntry.packetData );
+
+            packetEntry = PacketEntry();
+        }
+
+        m_numPendingReceivePackets = 0;
     }
 
     void NetworkSimulator::AdvanceTime( double time )

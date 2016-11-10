@@ -69,8 +69,6 @@ int ClientServerMain()
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
-    const int NumIterations = 20;
-
     double time = 0.0;
 
     GameClient client( GetDefaultAllocator(), clientTransport );
@@ -83,9 +81,11 @@ int ClientServerMain()
     
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
-    int result = 0;
+    int result = 1;
 
-    for ( int i = 0; i < NumIterations; ++i )
+    const int NumIterations = 256;
+
+    for ( int iteration = 0; iteration < NumIterations; ++iteration )
     {
         client.SendPackets();
         server.SendPackets();
@@ -105,12 +105,15 @@ int ClientServerMain()
         if ( client.ConnectionFailed() )
         {
             printf( "error: client connect failed!\n" );
-            result = 1;
             break;
         }
 
         if ( client.IsConnected() && server.GetNumConnectedClients() == 1 )
+        {
+            // success
             client.Disconnect();
+            result = 0;
+        }
 
         time += 0.1f;
 

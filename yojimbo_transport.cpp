@@ -412,8 +412,6 @@ namespace yojimbo
 
         memcpy( packetDataCopy, packetData, packetBytes );
 
-        printf( "sent %d byte packet to simulator\n", packetBytes );
-
         m_networkSimulator->SendPacket( GetAddress(), address, packetDataCopy, packetBytes );
 
 #else // #if YOJIMBO_NETWORK_SIMULATOR
@@ -539,37 +537,18 @@ namespace yojimbo
             {
                 int packetBytes = 0;
 
-                Address address;
+                Address from, to;
 
-                uint8_t * packetData = m_networkSimulator->ReceivePacket( address, GetAddress(), packetBytes );
+                uint8_t * packetData = m_networkSimulator->ReceivePacket( from, to, packetBytes );
                 if ( !packetData )
-                {
-                    printf( "no packet from simulator\n" );
                     break;
-                }
-
-                printf( "%d byte packet from simulator\n", packetBytes );
 
                 assert( packetBytes > 0 );
                 assert( packetBytes <= maxPacketSize );
 
-                if ( m_receiveQueue.IsFull() )
-                {
-                    debug_printf( "base transport receive queue overflow (simulator)\n" );
-                    m_counters[TRANSPORT_COUNTER_RECEIVE_QUEUE_OVERFLOW]++;
-                    break;
-                }
-
-                PacketEntry entry;
-                entry.address = address;
-                entry.packet = ReadPacket( address, packetData, packetBytes, entry.sequence );
+                InternalSendPacket( to, packetData, packetBytes );
                 
                 m_networkSimulator->GetAllocator().Free( packetData );
-
-                if ( !entry.packet )
-                    continue;
-
-                m_receiveQueue.Push( entry );
             }
         }
 
@@ -763,6 +742,8 @@ namespace yojimbo
         return m_address;
     }
 
+    // =====================================================
+
     LocalTransport::~LocalTransport()
     {
 #if YOJIMBO_NETWORK_SIMULATOR
@@ -808,7 +789,7 @@ namespace yojimbo
 
         int packetSize = 0;
 
-        uint8_t * simulatorPacketData = m_networkSimulator->ReceivePacket( from, GetAddress(), packetSize );
+        uint8_t * simulatorPacketData = m_networkSimulator->ReceivePacketSentToAddress( from, GetAddress(), packetSize );
 
         if ( !simulatorPacketData )
             return 0;
@@ -833,15 +814,17 @@ namespace yojimbo
 #endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
+    // =====================================================
+
 #if YOJIMBO_SOCKETS
 
     NetworkTransport::NetworkTransport( Allocator & allocator, 
-                                      const Address & address,
-                                      uint32_t protocolId,
-                                      int maxPacketSize, 
-                                      int sendQueueSize, 
-                                      int receiveQueueSize,
-                                      int bufferSize )
+                                        const Address & address,
+                                        uint32_t protocolId,
+                                        int maxPacketSize, 
+                                        int sendQueueSize, 
+                                        int receiveQueueSize,
+                                        int bufferSize )
         : BaseTransport( allocator, 
                          address,
                          protocolId,
@@ -850,6 +833,7 @@ namespace yojimbo
                          receiveQueueSize )
     {
         m_socket = YOJIMBO_NEW( allocator, Socket, address, bufferSize );
+        m_address = m_socket->GetAddress();
     }
 
     NetworkTransport::~NetworkTransport()
@@ -865,11 +849,6 @@ namespace yojimbo
     int NetworkTransport::GetError() const
     {
         return m_socket->GetError();
-    }
-
-    const Address & NetworkTransport::GetAddress() const
-    {
-        return m_socket->GetAddress();
     }
 
     bool NetworkTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )

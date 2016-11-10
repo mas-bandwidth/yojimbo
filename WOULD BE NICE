@@ -2,6 +2,10 @@ WOULD BE NICE
 
     ------------------
 
+    Should switch simulator receive packets to be a batch function. It would be much faster then.
+    
+    ------------------
+
     Add a unit test for user context
 
     ------------------
@@ -134,4 +138,3 @@ WOULD BE NICE
     Clean it up, simplify, make it easier to do this.
 
     ------------------
-    
