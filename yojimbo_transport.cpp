@@ -835,7 +835,12 @@ namespace yojimbo
                          receiveQueueSize )
     {
         m_socket = YOJIMBO_NEW( allocator, Socket, address, socketBufferSize );
-        m_address = m_socket->GetAddress();
+
+        if ( !m_socket->IsError() )
+        {
+            m_address = m_socket->GetAddress();
+            assert( m_address.IsValid() );
+        }
     }
 
     NetworkTransport::~NetworkTransport()
