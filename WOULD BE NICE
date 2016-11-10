@@ -2,6 +2,14 @@ WOULD BE NICE
 
     ------------------
 
+    Seems like memory leak detection is not working anymore. Removing code to delete transports from tests does not trigger a "you leaked memory" assert.
+
+    ------------------
+
+    Apply the same "pump" function boilerplate reduction to the connection tests in test.cpp
+
+    ------------------
+
     Extend client connect to take a list of servers to connect to.
 
     ------------------

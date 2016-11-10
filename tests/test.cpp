@@ -2757,8 +2757,6 @@ void test_connection_acks()
     check( numReceivedPackets >= numAckedPackets );
 }
 
-// todo: clean up these tests with pump function to remove boilerplate in updates
-
 void test_connection_reliable_ordered_messages()
 {
     printf( "test_connection_reliable_ordered_messages\n" );

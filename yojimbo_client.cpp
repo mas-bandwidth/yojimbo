@@ -22,6 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "yojimbo_config.h"
 #include "yojimbo_client.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -77,6 +78,7 @@ namespace yojimbo
         m_sequence = 0;
         m_connectTokenExpireTimestamp = 0;
         m_shouldDisconnect = false;
+        m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
         memset( m_counters, 0, sizeof( m_counters ) );
         memset( m_connectTokenData, 0, sizeof( m_connectTokenData ) );
         memset( m_connectTokenNonce, 0, sizeof( m_connectTokenNonce ) );
@@ -411,7 +413,8 @@ namespace yojimbo
 
         if ( m_shouldDisconnect )
         {
-            Disconnect( CLIENT_STATE_DISCONNECTED, false );
+            debug_printf( "m_shouldDisconnect -> %s\n", GetClientStateName( m_shouldDisconnectState ) );
+            Disconnect( m_shouldDisconnectState, false );
             return;
         }
 
@@ -423,6 +426,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + m_config.insecureConnectTimeOut < time )
                 {
+                    debug_printf( "CLIENT_STATE_INSECURE_CONNECT_TIMEOUT\n" );
                     Disconnect( CLIENT_STATE_INSECURE_CONNECT_TIMEOUT, false );
                     return;
                 }
@@ -435,6 +439,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + m_config.connectionRequestTimeOut < time )
                 {
+                    debug_printf( "CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT\n" );
                     Disconnect( CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT, false );
                     return;
                 }
@@ -445,6 +450,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + m_config.challengeResponseTimeOut < time )
                 {
+                    debug_printf( "CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT\n" );
                     Disconnect( CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT, false );
                     return;
                 }
@@ -455,6 +461,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + m_config.connectionTimeOut < time )
                 {
+                    debug_printf( "CLIENT_STATE_CONNECTION_TIMEOUT\n" );
                     Disconnect( CLIENT_STATE_CONNECTION_TIMEOUT, false );
                     return;
                 }
@@ -536,6 +543,8 @@ namespace yojimbo
 
     void Client::InitializeConnection()
     {
+        debug_printf( "Client::InitializeConnection (%p)\n", this );
+
         CreateAllocators();
 
         assert( m_clientAllocator );
@@ -578,6 +587,8 @@ namespace yojimbo
 
     void Client::ShutdownConnection()
     {
+        debug_printf( "Client::ShutdownConnection (%p)\n", this );
+
         m_transport->ClearPacketFactory();
 
         YOJIMBO_DELETE( *m_clientAllocator, Connection, m_connection );
@@ -643,6 +654,7 @@ namespace yojimbo
         m_clientSalt = 0;
 #endif // #if YOJIMBO_INSECURE_CONNECT
         m_shouldDisconnect = false;
+        m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
         if ( m_connection )
         {
             m_connection->Reset();
@@ -684,7 +696,8 @@ namespace yojimbo
         if ( address != m_serverAddress )
             return;
 
-        SetClientState( CLIENT_STATE_CONNECTION_DENIED );
+        m_shouldDisconnect = true;
+        m_shouldDisconnectState = CLIENT_STATE_CONNECTION_DENIED;
     }
 
     void Client::ProcessChallenge( const ChallengePacket & packet, const Address & address )
@@ -763,6 +776,7 @@ namespace yojimbo
             return;
 
         m_shouldDisconnect = true;
+        m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
     }
 
     void Client::ProcessConnectionPacket( ConnectionPacket & packet, const Address & address )

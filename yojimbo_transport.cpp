@@ -22,6 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "yojimbo_config.h"
 #include "yojimbo_transport.h"
 #include "yojimbo_network_simulator.h"
 #include "yojimbo_sockets.h"

@@ -10,6 +10,28 @@ This lets users hook up their own custom allocator, provided that it has a const
 
 Like the TLSF_Allocator does. By default it is TLSF allocator, but I overrode in shared.h redundantly to demonstrate the macro.
 
+Finished clean up of client/server boilerplate in test.cpp
+
+Memory leak detection was not enabled. Turned it back on. Some small leaks in test.cpp, but doesn't seem to be any in other testbeds.
+
+Confirmed. ShutdownConnection is not getting called for client that failed to connect.
+
+Why not?
+
+Confirmed. The transition to CLIENT_STATE_CONNECTION_DENIED was going through set state, not disconnect, so it was not cleaning up.
+
+Added a destination state via m_shouldDisconnect, m_shouldDisconnectState, so we can transition on next frame to the disconnect state cleanly on receiving a disconnect packet, or a connection denied packet.
+
+Doing the transition immediately craps out the allocators of the client.
+
+Now the memory leak is fixed.
+
+This happened because some cpp files didn't have yojimbo_config.h included, so some #defines were missed.
+
+Solution for now is to make sure that every cpp file includes yojimbo_config.h at the top
+
+Done.
+
 
 Wednesday November 9th, 2016
 ============================

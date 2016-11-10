@@ -2,17 +2,11 @@ DONE
 
 TODO
 
-    Finish clean up of client/server boilerplate in test.cpp
-
     ------------------
 
     Add a test to verify that server start/stop/start with a different number of clients works correctly.
 
     I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
-
-    ------------------
-
-    Reduce remaining client/server tests with helper functions for pump update, client connect etc.
 
     ------------------
 

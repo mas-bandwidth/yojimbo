@@ -22,6 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "yojimbo_config.h"
 #include "yojimbo_packet_processor.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_allocator.h"

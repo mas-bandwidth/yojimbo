@@ -239,6 +239,8 @@ namespace yojimbo
 
         bool m_shouldDisconnect;                                            // set to true when we receive a disconnect packet from the server
 
+        ClientState m_shouldDisconnectState;                                // client state to set on disconnect via m_shouldDisconnect
+
         double m_time;                                                      // current client time (see "AdvanceTime")
 
 #if YOJIMBO_INSECURE_CONNECT

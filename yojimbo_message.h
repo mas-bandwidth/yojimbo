@@ -25,6 +25,7 @@
 #ifndef YOJIMBO_MESSAGE_H
 #define YOJIMBO_MESSAGE_H
 
+#include "yojimbo_config.h"
 #include "yojimbo_stream.h"
 #include "yojimbo_serialize.h"
 #include "yojimbo_allocator.h"

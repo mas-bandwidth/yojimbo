@@ -22,6 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "yojimbo_config.h"
 #include "yojimbo_context.h"
 
 namespace yojimbo
