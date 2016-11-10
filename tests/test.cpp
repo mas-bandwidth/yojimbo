@@ -2369,20 +2369,11 @@ void test_client_server_insecure_connect()
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -2390,16 +2381,8 @@ void test_client_server_insecure_connect()
             exit( 1 );
         }
 
-        time += 0.1f;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() );
@@ -2435,24 +2418,14 @@ void test_client_server_insecure_connect_timeout()
 
     while ( true )
     {
-        client.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = {};
+        Transport * transports[] = { &clientTransport };
 
-        clientTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-
-        client.ReceivePackets();
-
-        client.CheckForTimeOut();
-
-        time += 0.1;
+        PumpClientServerUpdate( time, clients, 1, servers, 0, transports, 1 );
 
         if ( !client.IsConnecting() && client.ConnectionFailed() )
             break;
-
-        client.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() );
