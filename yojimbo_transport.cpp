@@ -826,7 +826,7 @@ namespace yojimbo
                                         int maxPacketSize, 
                                         int sendQueueSize, 
                                         int receiveQueueSize,
-                                        int bufferSize )
+                                        int socketBufferSize )
         : BaseTransport( allocator, 
                          address,
                          protocolId,
@@ -834,7 +834,7 @@ namespace yojimbo
                          sendQueueSize,
                          receiveQueueSize )
     {
-        m_socket = YOJIMBO_NEW( allocator, Socket, address, bufferSize );
+        m_socket = YOJIMBO_NEW( allocator, Socket, address, socketBufferSize );
         m_address = m_socket->GetAddress();
     }
 

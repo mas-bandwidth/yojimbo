@@ -4,13 +4,7 @@ TODO
 
     ------------------
 
-    To make sure network transport always works, extend the travis job to run client_server.cpp.
-
-    ------------------
-
     Reduce remaining client/server tests with helper functions for pump update, client connect etc.
-
-    Look through remaining todos
 
     ------------------
 

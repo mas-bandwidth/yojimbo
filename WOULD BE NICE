@@ -2,12 +2,12 @@ WOULD BE NICE
 
     ------------------
 
-    Should switch simulator receive packets to be a batch function. It would be much faster then.
-    
+    Add some client counters, they are useful for debugging.
+
     ------------------
 
-    Add a unit test for user context
-
+    Should switch simulator receive packets to be a batch function. It would be much faster then.
+    
     ------------------
 
     Add a test to verify that server start/stop/start with a different number of clients works correctly.

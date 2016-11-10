@@ -56,6 +56,8 @@ Oh I get it, it's pumping the local transport as if it's the simulated network c
 
 Fixed.
 
+Extended the travis job to run client_server.cpp to make sure network transport simulated network conditions always works, 
+
 
 Tuesday November 8th, 2016
 ==========================

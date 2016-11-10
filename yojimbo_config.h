@@ -111,6 +111,13 @@ namespace yojimbo
     const int ConservativeFragmentHeaderEstimate = 64;
     const int ConservativeChannelHeaderEstimate = 32;
 
+    const int DefaultMaxPacketSize = 4 * 1024;
+    const int DefaultPacketSendQueueSize = 1024;
+    const int DefaultPacketReceiveQueueSize = 1024;
+    const int DefaultSocketBufferSize = 1024 * 1024;
+
+    const uint32_t LocalProtocolId = 1;
+
     enum ChannelType
     {
         CHANNEL_TYPE_RELIABLE_ORDERED,                          // reliable ordered stream of messages

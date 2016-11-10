@@ -132,9 +132,9 @@ namespace yojimbo
         BaseTransport( Allocator & allocator,
                        const Address & address,
                        uint32_t protocolId,
-                       int maxPacketSize = 4 * 1024,
-                       int sendQueueSize = 1024,
-                       int receiveQueueSize = 1024,
+                       int maxPacketSize = DefaultMaxPacketSize,
+                       int sendQueueSize = DefaultPacketSendQueueSize,
+                       int receiveQueueSize = DefaultPacketReceiveQueueSize,
                        bool allocateNetworkSimulator = true );
 
         void SetPacketFactory( PacketFactory & packetFactory );
@@ -282,10 +282,10 @@ namespace yojimbo
         LocalTransport( Allocator & allocator,
                         NetworkSimulator & networkSimulator,
                         const Address & address,
-                        uint32_t protocolId = 1,
-                        int maxPacketSize = 4 * 1024,                       // todo: shared default constants in yojimbo_config.h
-                        int sendQueueSize = 1024,
-                        int receiveQueueSize = 1024 )
+                        uint32_t protocolId = LocalProtocolId,
+                        int maxPacketSize = DefaultMaxPacketSize,
+                        int sendQueueSize = DefaultPacketSendQueueSize,
+                        int receiveQueueSize = DefaultPacketReceiveQueueSize )
             : BaseTransport( allocator, address, protocolId, maxPacketSize, sendQueueSize, receiveQueueSize, false ) 
         { 
             m_networkSimulator = &networkSimulator;
@@ -309,10 +309,10 @@ namespace yojimbo
         NetworkTransport( Allocator & allocator,
                           const Address & address,
                           uint32_t protocolId,
-                          int maxPacketSize = 4 * 1024,
-                          int sendQueueSize = 1024,
-                          int receiveQueueSize = 1024,
-                          int bufferSize = 1024*1024 );
+                          int maxPacketSize = DefaultMaxPacketSize,
+                          int sendQueueSize = DefaultPacketSendQueueSize,
+                          int receiveQueueSize = DefaultPacketReceiveQueueSize,
+                          int socketBufferSize = DefaultSocketBufferSize );
 
         ~NetworkTransport();
 
