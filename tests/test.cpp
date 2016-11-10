@@ -1045,12 +1045,46 @@ void test_allocator_tlsf()
     free( memory );
 }
 
-void test_client_server_connect()
+void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports )
 {
-    printf( "test_client_server_connect\n" );
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->SendPackets();
 
-    uint64_t clientId = 1;
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->SendPackets();
 
+    for ( int i = 0; i < numTransports; ++i )
+        transport[i]->WritePackets();
+
+    for ( int i = 0; i < numTransports; ++i )
+        transport[i]->ReadPackets();
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->ReceivePackets();
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->ReceivePackets();
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->CheckForTimeOut();
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->CheckForTimeOut();
+
+    time += 0.1;
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numTransports; ++i )
+        transport[i]->AdvanceTime( time );
+}
+
+void ConnectClient( Client & client, uint64_t clientId, const Address & serverAddress )
+{
     uint8_t connectTokenData[ConnectTokenBytes];
     uint8_t connectTokenNonce[NonceBytes];
 
@@ -1062,8 +1096,6 @@ void test_client_server_connect()
 
     memset( connectTokenNonce, 0, NonceBytes );
 
-    GenerateKey( private_key );
-
     uint64_t connectTokenExpireTimestamp;
 
     if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
@@ -1072,16 +1104,24 @@ void test_client_server_connect()
         exit( 1 );
     }
 
+    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+}
+
+void test_client_server_connect()
+{
+    printf( "test_client_server_connect\n" );
+
+    GenerateKey( private_key );
+
+    const uint64_t clientId = 1;
+
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
+    
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1095,24 +1135,15 @@ void test_client_server_connect()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1120,16 +1151,8 @@ void test_client_server_connect()
             exit( 1 );
         }
 
-        time += 0.1;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -4702,68 +4725,6 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
 
         server.ReleaseMsg( clientIndex, message );
     }
-}
-
-void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports )
-{
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->SendPackets();
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->SendPackets();
-
-    for ( int i = 0; i < numTransports; ++i )
-        transport[i]->WritePackets();
-
-    for ( int i = 0; i < numTransports; ++i )
-        transport[i]->ReadPackets();
-
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->ReceivePackets();
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->ReceivePackets();
-
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->CheckForTimeOut();
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->CheckForTimeOut();
-
-    time += 0.1;
-
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numTransports; ++i )
-        transport[i]->AdvanceTime( time );
-}
-
-void ConnectClient( Client & client, uint64_t clientId, const Address & serverAddress )
-{
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
-
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 }
 
 void test_client_server_messages()

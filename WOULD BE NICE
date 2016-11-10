@@ -2,6 +2,10 @@ WOULD BE NICE
 
     ------------------
 
+    Extend client connect to take a list of servers to connect to.
+
+    ------------------
+
     Add some client counters, they are useful for debugging.
 
     ------------------

@@ -4,7 +4,9 @@ TODO
 
     ------------------
 
-    Extend client connect to take a list of servers to connect to.
+    Add a test to verify that server start/stop/start with a different number of clients works correctly.
+
+    I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
 
     ------------------
 
@@ -15,14 +17,6 @@ TODO
     Run a profile session in Windows to make sure no performance issues have crept in.
 
     Run standard tests, make a new release.
-
-    ------------------
-
-    Add a test to verify that server start/stop/start with a different number of clients works correctly.
-
-    I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
-
-    ------------------
 
     =========================================
 
