@@ -559,13 +559,13 @@ namespace yojimbo
 
         m_globalMemory = (uint8_t*) m_allocator->Allocate( m_config.serverGlobalMemory );
 
-        m_globalAllocator = YOJIMBO_NEW( *m_allocator, TLSF_Allocator, m_globalMemory, m_config.serverGlobalMemory );
+        m_globalAllocator = CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
 
         for ( int i = 0; i < m_maxClients; ++i )
         {
             m_clientMemory[i] = (uint8_t*) m_allocator->Allocate( m_config.serverPerClientMemory );
 
-            m_clientAllocator[i] = YOJIMBO_NEW( *m_allocator, TLSF_Allocator, m_clientMemory[i], m_config.serverPerClientMemory );
+            m_clientAllocator[i] = CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
         }
     }
 
@@ -587,6 +587,11 @@ namespace yojimbo
             m_allocator->Free( m_globalMemory );
             m_globalMemory = NULL;
         }
+    }
+
+    Allocator * Server::CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
+    {
+        return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
     }
 
     Allocator & Server::GetAllocator( ServerResourceType type, int clientIndex )

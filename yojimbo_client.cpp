@@ -84,7 +84,7 @@ namespace yojimbo
         memset( m_challengeTokenNonce, 0, sizeof( m_challengeTokenNonce ) );
     }
 
-    void Client::CreateAllocator()
+    void Client::CreateAllocators()
     {
         assert( m_allocator );
 
@@ -95,7 +95,7 @@ namespace yojimbo
         m_clientAllocator = YOJIMBO_NEW( *m_allocator, TLSF_Allocator, m_clientMemory, m_config.clientMemory );
     }
 
-    void Client::DestroyAllocator()
+    void Client::DestroyAllocators()
     {
         assert( m_allocator );
 
@@ -108,6 +108,11 @@ namespace yojimbo
             m_allocator->Free( m_clientMemory );
             m_clientMemory = NULL;
         }
+    }
+
+    Allocator * Client::CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
+    {
+        return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
     }
 
     Client::Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config )
@@ -531,7 +536,7 @@ namespace yojimbo
 
     void Client::InitializeConnection()
     {
-        CreateAllocator();
+        CreateAllocators();
 
         assert( m_clientAllocator );
 
@@ -581,7 +586,7 @@ namespace yojimbo
 
         YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
 
-        DestroyAllocator();
+        DestroyAllocators();
     }
 
     void Client::SetEncryptedPacketTypes()

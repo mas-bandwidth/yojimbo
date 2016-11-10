@@ -1,4 +1,16 @@
 
+Thursday November 10th, 2016
+============================
+
+Added virtual CreateAllocator method and YOJIMBO_SERVER_ALLOCATOR / YOJIMBO_CLIENT_ALLOCATOR macro to make it easy to override the allocator used in client/server. 
+
+This lets users hook up their own custom allocator, provided that it has a constructor that accepts:
+
+    void * buffer, size_t bytes
+
+Like the TLSF_Allocator does. By default it is TLSF allocator, but I overrode in shared.h redundantly to demonstrate the macro.
+
+
 Wednesday November 9th, 2016
 ============================
 

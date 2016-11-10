@@ -199,9 +199,11 @@ namespace yojimbo
 
         void Defaults();
 
-        virtual void CreateAllocator();
+        virtual void CreateAllocators();
 
-        virtual void DestroyAllocator();
+        virtual void DestroyAllocators();
+
+        virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes );
 
         ClientServerConfig m_config;                                        // client/server configuration.
 
@@ -262,6 +264,12 @@ namespace yojimbo
         const Client & operator = ( const Client & other );
     };
 }
+
+#define YOJIMBO_CLIENT_ALLOCATOR( allocator_class )                                                     \
+    Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )                   \
+    {                                                                                                   \
+        return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                \
+    }
 
 #define YOJIMBO_CLIENT_PACKET_FACTORY( packet_factory_class )                                           \
     PacketFactory * CreatePacketFactory( Allocator & allocator )                                        \

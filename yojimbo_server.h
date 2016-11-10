@@ -285,6 +285,8 @@ namespace yojimbo
 
         virtual void DestroyAllocators(); 
 
+        virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes );
+
         Allocator & GetAllocator( ServerResourceType type, int clientIndex = 0 );
 
         virtual PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType type, int clientIndex = 0 );
@@ -403,8 +405,14 @@ namespace yojimbo
     };
 }
 
+#define YOJIMBO_SERVER_ALLOCATOR( allocator_class )                                                                     \
+    Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )                                   \
+    {                                                                                                                   \
+        return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                                \
+    }
+
 #define YOJIMBO_SERVER_PACKET_FACTORY( packet_factory_class )                                                           \
-    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*client`dex*/ )      \
+    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )      \
     {                                                                                                                   \
         return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                                               \
     }

@@ -352,6 +352,8 @@ public:
 
 protected:
 
+    YOJIMBO_SERVER_ALLOCATOR( TLSF_Allocator );
+
     YOJIMBO_SERVER_PACKET_FACTORY( TestPacketFactory );
 
     YOJIMBO_SERVER_MESSAGE_FACTORY( TestMessageFactory );
@@ -582,6 +584,8 @@ public:
     }
 
 protected:
+
+    YOJIMBO_CLIENT_ALLOCATOR( TLSF_Allocator );
 
     YOJIMBO_CLIENT_PACKET_FACTORY( TestPacketFactory );
 

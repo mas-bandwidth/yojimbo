@@ -9,18 +9,6 @@ WOULD BE NICE
     Should switch simulator receive packets to be a batch function. It would be much faster then.
     
     ------------------
-
-    Add a test to verify that server start/stop/start with a different number of clients works correctly.
-
-    I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
-
-    ------------------
-
-    Add a YOJIMBO_ALLOCATOR( CustomAllocatorClass ) macro, so you can easily override inside client/server.
-
-    Users of the library are going to want the ability to do this easily. Not everybody will want to use TLSF (even though it's great).
-
-    ------------------
     
     Add a test case for both unordered and ordered messages to show that it properly handles a message failing to serialize, 
 
@@ -50,21 +38,7 @@ WOULD BE NICE
 
     Otherwise, process the packet normally.
 
-    ------------------
-
-    You should be able to put a network simulator in front of a real BSD socket transport.
-
-    This would allow users to simulate bad network conditions on top of a real socket over LAN.
-
     =================================================================
-
-    ------------------
-
-    Default allocator should store block size in 4 bytes preceding the allocated block
-
-    This way the default allocator can report on # of bytes allocated.
-
-    Right now it cannot.
 
     ------------------
     
@@ -73,18 +47,6 @@ WOULD BE NICE
     This would make sure we never send messages that the reciever can't buffer. Right now it's possible for all the unit tests 
     to pass, even if the code under stress will send messages that the reciever can't buffer.
 
-    ------------------
-
-    Would really like a nice way in debug builds to warn the user about stuff, eg. better than an assert, an assert with a message.
-
-    For example, a lot of asserts seem really low level, but they just mean, OK, you added your own packet types, but forgot to override the callback "CreatePacketFactory".
-
-    The last thing I want is a user experiencing a bunch of really obscure low-level asserts when they are just trying to use the library.
-
-    So there should be this idea of checks which print out a nice error message, hey, you didn't do a thing.
-
-    Ideally, when working with a client integrating this library, find whatever pain points they experience on first integration, and then add checks to guard against these and save time for the next client.
-    
     ------------------
 
     Definitely need more usage documentation and samples showing how to do stuff.
@@ -101,23 +63,11 @@ WOULD BE NICE
 
     ------------------
 
-    Would be nice if a secure client connect accepted a list of servers to try to connect to, instead of having the user need to do that iteration manually outside of the client class. This is how it is meant to be used, after all.
-
-    ^---- Do this later when the matchmaker actually returns multiple results.
-
-    ------------------
-
     Need to get coverity setup to run with a travis job. Right now, it needs to be run manually, by somebody.
 
     It should be setup to run automatically on each commit to "coverity" branch, then I can create a premake action to determine current branch, mainline or development, and integrate across current head to that branch.
 
     eg. pm coverity
-
-    ------------------
-
-    I don't like the current context idea. It would be good for the stream to have a concept of client/server context, and separate "User Context" concept that can be just passed in. I don't like the idea of the user having to derive from my client/server context just to pass in their own context.
-
-    stream.GetUserContext() is the ideal here.
 
     ------------------
 
