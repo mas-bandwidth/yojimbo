@@ -2,6 +2,8 @@ DONE
 
 TODO
 
+    Finish clean up of client/server boilerplate in test.cpp
+
     ------------------
 
     Add a test to verify that server start/stop/start with a different number of clients works correctly.
