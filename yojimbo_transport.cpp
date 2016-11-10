@@ -836,10 +836,9 @@ namespace yojimbo
     {
         m_socket = YOJIMBO_NEW( allocator, Socket, address, socketBufferSize );
 
-        if ( !m_socket->IsError() )
+        if ( m_address.GetPort() == 0 && !m_socket->IsError() )
         {
-            m_address = m_socket->GetAddress();
-            assert( m_address.IsValid() );
+            m_address.SetPort( m_socket->GetAddress().GetPort() );
         }
     }
 
