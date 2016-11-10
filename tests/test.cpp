@@ -1045,7 +1045,7 @@ void test_allocator_tlsf()
     free( memory );
 }
 
-void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports )
+void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports, float deltaTime = 0.1f )
 {
     for ( int i = 0; i < numClients; ++i )
         client[i]->SendPackets();
@@ -1071,7 +1071,7 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
     for ( int i = 0; i < numServers; ++i )
         server[i]->CheckForTimeOut();
 
-    time += 0.1;
+    time += deltaTime;
 
     for ( int i = 0; i < numClients; ++i )
         client[i]->AdvanceTime( time );
@@ -1654,40 +1654,63 @@ void test_client_server_server_side_timeout()
     server.Stop();
 }
 
-// todo: don't really need this anymore. refactor to use new easy client connect
-struct ClientData
+void CreateClientTransports( int numClients, LocalTransport ** transports, NetworkSimulator & networkSimulator )
 {
-    Allocator * allocator;
-    uint64_t clientId;
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-    LocalTransport * transport;
-    GameClient * client;
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-    uint64_t connectTokenExpireTimestamp;
-
-    ClientData()
+    for ( int i = 0; i < numClients; ++i )
     {
-        clientId = 0;
-        numServerAddresses = 0;
-        transport = NULL;
-        client = NULL;
-        memset( connectTokenData, 0, ConnectTokenBytes );
-        memset( connectTokenNonce, 0, NonceBytes );
-        memset( clientToServerKey, 0, KeyBytes );
-        memset( serverToClientKey, 0, KeyBytes );
-        connectTokenExpireTimestamp = 0;
+        Address clientAddress( "::1", ClientPort + i );
+
+        transports[i] = YOJIMBO_NEW( GetDefaultAllocator(), LocalTransport, GetDefaultAllocator(), networkSimulator, clientAddress );
+    }
+}
+
+void DestroyTransports( int numClients, LocalTransport ** transports )
+{
+    for ( int i = 0; i < numClients; ++i )
+    {
+        YOJIMBO_DELETE( GetDefaultAllocator(), LocalTransport, transports[i] );    
+    }
+}
+
+void CreateClients( int numClients, GameClient ** clients, LocalTransport ** clientTransports, const ClientServerConfig & config )
+{
+    for ( int i = 0; i < numClients; ++i )
+    {
+        clients[i] = YOJIMBO_NEW( GetDefaultAllocator(), GameClient, GetDefaultAllocator(), *clientTransports[i], config );
+    }
+}
+
+void ConnectClients( int numClients, GameClient ** clients, const Address & serverAddress )
+{
+    for ( int i = 0; i < numClients; ++i )
+    {
+        ConnectClient( *clients[i], 1 + i, serverAddress );
+    }
+}
+
+void DestroyClients( int numClients, GameClient ** clients )
+{
+    for ( int i = 0; i < numClients; ++i )
+    {
+        clients[i]->Disconnect();
+
+        YOJIMBO_DELETE( GetDefaultAllocator(), GameClient, clients[i] );
+    }
+}
+
+bool AllClientsConnected( int numClients, GameServer & server, GameClient ** clients )
+{
+    if ( server.GetNumConnectedClients() != numClients )
+        return false;
+
+    for ( int i = 0; i < numClients; ++i )
+    {
+        if ( !clients[i]->IsConnected() )
+            return false;
     }
 
-    ~ClientData()
-    {
-        YOJIMBO_DELETE( GetDefaultAllocator(), LocalTransport, transport );
-        YOJIMBO_DELETE( GetDefaultAllocator(), GameClient, client );
-    }
-};
+    return true;    
+}
 
 void test_client_server_server_is_full()
 {
@@ -1697,46 +1720,14 @@ void test_client_server_server_is_full()
 
     const int NumClients = 4;
 
-    ClientData clientData[NumClients+1];
-
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    for ( int i = 0; i < NumClients + 1; ++i )
-    {
-        clientData[i].clientId = i + 1;
-
-        Address clientAddress( "::1", ClientPort + i );
-
-        clientData[i].transport = YOJIMBO_NEW( GetDefaultAllocator(), LocalTransport, GetDefaultAllocator(), networkSimulator, clientAddress );
-
-        clientData[i].transport->SetNetworkConditions( 250, 250, 5, 10 );
-
-        if ( !matcher.RequestMatch( clientData[i].clientId, 
-                                    clientData[i].connectTokenData, 
-                                    clientData[i].connectTokenNonce, 
-                                    clientData[i].clientToServerKey, 
-                                    clientData[i].serverToClientKey, 
-                                    clientData[i].connectTokenExpireTimestamp,
-                                    clientData[i].numServerAddresses, 
-                                    clientData[i].serverAddresses ) )
-        {
-            printf( "error: request match failed\n" );
-            exit( 1 );
-        }
-
-        clientData[i].client = YOJIMBO_NEW( GetDefaultAllocator(), GameClient, GetDefaultAllocator(), *clientData[i].transport, clientServerConfig );
-        }
-
     Address serverAddress( "::1", ServerPort );
 
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+    
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
-
-    double time = 0.0;
 
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
@@ -1744,156 +1735,67 @@ void test_client_server_server_is_full()
     
     server.Start( NumClients );
 
-    // connect clients so server is full and cannot accept any more client connections
+    // connect maximum number of clients to server so it's full
 
-    for ( int i = 0; i < NumClients; ++i )
-    {
-        clientData[i].client->Connect( serverAddress, 
-                                       clientData[i].connectTokenData, 
-                                       clientData[i].connectTokenNonce, 
-                                       clientData[i].clientToServerKey, 
-                                       clientData[i].serverToClientKey,
-                                       clientData[i].connectTokenExpireTimestamp );
-    }
+    LocalTransport * clientTransports[NumClients+1];
+    CreateClientTransports( NumClients + 1, clientTransports, networkSimulator );
 
-    while ( true )
-    {
-        for ( int j = 0; j < NumClients; ++j )
-            clientData[j].client->SendPackets();
+    GameClient * clients[NumClients+1];
+    CreateClients( NumClients + 1, clients, clientTransports, clientServerConfig );
 
-        server.SendPackets();
+    ConnectClients( NumClients, clients, serverAddress );
 
-        for ( int j = 0; j < NumClients; ++j )
-            clientData[j].transport->WritePackets();
-
-        serverTransport.WritePackets();
-
-        for ( int j = 0; j < NumClients; ++j )
-            clientData[j].transport->ReadPackets();
-
-        serverTransport.ReadPackets();
-
-        for ( int j = 0; j < NumClients; ++j )
-            clientData[j].client->ReceivePackets();
-
-        server.ReceivePackets();
-
-        for ( int j = 0; j < NumClients; ++j )
-            clientData[j].client->CheckForTimeOut();
-
-        server.CheckForTimeOut();
-
-        for ( int j = 0; j < NumClients; ++j )
-        {
-            if ( clientData[j].client->ConnectionFailed() )
-            {
-                printf( "error: client connect failed!\n" );
-                exit( 1 );
-            }
-        }
-
-        time += 0.1f;
-
-        bool allClientsConnected = server.GetNumConnectedClients() == NumClients;
-
-        for ( int j = 0; j < NumClients; ++j )
-        {
-            if ( !clientData[j].client->IsConnected() )
-                allClientsConnected = false;
-        }
-
-        if ( allClientsConnected )
-            break;
-
-        for ( int j = 0; j < NumClients; ++j )
-        {
-            clientData[j].client->AdvanceTime( time );
-
-            clientData[j].transport->AdvanceTime( time );
-        }
-
-        server.AdvanceTime( time );
-
-        serverTransport.AdvanceTime( time );
-    }
-
-    bool allClientsConnected = server.GetNumConnectedClients() == NumClients;
-
-    for ( int j = 0; j < NumClients; ++j )
-    {
-        if ( !clientData[j].client->IsConnected() )
-            allClientsConnected = false;
-    }
-
-    check( allClientsConnected );
-    check( server.GetMaxClients() == NumClients );
-    check( server.GetNumConnectedClients() == server.GetMaxClients() );
-
-    // try to connect one more client and verify that its connection attempt is rejected
-
-    clientData[NumClients].client->AdvanceTime( time );
-
-    clientData[NumClients].client->Connect( serverAddress, 
-                                            clientData[NumClients].connectTokenData, 
-                                            clientData[NumClients].connectTokenNonce, 
-                                            clientData[NumClients].clientToServerKey, 
-                                            clientData[NumClients].serverToClientKey,
-                                            clientData[NumClients].connectTokenExpireTimestamp );
+    double time = 0.0;
 
     while ( true )
     {
-        for ( int j = 0; j <= NumClients; ++j )
-            clientData[j].client->SendPackets();
+        Server * servers[] = { &server };
+        Transport * transports[NumClients+1];
+        transports[0] = &serverTransport;
+        for ( int i = 0; i < NumClients; ++i )
+            transports[1+i] = clientTransports[i];
 
-        server.SendPackets();
+        PumpClientServerUpdate( time, (Client**) clients, NumClients, servers, 1, transports, 1 + NumClients );
 
-        for ( int j = 0; j <= NumClients; ++j )
-            clientData[j].transport->WritePackets();
-
-        serverTransport.WritePackets();
-
-        for ( int j = 0; j <= NumClients; ++j )
-            clientData[j].transport->ReadPackets();
-
-        serverTransport.ReadPackets();
-
-        for ( int j = 0; j <= NumClients; ++j )
-            clientData[j].client->ReceivePackets();
-
-        server.ReceivePackets();
-
-        for ( int j = 0; j <= NumClients; ++j )
-            clientData[j].client->CheckForTimeOut();
-
-        server.CheckForTimeOut();
-
-        time += 0.1f;
-
-        if ( clientData[NumClients].client->ConnectionFailed() )
+        if ( AllClientsConnected( NumClients, server, clients ) )
             break;
-
-        for ( int j = 0; j <= NumClients; ++j )
-        {
-            clientData[j].client->AdvanceTime( time );
-
-            clientData[j].transport->AdvanceTime( time );
-        }
-
-        server.AdvanceTime( time );
-
-        serverTransport.AdvanceTime( time );
     }
 
-    check( server.GetNumConnectedClients() == NumClients );
-    check( clientData[NumClients].client->GetClientState() == CLIENT_STATE_CONNECTION_DENIED );
-    for ( int i = 0; i < NumClients; ++i )
+    check( AllClientsConnected( NumClients, server, clients ) );
+
+    // now try to connect one more client and verify it's denied with 'server full'
+
+    ConnectClient( *clients[NumClients], 1 + NumClients, serverAddress );
+
+    while ( true )
     {
-        check( clientData[i].client->IsConnected() );
-        clientData[i].client->Disconnect();
+        Server * servers[] = { &server };
+        Transport * transports[NumClients+2];
+        transports[0] = &serverTransport;
+        for ( int i = 0; i < NumClients + 1; ++i )
+            transports[1+i] = clientTransports[i];
+
+        PumpClientServerUpdate( time, (Client**) clients, NumClients + 1, servers, 1, transports, 2 + NumClients );
+
+        check( AllClientsConnected( NumClients, server, clients ) );
+
+        if ( clients[NumClients]->ConnectionFailed() )
+            break;
     }
+
+    check( AllClientsConnected( NumClients, server, clients ) );
+    check( clients[NumClients]->ConnectionFailed() );
+    check( clients[NumClients]->GetClientState() == CLIENT_STATE_CONNECTION_DENIED );
+    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL ) != 0 );
+
+    DestroyClients( NumClients + 1, clients );
+
+    DestroyTransports( NumClients + 1, clientTransports );
 
     server.Stop();
 }
+
+// todo: clean this test
 
 void test_client_server_connect_token_reuse()
 {
