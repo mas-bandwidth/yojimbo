@@ -1166,31 +1166,17 @@ void test_client_server_reconnect()
 {
     printf( "test_client_server_reconnect\n" );
 
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
     GenerateKey( private_key );
+
+    const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
+    
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1198,7 +1184,6 @@ void test_client_server_reconnect()
     clientServerConfig.enableConnection = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
@@ -1207,32 +1192,15 @@ void test_client_server_reconnect()
 
     // connect client to the server
 
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
-
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1240,16 +1208,8 @@ void test_client_server_reconnect()
             exit( 1 );
         }
 
-        time += 0.1;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -1260,78 +1220,38 @@ void test_client_server_reconnect()
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
-
-        time += 0.1;
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
 
-    // now verify the client is able to reconnect to the same server with a new connect token
+    // verify the client is able to reconnect to the same server with a new connect token
 
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed (2)\n" );
-        exit( 1 );
-    }
-
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
-            printf( "error: client connect failed! (2)\n" );
+            printf( "error: client connect failed!\n" );
             exit( 1 );
         }
 
-        time += 0.1f;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -1345,31 +1265,17 @@ void test_client_server_client_side_disconnect()
 {
     printf( "test_client_server_client_side_disconnect\n" );
 
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
     GenerateKey( private_key );
+
+    const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
+    
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1377,41 +1283,23 @@ void test_client_server_client_side_disconnect()
     clientServerConfig.enableConnection = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
     
     server.Start();
 
-    // connect client to the server
+    // connect client to server
 
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
-
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1419,16 +1307,8 @@ void test_client_server_client_side_disconnect()
             exit( 1 );
         }
 
-        time += 0.1f;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -1439,31 +1319,14 @@ void test_client_server_client_side_disconnect()
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
-
-        time += 0.1f;
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
@@ -1477,31 +1340,17 @@ void test_client_server_server_side_disconnect()
 {
     printf( "test_client_server_server_side_disconnect\n" );
 
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
     GenerateKey( private_key );
+
+    const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
+    
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1509,41 +1358,23 @@ void test_client_server_server_side_disconnect()
     clientServerConfig.enableConnection = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
     
     server.Start();
 
-    // connect client to the server
+    // connect client to server
 
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
-
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1551,51 +1382,26 @@ void test_client_server_server_side_disconnect()
             exit( 1 );
         }
 
-        time += 0.1f;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
-    // disconnect client side
+    // disconnect server side
 
     server.DisconnectAllClients();
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
-
-        time += 1.0;
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
@@ -1609,69 +1415,38 @@ void test_client_server_connection_request_timeout()
 {
     printf( "test_client_server_connection_request_timeout\n" );
 
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
     GenerateKey( private_key );
 
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
+    const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
+    
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-
-    const int NumIterations = 20;
 
     double time = 0.0;
 
-    ClientServerConfig config;
-    config.enableConnection = false;
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, config );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    // connect client to a server that does not exist. verify client connect fails
 
-    for ( int i = 0; i < NumIterations; ++i )
+    ConnectClient( client, clientId, serverAddress );
+
+    while ( true )
     {
-        client.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = {};
+        Transport * transports[] = { &clientTransport };
 
-        clientTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-
-        client.ReceivePackets();
-
-        client.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 0, transports, 1 );
 
         if ( client.ConnectionFailed() )
             break;
-
-        time += 1.0;
-
-        client.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
     }
 
     check( client.ConnectionFailed() );
@@ -1682,39 +1457,17 @@ void test_client_server_connection_response_timeout()
 {
     printf( "test_client_server_connection_response_timeout\n" );
 
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
     GenerateKey( private_key );
 
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
+    const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
+    
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1722,7 +1475,6 @@ void test_client_server_connection_response_timeout()
     clientServerConfig.enableConnection = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
@@ -1731,35 +1483,20 @@ void test_client_server_connection_response_timeout()
 
     server.SetFlags( SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES );
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    // connect client to server with ignore challenge response flag set, verify client connect times out on challenge response
+
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
             break;
-
-        time += 0.1f;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( client.ConnectionFailed() );
@@ -1774,39 +1511,17 @@ void test_client_server_client_side_timeout()
 {
     printf( "test_client_server_client_side_timeout\n" );
 
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
     GenerateKey( private_key );
 
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
+    const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
+    
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1814,31 +1529,23 @@ void test_client_server_client_side_timeout()
     clientServerConfig.enableConnection = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    // connect client to server
+
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1846,40 +1553,24 @@ void test_client_server_client_side_timeout()
             exit( 1 );
         }
 
-        time += 0.1f;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
+    // now pump only the server. verify that the client times out on the server
+
     while ( true )
     {
-        server.SendPackets();
+        Client * clients[] = {};
+        Server * servers[] = { &server };
+        Transport * transports[] = { &serverTransport };
 
-        serverTransport.WritePackets();
-
-        serverTransport.ReadPackets();
-
-        server.ReceivePackets();
-
-        server.CheckForTimeOut();
-
-        time += 1.0;
+        PumpClientServerUpdate( time, clients, 0, servers, 1, transports, 1 );
 
         if ( server.GetNumConnectedClients() == 0 )
             break;
-
-        server.AdvanceTime( time );
-
-        serverTransport.AdvanceTime( time );
     }
 
     check( server.GetNumConnectedClients() == 0 );
@@ -1893,39 +1584,17 @@ void test_client_server_server_side_timeout()
 {
     printf( "test_client_server_server_side_timeout\n" );
 
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
     GenerateKey( private_key );
 
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
+    const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
+    
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     double time = 0.0;
 
@@ -1933,31 +1602,23 @@ void test_client_server_server_side_timeout()
     clientServerConfig.enableConnection = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
 
     server.SetServerAddress( serverAddress );
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    // connect client to server
+
+    ConnectClient( client, clientId, serverAddress );
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1965,40 +1626,24 @@ void test_client_server_server_side_timeout()
             exit( 1 );
         }
 
-        time += 0.1f;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
+    // now pump only the client. verify that the client times out
+
     while ( true )
     {
-        client.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = {};
+        Transport * transports[] = { &clientTransport };
 
-        clientTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-
-        client.ReceivePackets();
-
-        client.CheckForTimeOut();
-
-        time += 1.0;
+        PumpClientServerUpdate( time, clients, 1, servers, 0, transports, 1 );
 
         if ( !client.IsConnected() )
             break;
-
-        client.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnected() );
@@ -2009,6 +1654,7 @@ void test_client_server_server_side_timeout()
     server.Stop();
 }
 
+// todo: don't really need this anymore. refactor to use new easy client connect
 struct ClientData
 {
     Allocator * allocator;
