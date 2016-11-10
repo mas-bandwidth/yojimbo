@@ -1048,6 +1048,15 @@ void test_allocator_tlsf()
 void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports, float deltaTime = 0.1f )
 {
     for ( int i = 0; i < numClients; ++i )
+        client[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numTransports; ++i )
+        transport[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numClients; ++i )
         client[i]->SendPackets();
 
     for ( int i = 0; i < numServers; ++i )
@@ -1072,15 +1081,6 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
         server[i]->CheckForTimeOut();
 
     time += deltaTime;
-
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numTransports; ++i )
-        transport[i]->AdvanceTime( time );
 }
 
 void ConnectClient( Client & client, uint64_t clientId, const Address & serverAddress )
@@ -1795,8 +1795,6 @@ void test_client_server_server_is_full()
     server.Stop();
 }
 
-// todo: clean this test
-
 void test_client_server_connect_token_reuse()
 {
     printf( "test_client_server_connect_token_reuse\n" );
@@ -1852,20 +1850,11 @@ void test_client_server_connect_token_reuse()
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1873,16 +1862,8 @@ void test_client_server_connect_token_reuse()
             exit( 1 );
         }
 
-        time += 0.1f;
-
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
@@ -1893,36 +1874,19 @@ void test_client_server_connect_token_reuse()
 
     while ( true )
     {
-        client.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
 
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
 
         if ( server.GetNumConnectedClients() == 0 )
             break;
-
-        time += 0.1f;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
 
-    // now try to connect a second client (different address) using the same token. the connect should be ignored
+    // now try to connect a second client (different address) using the same token. this connect should be ignored
 
     Address clientAddress2( "::1", ClientPort + 1 );
 
@@ -1930,46 +1894,30 @@ void test_client_server_connect_token_reuse()
     
     GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
 
-    client2.AdvanceTime( time );
-
     client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
-        client2.SendPackets();
-        server.SendPackets();
+        Client * clients[] = { &client, &client2 };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &clientTransport2, &serverTransport };
 
-        clientTransport2.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport2.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client2.ReceivePackets();
-        server.ReceivePackets();
-
-        client2.CheckForTimeOut();
-        server.CheckForTimeOut();
-
-        time += 0.1;
+        PumpClientServerUpdate( time, clients, 2, servers, 1, transports, 3 );
 
         if ( client2.ConnectionFailed() )
             break;
-
-        client2.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport2.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     check( client2.GetClientState() == CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT );
-    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED ) > 0 );
+    check( server.GetNumConnectedClients() == 0 );
+    check( server.GetCounter( SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED ) != 0 );
 
     client2.Disconnect();
 
     server.Stop();
 }
+
+// todo: clean up with flags to pass to client connect for this effect
 
 void test_client_server_connect_token_expired()
 {
