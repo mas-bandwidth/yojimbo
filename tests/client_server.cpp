@@ -57,8 +57,8 @@ int ClientServerMain()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    GameNetworkTransport clientTransport( clientAddress );
-    GameNetworkTransport serverTransport( serverAddress );
+    NetworkTransport clientTransport( GetDefaultAllocator(), clientAddress, ProtocolId );
+    NetworkTransport serverTransport( GetDefaultAllocator(), serverAddress, ProtocolId );
 
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE || serverTransport.GetError() != SOCKET_ERROR_NONE )
     {
@@ -66,11 +66,8 @@ int ClientServerMain()
         return 1;
     }
 
-    // todo: turn this on when the transport knows how to pump packet receive from simulator
-    /*
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    */
 
     const int NumIterations = 20;
 
@@ -85,6 +82,8 @@ int ClientServerMain()
     server.Start();
     
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+
+    int result = 0;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -106,6 +105,7 @@ int ClientServerMain()
         if ( client.ConnectionFailed() )
         {
             printf( "error: client connect failed!\n" );
+            result = 1;
             break;
         }
 
@@ -128,7 +128,7 @@ int ClientServerMain()
 
     server.Stop();
 
-    return 0;
+    return result;
 }
 
 int main()

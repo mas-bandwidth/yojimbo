@@ -28,6 +28,14 @@ Ouch, because multiple receives are done with different "to" addresses on the sa
 
 For the moment, it's the O(n)+O(m^2) where m is small. Hopefully m is small enough to not be a problem. If it is, then the interface for getting packets on a per-destination address can change, so the transport has an optimized function to call, and it becomes O(n) + O(m*p), where p is the num different addresses, m is the number of packets each frame to be received, and n is the size of the packet entry buffer in simulator.
 
+Next step is to make the regular transport pump packet receive from the simulator.
+
+Renamed "SocketTransport" to "NetworkTransport". Now we have "LocalTransport" and "NetworkTransport" which sounds good. Remove dummy GameNetworkTransport implementation in shared.h. Users shouldn't need to derive their own transport to work.
+
+Implemented it, enabled network conditions in client_server.cpp, but it's not working, packets aren't getting received. Debugging.
+
+Made client_server.cpp return 1 if the connection fails, this way it can be used as part of travis tests.
+
 
 Tuesday November 8th, 2016
 ==========================

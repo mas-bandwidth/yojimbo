@@ -193,11 +193,11 @@ int ProfileMain()
         }
     }
 
-    serverData->transport = new SocketTransport( GetDefaultAllocator(), serverData->address, ProtocolId );
+    serverData->transport = new NetworkTransport( GetDefaultAllocator(), serverData->address, ProtocolId );
 
     for ( int i = 0; i < MaxClients; ++i )
     {
-        clientData[i].transport = new SocketTransport( GetDefaultAllocator(), clientData[i].address, ProtocolId );
+        clientData[i].transport = new NetworkTransport( GetDefaultAllocator(), clientData[i].address, ProtocolId );
     }
 
     serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, ClientServerConfig() );

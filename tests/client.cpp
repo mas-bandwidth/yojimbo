@@ -39,7 +39,7 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientMain( int argc, char * argv[] )
 {   
-    GameNetworkTransport clientTransport;
+    NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId );
     
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
     {

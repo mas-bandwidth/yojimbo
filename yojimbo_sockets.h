@@ -85,37 +85,6 @@ namespace yojimbo
         SocketHandle m_socket;
     };
 
-    class SocketTransport : public BaseTransport
-    {
-    public:
-
-        SocketTransport( Allocator & allocator,
-                         const Address & address,
-                         uint32_t protocolId,
-                         int maxPacketSize = 4 * 1024,
-                         int sendQueueSize = 1024,
-                         int receiveQueueSize = 1024,
-                         int bufferSize = 1024*1024 );
-
-        ~SocketTransport();
-
-        bool IsError() const;
-
-        int GetError() const;
-
-        const Address & GetAddress() const;
-
-    protected:
-
-        virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
-    
-        virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
-
-    private:
-
-        Socket * m_socket;
-    };
-
 #endif // #if YOJIMBO_SOCKETS
 }
 

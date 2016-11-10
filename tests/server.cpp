@@ -47,7 +47,7 @@ int ServerMain()
 
     Address serverPublicAddress( "127.0.0.1", ServerPort );
 
-    GameNetworkTransport serverTransport( serverBindAddress );
+    NetworkTransport serverTransport( GetDefaultAllocator(), serverBindAddress, ProtocolId );
 
     if ( serverTransport.GetError() != SOCKET_ERROR_NONE )
     {

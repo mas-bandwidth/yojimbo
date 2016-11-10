@@ -665,21 +665,4 @@ protected:
 
 #endif // #if CLIENT
 
-class GameNetworkTransport : public SocketTransport
-{   
-public:
-
-    GameNetworkTransport( const Address & address = Address( "0.0.0.0" ) ) 
-        : SocketTransport( GetDefaultAllocator(), address, ProtocolId )
-    {
-        // ...
-    }
-
-    ~GameNetworkTransport()
-    {
-        ClearSendQueue();
-        ClearReceiveQueue();
-    }
-};
-
 #endif // #ifndef SHARED_H

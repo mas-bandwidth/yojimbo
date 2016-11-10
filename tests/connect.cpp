@@ -80,7 +80,7 @@ int ConnectMain( int argc, char * argv[] )
 
     printf( "received match response\n" );
 
-    GameNetworkTransport clientTransport;
+    NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId );
 
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
     {

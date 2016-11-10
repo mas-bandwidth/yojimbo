@@ -128,3 +128,10 @@ WOULD BE NICE
     Similarly, per-message type counters inside the connection would be great to help track down large messages (eg. min/max/average per-message type)
 
     ------------------
+
+    simple_messages.cpp is anything but
+
+    Clean it up, simplify, make it easier to do this.
+
+    ------------------
+    

@@ -315,52 +315,5 @@ namespace yojimbo
         return m_address;
     }
 
-    SocketTransport::SocketTransport( Allocator & allocator, 
-                                      const Address & address,
-                                      uint32_t protocolId,
-                                      int maxPacketSize, 
-                                      int sendQueueSize, 
-                                      int receiveQueueSize,
-                                      int bufferSize )
-        : BaseTransport( allocator, 
-                         address,
-                         protocolId,
-                         maxPacketSize,
-                         sendQueueSize,
-                         receiveQueueSize )
-    {
-        m_socket = YOJIMBO_NEW( allocator, Socket, address, bufferSize );
-    }
-
-    SocketTransport::~SocketTransport()
-    {
-        YOJIMBO_DELETE( GetAllocator(), Socket, m_socket );
-    }
-
-    bool SocketTransport::IsError() const
-    {
-        return m_socket->IsError();
-    }
-
-    int SocketTransport::GetError() const
-    {
-        return m_socket->GetError();
-    }
-
-    const Address & SocketTransport::GetAddress() const
-    {
-        return m_socket->GetAddress();
-    }
-
-    bool SocketTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
-    {
-        return m_socket->SendPacket( to, packetData, packetBytes );
-    }
-
-    int SocketTransport::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
-    {
-        return m_socket->ReceivePacket( from, packetData, maxPacketSize );
-    }
-
 #endif // #if YOJIMBO_SOCKETS
 }

@@ -2,11 +2,9 @@ DONE
 
 TODO
 
-    Next step is to make the regular transport pump packet receive from the simulator.
+    ------------------
 
-    After this, enable simulated network conditions in client_server.cpp
-
-    To make sure this always works, extend the travis job to run client_server.cpp.
+    To make sure network transport always works, extend the travis job to run client_server.cpp.
 
     ------------------
 

@@ -299,6 +299,41 @@ namespace yojimbo
     
         int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
     };
+
+#if YOJIMBO_SOCKETS
+
+    class NetworkTransport : public BaseTransport
+    {
+    public:
+
+        NetworkTransport( Allocator & allocator,
+                          const Address & address,
+                          uint32_t protocolId,
+                          int maxPacketSize = 4 * 1024,
+                          int sendQueueSize = 1024,
+                          int receiveQueueSize = 1024,
+                          int bufferSize = 1024*1024 );
+
+        ~NetworkTransport();
+
+        bool IsError() const;
+
+        int GetError() const;
+
+        const Address & GetAddress() const;
+
+    protected:
+
+        virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
+    
+        virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
+
+    private:
+
+        class Socket * m_socket;
+    };
+
+#endif // #if YOJIMBO_SOCKETS
 }
 
 #endif // #ifndef YOJIMBO_INTERFACE_H

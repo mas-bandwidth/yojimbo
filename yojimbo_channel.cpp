@@ -1157,7 +1157,6 @@ namespace yojimbo
     bool UnreliableUnorderedChannel::CanSendMsg() const
     {
         assert( m_messageSendQueue );
-
         return !m_messageSendQueue->IsFull();
     }
 
