@@ -35,10 +35,8 @@ script:
   - ./premake5 gmake
   - make all config=debug_x64
   - ./bin/test
-  - ./bin/client_server
   - ./premake5 clean
   - ./premake5 gmake
   - make all config=release_x64
   - ./bin/test
-  - ./bin/client_server
   
