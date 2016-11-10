@@ -222,9 +222,7 @@ namespace yojimbo
             uint8_t * packetData = m_pendingReceivePackets[i].packetData;
 
             to = m_pendingReceivePackets[i].to;
-
             from = m_pendingReceivePackets[i].from;            
-            
             packetSize = m_pendingReceivePackets[i].packetSize;
 
             m_pendingReceivePackets[i].packetData = NULL;
@@ -278,41 +276,6 @@ namespace yojimbo
             PacketEntry & packetEntry = m_pendingReceivePackets[i];
 
             if ( !packetEntry.packetData )
-                continue;
-
-            m_allocator->Free( packetEntry.packetData );
-
-            packetEntry = PacketEntry();
-        }
-
-        m_numPendingReceivePackets = 0;
-    }
-
-    void NetworkSimulator::DiscardPacketsFromAddress( const Address & address )
-    {
-        for ( int i = 0; i < m_numPacketEntries; ++i )
-        {
-            PacketEntry & packetEntry = m_packetEntries[i];
-
-            if ( !packetEntry.packetData )
-                continue;
-
-            if ( packetEntry.to != address && packetEntry.from != address )
-                continue;
-
-            m_allocator->Free( packetEntry.packetData );
-
-            packetEntry = PacketEntry();
-        }
-
-        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
-        {
-            PacketEntry & packetEntry = m_pendingReceivePackets[i];
-
-            if ( !packetEntry.packetData )
-                continue;
-
-            if ( packetEntry.to != address && packetEntry.from != address )
                 continue;
 
             m_allocator->Free( packetEntry.packetData );

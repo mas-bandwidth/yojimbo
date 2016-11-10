@@ -531,8 +531,10 @@ namespace yojimbo
 
 #if YOJIMBO_NETWORK_SIMULATOR
 
-        if ( m_networkSimulator )
+        if ( m_allocateNetworkSimulator )
         {
+            assert( m_networkSimulator );
+
             while ( true )
             {
                 int packetBytes = 0;

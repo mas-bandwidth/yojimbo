@@ -50,6 +50,12 @@ So how does it have the incorrect address to send to?
 
 Fixed. I had to/from params back the wrong way in the function implementation for ReceivePacket. o_O
 
+I've somehow broken the local transport. It's not getting packets through. What's going on?
+
+Oh I get it, it's pumping the local transport as if it's the simulated network conditions on top of a real transport, so all the packets are being sent back to self.
+
+Fixed.
+
 
 Tuesday November 8th, 2016
 ==========================
