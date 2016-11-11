@@ -203,9 +203,7 @@ namespace yojimbo
 
         const uint8_t * WritePacket( const Address & address, Packet * packet, uint64_t sequence, int & packetBytes );
 
-#if YOJIMBO_NETWORK_SIMULATOR
         void WritePacketToSimulator( const Address & address, Packet * packet, uint64_t sequence );
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence );
 
@@ -213,7 +211,7 @@ namespace yojimbo
 
         virtual bool ShouldPacketGoThroughSimulator();
 
-        virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes ) = 0;
+        virtual void InternalSendPacket( const Address & to, const void * packetData, int packetBytes ) = 0;
     
         virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize ) = 0;
 
@@ -267,10 +265,9 @@ namespace yojimbo
 
         EncryptionManager * m_encryptionManager;
 
-#if YOJIMBO_NETWORK_SIMULATOR
         bool m_allocateNetworkSimulator;
+
         class NetworkSimulator * m_networkSimulator;
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         uint64_t m_counters[TRANSPORT_COUNTER_NUM_COUNTERS];
     };
@@ -280,24 +277,35 @@ namespace yojimbo
     public:
 
         LocalTransport( Allocator & allocator,
-                        NetworkSimulator & networkSimulator,
+                        class NetworkSimulator & networkSimulator,
                         const Address & address,
                         uint32_t protocolId = LocalProtocolId,
                         int maxPacketSize = DefaultMaxPacketSize,
                         int sendQueueSize = DefaultPacketSendQueueSize,
-                        int receiveQueueSize = DefaultPacketReceiveQueueSize )
-            : BaseTransport( allocator, address, protocolId, maxPacketSize, sendQueueSize, receiveQueueSize, false ) 
-        { 
-            m_networkSimulator = &networkSimulator;
-        }
+                        int receiveQueueSize = DefaultPacketReceiveQueueSize );
 
         ~LocalTransport();
 
+        void AdvanceTime( double time );
+
     protected:
 
-        bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
+        void DiscardReceivePackets();
+
+        void PumpReceivePacketsFromSimulator();
+
+        void InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
     
         int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
+
+    private:
+
+        int m_receivePacketIndex;                           // current index into receive packet (for InternalReceivePacket)
+        int m_numReceivePackets;                            // number of receive packets from last AdvanceTime update
+        int m_maxReceivePackets;                            // size of receive packet buffer (matches size of packet receive queue)
+        uint8_t ** m_receivePacketData;                     // array of packet data to be received. pointers are owned and must be freed with simulator allocator.
+        int * m_receivePacketBytes;                         // array of packet sizes in bytes.
+        Address * m_receiveFrom;                            // array of packet from addresses.
     };
 
 #if YOJIMBO_SOCKETS
@@ -322,7 +330,7 @@ namespace yojimbo
 
     protected:
 
-        virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
+        virtual void InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
     
         virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
 

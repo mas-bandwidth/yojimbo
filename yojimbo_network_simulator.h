@@ -33,8 +33,6 @@
 
 namespace yojimbo
 {
-#if YOJIMBO_NETWORK_SIMULATOR
-
     class NetworkSimulator
     {
     public:
@@ -55,9 +53,9 @@ namespace yojimbo
         
         void SendPacket( const Address & from, const Address & to, uint8_t * packetData, int packetSize );
 
-        uint8_t * ReceivePacket( Address & from, Address & to, int & packetSize );
+        int ReceivePackets( int maxPackets, uint8_t * packetData[], int packetSize[], Address from[], Address to[] );
 
-        uint8_t * ReceivePacketSentToAddress( Address & from, const Address & to, int & packetSize );
+        int ReceivePacketsSentToAddress( int maxPackets, const Address & to, uint8_t * packetData[], int packetSize[], Address from[] );
 
         void DiscardPackets();
 
@@ -115,8 +113,6 @@ namespace yojimbo
 
         double m_lastPendingReceiveTime;                // time of last pending receive, used to work around multiple simulator updates from transports.
     };
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 }
 
 #endif // #ifndef YOJIMBO_NETWORK_SIMULATOR_H

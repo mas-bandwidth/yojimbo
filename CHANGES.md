@@ -1,4 +1,16 @@
 
+Friday November 11th, 2016
+==========================
+
+Optimized network simulator so it doesn't have too much overhead. Packets are now read off the simulator as a batch, avoiding an O(n^2) situation, where n is the number of packets to be dequeued this frame. This should make it a lot faster. It's actually simpler to use as well.
+
+Remember to test that the code compiles with #define YOJIMBO_NETWORK_SIMULATOR 0
+
+Did this, but so much code, and all tests rely on network simulator. It's not a good situation to have a gold build with simulator disabled, if this means you cannot run unit tests in gold build to make sure everything is working.
+
+So I removed YOJIMBO_NETWORK_SIMULATOR define. It's faster now, so it's production ready, and it can be disabled in NetworkTransport by passing in allocateNetworkSimulator = false in the constructor.
+
+
 Thursday November 10th, 2016
 ============================
 

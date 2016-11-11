@@ -2,33 +2,14 @@ WOULD BE NICE
 
     ------------------
 
-    Extend client connect to take a list of servers to connect to.
-
-    ------------------
-
-    Add some client counters, they are useful for debugging.
-
-    ------------------
-
-    Should switch simulator receive packets to be a batch function. It would be much faster then.
+    Switch simulator receive packets to be a batch function. It would be much faster this way.
     
     ------------------
     
-    Add a test case for both unordered and ordered messages to show that it properly handles a message failing to serialize, 
-
-    eg. properly cleans up, sets error state, shuts down the connection.
-
-    Previously, a bug snuck through where messages were not getting cleaned up properly and the server would crash in this situation.
-
-    Adding these tests will make sure this never happens again.
-
-    ------------------
-
-    Add a unit test that intentionally exhausts the client allocator.
-
-    Make sure the server detects this and disconnects that client.
-
-    Make sure client can reconnect to the slot that was exhausted (eg. it is properly cleared).
+    Add a test for a very large message send queue (and large # of messages per-packet) with a tiny message receive queue.
+    
+    This would make sure we never send messages that the reciever can't buffer. Right now it's possible for all the unit tests 
+    to pass, even if the code under stress will send messages that the reciever can't buffer.
 
     ------------------
 
@@ -41,15 +22,6 @@ WOULD BE NICE
     If any packet comes in with sequence # older than the sliding window, discard it.
 
     Otherwise, process the packet normally.
-
-    =================================================================
-
-    ------------------
-    
-    Add a test for a very large message send queue (and large # of messages per-packet) with a tiny message receive queue.
-    
-    This would make sure we never send messages that the reciever can't buffer. Right now it's possible for all the unit tests 
-    to pass, even if the code under stress will send messages that the reciever can't buffer.
 
     ------------------
 

@@ -25,8 +25,6 @@
 #include "yojimbo_config.h"
 #include "yojimbo_network_simulator.h"
 
-#if YOJIMBO_NETWORK_SIMULATOR
-
 namespace yojimbo
 {
     NetworkSimulator::NetworkSimulator( Allocator & allocator, int numPackets )
@@ -213,29 +211,36 @@ namespace yojimbo
         }
     }
 
-    uint8_t * NetworkSimulator::ReceivePacket( Address & from, Address & to, int & packetSize )
-    { 
+    int NetworkSimulator::ReceivePackets( int maxPackets, uint8_t * packetData[], int packetSize[], Address from[], Address to[] )
+    {
+        int numPackets = 0;
+
+        maxPackets = min( maxPackets, m_numPendingReceivePackets );
+
         for ( int i = 0; i < m_numPendingReceivePackets; ++i )
         {
             if ( !m_pendingReceivePackets[i].packetData )
                 continue;
 
-            uint8_t * packetData = m_pendingReceivePackets[i].packetData;
-
-            to = m_pendingReceivePackets[i].to;
-            from = m_pendingReceivePackets[i].from;            
-            packetSize = m_pendingReceivePackets[i].packetSize;
+            packetData[numPackets] = m_pendingReceivePackets[i].packetData;
+            packetSize[numPackets] = m_pendingReceivePackets[i].packetSize;
+            from[numPackets] = m_pendingReceivePackets[i].from;
+            to[numPackets] = m_pendingReceivePackets[i].to;
 
             m_pendingReceivePackets[i].packetData = NULL;
 
-            return packetData;
+            numPackets++;
         }
 
-        return NULL;
+        return numPackets;
     }
 
-    uint8_t * NetworkSimulator::ReceivePacketSentToAddress( Address & from, const Address & to, int & packetSize )
-    { 
+    int NetworkSimulator::ReceivePacketsSentToAddress( int maxPackets, const Address & to, uint8_t * packetData[], int packetSize[], Address from[] )
+    {
+        int numPackets = 0;
+
+        maxPackets = min( maxPackets, m_numPendingReceivePackets );
+
         for ( int i = 0; i < m_numPendingReceivePackets; ++i )
         {
             if ( !m_pendingReceivePackets[i].packetData )
@@ -244,18 +249,16 @@ namespace yojimbo
             if ( m_pendingReceivePackets[i].to != to )
                 continue;
 
-            uint8_t * packetData = m_pendingReceivePackets[i].packetData;
-
-            from = m_pendingReceivePackets[i].from;
-            
-            packetSize = m_pendingReceivePackets[i].packetSize;
+            packetData[numPackets] = m_pendingReceivePackets[i].packetData;
+            packetSize[numPackets] = m_pendingReceivePackets[i].packetSize;
+            from[numPackets] = m_pendingReceivePackets[i].from;
 
             m_pendingReceivePackets[i].packetData = NULL;
 
-            return packetData;
+            numPackets++;
         }
 
-        return NULL;
+        return numPackets;
     }
 
     void NetworkSimulator::DiscardPackets()
@@ -296,5 +299,3 @@ namespace yojimbo
         UpdatePendingReceivePackets();
     }
 }
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR

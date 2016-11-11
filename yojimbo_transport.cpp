@@ -78,7 +78,7 @@ namespace yojimbo
 
 		m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
 
-#if YOJIMBO_NETWORK_SIMULATOR
+        (void) allocateNetworkSimulator;
 
         m_allocateNetworkSimulator = allocateNetworkSimulator;
 
@@ -90,8 +90,6 @@ namespace yojimbo
         {
             m_networkSimulator = NULL;
         }
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 	}
 
     void BaseTransport::SetPacketFactory( PacketFactory & packetFactory )
@@ -150,19 +148,10 @@ namespace yojimbo
 
         ClearPacketFactory();
 
-#if YOJIMBO_NETWORK_SIMULATOR
-        if ( m_networkSimulator )
-        {
-            m_networkSimulator->DiscardPackets();
-        }
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
-
         YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
 		YOJIMBO_DELETE( *m_allocator, ContextManager, m_contextManager );
 		YOJIMBO_DELETE( *m_allocator, EncryptionManager, m_encryptionManager );
-#if YOJIMBO_NETWORK_SIMULATOR
         YOJIMBO_DELETE( *m_allocator, NetworkSimulator, m_networkSimulator );
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         m_allocator = NULL;
     }
@@ -283,9 +272,7 @@ namespace yojimbo
         assert( m_packetFactory );
         assert( m_packetProcessor );
 
-#if YOJIMBO_NETWORK_SIMULATOR
         bool useSimulator = ShouldPacketGoThroughSimulator();
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         while ( !m_sendQueue.IsEmpty() )
         {
@@ -295,13 +282,11 @@ namespace yojimbo
             assert( entry.packet->IsValid() );
             assert( entry.address.IsValid() );
 
-#if YOJIMBO_NETWORK_SIMULATOR
             if ( useSimulator )
             {
                 WritePacketToSimulator( entry.address, entry.packet, entry.sequence );
             }
             else
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
             {
                 WriteAndFlushPacket( entry.address, entry.packet, entry.sequence );
             }
@@ -394,8 +379,6 @@ namespace yojimbo
         assert( packet->IsValid() );
         assert( address.IsValid() );
 
-#if YOJIMBO_NETWORK_SIMULATOR
-
         int packetBytes = 0;
 
         const uint8_t * packetData = WritePacket( address, packet, sequence, packetBytes );
@@ -414,16 +397,6 @@ namespace yojimbo
         memcpy( packetDataCopy, packetData, packetBytes );
 
         m_networkSimulator->SendPacket( GetAddress(), address, packetDataCopy, packetBytes );
-
-#else // #if YOJIMBO_NETWORK_SIMULATOR
-
-        (void) packet;
-        (void) address;
-        (void) sequence;
-
-        assert( !"network simulator is not enabled. see #define YOJIMBO_NETWORK_SIMULATOR" );
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
     void BaseTransport::WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence )
@@ -530,32 +503,32 @@ namespace yojimbo
 
         const int maxPacketSize = GetMaxPacketSize();
 
-#if YOJIMBO_NETWORK_SIMULATOR
-
         if ( m_allocateNetworkSimulator )
         {
             assert( m_networkSimulator );
 
-            while ( true )
+            const int maxPackets = m_receiveQueue.GetSize();
+
+            uint8_t ** packetData = (uint8_t**) alloca( sizeof( uint8_t*) * maxPackets );
+            int * packetBytes = (int*) alloca( sizeof(int) * maxPackets );
+            Address * from = (Address*) alloca( sizeof(Address) * maxPackets );
+            Address * to = (Address*) alloca( sizeof(Address) * maxPackets );
+
+            int numPackets = m_networkSimulator->ReceivePackets( maxPackets, packetData, packetBytes, from, to );
+
+            Allocator & allocator = m_networkSimulator->GetAllocator();
+
+            for ( int i = 0; i < numPackets; ++i )
             {
-                int packetBytes = 0;
+                assert( packetData[i] );
+                assert( packetBytes[i] > 0 );
+                assert( packetBytes[i] <= maxPacketSize );
 
-                Address from, to;
+                InternalSendPacket( to[i], packetData[i], packetBytes[i] );
 
-                uint8_t * packetData = m_networkSimulator->ReceivePacket( from, to, packetBytes );
-                if ( !packetData )
-                    break;
-
-                assert( packetBytes > 0 );
-                assert( packetBytes <= maxPacketSize );
-
-                InternalSendPacket( to, packetData, packetBytes );
-                
-                m_networkSimulator->GetAllocator().Free( packetData );
+                allocator.Free( packetData[i] );
             }
         }
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
 
         uint8_t * packetData = (uint8_t*) alloca( maxPacketSize );
 
@@ -593,8 +566,6 @@ namespace yojimbo
 
     void BaseTransport::SetNetworkConditions( float latency, float jitter, float packetLoss, float duplicate )
     {
-#if YOJIMBO_NETWORK_SIMULATOR
-
         if ( m_networkSimulator )
         {
             m_networkSimulator->SetLatency( latency );
@@ -602,21 +573,10 @@ namespace yojimbo
             m_networkSimulator->SetPacketLoss( packetLoss );
             m_networkSimulator->SetDuplicate( duplicate );
         }
-
-#else // #if YOJIMBO_NETWORK_SIMULATOR
-
-        (void) latency;
-        (void) jitter;
-        (void) packetLoss;
-        (void) duplicate;
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
     void BaseTransport::ClearNetworkConditions()
     {
-#if YOJIMBO_NETWORK_SIMULATOR
-
         if ( m_networkSimulator )
         {
             m_networkSimulator->SetLatency( 0.0f );
@@ -624,17 +584,11 @@ namespace yojimbo
             m_networkSimulator->SetPacketLoss( 0.0f );
             m_networkSimulator->SetDuplicate( 0.0f );
         }
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
     bool BaseTransport::ShouldPacketGoThroughSimulator()
     {
-#if YOJIMBO_NETWORK_SIMULATOR
         return m_allocateNetworkSimulator && m_networkSimulator->IsActive();
-#else // #if YOJIMBO_NETWORK_SIMULATOR
-        return false;
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
     void BaseTransport::SetContext( void * context )
@@ -710,12 +664,10 @@ namespace yojimbo
     {
         assert( time >= m_time );
         m_time = time;
-#if YOJIMBO_NETWORK_SIMULATOR
         if ( m_networkSimulator )
         {
             m_networkSimulator->AdvanceTime( time );
         }
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
     double BaseTransport::GetTime() const
@@ -747,19 +699,78 @@ namespace yojimbo
 
     // =====================================================
 
-    LocalTransport::~LocalTransport()
-    {
-#if YOJIMBO_NETWORK_SIMULATOR
-        assert( m_networkSimulator );
-        m_networkSimulator->DiscardPackets();
-        m_networkSimulator = NULL;
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
+    LocalTransport::LocalTransport( Allocator & allocator, NetworkSimulator & networkSimulator, const Address & address, uint32_t protocolId, int maxPacketSize, int sendQueueSize, int receiveQueueSize )
+        : BaseTransport( allocator, address, protocolId, maxPacketSize, sendQueueSize, receiveQueueSize, false ) 
+    { 
+        m_networkSimulator = &networkSimulator;
+
+        m_receivePacketIndex = 0;
+        m_numReceivePackets = 0;
+        m_maxReceivePackets = receiveQueueSize;
+        m_receivePacketData = (uint8_t**) allocator.Allocate( sizeof( uint8_t*) * m_maxReceivePackets );
+        m_receivePacketBytes = (int*) allocator.Allocate( sizeof(int) * m_maxReceivePackets );
+        m_receiveFrom = (Address*) allocator.Allocate( sizeof(Address) * m_maxReceivePackets );
     }
 
-    bool LocalTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
+    LocalTransport::~LocalTransport()
     {
-#if YOJIMBO_NETWORK_SIMULATOR
+        assert( m_allocator );
+        assert( m_networkSimulator );
 
+        DiscardReceivePackets();
+
+        m_allocator->Free( m_receivePacketData );
+        m_allocator->Free( m_receivePacketBytes );
+        m_allocator->Free( m_receiveFrom );
+
+        m_receivePacketData = NULL;
+        m_receivePacketBytes = NULL;
+        m_receiveFrom = NULL;
+
+        m_networkSimulator = NULL;
+    }
+
+    void LocalTransport::AdvanceTime( double time )
+    {
+        BaseTransport::AdvanceTime( time );
+
+        DiscardReceivePackets();
+
+        PumpReceivePacketsFromSimulator();
+    }
+
+    void LocalTransport::DiscardReceivePackets()
+    {
+        assert( m_networkSimulator );
+
+        Allocator & allocator = m_networkSimulator->GetAllocator();
+
+        for ( int i = 0; i < m_numReceivePackets; ++i )
+        {
+            if ( !m_receivePacketData[i] )
+                continue;
+
+            allocator.Free( m_receivePacketData[i] );
+
+            m_receivePacketData[i] = NULL;
+        }
+
+        m_numReceivePackets = 0;
+
+        m_receivePacketIndex = 0;
+    }
+
+    void LocalTransport::PumpReceivePacketsFromSimulator()
+    {
+        assert( m_networkSimulator );
+
+        assert( m_numReceivePackets == 0 );        
+
+        m_numReceivePackets = m_networkSimulator->ReceivePacketsSentToAddress( m_maxReceivePackets, GetAddress(), m_receivePacketData, m_receivePacketBytes, m_receiveFrom );
+    }
+
+    void LocalTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
+    {
         assert( m_networkSimulator );
 
         Allocator & allocator = m_networkSimulator->GetAllocator();
@@ -767,54 +778,39 @@ namespace yojimbo
         uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
 
         if ( !packetDataCopy )
-            return false;
+            return;
 
         memcpy( packetDataCopy, packetData, packetBytes );
 
         m_networkSimulator->SendPacket( GetAddress(), to, packetDataCopy, packetBytes );
-
-        return true;
-
-#else // #if YOJIMBO_NETWORK_SIMULATOR
-
-        assert( !"local transport requires network simulator. please #define YOJIMBO_NETWORK_SIMULATOR 1" );
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
     }
 
     int LocalTransport::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
     {
-#if YOJIMBO_NETWORK_SIMULATOR
-
         (void) maxPacketSize;
 
-        assert( m_networkSimulator );
-
-        int packetSize = 0;
-
-        uint8_t * simulatorPacketData = m_networkSimulator->ReceivePacketSentToAddress( from, GetAddress(), packetSize );
-
-        if ( !simulatorPacketData )
+        if ( m_receivePacketIndex >= m_numReceivePackets )
             return 0;
 
-        assert( packetSize > 0 );
-        assert( packetSize <= maxPacketSize );
+        const int index = m_receivePacketIndex;
 
-        memcpy( packetData, simulatorPacketData, packetSize );
+        assert( m_receivePacketData[index] );
+        assert( m_receivePacketBytes[index] > 0 );
+        assert( m_receivePacketBytes[index] <= maxPacketSize );
+
+        memcpy( packetData, m_receivePacketData[index], m_receivePacketBytes[index] );
 
         Allocator & allocator = m_networkSimulator->GetAllocator();
 
-        allocator.Free( simulatorPacketData );
+        allocator.Free( m_receivePacketData[index] );
 
-        return packetSize;
+        m_receivePacketData[index] = NULL;
 
-#else // #if YOJIMBO_NETWORK_SIMULATOR
+        from = m_receiveFrom[index];
 
-        assert( !"local transport requires network simulator. please #define YOJIMBO_NETWORK_SIMULATOR 1" );
+        m_receivePacketIndex++;
 
-        return NULL;
-
-#endif // #if YOJIMBO_NETWORK_SIMULATOR
+        return m_receivePacketBytes[index];
     }
 
     // =====================================================
@@ -858,9 +854,9 @@ namespace yojimbo
         return m_socket->GetError();
     }
 
-    bool NetworkTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
+    void NetworkTransport::InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
-        return m_socket->SendPacket( to, packetData, packetBytes );
+        m_socket->SendPacket( to, packetData, packetBytes );
     }
 
     int NetworkTransport::InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )
