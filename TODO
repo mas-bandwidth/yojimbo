@@ -2,14 +2,6 @@ DONE
 
 TODO
 
-    Apply the same "pump" function boilerplate reduction to the connection tests in test.cpp
-
-    ------------------
-
-    Add a test to verify that server start/stop/start with a different number of clients works correctly.
-
-    I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
-
     ------------------
 
     Run a profile session in Windows to make sure no performance issues have crept in.

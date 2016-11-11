@@ -160,6 +160,8 @@ namespace yojimbo
 
         m_transport->Reset();
 
+        m_transport->ClearPacketFactory();
+
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
             Allocator & clientAllocator = GetAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );

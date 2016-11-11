@@ -27,6 +27,10 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+#include <stdio.h>
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
 namespace yojimbo
 {
     DefaultAllocator::DefaultAllocator() 

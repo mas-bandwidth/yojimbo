@@ -32,6 +32,16 @@ Solution for now is to make sure that every cpp file includes yojimbo_config.h a
 
 Done.
 
+Apply the same "pump" function boilerplate reduction to the connection tests in test.cpp
+
+Add a test to verify that server start/stop/start with a different number of clients works correctly.
+
+I just had a memory leak in this situation that went undetected because no test does this. This should always get picked up.
+
+Added this test, and voila, yes it uncovered an assert on server restart. Good to find it before a client does!
+
+Fixed an assert that showed up on server restart: assert( !m_packetFactory ). Fixed by clearing transport packet factory in Server::Stop.
+
 
 Wednesday November 9th, 2016
 ============================

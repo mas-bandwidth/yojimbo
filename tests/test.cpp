@@ -3719,6 +3719,67 @@ void test_client_server_messages()
     server.Stop();
 }
 
+void test_client_server_restart()
+{
+    printf( "test_client_server_restart\n" );
+
+    GenerateKey( private_key );
+
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.enableConnection = false;
+
+    Address serverAddress( "::1", ServerPort );
+
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+    
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+
+    server.SetServerAddress( serverAddress );
+
+    int numClients[] = { 1, 2, 4, 16, 3 };
+
+    const int NumIterations = sizeof( numClients ) / sizeof( int );
+
+    double time = 0.0;
+
+    for ( int iteration = 0; iteration < NumIterations; ++iteration )
+    {
+        server.Start( numClients[iteration] );
+
+        LocalTransport * clientTransports[MaxClients];
+        CreateClientTransports( numClients[iteration], clientTransports, networkSimulator );
+
+        GameClient * clients[MaxClients];
+        CreateClients( numClients[iteration], clients, clientTransports, clientServerConfig );
+
+        ConnectClients( numClients[iteration], clients, serverAddress );
+
+        while ( true )
+        {
+            Server * servers[] = { &server };
+            Transport * transports[MaxClients+1];
+            transports[0] = &serverTransport;
+            for ( int i = 0; i < numClients[iteration]; ++i )
+                transports[1+i] = clientTransports[i];
+
+            PumpClientServerUpdate( time, (Client**) clients, numClients[iteration], servers, 1, transports, 1 + numClients[iteration] );
+
+            if ( AllClientsConnected( numClients[iteration], server, clients ) )
+                break;
+        }
+
+        check( AllClientsConnected( numClients[iteration], server, clients ) );
+
+        DestroyClients( numClients[iteration], clients );
+
+        DestroyTransports( numClients[iteration], clientTransports );
+
+        server.Stop();
+    }
+}
+
 int main()
 {
     srand( time( NULL ) );
@@ -3784,6 +3845,7 @@ int main()
         test_connection_unreliable_unordered_messages();
         test_connection_unreliable_unordered_blocks();
         test_client_server_messages();
+        test_client_server_restart();
 
 #if SOAK
         if ( quit )
