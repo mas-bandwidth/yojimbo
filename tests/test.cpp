@@ -2757,6 +2757,60 @@ void test_connection_acks()
     check( numReceivedPackets >= numAckedPackets );
 }
 
+void PumpConnectionUpdate( double & time, Connection & sender, Connection & receiver, Transport & senderTransport, Transport & receiverTransport, float deltaTime = 0.1f )
+{
+    sender.AdvanceTime( time );
+    receiver.AdvanceTime( time );
+
+    senderTransport.AdvanceTime( time );
+    receiverTransport.AdvanceTime( time );
+
+    Packet * senderPacket = sender.GeneratePacket();
+    Packet * receiverPacket = receiver.GeneratePacket();
+
+    check( senderPacket );
+    check( receiverPacket );
+
+    senderTransport.SendPacket( receiverTransport.GetAddress(), senderPacket, 0, false );
+    receiverTransport.SendPacket( senderTransport.GetAddress(), receiverPacket, 0, false );
+
+    senderTransport.WritePackets();
+    receiverTransport.WritePackets();
+
+    senderTransport.ReadPackets();
+    receiverTransport.ReadPackets();
+
+    while ( true )
+    {
+        Address from;
+        Packet * packet = senderTransport.ReceivePacket( from, NULL );
+        if ( !packet )
+            break;
+
+        if ( from == receiverTransport.GetAddress() && packet->GetType() == TEST_PACKET_CONNECTION )
+            sender.ProcessPacket( (ConnectionPacket*) packet );
+
+        packet->Destroy();
+    }
+
+    while ( true )
+    {
+        Address from;
+        Packet * packet = receiverTransport.ReceivePacket( from, NULL );
+        if ( !packet )
+            break;
+
+        if ( from == senderTransport.GetAddress() && packet->GetType() == TEST_PACKET_CONNECTION )
+        {
+            receiver.ProcessPacket( (ConnectionPacket*) packet );
+        }
+
+        packet->Destroy();
+    }
+
+    time += deltaTime;
+}
+
 void test_connection_reliable_ordered_messages()
 {
     printf( "test_connection_reliable_ordered_messages\n" );
@@ -2809,56 +2863,14 @@ void test_connection_reliable_ordered_messages()
     receiverTransport.SetContext( &context );
 
     double time = 0.0;
-    double deltaTime = 0.1;
-
-    const int NumIterations = 1000;
 
     int numMessagesReceived = 0;
 
+    const int NumIterations = 1000;
+
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.GeneratePacket();
-        Packet * receiverPacket = receiver.GeneratePacket();
-
-        check( senderPacket );
-        check( receiverPacket );
-
-        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
-
-        senderTransport.WritePackets();
-        receiverTransport.WritePackets();
-
-        senderTransport.ReadPackets();
-        receiverTransport.ReadPackets();
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = senderTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ProcessPacket( (ConnectionPacket*) packet );
-
-            packet->Destroy();
-        }
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-            {
-                receiver.ProcessPacket( (ConnectionPacket*) packet );
-            }
-
-            packet->Destroy();
-        }
+        PumpConnectionUpdate( time, sender, receiver, senderTransport, receiverTransport );
 
         while ( true )
         {
@@ -2881,16 +2893,6 @@ void test_connection_reliable_ordered_messages()
 
         if ( numMessagesReceived == NumMessagesSent )
             break;
-
-        time += deltaTime;
-
-        sender.AdvanceTime( time );
-        receiver.AdvanceTime( time );
-
-        senderTransport.AdvanceTime( time );
-        receiverTransport.AdvanceTime( time );
-
-        networkSimulator.AdvanceTime( time );
     }
 
     check( numMessagesReceived == NumMessagesSent );
@@ -2953,56 +2955,14 @@ void test_connection_reliable_ordered_blocks()
     receiverTransport.SetContext( &context );
 
     double time = 0.0;
-    double deltaTime = 0.1;
-
+    
     const int NumIterations = 10000;
 
     int numMessagesReceived = 0;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.GeneratePacket();
-        Packet * receiverPacket = receiver.GeneratePacket();
-
-        check( senderPacket );
-        check( receiverPacket );
-
-        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
-
-        senderTransport.WritePackets();
-        receiverTransport.WritePackets();
-
-        senderTransport.ReadPackets();
-        receiverTransport.ReadPackets();
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = senderTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ProcessPacket( (ConnectionPacket*) packet );
-
-            packet->Destroy();
-        }
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-            {
-                receiver.ProcessPacket( (ConnectionPacket*) packet );
-            }
-
-            packet->Destroy();
-        }
+        PumpConnectionUpdate( time, sender, receiver, senderTransport, receiverTransport );
 
         while ( true )
         {
@@ -3039,16 +2999,6 @@ void test_connection_reliable_ordered_blocks()
 
         if ( numMessagesReceived == NumMessagesSent )
             break;
-
-        time += deltaTime;
-
-        sender.AdvanceTime( time );
-        receiver.AdvanceTime( time );
-
-        senderTransport.AdvanceTime( time );
-        receiverTransport.AdvanceTime( time );
-
-        networkSimulator.AdvanceTime( time );
     }
 
     check( numMessagesReceived == NumMessagesSent );
@@ -3121,56 +3071,14 @@ void test_connection_reliable_ordered_messages_and_blocks()
     receiverTransport.SetContext( &context );
 
     double time = 0.0;
-    double deltaTime = 0.1;
-
+    
     const int NumIterations = 10000;
 
     int numMessagesReceived = 0;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.GeneratePacket();
-        Packet * receiverPacket = receiver.GeneratePacket();
-
-        check( senderPacket );
-        check( receiverPacket );
-
-        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
-
-        senderTransport.WritePackets();
-        receiverTransport.WritePackets();
-
-        senderTransport.ReadPackets();
-        receiverTransport.ReadPackets();
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = senderTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ProcessPacket( (ConnectionPacket*) packet );
-
-            packet->Destroy();
-        }
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-            {
-                receiver.ProcessPacket( (ConnectionPacket*) packet );
-            }
-
-            packet->Destroy();
-        }
+        PumpConnectionUpdate( time, sender, receiver, senderTransport, receiverTransport );
 
         while ( true )
         {
@@ -3222,16 +3130,6 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
         if ( numMessagesReceived == NumMessagesSent )
             break;
-
-        time += deltaTime;
-
-        sender.AdvanceTime( time );
-        receiver.AdvanceTime( time );
-
-        senderTransport.AdvanceTime( time );
-        receiverTransport.AdvanceTime( time );
-
-        networkSimulator.AdvanceTime( time );
     }
 
     check( numMessagesReceived == NumMessagesSent );
@@ -3312,8 +3210,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     receiverTransport.SetContext( &context );
 
     double time = 0.0;
-    double deltaTime = 0.1;
-
+    
     const int NumIterations = 10000;
 
     int numMessagesReceived[NumChannels];
@@ -3321,48 +3218,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.GeneratePacket();
-        Packet * receiverPacket = receiver.GeneratePacket();
-
-        check( senderPacket );
-        check( receiverPacket );
-
-        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
-
-        senderTransport.WritePackets();
-        receiverTransport.WritePackets();
-
-        senderTransport.ReadPackets();
-        receiverTransport.ReadPackets();
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = senderTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ProcessPacket( (ConnectionPacket*) packet );
-
-            packet->Destroy();
-        }
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-            {
-                receiver.ProcessPacket( (ConnectionPacket*) packet );
-            }
-
-            packet->Destroy();
-        }
+        PumpConnectionUpdate( time, sender, receiver, senderTransport, receiverTransport );
 
         for ( int channelId = 0; channelId < NumChannels; ++channelId )
         {
@@ -3428,16 +3284,6 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
         if ( receivedAllMessages )
             break;
-
-        time += deltaTime;
-
-        sender.AdvanceTime( time );
-        receiver.AdvanceTime( time );
-
-        senderTransport.AdvanceTime( time );
-        receiverTransport.AdvanceTime( time );
-
-        networkSimulator.AdvanceTime( time );
     }
 
     for ( int channelId = 0; channelId < NumChannels; ++channelId )
@@ -3484,8 +3330,7 @@ void test_connection_unreliable_unordered_messages()
     receiverTransport.SetContext( &context );
 
     double time = 0.0;
-    double deltaTime = 0.1;
-
+   
     const int NumIterations = 256;
 
     const int NumMessagesSent = 16;
@@ -3502,48 +3347,7 @@ void test_connection_unreliable_unordered_messages()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.GeneratePacket();
-        Packet * receiverPacket = receiver.GeneratePacket();
-
-        check( senderPacket );
-        check( receiverPacket );
-
-        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
-
-        senderTransport.WritePackets();
-        receiverTransport.WritePackets();
-
-        senderTransport.ReadPackets();
-        receiverTransport.ReadPackets();
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = senderTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ProcessPacket( (ConnectionPacket*) packet );
-
-            packet->Destroy();
-        }
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-            {
-                receiver.ProcessPacket( (ConnectionPacket*) packet );
-            }
-
-            packet->Destroy();
-        }
+        PumpConnectionUpdate( time, sender, receiver, senderTransport, receiverTransport );
 
         while ( true )
         {
@@ -3565,16 +3369,6 @@ void test_connection_unreliable_unordered_messages()
 
         if ( numMessagesReceived == NumMessagesSent )
             break;
-
-        time += deltaTime;
-
-        sender.AdvanceTime( time );
-        receiver.AdvanceTime( time );
-
-        senderTransport.AdvanceTime( time );
-        receiverTransport.AdvanceTime( time );
-
-        networkSimulator.AdvanceTime( time );
     }
 
     check( numMessagesReceived == NumMessagesSent );
@@ -3619,8 +3413,7 @@ void test_connection_unreliable_unordered_blocks()
     receiverTransport.SetContext( &context );
 
     double time = 0.0;
-    double deltaTime = 0.1;
-
+    
     const int NumIterations = 256;
 
     const int NumMessagesSent = 8;
@@ -3642,48 +3435,7 @@ void test_connection_unreliable_unordered_blocks()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * senderPacket = sender.GeneratePacket();
-        Packet * receiverPacket = receiver.GeneratePacket();
-
-        check( senderPacket );
-        check( receiverPacket );
-
-        senderTransport.SendPacket( receiverAddress, senderPacket, 0, false );
-        receiverTransport.SendPacket( senderAddress, receiverPacket, 0, false );
-
-        senderTransport.WritePackets();
-        receiverTransport.WritePackets();
-
-        senderTransport.ReadPackets();
-        receiverTransport.ReadPackets();
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = senderTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == receiverAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-                sender.ProcessPacket( (ConnectionPacket*) packet );
-
-            packet->Destroy();
-        }
-
-        while ( true )
-        {
-            Address from;
-            Packet * packet = receiverTransport.ReceivePacket( from, NULL );
-            if ( !packet )
-                break;
-
-            if ( from == senderAddress && packet->GetType() == TEST_PACKET_CONNECTION )
-            {
-                receiver.ProcessPacket( (ConnectionPacket*) packet );
-            }
-
-            packet->Destroy();
-        }
+        PumpConnectionUpdate( time, sender, receiver, senderTransport, receiverTransport );
 
         while ( true )
         {
@@ -3718,16 +3470,6 @@ void test_connection_unreliable_unordered_blocks()
 
         if ( numMessagesReceived == NumMessagesSent )
             break;
-
-        time += deltaTime;
-
-        sender.AdvanceTime( time );
-        receiver.AdvanceTime( time );
-
-        senderTransport.AdvanceTime( time );
-        receiverTransport.AdvanceTime( time );
-
-        networkSimulator.AdvanceTime( time );
     }
 
     check( numMessagesReceived == NumMessagesSent );
