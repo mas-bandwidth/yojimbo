@@ -52,7 +52,7 @@ namespace yojimbo
         }
 
         int numServerAddresses;
-        Address serverAddresses[MaxServersPerConnectToken];
+        Address serverAddresses[MaxServersPerConnect];
         uint8_t connectTokenData[ConnectTokenBytes];
         uint8_t connectTokenNonce[NonceBytes];
         uint8_t clientToServerKey[KeyBytes];

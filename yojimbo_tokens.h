@@ -43,7 +43,7 @@ namespace yojimbo
      
         int numServerAddresses;                                             // the number of server addresses in the connect token whitelist
     
-        Address serverAddresses[MaxServersPerConnectToken];                 // connect token only allows connection to these server addresses
+        Address serverAddresses[MaxServersPerConnect];                      // connect token only allows connection to these server addresses
      
         uint8_t clientToServerKey[KeyBytes];                                // the key for encrypted communication from client -> server
      
@@ -70,7 +70,7 @@ namespace yojimbo
             
             serialize_uint64( stream, expireTimestamp );
             
-            serialize_int( stream, numServerAddresses, 0, MaxServersPerConnectToken - 1 );
+            serialize_int( stream, numServerAddresses, 0, MaxServersPerConnect - 1 );
             
             for ( int i = 0; i < numServerAddresses; ++i )
                 serialize_address( stream, serverAddresses[i] );

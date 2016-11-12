@@ -18,18 +18,6 @@ WOULD BE NICE
 
     ------------------
 
-    Extend client connect to take a list of servers to connect to.
-
-    ------------------
-
-    Add some client counters, they are useful for debugging.
-
-    ------------------
-
-    Client doesn't know their client id. It should probably be passed in to client connect.
-
-    ------------------
-
     Add functionality to connection and client/server to get the set of packet acks, so users can get acks and build their own systems on top of that.
 
     ------------------

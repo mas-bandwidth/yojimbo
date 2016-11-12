@@ -844,7 +844,7 @@ void test_client_server_tokens()
     uint8_t serverToClientKey[KeyBytes];
 
     int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
+    Address serverAddresses[MaxServersPerConnect];
 
     memset( connectTokenNonce, 0, NonceBytes );
     memset( challengeTokenNonce, 0, NonceBytes );
@@ -1098,7 +1098,7 @@ void ConnectClient( Client & client, uint64_t clientId, const Address & serverAd
     uint8_t serverToClientKey[KeyBytes];
 
     int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
+    Address serverAddresses[MaxServersPerConnect];
 
     memset( connectTokenNonce, 0, NonceBytes );
 
@@ -1831,7 +1831,7 @@ void test_client_server_connect_token_reuse()
     uint8_t serverToClientKey[KeyBytes];
 
     int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
+    Address serverAddresses[MaxServersPerConnect];
 
     memset( connectTokenNonce, 0, NonceBytes );
 

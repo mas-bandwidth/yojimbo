@@ -85,7 +85,7 @@ namespace yojimbo
         token.expireTimestamp = timestamp + expireSeconds;
         
         assert( numServerAddresses > 0 );
-        assert( numServerAddresses <= MaxServersPerConnectToken );
+        assert( numServerAddresses <= MaxServersPerConnect );
         token.numServerAddresses = numServerAddresses;
         for ( int i = 0; i < numServerAddresses; ++i )
             token.serverAddresses[i] = serverAddresses[i];
@@ -277,7 +277,7 @@ namespace yojimbo
         if ( !read_int_from_string( doc, "numServerAddresses", connectToken.numServerAddresses ) )
             return false;
 
-        if ( connectToken.numServerAddresses < 0 || connectToken.numServerAddresses > MaxServersPerConnectToken )
+        if ( connectToken.numServerAddresses < 0 || connectToken.numServerAddresses > MaxServersPerConnect )
             return false;
 
         const Value & serverAddresses = doc["serverAddresses"];

@@ -96,6 +96,8 @@ namespace yojimbo
 
         virtual void EnablePacketEncryption() = 0;
 
+        virtual void DisablePacketEncryption() = 0;
+
         virtual void DisableEncryptionForPacketType( int type ) = 0;
 
         virtual bool IsEncryptedPacketType( int type ) const = 0;
@@ -167,6 +169,8 @@ namespace yojimbo
         void SetStreamAllocator( Allocator & allocator );
 
         void EnablePacketEncryption();
+
+        void DisablePacketEncryption();
 
         void DisableEncryptionForPacketType( int type );
 

@@ -105,10 +105,18 @@ namespace yojimbo
         virtual ~Client();
 
 #if YOJIMBO_INSECURE_CONNECT
-        void InsecureConnect( const Address & address );
+        void InsecureConnect( const Address & serverAddress );
+        void InsecureConnect( const Address serverAddresses[], int numServerAddresses );
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-        void Connect( const Address & address, 
+        void Connect( const Address & serverAddress, 
+                      const uint8_t * connectTokenData, 
+                      const uint8_t * connectTokenNonce,
+                      const uint8_t * clientToServerKey,
+                      const uint8_t * serverToClientKey,
+                      uint64_t connectTokenExpireTimestamp );
+
+        void Connect( const Address serverAddresses[], int numServerAddresses,
                       const uint8_t * connectTokenData, 
                       const uint8_t * connectTokenNonce,
                       const uint8_t * clientToServerKey,
@@ -199,6 +207,14 @@ namespace yojimbo
 
         virtual void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
 
+        virtual bool ConnectToNextServer();
+
+#if YOJIMBO_INSECURE_CONNECT
+        virtual void InternalInsecureConnect( const Address & serverAddress );
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+        virtual void InternalSecureConnect( const Address & serverAddress );
+
         virtual void SendPacketToServer( Packet * packet );
 
     private:
@@ -257,13 +273,23 @@ namespace yojimbo
 
         uint64_t m_connectTokenExpireTimestamp;                             // expire timestamp for connect token used in secure connect.
 
-        Address m_serverAddress;                                            // server address we are connecting or connected to.
+        int m_serverAddressIndex;                                           // current index in the server address array. this is the server we are currently connecting to.
+
+        int m_numServerAddresses;                                           // number of server addresses in the array.
+
+        Address m_serverAddresses[MaxServersPerConnect];                    // server addresses we are connecting or connected to.
+
+        Address m_serverAddress;                                            // the current server address we are connecting to.
 
         double m_lastPacketSendTime;                                        // time we last sent a packet to the server.
 
         double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
 
         Transport * m_transport;                                            // transport for sending and receiving packets
+
+#if YOJIMBO_INSECURE_CONNECT
+        bool m_insecureConnect;                                             // true if this is an insecure connect.
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
         bool m_shouldDisconnect;                                            // set to true when we receive a disconnect packet from the server
 
@@ -286,6 +312,10 @@ namespace yojimbo
         uint8_t m_challengeTokenData[ChallengeTokenBytes];                  // encrypted challenge token data for challenge response packet
 
         uint8_t m_challengeTokenNonce[NonceBytes];                          // nonce required to send to server so it can decrypt challenge token
+
+        uint8_t m_clientToServerKey[KeyBytes];                              // client to server encryption key
+
+        uint8_t m_serverToClientKey[KeyBytes];                              // server to client encryption key
 
     private:
 

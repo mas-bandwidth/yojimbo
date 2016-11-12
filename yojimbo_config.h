@@ -93,7 +93,7 @@ namespace yojimbo
     const int MaxConnectTokenEntries = MaxClients * 16;
     const int ConnectTokenBytes = 1024;
     const int ChallengeTokenBytes = 256;
-    const int MaxServersPerConnectToken = 8;
+    const int MaxServersPerConnect = 8;
     const int NonceBytes = 8;
     const int KeyBytes = 32;
     const int AuthBytes = 16;

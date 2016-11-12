@@ -618,6 +618,13 @@ namespace yojimbo
         memset( m_packetTypeIsUnencrypted, 0, m_packetFactory->GetNumPacketTypes() );
     }
 
+    void BaseTransport::DisablePacketEncryption()
+    {
+        assert( m_packetFactory );
+        memset( m_packetTypeIsEncrypted, 0, m_packetFactory->GetNumPacketTypes() );
+        memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
+    }
+
     void BaseTransport::DisableEncryptionForPacketType( int type )
     {
         assert( m_packetFactory );

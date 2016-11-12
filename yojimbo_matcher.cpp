@@ -278,7 +278,7 @@ namespace yojimbo
 
         for ( SizeType i = 0; i < serverAddresses.Size(); ++i )
         {
-            if ( i >= MaxServersPerConnectToken )
+            if ( i >= MaxServersPerConnect )
                 return false;
 
             if ( !serverAddresses[i].IsString() )

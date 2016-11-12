@@ -49,8 +49,13 @@ namespace yojimbo
         m_clientSalt = 0;
         m_sequence = 0;
         m_connectTokenExpireTimestamp = 0;
+#if YOJIMBO_INSECURE_CONNECT
+        m_insecureConnect = false;
+#endif // #if YOJIMBO_INSECURE_CONNECT
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
+        m_serverAddressIndex = 0;
+        m_numServerAddresses = 0;
         memset( m_counters, 0, sizeof( m_counters ) );
         memset( m_connectTokenData, 0, sizeof( m_connectTokenData ) );
         memset( m_connectTokenNonce, 0, sizeof( m_connectTokenNonce ) );
@@ -111,50 +116,67 @@ namespace yojimbo
 
 #if YOJIMBO_INSECURE_CONNECT
 
-    void Client::InsecureConnect( const Address & address )
+    void Client::InsecureConnect( const Address & serverAddress )
     {
+        InsecureConnect( &serverAddress, 1 );
+    }
+
+    void Client::InsecureConnect( const Address serverAddresses[], int numServerAddresses )
+    {
+        assert( numServerAddresses >= 1 );
+        assert( numServerAddresses <= MaxServersPerConnect );
+
         Disconnect();
 
         InitializeConnection();
 
-        m_serverAddress = address;
+        m_serverAddressIndex = 0;
+        m_numServerAddresses = numServerAddresses;
+        for ( int i = 0; i < numServerAddresses; ++i )
+            m_serverAddresses[i] = serverAddresses[i];
 
-        OnConnect( address );
-
-        SetClientState( CLIENT_STATE_SENDING_INSECURE_CONNECT );
-
-        RandomBytes( (uint8_t*) &m_clientSalt, sizeof( m_clientSalt ) );
-
-        m_transport->ResetEncryptionMappings();
+        InternalInsecureConnect( serverAddresses[0] );
     }
 
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-    void Client::Connect( const Address & address, 
+    void Client::Connect( const Address & serverAddress,
                           const uint8_t * connectTokenData, 
                           const uint8_t * connectTokenNonce,
                           const uint8_t * clientToServerKey,
                           const uint8_t * serverToClientKey,
                           uint64_t connectTokenExpireTimestamp )
     {
+        Connect( &serverAddress, 1, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    }
+
+    void Client::Connect( const Address serverAddresses[], int numServerAddresses,
+                          const uint8_t * connectTokenData, 
+                          const uint8_t * connectTokenNonce,
+                          const uint8_t * clientToServerKey,
+                          const uint8_t * serverToClientKey,
+                          uint64_t connectTokenExpireTimestamp )
+    {
+        assert( numServerAddresses > 0 );
+        assert( numServerAddresses <= MaxServersPerConnect );
+
         Disconnect();
 
         InitializeConnection();
 
-        m_serverAddress = address;
-
-        SetEncryptedPacketTypes();
-
-        m_transport->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
-
-        OnConnect( address );
-
-        SetClientState( CLIENT_STATE_SENDING_CONNECTION_REQUEST );
+        m_serverAddressIndex = 0;
+        m_numServerAddresses = numServerAddresses;
+        for ( int i = 0; i < numServerAddresses; ++i )
+            m_serverAddresses[i] = serverAddresses[i];
 
         memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
         memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
+        memcpy( m_clientToServerKey, clientToServerKey, KeyBytes );
+        memcpy( m_serverToClientKey, serverToClientKey, KeyBytes );
 
         m_connectTokenExpireTimestamp = connectTokenExpireTimestamp;
+
+        InternalSecureConnect( m_serverAddresses[0] );
     }
 
     void Client::Disconnect( int clientState, bool sendDisconnectPacket )
@@ -378,6 +400,8 @@ namespace yojimbo
         if ( m_shouldDisconnect )
         {
             debug_printf( "m_shouldDisconnect -> %s\n", GetClientStateName( m_shouldDisconnectState ) );
+            if ( ConnectToNextServer() )
+                return;
             Disconnect( m_shouldDisconnectState, false );
             return;
         }
@@ -391,6 +415,8 @@ namespace yojimbo
                 if ( m_lastPacketReceiveTime + m_config.insecureConnectTimeOut < time )
                 {
                     debug_printf( "CLIENT_STATE_INSECURE_CONNECT_TIMEOUT\n" );
+                    if ( ConnectToNextServer() )
+                        return;
                     Disconnect( CLIENT_STATE_INSECURE_CONNECT_TIMEOUT, false );
                     return;
                 }
@@ -404,6 +430,8 @@ namespace yojimbo
                 if ( m_lastPacketReceiveTime + m_config.connectionRequestTimeOut < time )
                 {
                     debug_printf( "CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT\n" );
+                    if ( ConnectToNextServer() )
+                        return;
                     Disconnect( CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT, false );
                     return;
                 }
@@ -415,6 +443,8 @@ namespace yojimbo
                 if ( m_lastPacketReceiveTime + m_config.challengeResponseTimeOut < time )
                 {
                     debug_printf( "CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT\n" );
+                    if ( ConnectToNextServer() )
+                        return;
                     Disconnect( CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT, false );
                     return;
                 }
@@ -621,6 +651,7 @@ namespace yojimbo
         m_sequence = 0;
 #if YOJIMBO_INSECURE_CONNECT
         m_clientSalt = 0;
+        m_insecureConnect = false;
 #endif // #if YOJIMBO_INSECURE_CONNECT
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
@@ -628,6 +659,57 @@ namespace yojimbo
         {
             m_connection->Reset();
         }
+    }
+
+    bool Client::ConnectToNextServer()
+    {
+        if ( m_serverAddressIndex + 1 >= m_numServerAddresses )
+            return false;
+
+        m_serverAddressIndex++;
+
+#if YOJIMBO_INSECURE_CONNECT
+
+        if ( m_insecureConnect )
+        {
+            InternalInsecureConnect( m_serverAddresses[m_serverAddressIndex] );
+            
+            return true;
+        }
+
+#endif // #if YOJIMBO_INSECURE_CONNECT
+
+        InternalSecureConnect( m_serverAddresses[m_serverAddressIndex] );
+
+        return true;
+    }
+
+    void Client::InternalInsecureConnect( const Address & serverAddress )
+    {
+        m_serverAddress = serverAddress;
+
+        OnConnect( serverAddress );
+
+        SetClientState( CLIENT_STATE_SENDING_INSECURE_CONNECT );
+
+        RandomBytes( (uint8_t*) &m_clientSalt, sizeof( m_clientSalt ) );
+
+        m_transport->ResetEncryptionMappings();
+        
+        m_transport->DisablePacketEncryption();
+    }
+
+    void Client::InternalSecureConnect( const Address & serverAddress )
+    {
+        m_serverAddress = serverAddress;
+
+        SetEncryptedPacketTypes();
+
+        m_transport->AddEncryptionMapping( serverAddress, m_clientToServerKey, m_serverToClientKey );
+
+        OnConnect( serverAddress );
+
+        SetClientState( CLIENT_STATE_SENDING_CONNECTION_REQUEST );
     }
 
     void Client::SendPacketToServer( Packet * packet )

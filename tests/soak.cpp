@@ -54,7 +54,7 @@ int SoakMain()
     uint8_t serverToClientKey[KeyBytes];
 
     int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
+    Address serverAddresses[MaxServersPerConnect];
 
     memset( connectTokenNonce, 0, NonceBytes );
 

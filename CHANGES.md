@@ -1,4 +1,26 @@
 
+Saturday November 12th, 2016
+============================
+
+Extended client connect and insecure connect to take an array of server addresses to connect to.
+
+This is the intended usage, eg. request connection from matcher, get a list of servers to connect to in-order, try each one until a connect gets through.
+
+Right now my main concern is how to inform the user that we are in the middle of a large connect, eg. a timeout or a disconnect for some reason, without them thinking that it is a fatal error. How to design this?
+
+First option I guess is to try to suppress/hide the notifications.
+
+Next option is to intercept all errors (eg. timeouts, disconnects) inside "CheckForTimeouts" and redirect any error to connect to the next server, if there is another server in the list.
+
+I think this is the best option. Don't try to hide it, just do the "right" thing, transition directly to connecting to the next server.
+
+I'll have to setup unit tests for both secure and insecure connection with the correct server only being the last in the list to make sure this is working.
+
+OK. I have set up the multiple connects so there is an internal connect and a "ConnectToNextServer" function that is tried on failure, it avoids disconnects/error states, and instead starts connecting to the next server.
+
+This *should* work. I need to setup unit tests to verify this is woring properly, with the correct server to connect to at the end of the list.
+
+
 Friday November 11th, 2016
 ==========================
 

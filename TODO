@@ -4,6 +4,18 @@ TODO
 
     ------------------
 
+    Extend client connect to take a list of servers to connect to.
+
+    ------------------
+
+    Add some client counters, they are useful for debugging.
+
+    ------------------
+
+    Client doesn't know their client id. It should probably be passed in to client connect.
+
+    ------------------
+
     Run a profile session in Windows to make sure no performance issues have crept in.
 
     Run standard tests, make a new release.
@@ -16,9 +28,7 @@ TODO
 
     Default to maximum packet size of 8k, so up to 7 ~1200 MTU packets
 
-    Idea: don't allow fragmentation from client -> server, because it is a security risk?
-
-    Alternatively, only allow fragmented packets if they are encrypted in secure mode. Unencrypted ones will not be accepted.   
+    Only allow fragmented packets if they are encrypted in secure mode. Unencrypted ones will not be accepted.   
 
     ------------------
 

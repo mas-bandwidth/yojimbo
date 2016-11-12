@@ -93,7 +93,7 @@ struct ClientData
     uint64_t connectTokenExpireTimestamp;
 
     int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnectToken];
+    Address serverAddresses[MaxServersPerConnect];
 
     uint64_t numMessagesSent;
     uint64_t numMessagesReceived;
