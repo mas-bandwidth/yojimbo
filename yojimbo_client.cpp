@@ -374,7 +374,7 @@ namespace yojimbo
                     }
                 }
 
-                if ( m_lastPacketSendTime + m_config.connectionKeepAliveRate <= time )
+                if ( m_lastPacketSendTime + m_config.connectionKeepAliveSendRate <= time )
                 {
                     KeepAlivePacket * packet = (KeepAlivePacket*) CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
 

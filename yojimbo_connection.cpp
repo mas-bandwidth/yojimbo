@@ -47,8 +47,8 @@ namespace yojimbo
             }
 
             Allocator & allocator = m_messageFactory->GetAllocator();
-
             allocator.Free( channelEntry );
+            channelEntry = NULL;
         }
     }
 
@@ -62,10 +62,17 @@ namespace yojimbo
         Allocator & allocator = messageFactory.GetAllocator();
 
         channelEntry = (ChannelPacketData*) allocator.Allocate( sizeof( ChannelPacketData ) * numEntries );
+        if ( channelEntry == NULL )
+            return false;
+
+        for ( int i = 0; i < numEntries; ++i )
+        {
+            channelEntry[i].Initialize();
+        }
 
         numChannelEntries = numEntries;
 
-        return channelEntry != NULL;
+        return true;
     }
 
     template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream )
@@ -110,13 +117,26 @@ namespace yojimbo
             if ( Stream::IsReading )
             {
                 if ( !AllocateChannelData( *context->messageFactory, numChannelEntries ) )
+                {
+                    debug_printf( "error: failed to allocate channel data (ConnectionPacket)\n" );
                     return false;
+                }
+
+                for ( int i = 0; i < numChannelEntries; ++i )
+                {
+                    assert( channelEntry[i].messageFailedToSerialize == 0 );
+                }
             }
 
             for ( int i = 0; i < numChannelEntries; ++i )
             {
+                assert( channelEntry[i].messageFailedToSerialize == 0 );
+
                 if ( !channelEntry[i].SerializeInternal( stream, *m_messageFactory, context->connectionConfig->channelConfig, numChannels ) )
+                {
+                    debug_printf( "error: failed to serialize channel %d\n", i );
                     return false;
+                }
             }
         }
 

@@ -10,6 +10,18 @@ Did this, but so much code, and all tests rely on network simulator. It's not a 
 
 So I removed YOJIMBO_NETWORK_SIMULATOR define. It's faster now, so it's production ready, and it can be disabled in NetworkTransport by passing in allocateNetworkSimulator = false in the constructor.
 
+If a message fails to serialize, tear down the connection with an error. It cannot recover from this.
+
+Added an error code for this:
+
+    CHANNEL_ERROR_FAILED_TO_SERIALIZE
+
+Added a bunch of debug_printfs to print out reasons for debug serialize to fail.
+
+Added ChannelPacketData::Initialize and bitfield "initialize" to make sure that channel packet data is properly cleared.
+
+Previously, the ctor was not getting called in a few cases, so it had uninitialized data. Nailed this down.
+
 
 Thursday November 10th, 2016
 ============================

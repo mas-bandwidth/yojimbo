@@ -2,8 +2,8 @@ WOULD BE NICE
 
     ------------------
 
-    Switch simulator receive packets to be a batch function. It would be much faster this way.
-    
+    Add functionality to connection and client/server to get the set of packet acks, so users can get acks and build their own systems on top of that.
+
     ------------------
     
     Add a test for a very large message send queue (and large # of messages per-packet) with a tiny message receive queue.

@@ -35,7 +35,9 @@ namespace yojimbo
     struct ChannelPacketData
     {
         uint32_t channelId : 16;
+        uint32_t initialized : 1;
         uint32_t blockMessage : 1;
+        uint32_t messageFailedToSerialize : 1;
 
         struct MessageData
         {
@@ -60,12 +62,7 @@ namespace yojimbo
             BlockData block;                                            // packet data for sending a block
         };
 
-        ChannelPacketData()
-        {
-            channelId = 0;
-            blockMessage = 0;
-            message.numMessages = 0;
-        }
+        void Initialize();
 
         void Free( MessageFactory & messageFactory );
 
@@ -100,8 +97,25 @@ namespace yojimbo
         CHANNEL_ERROR_DESYNC,
         CHANNEL_ERROR_SEND_QUEUE_FULL,
         CHANNEL_ERROR_OUT_OF_MEMORY,
-        CHANNEL_ERROR_BLOCKS_DISABLED
+        CHANNEL_ERROR_BLOCKS_DISABLED,
+        CHANNEL_ERROR_FAILED_TO_SERIALIZE
     };
+
+    inline const char * GetChannelErrorString( ChannelError error )
+    {
+        switch ( error )
+        {
+            case CHANNEL_ERROR_NONE:                    return "none";
+            case CHANNEL_ERROR_DESYNC:                  return "desync";
+            case CHANNEL_ERROR_SEND_QUEUE_FULL:         return "send queue full";
+            case CHANNEL_ERROR_OUT_OF_MEMORY:           return "out of memory";
+            case CHANNEL_ERROR_BLOCKS_DISABLED:         return "blocks disabled";
+            case CHANNEL_ERROR_FAILED_TO_SERIALIZE:     return "failed to serialize";
+            default:
+                assert( false );
+                return "(unknown)";
+        }
+    }
 
     class Channel
     {
@@ -137,6 +151,8 @@ namespace yojimbo
 
         void SetError( ChannelError error )
         {
+            if ( error != m_error && error != CHANNEL_ERROR_NONE )
+                debug_printf( "channel error: %s\n", GetChannelErrorString( error ) );
             m_error = error;
         }
 
@@ -147,7 +163,7 @@ namespace yojimbo
             m_channelId = channelId;
         }
 
-    private:
+    protected:
 
         int m_channelId;
         
@@ -273,7 +289,7 @@ namespace yojimbo
 
         void SetListener( ChannelListener * listener ) { m_listener = listener; }
 
-    private:
+    protected:
 
         const ChannelConfig m_config;                                                   // const configuration data
 

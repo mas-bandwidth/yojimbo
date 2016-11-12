@@ -27,8 +27,18 @@
 
 namespace yojimbo
 {
+    void ChannelPacketData::Initialize()
+    {
+        channelId = 0;
+        blockMessage = 0;
+        messageFailedToSerialize = 0;
+        initialized = 1;
+    }
+
     void ChannelPacketData::Free( MessageFactory & messageFactory )
     {
+        assert( initialized );
+
         Allocator & allocator = messageFactory.GetAllocator();
 
         if ( !blockMessage )
@@ -61,6 +71,8 @@ namespace yojimbo
                 block.fragmentData = NULL;
             }
         }
+
+        initialized = 0;
     }
 
     template <typename Stream> bool SerializeOrderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** & messages, int maxMessagesPerPacket )
@@ -100,7 +112,9 @@ namespace yojimbo
                 messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
 
                 for ( int i = 0; i < numMessages; ++i )
+                {
                     messages[i] = NULL;
+                }
             }
 
             serialize_bits( stream, messageIds[0], 16 );
@@ -124,7 +138,10 @@ namespace yojimbo
                     messages[i] = messageFactory.Create( messageTypes[i] );
 
                     if ( !messages[i] )
+                    {
+                        debug_printf( "error: failed to create message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
                         return false;
+                    }
 
                     messages[i]->AssignId( messageIds[i] );
                 }
@@ -132,7 +149,10 @@ namespace yojimbo
                 assert( messages[i] );
 
                 if ( !messages[i]->SerializeInternal( stream ) )
+                {
+                    debug_printf( "error: failed to serialize message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
                     return false;
+                }
             }
         }
 
@@ -152,7 +172,10 @@ namespace yojimbo
             Allocator & allocator = messageFactory.GetAllocator();
             blockData = (uint8_t*) allocator.Allocate( blockSize );
             if ( !blockData )
+            {
+                debug_printf( "error: failed to allocate message block (SerializeMessageBlock)\n" );
                 return false;
+            }
             blockMessage->AttachBlock( allocator, blockData, blockSize );
         }                   
         else
@@ -217,19 +240,28 @@ namespace yojimbo
                     messages[i] = messageFactory.Create( messageTypes[i] );
 
                     if ( !messages[i] )
+                    {
+                        debug_printf( "error: failed to create message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
                         return false;
+                    }
                 }
 
                 assert( messages[i] );
 
                 if ( !messages[i]->SerializeInternal( stream ) )
+                {
+                    debug_printf( "error: failed to serialize message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
                     return false;
+                }
 
                 if ( messages[i]->IsBlockMessage() )
                 {
                     BlockMessage * blockMessage = (BlockMessage*) messages[i];
                     if ( !SerializeMessageBlock( stream, messageFactory, blockMessage, maxBlockSize ) )
+                    {
+                        debug_printf( "error: failed to serialize message block (SerializeUnorderedMessages)\n" );
                         return false;
+                    }
                 }
             }
         }
@@ -261,7 +293,10 @@ namespace yojimbo
             block.fragmentData = (uint8_t*) messageFactory.GetAllocator().Allocate( block.fragmentSize );
 
             if ( !block.fragmentData )
+            {
+                debug_printf( "error: failed to serialize block fragment (SerializeBlockFragment)\n" );
                 return false;
+            }
         }
 
         serialize_bytes( stream, block.fragmentData, block.fragmentSize );
@@ -276,8 +311,17 @@ namespace yojimbo
             {
                 Message * msg = messageFactory.Create( block.messageType );
 
-                if ( !msg || !msg->IsBlockMessage() )
+                if ( !msg )
+                {
+                    debug_printf( "error: failed to create block message type %d (SerializeBlockFragment)\n", block.messageType );
                     return false;
+                }
+
+                if ( !msg->IsBlockMessage() )
+                {
+                    debug_printf( "error: received block fragment attached to non-block message (SerializeBlockFragment)\n" );
+                    return false;
+                }
 
                 block.message = (BlockMessage*) msg;
             }
@@ -285,7 +329,10 @@ namespace yojimbo
             assert( block.message );
 
             if ( !block.message->SerializeInternal( stream ) )
+            {
+                debug_printf( "error: failed to serialize block message of type %d (SerializeBlockFragment)\n", block.messageType );
                 return false;
+            }
         }
         else
         {
@@ -298,6 +345,8 @@ namespace yojimbo
 
     template <typename Stream> bool ChannelPacketData::Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
     {
+        assert( initialized );
+
 #if YOJIMBO_VALIDATE_PACKET_BUDGET
         int startBits = stream.GetBitsProcessed();
 #endif // #if YOJIMBO_VALIDATE_PACKET_BUDGET
@@ -318,14 +367,20 @@ namespace yojimbo
                 case CHANNEL_TYPE_RELIABLE_ORDERED:
                 {
                     if ( !SerializeOrderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket ) )
-                        return false;
+                    {
+                        messageFailedToSerialize = 1;
+                        return true;
+                    }
                 }
                 break;
 
                 case CHANNEL_TYPE_UNRELIABLE_UNORDERED:
                 {
                     if ( !SerializeUnorderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket, channelConfig.maxBlockSize ) )
-                        return false;
+                    {
+                        messageFailedToSerialize = 1;
+                        return true;
+                    }
                 }
                 break;
             }
@@ -493,6 +548,7 @@ namespace yojimbo
 
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
+            assert( !"tried to send a block message, but blocks are disabled. see config.disableBlocks!" );
             SetError( CHANNEL_ERROR_BLOCKS_DISABLED );
             m_messageFactory->Release( message );
             return;
@@ -684,10 +740,10 @@ namespace yojimbo
     {
         assert( messageIds );
 
+        packetData.Initialize();
+
         packetData.channelId = GetChannelId();
         
-        packetData.blockMessage = 0;
-
         packetData.message.numMessages = numMessageIds;
         
         if ( numMessageIds == 0 )
@@ -759,6 +815,17 @@ namespace yojimbo
 
     void ReliableOrderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
+        if ( m_error != CHANNEL_ERROR_NONE )
+            return;
+        
+        if ( packetData.messageFailedToSerialize )
+        {
+            assert( false );
+            printf( "reliable ordered: failed to serialize\n" );
+            SetError( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+            return;
+        }
+
         (void)packetSequence;
 
         if ( packetData.blockMessage )
@@ -935,6 +1002,8 @@ namespace yojimbo
 
     int ReliableOrderedChannel::GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType )
     {
+        packetData.Initialize();
+
         packetData.channelId = GetChannelId();
 
         packetData.blockMessage = 1;
@@ -1281,6 +1350,8 @@ namespace yojimbo
 
         Allocator & allocator = m_messageFactory->GetAllocator();
 
+        packetData.Initialize();
+
         packetData.message.numMessages = numMessages;
 
         packetData.message.messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
@@ -1295,6 +1366,16 @@ namespace yojimbo
 
     void UnreliableUnorderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
+        if ( m_error != CHANNEL_ERROR_NONE )
+            return;
+        
+        if ( packetData.messageFailedToSerialize )
+        {
+            printf( "unreliable unordered: failed to serialize\n" );
+            SetError( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+            return;
+        }
+
         for ( int i = 0; i < (int) packetData.message.numMessages; ++i )
         {
             Message * message = packetData.message.messages[i];

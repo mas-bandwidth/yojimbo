@@ -74,12 +74,11 @@ public:
 
 protected:
 
-    virtual bool InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
+    virtual void InternalSendPacket( const Address & to, const void * packetData, int packetBytes )
     {
         (void)to;
         m_sentPacketSize = packetBytes;
         m_sentPacketData = (const uint8_t*) packetData;
-        return true;
     }
 
     virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize )

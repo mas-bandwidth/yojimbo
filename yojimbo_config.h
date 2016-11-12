@@ -185,7 +185,7 @@ namespace yojimbo
         
         float connectionRequestSendRate;                        // seconds between connection request packets sent.
         float connectionResponseSendRate;                       // seconds between connection response packets sent.
-        float connectionKeepAliveRate;                          // seconds between keep alive packets sent after connection has been confirmed. sent only if other packets are not sent.
+        float connectionKeepAliveSendRate;                      // seconds between keep alive packets sent after connection has been confirmed. sent only if other packets are not sent.
         float connectionRequestTimeOut;                         // seconds before client connection requests gives up and times out.
         float challengeResponseTimeOut;                         // seconds before challenge response times out.
         float connectionTimeOut;                                // seconds before connection times out after connection has been established.
@@ -207,7 +207,7 @@ namespace yojimbo
             numDisconnectPackets = 10;
             connectionRequestSendRate = 0.1f;
             connectionResponseSendRate = 0.1f;
-            connectionKeepAliveRate = 0.1f;
+            connectionKeepAliveSendRate = 0.1f;
             connectionRequestTimeOut = 5.0f;
             challengeResponseTimeOut = 5.0f;
             connectionTimeOut = 10.0f;
