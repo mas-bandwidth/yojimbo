@@ -20,6 +20,12 @@ OK. I have set up the multiple connects so there is an internal connect and a "C
 
 This *should* work. I need to setup unit tests to verify this is woring properly, with the correct server to connect to at the end of the list.
 
+Implement unit tests to verify connection works for multiple servers, both secure and insecure.
+
+Insecure connect passes.
+
+Secure connect passes. All done.
+
 
 Friday November 11th, 2016
 ==========================
