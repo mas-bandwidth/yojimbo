@@ -32,6 +32,7 @@ namespace yojimbo
         channelId = 0;
         blockMessage = 0;
         messageFailedToSerialize = 0;
+        message.numMessages = 0;
         initialized = 1;
     }
 
@@ -820,8 +821,6 @@ namespace yojimbo
         
         if ( packetData.messageFailedToSerialize )
         {
-            assert( false );
-            printf( "reliable ordered: failed to serialize\n" );
             SetError( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
             return;
         }
@@ -1371,7 +1370,6 @@ namespace yojimbo
         
         if ( packetData.messageFailedToSerialize )
         {
-            printf( "unreliable unordered: failed to serialize\n" );
             SetError( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
             return;
         }

@@ -22,6 +22,24 @@ Added ChannelPacketData::Initialize and bitfield "initialize" to make sure that 
 
 Previously, the ctor was not getting called in a few cases, so it had uninitialized data. Nailed this down.
 
+Added a new message type that fails to serialize on read.
+
+Used this to implement tests that check that the reliable ordered and unreliable unordered channels properly handle message serialize failure on read.
+
+Add a test for a very large message send queue (and large # of messages per-packet) with a tiny message receive queue.
+
+This would make sure we never send messages that the reciever can't buffer. Seems to be working fine.
+
+Added some bad network conditions to the last few client/server tests. Now the start/stop/restart test is hanging. Why?
+
+I suspect what is happening is that the connect/disconnect is so quick that there are still connection request packets in the simulator queue, which confuse the server, because the old connect is granted, so the new connect gets rejected with address already connected.
+
+To fix this I really need to discard all packets between iterations in the simulator.
+
+Did this, but it's still happening. I think I have a bug when the client connect starts at a non-zero t, eg. far enough away from t=0 and it instantly times out. Wow! This is a terrible bug :)
+
+Yes. This was a real bug. Fixed by deferring timeout until after the first time "AdvanceTime" is called on the client, so we know the real time value.
+
 
 Thursday November 10th, 2016
 ============================

@@ -31,34 +31,6 @@
 
 namespace yojimbo
 {
-    const char * GetClientStateName( int clientState )
-    {
-        switch ( clientState )
-        {
-#if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_INSECURE_CONNECT_TIMEOUT:         return "insecure connect timeout";
-#endif // #if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_PACKET_FACTORY_ERROR:             return "packet factory error";
-            case CLIENT_STATE_MESSAGE_FACTORY_ERROR:            return "message factory error";
-            case CLIENT_STATE_ALLOCATOR_ERROR:                  return "allocator error";
-            case CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT:       return "connection request timeout";
-            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT:       return "challenge response timeout";
-            case CLIENT_STATE_CONNECTION_TIMEOUT:               return "connection timeout";
-            case CLIENT_STATE_CONNECTION_ERROR:                 return "connection error";
-            case CLIENT_STATE_CONNECTION_DENIED:                return "connection denied";
-            case CLIENT_STATE_DISCONNECTED:                     return "disconnected";
-#if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_SENDING_INSECURE_CONNECT:         return "sending insecure connect";
-#endif // #if YOJIMBO_INSECURE_CONNECT
-            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:       return "sending connection request";
-            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:       return "sending challenge response";
-            case CLIENT_STATE_CONNECTED:                        return "connected";
-            default:
-                assert( false );
-                return "???";
-        }
-    }
-
     void Client::Defaults()
     {
         m_allocator = NULL;
@@ -77,6 +49,7 @@ namespace yojimbo
         m_clientSalt = 0;
         m_sequence = 0;
         m_connectTokenExpireTimestamp = 0;
+        m_firstUpdateAfterConnect = false;
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
         memset( m_counters, 0, sizeof( m_counters ) );
@@ -150,11 +123,6 @@ namespace yojimbo
 
         SetClientState( CLIENT_STATE_SENDING_INSECURE_CONNECT );
 
-        const double time = GetTime();        
-
-        m_lastPacketSendTime = time - 1.0f;
-        m_lastPacketReceiveTime = time;
-
         RandomBytes( (uint8_t*) &m_clientSalt, sizeof( m_clientSalt ) );
 
         m_transport->ResetEncryptionMappings();
@@ -181,10 +149,6 @@ namespace yojimbo
 
         SetClientState( CLIENT_STATE_SENDING_CONNECTION_REQUEST );
 
-        const double time = GetTime();        
-
-        m_lastPacketSendTime = time - 1.0f;
-        m_lastPacketReceiveTime = time;
         memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
         memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
 
@@ -411,6 +375,9 @@ namespace yojimbo
     {
         const double time = GetTime();
 
+        if ( m_firstUpdateAfterConnect )
+            return;
+
         if ( m_shouldDisconnect )
         {
             debug_printf( "m_shouldDisconnect -> %s\n", GetClientStateName( m_shouldDisconnectState ) );
@@ -478,6 +445,13 @@ namespace yojimbo
         assert( time >= m_time );
 
         m_time = time;
+
+        if ( m_firstUpdateAfterConnect )
+        {
+            m_lastPacketSendTime = time - 1.0f;
+            m_lastPacketReceiveTime = time;
+            m_firstUpdateAfterConnect = false;
+        }
 
         if ( m_clientAllocator && m_clientAllocator->GetError() )
         {
@@ -583,6 +557,8 @@ namespace yojimbo
         {
             m_transport->SetContext( NULL );
         }
+
+        m_firstUpdateAfterConnect = true;
     }
 
     void Client::ShutdownConnection()
@@ -633,7 +609,9 @@ namespace yojimbo
         m_clientState = (ClientState) clientState;
 
         if ( clientState != previous )
+        {
             OnClientStateChange( previous, clientState );
+        }
     }
 
     void Client::ResetConnectionData( int clientState )
@@ -653,6 +631,7 @@ namespace yojimbo
 #if YOJIMBO_INSECURE_CONNECT
         m_clientSalt = 0;
 #endif // #if YOJIMBO_INSECURE_CONNECT
+        m_firstUpdateAfterConnect = false;
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
         if ( m_connection )

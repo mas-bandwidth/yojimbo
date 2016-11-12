@@ -219,16 +219,28 @@ struct TestBlockMessage : public BlockMessage
     YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
+struct TestSerializeFailOnReadMessage : public Message
+{
+    template <typename Stream> bool Serialize( Stream & /*stream*/ )
+    {        
+        return !Stream::IsReading;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
 enum TestMessageType
 {
     TEST_MESSAGE,
     TEST_BLOCK_MESSAGE,
+    TEST_SERIALIZE_FAIL_ON_READ_MESSAGE,
     NUM_TEST_MESSAGE_TYPES
 };
 
 YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_TEST_MESSAGE_TYPES );
     YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
     YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE, TestSerializeFailOnReadMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 #if SERVER || MATCHER

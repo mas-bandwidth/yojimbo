@@ -4,10 +4,6 @@ TODO
 
     ------------------
 
-    Add a test case for both unordered and ordered messages to show that it properly handles a message failing to serialize, 
-
-    ------------------
-
     Extend client connect to take a list of servers to connect to.
 
     ------------------
@@ -19,8 +15,6 @@ TODO
     Add a unit test that intentionally exhausts the client allocator on the server.
 
     Make sure the server detects this and disconnects that client.
-
-    Make sure client can reconnect to the slot that was exhausted (eg. it is properly cleared).
 
     ------------------
 

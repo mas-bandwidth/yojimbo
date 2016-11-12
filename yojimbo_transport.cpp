@@ -151,7 +151,11 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
 		YOJIMBO_DELETE( *m_allocator, ContextManager, m_contextManager );
 		YOJIMBO_DELETE( *m_allocator, EncryptionManager, m_encryptionManager );
-        YOJIMBO_DELETE( *m_allocator, NetworkSimulator, m_networkSimulator );
+
+        if ( m_allocateNetworkSimulator )
+        {
+            YOJIMBO_DELETE( *m_allocator, NetworkSimulator, m_networkSimulator );
+        }
 
         m_allocator = NULL;
     }

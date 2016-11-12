@@ -45,10 +45,10 @@ namespace yojimbo
         CLIENT_STATE_PACKET_FACTORY_ERROR = -8,
         CLIENT_STATE_MESSAGE_FACTORY_ERROR = -7,
         CLIENT_STATE_ALLOCATOR_ERROR = -6,
-        CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT = -5,
-        CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT = -4,
-        CLIENT_STATE_CONNECTION_TIMEOUT = -3,
-        CLIENT_STATE_CONNECTION_ERROR = -2,
+        CLIENT_STATE_CONNECTION_ERROR = -5,
+        CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT = -4,
+        CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT = -3,
+        CLIENT_STATE_CONNECTION_TIMEOUT = -2,
         CLIENT_STATE_CONNECTION_DENIED = -1,
         CLIENT_STATE_DISCONNECTED = 0,
 #if YOJIMBO_INSECURE_CONNECT
@@ -58,6 +58,34 @@ namespace yojimbo
         CLIENT_STATE_SENDING_CHALLENGE_RESPONSE,
         CLIENT_STATE_CONNECTED
     };
+
+    inline const char * GetClientStateName( int clientState )
+    {
+        switch ( clientState )
+        {
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_INSECURE_CONNECT_TIMEOUT:         return "insecure connect timeout";
+#endif // #if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_PACKET_FACTORY_ERROR:             return "packet factory error";
+            case CLIENT_STATE_MESSAGE_FACTORY_ERROR:            return "message factory error";
+            case CLIENT_STATE_ALLOCATOR_ERROR:                  return "allocator error";
+            case CLIENT_STATE_CONNECTION_REQUEST_TIMEOUT:       return "connection request timeout";
+            case CLIENT_STATE_CHALLENGE_RESPONSE_TIMEOUT:       return "challenge response timeout";
+            case CLIENT_STATE_CONNECTION_TIMEOUT:               return "connection timeout";
+            case CLIENT_STATE_CONNECTION_ERROR:                 return "connection error";
+            case CLIENT_STATE_CONNECTION_DENIED:                return "connection denied";
+            case CLIENT_STATE_DISCONNECTED:                     return "disconnected";
+#if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_SENDING_INSECURE_CONNECT:         return "sending insecure connect";
+#endif // #if YOJIMBO_INSECURE_CONNECT
+            case CLIENT_STATE_SENDING_CONNECTION_REQUEST:       return "sending connection request";
+            case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:       return "sending challenge response";
+            case CLIENT_STATE_CONNECTED:                        return "connected";
+            default:
+                assert( false );
+                return "???";
+        }
+    }
 
     enum ClientCounters
     {
@@ -236,6 +264,8 @@ namespace yojimbo
         double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
 
         Transport * m_transport;                                            // transport for sending and receiving packets
+
+        bool m_firstUpdateAfterConnect;                                     // true if this is the first update after a connect call. used to avoid incorrect timeouts.4
 
         bool m_shouldDisconnect;                                            // set to true when we receive a disconnect packet from the server
 
