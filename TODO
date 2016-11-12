@@ -1,10 +1,18 @@
 DONE    
 
+    Implement unit tests to verify connection works for multiple servers, both secure and insecure.
+
+    Insecure connect passes.
+
+    Secure connect passes.
+
 TODO
 
     ------------------
 
-    Extend client connect to take a list of servers to connect to.
+    Server wastes time trying to remove encryption mapping for a client who connected via insecure connect
+
+    Server should know that a client is insecure, and not waste time trying to clean up encryption mapping for that client on disconnect.
 
     ------------------
 

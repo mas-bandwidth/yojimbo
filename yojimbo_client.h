@@ -207,6 +207,8 @@ namespace yojimbo
 
         virtual void ResetConnectionData( int clientState = CLIENT_STATE_DISCONNECTED );
 
+        virtual void ResetBeforeNextConnect();
+
         virtual bool ConnectToNextServer();
 
 #if YOJIMBO_INSECURE_CONNECT
@@ -286,10 +288,6 @@ namespace yojimbo
         double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
 
         Transport * m_transport;                                            // transport for sending and receiving packets
-
-#if YOJIMBO_INSECURE_CONNECT
-        bool m_insecureConnect;                                             // true if this is an insecure connect.
-#endif // #if YOJIMBO_INSECURE_CONNECT
 
         bool m_shouldDisconnect;                                            // set to true when we receive a disconnect packet from the server
 

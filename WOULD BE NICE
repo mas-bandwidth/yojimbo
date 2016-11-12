@@ -2,7 +2,13 @@ WOULD BE NICE
 
     ------------------
 
-    Implement "replay" protection. 
+    Should add a test to verify that a client can switch from secure connect, to insecure connect, back to secure connect.
+
+    There is a lot of shuffling of state in how these connects are performed, so need to test that this actually works or it probably doesn't.
+
+    ------------------
+
+    Implement "replay" protection.
 
     Create a sliding window of last 1024 packets per-encryption mapping.
 

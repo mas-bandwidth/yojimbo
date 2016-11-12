@@ -1115,6 +1115,32 @@ void ConnectClient( Client & client, uint64_t clientId, const Address & serverAd
     client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 }
 
+void ConnectClient( Client & client, uint64_t clientId, const Address serverAddresses[], int numServerAddresses, uint32_t connectFlags = 0 )
+{
+    uint8_t connectTokenData[ConnectTokenBytes];
+    uint8_t connectTokenNonce[NonceBytes];
+
+    uint8_t clientToServerKey[KeyBytes];
+    uint8_t serverToClientKey[KeyBytes];
+
+    int numServerAddressesToken;
+    Address serverAddressesToken[MaxServersPerConnect];
+
+    memset( connectTokenNonce, 0, NonceBytes );
+
+    uint64_t connectTokenExpireTimestamp;
+
+    int timestampOffset = ( connectFlags & CONNECT_FLAG_TOKEN_EXPIRED ) ? -100 : 0;
+
+    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddressesToken, serverAddressesToken, timestampOffset, ( connectFlags & CONNECT_FLAG_TOKEN_WHITELIST ) ? 1000 : -1 ) )
+    {
+        printf( "error: request match failed\n" );
+        exit( 1 );
+    }
+
+    client.Connect( serverAddresses, numServerAddresses, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+}
+
 void test_client_server_connect()
 {
     printf( "test_client_server_connect\n" );
@@ -2265,6 +2291,69 @@ void test_client_server_connect_client_id_already_connected()
     server.Stop();
 }
 
+void test_client_server_connect_multiple_servers()
+{
+    printf( "test_client_server_connect_multiple_servers\n" );
+
+    GenerateKey( private_key );
+
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+    
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.enableConnection = false;
+
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    const int NumServerAddresses = 4;
+    Address serverAddresses[NumServerAddresses];
+    for ( int i = 0; i < NumServerAddresses; ++i )
+    {
+        // setup server addresses such that only the last address is valid
+        serverAddresses[i] = Address( "::1", ServerPort + NumServerAddresses - 1 - i );
+    }
+
+    ConnectClient( client, clientId, serverAddresses, NumServerAddresses );
+
+    while ( true )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    client.Disconnect();
+
+    server.Stop();
+}
+
 void test_client_server_user_packets()
 {
     printf( "test_client_server_user_packets\n" );
@@ -2381,6 +2470,76 @@ void test_client_server_insecure_connect()
     server.Start();
 
     client.InsecureConnect( serverAddress );
+
+    while ( true )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+
+    client.Disconnect();
+
+    server.Stop();
+}
+
+void test_client_server_insecure_connect_multiple_servers()
+{
+    printf( "test_client_server_insecure_connect_multiple_servers\n" );
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
+
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.enableConnection = false;
+
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+
+    server.SetServerAddress( serverAddress );
+
+    clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
+    serverTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
+
+    server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
+
+    server.Start();
+
+    const int NumServerAddresses = 4;
+    Address serverAddresses[NumServerAddresses];
+    for ( int i = 0; i < NumServerAddresses; ++i )
+    {
+        // setup server addresses such that only the last address is valid
+        serverAddresses[i] = Address( "::1", ServerPort + NumServerAddresses - 1 - i );
+    }
+
+    client.InsecureConnect( serverAddresses, NumServerAddresses );
 
     while ( true )
     {
@@ -4185,9 +4344,11 @@ int main()
         test_client_server_connect_token_invalid();
         test_client_server_connect_address_already_connected();
         test_client_server_connect_client_id_already_connected();
+        test_client_server_connect_multiple_servers();
         test_client_server_user_packets();
 #if YOJIMBO_INSECURE_CONNECT
         test_client_server_insecure_connect();
+        test_client_server_insecure_connect_multiple_servers();
         test_client_server_insecure_connect_timeout();
 #endif // #if YOJIMBO_INSECURE_CONNECT
         test_matcher();
