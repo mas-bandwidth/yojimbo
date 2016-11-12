@@ -936,8 +936,10 @@ void test_unencrypted_packets()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
@@ -958,8 +960,6 @@ void test_unencrypted_packets()
     const int NumIterations = 32;
 
     int numPacketsReceived = 0;
-
-    double time = 0.0;
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -1048,15 +1048,6 @@ void test_allocator_tlsf()
 void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports, float deltaTime = 0.1f )
 {
     for ( int i = 0; i < numClients; ++i )
-        client[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numTransports; ++i )
-        transport[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numClients; ++i )
         client[i]->SendPackets();
 
     for ( int i = 0; i < numServers; ++i )
@@ -1081,6 +1072,15 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
         server[i]->CheckForTimeOut();
 
     time += deltaTime;
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numTransports; ++i )
+        transport[i]->AdvanceTime( time );
 }
 
 enum ConnectFlags
@@ -1128,16 +1128,16 @@ void test_client_server_connect()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1183,16 +1183,16 @@ void test_client_server_reconnect()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1284,16 +1284,16 @@ void test_client_server_client_side_disconnect()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1359,16 +1359,16 @@ void test_client_server_server_side_disconnect()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1434,14 +1434,14 @@ void test_client_server_connection_request_timeout()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
     // connect client to a server that does not exist. verify client connect fails
 
@@ -1476,16 +1476,16 @@ void test_client_server_connection_response_timeout()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1530,16 +1530,16 @@ void test_client_server_client_side_timeout()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1603,16 +1603,16 @@ void test_client_server_server_side_timeout()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1664,13 +1664,13 @@ void test_client_server_server_side_timeout()
     server.Stop();
 }
 
-void CreateClientTransports( int numClients, LocalTransport ** transports, NetworkSimulator & networkSimulator )
+void CreateClientTransports( int numClients, LocalTransport ** transports, NetworkSimulator & networkSimulator, double time )
 {
     for ( int i = 0; i < numClients; ++i )
     {
         Address clientAddress( "::1", ClientPort + i );
 
-        transports[i] = YOJIMBO_NEW( GetDefaultAllocator(), LocalTransport, GetDefaultAllocator(), networkSimulator, clientAddress );
+        transports[i] = YOJIMBO_NEW( GetDefaultAllocator(), LocalTransport, GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
 
         transports[i]->SetNetworkConditions( 250, 250, 5, 10 );
     }
@@ -1684,11 +1684,11 @@ void DestroyTransports( int numClients, LocalTransport ** transports )
     }
 }
 
-void CreateClients( int numClients, GameClient ** clients, LocalTransport ** clientTransports, const ClientServerConfig & config )
+void CreateClients( int numClients, GameClient ** clients, LocalTransport ** clientTransports, const ClientServerConfig & config, double time )
 {
     for ( int i = 0; i < numClients; ++i )
     {
-        clients[i] = YOJIMBO_NEW( GetDefaultAllocator(), GameClient, GetDefaultAllocator(), *clientTransports[i], config );
+        clients[i] = YOJIMBO_NEW( GetDefaultAllocator(), GameClient, GetDefaultAllocator(), *clientTransports[i], config, time );
     }
 }
 
@@ -1750,9 +1750,11 @@ void test_client_server_server_is_full()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1761,14 +1763,12 @@ void test_client_server_server_is_full()
     // connect maximum number of clients to server so it's full
 
     LocalTransport * clientTransports[NumClients+1];
-    CreateClientTransports( NumClients + 1, clientTransports, networkSimulator );
+    CreateClientTransports( NumClients + 1, clientTransports, networkSimulator, time );
 
     GameClient * clients[NumClients+1];
-    CreateClients( NumClients + 1, clients, clientTransports, clientServerConfig );
+    CreateClients( NumClients + 1, clients, clientTransports, clientServerConfig, time );
 
     ConnectClients( NumClients, clients, serverAddress );
-
-    double time = 0.0;
 
     while ( true )
     {
@@ -1850,20 +1850,20 @@ void test_client_server_connect_token_reuse()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
-    double time = 0.0;
-
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -1913,9 +1913,9 @@ void test_client_server_connect_token_reuse()
 
     Address clientAddress2( "::1", ClientPort + 1 );
 
-    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress2 );
+    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress2, ProtocolId, time );
     
-    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
+    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig, time );
 
     client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
@@ -1953,16 +1953,16 @@ void test_client_server_connect_token_expired()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -2004,16 +2004,16 @@ void test_client_server_connect_token_whitelist()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -2063,21 +2063,21 @@ void test_client_server_connect_token_invalid()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     const int NumIterations = 1000;
 
-    double time = 0.0;
-
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -2116,16 +2116,16 @@ void test_client_server_connect_address_already_connected()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -2155,9 +2155,9 @@ void test_client_server_connect_address_already_connected()
 
     // now try to connect a second client with the same address, but a different connect token and client id. this connect should be ignored
 
-    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress );
+    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
     
-    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
+    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig, time );
 
     ConnectClient( client2, clientId + 1, serverAddress );
 
@@ -2196,16 +2196,16 @@ void test_client_server_connect_client_id_already_connected()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -2237,9 +2237,9 @@ void test_client_server_connect_client_id_already_connected()
 
     Address clientAddress2( "::1", ClientPort + 1 );
 
-    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress2 );
+    LocalTransport clientTransport2( GetDefaultAllocator(), networkSimulator, clientAddress2, ProtocolId, time );
     
-    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig );
+    GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig, time );
 
     ConnectClient( client2, clientId, serverAddress );
 
@@ -2278,16 +2278,16 @@ void test_client_server_user_packets()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -2356,20 +2356,20 @@ void test_client_server_insecure_connect()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
-    double time = 0.0;
-
     ClientServerConfig clientServerConfig;
     clientServerConfig.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
 
@@ -2418,14 +2418,14 @@ void test_client_server_insecure_connect_timeout()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
 
     ClientServerConfig config;
     config.enableConnection = false;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, config );
+    GameClient client( GetDefaultAllocator(), clientTransport, config, time );
 
     clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
 
@@ -2774,12 +2774,6 @@ void test_connection_acks()
 
 void PumpConnectionUpdate( double & time, Connection & sender, Connection & receiver, Transport & senderTransport, Transport & receiverTransport, float deltaTime = 0.1f )
 {
-    sender.AdvanceTime( time );
-    receiver.AdvanceTime( time );
-
-    senderTransport.AdvanceTime( time );
-    receiverTransport.AdvanceTime( time );
-
     Packet * senderPacket = sender.GeneratePacket();
     Packet * receiverPacket = receiver.GeneratePacket();
 
@@ -2824,6 +2818,12 @@ void PumpConnectionUpdate( double & time, Connection & sender, Connection & rece
     }
 
     time += deltaTime;
+
+    sender.AdvanceTime( time );
+    receiver.AdvanceTime( time );
+
+    senderTransport.AdvanceTime( time );
+    receiverTransport.AdvanceTime( time );
 }
 
 void test_connection_reliable_ordered_messages()
@@ -2868,16 +2868,16 @@ void test_connection_reliable_ordered_messages()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    double time = 100.0;
+
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
 
     senderTransport.SetContext( &context );
     receiverTransport.SetContext( &context );
-
-    double time = 0.0;
 
     int numMessagesReceived = 0;
 
@@ -2960,16 +2960,16 @@ void test_connection_reliable_ordered_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    double time = 100.0;
+
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
 
     senderTransport.SetContext( &context );
     receiverTransport.SetContext( &context );
-
-    double time = 0.0;
     
     const int NumIterations = 10000;
 
@@ -3076,8 +3076,10 @@ void test_connection_reliable_ordered_messages_and_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    double time = 100.0;
+    
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -3085,8 +3087,6 @@ void test_connection_reliable_ordered_messages_and_blocks()
     senderTransport.SetContext( &context );
     receiverTransport.SetContext( &context );
 
-    double time = 0.0;
-    
     const int NumIterations = 10000;
 
     int numMessagesReceived = 0;
@@ -3217,8 +3217,10 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    double time = 100.0;
+    
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -3226,8 +3228,6 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     senderTransport.SetContext( &context );
     receiverTransport.SetContext( &context );
 
-    double time = 0.0;
-    
     const int NumIterations = 10000;
 
     int numMessagesReceived[NumChannels];
@@ -3337,8 +3337,10 @@ void test_connection_unreliable_unordered_messages()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    double time = 100.0;
+   
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -3346,8 +3348,6 @@ void test_connection_unreliable_unordered_messages()
     senderTransport.SetContext( &context );
     receiverTransport.SetContext( &context );
 
-    double time = 0.0;
-   
     const int NumIterations = 256;
 
     const int NumMessagesSent = 16;
@@ -3420,8 +3420,10 @@ void test_connection_unreliable_unordered_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId );
-    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId );
+    double time = 100.0;
+    
+    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
+    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
     senderTransport.SetPacketFactory( packetFactory );
     receiverTransport.SetPacketFactory( packetFactory );
@@ -3429,8 +3431,6 @@ void test_connection_unreliable_unordered_blocks()
     senderTransport.SetContext( &context );
     receiverTransport.SetContext( &context );
 
-    double time = 0.0;
-    
     const int NumIterations = 256;
 
     const int NumMessagesSent = 8;
@@ -3660,11 +3660,11 @@ void test_client_server_messages()
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
-    
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
 
-    double time = 0.0;
+    double time = 100.0;
+    
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.connectionConfig.maxPacketSize = 256;
@@ -3673,8 +3673,8 @@ void test_client_server_messages()
     clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
     clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -3750,19 +3750,19 @@ void test_client_server_start_stop_restart()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
+
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
 
-    int numClients[] = { 1, 2, 4, 16, 3, 64, 1 };
+    int numClients[] = { 2, 5, 1 };
 
     const int NumIterations = sizeof( numClients ) / sizeof( int );
-
-    double time = 0.0;
 
     for ( int iteration = 0; iteration < NumIterations; ++iteration )
     {
@@ -3771,10 +3771,10 @@ void test_client_server_start_stop_restart()
         server.Start( numClients[iteration] );
 
         LocalTransport * clientTransports[MaxClients];
-        CreateClientTransports( numClients[iteration], clientTransports, networkSimulator );
+        CreateClientTransports( numClients[iteration], clientTransports, networkSimulator, time );
 
         GameClient * clients[MaxClients];
-        CreateClients( numClients[iteration], clients, clientTransports, clientServerConfig );
+        CreateClients( numClients[iteration], clients, clientTransports, clientServerConfig, time );
 
         ConnectClients( numClients[iteration], clients, serverAddress );
 
@@ -3818,13 +3818,13 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
-
-    double time = 0.0;
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.connectionConfig.maxPacketSize = 256;
@@ -3833,8 +3833,8 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
     clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -3900,10 +3900,10 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
+    double time = 100.0;
 
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.connectionConfig.maxPacketSize = 256;
@@ -3912,8 +3912,8 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
     clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -3966,9 +3966,9 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     server.Stop();
 }
 
-void test_client_server_message_receive_queue_full()
+void test_client_server_message_exhaust_stream_allocator()
 {
-    printf( "test_client_server_message_receive_queue_full\n" );
+    printf( "test_client_server_message_exhaust_stream_allocator\n" );
 
     GenerateKey( private_key );
 
@@ -3978,25 +3978,21 @@ void test_client_server_message_receive_queue_full()
     Address serverAddress( "::1", ServerPort );
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
+
+    double time = 100.0;
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
-
-    double time = 0.0;
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
     clientServerConfig.connectionConfig.maxPacketSize = 256;
     clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channelConfig[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    clientServerConfig.connectionConfig.channelConfig[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
     clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
-    clientServerConfig.connectionConfig.channelConfig[0].sendQueueSize = 1024;
-    clientServerConfig.connectionConfig.channelConfig[0].receiveQueueSize = 1;         // note: tiny receive queue
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
     
@@ -4024,7 +4020,90 @@ void test_client_server_message_receive_queue_full()
 
     check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
 
-    const int NumMessagesSent = 256;
+    // send a message from client to server that exhausts the stream allocator on read, this should disconnect the client from the server
+
+    Message * message = client.CreateMsg( TEST_EXHAUST_STREAM_ALLOCATOR_ON_READ_MESSAGE );
+    check( message );
+    client.SendMsg( message );
+
+    for ( int i = 0; i < 256; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+        if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
+            break;
+    }
+
+    check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+
+    client.Disconnect();
+
+    server.Stop();
+}
+
+void test_client_server_message_receive_queue_full()
+{
+    printf( "test_client_server_message_receive_queue_full\n" );
+
+    GenerateKey( private_key );
+
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+
+    double time = 100.0;
+    
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
+
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.connectionConfig.maxPacketSize = 256;
+    clientServerConfig.connectionConfig.numChannels = 1;
+    clientServerConfig.connectionConfig.channelConfig[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
+    clientServerConfig.connectionConfig.channelConfig[0].sendQueueSize = 1024;
+    clientServerConfig.connectionConfig.channelConfig[0].receiveQueueSize = 16;         // note: tiny receive queue
+
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    ConnectClient( client, clientId, serverAddress );
+
+    while ( true )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    const int NumMessagesSent = 64;
 
     SendClientToServerMessages( client, NumMessagesSent );
 
@@ -4127,6 +4206,7 @@ int main()
         test_client_server_start_stop_restart();
         test_client_server_message_failed_to_serialize_reliable_ordered();
         test_client_server_message_failed_to_serialize_unreliable_unordered();
+        test_client_server_message_exhaust_stream_allocator();
         test_client_server_message_receive_queue_full();
 
 #if SOAK

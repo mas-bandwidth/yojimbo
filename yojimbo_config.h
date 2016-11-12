@@ -114,8 +114,6 @@ namespace yojimbo
     const int DefaultPacketReceiveQueueSize = 1024;
     const int DefaultSocketBufferSize = 1024 * 1024;
 
-    const uint32_t LocalProtocolId = 1;
-
     enum ChannelType
     {
         CHANNEL_TYPE_RELIABLE_ORDERED,                          // reliable ordered stream of messages

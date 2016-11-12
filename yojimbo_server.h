@@ -171,7 +171,7 @@ namespace yojimbo
     {
     public:
 
-        Server( Allocator & allocator, Transport & transport, const ClientServerConfig & config = ClientServerConfig() );
+        Server( Allocator & allocator, Transport & transport, const ClientServerConfig & config, double time );
 
         virtual ~Server();
 

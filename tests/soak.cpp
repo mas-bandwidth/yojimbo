@@ -71,8 +71,10 @@ int SoakMain()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId );
+    double time = 0.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     clientTransport.SetNetworkConditions( 250, 250, 10, 50 );
     serverTransport.SetNetworkConditions( 250, 250, 10, 50 );
@@ -83,9 +85,9 @@ int SoakMain()
     clientServerConfig.connectionConfig.channelConfig[0].packetBudget = 256;
     clientServerConfig.connectionConfig.channelConfig[0].maxMessagesPerPacket = 256;
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig );
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
 
     server.SetServerAddress( serverAddress );
 
@@ -96,9 +98,7 @@ int SoakMain()
     uint64_t numMessagesSentToServer = 0;
     uint64_t numMessagesReceivedFromClient = 0;
 
-    signal( SIGINT, interrupt_handler );    
-
-    double time = 0.0;
+    signal( SIGINT, interrupt_handler );
 
     while ( !quit )
     {

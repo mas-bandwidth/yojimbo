@@ -35,6 +35,7 @@ namespace yojimbo
     BaseTransport::BaseTransport( Allocator & allocator, 
                                   const Address & address,
                                   uint32_t protocolId,
+                                  double time,
                                   int maxPacketSize, 
                                   int sendQueueSize, 
                                   int receiveQueueSize,
@@ -49,7 +50,7 @@ namespace yojimbo
 
         m_address = address;
 
-        m_time = 0.0;
+        m_time = time;
 
         m_flags = 0;
 
@@ -667,7 +668,9 @@ namespace yojimbo
     void BaseTransport::AdvanceTime( double time )
     {
         assert( time >= m_time );
+     
         m_time = time;
+     
         if ( m_networkSimulator )
         {
             m_networkSimulator->AdvanceTime( time );
@@ -703,8 +706,8 @@ namespace yojimbo
 
     // =====================================================
 
-    LocalTransport::LocalTransport( Allocator & allocator, NetworkSimulator & networkSimulator, const Address & address, uint32_t protocolId, int maxPacketSize, int sendQueueSize, int receiveQueueSize )
-        : BaseTransport( allocator, address, protocolId, maxPacketSize, sendQueueSize, receiveQueueSize, false ) 
+    LocalTransport::LocalTransport( Allocator & allocator, NetworkSimulator & networkSimulator, const Address & address, uint32_t protocolId, double time, int maxPacketSize, int sendQueueSize, int receiveQueueSize )
+        : BaseTransport( allocator, address, protocolId, time, maxPacketSize, sendQueueSize, receiveQueueSize, false ) 
     { 
         m_networkSimulator = &networkSimulator;
 
@@ -824,6 +827,7 @@ namespace yojimbo
     NetworkTransport::NetworkTransport( Allocator & allocator, 
                                         const Address & address,
                                         uint32_t protocolId,
+                                        double time,
                                         int maxPacketSize, 
                                         int sendQueueSize, 
                                         int receiveQueueSize,
@@ -831,6 +835,7 @@ namespace yojimbo
         : BaseTransport( allocator, 
                          address,
                          protocolId,
+                         time,
                          maxPacketSize,
                          sendQueueSize,
                          receiveQueueSize )

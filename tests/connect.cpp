@@ -80,7 +80,9 @@ int ConnectMain( int argc, char * argv[] )
 
     printf( "received match response\n" );
 
-    NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId );
+    double time = 100.0;
+
+    NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId, time );
 
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
     {
@@ -90,7 +92,7 @@ int ConnectMain( int argc, char * argv[] )
     
     printf( "client started on port %d\n", clientTransport.GetAddress().GetPort() );
 
-    GameClient client( GetDefaultAllocator(), clientTransport );
+    GameClient client( GetDefaultAllocator(), clientTransport, ClientServerConfig(), time );
 
     client.Connect( matchResponse.serverAddresses[0],
                     matchResponse.connectTokenData, 
@@ -98,8 +100,6 @@ int ConnectMain( int argc, char * argv[] )
                     matchResponse.clientToServerKey,
                     matchResponse.serverToClientKey,
                     matchResponse.connectTokenExpireTimestamp );
-
-    double time = 0.0;
 
     const double deltaTime = 0.1;
 

@@ -40,6 +40,14 @@ Did this, but it's still happening. I think I have a bug when the client connect
 
 Yes. This was a real bug. Fixed by deferring timeout until after the first time "AdvanceTime" is called on the client, so we know the real time value.
 
+Add a unit test that intentionally exhausts the client allocator on the server.
+
+Make sure the server detects this and disconnects that client.
+
+Yes. There was an error in the cleanup, good to have tested this. Fixed.
+
+Removed simple messages test program, it's not adding any value. It was added for a specific reason in the past that no longer applies.
+
 
 Thursday November 10th, 2016
 ============================
@@ -1062,6 +1070,48 @@ Now clean up the printf output for memory.cpp and rename it to something else, e
 I like simple_messages.cpp. I don't think there is a one word description of this sample that explains it.
 
 Cleaned up output for simple_messages.cpp. Looks good. Done.
+
+There is a bug showing up now in the start/stop/restart test where clients are failing to connect.
+
+This seems like it might be another time related issue, it only shows up after extended time. By adding more iterations, I was able to make it happen 100%.
+
+It seems to happen around t = 15.
+
+I think there is another timeout bug in there, where the encryption mapping is getting added at t = 0, and subsequently times out at t = 15.0
+
+I'll bet the timeout for encryption mapping is 15 seconds...
+
+Yep. That's it.
+
+This is a bad pattern. Similar errors probably exist on the server if you start it at t=1000, and pump packet updates before time is known.
+
+It's even worse, the race condition is on the transport concept of time, since that is what is passed into add/remove encryption mapping.
+
+This concept of each class (client/server/transport) each having their own time concept, and being potentially not updated first before actions are done on the client or server is dangerous. These bugs are really subtle.
+
+What's the best solution here?
+
+One option would be to require the user to pass in the time to client connect, and server start.
+
+This *seems* weird though, user thinks, why does the client/server need to know time for connect?
+
+Alternatively, require the user to call AdvanceTime at least once before connect, but again, seems weird...
+
+Not really sure what the best way to solve this is. I can try to find the cases where it's hurting (eg. connect, encryption mapping), but there may even be others.
+
+It's getting really nasty, transport needs the concept of time, otherwise I need to pass it in to a bunch of functions, because it's used extensively in the encryption manager for timeout encryption mappings.
+
+So bottom line, the same problem exists for the transport. If the transport isn't pumped with AdvanceTime before adding any encryption mapping, same problem exists, even if time is correct for the client. Can't just solve by deferring the set encryption mapping to the AdvanceTime method of the client, this actually has to be solved in some interesting way.
+
+I think I'm coming to the conclusion that you need to specify initial time when creating these objects.
+
+This includes:
+
+    - client
+    - server
+    - transport
+
+Finished adding time to all these constructors. It's the only safe thing to do. Cannot have a window where m_time is wrong.
 
 
 Tuesday July 19th, 2016

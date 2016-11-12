@@ -57,8 +57,10 @@ int ClientServerMain()
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    NetworkTransport clientTransport( GetDefaultAllocator(), clientAddress, ProtocolId );
-    NetworkTransport serverTransport( GetDefaultAllocator(), serverAddress, ProtocolId );
+    double time = 100.0;
+
+    NetworkTransport clientTransport( GetDefaultAllocator(), clientAddress, ProtocolId, time );
+    NetworkTransport serverTransport( GetDefaultAllocator(), serverAddress, ProtocolId, time );
 
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE || serverTransport.GetError() != SOCKET_ERROR_NONE )
     {
@@ -69,11 +71,9 @@ int ClientServerMain()
     clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
-    double time = 0.0;
+    GameClient client( GetDefaultAllocator(), clientTransport, ClientServerConfig(), time );
 
-    GameClient client( GetDefaultAllocator(), clientTransport );
-
-    GameServer server( GetDefaultAllocator(), serverTransport );
+    GameServer server( GetDefaultAllocator(), serverTransport, ClientServerConfig(), time );
 
     server.SetServerAddress( serverAddress );
 

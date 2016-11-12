@@ -49,7 +49,6 @@ namespace yojimbo
         m_clientSalt = 0;
         m_sequence = 0;
         m_connectTokenExpireTimestamp = 0;
-        m_firstUpdateAfterConnect = false;
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
         memset( m_counters, 0, sizeof( m_counters ) );
@@ -90,7 +89,7 @@ namespace yojimbo
         return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
     }
 
-    Client::Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config )
+    Client::Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config, double time )
     {
         Defaults();
         m_allocator = &allocator;
@@ -98,6 +97,7 @@ namespace yojimbo
         m_config = config;
         m_config.connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
         m_allocateConnection = m_config.enableConnection;
+        m_time = time;
     }
 
     Client::~Client()
@@ -145,14 +145,14 @@ namespace yojimbo
 
         SetEncryptedPacketTypes();
 
+        m_transport->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
+
         OnConnect( address );
 
         SetClientState( CLIENT_STATE_SENDING_CONNECTION_REQUEST );
 
         memcpy( m_connectTokenData, connectTokenData, ConnectTokenBytes );
         memcpy( m_connectTokenNonce, connectTokenNonce, NonceBytes );
-
-        m_transport->AddEncryptionMapping( m_serverAddress, clientToServerKey, serverToClientKey );
 
         m_connectTokenExpireTimestamp = connectTokenExpireTimestamp;
     }
@@ -375,9 +375,6 @@ namespace yojimbo
     {
         const double time = GetTime();
 
-        if ( m_firstUpdateAfterConnect )
-            return;
-
         if ( m_shouldDisconnect )
         {
             debug_printf( "m_shouldDisconnect -> %s\n", GetClientStateName( m_shouldDisconnectState ) );
@@ -445,13 +442,6 @@ namespace yojimbo
         assert( time >= m_time );
 
         m_time = time;
-
-        if ( m_firstUpdateAfterConnect )
-        {
-            m_lastPacketSendTime = time - 1.0f;
-            m_lastPacketReceiveTime = time;
-            m_firstUpdateAfterConnect = false;
-        }
 
         if ( m_clientAllocator && m_clientAllocator->GetError() )
         {
@@ -558,7 +548,8 @@ namespace yojimbo
             m_transport->SetContext( NULL );
         }
 
-        m_firstUpdateAfterConnect = true;
+        m_lastPacketSendTime = m_time - 1.0f;
+        m_lastPacketReceiveTime = m_time;
     }
 
     void Client::ShutdownConnection()
@@ -631,7 +622,6 @@ namespace yojimbo
 #if YOJIMBO_INSECURE_CONNECT
         m_clientSalt = 0;
 #endif // #if YOJIMBO_INSECURE_CONNECT
-        m_firstUpdateAfterConnect = false;
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
         if ( m_connection )

@@ -57,7 +57,7 @@ namespace yojimbo
             ResetClientState( i );
     }
 
-    Server::Server( Allocator & allocator, Transport & transport, const ClientServerConfig & config )
+    Server::Server( Allocator & allocator, Transport & transport, const ClientServerConfig & config, double time )
     {
         Defaults();
         m_allocator = &allocator;
@@ -65,6 +65,7 @@ namespace yojimbo
         m_config = config;
         m_config.connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
         m_allocateConnections = m_config.enableConnection;
+        m_time = time;
     }
 
     Server::~Server()
@@ -427,6 +428,8 @@ namespace yojimbo
                     m_counters[SERVER_COUNTER_CLIENT_ALLOCATOR_ERRORS]++;
 
                     DisconnectClient( clientIndex, true );
+
+                    continue;
                 }
 
                 // check for message factory error
@@ -440,6 +443,8 @@ namespace yojimbo
                         m_counters[SERVER_COUNTER_CLIENT_MESSAGE_FACTORY_ERRORS]++;
 
                         DisconnectClient( clientIndex, true );
+
+                        continue;
                     }
                 }
 
@@ -452,6 +457,8 @@ namespace yojimbo
                     m_counters[SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS]++;
 
                     DisconnectClient( clientIndex, true );
+
+                    continue;
                 }
 
                 // check for connection error
@@ -467,6 +474,8 @@ namespace yojimbo
                         m_counters[SERVER_COUNTER_CLIENT_CONNECTION_ERRORS]++;
 
                         DisconnectClient( clientIndex, true );
+
+                        continue;
                     }
                 }
             }

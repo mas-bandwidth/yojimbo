@@ -4,20 +4,6 @@ TODO
 
     ------------------
 
-    Add a unit test that intentionally exhausts the client allocator on the server.
-
-    Make sure the server detects this and disconnects that client.
-
-    ------------------
-
-    Extend client connect to take a list of servers to connect to.
-
-    ------------------
-
-    Add some client counters, they are useful for debugging.
-
-    ------------------
-
     Run a profile session in Windows to make sure no performance issues have crept in.
 
     Run standard tests, make a new release.

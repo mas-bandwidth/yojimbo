@@ -100,7 +100,7 @@ namespace yojimbo
     {
     public:
 
-        explicit Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config = ClientServerConfig() );
+        explicit Client( Allocator & allocator, Transport & transport, const ClientServerConfig & config, double time );
 
         virtual ~Client();
 
@@ -264,8 +264,6 @@ namespace yojimbo
         double m_lastPacketReceiveTime;                                     // time we last received a packet from the server (used for timeouts).
 
         Transport * m_transport;                                            // transport for sending and receiving packets
-
-        bool m_firstUpdateAfterConnect;                                     // true if this is the first update after a connect call. used to avoid incorrect timeouts.4
 
         bool m_shouldDisconnect;                                            // set to true when we receive a disconnect packet from the server
 

@@ -72,11 +72,6 @@ namespace yojimbo
 
         const uint8_t * GetReceiveKey( const Address & address, double time );
 
-        void SetTimeout( double timeout )
-        {
-            m_encryptionMappingTimeout = timeout;
-        }
-
     private:
 
         int m_numEncryptionMappings;

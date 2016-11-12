@@ -39,7 +39,9 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientMain( int argc, char * argv[] )
 {   
-    NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId );
+    double time = 100.0;
+
+    NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId, time );
     
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
     {
@@ -51,7 +53,7 @@ int ClientMain( int argc, char * argv[] )
 
     clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
 
-    GameClient client( GetDefaultAllocator(), clientTransport );
+    GameClient client( GetDefaultAllocator(), clientTransport, ClientServerConfig(), time );
 
     Address serverAddress( "127.0.0.1", ServerPort );
 
@@ -67,8 +69,6 @@ int ClientMain( int argc, char * argv[] )
     }
 
     client.InsecureConnect( serverAddress );
-
-    double time = 0.0;
 
     const double deltaTime = 0.1;
 

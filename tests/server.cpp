@@ -47,7 +47,9 @@ int ServerMain()
 
     Address serverPublicAddress( "127.0.0.1", ServerPort );
 
-    NetworkTransport serverTransport( GetDefaultAllocator(), serverBindAddress, ProtocolId );
+    double time = 100.0;
+
+    NetworkTransport serverTransport( GetDefaultAllocator(), serverBindAddress, ProtocolId, time );
 
     if ( serverTransport.GetError() != SOCKET_ERROR_NONE )
     {
@@ -55,7 +57,7 @@ int ServerMain()
         return 1;
     }
     
-    GameServer server( GetDefaultAllocator(), serverTransport );
+    GameServer server( GetDefaultAllocator(), serverTransport, ClientServerConfig(), time );
 
     server.SetServerAddress( serverPublicAddress );
 
@@ -68,8 +70,6 @@ int ServerMain()
 #endif // #if !SECURE_SERVER && YOJIMBO_INSECURE_CONNECT
 
     server.Start();
-
-    double time = 0.0;
 
     const double deltaTime = 0.1;
 

@@ -193,17 +193,19 @@ int ProfileMain()
         }
     }
 
-    serverData->transport = new NetworkTransport( GetDefaultAllocator(), serverData->address, ProtocolId );
+    double time = 100.0;
+
+    serverData->transport = new NetworkTransport( GetDefaultAllocator(), serverData->address, ProtocolId, time );
 
     for ( int i = 0; i < MaxClients; ++i )
     {
-        clientData[i].transport = new NetworkTransport( GetDefaultAllocator(), clientData[i].address, ProtocolId );
+        clientData[i].transport = new NetworkTransport( GetDefaultAllocator(), clientData[i].address, ProtocolId, time );
     }
 
-    serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, ClientServerConfig() );
+    serverData->server = new GameServer( GetDefaultAllocator(), *serverData->transport, ClientServerConfig(), time );
 
     for ( int i = 0; i < MaxClients; ++i )
-        clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].transport, ClientServerConfig() );
+        clientData[i].client = new GameClient( GetDefaultAllocator(), *clientData[i].transport, ClientServerConfig(), time );
 
     serverData->server->SetServerAddress( serverData->address );
 
@@ -220,8 +222,6 @@ int ProfileMain()
     }
 
     signal( SIGINT, interrupt_handler ); 
-
-    double time = 0.0;
 
     while ( !quit )
     {

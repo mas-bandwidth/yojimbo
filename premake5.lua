@@ -79,10 +79,6 @@ project "profile"
     files { "tests/profile.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
-project "simple_messages"
-    files { "tests/simple_messages.cpp", "tests/shared.h" }
-    links { "yojimbo" }
-
 if not os.is "windows" then
 
     -- MacOSX and Linux.
@@ -240,18 +236,6 @@ if not os.is "windows" then
             os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 profile" == 0 then
                 os.execute "./bin/profile"
-            end
-        end
-    }
-
-    newaction
-    {
-        trigger     = "simple_messages",
-        description = "Build and run simple messages testbed",
-        execute = function ()
-            os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 simple_messages" == 0 then
-                os.execute "./bin/simple_messages"
             end
         end
     }

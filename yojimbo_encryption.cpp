@@ -126,6 +126,12 @@ namespace yojimbo
 
     bool EncryptionManager::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time )
     {
+        {
+            char addressString[MaxAddressLength];
+            address.ToString( addressString, sizeof( addressString ) );
+            debug_printf( "add encryption mapping: %s (t=%f)\n", addressString, time );
+        }
+
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
             if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
@@ -162,6 +168,12 @@ namespace yojimbo
 
     bool EncryptionManager::RemoveEncryptionMapping( const Address & address, double time )
     {
+        {
+            char addressString[MaxAddressLength];
+            address.ToString( addressString, sizeof( addressString ) );
+            debug_printf( "remove encryption mapping: %s (t=%f)\n", addressString, time );
+        }
+
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
             if ( m_address[i] == address )
@@ -199,6 +211,8 @@ namespace yojimbo
 
     void EncryptionManager::ResetEncryptionMappings()
     {
+        debug_printf( "reset encryption mappings\n" );
+
         m_numEncryptionMappings = 0;
         
         for ( int i = 0; i < MaxEncryptionMappings; ++i )

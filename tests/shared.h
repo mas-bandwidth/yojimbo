@@ -229,11 +229,41 @@ struct TestSerializeFailOnReadMessage : public Message
     YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 };
 
+struct TestExhaustStreamAllocatorOnReadMessage : public Message
+{
+    template <typename Stream> bool Serialize( Stream & stream )
+    {        
+        if ( Stream::IsReading )
+        {
+            const int NumBuffers = 100;
+
+            void * buffers[NumBuffers];
+
+            memset( buffers, 0, sizeof( buffers ) );
+
+            for ( int i = 0; i < NumBuffers; ++i )
+            {
+                buffers[i] = stream.GetAllocator().Allocate( 1024 * 1024 );
+            }
+
+            for ( int i = 0; i < NumBuffers; ++i )
+            {
+                stream.GetAllocator().Free( buffers[i] );
+            }
+        }
+
+        return true;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+};
+
 enum TestMessageType
 {
     TEST_MESSAGE,
     TEST_BLOCK_MESSAGE,
     TEST_SERIALIZE_FAIL_ON_READ_MESSAGE,
+    TEST_EXHAUST_STREAM_ALLOCATOR_ON_READ_MESSAGE,
     NUM_TEST_MESSAGE_TYPES
 };
 
@@ -241,6 +271,7 @@ YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, MessageFactory, NUM_TEST_MESS
     YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
     YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
     YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE, TestSerializeFailOnReadMessage );
+    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_EXHAUST_STREAM_ALLOCATOR_ON_READ_MESSAGE, TestExhaustStreamAllocatorOnReadMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 #if SERVER || MATCHER
@@ -322,13 +353,8 @@ class GameServer : public Server
 
 public:
 
-    explicit GameServer( Allocator & allocator, Transport & transport ) : Server( allocator, transport )
-    {
-        Initialize();
-    }
-
-    explicit GameServer( Allocator & allocator, Transport & transport, const ClientServerConfig & config ) 
-        : Server( allocator, transport, config )
+    explicit GameServer( Allocator & allocator, Transport & transport, const ClientServerConfig & config, double time ) 
+        : Server( allocator, transport, config, time )
     {
         Initialize();
     }
@@ -558,13 +584,8 @@ public:
         m_gamePacketSequence = 0;
     }
 
-    explicit GameClient( Allocator & allocator, Transport & transport ) : Client( allocator, transport )
-    {
-        Initialize();
-    }
-
-    explicit GameClient( Allocator & allocator, Transport & transport, const ClientServerConfig & config ) 
-        : Client( allocator, transport, config )
+    explicit GameClient( Allocator & allocator, Transport & transport, const ClientServerConfig & config, double time ) 
+        : Client( allocator, transport, config, time )
     {
         Initialize();
     }
