@@ -1,4 +1,12 @@
 
+Sunday November 13th, 2016
+==========================
+
+Server wastes time trying to remove encryption mapping for a client who connected via insecure connect
+
+Added a per-client flag on the server "insecure", if this is true, server doesn't try to clean up the encryption mapping for that client on disconnect (it dosen't exist).
+
+
 Saturday November 12th, 2016
 ============================
 

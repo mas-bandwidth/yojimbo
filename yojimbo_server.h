@@ -64,6 +64,9 @@ namespace yojimbo
         double lastHeartBeatSendTime;
         double lastPacketReceiveTime;
         bool fullyConnected;
+#if YOJIMBO_INSECURE_CONNECT
+        bool insecure;
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
         ServerClientData()
         {
@@ -76,6 +79,9 @@ namespace yojimbo
             lastHeartBeatSendTime = 0.0;
             lastPacketReceiveTime = 0.0;
             fullyConnected = false;
+#if YOJIMBO_INSECURE_CONNECT
+            insecure = false;
+#endif // #if YOJIMBO_INSECURE_CONNECT
         }
     };
 

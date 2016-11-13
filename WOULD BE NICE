@@ -2,23 +2,13 @@ WOULD BE NICE
 
     ------------------
 
-    Server wastes time trying to remove encryption mapping for a client who connected via insecure connect
-
-    Server should know that a client is insecure, and not waste time trying to clean up encryption mapping for that client on disconnect.
-
-    ------------------
-
-    Should add a test to verify that a client can switch from secure connect, to insecure connect, back to secure connect.
-
-    There is a lot of shuffling of state in how these connects are performed, so need to test that this actually works or it probably doesn't.
-
-    ------------------
-
-    Add some client counters, they are useful for debugging.
-
-    ------------------
-
     Client doesn't know their client id. It should probably be passed in to client connect.
+
+    ------------------
+
+    Should the insecure connect have a client id as well? Probably, for consistency.
+
+    This means it should not allow connections if that client id or address is already connected.
 
     ------------------
 

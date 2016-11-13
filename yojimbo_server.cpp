@@ -207,7 +207,12 @@ namespace yojimbo
 
         m_transport->RemoveContextMapping( m_clientData[clientIndex].address );
 
-        m_transport->RemoveEncryptionMapping( m_clientData[clientIndex].address );
+#if YOJIMBO_INSECURE_CONNECT
+        if ( !m_clientData[clientIndex].insecure )
+#endif // #if YOJIMBO_INSECURE_CONNECT
+        {
+            m_transport->RemoveEncryptionMapping( m_clientData[clientIndex].address );
+        }
 
         ResetClientState( clientIndex );
 
@@ -795,6 +800,7 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketSendTime = time;
         m_clientData[clientIndex].lastPacketReceiveTime = time;
         m_clientData[clientIndex].fullyConnected = false;
+        m_clientData[clientIndex].insecure = false;
 
         assert( m_clientPacketFactory[clientIndex] );
         assert( m_clientAllocator[clientIndex] );
@@ -1129,21 +1135,8 @@ namespace yojimbo
         const uint64_t clientSalt = packet.clientSalt;
 
         int clientIndex = FindExistingClientIndex( address );
-
         if ( clientIndex != -1 )
-        {
-            if ( m_clientData[clientIndex].clientSalt == clientSalt )
-            {
-                KeepAlivePacket * keepAlivePacket = CreateKeepAlivePacket( clientIndex );
-
-                if ( keepAlivePacket )
-                {
-                    SendPacketToConnectedClient( clientIndex, keepAlivePacket );
-                }
-            }
-
-            return;            
-        }
+            return;
 
         clientIndex = FindFreeClientIndex();
 
@@ -1154,6 +1147,7 @@ namespace yojimbo
         ConnectClient( clientIndex, address, 0 );
 
         m_clientData[clientIndex].clientSalt = clientSalt;
+        m_clientData[clientIndex].insecure = true;
     }
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
