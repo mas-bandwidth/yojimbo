@@ -38,7 +38,7 @@
 
 static LocalMatcher matcher;
 
-#define SOAK 0
+#define SOAK 1
 
 #if SOAK
 #include <signal.h>
@@ -1247,7 +1247,8 @@ void test_client_server_reconnect()
 
     // verify the client is able to reconnect to the same server with a new connect token
 
-    networkSimulator.DiscardPackets();
+    clientTransport.Reset();
+    serverTransport.Reset();
 
     ConnectClient( client, clientId, serverAddress );
 
@@ -2632,6 +2633,10 @@ void test_client_server_insecure_secure_insecure_secure()
 
     for ( int i = 0; i < 4; ++i )
     {
+        check( !client.IsConnected() );
+        check( !server.IsClientConnected( 0 ) );
+        check( server.GetNumConnectedClients() == 0 );
+
         if ( ( i % 2 ) == 0 )
         {
             client.InsecureConnect( clientId, serverAddress );
@@ -2640,7 +2645,7 @@ void test_client_server_insecure_secure_insecure_secure()
         {
             ConnectClient( client, clientId, serverAddress );
         }
-
+        
         while ( true )
         {
             Client * clients[] = { &client };
@@ -2664,6 +2669,23 @@ void test_client_server_insecure_secure_insecure_secure()
         check( server.GetNumConnectedClients() == 1 );
 
         client.Disconnect();
+
+        for ( int i = 0; i < 100; ++i )
+        {
+            Client * clients[] = { &client };
+            Server * servers[] = { &server };
+            Transport * transports[] = { &clientTransport, &serverTransport };
+
+            PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+            if ( server.GetNumConnectedClients() == 0 )
+                break;
+        }
+
+        check( server.GetNumConnectedClients() == 0 );
+
+        clientTransport.Reset();
+        serverTransport.Reset();
     }
 
     server.Stop();
@@ -3986,8 +4008,6 @@ void test_client_server_start_stop_restart()
 
     for ( int iteration = 0; iteration < NumIterations; ++iteration )
     {
-        networkSimulator.DiscardPackets();
-
         server.Start( numClients[iteration] );
 
         LocalTransport * clientTransports[MaxClients];
@@ -4022,6 +4042,8 @@ void test_client_server_start_stop_restart()
         DestroyTransports( numClients[iteration], clientTransports );
 
         server.Stop();
+
+        serverTransport.Reset();
     }
 }
 

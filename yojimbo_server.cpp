@@ -50,7 +50,7 @@ namespace yojimbo
         memset( m_clientAllocator, 0, sizeof( m_clientAllocator ) );
         memset( m_clientMessageFactory, 0, sizeof( m_clientMessageFactory ) );
         memset( m_clientPacketFactory, 0, sizeof( m_clientPacketFactory ) );
-        memset( m_connection, 0, sizeof( m_connection ) );
+        memset( m_clientConnection, 0, sizeof( m_clientConnection ) );
         memset( m_clientSequence, 0, sizeof( m_clientSequence ) );
         memset( m_counters, 0, sizeof( m_counters ) );
         for ( int i = 0; i < MaxClients; ++i )
@@ -133,11 +133,11 @@ namespace yojimbo
                 
                 assert( m_clientMessageFactory[clientIndex] );
 
-                m_connection[clientIndex] = YOJIMBO_NEW( clientAllocator, Connection, clientAllocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_config.connectionConfig );
+                m_clientConnection[clientIndex] = YOJIMBO_NEW( clientAllocator, Connection, clientAllocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_config.connectionConfig );
                
-                m_connection[clientIndex]->SetListener( this );
+                m_clientConnection[clientIndex]->SetListener( this );
 
-                m_connection[clientIndex]->SetClientIndex( clientIndex );
+                m_clientConnection[clientIndex]->SetClientIndex( clientIndex );
 
                 InitializeClientContext( clientIndex, GetConnectionConfig(), GetMsgFactory( clientIndex ) );
             }
@@ -167,7 +167,7 @@ namespace yojimbo
         {
             Allocator & clientAllocator = GetAllocator( SERVER_RESOURCE_PER_CLIENT, clientIndex );
 
-            YOJIMBO_DELETE( clientAllocator, Connection, m_connection[clientIndex] );
+            YOJIMBO_DELETE( clientAllocator, Connection, m_clientConnection[clientIndex] );
 
             YOJIMBO_DELETE( clientAllocator, MessageFactory, m_clientMessageFactory[clientIndex] );
 
@@ -252,9 +252,10 @@ namespace yojimbo
             return false;
 
         assert( m_clientMessageFactory );
-        assert( m_connection[clientIndex] );
+        
+        assert( m_clientConnection[clientIndex] );
 
-        return m_connection[clientIndex]->CanSendMsg();
+        return m_clientConnection[clientIndex]->CanSendMsg();
     }
 
     void Server::SendMsg( int clientIndex, Message * message )
@@ -269,9 +270,9 @@ namespace yojimbo
             return;
         }
 
-        assert( m_connection[clientIndex] );
+        assert( m_clientConnection[clientIndex] );
 
-        m_connection[clientIndex]->SendMsg( message );
+        m_clientConnection[clientIndex]->SendMsg( message );
     }
 
     Message * Server::ReceiveMsg( int clientIndex )
@@ -281,9 +282,9 @@ namespace yojimbo
         if ( !m_clientConnected[clientIndex] )
             return NULL;
 
-        assert( m_connection[clientIndex] );
+        assert( m_clientConnection[clientIndex] );
 
-        return m_connection[clientIndex]->ReceiveMsg();
+        return m_clientConnection[clientIndex]->ReceiveMsg();
     }
 
     void Server::ReleaseMsg( int clientIndex, Message * message )
@@ -323,33 +324,35 @@ namespace yojimbo
 
         const double time = GetTime();
 
-        for ( int i = 0; i < m_maxClients; ++i )
+        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
-            if ( !m_clientConnected[i] )
+            if ( !m_clientConnected[clientIndex] )
                 continue;
 
-            if ( m_clientData[i].fullyConnected )
+            if ( m_clientData[clientIndex].fullyConnected )
             {
-                if ( m_connection[i] )
+                if ( m_clientConnection[clientIndex] )
                 {
-                    ConnectionPacket * packet = m_connection[i]->GeneratePacket();
+                    ConnectionPacket * packet = m_clientConnection[clientIndex]->GeneratePacket();
 
                     if ( packet )
                     {
-                        SendPacketToConnectedClient( i, packet );
+                        SendPacketToConnectedClient( clientIndex, packet );
                     }
                 }
             }
 
-            if ( m_clientData[i].lastPacketSendTime + m_config.connectionKeepAliveSendRate <= time )
+            if ( m_clientData[clientIndex].lastPacketSendTime + m_config.connectionKeepAliveSendRate <= time )
             {
-                KeepAlivePacket * packet = CreateKeepAlivePacket( i );
+                KeepAlivePacket * packet = CreateKeepAlivePacket( clientIndex );
 
                 if ( packet )
                 {
-                    SendPacketToConnectedClient( i, packet );
+                    SendPacketToConnectedClient( clientIndex, packet );
 
-                    m_clientData[i].lastHeartBeatSendTime = GetTime();
+                    m_clientData[clientIndex].lastPacketSendTime = GetTime();
+
+                    debug_printf( "server send keep alive packet to client %d - clientSalt = %" PRIx64 "\n", clientIndex, packet->clientSalt );
                 }
             }
         }
@@ -468,11 +471,11 @@ namespace yojimbo
 
                 // check for connection error
 
-                if ( m_connection[clientIndex] )
+                if ( m_clientConnection[clientIndex] )
                 {
-                    m_connection[clientIndex]->AdvanceTime( time );
+                    m_clientConnection[clientIndex]->AdvanceTime( time );
 
-                    if ( m_connection[clientIndex]->GetError() )
+                    if ( m_clientConnection[clientIndex]->GetError() )
                     {
                         OnClientError( clientIndex, SERVER_CLIENT_ERROR_CONNECTION );
 
@@ -686,11 +689,24 @@ namespace yojimbo
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < MaxClients );
+
         m_clientConnected[clientIndex] = false;
         m_clientId[clientIndex] = 0;
         m_clientAddress[clientIndex] = Address();
         m_clientData[clientIndex] = ServerClientData();
         m_clientSequence[clientIndex] = 0;
+
+        if ( m_clientAllocator[clientIndex] )
+            m_clientAllocator[clientIndex]->ClearError();
+
+        if ( m_clientPacketFactory[clientIndex] )
+            m_clientPacketFactory[clientIndex]->ClearError();
+
+        if ( m_clientMessageFactory[clientIndex] )
+            m_clientMessageFactory[clientIndex]->ClearError();
+
+        if ( m_clientConnection[clientIndex] )
+            m_clientConnection[clientIndex]->Reset();
     }
 
     int Server::FindFreeClientIndex() const
@@ -1089,8 +1105,11 @@ namespace yojimbo
         if ( ( GetFlags() & SERVER_FLAG_ALLOW_INSECURE_CONNECT ) == 0 )
             return;
 
+        debug_printf( "Server::ProcessInsecureConnect - clientSalt = %" PRIx64 "\n", packet.clientSalt );
+
         if ( m_numConnectedClients == m_maxClients )
         {
+            debug_printf( "insecure connect denied. server is full\n" );
             m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL]++;
             ConnectionDeniedPacket * connectionDeniedPacket = (ConnectionDeniedPacket*) CreateGlobalPacket( CLIENT_SERVER_PACKET_CONNECTION_DENIED );
             if ( connectionDeniedPacket )
@@ -1100,22 +1119,31 @@ namespace yojimbo
             return;
         }
 
-        const uint64_t clientSalt = packet.clientSalt;
-
         if ( FindClientIndex( address ) != -1 )
+        {
+            debug_printf( "insecure connect ignored. address already connected\n" );
             return;
+        }
 
         if ( FindClientIndex( packet.clientId ) != -1 )
+        {
+            debug_printf( "insecure connect ignored. client id %" PRIx64 " already connected\n" );
             return;
+        }
 
         const int clientIndex = FindFreeClientIndex();
 
+        assert( clientIndex != -1 );
         if ( clientIndex == -1 )
+        {
+            debug_printf( "insecure connect ignored. unexpectedly not able to find free client slot, even though server is not full?!\n" );
             return;
+        }
 
         ConnectClient( clientIndex, address, packet.clientId );
 
-        m_clientData[clientIndex].clientSalt = clientSalt;
+        m_clientData[clientIndex].clientSalt = packet.clientSalt;
+
         m_clientData[clientIndex].insecure = true;
     }
 
@@ -1130,8 +1158,8 @@ namespace yojimbo
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
 
-        if ( m_connection[clientIndex] )
-            m_connection[clientIndex]->ProcessPacket( &packet );
+        if ( m_clientConnection[clientIndex] )
+            m_clientConnection[clientIndex]->ProcessPacket( &packet );
 
         m_clientData[clientIndex].lastPacketReceiveTime = GetTime();
 
@@ -1189,11 +1217,19 @@ namespace yojimbo
 
     KeepAlivePacket * Server::CreateKeepAlivePacket( int clientIndex )
     {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+
+        assert( m_clientConnected[clientIndex] );
+
         KeepAlivePacket * packet = (KeepAlivePacket*) CreateClientPacket( clientIndex, CLIENT_SERVER_PACKET_KEEPALIVE );
 
         if ( packet )
         {
             packet->clientIndex = clientIndex;
+#if YOJIMBO_INSECURE_CONNECT
+            packet->clientSalt = m_clientData[clientIndex].clientSalt;
+#endif // #if YOJIMBO_INSECURE_CONNECT
         }
 
         return packet;

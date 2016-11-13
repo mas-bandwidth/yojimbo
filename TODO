@@ -4,18 +4,6 @@ TODO
 
     ------------------
 
-    Implement "replay" protection.
-
-    Create a sliding window of last 1024 packets per-encryption mapping.
-
-    If any packet comes in in the last 1024, check if it has already been received, if so, ignore it (don't decrypt). 
-
-    If any packet comes in with sequence # older than the sliding window, discard it.
-
-    Otherwise, process the packet normally.
-
-    ------------------
-
     Run a profile session in Windows to make sure no performance issues have crept in.
 
     Run standard tests, make a new release.

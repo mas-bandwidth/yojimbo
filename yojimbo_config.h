@@ -100,8 +100,8 @@ namespace yojimbo
     const int MacBytes = 16;
 
     const int MaxContextMappings = MaxClients;
-    const int MaxEncryptionMappings = MaxClients * 16;
-    const double DefaultEncryptionMappingTimeout = 10;
+    const int MaxEncryptionMappings = MaxClients * 8;
+    const double DefaultEncryptionMappingTimeout = 5;
 
     const int MaxChannels = 64;
     const int ConservativeConnectionPacketHeaderEstimate = 128;
@@ -113,6 +113,8 @@ namespace yojimbo
     const int DefaultPacketSendQueueSize = 1024;
     const int DefaultPacketReceiveQueueSize = 1024;
     const int DefaultSocketBufferSize = 1024 * 1024;
+
+    const int ReplayProtectionBufferSize = 64;
 
     enum ChannelType
     {
@@ -208,7 +210,7 @@ namespace yojimbo
             connectionKeepAliveSendRate = 0.1f;
             connectionRequestTimeOut = 5.0f;
             challengeResponseTimeOut = 5.0f;
-            connectionTimeOut = 10.0f;
+            connectionTimeOut = 5.0f;
             enableConnection = true;
 #if YOJIMBO_INSECURE_CONNECT
             insecureConnectSendRate = 0.1f;

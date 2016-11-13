@@ -466,7 +466,7 @@ namespace yojimbo
             {
                 if ( m_lastPacketReceiveTime + m_config.connectionTimeOut < time )
                 {
-                    debug_printf( "connection timed out\n" );
+                    debug_printf( "connection timed out (%f<%f)\n", m_lastPacketReceiveTime, time );
                     Disconnect( CLIENT_STATE_CONNECTION_TIMEOUT, false );
                     return;
                 }
@@ -487,21 +487,18 @@ namespace yojimbo
         if ( m_clientAllocator && m_clientAllocator->GetError() )
         {
             Disconnect( CLIENT_STATE_ALLOCATOR_ERROR, true );
-            m_clientAllocator->ClearError();
             return;
         }
 
         if ( m_messageFactory && m_messageFactory->GetError() )
         {
             Disconnect( CLIENT_STATE_MESSAGE_FACTORY_ERROR, true );
-            m_messageFactory->ClearError();
             return;
         }
 
         if ( m_packetFactory && m_packetFactory->GetError() )
         {
             Disconnect( CLIENT_STATE_PACKET_FACTORY_ERROR, true );
-            m_packetFactory->ClearError();
             return;
         }
 
@@ -554,6 +551,8 @@ namespace yojimbo
     void Client::InitializeConnection( uint64_t clientId )
     {
         debug_printf( "Client::InitializeConnection (%p), clientId = %" PRIx64 "\n", this, clientId );
+
+        m_clientId = clientId;
 
         CreateAllocators();
 
@@ -654,26 +653,45 @@ namespace yojimbo
     void Client::ResetConnectionData( int clientState )
     {
         assert( m_transport );
+
+        m_clientId = 0;
         m_clientIndex = -1;
         m_serverAddress = Address();
+        m_serverAddressIndex = 0;
+        m_numServerAddresses = 0;
+
         SetClientState( clientState );
+
         m_lastPacketSendTime = -1000.0;
         m_lastPacketReceiveTime = -1000.0;
+
         memset( m_connectTokenData, 0, ConnectTokenBytes );
         memset( m_connectTokenNonce, 0, NonceBytes );
         memset( m_challengeTokenData, 0, ChallengeTokenBytes );
         memset( m_challengeTokenNonce, 0, NonceBytes );
+
         m_transport->ResetEncryptionMappings();
+
         m_sequence = 0;
+
 #if YOJIMBO_INSECURE_CONNECT
         m_clientSalt = 0;
 #endif // #if YOJIMBO_INSECURE_CONNECT
+
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
+
+        if ( m_clientAllocator )
+            m_clientAllocator->ClearError();
+
+        if ( m_packetFactory )
+            m_packetFactory->ClearError();
+
+        if ( m_messageFactory )
+            m_messageFactory->ClearError();
+
         if ( m_connection )
-        {
             m_connection->Reset();
-        }
     }
 
     void Client::ResetBeforeNextConnect()
@@ -727,6 +745,8 @@ namespace yojimbo
         SetClientState( CLIENT_STATE_SENDING_INSECURE_CONNECT );
 
         RandomBytes( (uint8_t*) &m_clientSalt, sizeof( m_clientSalt ) );
+
+        debug_printf( "Client::InternalInsecureConnection - m_clientSalt = %" PRIx64 "\n", m_clientSalt );
     }
 
     void Client::InternalSecureConnect( const Address & serverAddress )
@@ -836,11 +856,19 @@ namespace yojimbo
 
     void Client::ProcessKeepAlive( const KeepAlivePacket & packet, const Address & address )
     {
-        if ( !IsPendingConnect() && !IsConnected() )
-            return;
+        debug_printf( "Client::ProcessKeepAlive\n" );
 
         if ( address != m_serverAddress )
             return;
+
+#if YOJIMBO_INSECURE_CONNECT
+        // todo: m_insecure
+        if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT && packet.clientSalt != m_clientSalt )
+        {
+            debug_printf( "client salt mismatch: expected %" PRIx64 ", got %" PRIx64 "\n", m_clientSalt, packet.clientSalt );
+            return;
+        }
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
         if ( IsPendingConnect() )
             CompletePendingConnect( packet.clientIndex );

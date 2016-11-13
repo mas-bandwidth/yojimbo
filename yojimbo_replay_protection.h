@@ -1,8 +1,8 @@
 /*
     Yojimbo Client/Server Network Protocol Library.
-
-    Copyright © 2016, The Network Protocol Company, Inc.
     
+    Copyright © 2016, The Network Protocol Company, Inc.
+
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
         1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -22,31 +22,56 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef YOJIMBO_H
-#define YOJIMBO_H
+#ifndef YOJIMBO_REPLAY_PROTECTION_H
+#define YOJIMBO_REPLAY_PROTECTION_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_common.h"
-#include "yojimbo_packet.h"
-#include "yojimbo_message.h"
-#include "yojimbo_network.h"
-#include "yojimbo_sockets.h"
-#include "yojimbo_matcher.h"
-#include "yojimbo_platform.h"
-#include "yojimbo_network_simulator.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_encryption.h"
-#include "yojimbo_packet_processor.h"
-#include "yojimbo_tokens.h"
-#include "yojimbo_client.h"
-#include "yojimbo_server.h"
-#include "yojimbo_sequence_buffer.h"
-#include "yojimbo_message.h"
-#include "yojimbo_connection.h"
-#include "yojimbo_replay_protection.h"
 
-bool InitializeYojimbo();
+namespace yojimbo
+{
+    class ReplayProtection
+    {
+    public:
 
-void ShutdownYojimbo();
+        ReplayProtection()
+        {
+            Reset( 0 );
+        }
 
-#endif // #ifndef YOJIMBO_H
+        void Reset( uint64_t mostRecentSequence )
+        {
+            m_mostRecentSequence = mostRecentSequence;
+            memset( m_receivedPacket, 0xFF, sizeof( m_receivedPacket ) );
+        }
+
+        bool PacketAlreadyReceived( uint64_t sequence )
+        {
+            if ( sequence <= m_mostRecentSequence - ReplayProtectionBufferSize )
+                return true;
+
+            if ( sequence > m_mostRecentSequence )
+                m_mostRecentSequence = sequence;
+
+            const int index = (int) ( sequence % ReplayProtectionBufferSize );
+
+            if ( m_receivedPacket[index] == 0xFFFFFFFFFFFFFFFFLL )
+            {
+                m_receivedPacket[index] = sequence;
+                return false;
+            }
+
+            if ( m_receivedPacket[index] >= sequence )
+                return true;
+
+            return false;
+        }
+
+    protected:
+
+        uint64_t m_mostRecentSequence;
+        uint64_t m_receivedPacket[ReplayProtectionBufferSize];
+    };
+}
+
+#endif // #ifndef YOJIMBO_REPLAY_PROTECTION_H

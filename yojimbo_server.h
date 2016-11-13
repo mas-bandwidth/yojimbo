@@ -61,7 +61,6 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
         double connectTime;
         double lastPacketSendTime;
-        double lastHeartBeatSendTime;
         double lastPacketReceiveTime;
         bool fullyConnected;
 #if YOJIMBO_INSECURE_CONNECT
@@ -76,7 +75,6 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
             connectTime = 0.0;
             lastPacketSendTime = 0.0;
-            lastHeartBeatSendTime = 0.0;
             lastPacketReceiveTime = 0.0;
             fullyConnected = false;
 #if YOJIMBO_INSECURE_CONNECT
@@ -391,7 +389,7 @@ namespace yojimbo
 
         bool m_allocateConnections;                                         // true if we should allocate connection objects in start.
 
-        Connection * m_connection[MaxClients];                              // per-client connection. allocated and freed in start/stop according to max clients.
+        Connection * m_clientConnection[MaxClients];                        // per-client connection. allocated and freed in start/stop according to max clients.
 
         ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
 

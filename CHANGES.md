@@ -18,6 +18,51 @@ Stash the client id to the client slot on the server on insecure connect.
 
 Removed several redundant sets of functions on the server to do the same thing (look up client index from address or client id).
 
+WIP on replay protection. This means:
+
+Create a sequence buffer-like array of last 1024 packets per-encryption mapping.
+
+If any packet comes in in the last 1024, check if it has already been received, if so, ignore it (don't decrypt). 
+
+If any packet comes in with sequence # older than the sliding window, discard it.
+
+Otherwise, process the packet normally.
+
+Starting this by implementing a "ReplayProtection" class so I can run functional tests over to verify that it behaves as expected.
+
+Implemented, should be working fine. Testing coming up next.
+
+test.cpp running in soak mode is periodically failing inside secure/insecure connect test.
+
+Dig in and work out what is going on.
+
+Trying just repeated insecure connects... still fails. So it's not caused by secure/insecure alternation necessarily.
+
+My suspicion right now is that the keepalives are not being sent for some reason.
+
+Is something not being properly reset on the server on client disconnect?
+
+Maybe the client is thinking it is connected due to an old packet coming in, but the server hasn't yet seen the client connection request? Something like this would fit what I'm seeing.
+
+First, very the client isn't connecting on server... seems to be the case.
+
+My theory now is that the client needs the salt in the connection accepted response, because it's picking up old connection accepteds and getting confused.
+
+Looks like the server is still confused and thinks it has the old client still, but the new client has different salt values, and is rejecting the keepalives. This is consistent with the server not really properly disconnecting the client before the next connect (which doesn't make any sense), and with the client somehow having old packets get through w. duplicates, causing the client to connect again.
+
+Add more logging for server-side accept client connection with client salt.
+
+OK. Confirmed. The error here is that the server is getting stale packets. Possibly packets inside the transport still buffered in pending receive, but not cleared. Adding transport level "Flush" function is the correct approach here.
+
+The timeout is correct behavior btw. It's a client trying to connect to a server before it has timed out properly. This is *correct* behavior in that case. Connection should timeout, can't allow two connections from the same address simultaneously.
+
+OK. Fixed the root cause, by adding a new method "Transport::Flush", which ensures that all packets are removed from the system at that point.
+
+Alternatively, could just reset the transport. That would do the same thing. Should I just use reset instead?
+
+Yes. Switched to reset.
+
+Guarantee. If you reset a local transport, it won't allow any packets sent from it across that barrier.
 
 Saturday November 12th, 2016
 ============================

@@ -107,15 +107,22 @@ namespace yojimbo
     struct KeepAlivePacket : public Packet
     {
         int clientIndex;
+#if YOJIMBO_INSECURE_CONNECT
+        uint64_t clientSalt;
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
         KeepAlivePacket()
         {
             clientIndex = 0;
+            clientSalt = 0;
         }
 
         template <typename Stream> bool Serialize( Stream & stream )
         { 
             serialize_int( stream, clientIndex, 0, MaxClients - 1 );
+#if YOJIMBO_INSECURE_CONNECT
+            serialize_uint64( stream, clientSalt );
+#endif // #if YOJIMBO_INSECURE_CONNECT
             return true; 
         }
 

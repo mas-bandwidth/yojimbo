@@ -292,6 +292,8 @@ namespace yojimbo
 
         ~LocalTransport();
 
+        void Reset();
+
         void AdvanceTime( double time );
 
     protected:

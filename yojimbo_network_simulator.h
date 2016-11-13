@@ -59,6 +59,8 @@ namespace yojimbo
 
         void DiscardPackets();
 
+        void DiscardPacketsFromAddress( const Address & address );
+
         void AdvanceTime( double time );
 
         Allocator & GetAllocator() { assert( m_allocator ); return *m_allocator; }

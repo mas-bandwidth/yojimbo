@@ -290,6 +290,41 @@ namespace yojimbo
         m_numPendingReceivePackets = 0;
     }
 
+    void NetworkSimulator::DiscardPacketsFromAddress( const Address & address )
+    {
+        for ( int i = 0; i < m_numPacketEntries; ++i )
+        {
+            PacketEntry & packetEntry = m_packetEntries[i];
+
+            if ( !packetEntry.packetData )
+                continue;
+
+            if ( packetEntry.from != address )
+                continue;
+
+            m_allocator->Free( packetEntry.packetData );
+
+            packetEntry = PacketEntry();
+        }
+
+        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
+        {
+            PacketEntry & packetEntry = m_pendingReceivePackets[i];
+
+            if ( !packetEntry.packetData )
+                continue;
+
+            if ( packetEntry.from != address )
+                continue;
+
+            m_allocator->Free( packetEntry.packetData );
+
+            packetEntry = PacketEntry();
+        }
+
+        m_numPendingReceivePackets = 0;
+    }
+
     void NetworkSimulator::AdvanceTime( double time )
     {
         assert( time >= m_time );

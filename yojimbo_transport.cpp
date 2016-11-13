@@ -167,6 +167,9 @@ namespace yojimbo
         ClearReceiveQueue();
         ResetContextMappings();
         ResetEncryptionMappings();
+
+        if ( m_networkSimulator )
+            m_networkSimulator->DiscardPacketsFromAddress( m_address );
     }
 
     void BaseTransport::ClearSendQueue()
@@ -742,6 +745,13 @@ namespace yojimbo
         m_receiveFrom = NULL;
 
         m_networkSimulator = NULL;
+    }
+
+    void LocalTransport::Reset()
+    {
+        BaseTransport::Reset();
+
+        DiscardReceivePackets();
     }
 
     void LocalTransport::AdvanceTime( double time )

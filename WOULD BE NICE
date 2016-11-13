@@ -2,6 +2,24 @@ WOULD BE NICE
 
     ------------------
 
+    Add a test for clients to connect, without messages enabled, and then send no packets for timeout * 2 seconds. 
+
+    This verifies that the keep-alive packets work.
+
+    ------------------
+
+    There is no test currently that checks that a client can connect, disconnect, and reconnect and send messages successfully. 
+
+    This is necessary to ensure that the connection state is properly cleaned up after a client disconnect.
+
+    Add this test!
+
+    ------------------
+
+    Important to add tests that simulate each of the server-side client error conditions, eg. allocator, packet factory, message factory, connection, and then verify that after these errors happen, that client slot is cleared and a client can connect to it again, otherwise, possibility that I have error codes not getting cleared by accident on client disconnect.
+
+    ------------------
+
     Implement QoS within the connection, eg. packet loss, latency measurements etc, and make this available to the user to query.
 
     ------------------
@@ -10,8 +28,8 @@ WOULD BE NICE
 
     ------------------
 
-    Optimize the simulator to use a sliding window internally, so it can keep track of head and tail, and avoid scanning the entire 4096 entries on each receive.
-
+    Optimize the simulator to keep track of head and tail internally, so it can avoid scanning the entire 4096 entries on each receive call.
+    
     ------------------
 
     Definitely need more usage documentation and samples showing how to do stuff.
