@@ -6,6 +6,8 @@ Server wastes time trying to remove encryption mapping for a client who connecte
 
 Added a per-client flag on the server "insecure", if this is true, server doesn't try to clean up the encryption mapping for that client on disconnect (it dosen't exist).
 
+Added a test to verify that a client can switch from secure connect, to insecure connect, back to secure connect. There is a lot of different functionality in these connects, so it is important to make sure that the client can switch between these modes dynamically.
+
 
 Saturday November 12th, 2016
 ============================

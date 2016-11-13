@@ -1089,32 +1089,6 @@ enum ConnectFlags
     CONNECT_FLAG_TOKEN_WHITELIST = 1<<1,
 };
 
-void ConnectClient( Client & client, uint64_t clientId, const Address & serverAddress, uint32_t connectFlags = 0 )
-{
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnect];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
-    uint64_t connectTokenExpireTimestamp;
-
-    int timestampOffset = ( connectFlags & CONNECT_FLAG_TOKEN_EXPIRED ) ? -100 : 0;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses, timestampOffset, ( connectFlags & CONNECT_FLAG_TOKEN_WHITELIST ) ? 1000 : -1 ) )
-    {
-        printf( "error: request match failed\n" );
-        exit( 1 );
-    }
-
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
-}
-
 void ConnectClient( Client & client, uint64_t clientId, const Address serverAddresses[], int numServerAddresses, uint32_t connectFlags = 0 )
 {
     uint8_t connectTokenData[ConnectTokenBytes];
@@ -1139,6 +1113,11 @@ void ConnectClient( Client & client, uint64_t clientId, const Address serverAddr
     }
 
     client.Connect( serverAddresses, numServerAddresses, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+}
+
+void ConnectClient( Client & client, uint64_t clientId, const Address & serverAddress, uint32_t connectFlags = 0 )
+{
+    ConnectClient( client, clientId, &serverAddress, 1, connectFlags );
 }
 
 void test_client_server_connect()
@@ -2606,6 +2585,80 @@ void test_client_server_insecure_connect_timeout()
     check( !client.IsConnected() );
     check( client.ConnectionFailed() );
     check( client.GetClientState() == CLIENT_STATE_INSECURE_CONNECT_TIMEOUT );
+}
+
+void test_client_server_insecure_secure_insecure_secure()
+{
+    printf( "test_client_server_insecure_secure_insecure_secure\n" );
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    uint64_t clientId = 1;
+
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+
+    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
+
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.enableConnection = false;
+
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+
+    server.SetServerAddress( serverAddress );
+
+    clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
+    serverTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
+
+    server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
+
+    server.Start();
+
+    for ( int i = 0; i < 4; ++i )
+    {
+        if ( ( i % 2 ) == 0 )
+        {
+            client.InsecureConnect( serverAddress );
+        }
+        else
+        {
+            ConnectClient( client, clientId, serverAddress );
+        }
+
+        while ( true )
+        {
+            Client * clients[] = { &client };
+            Server * servers[] = { &server };
+            Transport * transports[] = { &clientTransport, &serverTransport };
+
+            PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+            if ( client.ConnectionFailed() )
+            {
+                printf( "error: client connect failed!\n" );
+                exit( 1 );
+            }
+
+            if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+                break;
+        }
+
+        check( !client.IsConnecting() );
+        check( client.IsConnected() );
+        check( server.GetNumConnectedClients() == 1 );
+
+        client.Disconnect();
+    }
+
+    server.Stop();
 }
 
 #endif // #if YOJIMBO_INSECURE_CONNECT
@@ -4350,6 +4403,7 @@ int main()
         test_client_server_insecure_connect();
         test_client_server_insecure_connect_multiple_servers();
         test_client_server_insecure_connect_timeout();
+        test_client_server_insecure_secure_insecure_secure();
 #endif // #if YOJIMBO_INSECURE_CONNECT
         test_matcher();
         test_bit_array();
