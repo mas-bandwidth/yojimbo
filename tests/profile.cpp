@@ -213,7 +213,9 @@ int ProfileMain()
 
     for ( int i = 0; i < MaxClients; ++i )
     {
-        clientData[i].client->Connect( serverData->address, 
+        clientData[i].client->Connect( clientData[i].clientId,
+                                       clientData[i].serverAddresses,
+                                       clientData[i].numServerAddresses,
                                        clientData[i].connectTokenData, 
                                        clientData[i].connectTokenNonce, 
                                        clientData[i].clientToServerKey, 

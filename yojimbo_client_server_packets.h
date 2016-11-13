@@ -133,15 +133,18 @@ namespace yojimbo
 
     struct InsecureConnectPacket : public Packet
     {
+        uint64_t clientId;
         uint64_t clientSalt;
 
         InsecureConnectPacket()
         {
+            clientId = 0;
             clientSalt = 0;
         }
 
         template <typename Stream> bool Serialize( Stream & stream )
         {
+            serialize_uint64( stream, clientId );
             serialize_uint64( stream, clientSalt );
             return true;
         }

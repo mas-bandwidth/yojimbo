@@ -520,6 +520,17 @@ namespace yojimbo
         return m_serverAddress;
     }
 
+    int Server::FindClientIndex( uint64_t clientId ) const
+    {
+        for ( int i = 0; i < m_maxClients; ++i )
+        {   
+            if ( m_clientConnected[i] && m_clientId[i] == clientId )
+                return i;
+        }
+
+        return -1;
+    }
+
     int Server::FindClientIndex( const Address & address ) const
     {
         if ( !address.IsValid() )
@@ -692,26 +703,6 @@ namespace yojimbo
         return -1;
     }
 
-    int Server::FindExistingClientIndex( const Address & address ) const
-    {
-        for ( int i = 0; i < m_maxClients; ++i )
-        {
-            if ( m_clientConnected[i] && m_clientAddress[i] == address )
-                return i;
-        }
-        return -1;
-    }
-
-    int Server::FindExistingClientIndex( const Address & address, uint64_t clientId ) const
-    {
-        for ( int i = 0; i < m_maxClients; ++i )
-        {
-            if ( m_clientId[i] == clientId && m_clientConnected[i] && m_clientAddress[i] == address )
-                return i;
-        }
-        return -1;
-    }
-
     bool Server::FindConnectTokenEntry( const uint8_t * mac )
     {
         for ( int i = 0; i < MaxConnectTokenEntries; ++i )
@@ -817,30 +808,6 @@ namespace yojimbo
         }
     }
 
-    int Server::FindAddress( const Address & address ) const
-    {
-        for ( int i = 0; i < m_maxClients; ++i )
-        {
-            if ( !m_clientConnected[i] )
-                continue;
-            if ( m_clientAddress[i] == address )
-                return i;
-        }
-        return -1;
-    }
-
-    int Server::FindClientId( uint64_t clientId ) const
-    {
-        for ( int i = 0; i < m_maxClients; ++i )
-        {
-            if ( !m_clientConnected[i] )
-                continue;
-            if ( m_clientId[i] == clientId )
-                return i;
-        }
-        return -1;
-    }
-
     void Server::SendPacket( const Address & address, Packet * packet, bool immediate )
     {
         assert( IsRunning() );
@@ -927,7 +894,7 @@ namespace yojimbo
             return;
         }
 
-        if ( FindAddress( address ) >= 0 )
+        if ( FindClientIndex( address ) >= 0 )
         {
             debug_printf( "ignored connection request: address already connected\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED, packet, address, connectToken );
@@ -935,7 +902,7 @@ namespace yojimbo
             return;
         }
 
-        if ( FindClientId( connectToken.clientId ) >= 0 )
+        if ( FindClientIndex( connectToken.clientId ) >= 0 )
         {
             debug_printf( "ignored connection request: client id already connected\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED, packet, address, connectToken );
@@ -1036,7 +1003,7 @@ namespace yojimbo
             return;
         }
 
-        if ( FindAddress( address ) >= 0 )
+        if ( FindClientIndex( address ) >= 0 )
         {
             debug_printf( "ignored challenge response: address already connected\n" );
             OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED, packet, address, challengeToken );
@@ -1044,7 +1011,7 @@ namespace yojimbo
             return;
         }
 
-        if ( FindClientId( challengeToken.clientId ) >= 0 )
+        if ( FindClientIndex( challengeToken.clientId ) >= 0 )
         {
             debug_printf( "ignored challenge response: client id already connected\n" );
             OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED, packet, address, challengeToken );
@@ -1083,7 +1050,7 @@ namespace yojimbo
     {
         assert( IsRunning() );
 
-        const int clientIndex = FindExistingClientIndex( address );
+        const int clientIndex = FindClientIndex( address );
         if ( clientIndex == -1 )
             return;
 
@@ -1101,7 +1068,7 @@ namespace yojimbo
     {
         assert( IsRunning() );
 
-        const int clientIndex = FindExistingClientIndex( address );
+        const int clientIndex = FindClientIndex( address );
         if ( clientIndex == -1 )
             return;
 
@@ -1114,6 +1081,7 @@ namespace yojimbo
     }
 
 #if YOJIMBO_INSECURE_CONNECT
+
     void Server::ProcessInsecureConnect( const InsecureConnectPacket & packet, const Address & address )
     {
         assert( IsRunning() );
@@ -1134,26 +1102,28 @@ namespace yojimbo
 
         const uint64_t clientSalt = packet.clientSalt;
 
-        int clientIndex = FindExistingClientIndex( address );
-        if ( clientIndex != -1 )
+        if ( FindClientIndex( address ) != -1 )
             return;
 
-        clientIndex = FindFreeClientIndex();
+        if ( FindClientIndex( packet.clientId ) != -1 )
+            return;
 
-        assert( clientIndex != -1 );
+        const int clientIndex = FindFreeClientIndex();
+
         if ( clientIndex == -1 )
             return;
 
-        ConnectClient( clientIndex, address, 0 );
+        ConnectClient( clientIndex, address, packet.clientId );
 
         m_clientData[clientIndex].clientSalt = clientSalt;
         m_clientData[clientIndex].insecure = true;
     }
+
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
     void Server::ProcessConnectionPacket( ConnectionPacket & packet, const Address & address )
     {
-        const int clientIndex = FindExistingClientIndex( address );
+        const int clientIndex = FindClientIndex( address );
         if ( clientIndex == -1 )
             return;
 

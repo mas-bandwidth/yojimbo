@@ -2,33 +2,15 @@ WOULD BE NICE
 
     ------------------
 
-    Client doesn't know their client id. It should probably be passed in to client connect.
-
-    ------------------
-
-    Should the insecure connect have a client id as well? Probably, for consistency.
-
-    This means it should not allow connections if that client id or address is already connected.
-
-    ------------------
-
-    Implement "replay" protection.
-
-    Create a sliding window of last 1024 packets per-encryption mapping.
-
-    If any packet comes in in the last 1024, check if it has already been received, if so, ignore it (don't decrypt). 
-
-    If any packet comes in with sequence # older than the sliding window, discard it.
-
-    Otherwise, process the packet normally.
-
-    ------------------
-
     Implement QoS within the connection, eg. packet loss, latency measurements etc, and make this available to the user to query.
 
     ------------------
 
     Add functionality to connection and client/server to get the set of packet acks, so users can get acks and build their own systems on top of that.
+
+    ------------------
+
+    Optimize the simulator to use a sliding window internally, so it can keep track of head and tail, and avoid scanning the entire 4096 entries on each receive.
 
     ------------------
 
@@ -54,7 +36,7 @@ WOULD BE NICE
 
     ------------------
 
-    The connection and channels code seems a bit rough. Should consider a second pass, to see if I can make it simpler. It's hard to understand.
+    The connection and channels code seems a bit rough. Should consider a second pass, to see if I can make it simpler. It's the code is hard to understand. Even for me, and I wrote it =p
 
     ------------------
 

@@ -93,7 +93,7 @@ int SoakMain()
 
     server.Start();
     
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     uint64_t numMessagesSentToServer = 0;
     uint64_t numMessagesReceivedFromClient = 0;

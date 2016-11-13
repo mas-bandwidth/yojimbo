@@ -1112,7 +1112,7 @@ void ConnectClient( Client & client, uint64_t clientId, const Address serverAddr
         exit( 1 );
     }
 
-    client.Connect( serverAddresses, numServerAddresses, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    client.Connect( clientId, serverAddresses, numServerAddresses, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 }
 
 void ConnectClient( Client & client, uint64_t clientId, const Address & serverAddress, uint32_t connectFlags = 0 )
@@ -1874,7 +1874,7 @@ void test_client_server_connect_token_reuse()
     
     server.Start();
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -1922,7 +1922,7 @@ void test_client_server_connect_token_reuse()
     
     GameClient client2( GetDefaultAllocator(), clientTransport2, clientServerConfig, time );
 
-    client2.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    client2.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     while ( true )
     {
@@ -2049,6 +2049,8 @@ void test_client_server_connect_token_invalid()
 {
     printf( "test_client_server_connect_token_invalid\n" );
 
+    const uint64_t clientId = 1;
+
     uint8_t connectTokenData[ConnectTokenBytes];
     uint8_t connectTokenNonce[NonceBytes];
 
@@ -2090,7 +2092,7 @@ void test_client_server_connect_token_invalid()
 
     uint64_t connectTokenExpireTimestamp = ::time( NULL ) + 100;
 
-    client.Connect( serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -2419,6 +2421,8 @@ void test_client_server_insecure_connect()
 {
     printf( "test_client_server_insecure_connect\n" );
 
+    const uint64_t clientId = 1;
+
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
@@ -2448,7 +2452,7 @@ void test_client_server_insecure_connect()
 
     server.Start();
 
-    client.InsecureConnect( serverAddress );
+    client.InsecureConnect( clientId, serverAddress );
 
     while ( true )
     {
@@ -2480,6 +2484,8 @@ void test_client_server_insecure_connect()
 void test_client_server_insecure_connect_multiple_servers()
 {
     printf( "test_client_server_insecure_connect_multiple_servers\n" );
+
+    const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
@@ -2518,7 +2524,7 @@ void test_client_server_insecure_connect_multiple_servers()
         serverAddresses[i] = Address( "::1", ServerPort + NumServerAddresses - 1 - i );
     }
 
-    client.InsecureConnect( serverAddresses, NumServerAddresses );
+    client.InsecureConnect( clientId, serverAddresses, NumServerAddresses );
 
     while ( true )
     {
@@ -2551,6 +2557,8 @@ void test_client_server_insecure_connect_timeout()
 {
     printf( "test_client_server_insecure_connect_timeout\n" );
 
+    const uint64_t clientId = 1;
+
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
@@ -2567,7 +2575,7 @@ void test_client_server_insecure_connect_timeout()
 
     clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
 
-    client.InsecureConnect( serverAddress );
+    client.InsecureConnect( clientId, serverAddress );
 
     while ( true )
     {
@@ -2626,7 +2634,7 @@ void test_client_server_insecure_secure_insecure_secure()
     {
         if ( ( i % 2 ) == 0 )
         {
-            client.InsecureConnect( serverAddress );
+            client.InsecureConnect( clientId, serverAddress );
         }
         else
         {

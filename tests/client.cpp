@@ -41,6 +41,10 @@ int ClientMain( int argc, char * argv[] )
 {   
     double time = 100.0;
 
+    uint64_t clientId = 0;
+    RandomBytes( (uint8_t*) &clientId, 8 );
+    printf( "\nclient id is %.16" PRIx64 "\n", clientId );
+
     NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId, time );
     
     if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
@@ -68,7 +72,7 @@ int ClientMain( int argc, char * argv[] )
         }
     }
 
-    client.InsecureConnect( serverAddress );
+    client.InsecureConnect( clientId, serverAddress );
 
     const double deltaTime = 0.1;
 

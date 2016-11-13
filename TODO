@@ -4,7 +4,15 @@ TODO
 
     ------------------
 
-    Add some client counters, they are useful for debugging.
+    Implement "replay" protection.
+
+    Create a sliding window of last 1024 packets per-encryption mapping.
+
+    If any packet comes in in the last 1024, check if it has already been received, if so, ignore it (don't decrypt). 
+
+    If any packet comes in with sequence # older than the sliding window, discard it.
+
+    Otherwise, process the packet normally.
 
     ------------------
 

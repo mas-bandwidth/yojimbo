@@ -4,9 +4,19 @@ Sunday November 13th, 2016
 
 Server wastes time trying to remove encryption mapping for a client who connected via insecure connect
 
-Added a per-client flag on the server "insecure", if this is true, server doesn't try to clean up the encryption mapping for that client on disconnect (it dosen't exist).
+Added a per-client flag on the server "insecure", if this is true, server doesn't try to clean up the encryption mapping for that client on disconnect (it doesn't exist).
 
 Added a test to verify that a client can switch from secure connect, to insecure connect, back to secure connect. There is a lot of different functionality in these connects, so it is important to make sure that the client can switch between these modes dynamically.
+
+Added client id to client connect functions, secure and insecure. It's important that both secure and insecure connect have a globally unique client id passed in. If this is inconvenient during development, users of the library can just roll a random 64bit client id, or derive the client id from the local machine name on the LAN as a hash etc.
+
+Added client id to the insecure connect packet.
+
+Extended insecure connect so it won't allow connection if the address is already connected, or the client id is already connected.
+
+Stash the client id to the client slot on the server on insecure connect.
+
+Removed several redundant sets of functions on the server to do the same thing (look up client index from address or client id).
 
 
 Saturday November 12th, 2016

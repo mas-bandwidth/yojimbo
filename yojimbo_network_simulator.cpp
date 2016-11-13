@@ -205,7 +205,7 @@ namespace yojimbo
             nextPacketEntry.to = to;
             nextPacketEntry.packetData = duplicatePacketData;
             nextPacketEntry.packetSize = packetSize;
-            nextPacketEntry.deliveryTime = m_time + delay + random_float( -10.0, +10.0 );
+            nextPacketEntry.deliveryTime = m_time + delay + random_float( -1.0, +1.0 );
 
             m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
         }

@@ -105,18 +105,20 @@ namespace yojimbo
         virtual ~Client();
 
 #if YOJIMBO_INSECURE_CONNECT
-        void InsecureConnect( const Address & serverAddress );
-        void InsecureConnect( const Address serverAddresses[], int numServerAddresses );
+        void InsecureConnect( uint64_t clientId, const Address & serverAddress );
+        void InsecureConnect( uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-        void Connect( const Address & serverAddress, 
+        void Connect( uint64_t clientId,
+                      const Address & serverAddress, 
                       const uint8_t * connectTokenData, 
                       const uint8_t * connectTokenNonce,
                       const uint8_t * clientToServerKey,
                       const uint8_t * serverToClientKey,
                       uint64_t connectTokenExpireTimestamp );
 
-        void Connect( const Address serverAddresses[], int numServerAddresses,
+        void Connect( uint64_t clientId, 
+                      const Address serverAddresses[], int numServerAddresses,
                       const uint8_t * connectTokenData, 
                       const uint8_t * connectTokenNonce,
                       const uint8_t * clientToServerKey,
@@ -159,6 +161,8 @@ namespace yojimbo
 
         double GetTime() const;
 
+        uint64_t GetClientId() const;
+
         int GetClientIndex() const;
 
         uint64_t GetCounter( int index ) const;
@@ -191,7 +195,7 @@ namespace yojimbo
 
     protected:
 
-        virtual void InitializeConnection();
+        virtual void InitializeConnection( uint64_t clientId );
 
         virtual void ShutdownConnection();
 
@@ -266,6 +270,8 @@ namespace yojimbo
         bool m_allocateConnection;                                          // true if we should allocate a connection.
 
         Connection * m_connection;                                          // the connection object for exchanging messages with the server. optional.
+
+        uint64_t m_clientId;                                                // the globally unique client id (set on each call to connect).
 
         int m_clientIndex;                                                  // the client index on the server [0,maxClients-1]. -1 if not connected.
 

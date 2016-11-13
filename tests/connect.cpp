@@ -47,7 +47,6 @@ int ConnectMain( int argc, char * argv[] )
 
     uint64_t clientId = 0;
     RandomBytes( (uint8_t*) &clientId, 8 );
-
     printf( "\nclient id is %.16" PRIx64 "\n", clientId );
 
     Matcher matcher( allocator );
@@ -94,7 +93,9 @@ int ConnectMain( int argc, char * argv[] )
 
     GameClient client( GetDefaultAllocator(), clientTransport, ClientServerConfig(), time );
 
-    client.Connect( matchResponse.serverAddresses[0],
+    client.Connect( clientId,
+                    matchResponse.serverAddresses,
+                    matchResponse.numServerAddresses,
                     matchResponse.connectTokenData, 
                     matchResponse.connectTokenNonce, 
                     matchResponse.clientToServerKey,

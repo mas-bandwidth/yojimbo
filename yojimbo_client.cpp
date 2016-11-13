@@ -43,6 +43,7 @@ namespace yojimbo
         m_connection = NULL;
         m_time = 0.0;
         m_clientState = CLIENT_STATE_DISCONNECTED;
+        m_clientId = 0;
         m_clientIndex = -1;
         m_lastPacketSendTime = 0.0;
         m_lastPacketReceiveTime = 0.0;
@@ -113,19 +114,19 @@ namespace yojimbo
 
 #if YOJIMBO_INSECURE_CONNECT
 
-    void Client::InsecureConnect( const Address & serverAddress )
+    void Client::InsecureConnect( uint64_t clientId, const Address & serverAddress )
     {
-        InsecureConnect( &serverAddress, 1 );
+        InsecureConnect( clientId, &serverAddress, 1 );
     }
 
-    void Client::InsecureConnect( const Address serverAddresses[], int numServerAddresses )
+    void Client::InsecureConnect( uint64_t clientId, const Address serverAddresses[], int numServerAddresses )
     {
         assert( numServerAddresses >= 1 );
         assert( numServerAddresses <= MaxServersPerConnect );
 
         Disconnect();
 
-        InitializeConnection();
+        InitializeConnection( clientId );
 
         m_serverAddressIndex = 0;
         m_numServerAddresses = numServerAddresses;
@@ -143,17 +144,19 @@ namespace yojimbo
 
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-    void Client::Connect( const Address & serverAddress,
+    void Client::Connect( uint64_t clientId,
+                          const Address & serverAddress,
                           const uint8_t * connectTokenData, 
                           const uint8_t * connectTokenNonce,
                           const uint8_t * clientToServerKey,
                           const uint8_t * serverToClientKey,
                           uint64_t connectTokenExpireTimestamp )
     {
-        Connect( &serverAddress, 1, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+        Connect( clientId, &serverAddress, 1, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
     }
 
-    void Client::Connect( const Address serverAddresses[], int numServerAddresses,
+    void Client::Connect( uint64_t clientId, 
+                          const Address serverAddresses[], int numServerAddresses,
                           const uint8_t * connectTokenData, 
                           const uint8_t * connectTokenNonce,
                           const uint8_t * clientToServerKey,
@@ -165,7 +168,7 @@ namespace yojimbo
 
         Disconnect();
 
-        InitializeConnection();
+        InitializeConnection( clientId );
 
         m_serverAddressIndex = 0;
         m_numServerAddresses = numServerAddresses;
@@ -312,6 +315,7 @@ namespace yojimbo
                 InsecureConnectPacket * packet = (InsecureConnectPacket*) CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
                 if ( packet )
                 {
+                    packet->clientId = m_clientId;
                     packet->clientSalt = m_clientSalt;
                     SendPacketToServer_Internal( packet );
                 }
@@ -518,6 +522,11 @@ namespace yojimbo
         return m_time;
     }
 
+    uint64_t Client::GetClientId() const
+    {
+        return m_clientId;
+    }
+
     int Client::GetClientIndex() const
     {
         return m_clientIndex;
@@ -542,9 +551,9 @@ namespace yojimbo
         m_transport->SetUserContext( context );
     }
 
-    void Client::InitializeConnection()
+    void Client::InitializeConnection( uint64_t clientId )
     {
-        debug_printf( "Client::InitializeConnection (%p)\n", this );
+        debug_printf( "Client::InitializeConnection (%p), clientId = %" PRIx64 "\n", this, clientId );
 
         CreateAllocators();
 

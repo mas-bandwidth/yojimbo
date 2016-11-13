@@ -229,6 +229,8 @@ namespace yojimbo
 
         int GetNumConnectedClients() const;
 
+        int FindClientIndex( uint64_t clientId ) const;
+
         int FindClientIndex( const Address & address ) const;
 
         uint64_t GetClientId( int clientIndex ) const;
@@ -303,17 +305,9 @@ namespace yojimbo
 
         int FindFreeClientIndex() const;
 
-        int FindExistingClientIndex( const Address & address ) const;
-
-        int FindExistingClientIndex( const Address & address, uint64_t clientId ) const;
-
         bool FindConnectTokenEntry( const uint8_t * mac );
         
         bool FindOrAddConnectTokenEntry( const Address & address, const uint8_t * mac );
-
-        int FindAddress( const Address & address ) const;
-
-        int FindClientId( uint64_t clientId ) const;
 
         void ConnectClient( int clientIndex, const Address & clientAddress, uint64_t clientId );
 
