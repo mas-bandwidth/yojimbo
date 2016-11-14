@@ -38,7 +38,7 @@
 
 static LocalMatcher matcher;
 
-#define SOAK 1
+#define SOAK 0
 
 #if SOAK
 #include <signal.h>
