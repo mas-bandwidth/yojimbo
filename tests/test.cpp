@@ -840,10 +840,6 @@ void test_client_server_tokens()
 {
     printf( "test_client_server_tokens\n" );
 
-    const uint32_t ProtocolId = 0x12398137;
-    const int ServerPort = 30000;
-    const int ClientPort = 40000;
-
     uint8_t key[KeyBytes];
 
     uint64_t clientId = 1;
@@ -1470,7 +1466,7 @@ void test_client_server_connection_request_timeout()
     while ( true )
     {
         Client * clients[] = { &client };
-        Server * servers[] = {};
+        Server * servers[] = { NULL };
         Transport * transports[] = { &clientTransport };
 
         PumpClientServerUpdate( time, clients, 1, servers, 0, transports, 1 );
@@ -1593,7 +1589,7 @@ void test_client_server_client_side_timeout()
 
     while ( true )
     {
-        Client * clients[] = {};
+        Client * clients[] = { NULL };
         Server * servers[] = { &server };
         Transport * transports[] = { &serverTransport };
 
@@ -1667,7 +1663,7 @@ void test_client_server_server_side_timeout()
     while ( true )
     {
         Client * clients[] = { &client };
-        Server * servers[] = {};
+        Server * servers[] = { NULL };
         Transport * transports[] = { &clientTransport };
 
         PumpClientServerUpdate( time, clients, 1, servers, 0, transports, 1 );
@@ -2595,7 +2591,7 @@ void test_client_server_insecure_connect_timeout()
     while ( true )
     {
         Client * clients[] = { &client };
-        Server * servers[] = {};
+        Server * servers[] = { NULL };
         Transport * transports[] = { &clientTransport };
 
         PumpClientServerUpdate( time, clients, 1, servers, 0, transports, 1 );
@@ -2684,7 +2680,7 @@ void test_client_server_insecure_secure_insecure_secure()
 
         client.Disconnect();
 
-        for ( int i = 0; i < 100; ++i )
+        for ( int j = 0; j < 100; ++j )
         {
             Client * clients[] = { &client };
             Server * servers[] = { &server };
