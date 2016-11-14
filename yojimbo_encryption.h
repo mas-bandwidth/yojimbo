@@ -75,8 +75,6 @@ namespace yojimbo
 
         const uint8_t * GetReceiveKey( int index ) const;
 
-        ReplayProtection * GetReplayProtection( int index );
-
     private:
 
         int m_numEncryptionMappings;
@@ -90,8 +88,6 @@ namespace yojimbo
         uint8_t m_sendKey[KeyBytes*MaxEncryptionMappings];
         
         uint8_t m_receiveKey[KeyBytes*MaxEncryptionMappings];
-        
-        ReplayProtection m_replayProtection[MaxEncryptionMappings];
     };
 }
 

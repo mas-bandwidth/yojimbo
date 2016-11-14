@@ -75,7 +75,7 @@ namespace yojimbo
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
 
-		m_contextManager = YOJIMBO_NEW( allocator, ContextManager );
+		m_clientServerContextManager = YOJIMBO_NEW( allocator, ClientServerContextManager );
 
 		m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
 
@@ -97,14 +97,14 @@ namespace yojimbo
     {
         assert( m_allocator );
         assert( m_packetProcessor );
-        assert( m_contextManager );
         assert( m_encryptionManager );
+        assert( m_clientServerContextManager );
 
         ClearPacketFactory();
 
         YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
-        YOJIMBO_DELETE( *m_allocator, ContextManager, m_contextManager );
         YOJIMBO_DELETE( *m_allocator, EncryptionManager, m_encryptionManager );
+        YOJIMBO_DELETE( *m_allocator, ClientServerContextManager, m_clientServerContextManager );
 
         if ( m_allocateNetworkSimulator )
         {
@@ -326,20 +326,25 @@ namespace yojimbo
         const bool encrypt = IsEncryptedPacketType( packetType );
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-        const Context * context = m_contextManager->GetContext( address );
+        // todo: fix all this, just use the base context by default, search for a client context, if not exists, stick with base, but no difference in handling
 
-        Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
+        // todo: alternatively, rename this to "TransportContext" because it's really a context in which the transport can process packets for an address (or by default)
+
+        const ClientServerContext * context = m_clientServerContextManager->GetContext( address );
+
+        Allocator * allocator = context ? context->allocator : m_streamAllocator;
+
         PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
 
-        assert( streamAllocator );
+        assert( allocator );
         assert( packetFactory );
         assert( packetFactory->GetNumPacketTypes() == m_packetFactory->GetNumPacketTypes() );
 
-        m_packetProcessor->SetContext( context ? context->contextData : m_context );
+        m_packetProcessor->SetContext( context ? (void*)context : m_context );
 
         m_packetProcessor->SetUserContext( m_userContext );
 
-        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, *streamAllocator, *packetFactory );
+        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, *allocator, *packetFactory );
 
         if ( !packetData )
         {
@@ -439,24 +444,27 @@ namespace yojimbo
         const int encryptionIndex = m_encryptionManager->FindEncryptionMapping( address, GetTime() );
 
         const uint8_t * key = m_encryptionManager->GetReceiveKey( encryptionIndex );
-
-        ReplayProtection * replayProtection = m_encryptionManager->GetReplayProtection( encryptionIndex );
        
-        const Context * context = m_contextManager->GetContext( address );
+        const ClientServerContext * context = m_clientServerContextManager->GetContext( address );
 
-        Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
+        Allocator * allocator = context ? context->allocator : m_streamAllocator;
 
         PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
 
-        assert( streamAllocator );
+        ReplayProtection * replayProtection = context ? context->replayProtection : NULL;
+
+        // todo: how to get replay protection from base context? why have separate stream allocator, packet factory etc, 
+        // when they can all be passed in as part of base ClientServerContext?!
+
+        assert( allocator );
         assert( packetFactory );
         assert( packetFactory->GetNumPacketTypes() == m_packetFactory->GetNumPacketTypes() );
 
-        m_packetProcessor->SetContext( context ? context->contextData : m_context );
+        m_packetProcessor->SetContext( context ? (void*)context : m_context );
 
         m_packetProcessor->SetUserContext( m_userContext );
 
-        Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator, *packetFactory, replayProtection );
+        Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *allocator, *packetFactory, replayProtection );
 
         if ( !packet )
         {
@@ -667,19 +675,22 @@ namespace yojimbo
         m_encryptionManager->ResetEncryptionMappings();
     }
 
-    bool BaseTransport::AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData )
+    // todo: maybe rename to "AddClientContext", this would work well with "SetGlobalContext" etc.
+
+    bool BaseTransport::AddContextMapping( const Address & address, ClientServerContext * context )
     {
-        return m_contextManager->AddContextMapping( address, streamAllocator, packetFactory, contextData );
+        // todo: maybe rename to "m_clientContextManager"?!
+        return m_clientServerContextManager->AddContextMapping( address, context );
     }
 
     bool BaseTransport::RemoveContextMapping( const Address & address )
     {
-        return m_contextManager->RemoveContextMapping( address );
+        return m_clientServerContextManager->RemoveContextMapping( address );
     }
 
     void BaseTransport::ResetContextMappings()
     {
-        m_contextManager->ResetContextMappings();
+        m_clientServerContextManager->ResetContextMappings();
     }
 
     void BaseTransport::AdvanceTime( double time )

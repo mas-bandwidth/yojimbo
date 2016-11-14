@@ -27,32 +27,34 @@
 
 namespace yojimbo
 {
-    ContextManager::ContextManager()
+    ClientServerContextManager::ClientServerContextManager()
     {
         ResetContextMappings();
     }
 
-    bool ContextManager::AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData )
+    bool ClientServerContextManager::AddContextMapping( const Address & address, ClientServerContext * context )
     {
+        assert( address.IsValid() );
+
+            assert( context );
+        assert( context->allocator );
+        assert( context->packetFactory );
+
         for ( int i = 0; i < m_numContextMappings; ++i )
         {
             if ( m_address[i] == address )
             {
-                m_context[i].streamAllocator = &streamAllocator;
-                m_context[i].packetFactory = &packetFactory;
-                m_context[i].contextData = contextData;
+                m_context[i] = context;
                 return true;
             }
         }
 
         for ( int i = 0; i < MaxContextMappings; ++i )
         {
-            if ( m_context[i].streamAllocator == NULL )
+            if ( m_context[i] == NULL )
             {
+                m_context[i] = context;
                 m_address[i] = address;
-                m_context[i].streamAllocator = &streamAllocator;
-                m_context[i].packetFactory = &packetFactory;
-                m_context[i].contextData = contextData;
                 if ( i + 1 > m_numContextMappings )
                     m_numContextMappings = i + 1;
                 return true;
@@ -68,21 +70,21 @@ namespace yojimbo
         return false;
     }
 
-    bool ContextManager::RemoveContextMapping( const Address & address )
+    bool ClientServerContextManager::RemoveContextMapping( const Address & address )
     {
         for ( int i = 0; i < m_numContextMappings; ++i )
         {
             if ( m_address[i] == address )
             {
                 m_address[i] = Address();
-                m_context[i] = Context();
+                m_context[i] = NULL;
 
                 if ( i + 1 == m_numContextMappings )
                 {
                     int index = i - 1;
                     while ( index >= 0 )
                     {
-                        if ( m_context[index].streamAllocator )
+                        if ( m_context[index] )
                             break;
                         index--;
                     }
@@ -102,22 +104,25 @@ namespace yojimbo
         return false;
     }
 
-    void ContextManager::ResetContextMappings()
+    void ClientServerContextManager::ResetContextMappings()
     {
         m_numContextMappings = 0;
         
         for ( int i = 0; i < MaxContextMappings; ++i )
+        {
             m_address[i] = Address();
+            m_context[i] = NULL;
+        }
 
         memset( m_context, 0, sizeof( m_context ) );
     }
 
-    const Context * ContextManager::GetContext( const Address & address ) const
+    const ClientServerContext * ClientServerContextManager::GetContext( const Address & address ) const
     {
         for ( int i = 0; i < m_numContextMappings; ++i )
         {
             if ( m_address[i] == address )
-                return &m_context[i];
+                return m_context[i];
         }
         return NULL;
     }

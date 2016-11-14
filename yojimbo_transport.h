@@ -88,6 +88,8 @@ namespace yojimbo
 
         virtual void ClearNetworkConditions() = 0;
 
+        // todo: maybe just unify and make transport aware of ClientServerContext at the low level. eg. "base context"
+
         virtual void SetContext( void * context ) = 0;
 
         virtual void SetUserContext( void * context ) = 0;
@@ -108,7 +110,7 @@ namespace yojimbo
 
         virtual void ResetEncryptionMappings() = 0;
 
-        virtual bool AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData ) = 0;
+        virtual bool AddContextMapping( const Address & address, ClientServerContext * context ) = 0;
 
         virtual bool RemoveContextMapping( const Address & address ) = 0;
 
@@ -182,7 +184,7 @@ namespace yojimbo
 
         void ResetEncryptionMappings();
 
-        bool AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData );
+        bool AddContextMapping( const Address & address, ClientServerContext * context );
 
         bool RemoveContextMapping( const Address & address );
 
@@ -266,9 +268,9 @@ namespace yojimbo
         uint8_t * m_packetTypeIsEncrypted;
         uint8_t * m_packetTypeIsUnencrypted;
 
-        ContextManager * m_contextManager;
-
         EncryptionManager * m_encryptionManager;
+
+        ClientServerContextManager * m_clientServerContextManager;
 
         bool m_allocateNetworkSimulator;
 

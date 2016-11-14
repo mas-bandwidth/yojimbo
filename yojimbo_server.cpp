@@ -50,6 +50,7 @@ namespace yojimbo
         memset( m_clientAllocator, 0, sizeof( m_clientAllocator ) );
         memset( m_clientMessageFactory, 0, sizeof( m_clientMessageFactory ) );
         memset( m_clientPacketFactory, 0, sizeof( m_clientPacketFactory ) );
+        memset( m_clientReplayProtection, 0, sizeof( m_clientReplayProtection ) );
         memset( m_clientConnection, 0, sizeof( m_clientConnection ) );
         memset( m_clientSequence, 0, sizeof( m_clientSequence ) );
         memset( m_counters, 0, sizeof( m_counters ) );
@@ -121,6 +122,8 @@ namespace yojimbo
             assert( m_clientPacketFactory[clientIndex] );
 
             assert( m_clientPacketFactory[clientIndex]->GetNumPacketTypes() == m_globalPacketFactory->GetNumPacketTypes() );
+
+            m_clientReplayProtection[clientIndex] = YOJIMBO_NEW( clientAllocator, ReplayProtection );
         }
 
         if ( m_allocateConnections )
@@ -138,14 +141,17 @@ namespace yojimbo
                 m_clientConnection[clientIndex]->SetListener( this );
 
                 m_clientConnection[clientIndex]->SetClientIndex( clientIndex );
-
-                InitializeClientContext( clientIndex, GetConnectionConfig(), GetMsgFactory( clientIndex ) );
             }
         }
 
         SetEncryptedPacketTypes();
 
-        InitializeGlobalContext( GetConnectionConfig() );
+        InitializeGlobalContext();
+
+        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
+        {
+            InitializeClientContext( clientIndex );
+        }
 
         OnStart( maxClients );
     }
@@ -172,6 +178,8 @@ namespace yojimbo
             YOJIMBO_DELETE( clientAllocator, MessageFactory, m_clientMessageFactory[clientIndex] );
 
             YOJIMBO_DELETE( clientAllocator, PacketFactory, m_clientPacketFactory[clientIndex] );
+
+            YOJIMBO_DELETE( clientAllocator, ReplayProtection, m_clientReplayProtection[clientIndex] );
         }
 
         Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL );
@@ -639,21 +647,15 @@ namespace yojimbo
         }
     }
 
-    void Server::InitializeGlobalContext( const ConnectionConfig & connectionConfig )
+    void Server::InitializeGlobalContext()
     {
-        if ( m_allocateConnections )       
-        {
-            m_globalContext.connectionConfig = &connectionConfig;
-
-            m_transport->SetContext( &m_globalContext );
-        }
-        else
-        {
-            m_transport->SetContext( NULL );
-        }
+        m_globalContext.connectionConfig = &m_config.connectionConfig;
+        m_globalContext.allocator = m_globalAllocator;
+        m_globalContext.packetFactory = m_globalPacketFactory;
+        m_transport->SetContext( &m_globalContext );
     }
 
-    void Server::InitializeClientContext( int clientIndex, const ConnectionConfig & connectionConfig, MessageFactory & messageFactory )
+    void Server::InitializeClientContext( int clientIndex )
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
@@ -661,14 +663,17 @@ namespace yojimbo
         if ( clientIndex < 0 || clientIndex >= m_maxClients )
             return;
 
-        m_clientContext[clientIndex].connectionConfig = &connectionConfig;
-        
-        m_clientContext[clientIndex].messageFactory = &messageFactory;
+        m_clientContext[clientIndex].connectionConfig = &m_config.connectionConfig;
+        m_clientContext[clientIndex].allocator = m_clientAllocator[clientIndex];
+        m_clientContext[clientIndex].messageFactory = m_clientMessageFactory[clientIndex];
+        m_clientContext[clientIndex].packetFactory = m_clientPacketFactory[clientIndex];
+        m_clientContext[clientIndex].replayProtection = m_clientReplayProtection[clientIndex];
     }
 
     void Server::SetEncryptedPacketTypes()
     {
         m_transport->EnablePacketEncryption();
+
         m_transport->DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
     }
 
@@ -705,6 +710,9 @@ namespace yojimbo
 
         if ( m_clientConnection[clientIndex] )
             m_clientConnection[clientIndex]->Reset();
+
+        if ( m_clientReplayProtection[clientIndex] )
+            m_clientReplayProtection[clientIndex]->Reset();
     }
 
     int Server::FindFreeClientIndex() const
@@ -807,10 +815,7 @@ namespace yojimbo
         m_clientData[clientIndex].fullyConnected = false;
         m_clientData[clientIndex].insecure = false;
 
-        assert( m_clientPacketFactory[clientIndex] );
-        assert( m_clientAllocator[clientIndex] );
-
-        m_transport->AddContextMapping( clientAddress, *m_clientAllocator[clientIndex], *m_clientPacketFactory[clientIndex], &m_clientContext[clientIndex] );
+        m_transport->AddContextMapping( clientAddress, &m_clientContext[clientIndex] );
 
         OnClientConnect( clientIndex );
 

@@ -219,6 +219,8 @@ namespace yojimbo
         }        
     };
 
+    // todo: context doesn't really belong in config.h
+
     struct ConnectionContext
     {
         uint32_t magic;
@@ -232,8 +234,6 @@ namespace yojimbo
             connectionConfig = NULL;
         }
     };
-
-    struct ClientServerContext : public ConnectionContext {};
 }
 
 #endif // #ifndef YOJIMBO_CONFIG_H

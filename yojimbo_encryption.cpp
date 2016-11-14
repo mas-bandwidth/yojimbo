@@ -137,7 +137,6 @@ namespace yojimbo
             if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
             {
                 m_lastAccessTime[i] = time;
-                m_replayProtection[i].Reset();
                 memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
                 memcpy( m_receiveKey + i*KeyBytes, receiveKey, KeyBytes );
                 return true;
@@ -150,7 +149,6 @@ namespace yojimbo
             {
                 m_address[i] = address;
                 m_lastAccessTime[i] = time;
-                m_replayProtection[i].Reset();
                 memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
                 memcpy( m_receiveKey + i*KeyBytes, receiveKey, KeyBytes );
                 if ( i + 1 > m_numEncryptionMappings )
@@ -184,8 +182,7 @@ namespace yojimbo
             {
                 m_address[i] = Address();
                 m_lastAccessTime[i] = -1000.0;
-                m_replayProtection[i].Reset();
-
+                
                 memset( m_sendKey + i*KeyBytes, 0, KeyBytes );
                 memset( m_receiveKey + i*KeyBytes, 0, KeyBytes );
 
@@ -224,7 +221,6 @@ namespace yojimbo
         {
             m_lastAccessTime[i] = -1000.0;
             m_address[i] = Address();
-            m_replayProtection[i].Reset();
         }
         
         memset( m_sendKey, 0, sizeof( m_sendKey ) );
@@ -260,14 +256,5 @@ namespace yojimbo
         assert( index >= 0 );
         assert( index < m_numEncryptionMappings );
         return m_receiveKey + index * KeyBytes;
-    }
-
-    ReplayProtection * EncryptionManager::GetReplayProtection( int index )
-    {
-        if ( index == -1 )
-            return NULL;
-        assert( index >= 0 );
-        assert( index < m_numEncryptionMappings );
-        return &m_replayProtection[index];
     }
 }

@@ -999,8 +999,6 @@ void test_unencrypted_packets()
     }
 
     check( numPacketsReceived == 0 );
-
-    printf( "(end of test)\n" );
 }
 
 void test_allocator_tlsf()
@@ -4443,6 +4441,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        /*
         test_endian();
         test_queue();
         test_base64();
@@ -4457,7 +4456,9 @@ int main()
         test_unencrypted_packets();
         test_allocator_tlsf();
         test_client_server_tokens();
+        */
         test_client_server_connect();
+        /*
         test_client_server_reconnect();
         test_client_server_client_side_disconnect();
         test_client_server_server_side_disconnect();
@@ -4499,6 +4500,7 @@ int main()
         test_client_server_message_failed_to_serialize_unreliable_unordered();
         test_client_server_message_exhaust_stream_allocator();
         test_client_server_message_receive_queue_full();
+        */
 
 #if SOAK
         if ( quit )

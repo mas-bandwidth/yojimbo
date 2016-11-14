@@ -4,6 +4,12 @@ TODO
 
     Seems that adding replay protection is stopping some valid packets getting through.
 
+    I'm not sure why this is. There should be very few duplicate packets or out of order packets sent over loopback.
+
+    The effect is severe, with 64 clients connecting, they all end up disconnected. Why?
+
+    Idea: Move the replay protection into the context. This way there only needs to be MaxClients worth of them vs. MaxEncryptionMappings (there is much more of these...), also it should be easier to debug what is going on.
+
     ------------------
 
     Run a profile session in Windows to make sure no performance issues have crept in.

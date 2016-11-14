@@ -22,53 +22,52 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef YOJIMBO_CONTEXT_H
-#define YOJIMBO_CONTEXT_H
+#ifndef YOJIMBO_CLIENT_SERVER_CONTEXT_H
+#define YOJIMBO_CLIENT_SERVER_CONTEXT_H
 
 #include "yojimbo_config.h"
 #include "yojimbo_network.h"
 
 #include <stdint.h>
 
+// todo: rename to yojimbo_client_server_context.h
+
 namespace yojimbo
 {
-    class Allocator;
-    class MessageFactory;
-
-    struct Context
+    struct ClientServerContext : public ConnectionContext
     {
-        Allocator * streamAllocator;
-        PacketFactory * packetFactory;
-        void * contextData;
+        class Allocator * allocator;
+        class PacketFactory * packetFactory;
+        class ReplayProtection * replayProtection;
 
-        Context()
+        ClientServerContext()
         {
-            streamAllocator = NULL;
+            allocator = NULL;
             packetFactory = NULL;
-            contextData = NULL;
+            replayProtection = NULL;
         }
     };
 
-    class ContextManager
+    class ClientServerContextManager
     {
     public:
 
-        ContextManager();
+        ClientServerContextManager();
 
-        bool AddContextMapping( const Address & address, Allocator & streamAllocator, PacketFactory & packetFactory, void * contextData );
+        bool AddContextMapping( const Address & address, ClientServerContext * context );
 
         bool RemoveContextMapping( const Address & address );
 
         void ResetContextMappings();
 
-        const Context * GetContext( const Address & address ) const;
+        const ClientServerContext * GetContext( const Address & address ) const;
 
     private:
 
         int m_numContextMappings;
         Address m_address[MaxContextMappings];
-        Context m_context[MaxContextMappings];
+        ClientServerContext * m_context[MaxContextMappings];
     };
 }
 
-#endif // #ifndef YOJIMBO_CONTEXT_H
+#endif // #ifndef YOJIMBO_CLIENT_SERVER_CONTEXT_H

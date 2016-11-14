@@ -281,9 +281,9 @@ namespace yojimbo
 
     protected:
 
-        virtual void InitializeGlobalContext( const ConnectionConfig & connectionConfig );
+        virtual void InitializeGlobalContext();
 
-        virtual void InitializeClientContext( int clientIndex, const ConnectionConfig & connectionConfig, MessageFactory & messageFactory );
+        virtual void InitializeClientContext( int clientIndex );
 
         virtual void SetEncryptedPacketTypes();
 
@@ -360,6 +360,8 @@ namespace yojimbo
         PacketFactory * m_clientPacketFactory[MaxClients];                  // packet factory for creating and destroying packets. per-client. required.
 
         MessageFactory * m_clientMessageFactory[MaxClients];                // message factory for creating and destroying messages. per-client and optional.
+
+        ReplayProtection * m_clientReplayProtection[MaxClients];            // per-client protection against packet replay attacks. discards old and already received packets.
 
         uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
 

@@ -267,6 +267,8 @@ namespace yojimbo
 
         MessageFactory * m_messageFactory;                                  // message factory for creating and destroying messages. optional.
 
+        ReplayProtection * m_replayProtection;                              // replay protection eliminates old and duplicate packets. protects against replay attacks.
+
         bool m_allocateConnection;                                          // true if we should allocate a connection.
 
         Connection * m_connection;                                          // the connection object for exchanging messages with the server. optional.

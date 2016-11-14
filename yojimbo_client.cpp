@@ -39,6 +39,7 @@ namespace yojimbo
         m_transport = NULL;
         m_packetFactory = NULL;
         m_messageFactory = NULL;
+        m_replayProtection = NULL;
         m_allocateConnection = false;
         m_connection = NULL;
         m_time = 0.0;
@@ -562,6 +563,8 @@ namespace yojimbo
 
         m_transport->SetPacketFactory( *m_packetFactory );
 
+        m_replayProtection = YOJIMBO_NEW( *m_clientAllocator, ReplayProtection );
+
         if ( m_config.enableConnection )
         {
             if ( m_allocateConnection )
@@ -580,7 +583,7 @@ namespace yojimbo
                 m_connection->SetListener( this );
             }
 
-            InitializeContext( m_config.connectionConfig, *m_messageFactory);
+            InitializeContext( m_config.connectionConfig, *m_messageFactory );
         }
         else
         {
@@ -602,6 +605,8 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_clientAllocator, PacketFactory, m_packetFactory );
 
         YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
+
+        YOJIMBO_DELETE( *m_clientAllocator, ReplayProtection, m_replayProtection );
 
         DestroyAllocators();
     }
@@ -629,6 +634,9 @@ namespace yojimbo
         assert( m_transport );
         m_context.connectionConfig = &connectionConfig;
         m_context.messageFactory = &messageFactory;
+        m_context.allocator = m_clientAllocator;
+        m_context.packetFactory = m_packetFactory;
+        m_context.replayProtection = NULL; //m_replayProtection;        // todo
         m_transport->SetContext( &m_context );
     }
 
@@ -664,13 +672,26 @@ namespace yojimbo
         memset( m_challengeTokenData, 0, ChallengeTokenBytes );
         memset( m_challengeTokenNonce, 0, NonceBytes );
 
-        m_transport->ResetEncryptionMappings();
-
-        m_sequence = 0;
-
 #if YOJIMBO_INSECURE_CONNECT
         m_clientSalt = 0;
 #endif // #if YOJIMBO_INSECURE_CONNECT
+
+        ResetBeforeNextConnect();
+    }
+
+    void Client::ResetBeforeNextConnect()
+    {
+        m_transport->ResetContextMappings();
+
+        m_transport->ResetEncryptionMappings();
+
+        m_lastPacketSendTime = m_time - 1.0f;
+        m_lastPacketReceiveTime = m_time;
+
+        m_sequence = 0;
+
+        m_shouldDisconnect = false;
+        m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
 
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
@@ -684,17 +705,11 @@ namespace yojimbo
         if ( m_messageFactory )
             m_messageFactory->ClearError();
 
+        if ( m_replayProtection )
+            m_replayProtection->Reset();
+
         if ( m_connection )
             m_connection->Reset();
-    }
-
-    void Client::ResetBeforeNextConnect()
-    {
-        m_lastPacketSendTime = m_time - 1.0f;
-        m_lastPacketReceiveTime = m_time;
-        m_sequence = 0;
-        m_shouldDisconnect = false;
-        m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
     }
 
     bool Client::ConnectToNextServer()

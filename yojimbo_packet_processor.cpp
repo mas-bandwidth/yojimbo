@@ -30,7 +30,8 @@
 #include "yojimbo_packet.h"
 #include "yojimbo_common.h"
 #include <stdio.h>
-#include <sodium.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 namespace yojimbo
 {
@@ -187,13 +188,6 @@ namespace yojimbo
                 return NULL;
             }
 
-            if ( !replayProtection )
-            {
-                debug_printf( "packet processor (read packet): replay protection is null\n" );
-                m_error = PACKET_PROCESSOR_ERROR_REPLAY_PROTECTION_IS_NULL;
-                return NULL;
-            }
-
             const int sequenceBytes = get_packet_sequence_bytes( prefixByte );
 
             const int prefixBytes = 1 + sequenceBytes;
@@ -207,11 +201,19 @@ namespace yojimbo
 
             sequence = decompress_packet_sequence( prefixByte, packetData + 1 );
 
-            // todo: disabled for now, this was breaking the stress test. seems to be nuking a bunch of extra packets?
-            /*
-            if ( replayProtection->PacketAlreadyReceived( sequence ) )
-                return NULL;
-                */
+            if ( replayProtection )
+            {
+                if ( replayProtection->PacketAlreadyReceived( sequence ) )
+                {
+                    // todo
+                    printf( "packet %" PRIx64 " already received\n", sequence );
+                    return NULL;
+                }
+                else
+                {
+                    //printf( "packet %" PRIx64 " accepted\n", sequence );
+                }
+            }
 
             int decryptedPacketBytes;
 

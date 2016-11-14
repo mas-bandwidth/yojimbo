@@ -2,6 +2,12 @@ WOULD BE NICE
 
     ------------------
 
+    ContextManager is overly complicated. All it needs is to know the ClientServerContext type, and provide a map from address to the corresponding context.
+
+    It doesn't need to duplicate what is in the context, and then point to void* data. Unify the context. Rename ContextManager to ClientServerContextManager etc.
+
+    ------------------
+
     Would be nice to check the size, file and line # in the free entry matches the pointer passed in.
 
     ------------------

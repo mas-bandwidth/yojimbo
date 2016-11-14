@@ -36,7 +36,6 @@ namespace yojimbo
     {
         PACKET_PROCESSOR_ERROR_NONE,                            // everything is fine
         PACKET_PROCESSOR_ERROR_KEY_IS_NULL,                     // we needed an encryption/decryption key but it was passed in as NULL
-        PACKET_PROCESSOR_ERROR_REPLAY_PROTECTION_IS_NULL,       // we needed an encryption/decryption key but it was passed in as NULL
         PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL,                // an encrypted packet was discarded because it was too short to possibly contain valid data
         PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED,             // failed to write packet
         PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED,              // failed to read packet
