@@ -97,9 +97,7 @@ Which should return a match response in JSON that looks something like this:
 
 ## Run the connect program
 
-If you have both the matcher and a yojimbo server running, you can run the "connect" program to connect a client to that server through the matcher. 
-
-Connecting through the matcher enables packet encryption between the client and server.
+If you have both the matcher and a yojimbo server running, you can run the "connect" program to connect a client to that server through the matcher. Connecting through the matcher enables packet encryption between the client and server.
 
 On MacOS or Linux, run:
 
@@ -131,7 +129,7 @@ This is the entire point of secure servers. **Secure servers only allow connecti
 
 This is accomplished via an encrypted connect token that the matchmaker generates and passes back to the client. This connect token is valid only for a particular globally unique 64bit client id (of your choice), for a limited period of time, and for a limited whitelist of server addresses. 
 
-Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed using a shared private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances.
+Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed using a shared private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances for the security model to work.
 
 ## Reliable Messages and Blocks
 
