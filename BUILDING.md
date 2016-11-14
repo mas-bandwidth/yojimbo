@@ -17,9 +17,9 @@ Now you can build the library and run individual test programs as you would for 
 
 ## Building on MacOS and Linux
 
-Download [premake 5](https://premake.github.io/download.html) then build and install from source.
+First, download and install [premake 5](https://premake.github.io/download.html).
 
-Next install libsodium and mbedtls.
+Next, install libsodium and mbedtls.
 
 On MacOS X, this can be done `brew install libsodium mbedtls`. If you don't have Brew, you can install it from <http://brew.sh>.
 
