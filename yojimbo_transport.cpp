@@ -160,15 +160,6 @@ namespace yojimbo
 
         m_flags = 0;
 
-        m_userContext = NULL;
-
-        // todo
-        /*
-        m_streamAllocator = &allocator;
-
-        m_packetFactory = NULL;
-        */
-
         m_protocolId = protocolId;
         
         m_packetProcessor = YOJIMBO_NEW( allocator, PacketProcessor, allocator, m_protocolId, maxPacketSize );
@@ -383,7 +374,6 @@ namespace yojimbo
             }
             else
             {
-                debug_printf( "base transport send queue overflow\n" );
                 m_counters[TRANSPORT_COUNTER_SEND_QUEUE_OVERFLOW]++;
                 packet->Destroy();
                 return;
@@ -611,7 +601,7 @@ namespace yojimbo
 
         m_packetProcessor->SetContext( context->connectionContext );
 
-        m_packetProcessor->SetUserContext( m_userContext );
+        m_packetProcessor->SetUserContext( context->userContext );
 
         Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, allocator, packetFactory, replayProtection );
 

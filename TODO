@@ -1,15 +1,23 @@
 DONE    
 
-    Reworked most context into "TransportContext" concept, underneath which is the connection context pointer and user context.
-
-    Reworked all the transport code to operate from context specifically. If it can't find a context for the address, it uses the global context.
-
-    This is a flexible setup. It doesn't require anything other than, data is specified per-address. Transport doesn't know about client/server, topology and so on, it just knows that certain addresses get special treatment. I like this setup. It's general.
+    4. Server needs "TransportContext m_globalTransportContext" which points to stuff transport needs (allocator, packet factory, but nothing else) (done)
 
 TODO
 
-    ...
-    
+    5. Server needs "ConnectionContext m_clientConnectionContext[MaxClients]"
+
+    6. Server needs "TransportContext m_clientTransportContext[MaxClients]" with per-client allocator, packet factory, message factory (if applicable), connection context (if applicable)
+
+    Once this is working, the transition should be complex, and the context concept should be much simpler.
+
+    ------------------
+
+    Debug what is going on with the replay protection?
+
+    Why is it slowing down connects?
+
+    Does this still happen with the new per-client context replay protection?
+
     ------------------
 
     Run standard tests, make a new release.

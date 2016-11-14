@@ -218,22 +218,6 @@ namespace yojimbo
 #endif // #if YOJIMBO_INSECURE_CONNECT
         }        
     };
-
-    // todo: context doesn't really belong in config.h
-
-    struct ConnectionContext
-    {
-        uint32_t magic;
-        class MessageFactory * messageFactory;
-        const ConnectionConfig * connectionConfig;
-
-        ConnectionContext()
-        {
-            magic = ConnectionContextMagic;
-            messageFactory = NULL;
-            connectionConfig = NULL;
-        }
-    };
 }
 
 #endif // #ifndef YOJIMBO_CONFIG_H

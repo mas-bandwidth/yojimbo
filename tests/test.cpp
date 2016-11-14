@@ -726,7 +726,7 @@ void test_encryption_manager()
 
     EncryptionMapping encryptionMapping[NumEncryptionMappings];
 
-    double time = 0.0;
+    double time = 100.0;
 
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
@@ -800,7 +800,7 @@ void test_encryption_manager()
         check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
     }
 
-    time = DefaultEncryptionMappingTimeout * 2;
+    time += DefaultEncryptionMappingTimeout * 2;
 
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
@@ -3113,8 +3113,6 @@ void PumpConnectionUpdate( double & time, Connection & sender, Connection & rece
     receiverTransport.AdvanceTime( time );
 }
 
-#if 0
-
 void test_connection_reliable_ordered_messages()
 {
     printf( "test_connection_reliable_ordered_messages\n" );
@@ -3130,9 +3128,9 @@ void test_connection_reliable_ordered_messages()
 
     TestConnection receiver( packetFactory, messageFactory, connectionConfig );
 
-    ConnectionContext context;
-    context.messageFactory = &messageFactory;
-    context.connectionConfig = &connectionConfig;
+    ConnectionContext connectionContext;
+    connectionContext.messageFactory = &messageFactory;
+    connectionContext.connectionConfig = &connectionConfig;
 
     const int NumMessagesSent = 64;
 
@@ -3159,14 +3157,14 @@ void test_connection_reliable_ordered_messages()
 
     double time = 100.0;
 
+    TransportContext transportContext( GetDefaultAllocator(), packetFactory );
+    transportContext.connectionContext = &connectionContext;
+
     LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
     LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
-    senderTransport.SetPacketFactory( packetFactory );
-    receiverTransport.SetPacketFactory( packetFactory );
-
-    senderTransport.SetContext( &context );
-    receiverTransport.SetContext( &context );
+    senderTransport.SetContext( transportContext );
+    receiverTransport.SetContext( transportContext );
 
     int numMessagesReceived = 0;
 
@@ -3201,6 +3199,8 @@ void test_connection_reliable_ordered_messages()
 
     check( numMessagesReceived == NumMessagesSent );
 }
+
+#if 0
 
 void test_connection_reliable_ordered_blocks()
 {
@@ -4459,7 +4459,6 @@ int main()
         test_encrypt_and_decrypt();
         test_encryption_manager();
         test_unencrypted_packets();
-        /*
         test_allocator_tlsf();
         test_client_server_tokens();
         test_client_server_connect();
@@ -4493,6 +4492,7 @@ int main()
         test_connection_counters();
         test_connection_acks();
         test_connection_reliable_ordered_messages();
+        /*
         test_connection_reliable_ordered_blocks();
         test_connection_reliable_ordered_messages_and_blocks();
         test_connection_reliable_ordered_messages_and_blocks_multiple_channels();

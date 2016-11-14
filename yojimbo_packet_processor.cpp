@@ -201,11 +201,14 @@ namespace yojimbo
 
             sequence = decompress_packet_sequence( prefixByte, packetData + 1 );
 
+            (void) replayProtection;
+
+            // todo: sort out replay protection
+            /*
             if ( replayProtection )
             {
                 if ( replayProtection->PacketAlreadyReceived( sequence ) )
                 {
-                    // todo
 //                    printf( "packet %" PRIx64 " already received\n", sequence );
                     return NULL;
                 }
@@ -214,6 +217,7 @@ namespace yojimbo
                     //printf( "packet %" PRIx64 " accepted\n", sequence );
                 }
             }
+            */
 
             int decryptedPacketBytes;
 

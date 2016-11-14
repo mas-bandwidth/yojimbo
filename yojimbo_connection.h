@@ -32,6 +32,20 @@
 
 namespace yojimbo
 {
+    struct ConnectionContext
+    {
+        uint32_t magic;
+        class MessageFactory * messageFactory;
+        const ConnectionConfig * connectionConfig;
+
+        ConnectionContext()
+        {
+            magic = ConnectionContextMagic;
+            messageFactory = NULL;
+            connectionConfig = NULL;
+        }
+    };
+
     struct ConnectionPacket : public Packet
     {
         uint16_t sequence;

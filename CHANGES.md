@@ -24,6 +24,30 @@ Which is the best choice? Is there any benefit to unifying all the context stuff
 
 I'm going with #2 because this needs a good clean up. It's going to be a large change, but the code should be much simpler in the end.
 
+Reworked most context into "TransportContext" concept, underneath which is the connection context pointer and user context.
+
+Reworked all the transport code to operate from context specifically. If it can't find a context for the address, it uses the global context.
+
+This is a flexible setup. It doesn't require anything other than, data is specified per-address. Transport doesn't know about client/server, topology and so on, it just knows that certain addresses get special treatment. I like this setup. It's general.
+
+What I need to do now:
+
+0. Remove concept of ClientServerContext (done)
+
+1. Client needs "ConnectionContext m_connectionContext" (done)
+
+2. Client needs "TransportContext m_transportContext" which points to connection context, and all the data the transport needs (allocator, packet factory, replay protection)
+
+3. Client needs to make sure replay protection gets reset between connections (done)
+
+The client is now connecting properly. I still need to setup the per-client contexts though.
+
+Enable all tests, they should all pass, even though the global context is being used for all packets.
+
+Some work required to get transport context and connection context setup for connection related tests.
+
+Fixed multiple server connections from client. Was missing code to clean m_lastPacketSendTime, m_lastPacketReceiveTime on subsequent connects.
+
 
 Sunday November 13th, 2016
 ==========================

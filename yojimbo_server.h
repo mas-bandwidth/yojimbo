@@ -281,10 +281,6 @@ namespace yojimbo
 
     protected:
 
-        virtual void InitializeGlobalContext();
-
-        virtual void InitializeClientContext( int clientIndex );
-
         virtual void SetEncryptedPacketTypes();
 
         virtual void CreateAllocators();
@@ -351,9 +347,11 @@ namespace yojimbo
 
         Transport * m_transport;                                            // transport interface for sending and receiving packets.
 
-        ClientServerContext m_globalContext;                                // global serialization context for client/server packets. used prior to connection.
+        TransportContext m_globalTransportContext;                          // global transport context for reading and writing packets. used for packets not belonging to a connected client.
 
-        ClientServerContext m_clientContext[MaxClients];                    // per-client serialization context for client/server packets once connected.
+        TransportContext m_clientTransportContext[MaxClients];              // transport context for reading and writing packets that belong to connected clients.
+
+        ConnectionContext m_connectionContext[MaxClients];                  // connection context for reading and writing connection packets (messages) for connected clients.
 
         PacketFactory * m_globalPacketFactory;                              // packet factory for global packets (eg. conection request, challenge response packets prior to connection).
 

@@ -100,24 +100,22 @@ namespace yojimbo
 
         CreateAllocators();
 
-        Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL );
+        // global resources
 
-        // todo
-        /*
-        m_transport->SetStreamAllocator( globalAllocator );
-        */
+        Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL );
 
         if ( !m_globalPacketFactory )
         {
             m_globalPacketFactory = CreatePacketFactory( globalAllocator, SERVER_RESOURCE_GLOBAL );
 
             assert( m_globalPacketFactory );
-
-            // todo
-            /*
-            m_transport->SetPacketFactory( *m_globalPacketFactory );
-            */
         }
+
+        m_globalTransportContext = TransportContext( *m_globalAllocator, *m_globalPacketFactory );;
+
+        m_transport->SetContext( m_globalTransportContext );
+
+        // per-client resources
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
@@ -150,18 +148,9 @@ namespace yojimbo
             }
         }
 
+        // todo: setup per-client contexts
+
         SetEncryptedPacketTypes();
-
-        // todo
-
-        /*
-        InitializeGlobalContext();
-
-        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
-        {
-            InitializeClientContext( clientIndex );
-        }
-        */
 
         OnStart( maxClients );
     }
@@ -175,9 +164,9 @@ namespace yojimbo
 
         DisconnectAllClients();
 
-        m_transport->Reset();
-
         m_transport->ClearContext();
+
+        m_transport->Reset();
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
@@ -513,15 +502,6 @@ namespace yojimbo
         m_flags = flags;
     }
 
-    // todo
-    /*
-    void Server::SetUserContext( void * context )
-    {
-        assert( m_transport );
-        m_transport->SetUserContext( context );
-    }
-    */
-
     bool Server::IsRunning() const
     {
         return m_maxClients > 0;
@@ -658,31 +638,6 @@ namespace yojimbo
             assert( m_clientAllocator[clientIndex] );
             return *m_clientAllocator[clientIndex];
         }
-    }
-
-    void Server::InitializeGlobalContext()
-    {
-        /*
-        m_globalContext.connectionConfig = &m_config.connectionConfig;
-        m_globalContext.allocator = m_globalAllocator;
-        m_globalContext.packetFactory = m_globalPacketFactory;
-        m_transport->SetContext( &m_globalContext );
-        */
-    }
-
-    void Server::InitializeClientContext( int clientIndex )
-    {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-
-        if ( clientIndex < 0 || clientIndex >= m_maxClients )
-            return;
-
-        m_clientContext[clientIndex].connectionConfig = &m_config.connectionConfig;
-        m_clientContext[clientIndex].allocator = m_clientAllocator[clientIndex];
-        m_clientContext[clientIndex].messageFactory = m_clientMessageFactory[clientIndex];
-        m_clientContext[clientIndex].packetFactory = m_clientPacketFactory[clientIndex];
-        m_clientContext[clientIndex].replayProtection = m_clientReplayProtection[clientIndex];
     }
 
     void Server::SetEncryptedPacketTypes()

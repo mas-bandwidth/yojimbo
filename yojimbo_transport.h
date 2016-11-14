@@ -30,7 +30,6 @@
 #include "yojimbo_common.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_network.h"
-#include "yojimbo_context.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
@@ -268,8 +267,6 @@ namespace yojimbo
         double m_time;
 
         uint64_t m_flags;
-
-        void * m_userContext;
 
         uint32_t m_protocolId;
 

@@ -551,22 +551,18 @@ namespace yojimbo
 
         m_clientId = clientId;
 
+        m_lastPacketSendTime = m_time - 1.0f;
+        m_lastPacketReceiveTime = m_time;
+
         CreateAllocators();
 
         assert( m_clientAllocator );
-
-        // todo: setup base context on transport
-
-        //m_transport->SetStreamAllocator( *m_clientAllocator );
 
         assert( !m_packetFactory );
 
         m_packetFactory = CreatePacketFactory( *m_clientAllocator );
 
         assert( m_packetFactory );
-
-        // todo
-        //m_transport->SetPacketFactory( *m_packetFactory );
 
         m_replayProtection = YOJIMBO_NEW( *m_clientAllocator, ReplayProtection );
 
@@ -587,30 +583,30 @@ namespace yojimbo
 
                 m_connection->SetListener( this );
             }
-
-            InitializeContext( m_config.connectionConfig, *m_messageFactory );
         }
-        else
+
+        m_transportContext = TransportContext();
+        m_transportContext.allocator = m_clientAllocator;
+        m_transportContext.packetFactory = m_packetFactory;
+        m_transportContext.replayProtection = m_replayProtection;
+
+        if ( m_allocateConnection )
         {
-            // todo
-            //m_transport->SetContext( NULL );
+            m_connectionContext.connectionConfig = &m_config.connectionConfig;
+            m_connectionContext.messageFactory = m_messageFactory;
+            m_transportContext.connectionContext = &m_connectionContext;
         }
 
-        // todo: set this up appropriately
-
-        m_lastPacketSendTime = m_time - 1.0f;
-        m_lastPacketReceiveTime = m_time;
+        m_transport->SetContext( m_transportContext );
     }
 
     void Client::ShutdownConnection()
     {
         debug_printf( "Client::ShutdownConnection (%p)\n", this );
 
-        // todo: flush all packets here? reset?
-
         m_transport->ClearContext();
 
-        //m_transport->ClearPacketFactory();
+        m_transport->Reset();
 
         YOJIMBO_DELETE( *m_clientAllocator, Connection, m_connection );
 
@@ -639,26 +635,7 @@ namespace yojimbo
     {
         assert( !"you need to override Client::CreateMessageFactory if you want to use messages" );
         return NULL;
-    }
-
-    void Client::InitializeContext( const ConnectionConfig & connectionConfig, MessageFactory & messageFactory )
-    {
-        assert( m_transport );
-
-        (void) connectionConfig;
-        (void) messageFactory;
-
-        // todo: ugh
-        /*        
-        m_context.connectionConfig = &connectionConfig;
-        m_context.messageFactory = &messageFactory;
-        m_context.allocator = m_clientAllocator;
-        m_context.packetFactory = m_packetFactory;
-        m_context.replayProtection = m_replayProtection;
-
-        m_transport->SetContext( &m_context );
-        */
-    }
+    }    
 
     void Client::SetClientState( int clientState )
     {
@@ -701,18 +678,15 @@ namespace yojimbo
 
     void Client::ResetBeforeNextConnect()
     {
-        m_transport->ResetEncryptionMappings();
+        m_sequence = 0;
 
         m_lastPacketSendTime = m_time - 1.0f;
         m_lastPacketReceiveTime = m_time;
 
-        m_sequence = 0;
-
         m_shouldDisconnect = false;
         m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
 
-        m_shouldDisconnect = false;
-        m_shouldDisconnectState = CLIENT_STATE_DISCONNECTED;
+        m_transport->ResetEncryptionMappings();
 
         if ( m_clientAllocator )
             m_clientAllocator->ClearError();
