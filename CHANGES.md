@@ -102,6 +102,12 @@ This will come in handy if I ever need to print out sequence of allocate/free wi
 
 Added unit test for replay protection.
 
+Reworked encryption mapping to work around an 'encryption index' concept, to avoid multiple linear walks for send/recv key and replay protection instance for that mapping. -1 means "encryption mapping not found".
+
+Hooked up replay protection to encryption mapping, one instance per encryption mapping.
+
+Verified that everything works, and via print, verified that it's actually kicking in and discarding dupe packets.
+
 
 Saturday November 12th, 2016
 ============================

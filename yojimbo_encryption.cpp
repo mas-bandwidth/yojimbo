@@ -137,6 +137,7 @@ namespace yojimbo
             if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
             {
                 m_lastAccessTime[i] = time;
+                m_replayProtection[i].Reset();
                 memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
                 memcpy( m_receiveKey + i*KeyBytes, receiveKey, KeyBytes );
                 return true;
@@ -149,6 +150,7 @@ namespace yojimbo
             {
                 m_address[i] = address;
                 m_lastAccessTime[i] = time;
+                m_replayProtection[i].Reset();
                 memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
                 memcpy( m_receiveKey + i*KeyBytes, receiveKey, KeyBytes );
                 if ( i + 1 > m_numEncryptionMappings )
@@ -168,11 +170,13 @@ namespace yojimbo
 
     bool EncryptionManager::RemoveEncryptionMapping( const Address & address, double time )
     {
+#if YOJIMBO_DEBUG_SPAM
         {
             char addressString[MaxAddressLength];
             address.ToString( addressString, sizeof( addressString ) );
             debug_printf( "remove encryption mapping: %s (t=%f)\n", addressString, time );
         }
+#endif // #if YOJIMBO_DEBUG_SPAM
 
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
@@ -180,6 +184,7 @@ namespace yojimbo
             {
                 m_address[i] = Address();
                 m_lastAccessTime[i] = -1000.0;
+                m_replayProtection[i].Reset();
 
                 memset( m_sendKey + i*KeyBytes, 0, KeyBytes );
                 memset( m_receiveKey + i*KeyBytes, 0, KeyBytes );
@@ -203,7 +208,7 @@ namespace yojimbo
 #if YOJIMBO_DEBUG_SPAM
         char addressString[MaxAddressLength];
         address.ToString( addressString, MaxAddressLength );
-        debug_printf( "failed to remove encryption mapping for %s\n", addressString );
+        debug_printf( "failed to remove encryption mapping: %s\n", addressString );
 #endif // #if YOJIMBO_DEBUG_SPAM
 
         return false;
@@ -219,35 +224,50 @@ namespace yojimbo
         {
             m_lastAccessTime[i] = -1000.0;
             m_address[i] = Address();
+            m_replayProtection[i].Reset();
         }
         
         memset( m_sendKey, 0, sizeof( m_sendKey ) );
         memset( m_receiveKey, 0, sizeof( m_receiveKey ) );
     }
 
-    const uint8_t * EncryptionManager::GetSendKey( const Address & address, double time )
+    int EncryptionManager::FindEncryptionMapping( const Address & address, double time )
     {
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
             if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
             {
                 m_lastAccessTime[i] = time;
-                return m_sendKey + i*KeyBytes;
+                return i;
             }
         }
-        return NULL;
+        return -1;
     }
 
-    const uint8_t * EncryptionManager::GetReceiveKey( const Address & address, double time )
+    const uint8_t * EncryptionManager::GetSendKey( int index ) const
     {
-        for ( int i = 0; i < m_numEncryptionMappings; ++i )
-        {
-            if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
-            {
-                m_lastAccessTime[i] = time;
-                return m_receiveKey + i*KeyBytes;
-            }
-        }
-        return NULL;
+        if ( index == -1 )
+            return NULL;
+        assert( index >= 0 );
+        assert( index < m_numEncryptionMappings );
+        return m_sendKey + index * KeyBytes;
+    }
+
+    const uint8_t * EncryptionManager::GetReceiveKey( int index ) const
+    {
+        if ( index == -1 )
+            return NULL;
+        assert( index >= 0 );
+        assert( index < m_numEncryptionMappings );
+        return m_receiveKey + index * KeyBytes;
+    }
+
+    ReplayProtection * EncryptionManager::GetReplayProtection( int index )
+    {
+        if ( index == -1 )
+            return NULL;
+        assert( index >= 0 );
+        assert( index < m_numEncryptionMappings );
+        return &m_replayProtection[index];
     }
 }

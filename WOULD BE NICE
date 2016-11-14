@@ -30,6 +30,10 @@ WOULD BE NICE
 
     ------------------
 
+    In the common case, it should be possible to cache the encryption mapping index in the context mapping, to provide a faster lookup for encryption mapping for connected clients (eg. look up context mapping first, if found, use encryption mapping from there).
+
+    ------------------
+
     Important to add tests that simulate each of the server-side client error conditions, eg. allocator, packet factory, message factory, connection, and then verify that after these errors happen, that client slot is cleared and a client can connect to it again, otherwise, possibility that I have error codes not getting cleared by accident on client disconnect.
 
     ------------------

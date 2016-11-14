@@ -24,6 +24,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_packet_processor.h"
+#include "yojimbo_replay_protection.h"
 #include "yojimbo_encryption.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_packet.h"
@@ -168,7 +169,8 @@ namespace yojimbo
                                           const uint8_t * encryptedPacketTypes, 
                                           const uint8_t * unencryptedPacketTypes,
                                           Allocator & streamAllocator,
-                                          PacketFactory & packetFactory )
+                                          PacketFactory & packetFactory,
+                                          ReplayProtection * replayProtection )
     {
         m_error = PACKET_PROCESSOR_ERROR_NONE;
 
@@ -185,6 +187,13 @@ namespace yojimbo
                 return NULL;
             }
 
+            if ( !replayProtection )
+            {
+                debug_printf( "packet processor (read packet): replay protection is null\n" );
+                m_error = PACKET_PROCESSOR_ERROR_REPLAY_PROTECTION_IS_NULL;
+                return NULL;
+            }
+
             const int sequenceBytes = get_packet_sequence_bytes( prefixByte );
 
             const int prefixBytes = 1 + sequenceBytes;
@@ -197,6 +206,9 @@ namespace yojimbo
             }
 
             sequence = decompress_packet_sequence( prefixByte, packetData + 1 );
+
+            if ( replayProtection->PacketAlreadyReceived( sequence ) )
+                return NULL;
 
             int decryptedPacketBytes;
 

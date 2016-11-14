@@ -734,13 +734,19 @@ void test_encryption_manager()
         GenerateKey( encryptionMapping[i].sendKey );
         GenerateKey( encryptionMapping[i].receiveKey );
 
-        check( encryptionManager.GetSendKey( encryptionMapping[i].address, time ) == NULL );
-        check( encryptionManager.GetReceiveKey( encryptionMapping[i].address, time ) == NULL );
+        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
+
+        check( encryptionIndex == -1 );
+
+        check( encryptionManager.GetSendKey( encryptionIndex ) == NULL );
+        check( encryptionManager.GetReceiveKey( encryptionIndex ) == NULL );
 
         check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time ) );
 
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+        encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
+
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
 
         check( sendKey );
         check( receiveKey );
@@ -756,8 +762,11 @@ void test_encryption_manager()
 
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
+
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
+
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
 
         if ( i != 0 && i != NumEncryptionMappings -1 )
         {
@@ -779,8 +788,10 @@ void test_encryption_manager()
 
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
+
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
 
         check( sendKey );
         check( receiveKey );
@@ -793,8 +804,10 @@ void test_encryption_manager()
 
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
+
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
 
         check( !sendKey );
         check( !receiveKey );
@@ -803,16 +816,17 @@ void test_encryption_manager()
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
         encryptionMapping[i].address = Address( "::1", 20000 + i );
+
         GenerateKey( encryptionMapping[i].sendKey );
         GenerateKey( encryptionMapping[i].receiveKey );
 
-        check( encryptionManager.GetSendKey( encryptionMapping[i].address, time ) == NULL );
-        check( encryptionManager.GetReceiveKey( encryptionMapping[i].address, time ) == NULL );
-
+        check( encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time ) == -1 );
         check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time ) );
 
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionMapping[i].address, time );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionMapping[i].address, time );
+        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
+
+        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
+        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
 
         check( sendKey );
         check( receiveKey );

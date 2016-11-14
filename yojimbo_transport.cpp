@@ -316,7 +316,9 @@ namespace yojimbo
         assert( packetType >= 0 );
         assert( packetType < m_packetFactory->GetNumPacketTypes() );
 
-        const uint8_t * key = m_encryptionManager->GetSendKey( address, GetTime() );
+        const int encryptionIndex = m_encryptionManager->FindEncryptionMapping( address, GetTime() );
+
+        const uint8_t * key = m_encryptionManager->GetSendKey( encryptionIndex );
 
 #if YOJIMBO_INSECURE_CONNECT
         const bool encrypt = ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packetType ) && key : IsEncryptedPacketType( packetType );
@@ -434,11 +436,16 @@ namespace yojimbo
         }
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-        const uint8_t * key = m_encryptionManager->GetReceiveKey( address, GetTime() );
+        const int encryptionIndex = m_encryptionManager->FindEncryptionMapping( address, GetTime() );
+
+        const uint8_t * key = m_encryptionManager->GetReceiveKey( encryptionIndex );
+
+        ReplayProtection * replayProtection = m_encryptionManager->GetReplayProtection( encryptionIndex );
        
         const Context * context = m_contextManager->GetContext( address );
 
         Allocator * streamAllocator = context ? context->streamAllocator : m_streamAllocator;
+
         PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
 
         assert( streamAllocator );
@@ -449,7 +456,7 @@ namespace yojimbo
 
         m_packetProcessor->SetUserContext( m_userContext );
 
-        Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator, *packetFactory );
+        Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *streamAllocator, *packetFactory, replayProtection );
 
         if ( !packet )
         {

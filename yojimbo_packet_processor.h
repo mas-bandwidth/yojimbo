@@ -30,15 +30,18 @@
 
 namespace yojimbo
 {
+    class ReplayProtection;
+
     enum PacketProcessErrors
     {
-        PACKET_PROCESSOR_ERROR_NONE,                        // everything is fine
-        PACKET_PROCESSOR_ERROR_KEY_IS_NULL,                 // we needed an encryption/decryption key but it was passed in as NULL
-        PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL,            // an encrypted packet was discarded because it was too short to possibly contain valid data
-        PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED,         // failed to write packet
-        PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED,          // failed to read packet
-        PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED,              // encrypt packet failed
-        PACKET_PROCESSOR_ERROR_DECRYPT_FAILED,              // decrypt packet failed
+        PACKET_PROCESSOR_ERROR_NONE,                            // everything is fine
+        PACKET_PROCESSOR_ERROR_KEY_IS_NULL,                     // we needed an encryption/decryption key but it was passed in as NULL
+        PACKET_PROCESSOR_ERROR_REPLAY_PROTECTION_IS_NULL,       // we needed an encryption/decryption key but it was passed in as NULL
+        PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL,                // an encrypted packet was discarded because it was too short to possibly contain valid data
+        PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED,             // failed to write packet
+        PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED,              // failed to read packet
+        PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED,                  // encrypt packet failed
+        PACKET_PROCESSOR_ERROR_DECRYPT_FAILED,                  // decrypt packet failed
     };
 
     class PacketProcessor
@@ -69,7 +72,8 @@ namespace yojimbo
                              const uint8_t * encryptedPacketTypes, 
                              const uint8_t * unencryptedPacketTypes, 
                              Allocator & streamAllocator,
-                             PacketFactory & packetFactory );
+                             PacketFactory & packetFactory,
+                             ReplayProtection * replayProtection );
 
         int GetMaxPacketSize() const { return m_maxPacketSize; }
 

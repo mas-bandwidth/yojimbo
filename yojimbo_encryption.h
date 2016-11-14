@@ -27,6 +27,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_network.h"
+#include "yojimbo_replay_protection.h"
 
 #include <stdint.h>
 
@@ -68,18 +69,29 @@ namespace yojimbo
 
         void ResetEncryptionMappings();
 
-        const uint8_t * GetSendKey( const Address & address, double time );
+        int FindEncryptionMapping( const Address & address, double time );
 
-        const uint8_t * GetReceiveKey( const Address & address, double time );
+        const uint8_t * GetSendKey( int index ) const ;
+
+        const uint8_t * GetReceiveKey( int index ) const;
+
+        ReplayProtection * GetReplayProtection( int index );
 
     private:
 
         int m_numEncryptionMappings;
+
         double m_encryptionMappingTimeout;
+
         double m_lastAccessTime[MaxEncryptionMappings];
+        
         Address m_address[MaxEncryptionMappings];
+        
         uint8_t m_sendKey[KeyBytes*MaxEncryptionMappings];
+        
         uint8_t m_receiveKey[KeyBytes*MaxEncryptionMappings];
+        
+        ReplayProtection m_replayProtection[MaxEncryptionMappings];
     };
 }
 
