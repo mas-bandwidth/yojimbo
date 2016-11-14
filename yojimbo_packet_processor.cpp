@@ -207,8 +207,11 @@ namespace yojimbo
 
             sequence = decompress_packet_sequence( prefixByte, packetData + 1 );
 
+            // todo: disabled for now, this was breaking the stress test. seems to be nuking a bunch of extra packets?
+            /*
             if ( replayProtection->PacketAlreadyReceived( sequence ) )
                 return NULL;
+                */
 
             int decryptedPacketBytes;
 

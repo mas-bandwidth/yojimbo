@@ -2,6 +2,8 @@ DONE
 
 TODO
 
+    Seems that adding replay protection is stopping some valid packets getting through.
+
     ------------------
 
     Run a profile session in Windows to make sure no performance issues have crept in.
