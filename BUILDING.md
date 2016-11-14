@@ -11,9 +11,9 @@ Go to the command line under the libyojimbo directory and type:
 
     premake5 solution
 
-This creates Yojimbo.sln and a bunch of project files then opens them in Visual Studio for you.
+This creates Yojimbo.sln and a bunch of project files and opens them in Visual Studio for you.
 
-Now you can build the library and run individual test programs as you would for any other visual studio solution.
+Now you can build the library and run individual test programs as you would for any other Visual Studio solution.
 
 ## Building on MacOS and Linux
 
@@ -21,48 +21,26 @@ First, download and install [premake 5](https://premake.github.io/download.html)
 
 Next, install libsodium and mbedtls.
 
-On MacOS X, this can be done `brew install libsodium mbedtls`. If you don't have Brew, you can install it from <http://brew.sh>.
+On MacOS X, this can be done most easily with `brew install libsodium mbedtls`. If you don't have Brew, you can install it from <http://brew.sh>.
 
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 2.x version of mbedtls. The 1.x version will not work with libyojimbo.
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 2.x version of mbedtls as the 1.x version will not work with libyojimbo.
 
-Next go to the command line under the libyojimbo directory and enter:
+Now go to the command line under the libyojimbo directory and enter:
 
     premake5 gmake
 
-This creates makefiles which you can use to build the source via "make all", or if you prefer you can use the following shortcuts. These shortcuts are smart enough to build the makefiles if necessary.
+Which creates makefiles which you can use to build the source via:
+
+    make all
+
+Alternatively, you can use the following shortcuts to build and run test programs directly:
 
     premake5 test           // build and run unit tests
 
-    premake5 server         // build run your own yojimbo server on localhost on UDP port 40000
+    premake5 server         // build run a yojimbo server on localhost on UDP port 40000
 
-    premake5 client         // build and run the client that connects to the server running on localhost
-
-To remove all generated makefiles and build output:
-
-    premake5 clean
-    
-## Premake bug on older versions of MacOS
-
-If you see an error like this while building on MacOS:
-
-    ld: warning: directory not found for option '-L/usr/lib64'
-    ld: unknown option: --start-group
-    clang: error: linker command failed with exit code 1 (use -v to see invocation)
-    make[1]: *** [bin/test] Error 1
-    make: *** [test] Error 2
-    
-You have an older version of MacOS that premake5 is generating incorrect makefiles for :(
-
-You can workaround this bug by manually removing "--start-group", "--end-group" and "-L/usr/lib64" from the generated makefiles.
-
-You can do this quickly via the following sed scripts:
-
-    sed -i -- 's%-Wl,--end-group%%' *.make
-    sed -i -- 's%-Wl,--start-group%%' *.make
-    sed -i -- 's%-L/usr/lib64%%' *.make
-
-There is an issue about this problem: https://github.com/premake/premake-core/issues/473
-
+    premake5 client         // build and run a yojimbo client that connects to the server running on localhost 
+   
 ## Run a yojimbo server inside Docker
 
 **libyojimbo** supports Docker on Windows, Mac and Linux.
@@ -101,11 +79,9 @@ Try it yourself by running "premake5 docker" once (it should build everything), 
 
 ## Run a yojimbo matcher inside Docker
 
-In order to support authentication and a secure connection between client and server, yojimbo provides a backend written in golang.
+In order to demonstrate authentication and a secure connection between client and server, yojimbo provides an example backend written in golang.
 
-The purpose of this backend is to take a client request for connection and provide a connection token which the client uses to securely connect to a dedicated server.
-
-To run this matchmaker backend, run this command:
+You can run this backend in Docker via this command:
 
     premake5 matcher
 
@@ -115,35 +91,47 @@ You can verify the matcher instance is working correctly as follows:
 
     curl https://localhost:8080/match/12345/1 --insecure
 
-This should return the match response in JSON which looks something like this:
+Which should return a match response in JSON that looks something like this:
 
     {"connectToken":"y2R7Sqej9HFg7Y3sBqr9XbK6tyMicrmk13TLsGksxAqniu5LaY89AKhgKDGlQ/mIpxukwFdDwPBtMa5KRPpFUlIds2dD+gNGOjH636Vxh5Svb1Ul8AzajQoiamC1w2TN/qAQjW2+bFp/k6ifDKoEwcchHSlqbgzzIxctgr1iODJADyMb7YdHq7TCWApxeWAIrWnHfapTD1uVJU0oDjAqak/QtSLG6GAMCi9Qxgd66aQlK+V/2nm7bMQ00ubXZC8mSUI5xRssNeoFQsZF68rJcxsZgEIumLg16NOkZiX/K7DGbHR2If+1hqNUJqf7S8N30mNoI1yXMKNSlfiqts7Eze40NjVxiYzseibPfZt6uOXGgkeEFjQeTs9xMB78BzpOn5Z4I6JpqC/1TKewW5S4LpK8mWz3w8z7Px6leo4g0SqOxo/0Beqim6JoelMJe0nan2T+XKkX5GeaTrqnkVzKyDda+RD+22KLyMD3vda89RCq3KJUhpbyBAC7CHUrHGxj9jufzLebaVrsQN+KaZlKJytMbRee3G+NGjuilXiHbAJzY101fqDfGL9vNMgPNQiaiWDbbIdXyGp+H3yhzCnUbALOeHPDhhFnXUyB+XwBjqq/w2JbNIXei3AN+vydjmhSKav7SnSFO8MpMlOv/0ztI/eJPR7CUx/XEFPlfr6EK5UhUWKoPcrUs5pLOohqByckvrkrasfhftAHcr82kQiYo1jKFiKX8fE1/dspdXirkWd26aoT8RQFWIs48z/Rmvv609oaHlQGo3pBj6ogjU82aMyCPGoao2QYRdd2HTjWqBevkDn+O6/YFeJLFkonaa5GsQjpJfi+CrFdJTNldMcLfB7mAuq9tIwhKT3ivHEYsZvnlV45NtZuwXhjLEms2z/YrTgP0OiVC9s6utRG8loJoj+nzDMfnr567Si3VLXJAHwCZ/tJT+fnJvzGXE+T0gw+WKHz8dKVuRLb16FAvRlBHekbs2dj9///djLvXQPp4dDr1KcXDsSt/nBf5d/wnaU1EvltKv8y6oclu195OTqWSmzeJYH2f+Gn0RP9xVVKxTliKcoMz84/h+IQXD2Qd3DR7dtJfQkoZRB/zCEoRHIXLTA6N0BDxqpsG916Fg7fC4c5GDDvmNU0NZV0Vwz2E1ydXsDuS9Q1vxIpuQbqlhfckjRuuHOY4dlQfDOqTEPoSQxIJhUlhsPr4zImhbvhUfqdCZKonjQura62BdJHEE/aTF8KavvNgm5JEyRz8H3b2Aqrjuzj6tQJYpe8TZ3eMspGd7o/S5mu5JS/WcPhlQYiruzSNTuASwPwCxWjHzwNQwyDhM7ZjkHOrEYCp3uj9RYAIah7R7w4gwxeAoQIjkEKFA==","connectNonce":"1","serverAddresses":["MTI3LjAuMC4xOjUwMDAw"],"clientToServerKey":"8oRGFHDQo+Z38lhyKQ+1OjDDlFwjg6o1HkeR+fgw4z0=","serverToClientKey":"D0g58nVdAx0jmT+duZwcWdbHUuFBKWGyj2SZ8g+Ak0o="}
 
 ## Run the connect program
 
-If you have both a matcher and server running you can run the "connect" program to connect a client to that server through the matchmaker.
+Now that the matcher and servers are running, you can run the "connect" program to connect a client to that server through the matcher.
+
+Connecting through the matcher enables packet encryption between the client and server.
 
 On MacOS or Linux, run:
 
     premake5 connect
 
-If you are building under Visual Studio, run the "connect" project from the IDE.
+If everything is working correctly you should see something like:
+
+    client id is cbfbce8542016791
+    requesting match from https://localhost:8080
+    received match response
+    client started on port 59160
+    client connecting to 127.0.0.1:40000
+    client changed state from 'disconnected' to 'sending connection request'
+    client changed state from 'sending connection request' to 'sending challenge response'
+    client changed state from 'sending challenge response' to 'connected'
+    client connected as client 0
 
 ## Running a secure server
 
-Now lets switch over to running secure servers. You can run a secure server like this:
+Now let's switch over to running secure servers. You can run a secure server like this:
 
     premake5 secure_server
 
 If you are building under Visual Studio, run the "secure_server" project from the IDE.
 
-Now that the secure server is running, you will see that connecting via "connect" works, but regular connects via "client" do not.
+When a secure server is running, you will notice that connecting via "connect" works, but regular connects via "client" do not.
 
 This is the entire point of secure servers. **Secure servers only allow connections that come from the matcher.**
 
 This is accomplished via an encrypted connect token that the matchmaker generates and passes back to the client. This connect token is valid only for a particular globally unique 64bit client id (of your choice), for a limited period of time, and for a limited whitelist of server addresses. 
 
-Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed using a shared private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances or the security model breaks down.
+Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed using a shared private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances.
 
 ## Reliable Messages and Blocks
 
