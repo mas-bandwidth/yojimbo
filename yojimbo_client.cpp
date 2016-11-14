@@ -632,11 +632,13 @@ namespace yojimbo
     void Client::InitializeContext( const ConnectionConfig & connectionConfig, MessageFactory & messageFactory )
     {
         assert( m_transport );
+        
         m_context.connectionConfig = &connectionConfig;
         m_context.messageFactory = &messageFactory;
         m_context.allocator = m_clientAllocator;
         m_context.packetFactory = m_packetFactory;
-        m_context.replayProtection = NULL; //m_replayProtection;        // todo
+        m_context.replayProtection = m_replayProtection;
+
         m_transport->SetContext( &m_context );
     }
 

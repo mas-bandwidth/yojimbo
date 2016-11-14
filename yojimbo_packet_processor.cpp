@@ -206,7 +206,7 @@ namespace yojimbo
                 if ( replayProtection->PacketAlreadyReceived( sequence ) )
                 {
                     // todo
-                    printf( "packet %" PRIx64 " already received\n", sequence );
+//                    printf( "packet %" PRIx64 " already received\n", sequence );
                     return NULL;
                 }
                 else
