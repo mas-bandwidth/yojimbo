@@ -97,7 +97,7 @@ Which should return a match response in JSON that looks something like this:
 
 ## Run the connect program
 
-Now that the matcher and servers are running, you can run the "connect" program to connect a client to that server through the matcher.
+If you have both the matcher and a yojimbo server running, you can run the "connect" program to connect a client to that server through the matcher. 
 
 Connecting through the matcher enables packet encryption between the client and server.
 
