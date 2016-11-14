@@ -53,18 +53,19 @@ namespace yojimbo
         m_context = NULL;
         m_userContext = NULL;
 
-        m_packetBuffer = (uint8_t*) allocator.Allocate( m_absoluteMaxPacketSize );
+        m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( allocator, m_absoluteMaxPacketSize );
 
-        m_scratchBuffer = (uint8_t*) allocator.Allocate( m_absoluteMaxPacketSize );
+        m_scratchBuffer = (uint8_t*) YOJIMBO_ALLOCATE( allocator, m_absoluteMaxPacketSize );
     }
 
     PacketProcessor::~PacketProcessor()
     {
-        m_allocator->Free( m_packetBuffer );
-        m_allocator->Free( m_scratchBuffer );
+        assert( m_allocator );
 
-        m_packetBuffer = NULL;
-        m_scratchBuffer = NULL;
+        YOJIMBO_FREE( *m_allocator, m_packetBuffer );
+        YOJIMBO_FREE( *m_allocator, m_scratchBuffer );
+
+        m_allocator = NULL;
     }
 
     void PacketProcessor::SetContext( void * context )

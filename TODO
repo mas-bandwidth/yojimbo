@@ -4,6 +4,14 @@ TODO
 
     ------------------
 
+    Finish unit testing replay protection.
+
+    ------------------
+
+    Hook up replay protection to encryption mapping, one instance per.
+
+    ------------------
+
     Run a profile session in Windows to make sure no performance issues have crept in.
 
     Run standard tests, make a new release.

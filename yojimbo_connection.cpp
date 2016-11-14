@@ -46,9 +46,7 @@ namespace yojimbo
                 channelEntry[i].Free( *m_messageFactory );
             }
 
-            Allocator & allocator = m_messageFactory->GetAllocator();
-            allocator.Free( channelEntry );
-            channelEntry = NULL;
+            YOJIMBO_FREE( m_messageFactory->GetAllocator(), channelEntry );
         }
     }
 
@@ -61,7 +59,7 @@ namespace yojimbo
 
         Allocator & allocator = messageFactory.GetAllocator();
 
-        channelEntry = (ChannelPacketData*) allocator.Allocate( sizeof( ChannelPacketData ) * numEntries );
+        channelEntry = (ChannelPacketData*) YOJIMBO_ALLOCATE( allocator, sizeof( ChannelPacketData ) * numEntries );
         if ( channelEntry == NULL )
             return false;
 

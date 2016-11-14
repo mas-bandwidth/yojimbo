@@ -35,11 +35,30 @@
 
 namespace yojimbo
 {
+    class Allocator & GetDefaultAllocator();
+
+    #define YOJIMBO_NEW( a, T, ... ) ( new ( (a).Allocate( sizeof(T), __FILE__, __LINE__ ) ) T(__VA_ARGS__) )
+
+    #define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free( p, __FILE__, __LINE__ ); p = NULL; } } while (0)    
+
+    #define YOJIMBO_ALLOCATE( a, bytes ) (a).Allocate( (bytes), __FILE__, __LINE__ )
+
+    #define YOJIMBO_FREE( a, p ) do { if ( p ) { (a).Free( p, __FILE__, __LINE__ ); p = NULL; } } while(0)
+
     enum
     {
         ALLOCATOR_ERROR_NONE = 0,
         ALLOCATOR_ERROR_FAILED_TO_ALLOCATE
     };
+
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+    struct AllocatorEntry
+    {
+        size_t size;
+        const char * file;
+        int line;
+    };
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
     class Allocator
     {
@@ -48,10 +67,10 @@ namespace yojimbo
         Allocator() {}
 
         virtual ~Allocator() {}
-        
-        virtual void * Allocate( size_t size ) = 0;
 
-        virtual void Free( void * p ) = 0;
+        virtual void * Allocate( size_t size, const char * file, int line ) = 0;
+
+        virtual void Free( void * p, const char * file, int line ) = 0;
 
         virtual int GetError() const = 0;
 
@@ -64,16 +83,10 @@ namespace yojimbo
         Allocator & operator = ( const Allocator & other );
     };
 
-    Allocator & GetDefaultAllocator();
-
-    #define YOJIMBO_NEW( a, T, ... ) ( new ((a).Allocate(sizeof(T))) T(__VA_ARGS__) )
-
-    #define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free(p); p = NULL; } } while (0)    
-
     class DefaultAllocator : public Allocator
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        std::map<void*,uint32_t> m_alloc_map;
+        std::map<void*,AllocatorEntry> m_alloc_map;
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
         int m_error;
@@ -84,9 +97,9 @@ namespace yojimbo
 
         ~DefaultAllocator();
 
-        void * Allocate( size_t size );
+        void * Allocate( size_t size, const char * file, int line );
 
-        void Free( void * p );
+        void Free( void * p, const char * file, int line );
 
         int GetError() const;
 
@@ -96,7 +109,7 @@ namespace yojimbo
     class TLSF_Allocator : public Allocator
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        std::map<void*,uint32_t> m_alloc_map;
+        std::map<void*,AllocatorEntry> m_alloc_map;
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
         int m_error;
@@ -108,9 +121,9 @@ namespace yojimbo
 
         ~TLSF_Allocator();
 
-        void * Allocate( size_t size );
+        void * Allocate( size_t size, const char * file, int line );
 
-        void Free( void * p );
+        void Free( void * p, const char * file, int line );
 
         int GetError() const;
 

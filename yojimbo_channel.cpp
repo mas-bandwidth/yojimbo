@@ -24,6 +24,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_channel.h"
+#include "yojimbo_allocator.h"
 
 namespace yojimbo
 {
@@ -54,8 +55,7 @@ namespace yojimbo
                     }
                 }
 
-                allocator.Free( message.messages );
-                message.messages = NULL;
+                YOJIMBO_FREE( allocator, message.messages );
             }
         }
         else
@@ -66,11 +66,7 @@ namespace yojimbo
                 block.message = NULL;
             }
 
-            if ( block.fragmentData )
-            {
-                allocator.Free( block.fragmentData );
-                block.fragmentData = NULL;
-            }
+            YOJIMBO_FREE( allocator, block.fragmentData );
         }
 
         initialized = 0;
@@ -110,7 +106,7 @@ namespace yojimbo
             {
                 Allocator & allocator = messageFactory.GetAllocator();
 
-                messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
+                messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
 
                 for ( int i = 0; i < numMessages; ++i )
                 {
@@ -171,7 +167,7 @@ namespace yojimbo
         if ( Stream::IsReading )
         {
             Allocator & allocator = messageFactory.GetAllocator();
-            blockData = (uint8_t*) allocator.Allocate( blockSize );
+            blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, blockSize );
             if ( !blockData )
             {
                 debug_printf( "error: failed to allocate message block (SerializeMessageBlock)\n" );
@@ -219,7 +215,7 @@ namespace yojimbo
             {
                 Allocator & allocator = messageFactory.GetAllocator();
 
-                messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
+                messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
 
                 for ( int i = 0; i < numMessages; ++i )
                     messages[i] = NULL;
@@ -291,7 +287,7 @@ namespace yojimbo
 
         if ( Stream::IsReading )
         {
-            block.fragmentData = (uint8_t*) messageFactory.GetAllocator().Allocate( block.fragmentSize );
+            block.fragmentData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), block.fragmentSize );
 
             if ( !block.fragmentData )
             {
@@ -441,7 +437,7 @@ namespace yojimbo
         
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.receiveQueueSize );
         
-        m_sentPacketMessageIds = (uint16_t*) m_allocator->Allocate( sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.sendQueueSize );
+        m_sentPacketMessageIds = (uint16_t*) YOJIMBO_ALLOCATE( *m_allocator, sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.sendQueueSize );
 
         if ( !config.disableBlocks )
         {
@@ -468,7 +464,7 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSentPacketEntry>, m_messageSentPackets );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, m_messageReceiveQueue );
         
-        m_allocator->Free( m_sentPacketMessageIds );
+        YOJIMBO_FREE( *m_allocator, m_sentPacketMessageIds );
 
         m_sentPacketMessageIds = NULL;
     }
@@ -750,7 +746,7 @@ namespace yojimbo
         if ( numMessageIds == 0 )
             return;
 
-        packetData.message.messages = (Message**) m_messageFactory->GetAllocator().Allocate( sizeof( Message* ) * numMessageIds );
+        packetData.message.messages = (Message**) YOJIMBO_ALLOCATE( m_messageFactory->GetAllocator(), sizeof( Message* ) * numMessageIds );
 
         for ( int i = 0; i < numMessageIds; ++i )
         {
@@ -987,7 +983,7 @@ namespace yojimbo
         if ( fragmentRemainder && fragmentId == m_sendBlock->numFragments - 1 )
             fragmentBytes = fragmentRemainder;
 
-        uint8_t * fragmentData = (uint8_t*) m_messageFactory->GetAllocator().Allocate( fragmentBytes );
+        uint8_t * fragmentData = (uint8_t*) YOJIMBO_ALLOCATE( m_messageFactory->GetAllocator(), fragmentBytes );
 
         if ( fragmentData )
         {
@@ -1139,7 +1135,7 @@ namespace yojimbo
 
                     assert( blockMessage );
 
-                    uint8_t * blockData = (uint8_t*) m_messageFactory->GetAllocator().Allocate( m_receiveBlock->blockSize );
+                    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( m_messageFactory->GetAllocator(), m_receiveBlock->blockSize );
 
                     if ( !blockData )
                     {
@@ -1353,7 +1349,7 @@ namespace yojimbo
 
         packetData.message.numMessages = numMessages;
 
-        packetData.message.messages = (Message**) allocator.Allocate( sizeof( Message* ) * numMessages );
+        packetData.message.messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
 
         for ( int i = 0; i < numMessages; ++i )
         {

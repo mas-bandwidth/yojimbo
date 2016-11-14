@@ -64,6 +64,43 @@ Yes. Switched to reset.
 
 Guarantee. If you reset a local transport, it won't allow any packets sent from it across that barrier.
 
+Seems that I have exposed a memory leak on server-side timeout.
+
+Is this the server not cleaning up packets/messages properly that are in flight for a client before it disconnects the client?
+
+Is it something in the connection? 
+
+It seems to have been triggered by adding code to reset the client more correctly on client shutdown.
+
+But I'll bet that resetting the connection is problematic if the messages aren't cleaned up properly.
+
+I'm going to need some better tools for tracking this down. Going to make all yojimbo allocations go through macros, and keep track of __FILE__ __LINE__ per-allocation in a map, #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+Confirmed. There is a memory leak and it appears to be coming from send packet. The packet buffer passed into the simulator is never freed.
+
+How could this happen?
+
+What I know. 
+
+1. It's packet data copy allocated with the network simulator passed in to simulator send packet
+
+2. It's the last packet sent / allocated before the client times out
+
+3. It doesn't seem to get picked up in the normal cleanup of packets for some reason
+
+4. If I remove DiscardPacketsFromAddress from LocalTransport::Reset, the leak goes away.
+
+I think #4 is the biggest clue.
+
+It indicates that something *incorrect* is being done inside DiscardPacketsFromAddress.
+
+Found it. One errant clear of "m_numPendingReceivePackets" copy pasted across from DiscardPackets. FML.
+
+Added __FILE__ and __LINE__ to Allocator::Free as well, and macro YOJIMBO_FREE.
+
+This will come in handy if I ever need to print out sequence of allocate/free with file/line#, plus it provides an incentive to always use the macro.
+
+
 Saturday November 12th, 2016
 ============================
 

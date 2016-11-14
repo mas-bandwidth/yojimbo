@@ -50,19 +50,20 @@ namespace yojimbo
             m_startIndex = 0;
             m_numEntries = 0;
             m_allocator = &allocator;
-            m_entries = (T*) allocator.Allocate( sizeof(T) * size );
+            m_entries = (T*) YOJIMBO_ALLOCATE( allocator, sizeof(T) * size );
             memset( m_entries, 0, sizeof(T) * size );
         }
 
         ~Queue()
         {
             assert( m_allocator );
-            assert( m_entries );
-            m_allocator->Free( m_entries );
+            
+            YOJIMBO_FREE( *m_allocator, m_entries );
+
             m_arraySize = 0;
             m_startIndex = 0;
             m_numEntries = 0;
-            m_entries = NULL;
+
             m_allocator = NULL;
         }
 

@@ -989,6 +989,8 @@ void test_unencrypted_packets()
     }
 
     check( numPacketsReceived == 0 );
+
+    printf( "(end of test)\n" );
 }
 
 void test_allocator_tlsf()
@@ -1010,7 +1012,7 @@ void test_allocator_tlsf()
 
     for ( int i = 0; i < NumBlocks; ++i )
     {
-        blockData[i] = (uint8_t*) allocator.Allocate( BlockSize );
+        blockData[i] = (uint8_t*) YOJIMBO_ALLOCATE( allocator, BlockSize );
         
         if ( !blockData[i] )
         {
@@ -1037,9 +1039,7 @@ void test_allocator_tlsf()
                 check( blockData[i][j] == uint8_t( i + 10 ) );
         }
 
-        allocator.Free( blockData[i] );
-
-        blockData[i] = NULL;
+        YOJIMBO_FREE( allocator, blockData[i] );
     }
 
     free( memory );
@@ -3182,7 +3182,7 @@ void test_connection_reliable_ordered_blocks()
         check( message );
         message->sequence = i;
         const int blockSize = 1 + ( ( i * 901 ) % 3333 );
-        uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
         for ( int j = 0; j < blockSize; ++j )
             blockData[j] = i + j;
         message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
@@ -3297,7 +3297,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 3333 );
-            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+            uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
             message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
@@ -3437,7 +3437,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                 check( message );
                 message->sequence = i;
                 const int blockSize = 1 + ( ( i * 901 ) % 3333 );
-                uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+                uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
                 for ( int j = 0; j < blockSize; ++j )
                     blockData[j] = i + j;
                 message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
@@ -3683,7 +3683,7 @@ void test_connection_unreliable_unordered_blocks()
         check( message );
         message->sequence = j;
         const int blockSize = 1 + ( j * 7 );
-        uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
         for ( int k = 0; k < blockSize; ++k )
             blockData[k] = j + k;
         message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
@@ -3752,7 +3752,7 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend )
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
             Allocator & allocator = client.GetClientAllocator();
-            uint8_t * blockData = (uint8_t*) allocator.Allocate( blockSize );
+            uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
             message->AttachBlock( allocator, blockData, blockSize );
@@ -3779,7 +3779,7 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
             Allocator & allocator = server.GetClientAllocator( clientIndex );
-            uint8_t * blockData = (uint8_t*) allocator.Allocate( blockSize );
+            uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, blockSize );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
             message->AttachBlock( allocator, blockData, blockSize );

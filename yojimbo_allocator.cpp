@@ -43,19 +43,21 @@ namespace yojimbo
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         if ( m_alloc_map.size() )
         {
-            printf( "you leaked memory!\n" );
-            typedef std::map<void*,uint32_t>::iterator itor_type;
-            for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i ) 
+            printf( "you leaked memory!\n\n" );
+            typedef std::map<void*,AllocatorEntry>::iterator itor_type;
+            for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i )
             {
-                void *p = i->first;
-                printf( "leaked block %p (%d bytes)\n", p, i->second );
+                void * p = i->first;
+                AllocatorEntry entry = i->second;
+                printf( "leaked block %p (%d bytes) - %s:%d\n", p, (int) entry.size, entry.file, entry.line );
             }
+            printf( "\n" );
             exit(1);
         }
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
 
-    void * DefaultAllocator::Allocate( size_t size )
+    void * DefaultAllocator::Allocate( size_t size, const char * file, int line )
     {
         void * p = malloc( size );
 
@@ -66,16 +68,32 @@ namespace yojimbo
         }
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        m_alloc_map[p] = size;
+
+        assert( m_alloc_map.find( p ) == m_alloc_map.end() );
+
+        AllocatorEntry entry;
+        entry.size = size;
+        entry.file = file;
+        entry.line = line;
+        m_alloc_map[p] = entry;
+
+#else // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+        (void)file;
+        (void)line;
+
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
         return p;
     }
 
-    void DefaultAllocator::Free( void * p ) 
+    void DefaultAllocator::Free( void * p, const char * file, int line ) 
     {
         if ( !p )
             return;
+
+        (void) file;
+        (void) line;
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         assert( m_alloc_map.find( p ) != m_alloc_map.end() );
@@ -109,13 +127,15 @@ namespace yojimbo
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         if ( m_alloc_map.size() )
         {
-            printf( "you leaked memory!\n" );
-            typedef std::map<void*,uint32_t>::iterator itor_type;
-            for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i ) 
+            printf( "you leaked memory!\n\n" );
+            typedef std::map<void*,AllocatorEntry>::iterator itor_type;
+            for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i )
             {
-                void *p = i->first;
-                printf( "leaked block %p (%d bytes)\n", p, i->second );
+                void * p = i->first;
+                AllocatorEntry entry = i->second;
+                printf( "leaked block %p (%d bytes) - %s:%d\n", p, (int) entry.size, entry.file, entry.line );
             }
+            printf( "\n" );
             exit(1);
         }
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
@@ -123,7 +143,7 @@ namespace yojimbo
         tlsf_destroy( m_tlsf );
     }
 
-    void * TLSF_Allocator::Allocate( size_t size )
+    void * TLSF_Allocator::Allocate( size_t size, const char * file, int line )
     {
         void * p = tlsf_malloc( m_tlsf, size );
 
@@ -134,16 +154,32 @@ namespace yojimbo
         }
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        m_alloc_map[p] = size;
+
+        assert( m_alloc_map.find( p ) == m_alloc_map.end() );
+
+        AllocatorEntry entry;
+        entry.size = size;
+        entry.file = file;
+        entry.line = line;
+        m_alloc_map[p] = entry;
+
+#else // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+        (void)file;
+        (void)line;
+
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
         
         return p;
     }
 
-    void TLSF_Allocator::Free( void * p ) 
+    void TLSF_Allocator::Free( void * p, const char * file, int line ) 
     {
         if ( !p )
             return;
+
+        (void)file;
+        (void)line;
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         assert( m_alloc_map.find( p ) != m_alloc_map.end() );

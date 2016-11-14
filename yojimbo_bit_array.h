@@ -40,7 +40,7 @@ namespace yojimbo
             m_size = size;
             m_bytes = 8 * ( ( size / 64 ) + ( ( size % 64 ) ? 1 : 0 ) );
             assert( m_bytes > 0 );
-            m_data = (uint64_t*) allocator.Allocate( m_bytes );
+            m_data = (uint64_t*) YOJIMBO_ALLOCATE( allocator, m_bytes );
             Clear();
         }
 
@@ -48,9 +48,8 @@ namespace yojimbo
         {
             assert( m_data );
             assert( m_allocator );
-            m_allocator->Free( m_data );
+            YOJIMBO_FREE( *m_allocator, m_data );
             m_allocator = NULL;
-            m_data = NULL;
         }
 
         void Clear()

@@ -143,7 +143,7 @@ Message * CreateRandomMessage( MessageFactory & messageFactory, uint64_t numMess
 
             const int blockSize = 1 + ( int( numMessagesSent ) * 33 ) % MaxBlockSize;
 
-            uint8_t * blockData = (uint8_t*) messageFactory.GetAllocator().Allocate( blockSize );
+            uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
 
             if ( blockData )
             {

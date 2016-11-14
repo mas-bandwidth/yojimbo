@@ -39,19 +39,19 @@ namespace yojimbo
             m_size = size;
             m_sequence = 0;
             m_allocator = &allocator;
-            m_entry_sequence = (uint32_t*) allocator.Allocate( sizeof( uint32_t ) * size );
-            m_entries = (T*) allocator.Allocate( sizeof(T) * size );
+            m_entry_sequence = (uint32_t*) YOJIMBO_ALLOCATE( allocator, sizeof( uint32_t ) * size );
+            m_entries = (T*) YOJIMBO_ALLOCATE( allocator, sizeof(T) * size );
             Reset();
         }
 
         ~SequenceBuffer()
         {
-            assert( m_entries );
             assert( m_allocator );
-            m_allocator->Free( m_entry_sequence );
-            m_allocator->Free( m_entries );
+
+            YOJIMBO_FREE( *m_allocator, m_entries );
+            YOJIMBO_FREE( *m_allocator, m_entry_sequence );
+
             m_allocator = NULL;
-            m_entries = NULL;
         }
 
         void Reset()

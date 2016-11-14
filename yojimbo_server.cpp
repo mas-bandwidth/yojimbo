@@ -588,13 +588,13 @@ namespace yojimbo
     {
         assert( m_globalMemory == NULL );
 
-        m_globalMemory = (uint8_t*) m_allocator->Allocate( m_config.serverGlobalMemory );
+        m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
 
         m_globalAllocator = CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
 
         for ( int i = 0; i < m_maxClients; ++i )
         {
-            m_clientMemory[i] = (uint8_t*) m_allocator->Allocate( m_config.serverPerClientMemory );
+            m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
 
             m_clientAllocator[i] = CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
         }
@@ -602,22 +602,20 @@ namespace yojimbo
 
     void Server::DestroyAllocators()
     {
-        assert( m_globalMemory != NULL );
+        assert( m_globalMemory );
+        assert( m_globalAllocator );
 
         for ( int i = 0; i < m_maxClients; ++i )
         {
+            assert( m_clientMemory[i] );
+            assert( m_clientAllocator[i] );
+
             YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
-            m_allocator->Free( m_clientMemory[i] );
-            m_clientMemory[i] = NULL;
+            YOJIMBO_FREE( *m_allocator, m_clientMemory[i] );
         }
 
         YOJIMBO_DELETE( *m_allocator, Allocator, m_globalAllocator );
-
-        if ( m_globalMemory )
-        {
-            m_allocator->Free( m_globalMemory );
-            m_globalMemory = NULL;
-        }
+        YOJIMBO_FREE( *m_allocator, m_globalMemory );
     }
 
     Allocator * Server::CreateAllocator( Allocator & allocator, void * memory, size_t bytes )

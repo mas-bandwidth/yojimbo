@@ -67,7 +67,7 @@ namespace yojimbo
 
         assert( m_clientMemory == NULL );
 
-        m_clientMemory = (uint8_t*) m_allocator->Allocate( m_config.clientMemory );
+        m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
 
         m_clientAllocator = YOJIMBO_NEW( *m_allocator, TLSF_Allocator, m_clientMemory, m_config.clientMemory );
     }
@@ -76,15 +76,9 @@ namespace yojimbo
     {
         assert( m_allocator );
 
-        assert( m_clientMemory != NULL );
-
         YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );
 
-        if ( m_clientMemory )
-        {
-            m_allocator->Free( m_clientMemory );
-            m_clientMemory = NULL;
-        }
+        YOJIMBO_FREE( *m_allocator, m_clientMemory );
     }
 
     Allocator * Client::CreateAllocator( Allocator & allocator, void * memory, size_t bytes )

@@ -2,6 +2,16 @@ WOULD BE NICE
 
     ------------------
 
+    There is a lot of code duplication between the default allocator and TLSF allocator for #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+    It would be nice if this code was not duplicated. For example, it could be made part of the base allocator
+
+    ------------------
+
+    It would be nice if the allocators could check for memory leaks between each test run, that way, I'd know at the end of each unit test if memory was leaked, rather than needing to binary search tests to find out which test leaked memory.
+
+    ------------------
+
     Add a test for clients to connect, without messages enabled, and then send no packets for timeout * 2 seconds. 
 
     This verifies that the keep-alive packets work.
@@ -29,7 +39,7 @@ WOULD BE NICE
     ------------------
 
     Optimize the simulator to keep track of head and tail internally, so it can avoid scanning the entire 4096 entries on each receive call.
-    
+
     ------------------
 
     Definitely need more usage documentation and samples showing how to do stuff.

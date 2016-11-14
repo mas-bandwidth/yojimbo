@@ -34,11 +34,11 @@ namespace yojimbo
         assert( numPackets > 0 );
 
         m_numPacketEntries = numPackets;
-        m_packetEntries = (PacketEntry*) allocator.Allocate( sizeof( PacketEntry ) * numPackets );
+        m_packetEntries = (PacketEntry*) YOJIMBO_ALLOCATE( allocator, sizeof( PacketEntry ) * numPackets );
         memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
 
         m_numPendingReceivePackets = 0;
-        m_pendingReceivePackets = (PacketEntry*) allocator.Allocate( sizeof( PacketEntry ) * numPackets );
+        m_pendingReceivePackets = (PacketEntry*) YOJIMBO_ALLOCATE( allocator, sizeof( PacketEntry ) * numPackets );
         memset( m_pendingReceivePackets, 0, sizeof( PacketEntry ) * numPackets );
 
         m_lastPendingReceiveTime = -10000.0;
@@ -60,30 +60,15 @@ namespace yojimbo
         assert( m_packetEntries );
         assert( m_numPacketEntries > 0 );
 
-        for ( int i = 0; i < m_numPacketEntries; ++i )
-        {
-            if ( m_packetEntries[i].packetData )
-            {
-                m_allocator->Free( m_packetEntries[i].packetData );
-            }
-        }
+        DiscardPackets();
 
-        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
-        {
-            if ( m_pendingReceivePackets[i].packetData )
-            {
-                m_allocator->Free( m_pendingReceivePackets[i].packetData );
-            }
-        }
+        YOJIMBO_FREE( *m_allocator, m_pendingReceivePackets );
+        YOJIMBO_FREE( *m_allocator, m_packetEntries );
 
-        m_allocator->Free( m_pendingReceivePackets );    
-        m_allocator->Free( m_packetEntries );
-
-        m_pendingReceivePackets = NULL;
-        m_packetEntries = NULL;
-        
         m_numPacketEntries = 0;
         m_numPendingReceivePackets = 0;
+
+        m_allocator = NULL;
     }
 
     void NetworkSimulator::SetLatency( float milliseconds )
@@ -133,11 +118,7 @@ namespace yojimbo
 
         for ( int i = 0; i < m_numPendingReceivePackets; ++i )
         {
-            if ( m_pendingReceivePackets[i].packetData )
-            {
-                m_allocator->Free( m_pendingReceivePackets[i].packetData );
-                m_pendingReceivePackets[i].packetData = NULL;
-            }
+            YOJIMBO_FREE( *m_allocator, m_pendingReceivePackets[i].packetData );
         }
 
         m_numPendingReceivePackets = 0;
@@ -160,6 +141,8 @@ namespace yojimbo
 
     void NetworkSimulator::SendPacket( const Address & from, const Address & to, uint8_t * packetData, int packetSize )
     {
+        assert( m_allocator );
+
         assert( from.IsValid() );
         assert( to.IsValid() );
 
@@ -168,7 +151,7 @@ namespace yojimbo
 
         if ( random_float( 0.0f, 100.0f ) <= m_packetLoss )
         {
-            m_allocator->Free( packetData );
+            YOJIMBO_FREE( *m_allocator, packetData );
             return;
         }
 
@@ -176,7 +159,7 @@ namespace yojimbo
 
         if ( packetEntry.packetData )
         {
-            m_allocator->Free( packetEntry.packetData );
+            YOJIMBO_FREE( *m_allocator, packetEntry.packetData );
             packetEntry = PacketEntry();
         }
 
@@ -195,7 +178,7 @@ namespace yojimbo
 
         if ( random_float( 0.0f, 100.0f ) <= m_duplicate )
         {
-            uint8_t * duplicatePacketData = (uint8_t*) m_allocator->Allocate( packetSize );
+            uint8_t * duplicatePacketData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetSize );
 
             memcpy( duplicatePacketData, packetData, packetSize );
 
@@ -270,7 +253,7 @@ namespace yojimbo
             if ( !packetEntry.packetData )
                 continue;
 
-            m_allocator->Free( packetEntry.packetData );
+            YOJIMBO_FREE( *m_allocator, packetEntry.packetData );
 
             packetEntry = PacketEntry();
         }
@@ -282,7 +265,7 @@ namespace yojimbo
             if ( !packetEntry.packetData )
                 continue;
 
-            m_allocator->Free( packetEntry.packetData );
+            YOJIMBO_FREE( *m_allocator, packetEntry.packetData );
 
             packetEntry = PacketEntry();
         }
@@ -302,7 +285,7 @@ namespace yojimbo
             if ( packetEntry.from != address )
                 continue;
 
-            m_allocator->Free( packetEntry.packetData );
+            YOJIMBO_FREE( *m_allocator, packetEntry.packetData );
 
             packetEntry = PacketEntry();
         }
@@ -317,12 +300,10 @@ namespace yojimbo
             if ( packetEntry.from != address )
                 continue;
 
-            m_allocator->Free( packetEntry.packetData );
+            YOJIMBO_FREE( *m_allocator, packetEntry.packetData );
 
             packetEntry = PacketEntry();
         }
-
-        m_numPendingReceivePackets = 0;
     }
 
     void NetworkSimulator::AdvanceTime( double time )

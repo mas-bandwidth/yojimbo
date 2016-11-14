@@ -156,7 +156,7 @@ int SoakMain()
 
                         Allocator & messageAllocator = client.GetClientAllocator();
 
-                        uint8_t * blockData = (uint8_t*) messageAllocator.Allocate( blockSize );
+                        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageAllocator, blockSize );
 
                         if ( blockData )
                         {

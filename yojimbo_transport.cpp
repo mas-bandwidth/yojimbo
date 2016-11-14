@@ -48,6 +48,8 @@ namespace yojimbo
         assert( sendQueueSize > 0 );
         assert( receiveQueueSize > 0 );
 
+        m_allocator = &allocator;
+                
         m_address = address;
 
         m_time = time;
@@ -57,8 +59,6 @@ namespace yojimbo
         m_context = NULL;
         m_userContext = NULL;
 
-        m_allocator = &allocator;
-                
         m_streamAllocator = &allocator;
 
         m_protocolId = protocolId;
@@ -93,6 +93,27 @@ namespace yojimbo
         }
 	}
 
+    BaseTransport::~BaseTransport()
+    {
+        assert( m_allocator );
+        assert( m_packetProcessor );
+        assert( m_contextManager );
+        assert( m_encryptionManager );
+
+        ClearPacketFactory();
+
+        YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
+        YOJIMBO_DELETE( *m_allocator, ContextManager, m_contextManager );
+        YOJIMBO_DELETE( *m_allocator, EncryptionManager, m_encryptionManager );
+
+        if ( m_allocateNetworkSimulator )
+        {
+            YOJIMBO_DELETE( *m_allocator, NetworkSimulator, m_networkSimulator );
+        }
+
+        m_allocator = NULL;
+    }
+
     void BaseTransport::SetPacketFactory( PacketFactory & packetFactory )
     {
         assert( m_packetFactory == NULL );
@@ -104,11 +125,11 @@ namespace yojimbo
         assert( numPacketTypes > 0 );
 
 #if YOJIMBO_INSECURE_CONNECT
-        m_allPacketTypes = (uint8_t*) m_allocator->Allocate( numPacketTypes );
+        m_allPacketTypes = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-        m_packetTypeIsEncrypted = (uint8_t*) m_allocator->Allocate( numPacketTypes );
-        m_packetTypeIsUnencrypted = (uint8_t*) m_allocator->Allocate( numPacketTypes );
+        m_packetTypeIsEncrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
+        m_packetTypeIsUnencrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
 
 #if YOJIMBO_INSECURE_CONNECT
         memset( m_allPacketTypes, 1, m_packetFactory->GetNumPacketTypes() );
@@ -126,39 +147,12 @@ namespace yojimbo
         ClearReceiveQueue();
 
 #if YOJIMBO_INSECURE_CONNECT
-        m_allocator->Free( m_allPacketTypes );
+        YOJIMBO_FREE( *m_allocator, m_allPacketTypes );
 #endif // #if YOJIMBO_INSECURE_CONNECT
-        m_allocator->Free( m_packetTypeIsEncrypted );
-        m_allocator->Free( m_packetTypeIsUnencrypted );
+        YOJIMBO_FREE( *m_allocator, m_packetTypeIsEncrypted );
+        YOJIMBO_FREE( *m_allocator, m_packetTypeIsUnencrypted );
 
         m_packetFactory = NULL;
-#if YOJIMBO_INSECURE_CONNECT
-        m_allPacketTypes = NULL;
-#endif // #if YOJIMBO_INSECURE_CONNECT
-        m_packetTypeIsEncrypted = NULL;
-        m_packetTypeIsUnencrypted = NULL;
-
-        m_packetFactory = NULL;
-    }
-
-    BaseTransport::~BaseTransport()
-    {
-        assert( m_packetProcessor );
-        assert( m_contextManager );
-        assert( m_encryptionManager );
-
-        ClearPacketFactory();
-
-        YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
-		YOJIMBO_DELETE( *m_allocator, ContextManager, m_contextManager );
-		YOJIMBO_DELETE( *m_allocator, EncryptionManager, m_encryptionManager );
-
-        if ( m_allocateNetworkSimulator )
-        {
-            YOJIMBO_DELETE( *m_allocator, NetworkSimulator, m_networkSimulator );
-        }
-
-        m_allocator = NULL;
     }
 
     void BaseTransport::Reset()
@@ -168,8 +162,14 @@ namespace yojimbo
         ResetContextMappings();
         ResetEncryptionMappings();
 
-        if ( m_networkSimulator )
+        if ( m_allocateNetworkSimulator )
+        {
+            m_networkSimulator->DiscardPackets();
+        }
+        else
+        {
             m_networkSimulator->DiscardPacketsFromAddress( m_address );
+        }
     }
 
     void BaseTransport::ClearSendQueue()
@@ -398,7 +398,7 @@ namespace yojimbo
 
         Allocator & allocator = m_networkSimulator->GetAllocator();
 
-        uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
+        uint8_t * packetDataCopy = (uint8_t*) YOJIMBO_ALLOCATE( allocator, packetBytes );
         if ( !packetDataCopy )
             return;
 
@@ -534,7 +534,7 @@ namespace yojimbo
 
                 InternalSendPacket( to[i], packetData[i], packetBytes[i] );
 
-                allocator.Free( packetData[i] );
+                YOJIMBO_FREE( allocator, packetData[i] );
             }
         }
 
@@ -724,9 +724,9 @@ namespace yojimbo
         m_receivePacketIndex = 0;
         m_numReceivePackets = 0;
         m_maxReceivePackets = receiveQueueSize;
-        m_receivePacketData = (uint8_t**) allocator.Allocate( sizeof( uint8_t*) * m_maxReceivePackets );
-        m_receivePacketBytes = (int*) allocator.Allocate( sizeof(int) * m_maxReceivePackets );
-        m_receiveFrom = (Address*) allocator.Allocate( sizeof(Address) * m_maxReceivePackets );
+        m_receivePacketData = (uint8_t**) YOJIMBO_ALLOCATE( allocator, sizeof( uint8_t*) * m_maxReceivePackets );
+        m_receivePacketBytes = (int*) YOJIMBO_ALLOCATE( allocator, sizeof(int) * m_maxReceivePackets );
+        m_receiveFrom = (Address*) YOJIMBO_ALLOCATE( allocator, sizeof(Address) * m_maxReceivePackets );
     }
 
     LocalTransport::~LocalTransport()
@@ -736,22 +736,18 @@ namespace yojimbo
 
         DiscardReceivePackets();
 
-        m_allocator->Free( m_receivePacketData );
-        m_allocator->Free( m_receivePacketBytes );
-        m_allocator->Free( m_receiveFrom );
-
-        m_receivePacketData = NULL;
-        m_receivePacketBytes = NULL;
-        m_receiveFrom = NULL;
+        YOJIMBO_FREE( *m_allocator, m_receivePacketData );
+        YOJIMBO_FREE( *m_allocator, m_receivePacketBytes );
+        YOJIMBO_FREE( *m_allocator, m_receiveFrom );
 
         m_networkSimulator = NULL;
     }
 
     void LocalTransport::Reset()
     {
-        BaseTransport::Reset();
-
         DiscardReceivePackets();
+
+        BaseTransport::Reset();
     }
 
     void LocalTransport::AdvanceTime( double time )
@@ -771,16 +767,10 @@ namespace yojimbo
 
         for ( int i = 0; i < m_numReceivePackets; ++i )
         {
-            if ( !m_receivePacketData[i] )
-                continue;
-
-            allocator.Free( m_receivePacketData[i] );
-
-            m_receivePacketData[i] = NULL;
+            YOJIMBO_FREE( allocator, m_receivePacketData[i] );
         }
 
         m_numReceivePackets = 0;
-
         m_receivePacketIndex = 0;
     }
 
@@ -799,8 +789,7 @@ namespace yojimbo
 
         Allocator & allocator = m_networkSimulator->GetAllocator();
 
-        uint8_t * packetDataCopy = (uint8_t*) allocator.Allocate( packetBytes );
-
+        uint8_t * packetDataCopy = (uint8_t*) YOJIMBO_ALLOCATE( allocator, packetBytes );
         if ( !packetDataCopy )
             return;
 
@@ -826,9 +815,7 @@ namespace yojimbo
 
         Allocator & allocator = m_networkSimulator->GetAllocator();
 
-        allocator.Free( m_receivePacketData[index] );
-
-        m_receivePacketData[index] = NULL;
+        YOJIMBO_FREE( allocator, m_receivePacketData[index] );
 
         from = m_receiveFrom[index];
 

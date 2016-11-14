@@ -96,9 +96,8 @@ namespace yojimbo
         {
             if ( m_allocator )
             {
-                m_allocator->Free( m_blockData );
+                YOJIMBO_FREE( *m_allocator, m_blockData );
                 m_blockSize = 0;
-                m_blockData = NULL;
                 m_allocator = NULL;
             }
         }
@@ -305,8 +304,8 @@ namespace yojimbo
         {
             m_allocator = &allocator;
             ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            fragmentSendTime = (double*) allocator.Allocate( sizeof( double) * maxFragmentsPerBlock );
-            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
+            fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
+            blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
             assert( ackedFragment && blockData && fragmentSendTime );
             Reset();
         }
@@ -314,10 +313,8 @@ namespace yojimbo
         ~SendBlockData()
         {
             YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
-            m_allocator->Free( blockData );
-            m_allocator->Free( fragmentSendTime );
-            fragmentSendTime = NULL;
-            blockData = NULL;
+            YOJIMBO_FREE( *m_allocator, blockData );
+            YOJIMBO_FREE( *m_allocator, fragmentSendTime );
         }
 
         void Reset()
@@ -353,7 +350,7 @@ namespace yojimbo
         {
             m_allocator = &allocator;
             receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            blockData = (uint8_t*) allocator.Allocate( maxBlockSize );            
+            blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
             assert( receivedFragment && blockData );
             blockMessage = NULL;
             Reset();
@@ -362,8 +359,7 @@ namespace yojimbo
         ~ReceiveBlockData()
         {
             YOJIMBO_DELETE( *m_allocator, BitArray, receivedFragment );
-            m_allocator->Free( blockData );
-            blockData = NULL;
+            YOJIMBO_FREE( *m_allocator, blockData );
         }
 
         void Reset()
