@@ -32,6 +32,110 @@
 
 namespace yojimbo
 {
+    TransportContextManager::TransportContextManager()
+    {
+        ResetContextMappings();
+    }
+
+    bool TransportContextManager::AddContextMapping( const Address & address, const TransportContext & context )
+    {
+        assert( address.IsValid() );
+
+        assert( context.allocator );
+        assert( context.packetFactory );
+
+        for ( int i = 0; i < m_numContextMappings; ++i )
+        {
+            if ( m_allocated[i] && m_address[i] == address )
+            {
+                m_context[i] = context;
+                return true;
+            }
+        }
+
+        for ( int i = 0; i < MaxContextMappings; ++i )
+        {
+            if ( !m_allocated[i] )
+            {
+                m_allocated[i] = true;
+                m_context[i] = context;
+                m_address[i] = address;
+                if ( i + 1 > m_numContextMappings )
+                    m_numContextMappings = i + 1;
+                return true;
+            }
+        }
+
+#if YOJIMBO_DEBUG_SPAM
+        char addressString[MaxAddressLength];
+        address.ToString( addressString, MaxAddressLength );
+        debug_printf( "failed to add context mapping for %s\n", addressString );
+#endif // #if YOJIMBO_DEBUG_SPAM
+
+        return false;
+    }
+
+    bool TransportContextManager::RemoveContextMapping( const Address & address )
+    {
+        for ( int i = 0; i < m_numContextMappings; ++i )
+        {
+            if ( m_allocated[i] && m_address[i] == address )
+            {
+                m_allocated[i] = false;
+                m_address[i] = Address();
+                m_context[i] = TransportContext();
+
+                if ( i + 1 == m_numContextMappings )
+                {
+                    int index = i - 1;
+                    while ( index >= 0 )
+                    {
+                        if ( m_allocated[index] )
+                            break;
+                        index--;
+                    }
+                    m_numContextMappings = index + 1;
+                }
+
+                return true;
+            }
+        }
+
+#if YOJIMBO_DEBUG_SPAM
+        char addressString[MaxAddressLength];
+        address.ToString( addressString, MaxAddressLength );
+        debug_printf( "failed to remove context mapping for %s\n", addressString );
+#endif // #if YOJIMBO_DEBUG_SPAM
+
+        return false;
+    }
+
+    void TransportContextManager::ResetContextMappings()
+    {
+        m_numContextMappings = 0;
+        
+        for ( int i = 0; i < MaxContextMappings; ++i )
+        {
+            m_address[i] = Address();
+        }
+
+        memset( m_context, 0, sizeof( m_context ) );        
+
+        memset( m_allocated, 0, sizeof( m_allocated ) );
+    }
+
+    const TransportContext * TransportContextManager::GetContext( const Address & address ) const
+    {
+        for ( int i = 0; i < m_numContextMappings; ++i )
+        {
+            if ( m_allocated[i] && m_address[i] == address )
+                return &m_context[i];
+        }
+        return NULL;
+    }
+
+    // =================================================================
+
     BaseTransport::BaseTransport( Allocator & allocator, 
                                   const Address & address,
                                   uint32_t protocolId,
@@ -56,14 +160,16 @@ namespace yojimbo
 
         m_flags = 0;
 
-        m_context = NULL;
         m_userContext = NULL;
 
+        // todo
+        /*
         m_streamAllocator = &allocator;
 
-        m_protocolId = protocolId;
-
         m_packetFactory = NULL;
+        */
+
+        m_protocolId = protocolId;
         
         m_packetProcessor = YOJIMBO_NEW( allocator, PacketProcessor, allocator, m_protocolId, maxPacketSize );
         
@@ -75,7 +181,7 @@ namespace yojimbo
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
 
-		m_clientServerContextManager = YOJIMBO_NEW( allocator, ClientServerContextManager );
+		m_contextManager = YOJIMBO_NEW( allocator, TransportContextManager );
 
 		m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
 
@@ -97,14 +203,14 @@ namespace yojimbo
     {
         assert( m_allocator );
         assert( m_packetProcessor );
+        assert( m_contextManager );
         assert( m_encryptionManager );
-        assert( m_clientServerContextManager );
 
-        ClearPacketFactory();
+        ClearContext();
 
         YOJIMBO_DELETE( *m_allocator, PacketProcessor, m_packetProcessor );
         YOJIMBO_DELETE( *m_allocator, EncryptionManager, m_encryptionManager );
-        YOJIMBO_DELETE( *m_allocator, ClientServerContextManager, m_clientServerContextManager );
+        YOJIMBO_DELETE( *m_allocator, TransportContextManager, m_contextManager );
 
         if ( m_allocateNetworkSimulator )
         {
@@ -114,6 +220,47 @@ namespace yojimbo
         m_allocator = NULL;
     }
 
+    void BaseTransport::SetContext( const TransportContext & context )
+    {
+        ClearContext();
+
+        assert( context.allocator );
+        assert( context.packetFactory );
+
+        m_context = context;
+
+        const int numPacketTypes = m_context.packetFactory->GetNumPacketTypes();
+
+        assert( numPacketTypes > 0 );
+
+#if YOJIMBO_INSECURE_CONNECT
+        m_allPacketTypes = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
+#endif // #if YOJIMBO_INSECURE_CONNECT
+        m_packetTypeIsEncrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
+        m_packetTypeIsUnencrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
+
+#if YOJIMBO_INSECURE_CONNECT
+        memset( m_allPacketTypes, 1, m_context.packetFactory->GetNumPacketTypes() );
+#endif // #if YOJIMBO_INSECURE_CONNECT
+        memset( m_packetTypeIsEncrypted, 0, m_context.packetFactory->GetNumPacketTypes() );
+        memset( m_packetTypeIsUnencrypted, 1, m_context.packetFactory->GetNumPacketTypes() );
+    }
+
+    void BaseTransport::ClearContext()
+    {
+        ClearSendQueue();
+        ClearReceiveQueue();
+
+#if YOJIMBO_INSECURE_CONNECT
+        YOJIMBO_FREE( *m_allocator, m_allPacketTypes );
+#endif // #if YOJIMBO_INSECURE_CONNECT
+        YOJIMBO_FREE( *m_allocator, m_packetTypeIsEncrypted );
+        YOJIMBO_FREE( *m_allocator, m_packetTypeIsUnencrypted );
+
+        m_context = TransportContext();
+    }
+
+    /*
     void BaseTransport::SetPacketFactory( PacketFactory & packetFactory )
     {
         assert( m_packetFactory == NULL );
@@ -154,6 +301,7 @@ namespace yojimbo
 
         m_packetFactory = NULL;
     }
+    */
 
     void BaseTransport::Reset()
     {
@@ -207,7 +355,8 @@ namespace yojimbo
     void BaseTransport::SendPacket( const Address & address, Packet * packet, uint64_t sequence, bool immediate )
     {
         assert( m_allocator );
-        assert( m_packetFactory );
+        assert( m_context.allocator );
+        assert( m_context.packetFactory );
 
         assert( packet );
         assert( packet->IsValid() );
@@ -246,11 +395,12 @@ namespace yojimbo
 
     Packet * BaseTransport::ReceivePacket( Address & from, uint64_t * sequence )
     {
-        if ( !m_packetFactory )
+        if ( !m_context.packetFactory )
             return NULL;
 
         assert( m_allocator );
-        assert( m_packetFactory );
+        assert( m_context.allocator );
+        assert( m_context.packetFactory );
 
         if ( m_receiveQueue.IsEmpty() )
             return NULL;
@@ -273,12 +423,13 @@ namespace yojimbo
 
     void BaseTransport::WritePackets()
     {
-        if ( !m_packetFactory )
+        if ( !m_context.packetFactory )
             return;
 
         assert( m_allocator );
-        assert( m_packetFactory );
         assert( m_packetProcessor );
+        assert( m_context.allocator );
+        assert( m_context.packetFactory );
 
         bool useSimulator = ShouldPacketGoThroughSimulator();
 
@@ -305,7 +456,8 @@ namespace yojimbo
 
     const uint8_t * BaseTransport::WritePacket( const Address & address, Packet * packet, uint64_t sequence, int & packetBytes )
     {
-        assert( m_packetFactory );
+        assert( m_context.allocator );
+        assert( m_context.packetFactory );
 
         assert( packet );
         assert( packet->IsValid() );
@@ -314,7 +466,7 @@ namespace yojimbo
         const int packetType = packet->GetType();
 
         assert( packetType >= 0 );
-        assert( packetType < m_packetFactory->GetNumPacketTypes() );
+        assert( packetType < m_context.packetFactory->GetNumPacketTypes() );
 
         const int encryptionIndex = m_encryptionManager->FindEncryptionMapping( address, GetTime() );
 
@@ -326,25 +478,23 @@ namespace yojimbo
         const bool encrypt = IsEncryptedPacketType( packetType );
 #endif // #if YOJIMBO_INSECURE_CONNECT
 
-        // todo: fix all this, just use the base context by default, search for a client context, if not exists, stick with base, but no difference in handling
+        const TransportContext * context = m_contextManager->GetContext( address );
 
-        // todo: alternatively, rename this to "TransportContext" because it's really a context in which the transport can process packets for an address (or by default)
+        if ( !context )
+            context = &m_context;
 
-        const ClientServerContext * context = m_clientServerContextManager->GetContext( address );
+        assert( context->allocator );
+        assert( context->packetFactory );
 
-        Allocator * allocator = context ? context->allocator : m_streamAllocator;
+        Allocator & allocator = *context->allocator;
 
-        PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
+        PacketFactory & packetFactory = *(context->packetFactory);
 
-        assert( allocator );
-        assert( packetFactory );
-        assert( packetFactory->GetNumPacketTypes() == m_packetFactory->GetNumPacketTypes() );
+        m_packetProcessor->SetContext( context->connectionContext );
 
-        m_packetProcessor->SetContext( context ? (void*)context : m_context );
+        m_packetProcessor->SetUserContext( context->userContext );
 
-        m_packetProcessor->SetUserContext( m_userContext );
-
-        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, *allocator, *packetFactory );
+        const uint8_t * packetData = m_packetProcessor->WritePacket( packet, sequence, packetBytes, encrypt, key, allocator, packetFactory );
 
         if ( !packetData )
         {
@@ -445,26 +595,25 @@ namespace yojimbo
 
         const uint8_t * key = m_encryptionManager->GetReceiveKey( encryptionIndex );
        
-        const ClientServerContext * context = m_clientServerContextManager->GetContext( address );
+        const TransportContext * context = m_contextManager->GetContext( address );
 
-        Allocator * allocator = context ? context->allocator : m_streamAllocator;
+        if ( !context )
+            context = &m_context;
 
-        PacketFactory * packetFactory = context ? context->packetFactory : m_packetFactory;
+        assert( context->allocator );
+        assert( context->packetFactory );
 
-        ReplayProtection * replayProtection = context ? context->replayProtection : NULL;
+        Allocator & allocator = *(context->allocator);
+        
+        PacketFactory & packetFactory = *(context->packetFactory);
 
-        // todo: how to get replay protection from base context? why have separate stream allocator, packet factory etc, 
-        // when they can all be passed in as part of base ClientServerContext?!
+        ReplayProtection * replayProtection = context->replayProtection;
 
-        assert( allocator );
-        assert( packetFactory );
-        assert( packetFactory->GetNumPacketTypes() == m_packetFactory->GetNumPacketTypes() );
-
-        m_packetProcessor->SetContext( context ? (void*)context : m_context );
+        m_packetProcessor->SetContext( context->connectionContext );
 
         m_packetProcessor->SetUserContext( m_userContext );
 
-        Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, *allocator, *packetFactory, replayProtection );
+        Packet * packet = m_packetProcessor->ReadPacket( packetBuffer, sequence, packetBytes, encrypted, key, encryptedPacketTypes, unencryptedPacketTypes, allocator, packetFactory, replayProtection );
 
         if ( !packet )
         {
@@ -517,12 +666,13 @@ namespace yojimbo
 
     void BaseTransport::ReadPackets()
     {
-        if ( !m_packetFactory )
+        if ( !m_context.packetFactory )
             return;
 
         assert( m_allocator );
-        assert( m_packetFactory );
         assert( m_packetProcessor );
+        assert( m_context.allocator );
+        assert( m_context.packetFactory );
 
         const int maxPacketSize = GetMaxPacketSize();
 
@@ -614,6 +764,7 @@ namespace yojimbo
         return m_allocateNetworkSimulator && m_networkSimulator->IsActive();
     }
 
+    /*
     void BaseTransport::SetContext( void * context )
     {
         m_context = context;
@@ -628,35 +779,36 @@ namespace yojimbo
     {
         m_streamAllocator = &allocator;
     }
+    */
 
     void BaseTransport::EnablePacketEncryption()
     {
-        assert( m_packetFactory );
-        memset( m_packetTypeIsEncrypted, 1, m_packetFactory->GetNumPacketTypes() );
-        memset( m_packetTypeIsUnencrypted, 0, m_packetFactory->GetNumPacketTypes() );
+        assert( m_context.packetFactory );
+        memset( m_packetTypeIsEncrypted, 1, m_context.packetFactory->GetNumPacketTypes() );
+        memset( m_packetTypeIsUnencrypted, 0, m_context.packetFactory->GetNumPacketTypes() );
     }
 
     void BaseTransport::DisablePacketEncryption()
     {
-        assert( m_packetFactory );
-        memset( m_packetTypeIsEncrypted, 0, m_packetFactory->GetNumPacketTypes() );
-        memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
+        assert( m_context.packetFactory );
+        memset( m_packetTypeIsEncrypted, 0, m_context.packetFactory->GetNumPacketTypes() );
+        memset( m_packetTypeIsUnencrypted, 1, m_context.packetFactory->GetNumPacketTypes() );
     }
 
     void BaseTransport::DisableEncryptionForPacketType( int type )
     {
-        assert( m_packetFactory );
+        assert( m_context.packetFactory );
         assert( type >= 0 );
-        assert( type < m_packetFactory->GetNumPacketTypes() );
+        assert( type < m_context.packetFactory->GetNumPacketTypes() );
         m_packetTypeIsEncrypted[type] = 0;
         m_packetTypeIsUnencrypted[type] = 1;
     }
 
     bool BaseTransport::IsEncryptedPacketType( int type ) const
     {
-        assert( m_packetFactory );
+        assert( m_context.packetFactory );
         assert( type >= 0 );
-        assert( type < m_packetFactory->GetNumPacketTypes() );
+        assert( type < m_context.packetFactory->GetNumPacketTypes() );
         return m_packetTypeIsEncrypted[type] != 0;
     }
 
@@ -675,22 +827,25 @@ namespace yojimbo
         m_encryptionManager->ResetEncryptionMappings();
     }
 
-    // todo: maybe rename to "AddClientContext", this would work well with "SetGlobalContext" etc.
-
-    bool BaseTransport::AddContextMapping( const Address & address, ClientServerContext * context )
+    bool BaseTransport::AddContextMapping( const Address & address, const TransportContext & context )
     {
-        // todo: maybe rename to "m_clientContextManager"?!
-        return m_clientServerContextManager->AddContextMapping( address, context );
+        assert( context.allocator );
+        assert( context.packetFactory );
+
+        assert( m_context.packetFactory );
+        assert( m_context.packetFactory->GetNumPacketTypes() == context.packetFactory->GetNumPacketTypes() );
+
+        return m_contextManager->AddContextMapping( address, context );
     }
 
     bool BaseTransport::RemoveContextMapping( const Address & address )
     {
-        return m_clientServerContextManager->RemoveContextMapping( address );
+        return m_contextManager->RemoveContextMapping( address );
     }
 
     void BaseTransport::ResetContextMappings()
     {
-        m_clientServerContextManager->ResetContextMappings();
+        m_contextManager->ResetContextMappings();
     }
 
     void BaseTransport::AdvanceTime( double time )

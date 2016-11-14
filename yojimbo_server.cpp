@@ -102,7 +102,10 @@ namespace yojimbo
 
         Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL );
 
+        // todo
+        /*
         m_transport->SetStreamAllocator( globalAllocator );
+        */
 
         if ( !m_globalPacketFactory )
         {
@@ -110,7 +113,10 @@ namespace yojimbo
 
             assert( m_globalPacketFactory );
 
+            // todo
+            /*
             m_transport->SetPacketFactory( *m_globalPacketFactory );
+            */
         }
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
@@ -146,12 +152,16 @@ namespace yojimbo
 
         SetEncryptedPacketTypes();
 
+        // todo
+
+        /*
         InitializeGlobalContext();
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
             InitializeClientContext( clientIndex );
         }
+        */
 
         OnStart( maxClients );
     }
@@ -167,7 +177,7 @@ namespace yojimbo
 
         m_transport->Reset();
 
-        m_transport->ClearPacketFactory();
+        m_transport->ClearContext();
 
         for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
@@ -503,11 +513,14 @@ namespace yojimbo
         m_flags = flags;
     }
 
+    // todo
+    /*
     void Server::SetUserContext( void * context )
     {
         assert( m_transport );
         m_transport->SetUserContext( context );
     }
+    */
 
     bool Server::IsRunning() const
     {
@@ -649,10 +662,12 @@ namespace yojimbo
 
     void Server::InitializeGlobalContext()
     {
+        /*
         m_globalContext.connectionConfig = &m_config.connectionConfig;
         m_globalContext.allocator = m_globalAllocator;
         m_globalContext.packetFactory = m_globalPacketFactory;
         m_transport->SetContext( &m_globalContext );
+        */
     }
 
     void Server::InitializeClientContext( int clientIndex )
@@ -815,7 +830,10 @@ namespace yojimbo
         m_clientData[clientIndex].fullyConnected = false;
         m_clientData[clientIndex].insecure = false;
 
+        // todo: setup transport context per-client
+        /*
         m_transport->AddContextMapping( clientAddress, &m_clientContext[clientIndex] );
+        */
 
         OnClientConnect( clientIndex );
 

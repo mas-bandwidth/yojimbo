@@ -1,4 +1,30 @@
 
+Monday November 14th, 2016
+==========================
+
+Seems that adding replay protection is stopping some valid packets getting through.
+
+I'm not sure why this is. There should be very few duplicate packets or out of order packets sent over loopback.
+
+The effect is severe, with 64 clients connecting, they all end up disconnected. Why?
+
+Idea: Move the replay protection into the context. This way there only needs to be MaxClients worth of them vs. MaxEncryptionMappings (there is much more of these...), also it should be easier to debug what is going on.
+
+I have two choices now really:
+
+1. On the client, always use the context mapping (don't use global) context.
+
+2. Somehow unify the global context with the per-client context.
+
+I think that #1 could be extremely disruptive.
+
+#1 seems a bit easier, but is less elegant.
+
+Which is the best choice? Is there any benefit to unifying all the context stuff in transport?
+
+I'm going with #2 because this needs a good clean up. It's going to be a large change, but the code should be much simpler in the end.
+
+
 Sunday November 13th, 2016
 ==========================
 

@@ -62,6 +62,55 @@ namespace yojimbo
         TRANSPORT_COUNTER_NUM_COUNTERS
     };
 
+    struct TransportContext
+    {
+        TransportContext()
+        {
+            allocator = NULL;
+            packetFactory = NULL;
+            replayProtection = NULL;
+            connectionContext = NULL;
+            userContext = NULL;
+        }
+
+        TransportContext( Allocator & _allocator, PacketFactory & _packetFactory )
+        {
+            allocator = &_allocator;
+            packetFactory = &_packetFactory;
+            replayProtection = NULL;
+            connectionContext = NULL;
+            userContext = NULL;
+        }
+
+        Allocator * allocator;
+        PacketFactory * packetFactory;
+        ReplayProtection * replayProtection;
+        struct ConnectionContext * connectionContext;
+        void * userContext;
+    };
+
+    class TransportContextManager
+    {
+    public:
+
+        TransportContextManager();
+
+        bool AddContextMapping( const Address & address, const TransportContext & context );
+
+        bool RemoveContextMapping( const Address & address );
+
+        void ResetContextMappings();
+
+        const TransportContext * GetContext( const Address & address ) const;
+
+    private:
+
+        int m_numContextMappings;
+        int m_allocated[MaxContextMappings];
+        Address m_address[MaxContextMappings];
+        TransportContext m_context[MaxContextMappings];
+    };
+
     class Transport
     {
     public:
@@ -70,9 +119,9 @@ namespace yojimbo
 
         virtual void Reset() = 0;
 
-        virtual void SetPacketFactory( PacketFactory & packetFactory ) = 0;
+        virtual void SetContext( const TransportContext & context ) = 0;
 
-        virtual void ClearPacketFactory() = 0;
+        virtual void ClearContext() = 0;
 
         virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
 
@@ -88,14 +137,6 @@ namespace yojimbo
 
         virtual void ClearNetworkConditions() = 0;
 
-        // todo: maybe just unify and make transport aware of ClientServerContext at the low level. eg. "base context"
-
-        virtual void SetContext( void * context ) = 0;
-
-        virtual void SetUserContext( void * context ) = 0;
-
-        virtual void SetStreamAllocator( Allocator & allocator ) = 0;
-
         virtual void EnablePacketEncryption() = 0;
 
         virtual void DisablePacketEncryption() = 0;
@@ -110,7 +151,7 @@ namespace yojimbo
 
         virtual void ResetEncryptionMappings() = 0;
 
-        virtual bool AddContextMapping( const Address & address, ClientServerContext * context ) = 0;
+        virtual bool AddContextMapping( const Address & address, const TransportContext & context ) = 0;
 
         virtual bool RemoveContextMapping( const Address & address ) = 0;
 
@@ -142,9 +183,9 @@ namespace yojimbo
                        int receiveQueueSize = DefaultPacketReceiveQueueSize,
                        bool allocateNetworkSimulator = true );
 
-        void SetPacketFactory( PacketFactory & packetFactory );
+        void SetContext( const TransportContext & context );
 
-        void ClearPacketFactory();
+        void ClearContext();
 
         ~BaseTransport();
 
@@ -164,12 +205,6 @@ namespace yojimbo
 
         void ClearNetworkConditions();
 
-        void SetContext( void * context );
-
-        void SetUserContext( void * context );
-
-        void SetStreamAllocator( Allocator & allocator );
-
         void EnablePacketEncryption();
 
         void DisablePacketEncryption();
@@ -184,7 +219,7 @@ namespace yojimbo
 
         void ResetEncryptionMappings();
 
-        bool AddContextMapping( const Address & address, ClientServerContext * context );
+        bool AddContextMapping( const Address & address, const TransportContext & context );
 
         bool RemoveContextMapping( const Address & address );
 
@@ -226,23 +261,19 @@ namespace yojimbo
 
     protected:
 
+        TransportContext m_context;
+
         Address m_address;
 
         double m_time;
 
         uint64_t m_flags;
 
-        void * m_context;
-
         void * m_userContext;
 
         uint32_t m_protocolId;
 
         Allocator * m_allocator;
-
-        Allocator * m_streamAllocator;
-
-        PacketFactory * m_packetFactory;
 
         PacketProcessor * m_packetProcessor;
 
@@ -270,7 +301,7 @@ namespace yojimbo
 
         EncryptionManager * m_encryptionManager;
 
-        ClientServerContextManager * m_clientServerContextManager;
+        TransportContextManager * m_contextManager;
 
         bool m_allocateNetworkSimulator;
 

@@ -2,9 +2,26 @@ WOULD BE NICE
 
     ------------------
 
-    ContextManager is overly complicated. All it needs is to know the ClientServerContext type, and provide a map from address to the corresponding context.
+    I strongly dislike the current context setup. Think it through, and come up with something better.
 
-    It doesn't need to duplicate what is in the context, and then point to void* data. Unify the context. Rename ContextManager to ClientServerContextManager etc.
+    I like the idea of a global context, and a per-client context. If a client context is not found, fall back to the global context.
+
+    I *dislike* the current idea of having connection specific stuff known to the transport, eg. ConnectionContext derived context.
+
+    So there could be the concept of a *transport* context.
+
+    This would just have what the transport needs:
+
+        1. Allocator
+        2. Packet Factory
+        3. Optional: Replay Protection
+        4. Optional: MTU Implementation (todo)
+
+    I like this idea because if the transport has this, it gives me a way to pass this data to the transport, even if I'm not doing connection and messages.
+
+    This is why it's important to separate this stuff from the message and client/server context.
+
+    In fact, why not set client server context and connection context, and just make these pointers under transport context?
 
     ------------------
 
