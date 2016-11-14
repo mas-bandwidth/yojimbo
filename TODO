@@ -4,10 +4,6 @@ TODO
 
     ------------------
 
-    Finish unit testing replay protection.
-
-    ------------------
-
     Hook up replay protection to encryption mapping, one instance per.
 
     ------------------

@@ -39,7 +39,7 @@ namespace yojimbo
             Reset( 0 );
         }
 
-        void Reset( uint64_t mostRecentSequence )
+        void Reset( uint64_t mostRecentSequence = 0LL )
         {
             m_mostRecentSequence = mostRecentSequence;
             memset( m_receivedPacket, 0xFF, sizeof( m_receivedPacket ) );
@@ -47,7 +47,7 @@ namespace yojimbo
 
         bool PacketAlreadyReceived( uint64_t sequence )
         {
-            if ( sequence <= m_mostRecentSequence - ReplayProtectionBufferSize )
+            if ( sequence + ReplayProtectionBufferSize <= m_mostRecentSequence )
                 return true;
 
             if ( sequence > m_mostRecentSequence )
@@ -64,8 +64,12 @@ namespace yojimbo
             if ( m_receivedPacket[index] >= sequence )
                 return true;
 
+            m_receivedPacket[index] = sequence;
+
             return false;
         }
+
+        uint64_t GetMostRecentSequence() const { return m_mostRecentSequence; }
 
     protected:
 

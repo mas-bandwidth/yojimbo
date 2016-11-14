@@ -856,7 +856,6 @@ namespace yojimbo
             return;
 
 #if YOJIMBO_INSECURE_CONNECT
-        // todo: m_insecure
         if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT && packet.clientSalt != m_clientSalt )
         {
             debug_printf( "client salt mismatch: expected %" PRIx64 ", got %" PRIx64 "\n", m_clientSalt, packet.clientSalt );

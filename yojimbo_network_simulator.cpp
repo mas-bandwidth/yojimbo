@@ -166,7 +166,7 @@ namespace yojimbo
         double delay = m_latency / 1000.0;
 
         if ( m_jitter > 0 )
-            delay += random_float( -m_jitter, +m_jitter ) / 1000.0;
+            delay += random_float( 0, +m_jitter ) / 1000.0;
 
         packetEntry.from = from;
         packetEntry.to = to;
@@ -188,7 +188,7 @@ namespace yojimbo
             nextPacketEntry.to = to;
             nextPacketEntry.packetData = duplicatePacketData;
             nextPacketEntry.packetSize = packetSize;
-            nextPacketEntry.deliveryTime = m_time + delay + random_float( -1.0, +1.0 );
+            nextPacketEntry.deliveryTime = m_time + delay + random_float( 0.0, +1.0 );
 
             m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
         }

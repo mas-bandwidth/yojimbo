@@ -2859,6 +2859,41 @@ void test_sequence_buffer()
         check( sequence_buffer.Find(i) == NULL );
 }
 
+void test_replay_protection()
+{
+    printf( "test_replay_protection\n" );
+
+    ReplayProtection replayProtection;
+
+    for ( int i = 0; i < 2; ++i )
+    {
+        check( replayProtection.GetMostRecentSequence() == 0 );
+
+        const uint64_t MaxSequence = 1000;
+
+        for ( uint64_t sequence = 0; sequence < MaxSequence; ++sequence )
+        {
+            check( replayProtection.PacketAlreadyReceived( sequence ) == false );
+        }
+
+        check( replayProtection.PacketAlreadyReceived( 0 ) == true );
+
+        for ( uint64_t sequence = MaxSequence - 10; sequence < MaxSequence; ++sequence )
+        {
+            check( replayProtection.PacketAlreadyReceived( sequence ) == true );
+        }
+
+        check( replayProtection.PacketAlreadyReceived( MaxSequence + ReplayProtectionBufferSize ) == false );
+
+        for ( uint64_t sequence = 0; sequence < MaxSequence; ++sequence )
+        {
+            check( replayProtection.PacketAlreadyReceived( sequence ) == true );
+        }
+
+        replayProtection.Reset();
+    }
+}
+
 void test_generate_ack_bits()
 {
     printf( "test_generate_ack_bits\n" );
@@ -4438,6 +4473,7 @@ int main()
         test_matcher();
         test_bit_array();
         test_sequence_buffer();
+        test_replay_protection();
         test_generate_ack_bits();
         test_connection_counters();
         test_connection_acks();

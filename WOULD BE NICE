@@ -2,6 +2,10 @@ WOULD BE NICE
 
     ------------------
 
+    Would be nice to check the size, file and line # in the free entry matches the pointer passed in.
+
+    ------------------
+
     There is a lot of code duplication between the default allocator and TLSF allocator for #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
     It would be nice if this code was not duplicated. For example, it could be made part of the base allocator
@@ -18,7 +22,7 @@ WOULD BE NICE
 
     ------------------
 
-    There is no test currently that checks that a client can connect, disconnect, and reconnect and send messages successfully. 
+    There is no test currently that checks that a client can connect, disconnect, and reconnect and send messages successfully post-reconnection.
 
     This is necessary to ensure that the connection state is properly cleaned up after a client disconnect.
 

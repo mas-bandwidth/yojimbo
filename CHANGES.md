@@ -100,6 +100,8 @@ Added __FILE__ and __LINE__ to Allocator::Free as well, and macro YOJIMBO_FREE.
 
 This will come in handy if I ever need to print out sequence of allocate/free with file/line#, plus it provides an incentive to always use the macro.
 
+Added unit test for replay protection.
+
 
 Saturday November 12th, 2016
 ============================
