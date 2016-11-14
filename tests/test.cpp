@@ -3125,7 +3125,6 @@ void test_connection_reliable_ordered_messages()
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
     TestConnection sender( packetFactory, messageFactory, connectionConfig );
-
     TestConnection receiver( packetFactory, messageFactory, connectionConfig );
 
     ConnectionContext connectionContext;
@@ -3200,8 +3199,6 @@ void test_connection_reliable_ordered_messages()
     check( numMessagesReceived == NumMessagesSent );
 }
 
-#if 0
-
 void test_connection_reliable_ordered_blocks()
 {
     printf( "test_connection_reliable_ordered_blocks\n" );
@@ -3214,12 +3211,11 @@ void test_connection_reliable_ordered_blocks()
     connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
     TestConnection sender( packetFactory, messageFactory, connectionConfig );
-
     TestConnection receiver( packetFactory, messageFactory, connectionConfig );
 
-    ConnectionContext context;
-    context.messageFactory = &messageFactory;
-    context.connectionConfig = &connectionConfig;
+    ConnectionContext connectionContext;
+    connectionContext.messageFactory = &messageFactory;
+    connectionContext.connectionConfig = &connectionConfig;
 
     const int NumMessagesSent = 32;
 
@@ -3251,14 +3247,14 @@ void test_connection_reliable_ordered_blocks()
 
     double time = 100.0;
 
+    TransportContext transportContext( GetDefaultAllocator(), packetFactory );
+    transportContext.connectionContext = &connectionContext;
+
     LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
     LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
-    senderTransport.SetPacketFactory( packetFactory );
-    receiverTransport.SetPacketFactory( packetFactory );
-
-    senderTransport.SetContext( &context );
-    receiverTransport.SetContext( &context );
+    senderTransport.SetContext( transportContext );
+    receiverTransport.SetContext( transportContext );
     
     const int NumIterations = 10000;
 
@@ -3323,9 +3319,9 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
     TestConnection receiver( packetFactory, messageFactory, connectionConfig );
 
-    ConnectionContext context;
-    context.messageFactory = &messageFactory;
-    context.connectionConfig = &connectionConfig;
+    ConnectionContext connectionContext;
+    connectionContext.messageFactory = &messageFactory;
+    connectionContext.connectionConfig = &connectionConfig;
 
     const int NumMessagesSent = 32;
 
@@ -3367,14 +3363,14 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
     double time = 100.0;
     
+    TransportContext transportContext( GetDefaultAllocator(), packetFactory );
+    transportContext.connectionContext = &connectionContext;
+
     LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
     LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
-    senderTransport.SetPacketFactory( packetFactory );
-    receiverTransport.SetPacketFactory( packetFactory );
-
-    senderTransport.SetContext( &context );
-    receiverTransport.SetContext( &context );
+    senderTransport.SetContext( transportContext );
+    receiverTransport.SetContext( transportContext );
 
     const int NumIterations = 10000;
 
@@ -3461,9 +3457,9 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
     TestConnection receiver( packetFactory, messageFactory, connectionConfig );
 
-    ConnectionContext context;
-    context.messageFactory = &messageFactory;
-    context.connectionConfig = &connectionConfig;
+    ConnectionContext connectionContext;
+    connectionContext.messageFactory = &messageFactory;
+    connectionContext.connectionConfig = &connectionConfig;
 
     const int NumMessagesSent = 32;
 
@@ -3508,14 +3504,14 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
     double time = 100.0;
     
+    TransportContext transportContext( GetDefaultAllocator(), packetFactory );
+    transportContext.connectionContext = &connectionContext;
+
     LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
     LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
-    senderTransport.SetPacketFactory( packetFactory );
-    receiverTransport.SetPacketFactory( packetFactory );
-
-    senderTransport.SetContext( &context );
-    receiverTransport.SetContext( &context );
+    senderTransport.SetContext( transportContext );
+    receiverTransport.SetContext( transportContext );
 
     const int NumIterations = 10000;
 
@@ -3614,9 +3610,9 @@ void test_connection_unreliable_unordered_messages()
     TestConnection sender( packetFactory, messageFactory, connectionConfig );
     TestConnection receiver( packetFactory, messageFactory, connectionConfig );
 
-    ConnectionContext context;
-    context.messageFactory = &messageFactory;
-    context.connectionConfig = &connectionConfig;
+    ConnectionContext connectionContext;
+    connectionContext.messageFactory = &messageFactory;
+    connectionContext.connectionConfig = &connectionConfig;
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
@@ -3628,14 +3624,14 @@ void test_connection_unreliable_unordered_messages()
 
     double time = 100.0;
    
+    TransportContext transportContext( GetDefaultAllocator(), packetFactory );
+    transportContext.connectionContext = &connectionContext;
+
     LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
     LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
-    senderTransport.SetPacketFactory( packetFactory );
-    receiverTransport.SetPacketFactory( packetFactory );
-
-    senderTransport.SetContext( &context );
-    receiverTransport.SetContext( &context );
+    senderTransport.SetContext( transportContext );
+    receiverTransport.SetContext( transportContext );
 
     const int NumIterations = 256;
 
@@ -3697,9 +3693,9 @@ void test_connection_unreliable_unordered_blocks()
 
     TestConnection receiver( packetFactory, messageFactory, connectionConfig );
 
-    ConnectionContext context;
-    context.messageFactory = &messageFactory;
-    context.connectionConfig = &connectionConfig;
+    ConnectionContext connectionContext;
+    connectionContext.messageFactory = &messageFactory;
+    connectionContext.connectionConfig = &connectionConfig;
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
@@ -3711,14 +3707,14 @@ void test_connection_unreliable_unordered_blocks()
 
     double time = 100.0;
     
+    TransportContext transportContext( GetDefaultAllocator(), packetFactory );
+    transportContext.connectionContext = &connectionContext;
+
     LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
     LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
 
-    senderTransport.SetPacketFactory( packetFactory );
-    receiverTransport.SetPacketFactory( packetFactory );
-
-    senderTransport.SetContext( &context );
-    receiverTransport.SetContext( &context );
+    senderTransport.SetContext( transportContext );
+    receiverTransport.SetContext( transportContext );
 
     const int NumIterations = 256;
 
@@ -4427,8 +4423,6 @@ void test_client_server_message_receive_queue_full()
     server.Stop();
 }
 
-#endif // #if 0
-
 int main()
 {
     srand( time( NULL ) );
@@ -4492,7 +4486,6 @@ int main()
         test_connection_counters();
         test_connection_acks();
         test_connection_reliable_ordered_messages();
-        /*
         test_connection_reliable_ordered_blocks();
         test_connection_reliable_ordered_messages_and_blocks();
         test_connection_reliable_ordered_messages_and_blocks_multiple_channels();
@@ -4504,7 +4497,6 @@ int main()
         test_client_server_message_failed_to_serialize_unreliable_unordered();
         test_client_server_message_exhaust_stream_allocator();
         test_client_server_message_receive_queue_full();
-        */
 
 #if SOAK
         if ( quit )

@@ -1,7 +1,5 @@
 DONE    
 
-    4. Server needs "TransportContext m_globalTransportContext" which points to stuff transport needs (allocator, packet factory, but nothing else) (done)
-
 TODO
 
     5. Server needs "ConnectionContext m_clientConnectionContext[MaxClients]"

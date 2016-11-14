@@ -40,6 +40,8 @@ What I need to do now:
 
 3. Client needs to make sure replay protection gets reset between connections (done)
 
+4. Server needs "TransportContext m_globalTransportContext" which points to stuff transport needs (allocator, packet factory, but nothing else) (done)
+
 The client is now connecting properly. I still need to setup the per-client contexts though.
 
 Enable all tests, they should all pass, even though the global context is being used for all packets.
@@ -47,6 +49,10 @@ Enable all tests, they should all pass, even though the global context is being 
 Some work required to get transport context and connection context setup for connection related tests.
 
 Fixed multiple server connections from client. Was missing code to clean m_lastPacketSendTime, m_lastPacketReceiveTime on subsequent connects.
+
+OK. Got remaining tests converted over. Only conks out now when it needs a message factory (as expected, per-client context are not setup).
+
+Up next, convert across the per-client contexts.
 
 
 Sunday November 13th, 2016
