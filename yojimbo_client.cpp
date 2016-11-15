@@ -60,6 +60,8 @@ namespace yojimbo
         memset( m_connectTokenNonce, 0, sizeof( m_connectTokenNonce ) );
         memset( m_challengeTokenData, 0, sizeof( m_challengeTokenData ) );
         memset( m_challengeTokenNonce, 0, sizeof( m_challengeTokenNonce ) );
+        memset( m_clientToServerKey, 0, sizeof( m_clientToServerKey ) );
+        memset( m_serverToClientKey, 0, sizeof( m_serverToClientKey ) );
     }
 
     void Client::CreateAllocators()

@@ -198,9 +198,7 @@ namespace yojimbo
     {
         int numPackets = 0;
 
-        maxPackets = min( maxPackets, m_numPendingReceivePackets );
-
-        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
+        for ( int i = 0; i < min( maxPackets, m_numPendingReceivePackets ); ++i )
         {
             if ( !m_pendingReceivePackets[i].packetData )
                 continue;
@@ -222,9 +220,7 @@ namespace yojimbo
     {
         int numPackets = 0;
 
-        maxPackets = min( maxPackets, m_numPendingReceivePackets );
-
-        for ( int i = 0; i < m_numPendingReceivePackets; ++i )
+        for ( int i = 0; i < min( maxPackets, m_numPendingReceivePackets ); ++i )
         {
             if ( !m_pendingReceivePackets[i].packetData )
                 continue;
