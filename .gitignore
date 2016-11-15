@@ -16,6 +16,7 @@ Makefile
 *.7z
 *.zip
 *.tar.gz
+*.sublime-*
 
 # Directories we don't ever want to commit
 bin

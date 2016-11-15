@@ -305,6 +305,15 @@ if not os.is "windows" then
         end
     }
 
+    newaction
+    {
+        trigger     = "sublime",
+        description = "Create sublime project",
+        execute = function ()
+            os.execute "cp .sublime-template yojimbo.sublime-project"
+        end
+    }
+
 else
 
     -- Windows
