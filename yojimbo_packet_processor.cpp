@@ -201,23 +201,12 @@ namespace yojimbo
 
             sequence = decompress_packet_sequence( prefixByte, packetData + 1 );
 
-            (void) replayProtection;
-
-            // todo: sort out replay protection
-            /*
-            if ( replayProtection )
+            if ( replayProtection && replayProtection->PacketAlreadyReceived( sequence ) )
             {
-                if ( replayProtection->PacketAlreadyReceived( sequence ) )
-                {
-//                    printf( "packet %" PRIx64 " already received\n", sequence );
-                    return NULL;
-                }
-                else
-                {
-                    //printf( "packet %" PRIx64 " accepted\n", sequence );
-                }
+                debug_printf( "packet processor (read packet): packet already received - replay protection\n" );
+                m_error = PACKET_PROCESSOR_ERROR_PACKET_ALREADY_RECEIVED;
+                return NULL;
             }
-            */
 
             int decryptedPacketBytes;
 
@@ -239,7 +228,6 @@ namespace yojimbo
             int readError;
             
             Packet * packet = yojimbo::ReadPacket( info, m_scratchBuffer, decryptedPacketBytes, &readError );
-
             if ( !packet )
             {
                 debug_printf( "packet processor (read packet): read packet failed\n" );

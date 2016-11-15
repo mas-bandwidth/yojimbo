@@ -2879,26 +2879,44 @@ void test_replay_protection()
     {
         check( replayProtection.GetMostRecentSequence() == 0 );
 
-        const uint64_t MaxSequence = 1000;
+        // sequence numbers with high bit set should be ignored
+
+        check( replayProtection.PacketAlreadyReceived( 1LL<<63 ) == false );
+
+        check( replayProtection.GetMostRecentSequence() == 0 );
+
+        // the first time we receive packets, they should not be already received
+
+        const uint64_t MaxSequence = ReplayProtectionBufferSize * 4;
 
         for ( uint64_t sequence = 0; sequence < MaxSequence; ++sequence )
         {
             check( replayProtection.PacketAlreadyReceived( sequence ) == false );
         }
 
+        // old packets outside buffer should be considered already received
+
         check( replayProtection.PacketAlreadyReceived( 0 ) == true );
+
+        // packets received a second time should be flagged already received
 
         for ( uint64_t sequence = MaxSequence - 10; sequence < MaxSequence; ++sequence )
         {
             check( replayProtection.PacketAlreadyReceived( sequence ) == true );
         }
 
+        // jumping ahead to a much higher sequence should be considered not already received
+
         check( replayProtection.PacketAlreadyReceived( MaxSequence + ReplayProtectionBufferSize ) == false );
+
+        // old packets should be considered already received
 
         for ( uint64_t sequence = 0; sequence < MaxSequence; ++sequence )
         {
             check( replayProtection.PacketAlreadyReceived( sequence ) == true );
         }
+
+        // reset and repeat
 
         replayProtection.Reset();
     }

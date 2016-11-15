@@ -43,7 +43,7 @@ namespace yojimbo
         m_maxClients = -1;
         m_numConnectedClients = 0;
         m_challengeTokenNonce = 0;
-        m_globalSequence = 0;
+        m_globalSequence = 1LL<<63;
         m_globalPacketFactory = NULL;
         memset( m_privateKey, 0, KeyBytes );
         memset( m_clientMemory, 0, sizeof( m_clientMemory ) );
@@ -148,7 +148,19 @@ namespace yojimbo
             }
         }
 
-        // todo: setup per-client contexts
+        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
+        {
+            m_clientTransportContext[clientIndex].allocator = m_clientAllocator[clientIndex];
+            m_clientTransportContext[clientIndex].packetFactory = m_clientPacketFactory[clientIndex];
+            m_clientTransportContext[clientIndex].replayProtection = m_clientReplayProtection[clientIndex];
+
+            if ( m_allocateConnections )
+            {
+                m_clientConnectionContext[clientIndex].connectionConfig = &m_config.connectionConfig;
+                m_clientConnectionContext[clientIndex].messageFactory = m_clientMessageFactory[clientIndex];
+                m_clientTransportContext[clientIndex].connectionContext = &m_clientConnectionContext[clientIndex];
+            }
+        }     
 
         SetEncryptedPacketTypes();
 
@@ -783,12 +795,11 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketSendTime = time;
         m_clientData[clientIndex].lastPacketReceiveTime = time;
         m_clientData[clientIndex].fullyConnected = false;
+#if YOJIMBO_INSECURE_CONNECT
         m_clientData[clientIndex].insecure = false;
+#endif // #if YOJIMBO_INSECURE_CONNECT
 
-        // todo: setup transport context per-client
-        /*
-        m_transport->AddContextMapping( clientAddress, &m_clientContext[clientIndex] );
-        */
+        m_transport->AddContextMapping( clientAddress, m_clientTransportContext[clientIndex] );
 
         OnClientConnect( clientIndex );
 

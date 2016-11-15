@@ -54,6 +54,48 @@ OK. Got remaining tests converted over. Only conks out now when it needs a messa
 
 Up next, convert across the per-client contexts.
 
+5. Server needs "ConnectionContext m_clientConnectionContext[MaxClients]" (done)
+
+6. Server needs "TransportContext m_clientTransportContext[MaxClients]" with per-client allocator, packet factory, message factory (if applicable), connection context (if applicable) (donE)
+
+It's all working, the context is much simpler, and we now have access to a per-client context replay protection (rather than per-encryption mapping).
+
+All tests pass. Moving back to replay protection.
+
+Debug what is going on with the replay protection?
+
+Why is it slowing down connects?
+
+Does this still happen with the new per-client context replay protection?
+
+Confired that with replay protection disabled, the client connect is fine.
+
+Now try turning it back on. Does it break connections again?
+
+It's still broken. Need to debug what's going on.
+
+It seems that the client doesn't discard any packets from replay protection. So somehow the server is discarding replay protection packets and breaking everything.
+
+It feels a lot like the most recent sequence is getting set to a high value and not reset on connection. I'm not sure how.
+
+Maybe the server is not setting sequence to 0 for each client?
+
+No, it's much simpler.
+
+The challenge packets are sent out encrypted, but with a "global" sequence.
+
+Therefore, I need to identify packets types that should have replay protection.
+
+In short, I need to exempt any packets sent via global sequence # (connection establish packets), from being considered for replay protection.
+
+Once this is done, then everything will work fine. This is the error. No need to increase replay protection buffer size.
+
+Marking global server packets with high bit set to 1 (eg. 1<<63), this way at the sequence level, I can ignore these packets wrt. replay protection.
+
+Add unit test to verify they are ignored properly.
+
+Everything is working pretty great. Time to stop and make a release. Adding the MTU fragmentation and reassembly should be much easier now that there is a generic per-client transport context available. Fixing this was a good call.
+
 
 Sunday November 13th, 2016
 ==========================

@@ -351,7 +351,7 @@ namespace yojimbo
 
         TransportContext m_clientTransportContext[MaxClients];              // transport context for reading and writing packets that belong to connected clients.
 
-        ConnectionContext m_connectionContext[MaxClients];                  // connection context for reading and writing connection packets (messages) for connected clients.
+        ConnectionContext m_clientConnectionContext[MaxClients];            // connection context for reading and writing connection packets (messages) for connected clients.
 
         PacketFactory * m_globalPacketFactory;                              // packet factory for global packets (eg. conection request, challenge response packets prior to connection).
 

@@ -27,6 +27,9 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_allocator.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 namespace yojimbo
 {
@@ -47,9 +50,14 @@ namespace yojimbo
 
         bool PacketAlreadyReceived( uint64_t sequence )
         {
+            // IMPORTANT: Global server packets don't follow the same sequencing as per-client packets
+            // These packets are marked with high bit of sequence set to 1. Ignore them completely.
+            if ( sequence & ( 1LL << 63 ) )
+                return false;
+
             if ( sequence + ReplayProtectionBufferSize <= m_mostRecentSequence )
                 return true;
-
+            
             if ( sequence > m_mostRecentSequence )
                 m_mostRecentSequence = sequence;
 
@@ -63,7 +71,7 @@ namespace yojimbo
 
             if ( m_receivedPacket[index] >= sequence )
                 return true;
-
+            
             m_receivedPacket[index] = sequence;
 
             return false;

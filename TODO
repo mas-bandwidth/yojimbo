@@ -2,21 +2,8 @@ DONE
 
 TODO
 
-    5. Server needs "ConnectionContext m_clientConnectionContext[MaxClients]"
 
-    6. Server needs "TransportContext m_clientTransportContext[MaxClients]" with per-client allocator, packet factory, message factory (if applicable), connection context (if applicable)
-
-    Once this is working, the transition should be complex, and the context concept should be much simpler.
-
-    ------------------
-
-    Debug what is going on with the replay protection?
-
-    Why is it slowing down connects?
-
-    Does this still happen with the new per-client context replay protection?
-
-    ------------------
+    =========================================
 
     Run standard tests, make a new release.
 
