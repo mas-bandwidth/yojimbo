@@ -310,7 +310,7 @@ if not os.is "windows" then
         trigger     = "sublime",
         description = "Create sublime project",
         execute = function ()
-            os.execute "cp .sublime-template yojimbo.sublime-project"
+            os.execute "cp .sublime yojimbo.sublime-project"
         end
     }
 
