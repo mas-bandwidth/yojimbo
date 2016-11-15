@@ -43,7 +43,7 @@ namespace yojimbo
         m_maxClients = -1;
         m_numConnectedClients = 0;
         m_challengeTokenNonce = 0;
-        m_globalSequence = 1LL<<63;
+        m_globalSequence = 1ULL<<63;
         m_globalPacketFactory = NULL;
         memset( m_privateKey, 0, KeyBytes );
         memset( m_clientMemory, 0, sizeof( m_clientMemory ) );

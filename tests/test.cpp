@@ -2881,7 +2881,7 @@ void test_replay_protection()
 
         // sequence numbers with high bit set should be ignored
 
-        check( replayProtection.PacketAlreadyReceived( 1LL<<63 ) == false );
+        check( replayProtection.PacketAlreadyReceived( 1ULL<<63 ) == false );
 
         check( replayProtection.GetMostRecentSequence() == 0 );
 
