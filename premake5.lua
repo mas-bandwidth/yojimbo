@@ -288,15 +288,13 @@ if not os.is "windows" then
             _ACTION = "clean"
             premake.action.call( "clean" )
             files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker tests rapidjson windows"
-            os.execute( "rm -rf *.zip *.tar.gz *.7z" );
+            os.execute( "rm -rf *.zip *.tar.gz" );
             os.execute( "rm -rf docker/libyojimbo" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )
-            os.execute( "7z a -y -mx=9 -p\"panther moderns\" libyojimbo-" .. libyojimbo_version .. ".7z " .. files_to_zip )
             os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
             os.execute( "tar -zcvf libyojimbo-" .. libyojimbo_version .. ".tar.gz libyojimbo-" .. libyojimbo_version );
             os.execute( "rm -rf libyojimbo-" .. libyojimbo_version );
             os.execute( "mkdir -p release" );
-            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".7z release" );
             os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".zip release" );
             os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".tar.gz release" );
             os.execute( "echo" );
@@ -372,7 +370,6 @@ newaction
             "Makefile",
             "*.make",
             "*.txt",
-            "*.7z",
             "*.zip",
             "*.tar.gz",
             "*.db",
