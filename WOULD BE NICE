@@ -2,11 +2,17 @@ WOULD BE NICE
 
     ------------------
 
+    Should probably rename "connect" to "secure_client" because it's not obvious to users how to connect to a secure server.
+
+    ------------------
+
     Create a premake option to build with secure mode enabled.
 
-    Extend the jenkins job to build the library in debug and release with secure mode enabled, in addition to current set of tests.
+    Extend the jenkins job to build the library with secure mode enabled (in both debug and release), in addition to current set of tests (debug/release).
 
-    This way secure mode won't have compile errors in the future.
+    This way compile errors won't slip into secure mode unnoticed.
+
+    Easiest way to do this is to add new build configurations: debug, release, debug secure, release secure.
 
     ------------------
 
