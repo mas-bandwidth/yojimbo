@@ -1,4 +1,16 @@
 
+Sunday November 27th, 2016
+==========================
+
+Reworked test.cpp so that yojimbo initialize/shutdown is called around each test via a macro. 
+
+The benefit of this is that yojimbo checks for memory leaks on shutdown, so if a test leaks memory, it'll print out immediately after running that test that it leaked memory.
+
+This avoids needing to binary search to find the test that leaked memory.
+
+Also, used that macro to print out the test name, making it a bit easier to add new tests.
+
+
 Monday November 14th, 2016
 ==========================
 

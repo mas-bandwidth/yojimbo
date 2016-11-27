@@ -18,10 +18,6 @@ WOULD BE NICE
 
     ------------------
 
-    It would be nice if the allocators could check for memory leaks between each test run, that way, I'd know at the end of each unit test if memory was leaked, rather than needing to binary search tests to find out which test leaked memory.
-
-    ------------------
-
     Add a test for clients to connect, without messages enabled, and then send no packets for timeout * 2 seconds. 
 
     This verifies that the keep-alive packets work.

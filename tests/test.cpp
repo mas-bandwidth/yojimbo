@@ -78,8 +78,6 @@ do                                                                             \
 
 void test_endian()
 {
-    printf( "test_endian\n" );
-
     uint32_t value = 0x11223344;
 
     const char * bytes = (const char*) &value;
@@ -103,8 +101,6 @@ void test_endian()
 
 void test_queue()
 {
-    printf( "test_queue\n" );
-
     const int QueueSize = 1024;
 
     Queue<int> queue( GetDefaultAllocator(), QueueSize );
@@ -153,8 +149,6 @@ void test_queue()
 
 void test_base64()
 {
-    printf( "test_base64\n" );
-
     const int BufferSize = 256;
 
     char input[BufferSize];
@@ -191,8 +185,6 @@ void test_base64()
 
 void test_bitpacker()
 {
-    printf( "test_bitpacker\n" );
-
     const int BufferSize = 256;
 
     uint8_t buffer[BufferSize];
@@ -362,8 +354,6 @@ struct TestObject : public Serializable
 
 void test_stream()
 {
-    printf( "test_stream\n" );
-
     const int BufferSize = 1024;
 
     uint8_t buffer[BufferSize];
@@ -394,8 +384,6 @@ void test_stream()
 
 void test_packets()
 {
-    printf( "test_packets\n" );
-
     TestPacketFactory packetFactory;
 
     TestPacketA * a = (TestPacketA*) packetFactory.CreatePacket( TEST_PACKET_A );
@@ -417,8 +405,6 @@ void test_packets()
 
 void test_address_ipv4()
 {
-    printf( "test_address_ipv4\n" );
-
     char buffer[MaxAddressLength];
 
     {
@@ -488,8 +474,6 @@ inline uint16_t test_htons( uint16_t input )
 
 void test_address_ipv6()
 {
-    printf( "test_address_ipv6\n" );
-
     char buffer[MaxAddressLength];
 
     // without port numbers
@@ -627,42 +611,36 @@ void test_address_ipv6()
 
 void test_packet_sequence()
 {
-    printf( "test_packet_sequence\n" );
+    uint64_t sequence = 0x00001100223344;
 
-    {
-        uint64_t sequence = 0x00001100223344;
+    uint8_t prefix_byte;
+    uint8_t sequence_bytes[8];
+    int num_sequence_bytes;
 
-        uint8_t prefix_byte;
-        uint8_t sequence_bytes[8];
-        int num_sequence_bytes;
+    yojimbo::compress_packet_sequence( sequence, prefix_byte, num_sequence_bytes, sequence_bytes );
 
-        yojimbo::compress_packet_sequence( sequence, prefix_byte, num_sequence_bytes, sequence_bytes );
+    check( prefix_byte == ( 1 | (1<<1) | (1<<3) ) );
 
-        check( prefix_byte == ( 1 | (1<<1) | (1<<3) ) );
+    check( num_sequence_bytes == 4 );
 
-        check( num_sequence_bytes == 4 );
+    check( sequence_bytes[0] == 0x11 );
+    check( sequence_bytes[1] == 0x22 );
+    check( sequence_bytes[2] == 0x33 );
+    check( sequence_bytes[3] == 0x44 );
 
-        check( sequence_bytes[0] == 0x11 );
-        check( sequence_bytes[1] == 0x22 );
-        check( sequence_bytes[2] == 0x33 );
-        check( sequence_bytes[3] == 0x44 );
+    int decoded_num_sequence_bytes = yojimbo::get_packet_sequence_bytes( prefix_byte );
 
-        int decoded_num_sequence_bytes = yojimbo::get_packet_sequence_bytes( prefix_byte );
+    check( decoded_num_sequence_bytes == num_sequence_bytes );
 
-        check( decoded_num_sequence_bytes == num_sequence_bytes );
+    uint64_t decoded_sequence = yojimbo::decompress_packet_sequence( prefix_byte, sequence_bytes );
 
-        uint64_t decoded_sequence = yojimbo::decompress_packet_sequence( prefix_byte, sequence_bytes );
-
-        check( decoded_sequence == sequence );
-    }
+    check( decoded_sequence == sequence );
 }
 
 #include <sodium.h>
 
 void test_encrypt_and_decrypt()
 {
-    printf( "test_encrypt_and_decrypt\n" );
-
     using namespace yojimbo;
 
     uint8_t packet[1024];
@@ -711,8 +689,6 @@ void test_encrypt_and_decrypt()
 
 void test_encryption_manager()
 {
-    printf( "test_encryption_manager\n" );
-
     EncryptionManager encryptionManager;
 
     struct EncryptionMapping
@@ -838,8 +814,6 @@ void test_encryption_manager()
 
 void test_client_server_tokens()
 {
-    printf( "test_client_server_tokens\n" );
-
     uint8_t key[KeyBytes];
 
     uint64_t clientId = 1;
@@ -937,8 +911,6 @@ void test_client_server_tokens()
 
 void test_unencrypted_packets()
 {
-    printf( "test_unencrypted_packets\n" );
-
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
@@ -1005,8 +977,6 @@ void test_unencrypted_packets()
 
 void test_allocator_tlsf()
 {
-    printf( "test_allocator_tlsf\n" );
-
     const int NumBlocks = 256;
     const int BlockSize = 1024;
     const int MemorySize = NumBlocks * BlockSize;
@@ -1132,8 +1102,6 @@ void ConnectClient( Client & client, uint64_t clientId, const Address & serverAd
 
 void test_client_server_connect()
 {
-    printf( "test_client_server_connect\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -1187,8 +1155,6 @@ void test_client_server_connect()
 
 void test_client_server_reconnect()
 {
-    printf( "test_client_server_reconnect\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -1289,8 +1255,6 @@ void test_client_server_reconnect()
 
 void test_client_server_client_side_disconnect()
 {
-    printf( "test_client_server_client_side_disconnect\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -1364,8 +1328,6 @@ void test_client_server_client_side_disconnect()
 
 void test_client_server_server_side_disconnect()
 {
-    printf( "test_client_server_server_side_disconnect\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -1439,8 +1401,6 @@ void test_client_server_server_side_disconnect()
 
 void test_client_server_connection_request_timeout()
 {
-    printf( "test_client_server_connection_request_timeout\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -1481,8 +1441,6 @@ void test_client_server_connection_request_timeout()
 
 void test_client_server_connection_response_timeout()
 {
-    printf( "test_client_server_connection_response_timeout\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -1535,8 +1493,6 @@ void test_client_server_connection_response_timeout()
 
 void test_client_server_client_side_timeout()
 {
-    printf( "test_client_server_client_side_timeout\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -1608,8 +1564,6 @@ void test_client_server_client_side_timeout()
 
 void test_client_server_server_side_timeout()
 {
-    printf( "test_client_server_server_side_timeout\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -1753,8 +1707,6 @@ bool AnyClientDisconnected( int numClients, GameClient ** clients )
 
 void test_client_server_server_is_full()
 {
-    printf( "test_client_server_server_is_full\n" );
-
     GenerateKey( private_key );
 
     const int NumClients = 4;
@@ -1836,8 +1788,6 @@ void test_client_server_server_is_full()
 
 void test_client_server_connect_token_reuse()
 {
-    printf( "test_client_server_connect_token_reuse\n" );
-
     uint64_t clientId = 1;
 
     uint8_t connectTokenData[ConnectTokenBytes];
@@ -1958,8 +1908,6 @@ void test_client_server_connect_token_reuse()
 
 void test_client_server_connect_token_expired()
 {
-    printf( "test_client_server_connect_token_expired\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -2009,8 +1957,6 @@ void test_client_server_connect_token_expired()
 
 void test_client_server_connect_token_whitelist()
 {
-    printf( "test_client_server_connect_token_whitelist\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -2058,8 +2004,6 @@ void test_client_server_connect_token_whitelist()
 
 void test_client_server_connect_token_invalid()
 {
-    printf( "test_client_server_connect_token_invalid\n" );
-
     const uint64_t clientId = 1;
 
     uint8_t connectTokenData[ConnectTokenBytes];
@@ -2123,8 +2067,6 @@ void test_client_server_connect_token_invalid()
 
 void test_client_server_connect_address_already_connected()
 {
-    printf( "test_client_server_connect_address_already_connected\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -2203,8 +2145,6 @@ void test_client_server_connect_address_already_connected()
 
 void test_client_server_connect_client_id_already_connected()
 {
-    printf( "test_client_server_connect_client_id_already_connected\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -2285,8 +2225,6 @@ void test_client_server_connect_client_id_already_connected()
 
 void test_client_server_connect_multiple_servers()
 {
-    printf( "test_client_server_connect_multiple_servers\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -2348,8 +2286,6 @@ void test_client_server_connect_multiple_servers()
 
 void test_client_server_user_packets()
 {
-    printf( "test_client_server_user_packets\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -2430,8 +2366,6 @@ void test_client_server_user_packets()
 
 void test_client_server_insecure_connect()
 {
-    printf( "test_client_server_insecure_connect\n" );
-
     const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
@@ -2494,8 +2428,6 @@ void test_client_server_insecure_connect()
 
 void test_client_server_insecure_connect_multiple_servers()
 {
-    printf( "test_client_server_insecure_connect_multiple_servers\n" );
-
     const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
@@ -2566,8 +2498,6 @@ void test_client_server_insecure_connect_multiple_servers()
 
 void test_client_server_insecure_connect_timeout()
 {
-    printf( "test_client_server_insecure_connect_timeout\n" );
-
     const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
@@ -2608,8 +2538,6 @@ void test_client_server_insecure_connect_timeout()
 
 void test_client_server_insecure_secure_insecure_secure()
 {
-    printf( "test_client_server_insecure_secure_insecure_secure\n" );
-
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
@@ -2705,8 +2633,6 @@ void test_client_server_insecure_secure_insecure_secure()
 
 void test_matcher()
 {
-    printf( "test_matcher\n" );
-
     uint8_t key[] = { 0x60,0x6a,0xbe,0x6e,0xc9,0x19,0x10,0xea,0x9a,0x65,0x62,0xf6,0x6f,0x2b,0x30,0xe4,0x43,0x71,0xd6,0x2c,0xd1,0x99,0x27,0x26,0x6b,0x3c,0x60,0xf4,0xb7,0x15,0xab,0xa1 };
 
     // test base64 decrypt from matcher.go
@@ -2743,8 +2669,6 @@ void test_matcher()
 
 void test_bit_array()
 {
-    printf( "test_bit_array\n" );
-
     const int Size = 300;
 
     BitArray bit_array( GetDefaultAllocator(), Size );
@@ -2830,8 +2754,6 @@ struct TestSequenceData
 
 void test_sequence_buffer()
 {
-    printf( "test_sequence_buffer\n" );
-
     const int Size = 256;
 
     SequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
@@ -2871,8 +2793,6 @@ void test_sequence_buffer()
 
 void test_replay_protection()
 {
-    printf( "test_replay_protection\n" );
-
     ReplayProtection replayProtection;
 
     for ( int i = 0; i < 2; ++i )
@@ -2924,8 +2844,6 @@ void test_replay_protection()
 
 void test_generate_ack_bits()
 {
-    printf( "test_generate_ack_bits\n" );
-
     const int Size = 256;
 
     SequenceBuffer<TestSequenceData> received_packets( GetDefaultAllocator(), Size );
@@ -2981,8 +2899,6 @@ public:
 
 void test_connection_counters()
 {
-    printf( "test_connection_counters\n" );
-
     TestPacketFactory packetFactory;
 
     TestMessageFactory messageFactory;
@@ -3016,8 +2932,6 @@ void test_connection_counters()
 
 void test_connection_acks()
 {
-    printf( "test_connection_acks\n" );
-
     const int NumIterations = 10 * 1024;
 
     int receivedPackets[NumIterations];
@@ -3133,8 +3047,6 @@ void PumpConnectionUpdate( double & time, Connection & sender, Connection & rece
 
 void test_connection_reliable_ordered_messages()
 {
-    printf( "test_connection_reliable_ordered_messages\n" );
-
     TestPacketFactory packetFactory;
 
     TestMessageFactory messageFactory;
@@ -3219,8 +3131,6 @@ void test_connection_reliable_ordered_messages()
 
 void test_connection_reliable_ordered_blocks()
 {
-    printf( "test_connection_reliable_ordered_blocks\n" );
-
     TestPacketFactory packetFactory;
 
     TestMessageFactory messageFactory;
@@ -3324,8 +3234,6 @@ void test_connection_reliable_ordered_blocks()
 
 void test_connection_reliable_ordered_messages_and_blocks()
 {
-    printf( "test_connection_reliable_ordered_messages_and_blocks\n" );
-
     TestPacketFactory packetFactory;
 
     TestMessageFactory messageFactory;
@@ -3455,8 +3363,6 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
 void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 {
-    printf( "test_connection_reliable_ordered_messages_and_blocks_multiple_channels\n" );
-
     const int NumChannels = 2;
 
     TestPacketFactory packetFactory;
@@ -3614,8 +3520,6 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
 void test_connection_unreliable_unordered_messages()
 {
-    printf( "test_connection_unreliable_unordered_messages\n" );
-
     TestPacketFactory packetFactory;
 
     TestMessageFactory messageFactory;
@@ -3696,8 +3600,6 @@ void test_connection_unreliable_unordered_messages()
 
 void test_connection_unreliable_unordered_blocks()
 {
-    printf( "test_connection_unreliable_unordered_blocks\n" );
-
     TestPacketFactory packetFactory;
 
     TestMessageFactory messageFactory;
@@ -3953,8 +3855,6 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
 
 void test_client_server_messages()
 {
-    printf( "test_client_server_messages\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -4042,8 +3942,6 @@ void test_client_server_messages()
 
 void test_client_server_start_stop_restart()
 {
-    printf( "test_client_server_start_stop_restart\n" );
-
     GenerateKey( private_key );
 
     ClientServerConfig clientServerConfig;
@@ -4110,8 +4008,6 @@ void test_client_server_start_stop_restart()
 
 void test_client_server_message_failed_to_serialize_reliable_ordered()
 {
-    printf( "test_client_server_message_failed_to_serialize_reliable_ordered\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -4192,8 +4088,6 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
 
 void test_client_server_message_failed_to_serialize_unreliable_unordered()
 {
-    printf( "test_client_server_message_failed_to_serialize_unreliable_unordered\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -4271,8 +4165,6 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
 
 void test_client_server_message_exhaust_stream_allocator()
 {
-    printf( "test_client_server_message_exhaust_stream_allocator\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -4350,8 +4242,6 @@ void test_client_server_message_exhaust_stream_allocator()
 
 void test_client_server_message_receive_queue_full()
 {
-    printf( "test_client_server_message_receive_queue_full\n" );
-
     GenerateKey( private_key );
 
     const uint64_t clientId = 1;
@@ -4441,80 +4331,88 @@ void test_client_server_message_receive_queue_full()
     server.Stop();
 }
 
+#define RUN_TEST( test_function )                                           \
+    do                                                                      \
+    {                                                                       \
+        printf( #test_function "\n" );                                      \
+        if ( !InitializeYojimbo() )                                         \
+        {                                                                   \
+            printf( "error: failed to initialize yojimbo\n" );              \
+            exit( 1 );                                                      \
+        }                                                                   \
+        test_function();                                                    \
+        ShutdownYojimbo();                                                  \
+    }                                                                       \
+    while (0)                                                                                                     
+
 int main()
 {
     srand( time( NULL ) );
 
     printf( "\n" );
  
-    if ( !InitializeYojimbo() )
-    {
-        printf( "error: failed to initialize yojimbo\n" );
-        exit( 1 );
-    }
-
 #if SOAK
     signal( SIGINT, interrupt_handler );    
     int iter = 0;
     while ( true )
 #endif // #if SOAK
     {
-        test_endian();
-        test_queue();
-        test_base64();
-        test_bitpacker();
-        test_stream();
-        test_packets();
-        test_address_ipv4();
-        test_address_ipv6();
-        test_packet_sequence();
-        test_encrypt_and_decrypt();
-        test_encryption_manager();
-        test_unencrypted_packets();
-        test_allocator_tlsf();
-        test_client_server_tokens();
-        test_client_server_connect();
-        test_client_server_reconnect();
-        test_client_server_client_side_disconnect();
-        test_client_server_server_side_disconnect();
-        test_client_server_connection_request_timeout();
-        test_client_server_connection_response_timeout();
-        test_client_server_client_side_timeout();
-        test_client_server_server_side_timeout();
-        test_client_server_server_is_full();
-        test_client_server_connect_token_reuse();
-        test_client_server_connect_token_expired();
-        test_client_server_connect_token_whitelist();
-        test_client_server_connect_token_invalid();
-        test_client_server_connect_address_already_connected();
-        test_client_server_connect_client_id_already_connected();
-        test_client_server_connect_multiple_servers();
-        test_client_server_user_packets();
+        RUN_TEST( test_endian );
+        RUN_TEST( test_queue );
+        RUN_TEST( test_base64 );
+        RUN_TEST( test_bitpacker );
+        RUN_TEST( test_stream );
+        RUN_TEST( test_packets );
+        RUN_TEST( test_address_ipv4 );
+        RUN_TEST( test_address_ipv6 );
+        RUN_TEST( test_packet_sequence );
+        RUN_TEST( test_encrypt_and_decrypt );
+        RUN_TEST( test_encryption_manager );
+        RUN_TEST( test_unencrypted_packets );
+        RUN_TEST( test_allocator_tlsf );
+        RUN_TEST( test_client_server_tokens );
+        RUN_TEST( test_client_server_connect );
+        RUN_TEST( test_client_server_reconnect );
+        RUN_TEST( test_client_server_client_side_disconnect );
+        RUN_TEST( test_client_server_server_side_disconnect );
+        RUN_TEST( test_client_server_connection_request_timeout );
+        RUN_TEST( test_client_server_connection_response_timeout );
+        RUN_TEST( test_client_server_client_side_timeout );
+        RUN_TEST( test_client_server_server_side_timeout );
+        RUN_TEST( test_client_server_server_is_full );
+        RUN_TEST( test_client_server_connect_token_reuse );
+        RUN_TEST( test_client_server_connect_token_expired );
+        RUN_TEST( test_client_server_connect_token_whitelist );
+        RUN_TEST( test_client_server_connect_token_invalid );
+        RUN_TEST( test_client_server_connect_address_already_connected );
+        RUN_TEST( test_client_server_connect_client_id_already_connected );
+        RUN_TEST( test_client_server_connect_multiple_servers );
+        RUN_TEST( test_client_server_user_packets );
 #if YOJIMBO_INSECURE_CONNECT
-        test_client_server_insecure_connect();
-        test_client_server_insecure_connect_multiple_servers();
-        test_client_server_insecure_connect_timeout();
-        test_client_server_insecure_secure_insecure_secure();
+        RUN_TEST( test_client_server_insecure_connect );
+        RUN_TEST( test_client_server_insecure_connect_multiple_servers );
+        RUN_TEST( test_client_server_insecure_connect_timeout );
+        RUN_TEST( test_client_server_insecure_secure_insecure_secure );
 #endif // #if YOJIMBO_INSECURE_CONNECT
-        test_matcher();
-        test_bit_array();
-        test_sequence_buffer();
-        test_replay_protection();
-        test_generate_ack_bits();
-        test_connection_counters();
-        test_connection_acks();
-        test_connection_reliable_ordered_messages();
-        test_connection_reliable_ordered_blocks();
-        test_connection_reliable_ordered_messages_and_blocks();
-        test_connection_reliable_ordered_messages_and_blocks_multiple_channels();
-        test_connection_unreliable_unordered_messages();
-        test_connection_unreliable_unordered_blocks();
-        test_client_server_messages();
-        test_client_server_start_stop_restart();
-        test_client_server_message_failed_to_serialize_reliable_ordered();
-        test_client_server_message_failed_to_serialize_unreliable_unordered();
-        test_client_server_message_exhaust_stream_allocator();
-        test_client_server_message_receive_queue_full();
+        RUN_TEST( test_matcher );
+        RUN_TEST( test_bit_array );
+        RUN_TEST( test_sequence_buffer );
+        RUN_TEST( test_replay_protection );
+        RUN_TEST( test_generate_ack_bits );
+        RUN_TEST( test_connection_counters );
+        RUN_TEST( test_connection_acks );
+        RUN_TEST( test_connection_reliable_ordered_messages );
+        RUN_TEST( test_connection_reliable_ordered_blocks );
+        RUN_TEST( test_connection_reliable_ordered_messages_and_blocks );
+        RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
+        RUN_TEST( test_connection_unreliable_unordered_messages );
+        RUN_TEST( test_connection_unreliable_unordered_blocks );
+        RUN_TEST( test_client_server_messages );
+        RUN_TEST( test_client_server_start_stop_restart );
+        RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
+        RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
+        RUN_TEST( test_client_server_message_exhaust_stream_allocator );
+        RUN_TEST( test_client_server_message_receive_queue_full );
 
 #if SOAK
         if ( quit )
@@ -4533,8 +4431,6 @@ int main()
 #else // #if SOAK
         printf( "\n*** ALL TESTS PASS ***\n\n" );
 #endif // #if SOAK
-
-    ShutdownYojimbo();
 
     return 0;
 }

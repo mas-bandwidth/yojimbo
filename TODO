@@ -4,10 +4,6 @@ TODO
 
     =========================================
 
-    Run standard tests, make a new release.
-
-    =========================================
-
     Packet fragmentation and reassembly.
 
     Definitely needed for large snapshot blocks.
