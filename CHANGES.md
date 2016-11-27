@@ -14,6 +14,8 @@ Replaced YOJIMBO_ALLOW_INSECURE_CONNECT with YOJIMBO_SECURE_MODE. This define wh
 
 Fixed a bunch of compile errors that showed up when secure mode was enabled. Improved error output for client.cpp and server.cpp (insecure) when run in secure mode.
 
+Added wrapper around #define YOJIMBO_SECURE_MODE 0 in yojmibo_config.h so it can be overridden by project generation tools without warnings about redefining preprocessor symbols.
+
 
 Monday November 14th, 2016
 ==========================

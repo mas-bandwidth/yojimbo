@@ -2,6 +2,14 @@ WOULD BE NICE
 
     ------------------
 
+    Create a premake option to build with secure mode enabled.
+
+    Extend the jenkins job to build the library in debug and release with secure mode enabled, in addition to current set of tests.
+
+    This way secure mode won't have compile errors in the future.
+
+    ------------------
+
     It's easy to mess up and not clear client data and break multiple server connections, or break initial connection. Ideally, create one function that gets called in both situations, so it is less easy to mess up.
 
     Example being, setting last packet send time, last packet receive time before initial connect, and setting it to correct values on each subsequent connect.
