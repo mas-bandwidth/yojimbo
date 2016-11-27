@@ -56,30 +56,30 @@ namespace yojimbo
     {
         Address address;
         uint64_t clientId;
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         uint64_t clientSalt;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         double connectTime;
         double lastPacketSendTime;
         double lastPacketReceiveTime;
         bool fullyConnected;
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         bool insecure;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         ServerClientData()
         {
             clientId = 0;
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
             clientSalt = 0;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
             connectTime = 0.0;
             lastPacketSendTime = 0.0;
             lastPacketReceiveTime = 0.0;
             fullyConnected = false;
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
             insecure = false;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         }
     };
 
@@ -317,9 +317,9 @@ namespace yojimbo
 
         void ProcessDisconnect( const DisconnectPacket & /*packet*/, const Address & address );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         void ProcessInsecureConnect( const InsecureConnectPacket & /*packet*/, const Address & address );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         void ProcessConnectionPacket( ConnectionPacket & packet, const Address & address );
 

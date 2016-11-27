@@ -48,7 +48,9 @@ namespace yojimbo
         m_clientIndex = -1;
         m_lastPacketSendTime = 0.0;
         m_lastPacketReceiveTime = 0.0;
+#if !YOJIMBO_SECURE_MODE
         m_clientSalt = 0;
+#endif // #if !YOJIMBO_SECURE_MODE
         m_sequence = 0;
         m_connectTokenExpireTimestamp = 0;
         m_shouldDisconnect = false;
@@ -109,7 +111,7 @@ namespace yojimbo
         m_allocator = NULL;
     }
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
     void Client::InsecureConnect( uint64_t clientId, const Address & serverAddress )
     {
@@ -139,7 +141,7 @@ namespace yojimbo
         InternalInsecureConnect( serverAddresses[0] );
     }
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
     void Client::Connect( uint64_t clientId,
                           const Address & serverAddress,
@@ -302,7 +304,7 @@ namespace yojimbo
 
         switch ( m_clientState )
         {
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
             case CLIENT_STATE_SENDING_INSECURE_CONNECT:
             {
@@ -319,7 +321,7 @@ namespace yojimbo
             }
             break;
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
             {
@@ -416,7 +418,7 @@ namespace yojimbo
 
         switch ( m_clientState )
         {
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
             case CLIENT_STATE_SENDING_INSECURE_CONNECT:
             {
@@ -431,7 +433,7 @@ namespace yojimbo
             }
             break;
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
             {
@@ -671,9 +673,9 @@ namespace yojimbo
         memset( m_challengeTokenData, 0, ChallengeTokenBytes );
         memset( m_challengeTokenNonce, 0, NonceBytes );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         m_clientSalt = 0;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         ResetBeforeNextConnect();
     }
@@ -715,7 +717,7 @@ namespace yojimbo
 
         ResetBeforeNextConnect();
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
         if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT )
         {
@@ -728,7 +730,7 @@ namespace yojimbo
             return true;
         }
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         char addressString[MaxAddressLength];
         m_serverAddresses[m_serverAddressIndex].ToString( addressString, sizeof( addressString ) );
@@ -738,6 +740,8 @@ namespace yojimbo
 
         return true;
     }
+
+#if !YOJIMBO_SECURE_MODE
 
     void Client::InternalInsecureConnect( const Address & serverAddress )
     {
@@ -751,6 +755,8 @@ namespace yojimbo
 
         debug_printf( "Client::InternalInsecureConnection - m_clientSalt = %" PRIx64 "\n", m_clientSalt );
     }
+
+#endif // #if !YOJIMBO_SECURE_MODE
 
     void Client::InternalSecureConnect( const Address & serverAddress )
     {
@@ -824,11 +830,11 @@ namespace yojimbo
 
     bool Client::IsPendingConnect()
     {
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         return m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE || m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT;
-#else // #if YOJIMBO_INSECURE_CONNECT
+#else // #if !YOJIMBO_SECURE_MODE
         return m_clientState == CLIENT_STATE_SENDING_CHALLENGE_RESPONSE;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
     }
 
     void Client::CompletePendingConnect( int clientIndex )
@@ -845,7 +851,7 @@ namespace yojimbo
             SetClientState( CLIENT_STATE_CONNECTED );
         }
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
         if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT )
         {
@@ -854,7 +860,7 @@ namespace yojimbo
             SetClientState( CLIENT_STATE_CONNECTED );
         }
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
     }
 
     void Client::ProcessKeepAlive( const KeepAlivePacket & packet, const Address & address )
@@ -864,13 +870,13 @@ namespace yojimbo
         if ( address != m_serverAddress )
             return;
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         if ( m_clientState == CLIENT_STATE_SENDING_INSECURE_CONNECT && packet.clientSalt != m_clientSalt )
         {
             debug_printf( "client salt mismatch: expected %" PRIx64 ", got %" PRIx64 "\n", m_clientSalt, packet.clientSalt );
             return;
         }
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         if ( IsPendingConnect() )
             CompletePendingConnect( packet.clientIndex );

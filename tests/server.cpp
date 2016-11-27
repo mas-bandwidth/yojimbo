@@ -28,6 +28,8 @@
 #include "shared.h"
 #include <signal.h>
 
+#if ( YOJIMBO_SECURE_MODE && SECURE_SERVER ) || !YOJIMBO_SECURE_MODE
+
 static volatile int quit = 0;
 
 void interrupt_handler( int /*dummy*/ )
@@ -61,13 +63,13 @@ int ServerMain()
 
     server.SetServerAddress( serverPublicAddress );
 
-#if !SECURE_SERVER && YOJIMBO_INSECURE_CONNECT
+#if !SECURE_SERVER && !YOJIMBO_SECURE_MODE
 
     server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
     
     serverTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
     
-#endif // #if !SECURE_SERVER && YOJIMBO_INSECURE_CONNECT
+#endif // #if !SECURE_SERVER && !YOJIMBO_SECURE_MODE
 
     server.Start();
 
@@ -123,3 +125,15 @@ int main()
 
     return result;
 }
+
+#else // #if ( YOJIMBO_SECURE_MODE && SECURE_SERVER ) || !YOJIMBO_SECURE_MODE
+
+int main( int argc, char * argv[] )
+{
+    (void)argc;
+    (void)argv;
+    printf( "\nYojimbo is in secure mode. Insecure server is disabled. See YOJIMBO_SECURE_MODE\n\n" );
+    return 0;
+}
+
+#endif // #if #if ( YOJIMBO_SECURE_MODE && SECURE_SERVER ) || !YOJIMBO_SECURE_MODE

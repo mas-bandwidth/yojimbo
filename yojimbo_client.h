@@ -39,9 +39,9 @@ namespace yojimbo
 {
     enum ClientState
     {
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         CLIENT_STATE_INSECURE_CONNECT_TIMEOUT = -9,
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         CLIENT_STATE_PACKET_FACTORY_ERROR = -8,
         CLIENT_STATE_MESSAGE_FACTORY_ERROR = -7,
         CLIENT_STATE_ALLOCATOR_ERROR = -6,
@@ -51,9 +51,9 @@ namespace yojimbo
         CLIENT_STATE_CONNECTION_TIMEOUT = -2,
         CLIENT_STATE_CONNECTION_DENIED = -1,
         CLIENT_STATE_DISCONNECTED = 0,
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         CLIENT_STATE_SENDING_INSECURE_CONNECT,
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         CLIENT_STATE_SENDING_CONNECTION_REQUEST,
         CLIENT_STATE_SENDING_CHALLENGE_RESPONSE,
         CLIENT_STATE_CONNECTED
@@ -63,9 +63,9 @@ namespace yojimbo
     {
         switch ( clientState )
         {
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
             case CLIENT_STATE_INSECURE_CONNECT_TIMEOUT:         return "insecure connect timeout";
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
             case CLIENT_STATE_PACKET_FACTORY_ERROR:             return "packet factory error";
             case CLIENT_STATE_MESSAGE_FACTORY_ERROR:            return "message factory error";
             case CLIENT_STATE_ALLOCATOR_ERROR:                  return "allocator error";
@@ -75,9 +75,9 @@ namespace yojimbo
             case CLIENT_STATE_CONNECTION_ERROR:                 return "connection error";
             case CLIENT_STATE_CONNECTION_DENIED:                return "connection denied";
             case CLIENT_STATE_DISCONNECTED:                     return "disconnected";
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
             case CLIENT_STATE_SENDING_INSECURE_CONNECT:         return "sending insecure connect";
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:       return "sending connection request";
             case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:       return "sending challenge response";
             case CLIENT_STATE_CONNECTED:                        return "connected";
@@ -104,10 +104,10 @@ namespace yojimbo
 
         virtual ~Client();
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         void InsecureConnect( uint64_t clientId, const Address & serverAddress );
         void InsecureConnect( uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         void Connect( uint64_t clientId,
                       const Address & serverAddress, 
@@ -213,9 +213,9 @@ namespace yojimbo
 
         virtual bool ConnectToNextServer();
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         virtual void InternalInsecureConnect( const Address & serverAddress );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         virtual void InternalSecureConnect( const Address & serverAddress );
 
@@ -303,9 +303,9 @@ namespace yojimbo
 
         double m_time;                                                      // current client time (see "AdvanceTime")
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         uint64_t m_clientSalt;                                              // client salt for insecure connect
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         uint64_t m_sequence;                                                // packet sequence # for packets sent to the server
 

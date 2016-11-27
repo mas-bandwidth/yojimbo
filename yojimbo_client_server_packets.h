@@ -107,22 +107,24 @@ namespace yojimbo
     struct KeepAlivePacket : public Packet
     {
         int clientIndex;
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         uint64_t clientSalt;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         KeepAlivePacket()
         {
             clientIndex = 0;
+#if !YOJIMBO_SECURE_MODE
             clientSalt = 0;
+#endif // #if !YOJIMBO_SECURE_MODE
         }
 
         template <typename Stream> bool Serialize( Stream & stream )
         { 
             serialize_int( stream, clientIndex, 0, MaxClients - 1 );
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
             serialize_uint64( stream, clientSalt );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
             return true; 
         }
 
@@ -136,7 +138,7 @@ namespace yojimbo
         YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
     struct InsecureConnectPacket : public Packet
     {
@@ -159,7 +161,7 @@ namespace yojimbo
         YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
     };
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
     enum ClientServerPacketTypes
     {
@@ -169,9 +171,9 @@ namespace yojimbo
         CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE,                    // client response to server connection challenge.
         CLIENT_SERVER_PACKET_KEEPALIVE,                             // keepalive packet sent at some low rate (once per-second) to keep the connection alive.
         CLIENT_SERVER_PACKET_DISCONNECT,                            // courtesy packet to indicate that the other side has disconnected. better than a timeout.
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         CLIENT_SERVER_PACKET_INSECURE_CONNECT,                      // client requests an insecure connection (dev only!)
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         CLIENT_SERVER_PACKET_CONNECTION,                            // connection packet carries messages and other data once connection is established.
         CLIENT_SERVER_NUM_PACKETS
     };
@@ -184,9 +186,9 @@ namespace yojimbo
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE,       ChallengeResponsePacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_KEEPALIVE,                KeepAlivePacket );
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_DISCONNECT,               DisconnectPacket );
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_INSECURE_CONNECT,         InsecureConnectPacket );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         YOJIMBO_DECLARE_PACKET_TYPE( CLIENT_SERVER_PACKET_CONNECTION,               ConnectionPacket );
 
     YOJIMBO_PACKET_FACTORY_FINISH()

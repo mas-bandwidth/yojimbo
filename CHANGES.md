@@ -10,6 +10,10 @@ This avoids needing to binary search to find the test that leaked memory.
 
 Also, used that macro to print out the test name, making it a bit easier to add new tests.
 
+Replaced YOJIMBO_ALLOW_INSECURE_CONNECT with YOJIMBO_SECURE_MODE. This define when set to 1 will only allow secure connects to servers. I can also hang a bunch of other stuff on it, like extending the matcher to require proper signed certificates.
+
+Fixed a bunch of compile errors that showed up when secure mode was enabled. Improved error output for client.cpp and server.cpp (insecure) when run in secure mode.
+
 
 Monday November 14th, 2016
 ==========================
@@ -3232,7 +3236,7 @@ Implement client "InsecureConnect" that takes just the address, and goes into in
 
 Generate a random salt on each call to insecure connect.
 
-Make sure all this is wrapped with #if YOJIMBO_INSECURE_CONNECT
+Make sure all this is wrapped with #if !YOJIMBO_SECURE_MODE
 
 Get it to the point where the client sends the insecure connect packets w. the salt
 

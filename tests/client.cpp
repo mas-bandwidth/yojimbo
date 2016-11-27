@@ -28,7 +28,7 @@
 #include "shared.h"
 #include <signal.h>
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
 static volatile int quit = 0;
 
@@ -134,15 +134,15 @@ int main( int argc, char * argv[] )
     return result;
 }
 
-#else // #if YOJIMBO_INSECURE_CONNECT
+#else // #if !YOJIMBO_SECURE_MODE
 
 int main( int argc, char * argv[] )
 {
     (void)argc;
     (void)argv;
-    printf( "\n\nYou can't connect a client like this in secure mode. See connect.cpp and matcher.go instead\n" );
+    printf( "\nYojimbo is in secure mode. Insecure client is disabled. See YOJIMBO_SECURE_MODE\n\n" );
     return 0;
 }
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 

@@ -166,9 +166,9 @@ namespace yojimbo
         
         memset( m_counters, 0, sizeof( m_counters ) );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         m_allPacketTypes = NULL;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
 
@@ -224,15 +224,15 @@ namespace yojimbo
 
         assert( numPacketTypes > 0 );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         m_allPacketTypes = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         m_packetTypeIsEncrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
         m_packetTypeIsUnencrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         memset( m_allPacketTypes, 1, m_context.packetFactory->GetNumPacketTypes() );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         memset( m_packetTypeIsEncrypted, 0, m_context.packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsUnencrypted, 1, m_context.packetFactory->GetNumPacketTypes() );
     }
@@ -242,9 +242,9 @@ namespace yojimbo
         ClearSendQueue();
         ClearReceiveQueue();
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         YOJIMBO_FREE( *m_allocator, m_allPacketTypes );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         YOJIMBO_FREE( *m_allocator, m_packetTypeIsEncrypted );
         YOJIMBO_FREE( *m_allocator, m_packetTypeIsUnencrypted );
 
@@ -262,16 +262,16 @@ namespace yojimbo
 
         assert( numPacketTypes > 0 );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         m_allPacketTypes = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         m_packetTypeIsEncrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
         m_packetTypeIsUnencrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         memset( m_allPacketTypes, 1, m_packetFactory->GetNumPacketTypes() );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         memset( m_packetTypeIsEncrypted, 0, m_packetFactory->GetNumPacketTypes() );
         memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
     }
@@ -284,9 +284,9 @@ namespace yojimbo
         ClearSendQueue();
         ClearReceiveQueue();
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         YOJIMBO_FREE( *m_allocator, m_allPacketTypes );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         YOJIMBO_FREE( *m_allocator, m_packetTypeIsEncrypted );
         YOJIMBO_FREE( *m_allocator, m_packetTypeIsUnencrypted );
 
@@ -462,11 +462,11 @@ namespace yojimbo
 
         const uint8_t * key = m_encryptionManager->GetSendKey( encryptionIndex );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         const bool encrypt = ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE ) ? IsEncryptedPacketType( packetType ) && key : IsEncryptedPacketType( packetType );
-#else // #if YOJIMBO_INSECURE_CONNECT
+#else // #if !YOJIMBO_SECURE_MODE
         const bool encrypt = IsEncryptedPacketType( packetType );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         const TransportContext * context = m_contextManager->GetContext( address );
 
@@ -573,13 +573,13 @@ namespace yojimbo
         const uint8_t * encryptedPacketTypes = m_packetTypeIsEncrypted;
         const uint8_t * unencryptedPacketTypes = m_packetTypeIsUnencrypted;
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         if ( GetFlags() & TRANSPORT_FLAG_INSECURE_MODE )
         {
             encryptedPacketTypes = m_allPacketTypes;
             unencryptedPacketTypes = m_allPacketTypes;
         }
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         const int encryptionIndex = m_encryptionManager->FindEncryptionMapping( address, GetTime() );
 

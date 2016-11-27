@@ -226,9 +226,9 @@ namespace yojimbo
 
         m_transport->RemoveContextMapping( m_clientData[clientIndex].address );
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         if ( !m_clientData[clientIndex].insecure )
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         {
             m_transport->RemoveEncryptionMapping( m_clientData[clientIndex].address );
         }
@@ -371,7 +371,11 @@ namespace yojimbo
 
                     m_clientData[clientIndex].lastPacketSendTime = GetTime();
 
+#if !YOJIMBO_SECURE_MODE
                     debug_printf( "server send keep alive packet to client %d - clientSalt = %" PRIx64 "\n", clientIndex, packet->clientSalt );
+#else // #if !YOJIMBO_SECURE_MODE
+                    debug_printf( "server send keep alive packet to client %d - clientSalt = %" PRIx64 "\n", clientIndex );
+#endif // #if !YOJIMBO_SECURE_MODE
                 }
             }
         }
@@ -795,9 +799,9 @@ namespace yojimbo
         m_clientData[clientIndex].lastPacketSendTime = time;
         m_clientData[clientIndex].lastPacketReceiveTime = time;
         m_clientData[clientIndex].fullyConnected = false;
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         m_clientData[clientIndex].insecure = false;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         m_transport->AddContextMapping( clientAddress, m_clientTransportContext[clientIndex] );
 
@@ -1083,7 +1087,7 @@ namespace yojimbo
         DisconnectClient( clientIndex, false );
     }
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
     void Server::ProcessInsecureConnect( const InsecureConnectPacket & packet, const Address & address )
     {
@@ -1134,7 +1138,7 @@ namespace yojimbo
         m_clientData[clientIndex].insecure = true;
     }
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
     void Server::ProcessConnectionPacket( ConnectionPacket & packet, const Address & address )
     {
@@ -1175,11 +1179,11 @@ namespace yojimbo
                 ProcessDisconnect( *(DisconnectPacket*)packet, address );
                 return;
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
             case CLIENT_SERVER_PACKET_INSECURE_CONNECT:
                 ProcessInsecureConnect( *(InsecureConnectPacket*)packet, address );
                 return;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
             case CLIENT_SERVER_PACKET_CONNECTION:
                 ProcessConnectionPacket( *(ConnectionPacket*)packet, address );
@@ -1214,9 +1218,9 @@ namespace yojimbo
         if ( packet )
         {
             packet->clientIndex = clientIndex;
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
             packet->clientSalt = m_clientData[clientIndex].clientSalt;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         }
 
         return packet;

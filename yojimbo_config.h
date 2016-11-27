@@ -52,9 +52,9 @@
 #pragma warning( disable : 4244 )
 #endif // #ifdef _MSC_VER
 
-#define YOJIMBO_PLATFORM_WINDOWS                1
-#define YOJIMBO_PLATFORM_MAC                    2
-#define YOJIMBO_PLATFORM_UNIX                   3
+#define YOJIMBO_PLATFORM_WINDOWS                    1
+#define YOJIMBO_PLATFORM_MAC                        2
+#define YOJIMBO_PLATFORM_UNIX                       3
 
 #if defined(_WIN32)
 #define YOJIMBO_PLATFORM YOJIMBO_PLATFORM_WINDOWS
@@ -66,7 +66,7 @@
 
 #define YOJIMBO_SOCKETS                             1
 
-#define YOJIMBO_INSECURE_CONNECT                    1           // IMPORTANT: You should probably disable this in retail build
+#define YOJIMBO_SECURE_MODE                         0           // IMPORTANT: You should set this to 1 in your retail build.
 
 #define YOJIMBO_SERIALIZE_CHECKS                    1
 
@@ -190,10 +190,10 @@ namespace yojimbo
         float challengeResponseTimeOut;                         // seconds before challenge response times out.
         float connectionTimeOut;                                // seconds before connection times out after connection has been established.
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         float insecureConnectSendRate;                          // seconds between insecure connect packets sent.
         float insecureConnectTimeOut;                           // time in seconds after with an insecure connection request times out.
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
         bool enableConnection;                                  // enable per-client connection and messages.
 
@@ -212,10 +212,10 @@ namespace yojimbo
             challengeResponseTimeOut = 5.0f;
             connectionTimeOut = 5.0f;
             enableConnection = true;
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
             insecureConnectSendRate = 0.1f;
             insecureConnectTimeOut = 5.0f;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         }        
     };
 }

@@ -2362,7 +2362,7 @@ void test_client_server_user_packets()
     server.Stop();
 }
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
 
 void test_client_server_insecure_connect()
 {
@@ -2629,7 +2629,7 @@ void test_client_server_insecure_secure_insecure_secure()
     server.Stop();
 }
 
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
 
 void test_matcher()
 {
@@ -4388,12 +4388,12 @@ int main()
         RUN_TEST( test_client_server_connect_client_id_already_connected );
         RUN_TEST( test_client_server_connect_multiple_servers );
         RUN_TEST( test_client_server_user_packets );
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         RUN_TEST( test_client_server_insecure_connect );
         RUN_TEST( test_client_server_insecure_connect_multiple_servers );
         RUN_TEST( test_client_server_insecure_connect_timeout );
         RUN_TEST( test_client_server_insecure_secure_insecure_secure );
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         RUN_TEST( test_matcher );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );

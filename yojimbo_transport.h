@@ -290,9 +290,9 @@ namespace yojimbo
         Queue<PacketEntry> m_sendQueue;
         Queue<PacketEntry> m_receiveQueue;
 
-#if YOJIMBO_INSECURE_CONNECT
+#if !YOJIMBO_SECURE_MODE
         uint8_t * m_allPacketTypes;
-#endif // #if YOJIMBO_INSECURE_CONNECT
+#endif // #if !YOJIMBO_SECURE_MODE
         uint8_t * m_packetTypeIsEncrypted;
         uint8_t * m_packetTypeIsUnencrypted;
 
