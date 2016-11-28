@@ -4,13 +4,15 @@ WOULD BE NICE
 
     Definitely need more usage documentation and samples showing how to do stuff.
 
-    It's not immediately obvious how to use libyojimbo from the samples. Or, what exactly libyojimbo does or what it's for?
+    It's not immediately obvious how to use libyojimbo from the samples. Or, what exactly libyojimbo does or even what it's for?
 
-    There should definitely be some documentation from the point of view of a new user, how do you use this library?
+    There should definitely be some documentation from the point of view of a new user, how do you use this library? What does it do? etc.
 
     The existing BUILDING.md is OK, but it's doesn't guide the user at all about what is going on, and how to use the library past building a few samples.
 
     It would be nice to do a documentation pass over the code as well, what is the best documentation solution these days? (eg. doxygen replacement?)
+
+    This looks interesting: http://sourcey.com/generating-beautiful-markdown-documentation-with-moxygen/
 
     ------------------
 
