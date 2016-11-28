@@ -95,13 +95,17 @@ Which should return a match response in JSON that looks something like this:
 
     {"connectToken":"y2R7Sqej9HFg7Y3sBqr9XbK6tyMicrmk13TLsGksxAqniu5LaY89AKhgKDGlQ/mIpxukwFdDwPBtMa5KRPpFUlIds2dD+gNGOjH636Vxh5Svb1Ul8AzajQoiamC1w2TN/qAQjW2+bFp/k6ifDKoEwcchHSlqbgzzIxctgr1iODJADyMb7YdHq7TCWApxeWAIrWnHfapTD1uVJU0oDjAqak/QtSLG6GAMCi9Qxgd66aQlK+V/2nm7bMQ00ubXZC8mSUI5xRssNeoFQsZF68rJcxsZgEIumLg16NOkZiX/K7DGbHR2If+1hqNUJqf7S8N30mNoI1yXMKNSlfiqts7Eze40NjVxiYzseibPfZt6uOXGgkeEFjQeTs9xMB78BzpOn5Z4I6JpqC/1TKewW5S4LpK8mWz3w8z7Px6leo4g0SqOxo/0Beqim6JoelMJe0nan2T+XKkX5GeaTrqnkVzKyDda+RD+22KLyMD3vda89RCq3KJUhpbyBAC7CHUrHGxj9jufzLebaVrsQN+KaZlKJytMbRee3G+NGjuilXiHbAJzY101fqDfGL9vNMgPNQiaiWDbbIdXyGp+H3yhzCnUbALOeHPDhhFnXUyB+XwBjqq/w2JbNIXei3AN+vydjmhSKav7SnSFO8MpMlOv/0ztI/eJPR7CUx/XEFPlfr6EK5UhUWKoPcrUs5pLOohqByckvrkrasfhftAHcr82kQiYo1jKFiKX8fE1/dspdXirkWd26aoT8RQFWIs48z/Rmvv609oaHlQGo3pBj6ogjU82aMyCPGoao2QYRdd2HTjWqBevkDn+O6/YFeJLFkonaa5GsQjpJfi+CrFdJTNldMcLfB7mAuq9tIwhKT3ivHEYsZvnlV45NtZuwXhjLEms2z/YrTgP0OiVC9s6utRG8loJoj+nzDMfnr567Si3VLXJAHwCZ/tJT+fnJvzGXE+T0gw+WKHz8dKVuRLb16FAvRlBHekbs2dj9///djLvXQPp4dDr1KcXDsSt/nBf5d/wnaU1EvltKv8y6oclu195OTqWSmzeJYH2f+Gn0RP9xVVKxTliKcoMz84/h+IQXD2Qd3DR7dtJfQkoZRB/zCEoRHIXLTA6N0BDxqpsG916Fg7fC4c5GDDvmNU0NZV0Vwz2E1ydXsDuS9Q1vxIpuQbqlhfckjRuuHOY4dlQfDOqTEPoSQxIJhUlhsPr4zImhbvhUfqdCZKonjQura62BdJHEE/aTF8KavvNgm5JEyRz8H3b2Aqrjuzj6tQJYpe8TZ3eMspGd7o/S5mu5JS/WcPhlQYiruzSNTuASwPwCxWjHzwNQwyDhM7ZjkHOrEYCp3uj9RYAIah7R7w4gwxeAoQIjkEKFA==","connectNonce":"1","serverAddresses":["MTI3LjAuMC4xOjUwMDAw"],"clientToServerKey":"8oRGFHDQo+Z38lhyKQ+1OjDDlFwjg6o1HkeR+fgw4z0=","serverToClientKey":"D0g58nVdAx0jmT+duZwcWdbHUuFBKWGyj2SZ8g+Ak0o="}
 
-## Run the connect program
+## Connect a secure client
 
-If you have both the matcher and a yojimbo server running, you can run the "connect" program to connect a client to that server through the matcher. Connecting through the matcher enables packet encryption between the client and server.
+You can run the "secure_client" program to securely connect a client to that server through the matcher. 
+
+Connect this way requires having the matcher running, eg. "premake5 matcher"
+
+The benefit of secure connect is that it enables packet encryption between the client and server.
 
 On MacOS or Linux, run:
 
-    premake5 connect
+    premake5 secure_client
 
 If everything is working correctly you should see something like:
 
@@ -117,29 +121,31 @@ If everything is working correctly you should see something like:
 
 ## Running a secure server
 
-Now let's switch over to running secure servers. You can run a secure server like this:
+Up to this point we have been running insecure servers with "premake5 server".
+
+Servers running in this way allow either secure or insecure connects. When you go into production with yojimbo, generally you want to disable this and only allow secure connects from clients.
+
+You can run a secure server like this on MacOS and Linux:
 
     premake5 secure_server
 
-If you are building under Visual Studio, run the "secure_server" project from the IDE.
+Or, if you are building under Visual Studio, run the "secure_server" project from the IDE.
 
-When a secure server is running, you will notice that connecting via "connect" works, but regular connects via "client" do not.
+When a secure server is running, you will notice that connecting via "secure_client" works, but regular (insecure) connects via "client" do not.
 
 This is the entire point of secure servers. **Secure servers only allow connections that come from the matcher.**
 
 This is accomplished via an encrypted connect token that the matchmaker generates and passes back to the client. This connect token is valid only for a particular globally unique 64bit client id (of your choice), for a limited period of time, and for a limited whitelist of server addresses. 
 
-Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed using a shared private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances for the security model to work.
+Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed with a private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances for the security model to work.
 
 ## Reliable Messages and Blocks
 
-The latest preview release of yojimbo has support for reliable-ordered messages and blocks.
+Once you've established a yojimbo client/server connection, you can extend the protocol to send your own custom packets types, or extend the protocol to send messages which are included in regularly sent "connection packets" exchanged between client and server.
 
 Messages can be sent in both directions. Client to server **and** server to client. Messages are reliable, ordered and time critical. They are resent rapidly until acked.
 
 Blocks of data larger than MTU may be sent in the same reliable ordered stream. They are sliced up and reassembled on the other side and injected into the same reliable ordered stream of messages. This is very convenient for example when you need to send down a large block of initial state (eg. initial delta baseline, or state of the world) on client connect. 
-
-For more details see soak.cpp.
 
 To see the blocks and messages in action, run:
 
@@ -147,9 +153,7 @@ To see the blocks and messages in action, run:
 
 Or, in Visual Studio, build and run the "soak" project.
 
-This soak program looks forever sending messages and reliable blocks over very bad network conditions.
-
-The soak test is self validating. As long as it's receiving messages it's working. CTRL-C to stop.
+This soak program sends messages and reliable blocks over very bad network conditions, and loops forever. It is designed to run overnight to verify correct behavior of the reliability system. The soak test is self validating. As long as it's sending and receiving messages it's working. CTRL-C to stop.
 
 ## Profiling
 

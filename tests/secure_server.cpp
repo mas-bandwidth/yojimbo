@@ -1,5 +1,5 @@
 /*
-    Insecure Client.
+    Secure Server.
 
     Copyright © 2016, The Network Protocol Company, Inc.
 
@@ -22,13 +22,11 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define CLIENT 1
+#define SERVER 1
 #define LOGGING 1
 
 #include "shared.h"
 #include <signal.h>
-
-#if !YOJIMBO_SECURE_MODE
 
 static volatile int quit = 0;
 
@@ -37,44 +35,29 @@ void interrupt_handler( int /*dummy*/ )
     quit = 1;
 }
 
-int ClientMain( int argc, char * argv[] )
-{   
-    printf( "\nconnecting client (insecure)\n" );
+int ServerMain()
+{
+    printf( "started secure server on port %d\n", ServerPort );
+
+    Address serverBindAddress( "0.0.0.0", ServerPort );
+
+    Address serverPublicAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
 
-    uint64_t clientId = 0;
-    RandomBytes( (uint8_t*) &clientId, 8 );
-    printf( "client id is %.16" PRIx64 "\n", clientId );
+    NetworkTransport serverTransport( GetDefaultAllocator(), serverBindAddress, ProtocolId, time );
 
-    NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId, time );
-    
-    if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
+    if ( serverTransport.GetError() != SOCKET_ERROR_NONE )
     {
-        printf( "error: failed to initialize client socket\n" );
+        printf( "error: failed to initialize server socket\n" );
         return 1;
     }
     
-    printf( "client started on port %d\n", clientTransport.GetAddress().GetPort() );
+    GameServer server( GetDefaultAllocator(), serverTransport, ClientServerConfig(), time );
 
-    clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
+    server.SetServerAddress( serverPublicAddress );
 
-    GameClient client( GetDefaultAllocator(), clientTransport, ClientServerConfig(), time );
-
-    Address serverAddress( "127.0.0.1", ServerPort );
-
-    if ( argc == 2 )
-    {
-        Address commandLineAddress( argv[1] );
-        if ( commandLineAddress.IsValid() )
-        {
-            if ( commandLineAddress.GetPort() == 0 )
-                commandLineAddress.SetPort( ServerPort );
-            serverAddress = commandLineAddress;
-        }
-    }
-
-    client.InsecureConnect( clientId, serverAddress );
+    server.Start();
 
     const double deltaTime = 0.1;
 
@@ -82,41 +65,36 @@ int ClientMain( int argc, char * argv[] )
 
     while ( !quit )
     {
-        client.SendPackets();
+        server.SendPackets();
 
-        clientTransport.WritePackets();
+        serverTransport.WritePackets();
 
-        clientTransport.ReadPackets();
+        serverTransport.ReadPackets();
 
-        client.ReceivePackets();
+        server.ReceivePackets();
 
-        client.CheckForTimeOut();
-
-        if ( client.IsDisconnected() )
-            break;
+        server.CheckForTimeOut();
 
         time += deltaTime;
 
-        client.AdvanceTime( time );
+        server.AdvanceTime( time );
 
-        clientTransport.AdvanceTime( time );
-
-        if ( client.ConnectionFailed() )
-            break;
+        serverTransport.AdvanceTime( time );
 
         platform_sleep( deltaTime );
     }
 
-    if ( quit )
-        printf( "\nclient stopped\n" );
+    printf( "\nserver stopped\n" );
 
-    client.Disconnect();
+    server.Stop();
 
     return 0;
 }
 
-int main( int argc, char * argv[] )
+int main()
 {
+    printf( "\n" );
+
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize Yojimbo!\n" );
@@ -125,7 +103,7 @@ int main( int argc, char * argv[] )
 
     srand( (unsigned int) time( NULL ) );
 
-    int result = ClientMain( argc, argv );
+    int result = ServerMain();
 
     ShutdownYojimbo();
 
@@ -133,16 +111,3 @@ int main( int argc, char * argv[] )
 
     return result;
 }
-
-#else // #if !YOJIMBO_SECURE_MODE
-
-int main( int argc, char * argv[] )
-{
-    (void)argc;
-    (void)argv;
-    printf( "\nYojimbo is in secure mode. Insecure client is disabled. See YOJIMBO_SECURE_MODE\n\n" );
-    return 0;
-}
-
-#endif // #if !YOJIMBO_SECURE_MODE
-

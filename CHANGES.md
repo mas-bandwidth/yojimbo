@@ -16,6 +16,14 @@ Fixed a bunch of compile errors that showed up when secure mode was enabled. Imp
 
 Added wrapper around #define YOJIMBO_SECURE_MODE 0 in yojmibo_config.h so it can be overridden by project generation tools without warnings about redefining preprocessor symbols.
 
+Renamed "connect" to "secure_client" because it's not obvious to users how to connect to a secure server.
+
+Split apart "secure_server.cpp" from "server.cpp" because it was getting hard to read. Also, matches new client.cpp vs. secure_client.cpp
+
+Added premake build configurations "debug_secure" and "debug_release" with #define YOJIMBO_SECURE_MODE 1 and extended travis to build and run tests in these configurations, as well as debug and release. 
+
+This will make sure that secure mode doesn't break in future. Travis well let me know if it fails to compile.
+
 
 Monday November 14th, 2016
 ==========================

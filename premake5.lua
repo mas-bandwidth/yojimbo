@@ -9,41 +9,39 @@ else
     release_libs = debug_libs
 end
 
-language "C++"
-kind "ConsoleApp"
-configuration "Debug"
-    links { debug_libs }
-configuration "Release"
-    links { release_libs }
-
 solution "Yojimbo"
+    kind "ConsoleApp"
+    language "C++"
     platforms { "x64" }
-    configurations { "Debug", "Release" }
+    configurations { "Debug", "Release", "Debug_Secure", "Release_Secure" }
     if os.is "windows" then
         includedirs { ".", "./windows" }
         libdirs { "./windows" }
     else
         includedirs { ".", "/usr/local/include" }       -- for clang scan-build only. for some reason it needs this to work =p
-    end
-    if not os.is "windows" then
         targetdir "bin/"  
     end
     rtti "Off"
     flags { "ExtraWarnings", "StaticRuntime", "FloatFast", "EnableSSE2" }
     configuration "Debug"
         symbols "On"
-        defines { "DEBUG" }
-        defines { "_DEBUG" }
+        defines { "DEBUG", "_DEBUG" }
+        links { debug_libs }
     configuration "Release"
         optimize "Speed"
         defines { "NDEBUG" }
+        links { release_libs }
+    configuration "Debug_Secure"
+        symbols "On"
+        defines { "YOJIMBO_SECURE_MODE=1", "DEBUG", "_DEBUG" }
+        links { debug_libs }
+    configuration "Release_Secure"
+        optimize "Speed"
+        defines { "YOJIMBO_SECURE_MODE=1", "NDEBUG" }
+        links { release_libs }
         
 project "test"
     files { "tests/test.cpp" }
-    links { "yojimbo" }
-
-project "connect"
-    files { "tests/connect.cpp" }
     links { "yojimbo" }
 
 project "info"
@@ -62,10 +60,13 @@ project "server"
     files { "tests/server.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
-project "secure_server"
-    files { "tests/server.cpp", "tests/shared.h" }
+project "secure_client"
+    files { "tests/secure_client.cpp", "tests/shared.h" }
     links { "yojimbo" }
-    defines { "SECURE_SERVER=1" }
+
+project "secure_server"
+    files { "tests/secure_server.cpp", "tests/shared.h" }
+    links { "yojimbo" }
 
 project "client_server"
     files { "tests/client_server.cpp", "tests/shared.h" }
@@ -192,12 +193,12 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "connect",
-        description = "Build and run connect test program",
+        trigger     = "secure_client",
+        description = "Build and run secure client and connect to a server via the matcher",
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 connect" == 0 then
-                os.execute "./bin/connect"
+            if os.execute "make -j32 secure_client" == 0 then
+                os.execute "./bin/secure_client"
             end
         end
     }
@@ -205,12 +206,12 @@ if not os.is "windows" then
     newaction
     {
         trigger     = "stress",
-        description = "Launch 64 connect instances to stress the matcher and server",
+        description = "Launch 64 secure client instances to stress the matcher and server",
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 connect" == 0 then
+            if os.execute "make -j32 secure_client" == 0 then
                 for i = 0, 63 do
-                    os.execute "./bin/connect &"
+                    os.execute "./bin/secure_client &"
                 end
             end
         end

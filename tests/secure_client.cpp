@@ -1,5 +1,5 @@
 /*
-    Client Connect via Matcher.
+    Secure Client.
 
     Copyright © 2016, The Network Protocol Company, Inc.
 
@@ -43,11 +43,13 @@ int ConnectMain( int argc, char * argv[] )
     (void)argc;
     (void)argv;
 
+    printf( "\nconnecting client (secure)\n" );
+
     Allocator & allocator = GetDefaultAllocator();
 
     uint64_t clientId = 0;
     RandomBytes( (uint8_t*) &clientId, 8 );
-    printf( "\nclient id is %.16" PRIx64 "\n", clientId );
+    printf( "client id is %.16" PRIx64 "\n", clientId );
 
     Matcher matcher( allocator );
 
@@ -57,15 +59,15 @@ int ConnectMain( int argc, char * argv[] )
         return 1;
     }
 
+    printf( "requesting match from https://localhost:8080\n" );
+
     matcher.RequestMatch( ProtocolId, clientId );
 
     if ( matcher.GetStatus() == MATCHER_FAILED )
     {
-        printf( "\nerror: request match failed. is the matcher running?\n\n" );
+        printf( "\nRequest match failed. Is the matcher running? Please run \"premake5 matcher\" before you connect a secure client\n\n" );
         return 1;
     }
-
-    printf( "requesting match from https://localhost:8080\n" );
 
     MatchResponse matchResponse;
 

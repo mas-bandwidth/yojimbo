@@ -2,20 +2,6 @@ WOULD BE NICE
 
     ------------------
 
-    Should probably rename "connect" to "secure_client" because it's not obvious to users how to connect to a secure server.
-
-    ------------------
-
-    Create a premake option to build with secure mode enabled.
-
-    Extend the jenkins job to build the library with secure mode enabled (in both debug and release), in addition to current set of tests (debug/release).
-
-    This way compile errors won't slip into secure mode unnoticed.
-
-    Easiest way to do this is to add new build configurations: debug, release, debug secure, release secure.
-
-    ------------------
-
     It's easy to mess up and not clear client data and break multiple server connections, or break initial connection. Ideally, create one function that gets called in both situations, so it is less easy to mess up.
 
     Example being, setting last packet send time, last packet receive time before initial connect, and setting it to correct values on each subsequent connect.
