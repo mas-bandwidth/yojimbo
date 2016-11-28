@@ -132,7 +132,11 @@ namespace yojimbo
             goto cleanup;
         }
 
+#if YOJIMBO_SECURE_MODE
+        mbedtls_ssl_conf_authmode( &m_internal->conf, MBEDTLS_SSL_VERIFY_REQUIRED );
+#else // #if YOJIMBO_SECURE_MODE
         mbedtls_ssl_conf_authmode( &m_internal->conf, MBEDTLS_SSL_VERIFY_OPTIONAL );
+#endif // #if YOJMIBO_SECURE_MODE
         mbedtls_ssl_conf_ca_chain( &m_internal->conf, &m_internal->cacert, NULL );
         mbedtls_ssl_conf_rng( &m_internal->conf, mbedtls_ctr_drbg_random, &m_internal->ctr_drbg );
 
@@ -161,9 +165,11 @@ namespace yojimbo
 
         if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
         {
-            // could not verify certificate (eg. it is self-signed)
-
-            // IMPORTANT: this should be locked down in gold build. Add #define YOJIMBO_SECURE 1 or something like that
+#if YOJIMBO_SECURE_MODE
+            // IMPORTANT: In secure mode you must use a valid certificate, not a self signed one!
+            m_status = MATCHER_FAILED;
+            goto cleanup;
+#endif // #if YOJIMBO_SECURE_MODE
         }
 
         sprintf( request, "GET /match/%d/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
