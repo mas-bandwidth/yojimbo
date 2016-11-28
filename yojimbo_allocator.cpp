@@ -33,12 +33,12 @@
 
 namespace yojimbo
 {
-    DefaultAllocator::DefaultAllocator() 
+    Allocator::Allocator() 
     {
-        m_error = ALLOCATOR_ERROR_NONE;
+        SetError( ALLOCATOR_ERROR_NONE );
     }
 
-    DefaultAllocator::~DefaultAllocator()
+    Allocator::~Allocator()
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         if ( m_alloc_map.size() )
@@ -57,16 +57,8 @@ namespace yojimbo
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
 
-    void * DefaultAllocator::Allocate( size_t size, const char * file, int line )
+    void Allocator::TrackAlloc( void * p, size_t size, const char * file, int line )
     {
-        void * p = malloc( size );
-
-        if ( !p )
-        {
-            m_error = ALLOCATOR_ERROR_FAILED_TO_ALLOCATE;
-            return NULL;
-        }
-
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
         assert( m_alloc_map.find( p ) == m_alloc_map.end() );
@@ -83,6 +75,31 @@ namespace yojimbo
         (void)line;
 
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+    }
+
+    void Allocator::TrackFree( void * p, const char * file, int line )
+    {
+        (void) file;
+        (void) line;
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        assert( m_alloc_map.find( p ) != m_alloc_map.end() );
+        m_alloc_map.erase( p );
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+    }
+
+    // =============================================
+
+    void * DefaultAllocator::Allocate( size_t size, const char * file, int line )
+    {
+        void * p = malloc( size );
+
+        if ( !p )
+        {
+            SetError( ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            return NULL;
+        }
+
+        TrackAlloc( p, size, file, line );
 
         return p;
     }
@@ -92,25 +109,9 @@ namespace yojimbo
         if ( !p )
             return;
 
-        (void) file;
-        (void) line;
-
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-        assert( m_alloc_map.find( p ) != m_alloc_map.end() );
-        m_alloc_map.erase( p );
-#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+        TrackFree( p, file, line );
 
         free( p );
-    }
-
-    int DefaultAllocator::GetError() const
-    {
-        return m_error;
-    }
-
-    void DefaultAllocator::ClearError()
-    {
-        m_error = ALLOCATOR_ERROR_NONE;
     }
 
     // =============================================
@@ -124,22 +125,6 @@ namespace yojimbo
 
     TLSF_Allocator::~TLSF_Allocator()
     {
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-        if ( m_alloc_map.size() )
-        {
-            printf( "you leaked memory!\n\n" );
-            typedef std::map<void*,AllocatorEntry>::iterator itor_type;
-            for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i )
-            {
-                void * p = i->first;
-                AllocatorEntry entry = i->second;
-                printf( "leaked block %p (%d bytes) - %s:%d\n", p, (int) entry.size, entry.file, entry.line );
-            }
-            printf( "\n" );
-            exit(1);
-        }
-#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
-
         tlsf_destroy( m_tlsf );
     }
 
@@ -149,26 +134,11 @@ namespace yojimbo
 
         if ( !p )
         {
-            m_error = ALLOCATOR_ERROR_FAILED_TO_ALLOCATE;
+            SetError( ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
             return NULL;
         }
 
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-
-        assert( m_alloc_map.find( p ) == m_alloc_map.end() );
-
-        AllocatorEntry entry;
-        entry.size = size;
-        entry.file = file;
-        entry.line = line;
-        m_alloc_map[p] = entry;
-
-#else // #if YOJIMBO_DEBUG_MEMORY_LEAKS
-
-        (void)file;
-        (void)line;
-
-#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+        TrackAlloc( p, size, file, line );
         
         return p;
     }
@@ -178,24 +148,8 @@ namespace yojimbo
         if ( !p )
             return;
 
-        (void)file;
-        (void)line;
-
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-        assert( m_alloc_map.find( p ) != m_alloc_map.end() );
-        m_alloc_map.erase( p );
-#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+        TrackFree( p, file, line );
 
         tlsf_free( m_tlsf, p );
-    }
-
-    int TLSF_Allocator::GetError() const
-    {
-        return m_error;
-    }
-
-    void TLSF_Allocator::ClearError()
-    {
-        m_error = ALLOCATOR_ERROR_NONE;
     }
 }

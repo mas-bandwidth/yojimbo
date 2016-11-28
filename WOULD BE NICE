@@ -16,12 +16,6 @@ WOULD BE NICE
 
     ------------------
 
-    There is a lot of code duplication between the default allocator and TLSF allocator for #if YOJIMBO_DEBUG_MEMORY_LEAKS
-
-    It would be nice if this code was not duplicated. For example, it could be made part of the base allocator.
-
-    ------------------
-
     Add a test for clients to connect, without messages enabled, and then send no packets for timeout * 2 seconds. 
 
     This verifies that the keep-alive packets work.

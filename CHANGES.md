@@ -1,4 +1,14 @@
 
+Monday November 28th, 2016
+==========================
+
+There is a lot of code duplication between the default allocator and TLSF allocator for #if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+Refactored the class heirarchy so this code is in the base allocator class, and extending the allocator just calls this on the base class.
+
+Easy to add a new allocator now, including the support for tracking down memory leaks.
+
+
 Sunday November 27th, 2016
 ==========================
 

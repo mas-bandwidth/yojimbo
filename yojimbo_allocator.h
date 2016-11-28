@@ -45,7 +45,7 @@ namespace yojimbo
 
     #define YOJIMBO_FREE( a, p ) do { if ( p ) { (a).Free( p, __FILE__, __LINE__ ); p = NULL; } } while(0)
 
-    enum
+    enum AllocatorError
     {
         ALLOCATOR_ERROR_NONE = 0,
         ALLOCATOR_ERROR_FAILED_TO_ALLOCATE
@@ -64,17 +64,31 @@ namespace yojimbo
     {
     public:
 
-        Allocator() {}
+        Allocator();
 
-        virtual ~Allocator() {}
+        virtual ~Allocator();
 
         virtual void * Allocate( size_t size, const char * file, int line ) = 0;
 
         virtual void Free( void * p, const char * file, int line ) = 0;
 
-        virtual int GetError() const = 0;
+        void SetError( AllocatorError error ) { m_error = error; }
 
-        virtual void ClearError() = 0;
+        int GetError() const { return m_error; }
+
+        void ClearError() { m_error = ALLOCATOR_ERROR_NONE; }
+
+    protected:
+
+        void TrackAlloc( void * p, size_t size, const char * file, int line );
+
+        void TrackFree( void * p, const char * file, int line );
+
+        AllocatorError m_error;
+
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        std::map<void*,AllocatorEntry> m_alloc_map;
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
     private:
 
@@ -85,25 +99,19 @@ namespace yojimbo
 
     class DefaultAllocator : public Allocator
     {
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-        std::map<void*,AllocatorEntry> m_alloc_map;
-#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
-
-        int m_error;
-
     public:
 
-        DefaultAllocator();
-
-        ~DefaultAllocator();
+        DefaultAllocator() {}
 
         void * Allocate( size_t size, const char * file, int line );
 
         void Free( void * p, const char * file, int line );
 
-        int GetError() const;
+    private:
 
-        void ClearError();
+        DefaultAllocator( const DefaultAllocator & other );
+
+        DefaultAllocator & operator = ( const DefaultAllocator & other );
     };
 
     class TLSF_Allocator : public Allocator
@@ -125,9 +133,11 @@ namespace yojimbo
 
         void Free( void * p, const char * file, int line );
 
-        int GetError() const;
+    private:
 
-        void ClearError();
+        TLSF_Allocator( const TLSF_Allocator & other );
+
+        TLSF_Allocator & operator = ( const TLSF_Allocator & other );
     };
 }
 
