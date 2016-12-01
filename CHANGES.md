@@ -6,6 +6,10 @@ Extended test_client_server_messages to perform multiple iterations, so it verif
 
 This ensures that both client and server clean up the connection properly when a client disconnects and reconnects.
 
+Cached the encryption mapping index in the context mapping, to provide a faster lookup for encryption mapping for connected clients 
+
+Now there is one less O(n) lookup for connected clients, and the n is smaller (less transport contexts than there is potential encryption mappings, due to encryption mappings existing prior to client connect, but context exists only once a client has fully connected).
+
 
 Wednesday November 30th, 2016
 =============================

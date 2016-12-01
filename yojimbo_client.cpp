@@ -541,14 +541,6 @@ namespace yojimbo
         return *m_clientAllocator;
     }
 
-    /*
-    void Client::SetUserContext( void * context )
-    {
-        assert( m_transport );
-        m_transport->SetUserContext( context );
-    }
-    */
-
     void Client::InitializeConnection( uint64_t clientId )
     {
         debug_printf( "Client::InitializeConnection (%p), clientId = %" PRIx64 "\n", this, clientId );
@@ -590,9 +582,11 @@ namespace yojimbo
         }
 
         m_transportContext = TransportContext();
+
         m_transportContext.allocator = m_clientAllocator;
         m_transportContext.packetFactory = m_packetFactory;
         m_transportContext.replayProtection = m_replayProtection;
+        m_transportContext.encryptionIndex = m_transport->FindEncryptionMapping( m_serverAddress );
 
         if ( m_allocateConnection )
         {

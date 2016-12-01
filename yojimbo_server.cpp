@@ -803,6 +803,8 @@ namespace yojimbo
         m_clientData[clientIndex].insecure = false;
 #endif // #if !YOJIMBO_SECURE_MODE
 
+        m_clientTransportContext[clientIndex].encryptionIndex = m_transport->FindEncryptionMapping( clientAddress );
+
         m_transport->AddContextMapping( clientAddress, m_clientTransportContext[clientIndex] );
 
         OnClientConnect( clientIndex );

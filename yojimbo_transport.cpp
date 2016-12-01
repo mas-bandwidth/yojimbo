@@ -458,7 +458,12 @@ namespace yojimbo
         assert( packetType >= 0 );
         assert( packetType < m_context.packetFactory->GetNumPacketTypes() );
 
-        const int encryptionIndex = m_encryptionManager->FindEncryptionMapping( address, GetTime() );
+        const TransportContext * context = m_contextManager->GetContext( address );
+
+        if ( !context )
+            context = &m_context;
+
+        const int encryptionIndex = ( context->encryptionIndex != -1 ) ? context->encryptionIndex : m_encryptionManager->FindEncryptionMapping( address, GetTime() );
 
         const uint8_t * key = m_encryptionManager->GetSendKey( encryptionIndex );
 
@@ -467,11 +472,6 @@ namespace yojimbo
 #else // #if !YOJIMBO_SECURE_MODE
         const bool encrypt = IsEncryptedPacketType( packetType );
 #endif // #if !YOJIMBO_SECURE_MODE
-
-        const TransportContext * context = m_contextManager->GetContext( address );
-
-        if ( !context )
-            context = &m_context;
 
         assert( context->allocator );
         assert( context->packetFactory );
@@ -581,15 +581,15 @@ namespace yojimbo
         }
 #endif // #if !YOJIMBO_SECURE_MODE
 
-        const int encryptionIndex = m_encryptionManager->FindEncryptionMapping( address, GetTime() );
-
-        const uint8_t * key = m_encryptionManager->GetReceiveKey( encryptionIndex );
-       
         const TransportContext * context = m_contextManager->GetContext( address );
 
         if ( !context )
             context = &m_context;
 
+        const int encryptionIndex = ( context->encryptionIndex != -1 ) ? context->encryptionIndex : m_encryptionManager->FindEncryptionMapping( address, GetTime() );
+
+        const uint8_t * key = m_encryptionManager->GetReceiveKey( encryptionIndex );
+       
         assert( context->allocator );
         assert( context->packetFactory );
 
@@ -810,6 +810,11 @@ namespace yojimbo
     bool BaseTransport::RemoveEncryptionMapping( const Address & address )
     {
         return m_encryptionManager->RemoveEncryptionMapping( address, GetTime() );
+    }
+
+    int BaseTransport::FindEncryptionMapping( const Address & address )
+    {
+        return m_encryptionManager->FindEncryptionMapping( address, GetTime() );
     }
 
     void BaseTransport::ResetEncryptionMappings()

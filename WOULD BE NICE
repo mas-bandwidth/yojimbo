@@ -22,13 +22,7 @@ WOULD BE NICE
 
     ------------------
 
-    Important to add tests that simulate each of the server-side client error conditions, eg. allocator, packet factory, message factory, connection, and then verify that after these errors happen, that client slot is cleared and a client can connect to it again, otherwise, possibility that I have error codes not getting cleared by accident on client disconnect.
-
-    ------------------
-
-    It's easy to mess up and not clear client data and break multiple server connections, or break initial connection. Ideally, create one function that gets called in both situations, so it is less easy to mess up.
-
-    Example being, setting last packet send time, last packet receive time before initial connect, and setting it to correct values on each subsequent connect.
+    Add tests that simulate each of the server-side client error conditions, eg. allocator, packet factory, message factory, connection, and then verify that after these errors happen, that client slot is cleared and a client can connect to it again, otherwise, possibility that I have error codes not getting cleared by accident on client disconnect.
 
     ------------------
 
@@ -36,15 +30,7 @@ WOULD BE NICE
 
     ------------------
 
-    In the common case, it should be possible to cache the encryption mapping index in the context mapping, to provide a faster lookup for encryption mapping for connected clients (eg. look up context mapping first, if found, use encryption mapping from there).
-
-    ------------------
-
     Optimize the simulator to keep track of head and tail internally, so it can avoid scanning the entire 4096 entries on each receive call.
-
-    ------------------
-
-    Implement QoS within the connection, eg. packet loss, latency measurements etc, and make this available to the user to query.
 
     ------------------
 
@@ -57,6 +43,10 @@ WOULD BE NICE
     It should be setup to run automatically on each commit to "coverity" branch, then I can create a premake action to determine current branch, mainline or development, and integrate across current head to that branch.
 
     eg. pm coverity
+
+    ------------------
+
+    Implement QoS within the connection, eg. packet loss, latency measurements etc, and make this available to the user to query.
 
     ------------------
 

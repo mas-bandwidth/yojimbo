@@ -65,20 +65,24 @@ namespace yojimbo
     {
         TransportContext()
         {
+            Clear();
+        }
+
+        TransportContext( Allocator & _allocator, PacketFactory & _packetFactory )
+        {
+            Clear();
+            allocator = &_allocator;
+            packetFactory = &_packetFactory;
+        }
+
+        void Clear()
+        {
             allocator = NULL;
             packetFactory = NULL;
             replayProtection = NULL;
             connectionContext = NULL;
             userContext = NULL;
-        }
-
-        TransportContext( Allocator & _allocator, PacketFactory & _packetFactory )
-        {
-            allocator = &_allocator;
-            packetFactory = &_packetFactory;
-            replayProtection = NULL;
-            connectionContext = NULL;
-            userContext = NULL;
+            encryptionIndex = -1;
         }
 
         Allocator * allocator;
@@ -86,6 +90,7 @@ namespace yojimbo
         ReplayProtection * replayProtection;
         struct ConnectionContext * connectionContext;
         void * userContext;
+        int encryptionIndex;
     };
 
     class TransportContextManager
@@ -147,6 +152,8 @@ namespace yojimbo
         virtual bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey ) = 0;
 
         virtual bool RemoveEncryptionMapping( const Address & address ) = 0;
+
+        virtual int FindEncryptionMapping( const Address & address ) = 0;
 
         virtual void ResetEncryptionMappings() = 0;
 
@@ -215,6 +222,8 @@ namespace yojimbo
         bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey );
 
         bool RemoveEncryptionMapping( const Address & address );
+
+        int FindEncryptionMapping( const Address & address );
 
         void ResetEncryptionMappings();
 
