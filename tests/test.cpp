@@ -3952,59 +3952,80 @@ void test_client_server_messages()
     
     server.Start();
 
-    ConnectClient( client, clientId, serverAddress );
-
-    while ( true )
+    for ( int iteration = 0; iteration < 2; ++iteration )
     {
-        Client * clients[] = { &client };
-        Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
+        clientTransport.Reset();
+        serverTransport.Reset();
 
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        ConnectClient( client, clientId, serverAddress );
 
-        if ( client.ConnectionFailed() )
+        while ( true )
         {
-            printf( "error: client connect failed!\n" );
-            exit( 1 );
+            Client * clients[] = { &client };
+            Server * servers[] = { &server };
+            Transport * transports[] = { &clientTransport, &serverTransport };
+
+            PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+            if ( client.ConnectionFailed() )
+            {
+                printf( "error: client connect failed!\n" );
+                exit( 1 );
+            }
+
+            if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+                break;
         }
 
-        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
-            break;
+        check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+        check( client.GetClientIndex() == 0 && server.IsClientConnected(0) );
+
+        const int NumMessagesSent = 64;
+
+        SendClientToServerMessages( client, NumMessagesSent );
+
+        SendServerToClientMessages( server, client.GetClientIndex(), NumMessagesSent );
+
+        int numMessagesReceivedFromClient = 0;
+        int numMessagesReceivedFromServer = 0;
+
+        const int NumIterations = 10000;
+
+        for ( int i = 0; i < NumIterations; ++i )
+        {
+            Client * clients[] = { &client };
+            Server * servers[] = { &server };
+            Transport * transports[] = { &clientTransport, &serverTransport };
+
+            PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+            ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
+
+            ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
+
+            if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
+                break;
+        }
+
+        check( numMessagesReceivedFromClient == NumMessagesSent );
+        check( numMessagesReceivedFromServer == NumMessagesSent );
+
+        client.Disconnect();
+
+        for ( int i = 0; i < NumIterations; ++i )
+        {
+            Client * clients[] = { &client };
+            Server * servers[] = { &server };
+            Transport * transports[] = { &clientTransport, &serverTransport };
+
+            PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+            if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
+                break;
+        }
+
+        check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
     }
-
-    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
-
-    const int NumMessagesSent = 64;
-
-    SendClientToServerMessages( client, NumMessagesSent );
-
-    SendServerToClientMessages( server, client.GetClientIndex(), NumMessagesSent );
-
-    int numMessagesReceivedFromClient = 0;
-    int numMessagesReceivedFromServer = 0;
-
-    const int NumIterations = 10000;
-
-    for ( int i = 0; i < NumIterations; ++i )
-    {
-        Client * clients[] = { &client };
-        Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
-
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
-
-        ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
-
-        ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
-
-        if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
-            break;
-    }
-
-    check( numMessagesReceivedFromClient == NumMessagesSent );
-    check( numMessagesReceivedFromServer == NumMessagesSent );
-
-    client.Disconnect();
 
     server.Stop();
 }

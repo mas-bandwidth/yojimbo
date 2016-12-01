@@ -1,4 +1,12 @@
 
+Thursday December 1st, 2016
+===========================
+
+Extended test_client_server_messages to perform multiple iterations, so it verifies that send and receive messages works after a client reconnects to the same slot.
+
+This ensures that both client and server clean up the connection properly when a client disconnects and reconnects.
+
+
 Wednesday November 30th, 2016
 =============================
 
