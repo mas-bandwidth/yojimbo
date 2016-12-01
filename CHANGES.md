@@ -1,4 +1,12 @@
 
+Wednesday November 30th, 2016
+=============================
+
+Added a test for clients to connect, without messages enabled, and then send no packets for some amount of time longer than timeout.
+
+This verifies that the keep-alive packets work.
+
+
 Monday November 28th, 2016
 ==========================
 

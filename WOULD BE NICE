@@ -12,13 +12,13 @@ WOULD BE NICE
 
     It would be nice to do a documentation pass over the code as well, what is the best documentation solution these days? (eg. doxygen replacement?)
 
-    This looks interesting: http://sourcey.com/generating-beautiful-markdown-documentation-with-moxygen/
+    Some good documentation examples: 
 
-    ------------------
+    http://sourcey.com/generating-beautiful-markdown-documentation-with-moxygen/
 
-    Add a test for clients to connect, without messages enabled, and then send no packets for timeout * 2 seconds. 
+    http://google.github.io/flatbuffers/
 
-    This verifies that the keep-alive packets work.
+    http://www.glfw.org
 
     ------------------
 

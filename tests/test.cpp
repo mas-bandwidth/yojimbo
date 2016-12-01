@@ -1253,6 +1253,75 @@ void test_client_server_reconnect()
     server.Stop();
 }
 
+void test_client_server_keep_alive()
+{
+    GenerateKey( private_key );
+
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "::1", ClientPort );
+    Address serverAddress( "::1", ServerPort );
+
+    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+    
+    double time = 100.0;
+
+    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
+    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+
+    ClientServerConfig clientServerConfig;
+    clientServerConfig.enableConnection = false;
+
+    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+
+    server.SetServerAddress( serverAddress );
+    
+    server.Start();
+
+    ConnectClient( client, clientId, serverAddress );
+
+    while ( true )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+
+        if ( client.ConnectionFailed() )
+        {
+            printf( "error: client connect failed!\n" );
+            exit( 1 );
+        }
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    // now pump updates for long enough that timeout should kick in, this tests that keep alive is functional
+
+    for ( int i = 0; i < 200; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+        Transport * transports[] = { &clientTransport, &serverTransport };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2, 0.1f );
+
+        if ( !client.IsConnected() || server.GetNumConnectedClients() != 1 )
+            break;
+    }
+
+    check( client.IsConnected() && server.GetNumConnectedClients() == 1 );
+
+    client.Disconnect();
+
+    server.Stop();
+}
+
 void test_client_server_client_side_disconnect()
 {
     GenerateKey( private_key );
@@ -4373,6 +4442,7 @@ int main()
         RUN_TEST( test_client_server_tokens );
         RUN_TEST( test_client_server_connect );
         RUN_TEST( test_client_server_reconnect );
+        RUN_TEST( test_client_server_keep_alive );
         RUN_TEST( test_client_server_client_side_disconnect );
         RUN_TEST( test_client_server_server_side_disconnect );
         RUN_TEST( test_client_server_connection_request_timeout );

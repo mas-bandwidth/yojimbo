@@ -313,6 +313,15 @@ if not os.is "windows" then
         end
     }
 
+    newaction
+    {
+        trigger     = "docs",
+        description = "Build documentation",
+        execute = function ()
+            os.execute "doxygen doxygen.config"
+        end
+    }
+
 else
 
     -- Windows
@@ -394,7 +403,9 @@ newaction
             "Release",
             "release",
             "cov-int",
-            "docker/libyojimbo"
+            "docker/libyojimbo",
+            "docs",
+            "xml"
         }
 
         for i,v in ipairs( directories_to_delete ) do
