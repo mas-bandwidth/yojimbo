@@ -161,9 +161,9 @@ namespace yojimbo
 
     struct MessageConfig
     {
-        int connectionPacketType;                               ///< Connection packet type (so you can override it).
-        int maxPacketSize;                                      ///< Maximum connection packet size to generate (bytes)
-        int slidingWindowSize;                                  ///< Sliding window size for packet acks (# of packets)
+        int connectionPacketType;                               ///< Connection packet type (so you can override it). Only necessary to set this if you are using Connection directly. Not necessary to set when using client/server as it overrides it to CLIENT_SERVER_PACKET_CONNECTION for you automatically.
+        int maxPacketSize;                                      ///< Limits the maximum size of packets generated to transmit messages between client and server to this size (bytes).
+        int slidingWindowSize;                                  ///< The size of the sliding window used for packet acks (# of packets in history). Depending on your packet send rate, it should be configured to cover at least a few seconds worth of packets.
         int numChannels;                                        ///< Number of channels: [1,MaxChannels-1]
         ChannelConfig channel[MaxChannels];                     ///< Per-channel configuration.
 
