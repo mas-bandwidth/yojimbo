@@ -1117,7 +1117,7 @@ void test_client_server_connect()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -1170,7 +1170,7 @@ void test_client_server_reconnect()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -1270,7 +1270,7 @@ void test_client_server_keep_alive()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -1339,7 +1339,7 @@ void test_client_server_client_side_disconnect()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -1412,7 +1412,7 @@ void test_client_server_server_side_disconnect()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -1484,7 +1484,7 @@ void test_client_server_connection_request_timeout()
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
@@ -1525,7 +1525,7 @@ void test_client_server_connection_response_timeout()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -1577,7 +1577,7 @@ void test_client_server_client_side_timeout()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -1648,7 +1648,7 @@ void test_client_server_server_side_timeout()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -1781,7 +1781,7 @@ void test_client_server_server_is_full()
     const int NumClients = 4;
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     Address serverAddress( "::1", ServerPort );
 
@@ -1894,7 +1894,7 @@ void test_client_server_connect_token_reuse()
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
@@ -1992,7 +1992,7 @@ void test_client_server_connect_token_expired()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -2041,7 +2041,7 @@ void test_client_server_connect_token_whitelist()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -2105,7 +2105,7 @@ void test_client_server_connect_token_invalid()
     const int NumIterations = 1000;
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -2151,7 +2151,7 @@ void test_client_server_connect_address_already_connected()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -2229,7 +2229,7 @@ void test_client_server_connect_client_id_already_connected()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -2309,7 +2309,7 @@ void test_client_server_connect_multiple_servers()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -2370,7 +2370,7 @@ void test_client_server_user_packets()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -2451,7 +2451,7 @@ void test_client_server_insecure_connect()
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
@@ -2513,7 +2513,7 @@ void test_client_server_insecure_connect_multiple_servers()
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
@@ -2579,7 +2579,7 @@ void test_client_server_insecure_connect_timeout()
     LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
 
     ClientServerConfig config;
-    config.enableConnection = false;
+    config.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, config, time );
 
@@ -2623,7 +2623,7 @@ void test_client_server_insecure_secure_insecure_secure()
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 
@@ -2949,7 +2949,7 @@ class TestConnection : public Connection
 
 public:
 
-    TestConnection( PacketFactory & packetFactory, MessageFactory & messageFactory, ConnectionConfig & config ) : Connection( GetDefaultAllocator(), packetFactory, messageFactory, config )
+    TestConnection( PacketFactory & packetFactory, MessageFactory & messageFactory, MessageConfig & messageConfig ) : Connection( GetDefaultAllocator(), packetFactory, messageFactory, messageConfig )
     {
         m_ackedPackets = NULL;
     }
@@ -2972,10 +2972,10 @@ void test_connection_counters()
 
     TestMessageFactory messageFactory;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    MessageConfig messageConfig;
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;                    // todo: maybe move this into the constructor?!
 
-    TestConnection connection( packetFactory, messageFactory, connectionConfig );
+    TestConnection connection( packetFactory, messageFactory, messageConfig );
 
     const int NumAcks = 100;
 
@@ -3013,10 +3013,10 @@ void test_connection_acks()
 
     TestMessageFactory messageFactory;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    MessageConfig messageConfig;
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
-    TestConnection connection( packetFactory, messageFactory, connectionConfig );
+    TestConnection connection( packetFactory, messageFactory, messageConfig );
 
     connection.SetAckedPackets( ackedPackets );
 
@@ -3120,15 +3120,15 @@ void test_connection_reliable_ordered_messages()
 
     TestMessageFactory messageFactory;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    MessageConfig messageConfig;
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
-    TestConnection sender( packetFactory, messageFactory, connectionConfig );
-    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+    TestConnection sender( packetFactory, messageFactory, messageConfig );
+    TestConnection receiver( packetFactory, messageFactory, messageConfig );
 
     ConnectionContext connectionContext;
     connectionContext.messageFactory = &messageFactory;
-    connectionContext.connectionConfig = &connectionConfig;
+    connectionContext.messageConfig = &messageConfig;
 
     const int NumMessagesSent = 64;
 
@@ -3204,15 +3204,15 @@ void test_connection_reliable_ordered_blocks()
 
     TestMessageFactory messageFactory;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    MessageConfig messageConfig;
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
-    TestConnection sender( packetFactory, messageFactory, connectionConfig );
-    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+    TestConnection sender( packetFactory, messageFactory, messageConfig );
+    TestConnection receiver( packetFactory, messageFactory, messageConfig );
 
     ConnectionContext connectionContext;
     connectionContext.messageFactory = &messageFactory;
-    connectionContext.connectionConfig = &connectionConfig;
+    connectionContext.messageConfig = &messageConfig;
 
     const int NumMessagesSent = 32;
 
@@ -3307,16 +3307,16 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
     TestMessageFactory messageFactory;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    MessageConfig messageConfig;
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
-    TestConnection sender( packetFactory, messageFactory, connectionConfig );
+    TestConnection sender( packetFactory, messageFactory, messageConfig );
 
-    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+    TestConnection receiver( packetFactory, messageFactory, messageConfig );
 
     ConnectionContext connectionContext;
     connectionContext.messageFactory = &messageFactory;
-    connectionContext.connectionConfig = &connectionConfig;
+    connectionContext.messageConfig = &messageConfig;
 
     const int NumMessagesSent = 32;
 
@@ -3438,21 +3438,21 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
     TestMessageFactory messageFactory;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
-    connectionConfig.numChannels = NumChannels;
-    connectionConfig.channelConfig[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    connectionConfig.channelConfig[0].maxMessagesPerPacket = 8;
-    connectionConfig.channelConfig[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    connectionConfig.channelConfig[1].maxMessagesPerPacket = 8;
+    MessageConfig messageConfig;
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    messageConfig.numChannels = NumChannels;
+    messageConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    messageConfig.channel[0].maxMessagesPerPacket = 8;
+    messageConfig.channel[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    messageConfig.channel[1].maxMessagesPerPacket = 8;
 
-    TestConnection sender( packetFactory, messageFactory, connectionConfig );
+    TestConnection sender( packetFactory, messageFactory, messageConfig );
 
-    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+    TestConnection receiver( packetFactory, messageFactory, messageConfig );
 
     ConnectionContext connectionContext;
     connectionContext.messageFactory = &messageFactory;
-    connectionContext.connectionConfig = &connectionConfig;
+    connectionContext.messageConfig = &messageConfig;
 
     const int NumMessagesSent = 32;
 
@@ -3593,17 +3593,17 @@ void test_connection_unreliable_unordered_messages()
 
     TestMessageFactory messageFactory;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
-    connectionConfig.numChannels = 1;
-    connectionConfig.channelConfig[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    MessageConfig messageConfig;
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    messageConfig.numChannels = 1;
+    messageConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
-    TestConnection sender( packetFactory, messageFactory, connectionConfig );
-    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+    TestConnection sender( packetFactory, messageFactory, messageConfig );
+    TestConnection receiver( packetFactory, messageFactory, messageConfig );
 
     ConnectionContext connectionContext;
     connectionContext.messageFactory = &messageFactory;
-    connectionContext.connectionConfig = &connectionConfig;
+    connectionContext.messageConfig = &messageConfig;
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
@@ -3673,18 +3673,18 @@ void test_connection_unreliable_unordered_blocks()
 
     TestMessageFactory messageFactory;
 
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
-    connectionConfig.numChannels = 1;
-    connectionConfig.channelConfig[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    MessageConfig messageConfig;
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;
+    messageConfig.numChannels = 1;
+    messageConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
-    TestConnection sender( packetFactory, messageFactory, connectionConfig );
+    TestConnection sender( packetFactory, messageFactory, messageConfig );
 
-    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
+    TestConnection receiver( packetFactory, messageFactory, messageConfig );
 
     ConnectionContext connectionContext;
     connectionContext.messageFactory = &messageFactory;
-    connectionContext.connectionConfig = &connectionConfig;
+    connectionContext.messageConfig = &messageConfig;
 
     NetworkSimulator networkSimulator( GetDefaultAllocator() );
 
@@ -3939,11 +3939,11 @@ void test_client_server_messages()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channelConfig[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
-    clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
+    clientServerConfig.messageConfig.maxPacketSize = 256;
+    clientServerConfig.messageConfig.numChannels = 1;
+    clientServerConfig.messageConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    clientServerConfig.messageConfig.channel[0].maxBlockSize = 1024;
+    clientServerConfig.messageConfig.channel[0].fragmentSize = 200;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -4035,7 +4035,7 @@ void test_client_server_start_stop_restart()
     GenerateKey( private_key );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.enableConnection = false;
+    clientServerConfig.enableMessages = false;
 
     Address serverAddress( "::1", ServerPort );
 
@@ -4116,11 +4116,11 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channelConfig[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
-    clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
+    clientServerConfig.messageConfig.maxPacketSize = 256;
+    clientServerConfig.messageConfig.numChannels = 1;
+    clientServerConfig.messageConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    clientServerConfig.messageConfig.channel[0].maxBlockSize = 1024;
+    clientServerConfig.messageConfig.channel[0].fragmentSize = 200;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -4193,11 +4193,11 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channelConfig[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
-    clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
+    clientServerConfig.messageConfig.maxPacketSize = 256;
+    clientServerConfig.messageConfig.numChannels = 1;
+    clientServerConfig.messageConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    clientServerConfig.messageConfig.channel[0].maxBlockSize = 1024;
+    clientServerConfig.messageConfig.channel[0].fragmentSize = 200;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -4270,11 +4270,11 @@ void test_client_server_message_exhaust_stream_allocator()
     LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channelConfig[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    clientServerConfig.connectionConfig.channelConfig[0].maxBlockSize = 1024;
-    clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
+    clientServerConfig.messageConfig.maxPacketSize = 256;
+    clientServerConfig.messageConfig.numChannels = 1;
+    clientServerConfig.messageConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    clientServerConfig.messageConfig.channel[0].maxBlockSize = 1024;
+    clientServerConfig.messageConfig.channel[0].fragmentSize = 200;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
@@ -4350,12 +4350,12 @@ void test_client_server_message_receive_queue_full()
     serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channelConfig[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    clientServerConfig.connectionConfig.channelConfig[0].fragmentSize = 200;
-    clientServerConfig.connectionConfig.channelConfig[0].sendQueueSize = 1024;
-    clientServerConfig.connectionConfig.channelConfig[0].receiveQueueSize = 16;         // note: tiny receive queue
+    clientServerConfig.messageConfig.maxPacketSize = 256;
+    clientServerConfig.messageConfig.numChannels = 1;
+    clientServerConfig.messageConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    clientServerConfig.messageConfig.channel[0].fragmentSize = 200;
+    clientServerConfig.messageConfig.channel[0].sendQueueSize = 1024;
+    clientServerConfig.messageConfig.channel[0].receiveQueueSize = 16;         // note: tiny receive queue
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
     GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );

@@ -32,20 +32,22 @@
 
 namespace yojimbo
 {
+    // todo: maybe message context?
     struct ConnectionContext
     {
         uint32_t magic;
+        const MessageConfig * messageConfig;
         class MessageFactory * messageFactory;
-        const ConnectionConfig * connectionConfig;
 
         ConnectionContext()
         {
             magic = ConnectionContextMagic;
             messageFactory = NULL;
-            connectionConfig = NULL;
+            messageConfig = NULL;
         }
     };
 
+    // todo: MessagePacket?
     struct ConnectionPacket : public Packet
     {
         uint16_t sequence;
@@ -122,7 +124,7 @@ namespace yojimbo
     {
     public:
 
-        Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & config = ConnectionConfig() );
+        Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const MessageConfig & messageConfig = MessageConfig() );
 
         ~Connection();
 
@@ -170,7 +172,7 @@ namespace yojimbo
 
     private:
 
-        const ConnectionConfig m_config;                                                // const configuration data
+        const MessageConfig m_messageConfig;                                            // message configuration
 
         ConnectionError m_error;                                                        // connection error level
 

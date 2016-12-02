@@ -2,6 +2,24 @@ DONE
 
 TODO
 
+    Key documentation areas: outside -> in.
+
+        1. yojimbo_server.h
+
+        2. yojimbo_client.h
+
+        3. yojimbo_transport.h
+
+        4. yojimbo_address.h
+
+        5. yojimbo_serialize.h (macros)
+
+        6. yojimbo_config.h
+
+        7. InitializeYojimbo/ShutdownYojimbo
+
+        8. Front page overview linking to rest of docs
+
     =========================================
 
     Packet fragmentation and reassembly.

@@ -171,6 +171,23 @@ namespace yojimbo
         SERVER_FLAG_ALLOW_INSECURE_CONNECT = (1<<2)
     };
 
+    /** Yojimbo server class.
+     *
+     *  Provides an abstraction of a server with n slots for clients to connect.
+     *
+     *  Each client that connects to this server is assigned a client index in [0,numClients-1] corresponding to the slot they take up on the server. When all client slots are full, requests to connect to the server are denied.
+     * 
+     *  Maximum number of clients per-server is specified in numClients in Server::Start. Current supported maximum for numClients is yojimbo::MaxClients = 64. This can be overrided by editing this constant, but be aware that yojimbo is designed for [2,64] player games.
+     *
+     *  Number of clients slots can be adjusted dynamically by stopping and restarting the server with a different number of clients. When a server is stopped, all connected clients are disconnected.
+     *
+     *  The server supports two code-paths for client connect: secure and insecure.
+     *
+     *  Insecure connect is for development only. To enable insecure connect: (code sample)
+     *  
+     *  Secure connect is designed for games that run dedicated servers. In this mode, clients must connect to a backend to ...
+     */
+
     class Server : public ConnectionListener
     {
     public:
@@ -242,8 +259,6 @@ namespace yojimbo
         double GetTime() const;
 
         uint64_t GetFlags() const;
-
-        const ConnectionConfig & GetConnectionConfig() const { return m_config.connectionConfig; }
 
         Allocator & GetGlobalAllocator() { assert( m_globalAllocator ); return *m_globalAllocator; }
 

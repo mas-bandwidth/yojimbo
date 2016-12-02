@@ -97,8 +97,9 @@ namespace yojimbo
         m_allocator = &allocator;
         m_transport = &transport;
         m_config = config;
-        m_config.connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
-        m_allocateConnection = m_config.enableConnection;
+        // todo: this is dodgy
+        m_config.messageConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
+        m_allocateConnection = m_config.enableMessages;
         m_time = time;
     }
 
@@ -308,7 +309,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_INSECURE_CONNECT:
             {
-                if ( m_lastPacketSendTime + m_config.insecureConnectSendRate > time )
+                if ( m_lastPacketSendTime + ( 1.0f / m_config.connectionNegotiationSendRate ) > time )
                     return;
 
                 InsecureConnectPacket * packet = (InsecureConnectPacket*) CreatePacket( CLIENT_SERVER_PACKET_INSECURE_CONNECT );
@@ -325,7 +326,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
             {
-                if ( m_lastPacketSendTime + m_config.connectionRequestSendRate > time )
+                if ( m_lastPacketSendTime + ( 1.0f / m_config.connectionNegotiationSendRate ) > time )
                     return;
 
                 ConnectionRequestPacket * packet = (ConnectionRequestPacket*) CreatePacket( CLIENT_SERVER_PACKET_CONNECTION_REQUEST );
@@ -343,7 +344,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:
             {
-                if ( m_lastPacketSendTime + m_config.connectionResponseSendRate > time )
+                if ( m_lastPacketSendTime + ( 1.0f / m_config.connectionNegotiationSendRate ) > time )
                     return;
 
                 ChallengeResponsePacket * packet = (ChallengeResponsePacket*) CreatePacket( CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE );
@@ -370,7 +371,7 @@ namespace yojimbo
                     }
                 }
 
-                if ( m_lastPacketSendTime + m_config.connectionKeepAliveSendRate <= time )
+                if ( m_lastPacketSendTime + ( 1.0f / m_config.connectionKeepAliveSendRate ) <= time )
                 {
                     KeepAlivePacket * packet = (KeepAlivePacket*) CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
 
@@ -422,7 +423,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_INSECURE_CONNECT:
             {
-                if ( m_lastPacketReceiveTime + m_config.insecureConnectTimeOut < time )
+                if ( m_lastPacketReceiveTime + m_config.connectionNegotiationTimeOut < time )
                 {
                     debug_printf( "insecure connect timed out\n" );
                     if ( ConnectToNextServer() )
@@ -437,7 +438,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_CONNECTION_REQUEST:
             {
-                if ( m_lastPacketReceiveTime + m_config.connectionRequestTimeOut < time )
+                if ( m_lastPacketReceiveTime + m_config.connectionNegotiationTimeOut < time )
                 {
                     debug_printf( "connection request timed out\n" );
                     if ( ConnectToNextServer() )
@@ -450,7 +451,7 @@ namespace yojimbo
 
             case CLIENT_STATE_SENDING_CHALLENGE_RESPONSE:
             {
-                if ( m_lastPacketReceiveTime + m_config.challengeResponseTimeOut < time )
+                if ( m_lastPacketReceiveTime + m_config.connectionNegotiationTimeOut < time )
                 {
                     debug_printf( "challenge response timed out\n" );
                     if ( ConnectToNextServer() )
@@ -562,7 +563,7 @@ namespace yojimbo
 
         m_replayProtection = YOJIMBO_NEW( *m_clientAllocator, ReplayProtection );
 
-        if ( m_config.enableConnection )
+        if ( m_config.enableMessages )
         {
             if ( m_allocateConnection )
             {
@@ -573,7 +574,7 @@ namespace yojimbo
                 
                 assert( m_messageFactory );
                 
-                m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_packetFactory, *m_messageFactory, m_config.connectionConfig );
+                m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_packetFactory, *m_messageFactory, m_config.messageConfig );
                 
                 assert( m_connection );
 
@@ -590,7 +591,7 @@ namespace yojimbo
 
         if ( m_allocateConnection )
         {
-            m_connectionContext.connectionConfig = &m_config.connectionConfig;
+            m_connectionContext.messageConfig = &m_config.messageConfig;
             m_connectionContext.messageFactory = m_messageFactory;
             m_transportContext.connectionContext = &m_connectionContext;
         }

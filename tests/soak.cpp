@@ -80,10 +80,10 @@ int SoakMain()
     serverTransport.SetNetworkConditions( 250, 250, 10, 50 );
 
     ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 1100;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channelConfig[0].packetBudget = 256;
-    clientServerConfig.connectionConfig.channelConfig[0].maxMessagesPerPacket = 256;
+    clientServerConfig.messageConfig.maxPacketSize = 1100;
+    clientServerConfig.messageConfig.numChannels = 1;
+    clientServerConfig.messageConfig.channel[0].packetBudget = 256;
+    clientServerConfig.messageConfig.channel[0].maxMessagesPerPacket = 256;
 
     GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
 

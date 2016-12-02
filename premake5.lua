@@ -318,7 +318,7 @@ if not os.is "windows" then
         trigger     = "docs",
         description = "Build documentation",
         execute = function ()
-            os.execute "doxygen doxygen.config"
+            os.execute "doxygen doxygen.config && open docs/html/index.html"
         end
     }
 

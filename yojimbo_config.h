@@ -159,48 +159,42 @@ namespace yojimbo
         }
     };
 
-    struct ConnectionConfig
+    struct MessageConfig
     {
-        int maxPacketSize;                                      // maximum connection packet size in bytes
-        int slidingWindowSize;                                  // sliding window size for packet ack system (# of packets)
-        int connectionPacketType;                               // connection packet type (so you may override it)
-        int numChannels;                                        // number of channels: [1,MaxChannels]
-        ChannelConfig channelConfig[MaxChannels];
+        int connectionPacketType;                               ///< Connection packet type (so you can override it).
+        int maxPacketSize;                                      ///< Maximum connection packet size to generate (bytes)
+        int slidingWindowSize;                                  ///< Sliding window size for packet acks (# of packets)
+        int numChannels;                                        ///< Number of channels: [1,MaxChannels-1]
+        ChannelConfig channel[MaxChannels];                     ///< Per-channel configuration.
 
-        ConnectionConfig()
+        MessageConfig()
         {
+            connectionPacketType = 0;
             maxPacketSize = 4 * 1024;
             slidingWindowSize = 1024;
             numChannels = 1;
-            connectionPacketType = 0;
         }
     };
 
     const uint32_t ConnectionContextMagic = 0x11223344;
 
+    /** Yojimbo client/server configuration.
+     *
+     *  This struct is passed to Client and Server constructors to configure them.
+     */
+
     struct ClientServerConfig
     {
-        int clientMemory;                                       // memory allocated on the client for packets, messages and stream allocations (bytes)
-        int serverGlobalMemory;                                 // memory allocated for global connection request handling on the server (bytes)
-        int serverPerClientMemory;                              // memory allocated for packets, messages and stream allocations per-client (bytes)
-
-        int numDisconnectPackets;                               // number of disconnect packets to spam on clean disconnect. avoids timeout.
-        
-        float connectionRequestSendRate;                        // seconds between connection request packets sent.
-        float connectionResponseSendRate;                       // seconds between connection response packets sent.
-        float connectionKeepAliveSendRate;                      // seconds between keep alive packets sent after connection has been confirmed. sent only if other packets are not sent.
-        float connectionRequestTimeOut;                         // seconds before client connection requests gives up and times out.
-        float challengeResponseTimeOut;                         // seconds before challenge response times out.
-        float connectionTimeOut;                                // seconds before connection times out after connection has been established.
-
-#if !YOJIMBO_SECURE_MODE
-        float insecureConnectSendRate;                          // seconds between insecure connect packets sent.
-        float insecureConnectTimeOut;                           // time in seconds after with an insecure connection request times out.
-#endif // #if !YOJIMBO_SECURE_MODE
-
-        bool enableConnection;                                  // enable per-client connection and messages.
-
-        ConnectionConfig connectionConfig;                      // connection configuration.
+        int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
+        int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
+        int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client. IMPORTANT: The total amount of memory allocated is this amount multiplied by numClients passed into Server::Start (bytes)
+        int numDisconnectPackets;                               ///< Number of disconnect packets to send on clean disconnect. Intended to make sure that the other side of the connection receives a disconnect packet and disconnects cleanly, even under packet loss. Without this, the other side times out and this ties up that slot on the server for an extended period.
+        float connectionNegotiationSendRate;                    ///< Send rate for packets sent during connection negotiation process. eg. connection request and challenge response packets (packets per-second).
+        float connectionNegotiationTimeOut;                     ///< Connection negotiation times out if no response is received from the other side in this amount of time (seconds).
+        float connectionKeepAliveSendRate;                      ///< Keep alive packets are sent at this rate between client and server if no other packets are sent by the client or server. Avoids timeout in situations where you are not sending packets at a steady rate (packets per-second).
+        float connectionTimeOut;                                ///< Once a connection is established, it times out if it hasn't received any packets from the other side in this amount of time (seconds).
+        bool enableMessages;                                    ///< If this is true then you can send messages between client and server. Disable if you don't want to use messages and you want to extend the protocol by adding new packet types instead.
+        MessageConfig messageConfig;                            ///< Configures the number and type of message channels for the connection between client and server. Must be identical between client and server to work properly. Only used if enableMessages is true.
 
         ClientServerConfig()
         {
@@ -208,18 +202,12 @@ namespace yojimbo
             serverGlobalMemory = 2 * 1024 * 1024;
             serverPerClientMemory = 2 * 1024 * 1024;
             numDisconnectPackets = 10;
-            connectionRequestSendRate = 0.1f;
-            connectionResponseSendRate = 0.1f;
-            connectionKeepAliveSendRate = 0.1f;
-            connectionRequestTimeOut = 5.0f;
-            challengeResponseTimeOut = 5.0f;
+            connectionNegotiationSendRate = 10.0f;
+            connectionNegotiationTimeOut = 5.0f;
+            connectionKeepAliveSendRate = 10.0f;
             connectionTimeOut = 5.0f;
-            enableConnection = true;
-#if !YOJIMBO_SECURE_MODE
-            insecureConnectSendRate = 0.1f;
-            insecureConnectTimeOut = 5.0f;
-#endif // #if !YOJIMBO_SECURE_MODE
-        }        
+            enableMessages = true;
+        }
     };
 }
 

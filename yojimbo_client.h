@@ -96,6 +96,10 @@ namespace yojimbo
 
     const char * GetClientStateName( int clientState );
 
+    /** Yojimbo client class.
+     *
+     */
+
     class Client : public ConnectionListener
     {
     public:
