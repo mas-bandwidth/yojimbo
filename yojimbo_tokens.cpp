@@ -99,16 +99,16 @@ namespace yojimbo
 
     bool EncryptConnectToken( const ConnectToken & token, uint8_t * encryptedMessage, const uint8_t * nonce, const uint8_t * key )
     {
-        char message[ConnectTokenBytes-AuthBytes];
-        memset( message, 0, ConnectTokenBytes - AuthBytes );
-        if ( !WriteConnectTokenToJSON( token, message, ConnectTokenBytes - AuthBytes ) )
+        char message[ConnectTokenBytes-MacBytes];
+        memset( message, 0, ConnectTokenBytes - MacBytes );
+        if ( !WriteConnectTokenToJSON( token, message, ConnectTokenBytes - MacBytes ) )
             return false;
 
         uint64_t encryptedLength;
 
         uint64_t expireTimestampNetworkOrder = host_to_network( token.expireTimestamp );        // network order is little endian
 
-        if ( !Encrypt_AEAD( (const uint8_t*)message, ConnectTokenBytes - AuthBytes, encryptedMessage, encryptedLength, (const uint8_t*) &expireTimestampNetworkOrder, 8, nonce, key ) )
+        if ( !Encrypt_AEAD( (const uint8_t*)message, ConnectTokenBytes - MacBytes, encryptedMessage, encryptedLength, (const uint8_t*) &expireTimestampNetworkOrder, 8, nonce, key ) )
             return false;
 
         assert( encryptedLength == ConnectTokenBytes );
@@ -128,7 +128,7 @@ namespace yojimbo
         if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, (const uint8_t*) &expireTimestampNetworkOrder, 8, nonce, key ) )
             return false;
 
-        assert( decryptedMessageLength == ConnectTokenBytes - AuthBytes );
+        assert( decryptedMessageLength == ConnectTokenBytes - MacBytes );
 
         return ReadConnectTokenFromJSON( (const char*) decryptedMessage, decryptedToken );
     }
@@ -344,9 +344,9 @@ namespace yojimbo
 
     bool EncryptChallengeToken( ChallengeToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
     {
-        uint8_t message[ChallengeTokenBytes - AuthBytes];
-        memset( message, 0, ChallengeTokenBytes - AuthBytes );
-        WriteStream stream( message, ChallengeTokenBytes - AuthBytes );
+        uint8_t message[ChallengeTokenBytes - MacBytes];
+        memset( message, 0, ChallengeTokenBytes - MacBytes );
+        WriteStream stream( message, ChallengeTokenBytes - MacBytes );
         if ( !token.Serialize( stream ) )
             return false;
 
@@ -357,7 +357,7 @@ namespace yojimbo
 
         uint64_t encryptedLength;
 
-        if ( !Encrypt_AEAD( message, ChallengeTokenBytes - AuthBytes, encryptedMessage, encryptedLength, additional, additionalLength, nonce, key ) )
+        if ( !Encrypt_AEAD( message, ChallengeTokenBytes - MacBytes, encryptedMessage, encryptedLength, additional, additionalLength, nonce, key ) )
             return false;
 
         assert( encryptedLength == ChallengeTokenBytes );
@@ -375,9 +375,9 @@ namespace yojimbo
         if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, additional, additionalLength, nonce, key ) )
             return false;
 
-        assert( decryptedMessageLength == ChallengeTokenBytes - AuthBytes );
+        assert( decryptedMessageLength == ChallengeTokenBytes - MacBytes );
 
-        ReadStream stream( decryptedMessage, ChallengeTokenBytes - AuthBytes );
+        ReadStream stream( decryptedMessage, ChallengeTokenBytes - MacBytes );
         if ( !decryptedToken.Serialize( stream ) )
             return false;
 

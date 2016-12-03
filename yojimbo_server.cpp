@@ -770,7 +770,7 @@ namespace yojimbo
         if ( m_connectTokenEntries[matchingTokenIndex].address == address )
             return true;
 
-        // otherwise an entry exists with the same mac but a different address, somebody is trying to reuse the connect token as a replay attack!
+        // otherwise an entry exists with the same mac but a different address, somebody is trying to reuse this connect token in a replay attack!
 
         return false;
     }

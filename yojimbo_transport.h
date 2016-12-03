@@ -184,6 +184,7 @@ namespace yojimbo
                        const Address & address,
                        uint32_t protocolId,
                        double time,
+                       // todo: maybe we need TransportConfig?
                        int maxPacketSize = DefaultMaxPacketSize,
                        int sendQueueSize = DefaultPacketSendQueueSize,
                        int receiveQueueSize = DefaultPacketReceiveQueueSize,

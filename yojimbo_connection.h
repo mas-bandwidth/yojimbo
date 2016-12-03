@@ -32,7 +32,8 @@
 
 namespace yojimbo
 {
-    // todo: maybe message context?
+    const uint32_t ConnectionContextMagic = 0x11223344;
+
     struct ConnectionContext
     {
         uint32_t magic;
@@ -47,7 +48,6 @@ namespace yojimbo
         }
     };
 
-    // todo: MessagePacket?
     struct ConnectionPacket : public Packet
     {
         uint16_t sequence;
