@@ -162,7 +162,7 @@ namespace yojimbo
         int receiveQueueSize;                                       ///< Number of messages in the receive queue for this channel.
         int sentPacketBufferSize;                                   ///< Maps packet level acks to individual messages & fragments. Please consider your packet send rate and make sure you have at least a few seconds worth of entries in this buffer.
         int maxMessagesPerPacket;                                   ///< Maximum number of messages to include in each packet. Will write up to this many messages, provided the messages fit into the channel packet budget and the number of bytes remaining in the packet.
-        int packetBudget;                                           ///< Maximum amount of message data to write to the packet for this channel (bytes). Specifying -1 means the channel can use up to the rest of the available packet bytes in the packet.
+        int packetBudget;                                           ///< Maximum amount of message data to write to the packet for this channel (bytes). Specifying -1 means the channel can use up to the rest of the bytes remaining in the packet.
         int maxBlockSize;                                           ///< The size of the largest block that can be sent across this channel (bytes).
         int fragmentSize;                                           ///< Blocks are split up into fragments of this size when sent over a reliabled-ordered channel (bytes).
         float messageResendTime;                                    ///< Minimum delay between message resends (seconds). Avoids sending the same message too frequently.

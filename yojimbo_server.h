@@ -132,7 +132,7 @@ namespace yojimbo
         SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                  ///< Number of times the server ignored a connection request because a client with that client id was already connected to the server.
         SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED,                        ///< Number of times the server ignored a connection request because the connect token has expired (they're typically only valid for a short amount of time, like 45-60 seconds, to fight replay attacks).
         SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED,                   ///< Number of times the server ignored a connection request because a client has already used that connect token to connect to this server. This should typically be zero, a non-zero value indicates shennanigans!
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING,             ///< Number of times the server ignored a connection request because it could not add an encryption mapping for that client. If this is non-zero, it would indicate that somebody is somehow attacking the server with valid connection tokens. @see yojimbo::MaxEncryptionMappings.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING,             ///< Number of times the server ignored a connection request because it could not add an encryption mapping for that client. If this is non-zero, it would indicate that somebody is somehow attacking the server with valid connection tokens. See yojimbo::MaxEncryptionMappings.
         SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,          ///< Number of times the server ignored a connection request because it could not allocate a challenge packet to send back to the client. This would indicate that the server has insufficient global resources (packet factory, allocator) to handle the connection negotiation load. @see ClientServerConfig::serverGlobalMemory.
         SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN,           ///< Number of times the server ignored a connection request because it could not generate a challenge token to send back to the client. Something is probably wrong with libsodium.
         SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN,            ///< Number of times the server ignored a connection request because it could not encrypt a challenge token to send back to the client. Something is probably wrong with libsodium.
@@ -149,12 +149,12 @@ namespace yojimbo
         SERVER_COUNTER_CLIENT_DISCONNECTS,                                                      ///< Number of times a client has been disconnected from the server.
         SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS,                                                ///< Number of clean disconnects where the client sent disconnect packets to the server. You want lots of these.
         SERVER_COUNTER_CLIENT_TIMEOUTS,                                                         ///< Number of timeouts where the client disconnected without sending disconnect packets to the server. You want few of these.
-        SERVER_COUNTER_CLIENT_ALLOCATOR_ERRORS,                                                 ///< Number of times a client was disconnected from the server because their allocator entered into an error state (eg. failed to allocate a block of memory). This indicates that the client has exhausted their per-client resources. @see yojimbo::serverPerClientMemory.
+        SERVER_COUNTER_CLIENT_ALLOCATOR_ERRORS,                                                 ///< Number of times a client was disconnected from the server because their allocator entered into an error state (eg. failed to allocate a block of memory). This indicates that the client has exhausted their per-client resources. See yojimbo::serverPerClientMemory.
         SERVER_COUNTER_CLIENT_CONNECTION_ERRORS,                                                ///< Number of times a client was disconnected from the server because their connection entered into an error state. This indicates that something went wrong with the internal protocol for sending messages between client and server.
         SERVER_COUNTER_CLIENT_MESSAGE_FACTORY_ERRORS,                                           ///< Number of times a client was disconnected from the server because their packet factory went into an error state. This indicates that the client tried to create a packet but failed to do so.
         SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS,                                            ///< Number of times a client was disconnected from the server because their message factory went into an error state. This indicates that the client tried to create a message but failed to do so.
-        SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS,                                            ///< Number of times the global packet factory entered into an error state because it could not allocate a packet. This probably indicates insufficient global memory for the connection negotiation process on the server. @see ClientServerConfig::serverGlobalMemory.
-        SERVER_COUNTER_GLOBAL_ALLOCATOR_ERRORS,                                                 ///< Number of times the global allocator went into error state because it could not perform an allocation. This probably indicates insufficient global memory for the connection negotiation process on the server. @see ClientServerConfig::serverGlobalMemory.
+        SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS,                                            ///< Number of times the global packet factory entered into an error state because it could not allocate a packet. This probably indicates insufficient global memory for the connection negotiation process on the server. See ClientServerConfig::serverGlobalMemory.
+        SERVER_COUNTER_GLOBAL_ALLOCATOR_ERRORS,                                                 ///< Number of times the global allocator went into error state because it could not perform an allocation. This probably indicates insufficient global memory for the connection negotiation process on the server. See ClientServerConfig::serverGlobalMemory.
         
         NUM_SERVER_COUNTERS                                                                     ///< The number of server counters.
     };
@@ -172,7 +172,7 @@ namespace yojimbo
         SERVER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET,                                  ///< The server ignored the connection request because the SERVER_FLAG_IGNORE_CONNECTION_REQUESTS is set.
         SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED,                                ///< The server ignored the connection request because the connect token has expired.
         SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN,                      ///< The server ignored the connection request because it could not decrypt the connect token.
-        SERVER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST,                      ///< The server ignored the connection request because the server address is not in the connect token server address whitelist. @see Server::SetServerAddress.
+        SERVER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST,                      ///< The server ignored the connection request because the server address is not in the connect token server address whitelist. See Server::SetServerAddress.
         SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO,                                    ///< The server ignored the connection request because the client id is zero.
         SERVER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED,                            ///< The server ignored the connection request because a client with that address is already connected.
         SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                          ///< The server ignored the connection request because a client with thath client id is already connected.
@@ -243,8 +243,24 @@ namespace yojimbo
 
         void SetPrivateKey( const uint8_t * privateKey );
 
+        /**
+            Set the user context.
+
+            The user context is set on the stream when packets and read and written. It lets you can pass in a pointer to some structure that you want to have available when reading and writing packets.
+
+            Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
+
+            If you do use a user context, please make sure the data that contributes to the user context is checksummed and included in the protocol id, so clients and servers with incompatible data can't connect to each other.
+
+            @see Stream::GetUserContext
+         */
+
+        void SetUserContext( void * context );
+
         /**      
-            Set the server IP address. This should be a public IP address, eg: the address that a client would use to connect to the server.
+            Set the server IP address. 
+
+            This should be a public IP address, eg. the address that a client would use to connect to the server.
              
             @param address The server address.
          */
@@ -342,6 +358,142 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
+        /**
+            Is the server running?
+
+            The server is running after you have called Server::Start. It is not running before the first server start, and after you call Server::Stop.
+
+            Clients can only connect to the server while it is running.
+
+            @returns true if the server is currently running.
+         */
+
+        bool IsRunning() const;
+
+        /**
+            Get the maximum number of clients that can connect to the server.
+
+            Corresponds to the maxClients parameter passed into the last call to Server::Start.
+
+            @returns The maximum number of clients that can connect to the server. In other words, the number of client slots.
+         */
+
+        int GetMaxClients() const;
+
+        /**
+            Is a client connected to a client slot?
+
+            @param clientIndex the index of the client slot in [0,maxClients-1], where maxClients corresponds to the value passed into the last call to Server::Start.
+
+            @returns True if the client is connected.
+         */
+
+        bool IsClientConnected( int clientIndex ) const;
+
+        /** 
+            Get the number of clients that are currently connected to the server.
+
+            @returns the number of connected clients.
+         */
+
+        int GetNumConnectedClients() const;
+
+        /**
+            Find the client index for the client with the specified client id.
+
+            @returns The client index if a client with the client id is connected to the server, otherwise -1.
+         */
+
+        int FindClientIndex( uint64_t clientId ) const;
+
+        /**
+            Find the client index for the client with the specified address.
+
+            @returns The client index if a client with the address is connected to the server, otherwise -1.
+         */
+
+        int FindClientIndex( const Address & address ) const;
+
+        /**
+            Get the client id for the client at the specified client index.
+
+            @returns The client id of the client.
+         */
+
+        uint64_t GetClientId( int clientIndex ) const;
+
+        /**
+            Get the address of the client at the specified client index.
+
+            @returns The address of the client.
+         */
+
+        const Address & GetClientAddress( int clientIndex ) const;
+
+        /**
+            Get the server address.
+
+            This is the address that clients connect to.
+
+            @returns The server address.
+
+            @see Server::SetServerAddress
+         */
+
+        const Address & GetServerAddress() const;
+
+        /**
+            Set server flags.
+
+            Flags are used to enable and disable server functionality.
+
+            @param flags The server flags to set. See ServerFlags for flags that can be passed in.
+
+            @see Server::GetFlags
+         */
+
+        void SetFlags( uint64_t flags );
+
+        /**
+            Get the current server flags.
+
+            @returns The server flags. See ServerFlags for the set of flags.
+    
+            @see Server::SetFlags
+         */
+
+        uint64_t GetFlags() const;
+
+        /**
+            Get the counter value.
+
+            Counters are used to track event and actions performed by the server. They are useful for debugging, testing and telemetry.
+
+            @returns The counter value. See ServerCounters for the set of counters.
+         */
+
+        uint64_t GetCounter( int index ) const;
+
+        /** 
+            Reset all counters to zero.
+
+            This is typically used with a telemetry application after reporting the current set of counters to the telemetry backend.
+         */
+
+        void ResetCounters();
+
+        /**
+            Gets the current server time.
+
+            @see Server::AdvanceTime
+         */
+
+        double GetTime() const;
+
+        // =====================================
+
+        // todo
+
         Message * CreateMsg( int clientIndex, int type );
 
         bool CanSendMsg( int clientIndex ) const;
@@ -358,36 +510,8 @@ namespace yojimbo
 
         Packet * CreateClientPacket( int clientIndex, int type );
 
-        void SetFlags( uint64_t flags );
-
-        void SetUserContext( void * context );
-
-        bool IsRunning() const;
-
-        int GetMaxClients() const;
-
-        bool IsClientConnected( int clientIndex ) const;
-
-        int GetNumConnectedClients() const;
-
-        int FindClientIndex( uint64_t clientId ) const;
-
-        int FindClientIndex( const Address & address ) const;
-
-        uint64_t GetClientId( int clientIndex ) const;
-
-        const Address & GetServerAddress() const;
-
-        const Address & GetClientAddress( int clientIndex ) const;
-
-        uint64_t GetCounter( int index ) const;
-
-        double GetTime() const;
-
-        uint64_t GetFlags() const;
-
+        // todo: do I really need to expose these public?
         Allocator & GetGlobalAllocator() { assert( m_globalAllocator ); return *m_globalAllocator; }
-
         Allocator & GetClientAllocator( int clientIndex ) { assert( clientIndex >= 0 ); assert( clientIndex < m_maxClients ); assert( m_clientAllocator[clientIndex] ); return *m_clientAllocator[clientIndex]; }
 
     protected:
@@ -474,67 +598,67 @@ namespace yojimbo
 
         void Defaults();
 
-        ClientServerConfig m_config;                                        // client/server configuration.
+        ClientServerConfig m_config;                                        ///< The client/server configuration passed in to the constructor.
 
-        Allocator * m_allocator;                                            // allocator used for creating connections per-client.
+        Allocator * m_allocator;                                            ///< The allocator passed in to the constructor. All memory used by the server is allocated using this.
 
-        uint8_t * m_globalMemory;                                           // memory backing the global allocator.
+        uint8_t * m_globalMemory;                                           ///< The block of memory backing the global allocator. Allocated with m_allocator.
 
-        uint8_t * m_clientMemory[MaxClients];                               // memory backing the client allocators.
+        uint8_t * m_clientMemory[MaxClients];                               ///< The block of memory backing the per-client allocators. Allocated with m_allocator.
 
-        Allocator * m_globalAllocator;                                      // global allocator 
+        Allocator * m_globalAllocator;                                      ///< The global allocator. This is used for allocations related to connection negotiation.
 
-        Allocator * m_clientAllocator[MaxClients];                          // per-client allocator
+        Allocator * m_clientAllocator[MaxClients];                          ///< Array of per-client allocator. These are used for allocations related to connected clients.
 
-        Transport * m_transport;                                            // transport interface for sending and receiving packets.
+        Transport * m_transport;                                            ///< Transport interface for sending and receiving packets.
 
-        TransportContext m_globalTransportContext;                          // global transport context for reading and writing packets. used for packets not belonging to a connected client.
+        TransportContext m_globalTransportContext;                          ///< Global transport context for reading and writing packets. Used for packets that don't belong to a connected client. eg. connection negotiation packets.
 
-        TransportContext m_clientTransportContext[MaxClients];              // transport context for reading and writing packets that belong to connected clients.
+        TransportContext m_clientTransportContext[MaxClients];              ///< Array of per-client transport contexts for reading and writing packets that belong to connected clients.
 
-        ConnectionContext m_clientConnectionContext[MaxClients];            // connection context for reading and writing connection packets (messages) for connected clients.
+        ConnectionContext m_clientConnectionContext[MaxClients];            ///< Connection context for reading and writing connection packets to connected clients. These packets contain messages sent between the client and server.
 
-        PacketFactory * m_globalPacketFactory;                              // packet factory for global packets (eg. conection request, challenge response packets prior to connection).
+        PacketFactory * m_globalPacketFactory;                              ///< Global packet factory for creating global packets such as connection request packets and challenge response packets sent during connection negotiation.
 
-        PacketFactory * m_clientPacketFactory[MaxClients];                  // packet factory for creating and destroying packets. per-client. required.
+        PacketFactory * m_clientPacketFactory[MaxClients];                  ///< Per-client packet factory for creating and destroying packets sent to and received from connected clients.
 
-        MessageFactory * m_clientMessageFactory[MaxClients];                // message factory for creating and destroying messages. per-client and optional.
+        MessageFactory * m_clientMessageFactory[MaxClients];                ///< Per-client message factory for creating and destroying messages. These are only allocated if ClientServerConfig::enableMessages is true.
 
-        ReplayProtection * m_clientReplayProtection[MaxClients];            // per-client protection against packet replay attacks. discards old and already received packets.
+        ReplayProtection * m_clientReplayProtection[MaxClients];            ///< Per-client protection against packet replay attacks. Discards old and already received packets.
 
-        uint8_t m_privateKey[KeyBytes];                                     // private key used for encrypting and decrypting tokens.
+        uint8_t m_privateKey[KeyBytes];                                     ///< Private key used for encrypting and decrypting connect and challenge tokens.
 
-        uint64_t m_challengeTokenNonce;                                     // nonce used for encoding challenge tokens
+        uint64_t m_challengeTokenNonce;                                     ///< Nonce used for encoding challenge tokens
 
-        double m_time;                                                      // current server time (see "AdvanceTime")
+        double m_time;                                                      ///< Current server time. See Server::AdvanceTime
 
-        uint64_t m_flags;                                                   // server flags
+        uint64_t m_flags;                                                   ///< Server flags. See Server::SetFlags.
 
-        int m_maxClients;                                                   // maximum number of clients supported by this server
+        int m_maxClients;                                                   ///< The maximum number of clients supported by this server. Corresponds to maxClients passed in to the last Server::Start call.
 
-        int m_numConnectedClients;                                          // number of connected clients
+        int m_numConnectedClients;                                          ///< The number of clients that are currently connected to the server.
         
-        bool m_clientConnected[MaxClients];                                 // true if client n is connected
+        bool m_clientConnected[MaxClients];                                 ///< Array of connected flags per-client. Provides quick testing if a client is connected by client index.
         
-        uint64_t m_clientId[MaxClients];                                    // array of client id values per-client
+        uint64_t m_clientId[MaxClients];                                    ///< Array of client id values per-client. Provides quick access to client id by client index.
 
-        Address m_serverAddress;                                            // the external IP address of this server (what clients will be sending packets to)
+        Address m_serverAddress;                                            ///< The address of this server (the address that clients will be connecting to).
 
-        uint64_t m_globalSequence;                                          // global sequence number for packets sent not corresponding to any particular connected client.
+        uint64_t m_globalSequence;                                          ///< The global sequence number for packets sent not corresponding to any particular connected client, eg. packets sent as part of connection negotiation.
 
-        uint64_t m_clientSequence[MaxClients];                              // per-client sequence number for packets sent
+        uint64_t m_clientSequence[MaxClients];                              ///< Per-client sequence number for packets sent to this client. Resets to zero each time the client slot is reset.
 
-        Address m_clientAddress[MaxClients];                                // array of client address values per-client
+        Address m_clientAddress[MaxClients];                                ///< Array of client addresses. Provides quick access to client address by client index.
         
-        ServerClientData m_clientData[MaxClients];                          // heavier weight data per-client, eg. not for fast lookup
+        ServerClientData m_clientData[MaxClients];                          ///< Per-client data. This is the bulk of the data, and contains duplicates of data used for fast access.
 
-        bool m_allocateConnections;                                         // true if we should allocate connection objects in start.
+        bool m_allocateConnections;                                         ///< True if we should allocate connection objects in start. This is true if ClientServerConfig::enableMessages is true.
 
-        Connection * m_clientConnection[MaxClients];                        // per-client connection. allocated and freed in start/stop according to max clients.
+        Connection * m_clientConnection[MaxClients];                        ///< Per-client connection object. The connect object manages the set of channels and sending and receiving messages between client and server. Allocated in Server::Start according to maxClients and freed in Server::Stop.
 
-        ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    // array of connect tokens entries. used to avoid replay attacks of the same connect token for different addresses.
+        ConnectTokenEntry m_connectTokenEntries[MaxConnectTokenEntries];    ///< Array of connect tokens entries. Used to avoid replay attacks of the same connect token for different addresses.
 
-        uint64_t m_counters[NUM_SERVER_COUNTERS];
+        uint64_t m_counters[NUM_SERVER_COUNTERS];                           ///< Array of server counters. Used for debugging, testing and telemetry in production environments.
 
     private:
 

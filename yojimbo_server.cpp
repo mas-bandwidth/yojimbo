@@ -592,6 +592,11 @@ namespace yojimbo
         return m_counters[index];
     }
 
+    void Server::ResetCounters()
+    {
+        memset( m_counters, sizeof( m_counters ), 0 );
+    }
+
     double Server::GetTime() const
     {
         return m_time;
