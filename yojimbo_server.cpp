@@ -983,6 +983,8 @@ namespace yojimbo
             return;
         }
 
+        m_challengeTokenNonce++;
+
         m_counters[SERVER_COUNTER_CONNECTION_REQUEST_CHALLENGE_PACKETS_SENT]++;
 
         SendPacket( address, challengePacket );

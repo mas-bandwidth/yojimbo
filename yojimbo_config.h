@@ -90,7 +90,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-/// Yojimbo namespace
+/// The library namespace.
 
 namespace yojimbo
 {
@@ -110,13 +110,15 @@ namespace yojimbo
     const int DefaultPacketSendQueueSize = 1024;                    ///< The default packet send queue size for a transport (number of packets). You can override this by passing in a different value to the transport constructor.
     const int DefaultPacketReceiveQueueSize = 1024;                 ///< The default packet receive queue size for a transport (number of packets). You can override this by passing in a different value to the transport constructor.
     const int DefaultSocketBufferSize = 1024 * 1024;                ///< The default socket buffer size for a transport (bytes). You can override this by passing in a different value to the transport constructor.
-    const double DefaultEncryptionMappingTimeout = 5;               ///< The default encryption mapping timeout (seconds). Encryption mappings associate addresses with encryption keys. If no packets are received from an address for this number of seconds, the encryption mapping for that address times out. You can override this by passing in a different value to the transport constructor.
+    const double DefaultEncryptionMappingTimeOut = 5;               ///< The default encryption mapping timeout (seconds). Encryption mappings associate addresses with encryption keys. If no packets are received from an address for this number of seconds, the encryption mapping for that address times out. You can override this by passing in a different value to the transport constructor.
     const int ConservativeMessageHeaderEstimate = 32;               ///< Conservative message header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
     const int ConservativeFragmentHeaderEstimate = 64;              ///< Conservative fragment header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
     const int ConservativeChannelHeaderEstimate = 32;               ///< Conservative channel header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
     const int ConservativeConnectionPacketHeaderEstimate = 128;     ///< Conservative packet header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
 
-    /// Specifies the reliability and ordering guarantee for a channel.
+    // todo: encryption mapping timeout is problematic. if the user decides to increase other timeouts, it would set a minimum timeout value that would occur before the user specified timeout. fix it
+
+    /// Channel type. Determines the reliability and ordering guarantees for a channel.
 
     enum ChannelType
     {
@@ -124,31 +126,32 @@ namespace yojimbo
         CHANNEL_TYPE_UNRELIABLE_UNORDERED                           ///< Messages are sent unreliably. Messages may arrive out of order, or not at all.
     };
 
-    /** Channel configuration.
-     *
-     *  Channels let you specify different reliability and ordering guarantees for messages sent across a connection.
-     *
-     *  Channels may be configured as one of two types: reliable-ordered or unreliable-unordered.
-     *
-     *  Reliable ordered channels guarantee that messages (see Message) are received reliably and in the same order they were sent. 
-     *  This channel type is designed for control messages and RPCs sent between client and server.
-     *
-     *  Unreliable unordered channels are like UDP. There is no guarantee that messages will arrive, and messages may arrive out of order.
-     *  This channel type is designed for data that is time critical and should not be resent if dropped, like snapshots of world state sent rapidly 
-     *  from server to client, or cosmetic events such as effects and sounds.
-     *
-     *  Both channel types support blocks of data attached to messages (see BlockMessage), but their treatment of blocks is quite different.
-     *
-     *  Reliable ordered channels are designed for blocks that must be received reliably and in-order with the rest of the messages sent over the channel. 
-     *  Examples of these sort of blocks include the initial state of a level, or server configuration data sent down to a client on connect. These blocks 
-     *  are sent by splitting them into fragments and resending each fragment until the other side has received the entire block. This allows for sending
-     *  blocks of data larger that maximum packet size quickly and reliably even under packet loss.
-     *
-     *  Unreliable-unordered channels send blocks as-is without splitting them up into fragments. The idea is that transport level packet fragmentation
-     *  should be used on top of the generated packet to split it up into into smaller packets that can be sent across typical internet MTU (<1500 bytes). 
-     *  Because of this, you need to make sure that the maximum block size for an unreliable-unordered channel fits within the maximum packet size.
-     *
-     *  Channels are typically configured as part of a MessageConfig, which is included inside the ClientServerConfig that is passed into the Client and Server constructors.
+    /** 
+        Channel configuration.
+     
+        Channels let you specify different reliability and ordering guarantees for messages sent across a connection.
+     
+        They may be configured as one of two types: reliable-ordered or unreliable-unordered.
+     
+        Reliable ordered channels guarantee that messages (see Message) are received reliably and in the same order they were sent. 
+        This channel type is designed for control messages and RPCs sent between the client and server.
+    
+        Unreliable unordered channels are like UDP. There is no guarantee that messages will arrive, and messages may arrive out of order.
+        This channel type is designed for data that is time critical and should not be resent if dropped, like snapshots of world state sent rapidly 
+        from server to client, or cosmetic events such as effects and sounds.
+        
+        Both channel types support blocks of data attached to messages (see BlockMessage), but their treatment of blocks is quite different.
+        
+        Reliable ordered channels are designed for blocks that must be received reliably and in-order with the rest of the messages sent over the channel. 
+        Examples of these sort of blocks include the initial state of a level, or server configuration data sent down to a client on connect. These blocks 
+        are sent by splitting them into fragments and resending each fragment until the other side has received the entire block. This allows for sending
+        blocks of data larger that maximum packet size quickly and reliably even under packet loss.
+        
+        Unreliable-unordered channels send blocks as-is without splitting them up into fragments. The idea is that transport level packet fragmentation
+        should be used on top of the generated packet to split it up into into smaller packets that can be sent across typical internet MTU (<1500 bytes). 
+        Because of this, you need to make sure that the maximum block size for an unreliable-unordered channel fits within the maximum packet size.
+        
+        Channels are typically configured as part of a MessageConfig, which is included inside the ClientServerConfig that is passed into the Client and Server constructors.
      */
 
     struct ChannelConfig
@@ -185,18 +188,19 @@ namespace yojimbo
         }
     };
 
-    /** Message configuration.
-     *
-     *  Specifies the maximum packet size to generate, and the number of message channels, and the per-channel configuration data. See ChannelConfig for details.
-     *
-     *  Typically configured as part of a ClientServerConfig which is passed into Client and Server constructors.
+    /** 
+        Message configuration.
+        
+        Specifies the maximum packet size to generate, and the number of message channels, and the per-channel configuration data. See ChannelConfig for details.
+        
+        Typically configured as part of a ClientServerConfig which is passed into Client and Server constructors.
      */
     
     struct MessageConfig
     {
         int connectionPacketType;                               ///< Connection packet type (so you can override it). Only necessary to set this if you are using Connection directly. Not necessary to set when using client/server as it overrides it to CLIENT_SERVER_PACKET_CONNECTION for you automatically.
         int slidingWindowSize;                                  ///< The size of the sliding window used for packet acks (# of packets in history). Depending on your packet send rate, you should make sure this buffer is large enough to cover at least a few seconds worth of packets.
-        int maxPacketSize;                                      ///< The maximum size of packets generated to transmit messages between client and server to this size (bytes).
+        int maxPacketSize;                                      ///< The maximum size of packets generated to transmit messages between client and server (bytes).
         int numChannels;                                        ///< Number of message channels in [1,MaxChannels]. Each message channel must have a corresponding configuration below.
         ChannelConfig channel[MaxChannels];                     ///< Per-channel configuration. See ChannelConfig for details.
 
@@ -209,11 +213,12 @@ namespace yojimbo
         }
     };
 
-    /** Client/server configuration.
-     *
-     *  Passed to Client and Server constructors to configure their behavior.
-     *
-     *  Please make sure that the message configuration is identical between client and server or it will not work.
+    /** 
+        Client/Server configuration.
+        
+        Passed to Client and Server constructors to configure their behavior.
+        
+        Please make sure that the message configuration is identical between client and server or it will not work.
      */
 
     struct ClientServerConfig

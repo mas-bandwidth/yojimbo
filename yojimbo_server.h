@@ -171,42 +171,143 @@ namespace yojimbo
         SERVER_FLAG_ALLOW_INSECURE_CONNECT = (1<<2)
     };
 
-    /** Yojimbo server class.
-     *
-     *  Provides an abstraction of a server with n slots for clients to connect.
-     *
-     *  Each client that connects to this server is assigned a client index in [0,numClients-1] corresponding to the slot they take up on the server. When all client slots are full, requests to connect to the server are denied.
-     * 
-     *  Maximum number of clients per-server is specified in numClients in Server::Start. Current supported maximum for numClients is yojimbo::MaxClients = 64. This can be overrided by editing this constant, but be aware that yojimbo is designed for [2,64] player games.
-     *
-     *  Number of clients slots can be adjusted dynamically by stopping and restarting the server with a different number of clients. When a server is stopped, all connected clients are disconnected.
-     *
-     *  The server supports two code-paths for client connect: secure and insecure.
-     *
-     *  Insecure connect is for development only. To enable insecure connect: (code sample)
-     *  
-     *  Secure connect is designed for games that run dedicated servers. In this mode, clients must connect to a backend to ...
+    /** 
+        A server with n slots for clients to connect to.
+
+        This class is designed to be inherited from to create your own server class.
      */
 
     class Server : public ConnectionListener
     {
     public:
 
+        /**
+            The server constructor.
+
+            @param allocator The allocator for all memory used by the server.
+            @param transport The transport for sending and receiving packets.
+            @param config The client/server configuration.
+            @param time The current time in seconds. See Server::AdvanceTime
+         */
+
         Server( Allocator & allocator, Transport & transport, const ClientServerConfig & config, double time );
+
+        /**
+            The server destructor.
+
+            IMPORTANT: Please call Server::Stop before destroying the server. This is necessary because Stop is virtual and calling virtual methods from destructors does not give the expected behavior when you override that method.
+         */
 
         virtual ~Server();
 
+        /**
+            Set the private key used to decrypt connect tokens.
+            
+            The private key must be known only to the dedicated server instance and the matchmaker backend that generates connect tokens. 
+
+            @param privateKey The private key of size yojimbo::KeyBytes.
+         */
+
         void SetPrivateKey( const uint8_t * privateKey );
-        
+
+        /**      
+            Set the server IP address. This should be a public IP address, eg: the address that a client would use to connect to the server.
+             
+            @param address The server address.
+         */
+
         void SetServerAddress( const Address & address );
+
+        /**
+            Start the server and allocate client slots.
+            
+            Each client that connects to this server occupies one of the client slots allocated by this function.
+
+            @param maxClients The maximum number of client slots to allocate. Must be in range [1,MaxClients]
+
+            @see Server::Stop
+         */
 
         void Start( int maxClients = MaxClients );
 
+        /**
+            Stop the server and free client slots.
+        
+            Any clients that are connected at the time you call stop will be disconnected.
+            
+            When the server is stopped, clients cannot connect to the server.
+
+            @see Server::Start.
+         */
+
         void Stop();
+
+        /**
+            Disconnect the client at the specified client index.
+            
+            IMPORTANT: This function will assert if you attempt to disconnect a client that is not connected.
+         
+            @param clientIndex The index of the client to disconnect in range [0,maxClients-1], where maxClients is the number of client slots allocated in Server::Start.
+            @param sendDisconectPacket If true, disconnect packets are sent to the other side of the connection so it sees the disconnect as quickly as possible (rather than timing out).
+
+            @see Server::IsClientConnected
+         */
 
         void DisconnectClient( int clientIndex, bool sendDisconnectPacket = true );
 
+        /**
+            Disconnect all clients from the server.
+            
+            Client slots remain allocated as per the last call to Server::Start, they are simply made available for new clients to connect.
+            
+            @param sendDisconectPacket If true, disconnect packets are sent to the other side of the connection so it sees the disconnect as quickly as possible (rather than timing out).
+         */
+
         void DisconnectAllClients( bool sendDisconnectPacket = true );
+
+        /**
+            Send packets to connected clients.
+         
+            This function drives the sending of packets to clients such as keep-alives and connection packets to transmit messages from server to client.
+
+            Packets sent from this function are queued for sending on the transport, and are not actually serialized and sent to the network until you call Transport::WritePackets.
+         */
+
+        void SendPackets();
+
+        /**
+            Receive packets sent from potential and connected clients.
+
+            This function receives and processes packets from the receive queue of the Transport. To minimize the latency of packet processing, make sure you call Transport::ReadPackets shortly before calling this function.
+
+            @see ProcessPackets
+         */
+
+        void ReceivePackets();
+
+        /**
+            Check for timeouts.
+
+            Walks across the set of connected clients and compares the last time a packet was received from that client vs. the current time.
+
+            If no packet has been received within the timeout period, the client is disconnected and its client slot is made available for another client to connect to.
+
+            @see Server::AdvanceTime
+            @see ClientServerConfig::connectionTimeOut
+            @see ClientServerConfig::connectionNegotiationTimeOut
+         */
+
+        void CheckForTimeOut();
+
+        /**
+            Advance server time.
+
+            Call this at the end of each frame to advance the server time forward. 
+
+            IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
+         */
+
+        void AdvanceTime( double time );
 
         Message * CreateMsg( int clientIndex, int type );
 
@@ -223,14 +324,6 @@ namespace yojimbo
         Packet * CreateGlobalPacket( int type );
 
         Packet * CreateClientPacket( int clientIndex, int type );
-
-        void SendPackets();
-
-        void ReceivePackets();
-
-        void CheckForTimeOut();
-
-        void AdvanceTime( double time );
 
         void SetFlags( uint64_t flags );
 

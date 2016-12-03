@@ -119,7 +119,7 @@ namespace yojimbo
 
     EncryptionManager::EncryptionManager()
     {
-        m_encryptionMappingTimeout = DefaultEncryptionMappingTimeout;
+        m_encryptionMappingTimeout = DefaultEncryptionMappingTimeOut;
 
         ResetEncryptionMappings();
     }

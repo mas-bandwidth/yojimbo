@@ -776,7 +776,7 @@ void test_encryption_manager()
         check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
     }
 
-    time += DefaultEncryptionMappingTimeout * 2;
+    time += DefaultEncryptionMappingTimeOut * 2;
 
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
