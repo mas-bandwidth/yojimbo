@@ -37,34 +37,43 @@
 
 namespace yojimbo
 {
+    /// Server resource type. Resources are either global, or per-client. Resources include things like packet factories, message factories, and allocators.
+
     enum ServerResourceType
     {
-        SERVER_RESOURCE_GLOBAL,                                     // this resource is global for a client/server instance.
-        SERVER_RESOURCE_PER_CLIENT                                  // this resource is for a particular client slot. see client index.
+        SERVER_RESOURCE_GLOBAL,                                     ///< Resource is global for the server. This is used for resources that are used by clients that are negotiating connection.
+        SERVER_RESOURCE_PER_CLIENT                                  ///< Resource is for a specific client slot. This is used for resources that belong to a connected client. The idea is that by giving clients their own resources, a client cannot launch an attack to exhaust server resources that affect other clients.
     };
+
+    /// Per-client error state. These error types are used to identify the reason why a client was disconnected on the server when something goes wrong.
 
     enum ServerClientError
     {
-        SERVER_CLIENT_ERROR_TIMEOUT,                                // the client timed out on the server
-        SERVER_CLIENT_ERROR_ALLOCATOR,                              // the allocator is in error state for this client
-        SERVER_CLIENT_ERROR_CONNECTION,                             // the connection is in error state for this client
-        SERVER_CLIENT_ERROR_MESSAGE_FACTORY,                        // the message factory is in error state for this client
-        SERVER_CLIENT_ERROR_PACKET_FACTORY,                         // the packet factory is in error state for this client
+        SERVER_CLIENT_ERROR_TIMEOUT,                                ///< The client timed out on the server
+        SERVER_CLIENT_ERROR_ALLOCATOR,                              ///< The allocator is in error state for this client
+        SERVER_CLIENT_ERROR_CONNECTION,                             ///< The connection is in error state for this client
+        SERVER_CLIENT_ERROR_MESSAGE_FACTORY,                        ///< The message factory is in error state for this client
+        SERVER_CLIENT_ERROR_PACKET_FACTORY,                         ///< The packet factory is in error state for this client
     };
+
+    /**
+        Per-client slot data on the server. 
+        Stores data for connected clients such as their address, globally unique client id, last packet send and receive times used for timeouts and keep-alive packets and so on.
+     */
 
     struct ServerClientData
     {
-        Address address;
-        uint64_t clientId;
+        Address address;                                            ///< The address of this client. Packets are sent and received from the client using this address, therefore only one client with the address may be connected at any time.
+        uint64_t clientId;                                          ///< Globally unique client id. Only one client with a specific client id may be connected to the server at any time.
 #if !YOJIMBO_SECURE_MODE
-        uint64_t clientSalt;
+        uint64_t clientSalt;                                        ///< The client salt is a random number rolled on each insecure client connect. It is used to distinguish one client connect session from another, so reconnects are more reliable. See Client::InsecureConnect for details.
 #endif // #if !YOJIMBO_SECURE_MODE
-        double connectTime;
-        double lastPacketSendTime;
-        double lastPacketReceiveTime;
-        bool fullyConnected;
+        double connectTime;                                         ///< The time that the client connected to the server. Used to determine how long the client has been connected.
+        double lastPacketSendTime;                                  ///< The last time a packet was sent to this client. Used to determine when it's necessary to send keep-alive packets.
+        double lastPacketReceiveTime;                               ///< The last time a packet was received from this client. Used for timeouts.
+        bool fullyConnected;                                        ///< True if this client is 'fully connected'. Fully connected means the client has received a keep-alive packet from the server containing its client index and replied back to the server with a keep-alive packet confirming that it knows its client index.
 #if !YOJIMBO_SECURE_MODE
-        bool insecure;
+        bool insecure;                                              ///< True if this client connected in insecure mode. This means the client connected via Client::InsecureConnect and is sending and receiving packets without encryption. Please use insecure mode only during development, it is not suitable for production use.
 #endif // #if !YOJIMBO_SECURE_MODE
 
         ServerClientData()
@@ -83,11 +92,17 @@ namespace yojimbo
         }
     };
 
+    /**
+        Connect token entries are used to remember and reject recently used connect tokens sent from clients.
+
+        This protects against replay attacks where the same connect token is used for multiple zombie clients.
+     */
+
     struct ConnectTokenEntry
     {
-        double time;                                                       // time for this entry. used to replace the oldest entries once the connect token array fills up.
-        Address address;                                                   // address of the client that sent the connect token. binds a connect token to a particular address so it can't be exploited.
-        uint8_t mac[MacBytes];                                             // hmac of connect token. we use this to avoid replay attacks where the same token is sent repeatedly for different addresses.
+        double time;                                                       ///< The time for this entry. Used to replace the oldest entries once the connect token array fills up.
+        Address address;                                                   ///< Address of the client that sent this connect token. Binds a connect token to a particular address so it can't be exploited.
+        uint8_t mac[MacBytes];                                             ///< HMAC of connect token. We use this to avoid replay attacks where the same token is sent repeatedly for different addresses.
 
         ConnectTokenEntry()
         {
@@ -96,79 +111,97 @@ namespace yojimbo
         }
     };
 
+    /**
+        The server counters provide insight into the number of times an action was performed by the server.
+
+        They are intended for use in a telemetry system, eg. the server would report these counters to some backend logging system to track behavior in a production environment.
+
+        They're also pretty useful for debugging and seeing what happened after the fact, and functional testing because counters let tests verify that expected codepaths were hit.
+     */
+
     enum ServerCounters
     {
-        SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED,
-        SERVER_COUNTER_CONNECTION_REQUEST_CHALLENGE_PACKETS_SENT,
-        SERVER_COUNTER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN,
-        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN,
+        SERVER_COUNTER_CONNECTION_REQUEST_PACKETS_RECEIVED,                                     ///< Number of connection request packets received by the server
+        SERVER_COUNTER_CONNECTION_REQUEST_CHALLENGE_PACKETS_SENT,                               ///< Number of challenge packets sent from the server to clients requesting connection
+        SERVER_COUNTER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL,                                ///< Number of times the server denied a connection request because the server was full (all client slots occupied)
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET,                          ///< Number of times the server ignored a connection request because the SERVER_FLAG_IGNORE_CONNECTION_REQUESTS flag is set.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN,              ///< Number of times the server ignored a connection request because the connect token was invalid and failed to decrypt.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST,              ///< Number of times the server ignored a connection request because the server address (see Server::SetServerAddress) is not in the whitelist of server addresses in the connect token.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO,                            ///< Number of times the server ignored a connection request because the client id is zero. Please contact me if this is a problem for your game/application.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED,                    ///< Number of times the server ignored a connection request because a client with that address is already connected to the server.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                  ///< Number of times the server ignored a connection request because a client with that client id was already connected to the server.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED,                        ///< Number of times the server ignored a connection request because the connect token has expired (they're typically only valid for a short amount of time, like 45-60 seconds, to fight replay attacks).
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED,                   ///< Number of times the server ignored a connection request because a client has already used that connect token to connect to this server. This should typically be zero, a non-zero value indicates shennanigans!
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING,             ///< Number of times the server ignored a connection request because it could not add an encryption mapping for that client. If this is non-zero, it would indicate that somebody is somehow attacking the server with valid connection tokens. @see yojimbo::MaxEncryptionMappings.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,          ///< Number of times the server ignored a connection request because it could not allocate a challenge packet to send back to the client. This would indicate that the server has insufficient global resources (packet factory, allocator) to handle the connection negotiation load. @see ClientServerConfig::serverGlobalMemory.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN,           ///< Number of times the server ignored a connection request because it could not generate a challenge token to send back to the client. Something is probably wrong with libsodium.
+        SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN,            ///< Number of times the server ignored a connection request because it could not encrypt a challenge token to send back to the client. Something is probably wrong with libsodium.
 
-        SERVER_COUNTER_CHALLENGE_RESPONSE_ACCEPTED,
-        SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,
-        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET,
-        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,
-        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,
-        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,
-        SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED,
+        SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED,                                     ///< Number of challenge response packets received by the server.
+        SERVER_COUNTER_CHALLENGE_RESPONSE_ACCEPTED,                                             ///< Number of times the server accepted a challenge response and transitioned that client to connected.
+        SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,                                ///< Number of times the server denied a challenge response because the server is full. This happens when multiple clients are racing to connect to the same client slot.
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET,                          ///< Number of times the server ignored a challenge response packet sent from a client because the SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES flag is set.
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,                    ///< Number of times the server ignored a challange response packet because a client with that address is already connected.
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                  ///< Number of times the server ignored a challenge response because a client with that client id is already connected. 
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,            ///< Number of times the server ignored a challenge response because it couldn't decrypt the challenge token.
         
-        SERVER_COUNTER_CLIENT_CONNECTS,
-        SERVER_COUNTER_CLIENT_DISCONNECTS,
-        SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS,
-        SERVER_COUNTER_CLIENT_TIMEOUTS,
-        SERVER_COUNTER_CLIENT_ALLOCATOR_ERRORS,
-        SERVER_COUNTER_CLIENT_CONNECTION_ERRORS,
-        SERVER_COUNTER_CLIENT_MESSAGE_FACTORY_ERRORS,
-        SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS,
-        SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS,
-        SERVER_COUNTER_GLOBAL_ALLOCATOR_ERRORS,
+        SERVER_COUNTER_CLIENT_CONNECTS,                                                         ///< Number of times a client has connected to the server.
+        SERVER_COUNTER_CLIENT_DISCONNECTS,                                                      ///< Number of times a client has been disconnected from the server.
+        SERVER_COUNTER_CLIENT_CLEAN_DISCONNECTS,                                                ///< Number of clean disconnects where the client sent disconnect packets to the server. You want lots of these.
+        SERVER_COUNTER_CLIENT_TIMEOUTS,                                                         ///< Number of timeouts where the client disconnected without sending disconnect packets to the server. You want few of these.
+        SERVER_COUNTER_CLIENT_ALLOCATOR_ERRORS,                                                 ///< Number of times a client was disconnected from the server because their allocator entered into an error state (eg. failed to allocate a block of memory). This indicates that the client has exhausted their per-client resources. @see yojimbo::serverPerClientMemory.
+        SERVER_COUNTER_CLIENT_CONNECTION_ERRORS,                                                ///< Number of times a client was disconnected from the server because their connection entered into an error state. This indicates that something went wrong with the internal protocol for sending messages between client and server.
+        SERVER_COUNTER_CLIENT_MESSAGE_FACTORY_ERRORS,                                           ///< Number of times a client was disconnected from the server because their packet factory went into an error state. This indicates that the client tried to create a packet but failed to do so.
+        SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS,                                            ///< Number of times a client was disconnected from the server because their message factory went into an error state. This indicates that the client tried to create a message but failed to do so.
+        SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS,                                            ///< Number of times the global packet factory entered into an error state because it could not allocate a packet. This probably indicates insufficient global memory for the connection negotiation process on the server. @see ClientServerConfig::serverGlobalMemory.
+        SERVER_COUNTER_GLOBAL_ALLOCATOR_ERRORS,                                                 ///< Number of times the global allocator went into error state because it could not perform an allocation. This probably indicates insufficient global memory for the connection negotiation process on the server. @see ClientServerConfig::serverGlobalMemory.
         
-        NUM_SERVER_COUNTERS
+        NUM_SERVER_COUNTERS                                                                     ///< The number of server counters.
     };
+
+    /**
+        Describes the action the action taken by the server in response to a connection request.
+
+        @see Server::OnConnectionRequest
+     */
 
     enum ServerConnectionRequestAction
     {
-        SERVER_CONNECTION_REQUEST_CHALLENGE_PACKET_SENT,
-        SERVER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL,
-        SERVER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET,
-        SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED,
-        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN,
-        SERVER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST,
-        SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO,
-        SERVER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED,
-        SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,
-        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING,
-        SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED,
-        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN,
-        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,
-        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN
+        SERVER_CONNECTION_REQUEST_CHALLENGE_PACKET_SENT,                                        ///< The server replied with a challenge packet.
+        SERVER_CONNECTION_REQUEST_DENIED_SERVER_IS_FULL,                                        ///< The server denied the connection request because the server is full.
+        SERVER_CONNECTION_REQUEST_IGNORED_BECAUSE_FLAG_IS_SET,                                  ///< The server ignored the connection request because the SERVER_FLAG_IGNORE_CONNECTION_REQUESTS is set.
+        SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_EXPIRED,                                ///< The server ignored the connection request because the connect token has expired.
+        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_DECRYPT_CONNECT_TOKEN,                      ///< The server ignored the connection request because it could not decrypt the connect token.
+        SERVER_CONNECTION_REQUEST_IGNORED_SERVER_ADDRESS_NOT_IN_WHITELIST,                      ///< The server ignored the connection request because the server address is not in the connect token server address whitelist. @see Server::SetServerAddress.
+        SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO,                                    ///< The server ignored the connection request because the client id is zero.
+        SERVER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED,                            ///< The server ignored the connection request because a client with that address is already connected.
+        SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                          ///< The server ignored the connection request because a client with thath client id is already connected.
+        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING,                     ///< The server ignored the connection request because it could not add an encryption mapping for that client. This is bad.
+        SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED,                           ///< The server ignored the connection request because another client has already used that connect token to connect to this server. This is bad.
+        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN,                   ///< The server ignored the connection request because it couldn't generate a challenge token. This is bad.
+        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,                  ///< The server ignored the connection request because it couldn't allocate a challenge packet to send back to the client. This is bad.
+        SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN                     ///< The server ignored the connection request because it couldn't encrypt the challenge token to send back to the client. This is bad.
     };
 
     enum ServerChallengeResponseAction
     {
-        SERVER_CHALLENGE_RESPONSE_ACCEPTED,
-        SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,
-        SERVER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET,
-        SERVER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,
-        SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,
-        SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,
+        SERVER_CHALLENGE_RESPONSE_ACCEPTED,                                                     ///< The server accepted the challenge response and transitioned the client to connected.
+        SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,                                        ///< The server denied the challenge respeonse because the server is full.
+        SERVER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET,                                  ///< The server ignored the challenge response because the SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES flag is set.
+        SERVER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,                    ///< The server ignored the challenge response because it could not decrypt the challenge token.
+        SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,                            ///< The server ignored the challange response because a client with that address is already connected.
+        SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                          ///< The server ignored the challenge response because a client with that client id is already connected.
     };
+
+    /// Server flags are used to enable and disable server features.                            
 
     enum ServerFlags
     {
-        SERVER_FLAG_IGNORE_CONNECTION_REQUESTS = (1<<0),
-        SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES = (1<<1),
-        SERVER_FLAG_ALLOW_INSECURE_CONNECT = (1<<2)
+        SERVER_FLAG_IGNORE_CONNECTION_REQUESTS = (1<<0),                                        ///< When this flag is set the server ignores all connection requests.
+        SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES = (1<<1),                                        ///< When this flag is set the server ignores all challerge respeonses.
+#if !YOJIMBO_SECURE_MODE
+        SERVER_FLAG_ALLOW_INSECURE_CONNECT = (1<<2)                                             ///< When this flag is set the server allows insecure connects via Client::InsecureConnect. Please don't use this in production environments!
+#endif // #if !YOJIMBO_SECURE_MODE
     };
 
     /** 

@@ -96,8 +96,10 @@ namespace yojimbo
 
     const char * GetClientStateName( int clientState );
 
-    /** Yojimbo client class.
-     *
+    /** 
+        A client that connects to a server.
+
+        This class is designed to be inherited from to create your own client class.
      */
 
     class Client : public ConnectionListener
