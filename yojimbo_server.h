@@ -65,28 +65,24 @@ namespace yojimbo
     {
         Address address;                                            ///< The address of this client. Packets are sent and received from the client using this address, therefore only one client with the address may be connected at any time.
         uint64_t clientId;                                          ///< Globally unique client id. Only one client with a specific client id may be connected to the server at any time.
-#if !YOJIMBO_SECURE_MODE
-        uint64_t clientSalt;                                        ///< The client salt is a random number rolled on each insecure client connect. It is used to distinguish one client connect session from another, so reconnects are more reliable. See Client::InsecureConnect for details.
-#endif // #if !YOJIMBO_SECURE_MODE
         double connectTime;                                         ///< The time that the client connected to the server. Used to determine how long the client has been connected.
         double lastPacketSendTime;                                  ///< The last time a packet was sent to this client. Used to determine when it's necessary to send keep-alive packets.
         double lastPacketReceiveTime;                               ///< The last time a packet was received from this client. Used for timeouts.
         bool fullyConnected;                                        ///< True if this client is 'fully connected'. Fully connected means the client has received a keep-alive packet from the server containing its client index and replied back to the server with a keep-alive packet confirming that it knows its client index.
 #if !YOJIMBO_SECURE_MODE
+        uint64_t clientSalt;                                        ///< The client salt is a random number rolled on each insecure client connect. It is used to distinguish one client connect session from another, so reconnects are more reliable. See Client::InsecureConnect for details.
         bool insecure;                                              ///< True if this client connected in insecure mode. This means the client connected via Client::InsecureConnect and is sending and receiving packets without encryption. Please use insecure mode only during development, it is not suitable for production use.
 #endif // #if !YOJIMBO_SECURE_MODE
 
         ServerClientData()
         {
             clientId = 0;
-#if !YOJIMBO_SECURE_MODE
-            clientSalt = 0;
-#endif // #if !YOJIMBO_SECURE_MODE
             connectTime = 0.0;
             lastPacketSendTime = 0.0;
             lastPacketReceiveTime = 0.0;
             fullyConnected = false;
 #if !YOJIMBO_SECURE_MODE
+            clientSalt = 0;
             insecure = false;
 #endif // #if !YOJIMBO_SECURE_MODE
         }
@@ -95,7 +91,7 @@ namespace yojimbo
     /**
         Connect token entries are used to remember and reject recently used connect tokens sent from clients.
 
-        This protects against replay attacks where the same connect token is used for multiple zombie clients.
+        This protects against attacks where the same connect token is used to connect multiple clients to the server in a short period of time.
      */
 
     struct ConnectTokenEntry
@@ -160,7 +156,7 @@ namespace yojimbo
     };
 
     /**
-        Describes the action the action taken by the server in response to a connection request.
+        The action taken by the server in response to a connection request packet.
 
         @see Server::OnConnectionRequest
      */
@@ -182,6 +178,12 @@ namespace yojimbo
         SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ALLOCATE_CHALLENGE_PACKET,                  ///< The server ignored the connection request because it couldn't allocate a challenge packet to send back to the client. This is bad.
         SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN                     ///< The server ignored the connection request because it couldn't encrypt the challenge token to send back to the client. This is bad.
     };
+
+    /**
+        The action taken by the server in response to a challenge response packet.
+
+        @see Server::OnChallengeResponse
+     */
 
     enum ServerChallengeResponseAction
     {
@@ -272,7 +274,7 @@ namespace yojimbo
             
             Each client that connects to this server occupies one of the client slots allocated by this function.
 
-            @param maxClients The maximum number of client slots to allocate. Must be in range [1,MaxClients]
+            @param maxClients The number of client slots to allocate. Must be in range [1,MaxClients]
 
             @see Server::Stop
          */
@@ -433,7 +435,7 @@ namespace yojimbo
         /**
             Get the server address.
 
-            This is the address that clients connect to.
+            This is the public address that clients connect to.
 
             @returns The server address.
 
@@ -477,7 +479,9 @@ namespace yojimbo
         /** 
             Reset all counters to zero.
 
-            This is typically used with a telemetry application after reporting the current set of counters to the telemetry backend.
+            This is typically used with a telemetry application after uploading the current set of counters to the telemetry backend. 
+
+            This way you can continue to accumulate events, and upload them at some frequency, like every 5 minutes to the telemetry backend, without double counting events.
          */
 
         void ResetCounters();
@@ -492,7 +496,7 @@ namespace yojimbo
 
         // =====================================
 
-        // todo
+        // todo: sort this out
 
         Message * CreateMsg( int clientIndex, int type );
 
@@ -510,39 +514,55 @@ namespace yojimbo
 
         Packet * CreateClientPacket( int clientIndex, int type );
 
-        // todo: do I really need to expose these public?
         Allocator & GetGlobalAllocator() { assert( m_globalAllocator ); return *m_globalAllocator; }
+
         Allocator & GetClientAllocator( int clientIndex ) { assert( clientIndex >= 0 ); assert( clientIndex < m_maxClients ); assert( m_clientAllocator[clientIndex] ); return *m_clientAllocator[clientIndex]; }
 
     protected:
 
-        virtual void OnStart( int /*maxClients*/ ) {}
+        /**
+            Override this method to get a callback when the server is started.
 
-        virtual void OnStop() {}
+            @param maxClients The number of client slots are being allocated. eg. maximum number of clients that can connect to the server.
+         */
 
-        virtual void OnConnectionRequest( ServerConnectionRequestAction /*action*/, const ConnectionRequestPacket & /*packet*/, const Address & /*address*/, const ConnectToken & /*connectToken*/ ) {}
+        virtual void OnStart( int maxClients );
 
-        virtual void OnChallengeResponse( ServerChallengeResponseAction /*action*/, const ChallengeResponsePacket & /*packet*/, const Address & /*address*/, const ChallengeToken & /*challengeToken*/ ) {}
+        /**
+            Override this method to get a callback when the server is stopped.
+         */
 
-        virtual void OnClientConnect( int /*clientIndex*/ ) {}
+        virtual void OnStop();
 
-        virtual void OnClientDisconnect( int /*clientIndex*/ ) {}
+        /**
+            Override this method to get a callback when the server processes a connection request packet.
 
-        virtual void OnClientError( int /*clientIndex*/, ServerClientError /*error*/ ) {}
+            @
+         */
 
-        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
+        virtual void OnConnectionRequest( ServerConnectionRequestAction action, const ConnectionRequestPacket & packet, const Address & address, const ConnectToken & connectToken );
 
-        virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/ ) {}
+        virtual void OnChallengeResponse( ServerChallengeResponseAction action, const ChallengeResponsePacket & packet, const Address & address, const ChallengeToken & challengeToken );
 
-        virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+        virtual void OnClientConnect( int clientIndex );
 
-        virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+        virtual void OnClientDisconnect( int clientIndex );
 
-        virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+        virtual void OnClientError( int clientIndex, ServerClientError error );
 
-        virtual void OnConnectionFragmentReceived( Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*channelId*/ ) {}
+        virtual void OnPacketSent( int packetType, const Address & to, bool immediate );
 
-        virtual bool ProcessUserPacket( int /*clientIndex*/, Packet * /*packet*/ ) { return false; }
+        virtual void OnPacketReceived( int packetType, const Address & from );
+
+        virtual void OnConnectionPacketSent( Connection * connection, uint16_t sequence );
+
+        virtual void OnConnectionPacketAcked( Connection * connection, uint16_t sequence );
+
+        virtual void OnConnectionPacketReceived( Connection * connection, uint16_t sequence );
+
+        virtual void OnConnectionFragmentReceived( Connection * connection, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int channelId );
+
+        virtual bool ProcessUserPacket( int clientIndex, Packet * packet );
 
     protected:
 
@@ -578,9 +598,9 @@ namespace yojimbo
 
         void ProcessChallengeResponse( const ChallengeResponsePacket & packet, const Address & address );
 
-        void ProcessKeepAlive( const KeepAlivePacket & /*packet*/, const Address & address );
+        void ProcessKeepAlive( const KeepAlivePacket & packet, const Address & address );
 
-        void ProcessDisconnect( const DisconnectPacket & /*packet*/, const Address & address );
+        void ProcessDisconnect( const DisconnectPacket & packet, const Address & address );
 
 #if !YOJIMBO_SECURE_MODE
         void ProcessInsecureConnect( const InsecureConnectPacket & /*packet*/, const Address & address );
@@ -611,6 +631,8 @@ namespace yojimbo
         Allocator * m_clientAllocator[MaxClients];                          ///< Array of per-client allocator. These are used for allocations related to connected clients.
 
         Transport * m_transport;                                            ///< Transport interface for sending and receiving packets.
+
+        void * m_userContext;                                               ///< The user context specified by Server::SetUserContext. Provides a way for the user to pass a pointer to data so it's accessible when reading and writing packets.
 
         TransportContext m_globalTransportContext;                          ///< Global transport context for reading and writing packets. Used for packets that don't belong to a connected client. eg. connection negotiation packets.
 

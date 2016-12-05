@@ -97,7 +97,6 @@ namespace yojimbo
         m_allocator = &allocator;
         m_transport = &transport;
         m_config = config;
-        // todo: this is dodgy
         m_config.messageConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
         m_allocateConnection = m_config.enableMessages;
         m_time = time;

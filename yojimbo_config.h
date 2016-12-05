@@ -116,8 +116,6 @@ namespace yojimbo
     const int ConservativeChannelHeaderEstimate = 32;               ///< Conservative channel header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
     const int ConservativeConnectionPacketHeaderEstimate = 128;     ///< Conservative packet header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
 
-    // todo: encryption mapping timeout is problematic. if the user decides to increase other timeouts, it would set a minimum timeout value that would occur before the user specified timeout. fix it
-
     /// Channel type. Determines the reliability and ordering guarantees for a channel.
 
     enum ChannelType

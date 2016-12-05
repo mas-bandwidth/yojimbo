@@ -1,0 +1,61 @@
+DOCUMENTATION NOTES
+
+    -------------------------------
+
+    DefaultEncryptionMappingTimeOut is problematic. It's set to 5 seconds in yojimbo_config.h, which means if anybody dynamically sets up a longer timeout, the encryption mapping constant would effectively override it for secure packets. This is bad.
+
+    -------------------------------
+
+    I'm wondering if the gymnastics I've gone through to have complicated ref counted messages is worth it. 
+
+    Specifically, I'm wondering if in a multithreaded environment (eventually, where this library must go...), if the current message structure is harmful rather than helpful. 
+
+    For example, when implementing snapshot systems in the past, I've preferred to take the cost of the copy to enable later parallelism and this has worked out well. 
+
+    Maybe just taking message data and copying it (or even serializing it) into a queue per-client would be faster.
+
+    Don't rework anything just yet, but keep your eyes open and start thinking about multithreading.
+
+    -------------------------------
+
+    The key concern is basically this:
+
+    yojimbo is currently single threaded.
+
+    What does a multithreaded yojimbo look like?
+
+    What has to change?
+
+    -------------------------------
+
+    What about thread safety for queuing messages. Should I redesign the API around atomic queues?
+
+    What about the allocator, does it need to be made multithreaded?
+
+    What about message factory?
+
+    -------------------------------
+
+    It's sort of annoying that there are multiple configuration structs, eg. ClientServerConfig, MessageConfig, ChannelConfig. This is an artifact of the library designed from inside -> out.
+
+    Is it worth exposing the connection concept and the config separately from the server like this, or should it be refactored?
+
+    -------------------------------
+
+    To make this API really final, I need to decide what is public, and what is internal.
+
+    Where is the line? Is the Connection class internal or public?
+
+    -------------------------------
+
+    There is no easy way to broadcast an event to multiple clients from the server.
+
+    Would repeatedly sending the same event to clients work with ref counting? I think it *could8, but right now, I don't think the send message adds a ref, so it won't.
+
+    -------------------------------
+
+    If I were to make a C wrapper for this library, what would I wrap, and what would I leave out?
+
+    This might be a really good way to answer the question about what is public API vs. internal API.
+
+    -------------------------------

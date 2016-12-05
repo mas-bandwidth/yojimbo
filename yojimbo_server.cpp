@@ -37,6 +37,7 @@ namespace yojimbo
         m_globalMemory = NULL;
         m_globalAllocator = NULL;
         m_transport = NULL;
+        m_userContext = NULL;
         m_allocateConnections = false;
         m_time = 0.0;
         m_flags = 0;
@@ -45,6 +46,7 @@ namespace yojimbo
         m_challengeTokenNonce = 0;
         m_globalSequence = 1ULL<<63;
         m_globalPacketFactory = NULL;
+
         memset( m_privateKey, 0, KeyBytes );
         memset( m_clientMemory, 0, sizeof( m_clientMemory ) );
         memset( m_clientAllocator, 0, sizeof( m_clientAllocator ) );
@@ -54,6 +56,7 @@ namespace yojimbo
         memset( m_clientConnection, 0, sizeof( m_clientConnection ) );
         memset( m_clientSequence, 0, sizeof( m_clientSequence ) );
         memset( m_counters, 0, sizeof( m_counters ) );
+
         for ( int i = 0; i < MaxClients; ++i )
             ResetClientState( i );
     }
@@ -64,7 +67,6 @@ namespace yojimbo
         m_allocator = &allocator;
         m_transport = &transport;
         m_config = config;
-        // todo: dodgy
         m_config.messageConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
         m_allocateConnections = m_config.enableMessages;
         m_time = time;
@@ -83,6 +85,12 @@ namespace yojimbo
     void Server::SetPrivateKey( const uint8_t * privateKey )
     {
         memcpy( m_privateKey, privateKey, KeyBytes );
+    }
+
+    void Server::SetUserContext( void * context )
+    {
+        assert( !IsRunning() );
+        m_userContext = context;
     }
 
     void Server::SetServerAddress( const Address & address )
@@ -113,6 +121,8 @@ namespace yojimbo
         }
 
         m_globalTransportContext = TransportContext( *m_globalAllocator, *m_globalPacketFactory );;
+
+        m_globalTransportContext.userContext = m_userContext;
 
         m_transport->SetContext( m_globalTransportContext );
 
@@ -154,6 +164,7 @@ namespace yojimbo
             m_clientTransportContext[clientIndex].allocator = m_clientAllocator[clientIndex];
             m_clientTransportContext[clientIndex].packetFactory = m_clientPacketFactory[clientIndex];
             m_clientTransportContext[clientIndex].replayProtection = m_clientReplayProtection[clientIndex];
+            m_clientTransportContext[clientIndex].userContext = m_userContext;
 
             if ( m_allocateConnections )
             {
@@ -1234,5 +1245,94 @@ namespace yojimbo
         }
 
         return packet;
+    }
+
+    void Server::OnStart( int maxClients ) 
+    {
+        (void) maxClients;
+    }
+
+    void Server::OnStop()
+    {
+        // ...
+    }
+
+    void Server::OnConnectionRequest( ServerConnectionRequestAction action, const ConnectionRequestPacket & packet, const Address & address, const ConnectToken & connectToken )
+    {
+        (void) action;
+        (void) packet;
+        (void) address;
+        (void) connectToken;
+    }
+
+    void Server::OnChallengeResponse( ServerChallengeResponseAction action, const ChallengeResponsePacket & packet, const Address & address, const ChallengeToken & challengeToken )
+    {
+        (void) action;
+        (void) packet;
+        (void) address;
+        (void) challengeToken;
+    }
+
+    void Server::OnClientConnect( int clientIndex )
+    {
+        (void) clientIndex;
+    }
+
+    void Server::OnClientDisconnect( int clientIndex )
+    {
+        (void) clientIndex;
+    }
+
+    void Server::OnClientError( int clientIndex, ServerClientError error )
+    {
+        (void) clientIndex;
+        (void) error;
+    }
+
+    void Server::OnPacketSent( int packetType, const Address & to, bool immediate )
+    {
+        (void) packetType;
+        (void) to;
+        (void) immediate;
+    }
+
+    void Server::OnPacketReceived( int packetType, const Address & from )
+    {
+        (void) packetType;
+        (void) from;
+    }
+
+    void Server::OnConnectionPacketSent( Connection * connection, uint16_t sequence )
+    {
+        (void) connection;
+        (void) sequence;
+    }
+
+    void Server::OnConnectionPacketAcked( Connection * connection, uint16_t sequence )
+    {
+        (void) connection;
+        (void) sequence;
+    }
+
+    void Server::OnConnectionPacketReceived( Connection * connection, uint16_t sequence )
+    {
+        (void) connection;
+        (void) sequence;
+    }
+
+    void Server::OnConnectionFragmentReceived( Connection * connection, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int channelId )
+    {
+        (void) connection;
+        (void) messageId;
+        (void) fragmentId;
+        (void) fragmentBytes;
+        (void) channelId;
+    }
+
+    bool Server::ProcessUserPacket( int clientIndex, Packet * packet )
+    { 
+        (void) clientIndex;
+        (void) packet;
+        return false; 
     }
 }
