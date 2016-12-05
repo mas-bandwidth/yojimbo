@@ -81,7 +81,7 @@ namespace yojimbo
 
         virtual ~ChannelListener() {}
 
-        virtual void OnChannelFragmentReceived( class Channel * /*channel*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/ ) {}
+        virtual void OnChannelFragmentReceived( class Channel * /*channel*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*numFragmentsReceived*/, int /*numFragmentsInBlock*/ ) {}
     };
 
     enum ChannelCounters

@@ -1219,12 +1219,12 @@ namespace yojimbo
         if ( clientIndex == -1 )
             return;
 
-        m_clientData[clientIndex].fullyConnected = true;
-
         if ( !ProcessUserPacket( clientIndex, packet ) )
             return;
 
         m_clientData[clientIndex].lastPacketReceiveTime = GetTime();
+
+        m_clientData[clientIndex].fullyConnected = true;
     }
 
     KeepAlivePacket * Server::CreateKeepAlivePacket( int clientIndex )
@@ -1320,13 +1320,15 @@ namespace yojimbo
         (void) sequence;
     }
 
-    void Server::OnConnectionFragmentReceived( Connection * connection, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int channelId )
+    void Server::OnConnectionFragmentReceived( Connection * connection, int channelId, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock )
     {
         (void) connection;
+        (void) channelId;
         (void) messageId;
         (void) fragmentId;
         (void) fragmentBytes;
-        (void) channelId;
+        (void) numFragmentsReceived;
+        (void) numFragmentsInBlock;
     }
 
     bool Server::ProcessUserPacket( int clientIndex, Packet * packet )

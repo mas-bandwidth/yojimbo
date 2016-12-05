@@ -59,3 +59,23 @@ DOCUMENTATION NOTES
     This might be a really good way to answer the question about what is public API vs. internal API.
 
     -------------------------------
+
+    Perhaps separate out the common client/server functionality into BaseServer/BaseClient that implement ServerInterface/ClientInterface.
+
+    This provides users of the library with an implementation path for extending the library to different client/server implementations, which would be necessary to integrate with PS4/X1 APIs.
+
+    -------------------------------
+
+    Maybe:
+
+    FindClientIndex -> FindClientByAddress / FindClientByID
+
+    -------------------------------
+
+    Channel callback to connection, which then calls back to Client/Server is lame.
+
+    Maybe queue up an array of events instead, and provide the caller with a way to process events once per-frame instead?
+
+    I also dislike it, because it could eventually be a callback coming in from a connection running on its own thread = bad.
+
+    -------------------------------

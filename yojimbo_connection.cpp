@@ -416,11 +416,11 @@ namespace yojimbo
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
     }
 
-    void Connection::OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes )
+    void Connection::OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock )
     {
         if ( m_listener )
         {
-            m_listener->OnConnectionFragmentReceived( this, messageId, fragmentId, fragmentBytes, channel->GetChannelId() );
+            m_listener->OnConnectionFragmentReceived( this, channel->GetChannelId(), messageId, fragmentId, fragmentBytes, numFragmentsReceived, numFragmentsInBlock );
         }
     }
 }

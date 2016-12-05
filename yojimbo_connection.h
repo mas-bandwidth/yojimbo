@@ -110,7 +110,7 @@ namespace yojimbo
 
         virtual void OnConnectionPacketReceived( class Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
-        virtual void OnConnectionFragmentReceived( class Connection * /*connection*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*channelId*/ ) {}
+        virtual void OnConnectionFragmentReceived( class Connection * /*connection*/, int /*channelId*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*numFragmentsReceived*/, int /*numFragmentsInBlock*/ ) {}
     };
 
     struct ConnectionSentPacketData 
@@ -168,7 +168,7 @@ namespace yojimbo
 
         void PacketAcked( uint16_t sequence );
 
-        void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes );
+        void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock );
 
     private:
 

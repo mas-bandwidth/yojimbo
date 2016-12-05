@@ -1098,8 +1098,8 @@ namespace yojimbo
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )
             {
                 if ( m_listener )
-                    m_listener->OnChannelFragmentReceived( this, messageId, fragmentId, fragmentBytes );
-
+                    m_listener->OnChannelFragmentReceived( this, messageId, fragmentId, fragmentBytes, m_receiveBlock->numReceivedFragments + 1, m_receiveBlock->numFragments );
+                
                 m_receiveBlock->receivedFragment->SetBit( fragmentId );
 
                 memcpy( m_receiveBlock->blockData + fragmentId * m_config.fragmentSize, fragmentData, fragmentBytes );

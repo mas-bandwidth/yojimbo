@@ -78,3 +78,13 @@ WOULD BE NICE
 
     ------------------
     
+    It would be cool if packet factories had a hash that could be quickly tested to see if they are compatible.
+
+    ------------------
+
+    Would be nice if packet factories named each packet type as it is registered, so this could be used in debugging.
+
+    Same logic could apply to message factories as well.
+
+    ------------------
+    

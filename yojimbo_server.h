@@ -195,7 +195,9 @@ namespace yojimbo
         SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                          ///< The server ignored the challenge response because a client with that client id is already connected.
     };
 
-    /// Server flags are used to enable and disable server features.                            
+    /**
+        Server flags are used to enable and disable server features.                            
+     */
 
     enum ServerFlags
     {
@@ -248,7 +250,7 @@ namespace yojimbo
         /**
             Set the user context.
 
-            The user context is set on the stream when packets and read and written. It lets you can pass in a pointer to some structure that you want to have available when reading and writing packets.
+            The user context is set on the stream when packets and read and written. It lets you pass in a pointer to some structure that you want to have available when reading and writing packets.
 
             Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
 
@@ -299,7 +301,7 @@ namespace yojimbo
             IMPORTANT: This function will assert if you attempt to disconnect a client that is not connected.
          
             @param clientIndex The index of the client to disconnect in range [0,maxClients-1], where maxClients is the number of client slots allocated in Server::Start.
-            @param sendDisconectPacket If true, disconnect packets are sent to the other side of the connection so it sees the disconnect as quickly as possible (rather than timing out).
+            @param sendDisconnectPacket If true, disconnect packets are sent to the other side of the connection so it sees the disconnect as quickly as possible (rather than timing out).
 
             @see Server::IsClientConnected
          */
@@ -311,7 +313,7 @@ namespace yojimbo
             
             Client slots remain allocated as per the last call to Server::Start, they are simply made available for new clients to connect.
             
-            @param sendDisconectPacket If true, disconnect packets are sent to the other side of the connection so it sees the disconnect as quickly as possible (rather than timing out).
+            @param sendDisconnectPacket If true, disconnect packets are sent to the other side of the connection so it sees the disconnect as quickly as possible (rather than timing out).
          */
 
         void DisconnectAllClients( bool sendDisconnectPacket = true );
@@ -341,7 +343,7 @@ namespace yojimbo
 
             Walks across the set of connected clients and compares the last time a packet was received from that client vs. the current time.
 
-            If no packet has been received within the timeout period, the client is disconnected and its client slot is made available for another client to connect to.
+            If no packet has been received within the timeout period, the client is disconnected and its client slot is made available for other clients to connect to.
 
             @see Server::AdvanceTime
             @see ClientServerConfig::connectionTimeOut
@@ -449,7 +451,7 @@ namespace yojimbo
 
             Flags are used to enable and disable server functionality.
 
-            @param flags The server flags to set. See ServerFlags for flags that can be passed in.
+            @param flags The server flags to set. See yojimbo::ServerFlags for the set of server flags that can be passed in.
 
             @see Server::GetFlags
          */
@@ -459,7 +461,7 @@ namespace yojimbo
         /**
             Get the current server flags.
 
-            @returns The server flags. See ServerFlags for the set of flags.
+            @returns The server flags. See yojimbo::ServerFlags for the set of server flags.
     
             @see Server::SetFlags
          */
@@ -471,7 +473,7 @@ namespace yojimbo
 
             Counters are used to track event and actions performed by the server. They are useful for debugging, testing and telemetry.
 
-            @returns The counter value. See ServerCounters for the set of counters.
+            @returns The counter value. See yojimbo::ServerCounters for the set of server counters.
          */
 
         uint64_t GetCounter( int index ) const;
@@ -537,30 +539,148 @@ namespace yojimbo
         /**
             Override this method to get a callback when the server processes a connection request packet.
 
-            @
+            @param action The action that the server took in response to the connection request packet.
+            @param packet The connection request packet being processed.
+            @param address The address the packet was sent from.
+            @param connectToken The decrypted connect token. Depending on the action, this may or may not be valid. See yojimbo::ServerConnectionRequestAction for details.
          */
 
         virtual void OnConnectionRequest( ServerConnectionRequestAction action, const ConnectionRequestPacket & packet, const Address & address, const ConnectToken & connectToken );
 
+        /**
+            Override this method to get a callback when the server processes a challenge response packet.
+
+            @param action The action that the server took in response to the challenge response packet.
+            @param packet The challenge response packet being processed.
+            @param address The address the packet was sent from.
+            @param challengeToken The decrypted challenge token. Depending on the action, this may or may not be valid. See yojimbo::ServerChallengeResponseAction for details.
+         */
+
         virtual void OnChallengeResponse( ServerChallengeResponseAction action, const ChallengeResponsePacket & packet, const Address & address, const ChallengeToken & challengeToken );
+
+        /**
+            Override this method to get a callback when a client connects to the server.
+
+            IMPORTANT: The client is fully connected at the point this callback is made, so all data structures are setup for this client, and query functions based around client index will work properly.
+
+            @param clientIndex The index of the slot that the client connected to.
+         */
 
         virtual void OnClientConnect( int clientIndex );
 
+        /**
+            Override this method to get a callback when a client disconnects from the server.
+
+            IMPORTANT: The client is (still) fully connected at the point this callback is made, so all data structures are setup for the client, and query functions based around client index will work properly.
+
+            @param clientIndex The client slot index of the disconnecting client.
+         */
+
         virtual void OnClientDisconnect( int clientIndex );
+
+        /**
+            Override this method to get a callback when an error occurs that will result in a client being disconnected from the server.
+
+            IMPORTANT: The client is (still) fully connected at the point this callback is made, so all data structures are setup for the client, and query functions based around client index will work properly.
+
+            @param clientIndex The client slot index of the client that is about to error out.
+            @param error The error that occured.
+         */
 
         virtual void OnClientError( int clientIndex, ServerClientError error );
 
+        /**
+            Override this method to get a callback when a packet is sent.
+
+            @param packetType The type of packet being sent according to the packet factory that is set on the server. See PacketFactory.
+            @param to The address the packet is being sent to.
+            @param immediate If true then this packet will be serialized and flushed to the network immediately. This is used for disconnect packets. See Server::DisconnectClient.
+         */
+
         virtual void OnPacketSent( int packetType, const Address & to, bool immediate );
+
+        /**
+            Override this method to get a callback when a packet is received.
+
+            @param packetType The type of packet being sent according to the packet factory that is set on the server. See PacketFactory.
+            @param from The address the packet was received from.
+         */
 
         virtual void OnPacketReceived( int packetType, const Address & from );
 
+        /**
+            Override this method to get a callback when a connection packet is sent to a client.
+
+            Connection packets are carrier packets that transmit messages between the client and server. They are only generated if you enabled messages in the ClientServerConfig (true by default).
+
+            @param connection The connection that the packet belongs to. To get the client index call Connection::GetClientIndex.
+            @param sequence The sequence number of the connection packet being sent.
+
+            @see ClientServerConfig::enableMessages
+            @see Connection::GetClientIndex
+         */
+
         virtual void OnConnectionPacketSent( Connection * connection, uint16_t sequence );
+
+        /**
+            Override this method to get a callback when a connection packet was acked by the client (eg. the client notified the server that that packet received).
+
+            Connection packets are carrier packets that transmit messages between the client and server. They are automatically generated when messages are enabled in ClientServerConfig (true by default).
+
+            @param connection The connection that the packet belongs to. To get the client index call Connection::GetClientIndex.
+            @param sequence The packet sequence number of the connection packet that was acked by the client. Corresponds to the sequence number passed in to Server::OnConnectionPacketSent for that packet when it was sent.
+
+            @see ClientServerConfig::enableMessages
+            @see Connection::GetClientIndex
+         */
 
         virtual void OnConnectionPacketAcked( Connection * connection, uint16_t sequence );
 
+        /**
+            Override this method to get a callback when a connection packet is received from a client.
+
+            Connection packets are carrier packets that transmit messages between the client and server. They are automatically generated when messages are enabled in ClientServerConfig (true by default).
+
+            @param connection The connection that the packet belongs to. To get the client index call Connection::GetClientIndex.
+            @param sequence The sequence number of the connection packet that was received.
+
+            @see ClientServerConfig::enableMessages
+            @see Connection::GetClientIndex
+         */
+
         virtual void OnConnectionPacketReceived( Connection * connection, uint16_t sequence );
 
-        virtual void OnConnectionFragmentReceived( Connection * connection, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int channelId );
+        /**
+            Override this method to get a callback when a block fragment is received from a client.
+
+            This callback lets you implement a progress bar for large block transmissions.
+
+            @param connection The connection that the block fragment belongs to. To get the client index call Connection::GetClientIndex.
+            @param channelId The channel the block is being sent over.
+            @param messageId The message id the block is attached to.
+            @param fragmentId The fragment id that is being processed. Fragment ids are in the range [0,numFragments-1].
+            @param fragmentBytes The size of the fragment in bytes.
+            @param numFragmentsReceived The number of fragments received for this block so far (including this one).
+            @param numFragmentsInBlock The total number of fragments in this block. The block receive completes when all fragments are received.
+
+            @see Connection::GetClientIndex
+            @see BlockMessage::AttachBlock
+         */
+
+        virtual void OnConnectionFragmentReceived( Connection * connection, int channelId, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock );
+
+        /** 
+            Override this method to process user packets sent from a client.
+
+            User packets let you extend the yojimbo by adding your own packet types to be exchanged between client and server. See PacketFactory.
+
+            Most users won't need to create custom packet types, and will extend the protocol by defining their own message types instead. See MessageFactory.
+
+            @param clientIndex Identifies which client this packet came from.
+            @param packet The user packet received from the client.
+
+            @returns Return true if the user packet was processed successfully. Returning false if the packet could not be processed, or if is of an unexpected type. For example, a packet type that you only send from server -> client, and not the other way around.
+         */
 
         virtual bool ProcessUserPacket( int clientIndex, Packet * packet );
 

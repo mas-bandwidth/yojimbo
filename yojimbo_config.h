@@ -103,7 +103,7 @@ namespace yojimbo
     const int KeyBytes = 32;                                        ///< Size of the encryption key used for symmetric encryption of packets and tokens (bytes).
     const int MacBytes = 16;                                        ///< Size of the message authentication code (MAC) sent with each encrypted packet and token (bytes). Used to quickly test if a packet or token has been modified and reject before attempting to decrypt it.
     const int MaxContextMappings = MaxClients;                      ///< The maximum number transport context mappings. When a Transport is used with a Server, we need one context per-connected client, so this is set to MaxClients by default. If you use transport directly without client/server, you might want to set this to some different number.
-    const int MaxEncryptionMappings = MaxClients * 8;               ///< The maximum number of encryption mappings for a transport. Encryption mappings are needed for clients during the connection negotiation process, and per-client once they are fully connected. Because multiple clients could be negotiating connection at the same time, this needs to be some multiple of MaxClients.
+    const int MaxEncryptionMappings = MaxClients * 8;               ///< The maximum number of encryption mappings for a transport. Encryption mappings are needed for potential clients during the connection negotiation process, and per-client once they are fully connected. Because multiple clients can be negotiating connection at the same time, this needs to be some multiple of MaxClients.
     const int MaxConnectTokenEntries = MaxClients * 16;             ///< The maximum number of connect tokens entries stored in the Server when filtering out connect tokens that have already been used to protect against packet replay attacks. This should be a generous multiple of MaxClients.
     const int ReplayProtectionBufferSize = 64;                      ///< The size of the replay protection buffer (number of packets). Packets older than this buffer are automatically rejected. Packets that fit in this buffer are passed to the application the first time they are received and rejected after that. Protects against packets being recorded and replayed in an attempt to corrupt internal protocol state.
     const int DefaultMaxPacketSize = 4 * 1024;                      ///< The default maximum packet size that can be sent with a transport. You can override this by passing in a different value to the transport constructor.
@@ -120,7 +120,7 @@ namespace yojimbo
 
     enum ChannelType
     {
-        CHANNEL_TYPE_RELIABLE_ORDERED,                              ///< Messages are received reliably and in the same order that they were sent. 
+        CHANNEL_TYPE_RELIABLE_ORDERED,                              ///< Messages are received reliably and in the same order they were sent. 
         CHANNEL_TYPE_UNRELIABLE_UNORDERED                           ///< Messages are sent unreliably. Messages may arrive out of order, or not at all.
     };
 
