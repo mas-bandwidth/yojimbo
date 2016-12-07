@@ -223,7 +223,7 @@ namespace yojimbo
         return m_messageFactory->Create( type );
     }
 
-    bool Client::CanSendMsg()
+    bool Client::CanSendMsg( int channelId )
     {
         if ( !IsConnected() )
             return false;
@@ -231,18 +231,18 @@ namespace yojimbo
         assert( m_messageFactory );
         assert( m_connection );
         
-        return m_connection->CanSendMsg();
+        return m_connection->CanSendMsg( channelId );
     }
 
-    void Client::SendMsg( Message * message )
+    void Client::SendMsg( Message * message, int channelId )
     {
         assert( IsConnected() );
         assert( m_messageFactory );
         assert( m_connection );
-        m_connection->SendMsg( message );
+        m_connection->SendMsg( message, channelId );
     }
 
-    Message * Client::ReceiveMsg()
+    Message * Client::ReceiveMsg( int channelId )
     {
         assert( m_messageFactory );
 
@@ -251,7 +251,7 @@ namespace yojimbo
 
         assert( m_connection );
 
-        return m_connection->ReceiveMsg();
+        return m_connection->ReceiveMsg( channelId );
     }
 
     void Client::ReleaseMsg( Message * message )
