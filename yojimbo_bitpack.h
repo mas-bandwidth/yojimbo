@@ -313,9 +313,9 @@ namespace yojimbo
         uint64_t m_scratch;
         int m_numBits;
         int m_numBytes;
-#ifdef DEBUG
+#ifndef NDEBUG
         int m_numWords;
-#endif // #ifdef DEBUG
+#endif // #ifndef NDEBUG
         int m_bitsRead;
         int m_scratchBits;
         int m_wordIndex;
