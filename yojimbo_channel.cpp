@@ -1347,6 +1347,8 @@ namespace yojimbo
 
         packetData.Initialize();
 
+        packetData.channelId = GetChannelId();
+
         packetData.message.numMessages = numMessages;
 
         packetData.message.messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
