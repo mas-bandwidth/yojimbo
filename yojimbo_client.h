@@ -145,11 +145,11 @@ namespace yojimbo
 
         Message * CreateMsg( int type );
 
-        bool CanSendMsg();
+        bool CanSendMsg( int channelId = 0 );
 
-        void SendMsg( Message * message );
+        void SendMsg( Message * message, int channelId = 0 );
 
-        Message * ReceiveMsg();
+        Message * ReceiveMsg( int channelId = 0 );
 
         void ReleaseMsg( Message * message );
 

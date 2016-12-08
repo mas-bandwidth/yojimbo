@@ -271,7 +271,7 @@ namespace yojimbo
         return m_clientMessageFactory[clientIndex]->Create( type );
     }
 
-    bool Server::CanSendMsg( int clientIndex ) const
+    bool Server::CanSendMsg( int clientIndex, int channelId ) const
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
@@ -286,10 +286,10 @@ namespace yojimbo
         
         assert( m_clientConnection[clientIndex] );
 
-        return m_clientConnection[clientIndex]->CanSendMsg();
+        return m_clientConnection[clientIndex]->CanSendMsg( channelId );
     }
 
-    void Server::SendMsg( int clientIndex, Message * message )
+    void Server::SendMsg( int clientIndex, Message * message, int channelId )
     {
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
@@ -303,10 +303,10 @@ namespace yojimbo
 
         assert( m_clientConnection[clientIndex] );
 
-        m_clientConnection[clientIndex]->SendMsg( message );
+        m_clientConnection[clientIndex]->SendMsg( message, channelId );
     }
 
-    Message * Server::ReceiveMsg( int clientIndex )
+    Message * Server::ReceiveMsg( int clientIndex, int channelId )
     {
         assert( m_clientMessageFactory );
 
@@ -315,7 +315,7 @@ namespace yojimbo
 
         assert( m_clientConnection[clientIndex] );
 
-        return m_clientConnection[clientIndex]->ReceiveMsg();
+        return m_clientConnection[clientIndex]->ReceiveMsg( channelId );
     }
 
     void Server::ReleaseMsg( int clientIndex, Message * message )

@@ -502,11 +502,11 @@ namespace yojimbo
 
         Message * CreateMsg( int clientIndex, int type );
 
-        bool CanSendMsg( int clientIndex ) const;
+        bool CanSendMsg( int clientIndex, int channelId = 0 ) const;
 
-        void SendMsg( int clientIndex, Message * message );
+        void SendMsg( int clientIndex, Message * message, int channelId = 0 );
 
-        Message * ReceiveMsg( int clientIndex );
+        Message * ReceiveMsg( int clientIndex, int channelId = 0 );
 
         void ReleaseMsg( int clientIndex, Message * message );
 
