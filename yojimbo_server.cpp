@@ -605,7 +605,7 @@ namespace yojimbo
 
     void Server::ResetCounters()
     {
-        memset( m_counters, sizeof( m_counters ), 0 );
+        memset( m_counters, 0, sizeof( m_counters ) );
     }
 
     double Server::GetTime() const
