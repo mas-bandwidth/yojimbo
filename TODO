@@ -1,6 +1,10 @@
 DONE    
 
+    Kicked build to resolve premake5 download issue with travis.
+
 TODO
+
+    ---------
 
     Key documentation areas: outside -> in.
 
