@@ -148,6 +148,20 @@ namespace yojimbo
 
         virtual ~Client();
 
+        /**
+            Set the user context.
+
+            The user context is set on the stream when packets and read and written. It lets you pass in a pointer to some structure that you want to have available when reading and writing packets.
+
+            Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
+
+            If you do use a user context, please make sure the data that contributes to the user context is checksummed and included in the protocol id, so clients and servers with incompatible data can't connect to each other.
+
+            @see Stream::GetUserContext
+         */
+
+        void SetUserContext( void * context );
+
 #if !YOJIMBO_SECURE_MODE
 
         /** 
@@ -237,6 +251,61 @@ namespace yojimbo
                       uint64_t connectTokenExpireTimestamp );
 
         /**
+            Disconnect from the server.
+
+            This function is safe to call if not currently connected. In that case it will do nothing.
+
+            @param clientState The client state to transition to on disconnect. By default CLIENT_STATE_DISCONNECTED, but you may also specify one of the negative client state values for error states.
+            @param sendDisconnectPacket If true then disconnect packets will be sent immediately to the server to notify it that the client disconnected. This makes the server client slot get cleaned up and recycled faster for other clients to connect, vs. timing out in 5-10 seconds. The only situation where this should be false is if the client is disconnecting because it timed out from the server.
+         */
+
+        void Disconnect( ClientState clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
+
+        /**
+            Send packets to server.
+         
+            This function drives the sending of packets to the server such as connection request, challenge response, keep-alive packet and connection packets to transmit messages from client to server.
+
+            Packets sent from this function are queued for sending on the transport, and are not actually serialized and sent to the network until you call Transport::WritePackets.
+         */
+
+        void SendPackets();
+
+        /**
+            Receive packets sent from the server.
+
+            This function receives and processes packets from the receive queue of the Transport. To minimize the latency of packet processing, make sure you call Transport::ReadPackets shortly before calling this function.
+
+            @see ProcessPackets
+         */
+
+        void ReceivePackets();
+
+        /**
+            Check for timeouts.
+
+            Compares the last time a packet was received from the server vs. the current time.
+
+            If no packet has been received within the timeout period, the client is disconnected and set to an error state. See ClientState for details.
+
+            @see Client::AdvanceTime
+            @see ClientServerConfig::connectionTimeOut
+            @see ClientServerConfig::connectionNegotiationTimeOut
+         */
+
+        void CheckForTimeOut();
+
+        /**
+            Advance client time.
+
+            Call this at the end of each frame to advance the client time forward. 
+
+            IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
+         */
+
+        void AdvanceTime( double time );
+
+        /**
             Is the client connecting to a server?
 
             This is true while the client is negotiation connection with a server. This is the period after a call to Client::Connect or Client::InsecureConnect, but before the client establishes a connection, or goes into an error state because it couldn't connect.
@@ -289,35 +358,46 @@ namespace yojimbo
         ClientState GetClientState() const;
 
         /**
-            Disconnect from the server.
+            Gets the current client time.
 
-            This function is safe to call if not currently connected. In that case it will do nothing.
-
-            @param clientState The client state to transition to on disconnect. By default CLIENT_STATE_DISCONNECTED, but you may also specify of the negative client state values for error states.
-            @param sendDisconnectPacket If true then disconnect packets will be sent immediately to the server to notify it that the client disconnected. This makes the server client slot get cleaned up and recycled faster for other clients to connect, vs. timing out in 5-10 seconds. The only situation where this should be false is if the client is disconnecting because it timed out from the server.
+            @see Client::AdvanceTime
          */
-
-        void Disconnect( ClientState clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
-
-        void SendPackets();
-
-        void ReceivePackets();
-
-        void CheckForTimeOut();
-
-        void AdvanceTime( double time );
 
         double GetTime() const;
 
+        /**
+            Get the client id (globally unique).
+
+            This corresponds to the client id parameter passed into the last call to Client::Connect or Client::InsecureConnect
+
+            @returns The globally unique client id for this client.
+         */
+
         uint64_t GetClientId() const;
+
+        /**
+            Get the client index.
+
+            The client index is the slot number that the client is occupying on the server. 
+
+            @returns The client index in [0,maxClients-1], where maxClients is the number of client slots allocated on the server in Server::Start.
+         */
 
         int GetClientIndex() const;
 
+        /**
+            Get the counter value.
+
+            Counters are used to track event and actions performed by the client. They are useful for debugging, testing and telemetry.
+
+            @returns The counter value. See yojimbo::ClientCounters for the set of client counters.
+         */
+
         uint64_t GetCounter( int index ) const;
 
-        Allocator & GetClientAllocator();
+        // todo: below here
 
-        void SetUserContext( void * context );
+        Allocator & GetClientAllocator();
 
         Message * CreateMsg( int type );
 

@@ -111,6 +111,12 @@ namespace yojimbo
         m_allocator = NULL;
     }
 
+    void Client::SetUserContext( void * context )
+    {
+        (void) context;
+        // todo: this needs to be implemented and unit tested end-to-end between a client and server
+    }
+
 #if !YOJIMBO_SECURE_MODE
 
     void Client::InsecureConnect( uint64_t clientId, const Address & serverAddress )
