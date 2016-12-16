@@ -55,9 +55,9 @@ namespace yojimbo
 
         union
         {
-            uint32_t m_address_ipv4;
-            uint16_t m_address_ipv6[8];
-        };
+            uint32_t ipv4;
+            uint16_t ipv6[8];
+        } m_address;
 
         uint16_t m_port;
 

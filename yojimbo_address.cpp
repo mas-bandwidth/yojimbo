@@ -77,14 +77,14 @@ namespace yojimbo
         : m_type( ADDRESS_IPV4 )
     {
         
-        m_address_ipv4 = uint32_t(a) | (uint32_t(b)<<8) | (uint32_t(c)<<16) | (uint32_t(d)<<24);
+        m_address.ipv4 = uint32_t(a) | (uint32_t(b)<<8) | (uint32_t(c)<<16) | (uint32_t(d)<<24);
         m_port = port;
     }
 
     Address::Address( uint32_t address, int16_t port )
         : m_type( ADDRESS_IPV4 )
     {
-        m_address_ipv4 = htonl( address );        // IMPORTANT: stored in network byte order. eg. big endian!
+        m_address.ipv4 = htonl( address );        // IMPORTANT: stored in network byte order. eg. big endian!
         m_port = port;
     }
 
@@ -93,14 +93,14 @@ namespace yojimbo
                       uint16_t port )
         : m_type( ADDRESS_IPV6 )
     {
-        m_address_ipv6[0] = htons( a );
-        m_address_ipv6[1] = htons( b );
-        m_address_ipv6[2] = htons( c );
-        m_address_ipv6[3] = htons( d );
-        m_address_ipv6[4] = htons( e );
-        m_address_ipv6[5] = htons( f );
-        m_address_ipv6[6] = htons( g );
-        m_address_ipv6[7] = htons( h );
+        m_address.ipv6[0] = htons( a );
+        m_address.ipv6[1] = htons( b );
+        m_address.ipv6[2] = htons( c );
+        m_address.ipv6[3] = htons( d );
+        m_address.ipv6[4] = htons( e );
+        m_address.ipv6[5] = htons( f );
+        m_address.ipv6[6] = htons( g );
+        m_address.ipv6[7] = htons( h );
         m_port = port;
     }
 
@@ -108,7 +108,7 @@ namespace yojimbo
         : m_type( ADDRESS_IPV6 )
     {
         for ( int i = 0; i < 8; ++i )
-            m_address_ipv6[i] = htons( address[i] );
+            m_address.ipv6[i] = htons( address[i] );
         m_port = port;
     }
 
@@ -120,14 +120,14 @@ namespace yojimbo
         {
             const sockaddr_in * addr_ipv4 = (const sockaddr_in*) addr;
             m_type = ADDRESS_IPV4;
-            m_address_ipv4 = addr_ipv4->sin_addr.s_addr;
+            m_address.ipv4 = addr_ipv4->sin_addr.s_addr;
             m_port = ntohs( addr_ipv4->sin_port );
         }
         else if ( addr->ss_family == AF_INET6 )
         {
             const sockaddr_in6 * addr_ipv6 = (const sockaddr_in6*) addr;
             m_type = ADDRESS_IPV6;
-            memcpy( m_address_ipv6, &addr_ipv6->sin6_addr, 16 );
+            memcpy( m_address.ipv6, &addr_ipv6->sin6_addr, 16 );
             m_port = ntohs( addr_ipv6->sin6_port );
         }
         else
@@ -182,7 +182,7 @@ namespace yojimbo
         struct in6_addr sockaddr6;
         if ( inet_pton( AF_INET6, address, &sockaddr6 ) == 1 )
         {
-            memcpy( m_address_ipv6, &sockaddr6, 16 );
+            memcpy( m_address.ipv6, &sockaddr6, 16 );
             m_type = ADDRESS_IPV6;
             return;
         }
@@ -209,7 +209,7 @@ namespace yojimbo
         if ( inet_pton( AF_INET, address, &sockaddr4.sin_addr ) == 1 )
         {
             m_type = ADDRESS_IPV4;
-            m_address_ipv4 = sockaddr4.sin_addr.s_addr;
+            m_address.ipv4 = sockaddr4.sin_addr.s_addr;
         }
         else
         {
@@ -221,20 +221,20 @@ namespace yojimbo
     void Address::Clear()
     {
         m_type = ADDRESS_NONE;
-        memset( m_address_ipv6, 0, sizeof( m_address_ipv6 ) );
+        memset( &m_address, 0, sizeof( m_address ) );
         m_port = 0;
     }
 
     uint32_t Address::GetAddress4() const
     {
         assert( m_type == ADDRESS_IPV4 );
-        return m_address_ipv4;
+        return m_address.ipv4;
     }
 
     const uint16_t * Address::GetAddress6() const
     {
         assert( m_type == ADDRESS_IPV6 );
-        return m_address_ipv6;
+        return m_address.ipv6;
     }
 
     void Address::SetPort( uint16_t port )
@@ -256,10 +256,10 @@ namespace yojimbo
     {
         if ( m_type == ADDRESS_IPV4 )
         {
-            const uint8_t a =   m_address_ipv4 & 0xff;
-            const uint8_t b = ( m_address_ipv4 >> 8  ) & 0xff;
-            const uint8_t c = ( m_address_ipv4 >> 16 ) & 0xff;
-            const uint8_t d = ( m_address_ipv4 >> 24 ) & 0xff;
+            const uint8_t a =   m_address.ipv4 & 0xff;
+            const uint8_t b = ( m_address.ipv4 >> 8  ) & 0xff;
+            const uint8_t c = ( m_address.ipv4 >> 16 ) & 0xff;
+            const uint8_t d = ( m_address.ipv4 >> 24 ) & 0xff;
             if ( m_port != 0 )
                 snprintf( buffer, bufferSize, "%d.%d.%d.%d:%d", a, b, c, d, m_port );
             else
@@ -270,13 +270,13 @@ namespace yojimbo
         {
             if ( m_port == 0 )
             {
-                inet_ntop( AF_INET6, (void*) &m_address_ipv6, buffer, bufferSize );
+                inet_ntop( AF_INET6, (void*) &m_address.ipv6, buffer, bufferSize );
                 return buffer;
             }
             else
             {
                 char addressString[INET6_ADDRSTRLEN];
-                inet_ntop( AF_INET6, (void*) &m_address_ipv6, addressString, INET6_ADDRSTRLEN );
+                inet_ntop( AF_INET6, (void*) &m_address.ipv6, addressString, INET6_ADDRSTRLEN );
                 snprintf( buffer, bufferSize, "[%s]:%d", addressString, m_port );
                 return buffer;
             }
@@ -295,38 +295,38 @@ namespace yojimbo
 
     bool Address::IsLinkLocal() const
     {
-        return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xfe80 );
+        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == htons( 0xfe80 );
     }
 
     bool Address::IsSiteLocal() const
     {
-        return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xfec0 );
+        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == htons( 0xfec0 );
     }
 
     bool Address::IsMulticast() const
     {
-        return m_type == ADDRESS_IPV6 && m_address_ipv6[0] == htons( 0xff00 );
+        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == htons( 0xff00 );
     }
 
     bool Address::IsLoopback() const
     {
-        return ( m_type == ADDRESS_IPV4 && m_address_ipv4 == htonl( 0x7F000001 ) ) 
+        return ( m_type == ADDRESS_IPV4 && m_address.ipv4 == htonl( 0x7F000001 ) ) 
                                             ||
-               ( m_type == ADDRESS_IPV6 && m_address_ipv6[0] == 0
-                                          && m_address_ipv6[1] == 0
-                                        && m_address_ipv6[2] == 0
-                                        && m_address_ipv6[3] == 0
-                                        && m_address_ipv6[4] == 0
-                                        && m_address_ipv6[5] == 0
-                                        && m_address_ipv6[6] == 0
-                                        && m_address_ipv6[7] == htons( 0x0001 ) );
+               ( m_type == ADDRESS_IPV6 && m_address.ipv6[0] == 0
+                                        && m_address.ipv6[1] == 0
+                                        && m_address.ipv6[2] == 0
+                                        && m_address.ipv6[3] == 0
+                                        && m_address.ipv6[4] == 0
+                                        && m_address.ipv6[5] == 0
+                                        && m_address.ipv6[6] == 0
+                                        && m_address.ipv6[7] == htons( 0x0001 ) );
     }
 
     bool Address::IsGlobalUnicast() const
     {
-        return m_type == ADDRESS_IPV6 && m_address_ipv6[0] != htons( 0xfe80 )
-                                      && m_address_ipv6[0] != htons( 0xfec0 )
-                                      && m_address_ipv6[0] != htons( 0xff00 )
+        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] != htons( 0xfe80 )
+                                      && m_address.ipv6[0] != htons( 0xfec0 )
+                                      && m_address.ipv6[0] != htons( 0xff00 )
                                       && !IsLoopback();
     }
 
@@ -336,9 +336,9 @@ namespace yojimbo
             return false;
         if ( m_port != other.m_port )
             return false;
-        if ( m_type == ADDRESS_IPV4 && m_address_ipv4 == other.m_address_ipv4 )
+        if ( m_type == ADDRESS_IPV4 && m_address.ipv4 == other.m_address.ipv4 )
             return true;
-        else if ( m_type == ADDRESS_IPV6 && memcmp( m_address_ipv6, other.m_address_ipv6, sizeof( m_address_ipv6 ) ) == 0 )
+        else if ( m_type == ADDRESS_IPV6 && memcmp( m_address.ipv6, other.m_address.ipv6, sizeof( m_address.ipv6 ) ) == 0 )
             return true;
         else
             return false;
