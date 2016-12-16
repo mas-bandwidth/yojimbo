@@ -318,7 +318,11 @@ if not os.is "windows" then
         trigger     = "docs",
         description = "Build documentation",
         execute = function ()
-            os.execute "doxygen doxygen.config && open docs/html/index.html"
+            if os.get() == "macosx" then
+                os.execute "doxygen doxygen.config && open docs/html/index.html"
+            else
+                os.execute "doxygen doxygen.config"
+            end
         end
     }
 
@@ -362,6 +366,15 @@ else
             for i = 0, 63 do
                 os.execute "if exist bin\\x64\\Debug\\connect.exe ( start /B bin\\x64\\Debug\\connect ) else ( echo could not find bin\\x64\\Debug\\connect.exe )"
             end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "docs",
+        description = "Build documentation",
+        execute = function ()
+            os.execute "doxygen doxygen.config && start docs\\html\\index.html"
         end
     }
 
