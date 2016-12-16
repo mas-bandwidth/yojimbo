@@ -72,7 +72,7 @@ namespace yojimbo
         CLIENT_STATE_SENDING_INSECURE_CONNECT,                                  ///< The client is sending insecure connect packets to the server. This state immediately follows Client::InsecureConnect and transitions directly to CLIENT_STATE_CONNECTED when an insecure connection is established.
 #endif // #if !YOJIMBO_SECURE_MODE
         CLIENT_STATE_SENDING_CONNECTION_REQUEST,                                ///< The client is sending connection request packets to the server. This state immediately follows Client::Connect. It transitions to CLIENT_STATE_SENDING_CHALLENGE_RESPONSE and then to CLIENT_STATE_CONNECTED.
-        CLIENT_STATE_SENDING_CHALLENGE_RESPONSE,                                ///< The client is sending challenge response packets to the server. Challenge/response during connect filters out clients trying to connection with a spoofed packet source address.
+        CLIENT_STATE_SENDING_CHALLENGE_RESPONSE,                                ///< The client is sending challenge response packets to the server. Challenge/response during connect filters out clients trying to connect with a spoofed packet source address.
         CLIENT_STATE_CONNECTED                                                  ///< The client is connected to the server.
     };
 
@@ -159,7 +159,7 @@ namespace yojimbo
 
             You can completely disable insecure connections in your retail build by defining YOJIMBO_SECURE_MODE 1
 
-            @param clientId The client id. Typically used to identify clients when your server talks to a web backend. If you don't have your own concept of unique client id, roll a random 64bit integer.
+            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64bit integer.
             @param serverAddress The address of the server to connect to.
          */
 
@@ -176,7 +176,7 @@ namespace yojimbo
 
             You can completely disable insecure connections in your retail build by defining YOJIMBO_SECURE_MODE 1
 
-            @param clientId The client id. Typically used to identify clients when your server talks to a web backend. If you don't have your own concept of unique client id, roll a random 64bit integer.
+            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64bit integer.
             @param serverAddresses The list of server addresses to connect to, in order of first to last.
             @param numServerAddresses Number of server addresses in [1,yojimbo::MaxServersPerConnect].
          */
@@ -192,12 +192,12 @@ namespace yojimbo
 
             Secure connections are encrypted and authenticated. If the server runs in secure mode, it will only accept connections from clients with a connect token, thus stopping unauthenticated clients from connecting to your server.
 
-            @param clientId The client id. Typically used to identify clients when your server talks to a web backend. If you don't have your own concept of unique client id, roll a random 64bit integer.
+            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64bit integer.
             @param serverAddress The address of the server to connect to.
             @param connectTokenData Pointer to the connect token data from the matcher.
             @param connectTokenNonce Pointer to the connect token nonce from the matcher.
             @param clientToServerKey The encryption key for client to server packets.
-            @param clientToServerKey The encryption key for server to client packets.
+            @param serverToClientKey The encryption key for server to client packets.
             @param connectTokenExpireTimestamp The timestamp for when the connect token expires. Used by the server to quickly reject stale connect tokens without decrypting them.
          */
 
@@ -218,13 +218,13 @@ namespace yojimbo
 
             Secure connections are encrypted and authenticated. If the server runs in secure mode, it will only accept connections from clients with a connect token, thus stopping unauthenticated from connecting to your server.
 
-            @param clientId The client id. Typically used to identify clients when your server talks to a web backend. If you don't have your own concept of unique client id, roll a random 64bit integer.
+            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64bit integer.
             @param serverAddresses The list of server addresses to connect to, in order of first to last.
             @param numServerAddresses Number of server addresses in [1,yojimbo::MaxServersPerConnect].
             @param connectTokenData Pointer to the connect token data from the matcher.
             @param connectTokenNonce Pointer to the connect token nonce from the matcher.
             @param clientToServerKey The encryption key for client to server packets.
-            @param clientToServerKey The encryption key for server to client packets.
+            @param serverToClientKey The encryption key for server to client packets.
             @param connectTokenExpireTimestamp The timestamp for when the connect token expires. Used by the server to quickly reject stale connect tokens without decrypting them.
          */
 
@@ -236,31 +236,68 @@ namespace yojimbo
                       const uint8_t * serverToClientKey,
                       uint64_t connectTokenExpireTimestamp );
 
+        /**
+            Is the client connecting to a server?
+
+            This is true while the client is negotiation connection with a server. This is the period after a call to Client::Connect or Client::InsecureConnect, but before the client establishes a connection, or goes into an error state because it couldn't connect.
+
+            @returns true if the client is currently connecting to, but is not yet connected to a server.
+         */
+
         bool IsConnecting() const;
+
+        /**
+            Is the client connected to a server?
+
+            This is true once a client successfully finishes connection negotiation, and connects to a server. It is false while connecting to a server.
+
+            Corresponds to the client being in CLIENT_STATE_CONNECTED.
+
+            @returns true if the client is connected to a server.
+         */
 
         bool IsConnected() const;
 
+        /**
+            Is the client in a disconnected state?
+
+            A disconnected state is CLIENT_STATE_DISCONNECTED, or any of the negative client error state values. Effectively, true if client state is <= 0.
+
+            @returns true if the client is in a disconnected state.
+         */
+
         bool IsDisconnected() const;
+
+        /**
+            Is the client in an error state?
+
+            When the client disconnects because of a client-side error, it disconnects and sets one of the negative client state values. Effectively, true if client state < 0.
+
+            @returns true if the client disconnected to an error state.
+         */
 
         bool ConnectionFailed() const;
 
+        /**
+            Get the current client state.
+
+            The client state machine is used to negotiate connection with the server, and handle error states. Each state corresponds to an entry in the ClientState enum.
+
+            @see yojimbo::GetClientStateName
+         */
+
         ClientState GetClientState() const;
 
+        /**
+            Disconnect from the server.
+
+            This function is safe to call if not currently connected. In that case it will do nothing.
+
+            @param clientState The client state to transition to on disconnect. By default CLIENT_STATE_DISCONNECTED, but you may also specify of the negative client state values for error states.
+            @param sendDisconnectPacket If true then disconnect packets will be sent immediately to the server to notify it that the client disconnected. This makes the server client slot get cleaned up and recycled faster for other clients to connect, vs. timing out in 5-10 seconds. The only situation where this should be false is if the client is disconnecting because it timed out from the server.
+         */
+
         void Disconnect( ClientState clientState = CLIENT_STATE_DISCONNECTED, bool sendDisconnectPacket = true );
-
-        Message * CreateMsg( int type );
-
-        bool CanSendMsg( int channelId = 0 );
-
-        void SendMsg( Message * message, int channelId = 0 );
-
-        Message * ReceiveMsg( int channelId = 0 );
-
-        void ReleaseMsg( Message * message );
-
-        MessageFactory & GetMsgFactory();
-
-        Packet * CreatePacket( int type );
 
         void SendPackets();
 
@@ -281,6 +318,20 @@ namespace yojimbo
         Allocator & GetClientAllocator();
 
         void SetUserContext( void * context );
+
+        Message * CreateMsg( int type );
+
+        bool CanSendMsg( int channelId = 0 );
+
+        void SendMsg( Message * message, int channelId = 0 );
+
+        Message * ReceiveMsg( int channelId = 0 );
+
+        void ReleaseMsg( Message * message );
+
+        MessageFactory & GetMsgFactory();
+
+        Packet * CreatePacket( int type );
 
     protected:
 
