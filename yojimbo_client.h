@@ -415,9 +415,35 @@ namespace yojimbo
 
     protected:
 
-        virtual void OnConnect( const Address & /*address*/ ) {}
+        /**
+            Override this method to get a callback when the client starts to connect to a server.
 
-        virtual void OnClientStateChange( ClientState /*previousState*/, ClientState /*currentState*/ ) {}
+            @param address The address of the server that is being connected to.
+         */
+
+        virtual void OnConnect( const Address & address ) { (void) address; }
+
+        /**
+            Override this method to get a callback when the client state changes.
+
+            The previous and current state are guaranteed to be different, otherwise this callback is not called.
+
+            IMPORTANT: This callback is called at the end of the connection start process, so all client server data is valid, such as the server address and client state at the point this callback is executed.
+
+            @param previousState The previous client state.
+            @param currentState The current client state that was just transitioned to.
+            @see yojimbo::GetClientStateName
+         */
+
+        virtual void OnClientStateChange( ClientState previousState, ClientState currentState ) { (void) previousState; (void) currentState; }
+
+        /**
+            Override this method to get a callback when the client disconnects from the server.
+
+            IMPORTANT: This callback is executed before the client disconnect, so all details and states regarding the client connection are still valid (eg. GetServerAddress) and so on.
+
+            If you want more detail about why the client is disconnecting, override Client::OnClientStateChange and follow state transitions that way.
+         */
 
         virtual void OnDisconnect() {}
 
