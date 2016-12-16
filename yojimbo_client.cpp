@@ -190,7 +190,7 @@ namespace yojimbo
         InternalSecureConnect( m_serverAddresses[0] );
     }
 
-    void Client::Disconnect( int clientState, bool sendDisconnectPacket )
+    void Client::Disconnect( ClientState clientState, bool sendDisconnectPacket )
     {
         assert( clientState <= CLIENT_STATE_DISCONNECTED );
 
@@ -635,9 +635,9 @@ namespace yojimbo
         return NULL;
     }    
 
-    void Client::SetClientState( int clientState )
+    void Client::SetClientState( ClientState clientState )
     {
-        const int previous = m_clientState;
+        const ClientState previous = m_clientState;
 
         m_clientState = (ClientState) clientState;
 
@@ -647,7 +647,7 @@ namespace yojimbo
         }
     }
 
-    void Client::ResetConnectionData( int clientState )
+    void Client::ResetConnectionData( ClientState clientState )
     {
         assert( m_transport );
 

@@ -629,7 +629,7 @@ protected:
         printf( "client connecting to %s\n", addressString );
     }
 
-    void OnClientStateChange( int previousState, int currentState )
+    void OnClientStateChange( ClientState previousState, ClientState currentState )
     {
         assert( previousState != currentState );
         const char * previousStateString = GetClientStateName( previousState );
