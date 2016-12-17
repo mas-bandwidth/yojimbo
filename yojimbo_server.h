@@ -57,7 +57,8 @@ namespace yojimbo
     };
 
     /**
-        Per-client slot data on the server. 
+        Per-client data stored on the server. 
+
         Stores data for connected clients such as their address, globally unique client id, last packet send and receive times used for timeouts and keep-alive packets and so on.
      */
 
@@ -89,7 +90,7 @@ namespace yojimbo
     };
 
     /**
-        Connect token entries are used to remember and reject recently used connect tokens sent from clients.
+        Used to remember and reject recently used connect tokens sent from clients.
 
         This protects against attacks where the same connect token is used to connect multiple clients to the server in a short period of time.
      */
@@ -108,7 +109,7 @@ namespace yojimbo
     };
 
     /**
-        The server counters provide insight into the number of times an action was performed by the server.
+        Server counters provide insight into the number of times an action was performed by the server.
 
         They are intended for use in a telemetry system, eg. the server would report these counters to some backend logging system to track behavior in a production environment.
 

@@ -251,49 +251,6 @@ namespace yojimbo
         m_context = TransportContext();
     }
 
-    /*
-    void BaseTransport::SetPacketFactory( PacketFactory & packetFactory )
-    {
-        assert( m_packetFactory == NULL );
-
-        m_packetFactory = &packetFactory;
-
-        const int numPacketTypes = m_packetFactory->GetNumPacketTypes();
-
-        assert( numPacketTypes > 0 );
-
-#if !YOJIMBO_SECURE_MODE
-        m_allPacketTypes = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
-#endif // #if !YOJIMBO_SECURE_MODE
-
-        m_packetTypeIsEncrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
-        m_packetTypeIsUnencrypted = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, numPacketTypes );
-
-#if !YOJIMBO_SECURE_MODE
-        memset( m_allPacketTypes, 1, m_packetFactory->GetNumPacketTypes() );
-#endif // #if !YOJIMBO_SECURE_MODE
-        memset( m_packetTypeIsEncrypted, 0, m_packetFactory->GetNumPacketTypes() );
-        memset( m_packetTypeIsUnencrypted, 1, m_packetFactory->GetNumPacketTypes() );
-    }
-
-    void BaseTransport::ClearPacketFactory()
-    {
-		if ( !m_packetFactory )
-			return;
-
-        ClearSendQueue();
-        ClearReceiveQueue();
-
-#if !YOJIMBO_SECURE_MODE
-        YOJIMBO_FREE( *m_allocator, m_allPacketTypes );
-#endif // #if !YOJIMBO_SECURE_MODE
-        YOJIMBO_FREE( *m_allocator, m_packetTypeIsEncrypted );
-        YOJIMBO_FREE( *m_allocator, m_packetTypeIsUnencrypted );
-
-        m_packetFactory = NULL;
-    }
-    */
-
     void BaseTransport::Reset()
     {
         ClearSendQueue();
@@ -751,23 +708,6 @@ namespace yojimbo
     {
         return m_allocateNetworkSimulator && m_networkSimulator->IsActive();
     }
-
-    /*
-    void BaseTransport::SetContext( void * context )
-    {
-        m_context = context;
-    }
-
-    void BaseTransport::SetUserContext( void * context )
-    {
-        m_userContext = context;
-    }
-
-    void BaseTransport::SetStreamAllocator( Allocator & allocator )
-    {
-        m_streamAllocator = &allocator;
-    }
-    */
 
     void BaseTransport::EnablePacketEncryption()
     {

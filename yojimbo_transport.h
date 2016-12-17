@@ -72,7 +72,7 @@ namespace yojimbo
     };
 
     /** 
-        A transport context provides a way to setup the transport with objects it needs to read and write packets.
+        Gives the transport access to objects it needs to read and write packets.
 
         Each transport has a default context set by Transport::SetContext and cleared by Transport::ClearContext. 
 
@@ -80,7 +80,14 @@ namespace yojimbo
 
         The server uses per-client contexts to setup a mapping between connected clients and the resources for that client like allocators, packet factories, message factories and replay protection.
 
-        The benefit of this is that each client is effectively silo'd to only use their own resources, and cannot launch an attack to try to deplete the resources shared with other clients.
+        The benefit is that each client is silo'd to their own set of resources and cannot launch an attack to deplete resources shared with other clients.
+
+        @see TransportContext
+        @see Transport::SetContext
+        @see Transport::ClearContext
+        @see Transport::AddContextMapping
+        @see Transport::RemoveContextMapping
+        @see Transport::ResetContextMappings
      */
 
     struct TransportContext
@@ -115,27 +122,87 @@ namespace yojimbo
         int encryptionIndex;                                                        ///< The encryption index. This is an optimization that avoids repeatedly searching for the encryption mapping by index. If a context is setup for that address, the encryption index is cached in the context.
     };
 
+    /** 
+        Maps addresses to transport contexts so each client on the server has its own set of resources.
+
+        Typically, one context mapping is added to the transport per-connected client, allowing the server to silo each client to its own set of resources, eliminating the risk of malicious clients depleting shared resources on the server.
+
+        This is the implementation class for the Transport::AddContextMapping, Transport::RemoveContextMapping and Transport::ResetContextMappings set of functions. It allows multiple transport implementations to reuse the same context mappping implementation.
+
+        @see TransportContext
+        @see Transport::AddContextMapping
+        @see Transport::RemoveContextMapping
+        @see Transport::ResetContextMappings
+     */
+
     class TransportContextManager
     {
     public:
 
         TransportContextManager();
 
+        /**
+            Add a context mapping.
+
+            Maps the specified address to the context mapping. If a context mapping already exists for this address, it is updated with the new context.
+
+            IMPORTANT: The context data is copied across by value and not stored by pointer. All pointers and data inside the context are expected to stay valid while set on the transport.
+
+            @param address The address that maps to the context.
+            @param context A reference to the context data to be copied across.
+            @returns True if the context mapping was added successfully. False if the context is already added context mapping slots are avalable. See yojimbo::MaxContextMappings.
+         */
+
         bool AddContextMapping( const Address & address, const TransportContext & context );
+
+        /**
+            Remove a context mapping.
+
+            Searches for a context mapping for the address passed in, and if it finds one, removes it.
+
+            @returns True if a context mapping was found and removed, false otherwise.
+         */
 
         bool RemoveContextMapping( const Address & address );
 
+        /**
+            Reset all context mappings.
+
+            After this function all context mappings are removed.
+
+            Call this if you want to completely reset the context mappings and start fresh.
+         */
+
         void ResetContextMappings();
+
+        /** 
+            Find a context by address.
+
+            This is called by the transport when a packet is sent or received, to find the appropriate context to use given the address the packet is being sent to, or received from.
+
+            @param address The address corresponding to the context we want.
+            @returns A const pointer to the context if one exists for the address passed in, NULL otherwise.
+         */
 
         const TransportContext * GetContext( const Address & address ) const;
 
     private:
 
-        int m_numContextMappings;
-        int m_allocated[MaxContextMappings];
-        Address m_address[MaxContextMappings];
-        TransportContext m_context[MaxContextMappings];
+        int m_numContextMappings;                                                   ///< The current number of context mappings in [0,MaxContextMappings-1]
+        int m_allocated[MaxContextMappings];                                        ///< Array of allocated flags per-context entry. True if a context mapping is allocated at this index.
+        Address m_address[MaxContextMappings];                                      ///< Array of addresses. Used by the O(n) for a context by address. OK because n is typically small.
+        TransportContext m_context[MaxContextMappings];                             ///< Array of context data corresponding to the address at the same index in the address array.
     };
+
+    /** 
+        Interface for sending and receiving packets.
+
+        This is the common interface shared by all transport implementations. 
+
+        Transports provide send and receive queues for high level packets objects, taking care of the details of reading and writing binary packets to the network.
+
+        It is intended to allow mixing and matching of different transport implementations with protocol classes like Client, Server and Connection. This way a new transport implementation can be swapped in without any change to protocol level code.
+     */
 
     class Transport
     {
@@ -143,23 +210,125 @@ namespace yojimbo
 
         virtual ~Transport() {}
 
+        /**
+            Reset the transport.
+
+            This function completely resets the transport, clearing all packet send and receive queues and resetting all contexts and encryption mappings.
+
+            This gets the transport back into a pristine state, ready to be used for some other purpose, without needing to destroy and recreate the transport object.
+         */
+
         virtual void Reset() = 0;
+
+        /**
+            Set the transport context.
+
+            This is the default context to be used for reading and writing packets. See TransportContext.
+
+            The user can also call Transport::AddContextMapping to associate up to yojimbo::MaxContextMappings contexts with particular addresses. When a context is associated with an address, that context is when reading/writing packets from/to that address instead of this one.
+
+            @param context The default context for reading and writing packets.
+         */
 
         virtual void SetContext( const TransportContext & context ) = 0;
 
+        /**
+            Clear context.
+
+            This function clears the default context set on the transport.
+
+            This returns the transport to the state before a context was set on it. While in this state, the transport cannot read or write packets and will early out of Transport::ReadPackets and Transport::WritePackets.
+
+            If the transport is set on a client, it is returned to this state after the client disconnects. On the server, the transport is returned to this state when the server stops.
+
+            @see Client::Disconnect
+            @see Server::Stop
+         */
+
         virtual void ClearContext() = 0;
+
+        /**
+            Queue a packet to be sent.
+
+            IMPORTANT: The packet will be sent over a UDP-equivalent network. It may arrive out of order, in duplicate or not at all.
+
+            @param address The address the packet should be sent to.
+            @param packet The packet that is being sent.
+            @param sequence The 64 bit sequence number of the packet used as a nonce for packet encryption. Should increase with each packet sent per-encryption mapping, but this is up to the caller.
+            @param immediate If true the the packet is written and flushed to the network immediately, rather than in the next call to Transport::WritePackets.
+         */
 
         virtual void SendPacket( const Address & address, Packet * packet, uint64_t sequence = 0, bool immediate = false ) = 0;
 
+        /**
+            Receive a packet.
+
+            This function pops a packet off the receive queue, if any are available to be received.
+
+            To make sure packet latency is minimized call Transport::ReceivePackets just before looping and calling this function until it returns NULL.
+
+            @param from The address that the packet was received from.
+            @param sequence Pointer to an unsigned 64bit sequence number (optional). If the pointer is not NULL, it will be dereferenced to store the sequence number of the received packet. Only encrypted packets have these sequence numbers.
+            @returns The next packet in the receive queue, or NULL if no packets are left in the receive queue.
+         */
+
         virtual Packet * ReceivePacket( Address & from, uint64_t * sequence = NULL ) = 0;
+
+        /**
+            Iterates across all packets in the send queue and writes them to the network.
+
+            To minimize packet latency, call this function shortly after you have finished queueing up packets to send via Transport::SendPacket.
+         */
 
         virtual void WritePackets() = 0;
 
+        /**
+            Reads packets from the network and adds them to the packet receive queue.
+
+            To minimize packet latency call this function right before you loop calling Transport::ReceivePacket until it returns NULL.
+        */
+
         virtual void ReadPackets() = 0;
+
+        /**
+            Returns the maximum packet size supported by this transport.
+
+            This is typically configured in the constructor of the transport implementation.
+
+            It's added here so callers using the transport interface know the maximum packet size that can be sent over the transport.
+
+            @returns The maximum packet size that can be sent over this transport (bytes).
+         */
 
         virtual int GetMaxPacketSize() const = 0;
 
+        /** 
+            Add simulated network conditions on top of this transport.
+
+            By default no latency, jitter, packet loss, or duplicates are added on top of the network. 
+
+            However, during development you often want to simulate some latency and packet loss while the game is being played over the LAN,
+            so people developing your game do so under conditions that you can expect to encounter when it's being played over the Internet.
+
+            I recommend adding around 125ms of latency and somewhere between 2-5% packet loss, and +/- one frame of jitter @ 60HZ (eg. 20ms or so). 
+
+            IMPORTANT: Take care when sitting simulated network conditions because they are implemented on packet send only, so you usually want to set HALF of the latency you want on client, and HALF of the latency on the server transport. So for 100ms of latency in total, you'd set 50ms latency on the client transport, and 50ms latency on the server transport, which adds up to of 100ms extra round trip delay.
+
+            The network simulator allocated here can take up a significant amount of memory. If you want to save memory, you might want to disable the network simulator. You can do this in the constructor of your transport implementation. See NetworkTransport::NetworkTransport for details.
+
+            @param latency The amount of latency to add to each packet sent (milliseconds).
+            @param jitter The amount of jitter to add to each packet sent (milliseconds). The packet delivery time is adjusted by some random amount within +/- jitter. This is best used in combination with some amount of latency, otherwise the jitter is not truly +/-.
+            @param packetLoss The percentage of packets to drop on send. 100% drops all packets. 0% drops no packets.
+            @param duplicate The percentage of packets to be duplicated. Duplicate packets are scheduled to be sent at some random time up to 1 second in the future, to grossly approximate duplicate packets that occur from IP route changes.
+         */
+
         virtual void SetNetworkConditions( float latency, float jitter, float packetLoss, float duplicate ) = 0;
+
+        /**
+            Clear network conditions back to defaults.
+
+            After this function latency, jitter, packet loss and duplicate packets are all set back to zero.
+         */
 
         virtual void ClearNetworkConditions() = 0;
 

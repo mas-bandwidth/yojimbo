@@ -125,7 +125,7 @@ namespace yojimbo
     };
 
     /** 
-        Channel configuration.
+        Configuration properties for a message channel.
      
         Channels let you specify different reliability and ordering guarantees for messages sent across a connection.
      
@@ -187,7 +187,7 @@ namespace yojimbo
     };
 
     /** 
-        Message configuration.
+        Configures message properties and the set of message channels for a Connection.
         
         Specifies the maximum packet size to generate, and the number of message channels, and the per-channel configuration data. See ChannelConfig for details.
         
@@ -212,7 +212,7 @@ namespace yojimbo
     };
 
     /** 
-        Client/Server configuration.
+        Configuration shared between client and server.
         
         Passed to Client and Server constructors to configure their behavior.
         
