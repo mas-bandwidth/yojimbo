@@ -2973,7 +2973,7 @@ void test_connection_counters()
     TestMessageFactory messageFactory;
 
     MessageConfig messageConfig;
-    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;                    // todo: maybe move this into the constructor?!
+    messageConfig.connectionPacketType = TEST_PACKET_CONNECTION;
 
     TestConnection connection( packetFactory, messageFactory, messageConfig );
 

@@ -805,6 +805,11 @@ namespace yojimbo
         return m_counters[index];
     }
 
+    void BaseTransport::ResetCounters()
+    {
+        memset( m_counters, 0, sizeof( m_counters ) );
+    }
+
     void BaseTransport::SetFlags( uint64_t flags )
     {
         m_flags = flags;

@@ -505,7 +505,7 @@ namespace yojimbo
             This way you can continue to accumulate events, and upload them at some frequency, like every 5 minutes to the telemetry backend, without double counting events.
          */
 
-        virtual void ResetCounters();
+        virtual void ResetCounters() = 0;
 
         /**
             Set transport flags.
@@ -539,6 +539,10 @@ namespace yojimbo
 
         virtual const Address & GetAddress() const = 0;
     };
+
+    /**
+        The base transport provides common functionality shared between multiple transport implementations.
+     */
 
     class BaseTransport : public Transport
     {
@@ -602,6 +606,8 @@ namespace yojimbo
         double GetTime() const;
 
         uint64_t GetCounter( int index ) const;
+
+        void ResetCounters();
 
         void SetFlags( uint64_t flags );
 
@@ -680,6 +686,12 @@ namespace yojimbo
         uint64_t m_counters[TRANSPORT_COUNTER_NUM_COUNTERS];
     };
 
+    /**
+        Implements a local transport built on top of a network simulator.
+
+        This transport does not provide any networking sockets, and is used in unit tests and loopback.
+     */
+
     class LocalTransport : public BaseTransport
     {
     public:
@@ -721,6 +733,10 @@ namespace yojimbo
 
 #if YOJIMBO_SOCKETS
 
+    /**
+        Implements a network transport built on top of non-blocking sendto and recvfrom socket APIs.
+     */
+
     class NetworkTransport : public BaseTransport
     {
     public:
@@ -736,6 +752,8 @@ namespace yojimbo
 
         ~NetworkTransport();
 
+        // todo: this is a bit naff
+
         bool IsError() const;
 
         int GetError() const;
@@ -748,7 +766,7 @@ namespace yojimbo
 
     private:
 
-        class Socket * m_socket;
+        class Socket * m_socket;                                ///< The socket used for sending and receiving UDP packets.
     };
 
 #endif // #if YOJIMBO_SOCKETS
