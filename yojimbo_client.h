@@ -447,9 +447,28 @@ namespace yojimbo
 
         virtual void OnDisconnect() {}
 
-        virtual void OnPacketSent( int /*packetType*/, const Address & /*to*/, bool /*immediate*/ ) {}
+        /**
+            Override this method to get a callback when the client sends a packet.
 
-        virtual void OnPacketReceived( int /*packetType*/, const Address & /*from*/ ) {}
+            @param packetType The type of packet being sent, according to the client packet factory. See PacketFactory.
+            @param to The address the packet is being sent to.
+            @param immediate True if the packet is to be flushed to the network and sent immediately.
+
+            @see Client::SendPackets
+         */
+
+        virtual void OnPacketSent( int packetType, const Address & to, bool immediate ) { (void) packetType; (void) to; (void) immediate; }
+
+        /**
+            Override this method to get a callback when the client receives a packet.
+
+            @param packetType The type of packet being sent, according to the client packet factory. See PacketFactory.
+            @param from The address of the machine that sent the packet.
+
+            @see Client::ReceivePackets
+         */
+
+        virtual void OnPacketReceived( int packetType, const Address & from ) { (void) packetType; (void) from; }
 
         virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
 
@@ -459,7 +478,7 @@ namespace yojimbo
 
         virtual void OnConnectionFragmentReceived( Connection * /*connection*/, int /*channelId*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*numFragmentsReceived*/, int /*numFragmentsInBlock*/ ) {}
 
-        virtual bool ProcessUserPacket( Packet * /*packet*/ ) { return false; }
+        virtual bool ProcessUserPacket( Packet * packet ) { (void) packet; return false; }
 
     protected:
 
