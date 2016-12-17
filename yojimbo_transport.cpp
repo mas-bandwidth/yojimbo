@@ -355,8 +355,6 @@ namespace yojimbo
 
         if ( immediate )
         {
-            m_counters[TRANSPORT_COUNTER_PACKETS_SENT]++;
-
             WriteAndFlushPacket( address, packet, sequence );
 
             packet->Destroy();

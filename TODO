@@ -2,15 +2,13 @@ DONE
 
     Kicked build to resolve premake5 download issue with travis.
 
-TODO
-
-    ---------
-
     Key documentation areas: outside -> in.
 
         1. yojimbo_server.h
 
         2. yojimbo_client.h
+
+TODO
 
         3. yojimbo_transport.h
 

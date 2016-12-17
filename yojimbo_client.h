@@ -470,13 +470,74 @@ namespace yojimbo
 
         virtual void OnPacketReceived( int packetType, const Address & from ) { (void) packetType; (void) from; }
 
-        virtual void OnConnectionPacketSent( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+        /**
+            Override this method to get a callback when a connection packet is sent to the server.
 
-        virtual void OnConnectionPacketAcked( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+            Connection packets are carrier packets that transmit messages between the client and server. They are only generated if you enabled messages in the ClientServerConfig (true by default).
 
-        virtual void OnConnectionPacketReceived( Connection * /*connection*/, uint16_t /*sequence*/ ) {}
+            @param connection The connection that the packet belongs to. There is just one connection object on the client-side.
+            @param sequence The sequence number of the connection packet being sent.
 
-        virtual void OnConnectionFragmentReceived( Connection * /*connection*/, int /*channelId*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*numFragmentsReceived*/, int /*numFragmentsInBlock*/ ) {}
+            @see ClientServerConfig::enableMessages
+         */
+
+        virtual void OnConnectionPacketSent( Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
+
+        /**
+            Override this method to get a callback when a connection packet is acked by the client (eg. the client notified the server that packet was received).
+
+            Connection packets are carrier packets that transmit messages between the client and server. They are automatically generated when messages are enabled in ClientServerConfig (true by default).
+
+            @param connection The connection that the packet belongs to. There is just one connection object on the client-side.
+            @param sequence The packet sequence number of the connection packet that was acked by the client. Corresponds to the sequence number passed in to Server::OnConnectionPacketSent for that packet when it was sent.
+
+            @see ClientServerConfig::enableMessages
+         */
+
+        virtual void OnConnectionPacketAcked( Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
+
+        /**
+            Override this method to get a callback when a connection packet is received from the server.
+
+            Connection packets are carrier packets that transmit messages between the client and server. They are automatically generated when messages are enabled in ClientServerConfig (true by default).
+
+            @param connection The connection that the packet belongs to. There is just one connection object on the client-side.
+            @param sequence The sequence number of the connection packet that was received.
+
+            @see ClientServerConfig::enableMessages
+         */
+
+        virtual void OnConnectionPacketReceived( Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
+
+        /**
+            Override this method to get a callback when a block fragment is received from the server.
+
+            This callback lets you implement a progress bar for large block transmissions.
+
+            @param connection The connection that the block fragment belongs to. There is just one connection object on the client-side.
+            @param channelId The channel the block is being sent over.
+            @param messageId The message id the block is attached to.
+            @param fragmentId The fragment id that is being processed. Fragment ids are in the range [0,numFragments-1].
+            @param fragmentBytes The size of the fragment in bytes.
+            @param numFragmentsReceived The number of fragments received for this block so far (including this one).
+            @param numFragmentsInBlock The total number of fragments in this block. The block receive completes when all fragments are received.
+
+            @see BlockMessage::AttachBlock
+         */
+
+        virtual void OnConnectionFragmentReceived( Connection * connection, int channelId, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock ) { (void) connection; (void) channelId; (void) messageId; (void) fragmentId; (void) fragmentBytes; (void) numFragmentsReceived; (void) numFragmentsInBlock; }
+
+        /** 
+            Override this method to process user packets sent from the server.
+
+            User packets let you extend the yojimbo by adding your own packet types to be exchanged between client and server. See PacketFactory.
+
+            Most users won't need to create custom packet types, and will extend the protocol by defining their own message types instead. See MessageFactory.
+
+            @param packet The user packet received from the server.
+
+            @returns Return true if the user packet was processed successfully. Returning false if the packet could not be processed, or if is of a type you don't expect. This ensures that unexpected packet types don't keep the connection alive when it should time out.
+         */
 
         virtual bool ProcessUserPacket( Packet * packet ) { (void) packet; return false; }
 

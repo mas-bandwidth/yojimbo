@@ -623,7 +623,7 @@ namespace yojimbo
         virtual void OnConnectionPacketSent( Connection * connection, uint16_t sequence );
 
         /**
-            Override this method to get a callback when a connection packet was acked by the client (eg. the client notified the server that that packet received).
+            Override this method to get a callback when a connection packet is acked by the client (eg. the client notified the server that packet was received).
 
             Connection packets are carrier packets that transmit messages between the client and server. They are automatically generated when messages are enabled in ClientServerConfig (true by default).
 
@@ -679,7 +679,7 @@ namespace yojimbo
             @param clientIndex Identifies which client this packet came from.
             @param packet The user packet received from the client.
 
-            @returns Return true if the user packet was processed successfully. Returning false if the packet could not be processed, or if is of an unexpected type. For example, a packet type that you only send from server -> client, and not the other way around.
+            @returns Return true if the user packet was processed successfully. Returning false if the packet could not be processed, or if is of a type you don't expect. This ensures that unexpected packet types don't keep the connection alive when it should time out.
          */
 
         virtual bool ProcessUserPacket( int clientIndex, Packet * packet );

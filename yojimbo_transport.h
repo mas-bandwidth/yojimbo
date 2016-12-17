@@ -36,30 +36,52 @@
 
 namespace yojimbo
 {
+    /// Transport flags are used to enable and disable features on a transport.
+
     enum TransportFlags
     {
-        TRANSPORT_FLAG_INSECURE_MODE = (1<<0)
+        TRANSPORT_FLAG_INSECURE_MODE = (1<<0)                                       ///< When insecure secure mode is enabled on a transport, it supports receiving unencrypted packet types that would normally be rejected if they weren't encrypted. Don't turn this on in production!
     };
+
+    /**
+        Transport counters provide insight into the number of times an action was performed by the transport.
+
+        They are intended for use in a telemetry system, eg. the server would report these counters to some backend logging system to track behavior in a production environment.
+
+        They're also pretty useful for debugging and seeing what happened after the fact, and functional testing because counters let tests verify that expected codepaths were hit.
+     */
 
     enum TransportCounters
     {
-        TRANSPORT_COUNTER_PACKETS_SENT,
-        TRANSPORT_COUNTER_PACKETS_RECEIVED,
-        TRANSPORT_COUNTER_PACKETS_READ,
-        TRANSPORT_COUNTER_PACKETS_WRITTEN,
-        TRANSPORT_COUNTER_SEND_QUEUE_OVERFLOW,
-        TRANSPORT_COUNTER_RECEIVE_QUEUE_OVERFLOW,
-        TRANSPORT_COUNTER_READ_PACKET_FAILURES,
-        TRANSPORT_COUNTER_WRITE_PACKET_FAILURES,
-        TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES,
-        TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES,
-        TRANSPORT_COUNTER_ENCRYPTED_PACKETS_READ,
-        TRANSPORT_COUNTER_ENCRYPTED_PACKETS_WRITTEN,
-        TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_READ,
-        TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_WRITTEN,
-        TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES,
-        TRANSPORT_COUNTER_NUM_COUNTERS
+        TRANSPORT_COUNTER_PACKETS_SENT,                                             ///< Number of packets sent by the transport. Corresponds to the number of times Transport::SendPacket was called by the user.
+        TRANSPORT_COUNTER_PACKETS_RECEIVED,                                         ///< Number of packets received by the transport. Corresponds to the number of times Transport::ReceivePacket returned a non-NULL packet pointer to the user.
+        TRANSPORT_COUNTER_PACKETS_READ,                                             ///< Number of packets read from the network.
+        TRANSPORT_COUNTER_PACKETS_WRITTEN,                                          ///< Number of packets written to the network.
+        TRANSPORT_COUNTER_SEND_QUEUE_OVERFLOW,                                      ///< Number of times the packet send queue has overflowed. When this is non-zero, it means that packets are being dropped because the transport send queue is too small.
+        TRANSPORT_COUNTER_RECEIVE_QUEUE_OVERFLOW,                                   ///< Number of times the packet receive queue has overflowed. When this is non-zero, packets read from the network aren't able to be queued up and are dropped because there is no room in the receive queue.
+        TRANSPORT_COUNTER_READ_PACKET_FAILURES,                                     ///< Number of times a failure has occured while reading a packet. This usually corresponds to the number of corrupt packet that return false from their serialize read function, but it's also possible it is user error causing packets to fail to deserialize properly.
+        TRANSPORT_COUNTER_WRITE_PACKET_FAILURES,                                    ///< Number of times a packet failed to serialize write. This is not common. If it does fail, it's probably you're fault. You're the one who wrote the packet serialize function after all :)
+        TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES,                                  ///< Number of times packet encryption failed. This usually only fails if there is something wrong with libsodium installed on your system.
+        TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES,                                  ///< Number of times libsodium failed to decrypt a packet. Non-zero indicates that corrupt packets were received and could not be decrypted.
+        TRANSPORT_COUNTER_ENCRYPTED_PACKETS_READ,                                   ///< Number of encrypted packet read from the network.
+        TRANSPORT_COUNTER_ENCRYPTED_PACKETS_WRITTEN,                                ///< Number of encrypted packets written to the network.
+        TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_READ,                                 ///< Number of unencrypted packets read from the network.
+        TRANSPORT_COUNTER_UNENCRYPTED_PACKETS_WRITTEN,                              ///< Number of unencrypted packets written to the network.
+        TRANSPORT_COUNTER_ENCRYPTION_MAPPING_FAILURES,                              ///< Number of encryption mapping failures. This is when an encrypted packet is sent to us, but we don't can't find any key to decrypt that packet corresponding to it's source address. See Transport::AddEncryptionMapping.
+        TRANSPORT_COUNTER_NUM_COUNTERS                                              ///< The number of transport counters.
     };
+
+    /** 
+        A transport context provides a way to setup the transport with objects it needs to read and write packets.
+
+        Each transport has a default context set by Transport::SetContext and cleared by Transport::ClearContext. 
+
+        Each transport also provides a context mapping that can be used to associate specific addresses with their own context.
+
+        The server uses per-client contexts to setup a mapping between connected clients and the resources for that client like allocators, packet factories, message factories and replay protection.
+
+        The benefit of this is that each client is effectively silo'd to only use their own resources, and cannot launch an attack to try to deplete the resources shared with other clients.
+     */
 
     struct TransportContext
     {
@@ -85,12 +107,12 @@ namespace yojimbo
             encryptionIndex = -1;
         }
 
-        Allocator * allocator;
-        PacketFactory * packetFactory;
-        ReplayProtection * replayProtection;
-        struct ConnectionContext * connectionContext;
-        void * userContext;
-        int encryptionIndex;
+        Allocator * allocator;                                                      ///< The allocator set on the stream. See Stream::GetAllocator. This lets packets to allocate and free memory as they read and write packets.
+        PacketFactory * packetFactory;                                              ///< The packet factory used to create packets.
+        ReplayProtection * replayProtection;                                        ///< The replay protection object used to filter out old and duplicate encrypted packets being replayed. Protects against packet replay attacks.
+        struct ConnectionContext * connectionContext;                               ///< The connection context. This provides information needed by the ConnectionPacket to read and write messages and data block fragments.
+        void * userContext;                                                         ///< The user context. This lets the client pass a pointer to data so it is accessible when reading and writing packets. See Stream::GetUserContext.
+        int encryptionIndex;                                                        ///< The encryption index. This is an optimization that avoids repeatedly searching for the encryption mapping by index. If a context is setup for that address, the encryption index is cached in the context.
     };
 
     class TransportContextManager
