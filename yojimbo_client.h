@@ -386,7 +386,7 @@ namespace yojimbo
         int GetClientIndex() const;
 
         /**
-            Get the counter value.
+            Get a counter value.
 
             Counters are used to track event and actions performed by the client. They are useful for debugging, testing and telemetry.
 
@@ -536,7 +536,7 @@ namespace yojimbo
 
             @param packet The user packet received from the server.
 
-            @returns Return true if the user packet was processed successfully. Returning false if the packet could not be processed, or if is of a type you don't expect. This ensures that unexpected packet types don't keep the connection alive when it should time out.
+            @returns Return true if the user packet was processed successfully. Returning false if the packet could not be processed, or if is of a type you don't expect. This ensures that unexpected packet types don't keep the connection alive when it should time out. out.
          */
 
         virtual bool ProcessUserPacket( Packet * packet ) { (void) packet; return false; }

@@ -470,7 +470,7 @@ namespace yojimbo
         uint64_t GetFlags() const;
 
         /**
-            Get the counter value.
+            Get a counter value.
 
             Counters are used to track event and actions performed by the server. They are useful for debugging, testing and telemetry.
 

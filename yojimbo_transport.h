@@ -332,37 +332,210 @@ namespace yojimbo
 
         virtual void ClearNetworkConditions() = 0;
 
+        /** 
+            Turns on packet encryption and enables it for all packet types.
+
+            When a packet is sent the transport checks if that packet type is encrypted. If it's an encrypted, the transport looks for an encryption mapping for the destination address, and encrypts the packet with that key. Otherwise, the packet is sent out unencrypted.
+
+            When a packet is received, the transport checks if that packetet type should be encrypted. If it should be, but the packet itself is not encrypted, the packet is discarded. Otherwise, the server looks for a decryption key for the packet sender address and decrypts the packet before adding it to the packet receive queue.
+
+            The exception to this rule is when you enable TRANSPORT_FLAG_INSECURE_MODE via Transport::SetFlags, which makes encryption optional for encrypted packet types. 
+
+            This allows a mixture of secure and insecure client connections, which is convenient for development over a LAN, but should NEVER be enabled in production. 
+
+            Therefore, the insecure mode flag is disabled #if YOJIMBO_SECURE_MODE 1. 
+
+            Please make sure you #define YOJIMBO_SECURE_MODE 1 in your production build!
+
+            @see Transport::DisablePacketEncryption
+            @see Transport::DisableEncryptionForPacketType
+         */
+
         virtual void EnablePacketEncryption() = 0;
+
+        /** 
+            Disables encryption for all packet types.
+
+            @see Transport::DisablePacketEncryption
+            @see Transport::DisableEncryptionForPacketType
+         */
 
         virtual void DisablePacketEncryption() = 0;
 
+        /**
+            Disables encryption for a specific packet type.
+
+            Typical usage is to enable packet encryption (for all types) via Transport::EnablePacketEncryption, and then selectively disable it for packet types that you don't want to be encrypted.
+
+            For example, the client/server protocol sends connection request packets as unencrypted, because they contain connect token data which is already encrypted, and every other packet sent is encrypted.
+
+            @param type The packet type that should be set as not encrypted.
+         */
+
         virtual void DisableEncryptionForPacketType( int type ) = 0;
+
+        /**
+            Is a packet type encrypted?
+
+            @returns True if the packet type is an encrypted packet, false otherwise.
+
+            @see EnablePacketEncryption
+            @see DisablePacketEncryption
+            @see DisableEncryptionForPacketType
+         */
 
         virtual bool IsEncryptedPacketType( int type ) const = 0;
 
+        /**
+            Associates an address with keys for packet encryption.
+
+            This mapping is used by the transport on packet send and receive determine what key should be used when sending a packet to an address, and what key should be used to decrypt a packet received from an address.
+
+            For example, the server adds an encryption mapping for clients when it receives a connection request packet with a valid connect token, enabling encrypted packets to be exchanged between the server and that client past that point. The encryption mapping is removed when the client disconnects from the server.
+
+            Encryption mappings also time out, making them ideal for pending clients, who may never reply back and complete the connection negotiation. As a result, there are more encryption mappings than client slots. See yojimbo::MaxEncryptionMappings.
+
+            See EncryptionManager for further details.
+
+            @param address The address to associate with encryption keys.
+            @param sendKey The key used to encrypt packets sent to this address.
+            @param receiveKey The key used to decrypt packets received from this address.
+         */
+
         virtual bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey ) = 0;
+
+        /**
+            Remove the encryption mapping for an address.
+
+            @param address The address of the encryption mapping to remove.
+
+            @returns True if an encryption mapping for the address exists and was removed, false if no encryption mapping could be found for the address.
+         */
 
         virtual bool RemoveEncryptionMapping( const Address & address ) = 0;
 
+        /**
+            Find the index of an encryption mapping by address.
+
+            @returns The index of the encryption mapping in the range [0,MaxEncryptionMappings-1], or -1 if no encryption mapping exists for the specified address.
+         */
+
         virtual int FindEncryptionMapping( const Address & address ) = 0;
+
+        /**
+            Reset all encryption mappings.
+
+            All encryption mappings set on the transport are removed.
+
+            @see Transport::Reset
+         */
 
         virtual void ResetEncryptionMappings() = 0;
 
+        /**
+            Add a transport context that is specific for an address.
+
+            Context mappings are used to give each connected client on the server its own set of resources, so malicious clients can't exhaust resources shared with other clients.
+
+            When a client establishes connection with the server, a context mapping is added for that client. When the client disconnects from the server, the context mapping is removed.
+
+            @param address The address to associate with a transport context.
+            @param context The transport context to be copied across. All data in the context must remain valid while it is set on the transport.
+            
+            @see TransportContextManager
+            @see yojimbo::MaxContextMappings
+         */
+
         virtual bool AddContextMapping( const Address & address, const TransportContext & context ) = 0;
+
+        /**
+            Remove a context mapping.
+
+            Context mappings are used to give each connected client on the server its own set of resources, so malicious clients can't exhaust resources shared with other clients.
+
+            When a client establishes connection with the server, a context mapping is added for that client. When the client disconnects from the server, the context mapping is removed.
+
+            @param address The address of the context to remove.
+            @returns True if a context mapping was found at the address and removed, false if no context mapping could be found for the address.
+         */
 
         virtual bool RemoveContextMapping( const Address & address ) = 0;
 
+        /** 
+            Reset all context mappings.
+
+            After this function is called all context mappings are removed.
+         */
+
         virtual void ResetContextMappings() = 0;
+
+        /**
+            Advance transport time.
+
+            Call this at the end of each frame to advance the transport time forward. 
+
+            IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
+         */
 
         virtual void AdvanceTime( double time ) = 0;
 
+        /**
+            Gets the current transport time.
+
+            @see Transport::AdvanceTime
+         */
+
         virtual double GetTime() const = 0;
+
+        /**
+            Get a counter value.
+
+            Counters are used to track event and actions performed by the transport. They are useful for debugging, testing and telemetry.
+
+            @returns The counter value. See yojimbo::TransportCounters for the set of transport counters.
+         */
 
         virtual uint64_t GetCounter( int index ) const = 0;
 
+        /** 
+            Reset all counters to zero.
+
+            This is typically used with a telemetry application after uploading the current set of counters to the telemetry backend. 
+
+            This way you can continue to accumulate events, and upload them at some frequency, like every 5 minutes to the telemetry backend, without double counting events.
+         */
+
+        virtual void ResetCounters();
+
+        /**
+            Set transport flags.
+
+            Flags are used to enable and disable transport functionality.
+
+            @param flags The transport flags to set. See yojimbo::TransportFlags for the set of transport flags that can be passed in.
+
+            @see Transport::GetFlags
+         */
+
         virtual void SetFlags( uint64_t flags ) = 0;
 
+        /**
+            Get the current transport flags.
+
+            @returns The transport flags. See yojimbo::TransportFlags for the set of transport flags.
+    
+            @see Transport::SetFlags
+         */
+
         virtual uint64_t GetFlags() const = 0;
+
+        /**
+            Get the address of the transport.
+
+            This is the address that packet should be sent to to be received by this transport.
+
+            @returns The transport address.
+         */
 
         virtual const Address & GetAddress() const = 0;
     };
@@ -375,7 +548,6 @@ namespace yojimbo
                        const Address & address,
                        uint32_t protocolId,
                        double time,
-                       // todo: maybe we need TransportConfig?
                        int maxPacketSize = DefaultMaxPacketSize,
                        int sendQueueSize = DefaultPacketSendQueueSize,
                        int receiveQueueSize = DefaultPacketReceiveQueueSize,
