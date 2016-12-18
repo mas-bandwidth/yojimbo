@@ -556,7 +556,7 @@ namespace yojimbo
             Base transport constructor.
 
             @param allocator The allocator used for transport allocations.
-            @param address The address to send packets to that would be received by this transport.
+            @param address The address of the packet. This is how other other transports would send packets to this transport.
             @param protocolId The protocol id for this transport. Protocol id is included in the packet header, packets received with a different protocol id are discarded. This allows multiple versions of your protocol to exist on the same network.
             @param time The current time value in seconds.
             @param maxPacketSize The maximum packet size that can be sent across this transport.
@@ -647,7 +647,7 @@ namespace yojimbo
 
             If the packet is an encrypted packet type, this function also performs encryption.
 
-            @param address The address the packet is being sent to. This is used to look up the send key for packet encryption by address, and the transport context (if one exists) for writing this packet.
+            @param address The address of the packet. This is how other other transports would send packets to this transport.
             @param packet The packet object to be serialized (written).
             @param sequence The sequence number of the packet being written. If this is an encrypted packet, this serves as the nonce, and it is the users responsibility to increase this value with each packet sent per-encryption context. Not used for unencrypted packets (pass in zero).
             @param packetBytes The number of packet bytes written to the buffer [out]. This is the wire size of the packet to be sent via sendto or equivalent.
@@ -812,7 +812,7 @@ namespace yojimbo
 
             @param allocator The allocator used for transport allocations.
             @param networkSimulator The network simulator to use. Typically, you use one network simulator shared across multiple local transports. See test.cpp and client_server.cpp for examples.
-            @param address The address to send packets to that would be received by this transport.
+            @param address The address of the packet. This is how other other transports would send packets to this transport.
             @param protocolId The protocol id for this transport. Protocol id is included in the packet header, packets received with a different protocol id are discarded. This allows multiple versions of your protocol to exist on the same network.
             @param time The current time value in seconds.
             @param maxPacketSize The maximum packet size that can be sent across this transport.
