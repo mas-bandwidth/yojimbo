@@ -4,19 +4,19 @@ DONE
 
     Key documentation areas: outside -> in.
 
+        0. yojimbo_config.h
+
         1. yojimbo_server.h
 
         2. yojimbo_client.h
 
-TODO
-
         3. yojimbo_transport.h
 
-        4. yojimbo_address.h
+TODO
 
-        5. yojimbo_serialize.h (macros)
+        4. yojimbo_connection.h
 
-        6. yojimbo_config.h
+        5. yojimbo_address.h
 
         7. InitializeYojimbo/ShutdownYojimbo
 

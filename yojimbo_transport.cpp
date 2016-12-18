@@ -376,7 +376,7 @@ namespace yojimbo
         assert( m_context.allocator );
         assert( m_context.packetFactory );
 
-        bool useSimulator = ShouldPacketGoThroughSimulator();
+        bool useSimulator = ShouldPacketsGoThroughSimulator();
 
         while ( !m_sendQueue.IsEmpty() )
         {
@@ -704,7 +704,7 @@ namespace yojimbo
         }
     }
 
-    bool BaseTransport::ShouldPacketGoThroughSimulator()
+    bool BaseTransport::ShouldPacketsGoThroughSimulator()
     {
         return m_allocateNetworkSimulator && m_networkSimulator->IsActive();
     }
@@ -965,7 +965,9 @@ namespace yojimbo
 
     NetworkTransport::~NetworkTransport()
     {
-        YOJIMBO_DELETE( GetAllocator(), Socket, m_socket );
+		assert( m_socket );
+		assert( m_allocator );
+		YOJIMBO_DELETE( *m_allocator, Socket, m_socket );
     }
 
     bool NetworkTransport::IsError() const

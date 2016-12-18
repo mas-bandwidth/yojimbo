@@ -40,7 +40,9 @@ namespace yojimbo
 
     enum TransportFlags
     {
-        TRANSPORT_FLAG_INSECURE_MODE = (1<<0)                                       ///< When insecure secure mode is enabled on a transport, it supports receiving unencrypted packet types that would normally be rejected if they weren't encrypted. Don't turn this on in production!
+#if !YOJIMBO_SECURE_MODE
+        TRANSPORT_FLAG_INSECURE_MODE = (1<<0)                                       ///< When insecure secure mode is enabled on a transport, it supports receiving unencrypted packets that would normally be rejected if they weren't encrypted. This allows a mix of secure and insecure clients on the same server. Don't turn this on in production!
+#endif // #if !YOJIMBO_SECURE_MODE
     };
 
     /**
@@ -72,7 +74,7 @@ namespace yojimbo
     };
 
     /** 
-        Gives the transport access to objects it needs to read and write packets.
+        Gives the transport access to resources it needs to read and write packets.
 
         Each transport has a default context set by Transport::SetContext and cleared by Transport::ClearContext. 
 
@@ -250,6 +252,8 @@ namespace yojimbo
         /**
             Queue a packet to be sent.
 
+            This function transfers ownership of the packet object to the transport. Don't call Packet::Destroy on the packet after you send it with this function, the transport will do that for you automatically.
+
             IMPORTANT: The packet will be sent over a UDP-equivalent network. It may arrive out of order, in duplicate or not at all.
 
             @param address The address the packet should be sent to.
@@ -264,6 +268,8 @@ namespace yojimbo
             Receive a packet.
 
             This function pops a packet off the receive queue, if any are available to be received.
+
+            This function transfers ownership of the packet pointer to the caller. It is the callers responsibility to call Packet::Destroy after processing the packet.
 
             To make sure packet latency is minimized call Transport::ReceivePackets just before looping and calling this function until it returns NULL.
 
@@ -539,12 +545,25 @@ namespace yojimbo
     };
 
     /**
-        The base transport provides common functionality shared between multiple transport implementations.
+        Common functionality shared between multiple transport implementations.
      */
 
     class BaseTransport : public Transport
     {
     public:
+
+        /**
+            Base transport constructor.
+
+            @param allocator The allocator used for transport allocations.
+            @param address The address to send packets to that would be received by this transport.
+            @param protocolId The protocol id for this transport. Protocol id is included in the packet header, packets received with a different protocol id are discarded. This allows multiple versions of your protocol to exist on the same network.
+            @param time The current time value in seconds.
+            @param maxPacketSize The maximum packet size that can be sent across this transport.
+            @param sendQueueSize The size of the packet send queue (number of packets).
+            @param receiveQueueSize The size of the packet receive queue (number of packets).
+            @param allocateNetworkSimulator If true then a network simulator is allocated, otherwise a network simulator is not allocated. You can use this to disable the network simulator if you are not using it, to save memory.
+         */
 
         BaseTransport( Allocator & allocator,
                        const Address & address,
@@ -555,11 +574,11 @@ namespace yojimbo
                        int receiveQueueSize = DefaultPacketReceiveQueueSize,
                        bool allocateNetworkSimulator = true );
 
+        ~BaseTransport();
+
         void SetContext( const TransportContext & context );
 
         void ClearContext();
-
-        ~BaseTransport();
 
         void Reset();
 
@@ -615,41 +634,132 @@ namespace yojimbo
 
     protected:
 
+        /// Clear the packet send queue.
+
         void ClearSendQueue();
+
+        /// Clear the packet receive queue.
 
         void ClearReceiveQueue();
 
+        /**
+            Writes a packet to a scratch buffer and returns a pointer to the packet data.
+
+            If the packet is an encrypted packet type, this function also performs encryption.
+
+            @param address The address the packet is being sent to. This is used to look up the send key for packet encryption by address, and the transport context (if one exists) for writing this packet.
+            @param packet The packet object to be serialized (written).
+            @param sequence The sequence number of the packet being written. If this is an encrypted packet, this serves as the nonce, and it is the users responsibility to increase this value with each packet sent per-encryption context. Not used for unencrypted packets (pass in zero).
+            @param packetBytes The number of packet bytes written to the buffer [out]. This is the wire size of the packet to be sent via sendto or equivalent.
+
+            @returns A const pointer to the packet data written to a scratch buffer. Don't hold on to this pointer and don't free it. The scratch buffer is internal and managed by the transport.
+         */
+
         const uint8_t * WritePacket( const Address & address, Packet * packet, uint64_t sequence, int & packetBytes );
+
+        /**
+            Write a packet and queue it up in the network simulator.
+
+            This is used when network simulation is enabled via Transport::SetNetworkConditions to add latency, packet loss and so on to sent packets.
+
+            Packets are first queued up in the network simulation, and then when they pop off the network simulator they are flushed to the network.
+
+            This codepath is not called when network simulation is disabled. Packets are written and flushed directly to the network in that case.
+
+            @param address The address the packet is being sent to.
+            @param packet The packet object to be serialized (written).
+            @param sequence The sequence number of the packet being written. If this is an encrypted packet, this serves as the nonce, and it is the users responsibility to increase this value with each packet sent per-encryption context. Not used for unencrypted packets (pass in zero).
+
+            @see BaseTransport::ShouldPacketGoThroughSimulator
+         */
 
         void WritePacketToSimulator( const Address & address, Packet * packet, uint64_t sequence );
 
+        /**
+            Write a packet and flush it to the network.
+
+            This codepath is used when network simulation is disabled (eg. when no latency or packet loss is simulated).
+
+            @param address The address the packet is being sent to.
+            @param packet The packet object to be serialized (written).
+            @param sequence The sequence number of the packet being written. If this is an encrypted packet, this serves as the nonce, and it is the users responsibility to increase this value with each packet sent per-encryption context. Not used for unencrypted packets (pass in zero).
+
+            @see BaseTransport::InternalSendPacket
+            @see BaseTransport::ShouldPacketGoThroughSimulator
+         */
+
         void WriteAndFlushPacket( const Address & address, Packet * packet, uint64_t sequence );
+
+        /**
+            Read a packet buffer that arrived from the network and deserialize it into a newly created packet object.
+
+            @param address The address that sent the packet.
+            @param packetBuffer The byte buffer containing the packet data received from the network.
+            @param packetBytes The size of the packet data being read in bytes.
+            @param sequence Reference to the sequence number for the packet. If this is an encrypted packet, it will be filled with the sequence number from the encrypted packet header (eg. the nonce). If this is an unencrypted packet, it will be set to zero.
+
+            @returns The packet object if the packet buffer was successfully read (and decrypted), NULL otherwise. The caller owns the packet pointer and is responsible for destroying it. See Packet::Destroy.
+         */
 
         Packet * ReadPacket( const Address & address, uint8_t * packetBuffer, int packetBytes, uint64_t & sequence );
 
-        virtual bool ShouldPacketGoThroughSimulator();
+        /**
+            Should sent packets go through the simulator first before they are flushed to the network?
+
+            This is true in the case where network conditions are set on the simulator, which is how latency and packet loss is added on top of the transport.
+
+            Returning false means packets are written and flushed directly to the network via BaseTransport::InternalSendPacket.
+
+            @returns True if packets should be directed through the simulator (see BaseTransport::WritePacketToSimulator) and false if packets should be flushed directly to the network (see BaseTransport::WriteAndFlushPacket).
+
+            @see Transport::SetNetworkConditions
+         */
+
+        virtual bool ShouldPacketsGoThroughSimulator();
+
+        /**
+            Internal function to send a packet over the network.
+
+            IMPORTANT: Override this to implement your own packet send function for derived transport classes.
+
+            @param to The address the packet should be sent to.
+            @param packetData The serialized, and potentially encrypted packet data generated by BaseTransport::WritePacket.
+            @param packetBytes The size of the packet data in bytes.
+         */
 
         virtual void InternalSendPacket( const Address & to, const void * packetData, int packetBytes ) = 0;
+
+        /**
+            Internal function to receive a packet from the network.
+
+            IMPORTANT: Override this to implement your own packet receive function for derived transport classes. 
+
+            IMPORTANT: This call must be non-blocking.
+
+            @param from The address that sent the packet [out].
+            @param packetData The buffer to which will receive packet data read from the network.
+            @param maxPacketSize The size of your packet data buffer. Packets received from the network that are larger than this are discarded.
+
+            @returns The number of packet bytes read from the network, 0 if no packet data was read.
+         */
     
         virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize ) = 0;
 
-        Allocator & GetAllocator() { assert( m_allocator ); return *m_allocator; }
-
     protected:
 
-        TransportContext m_context;
+        TransportContext m_context;                                     ///< The default transport context used if no context can be found for the specific address.
 
-        Address m_address;
+        Address m_address;                                              ///< The address of the transport. This is the address to send packets to so that this transport would receive them.
 
-        double m_time;
+        double m_time;                                                  ///< The current transport time. See Transport::AdvanceTime.
 
-        uint64_t m_flags;
+        uint64_t m_flags;                                               ///< The transport flags. See Transport::SetFlags.
 
-        uint32_t m_protocolId;
+        uint32_t m_protocolId;                                          ///< The protocol id. You set it when you create the transport and it's used to filter out any packets sent that have different protocols ids. Lets you implement basic versioning (eg. ignore packets sent by other versions of your protocol on the network).
 
-        Allocator * m_allocator;
+        Allocator * m_allocator;                                        ///< The allocator passed in to the transport constructor. Used for all allocations inside the transport class, except for packets, messages and stream allocations, which are determined by the factories and allocators passed in to the context.
 
-        PacketProcessor * m_packetProcessor;
+        PacketProcessor * m_packetProcessor;                            ///< The packet processor. This is the engine for reading and writing packets, as well as packet encryption and decryption.
 
         struct PacketEntry
         {
@@ -659,29 +769,32 @@ namespace yojimbo
                 packet = NULL;
             }
 
-            uint64_t sequence;
-            Address address;
-            Packet * packet;
+            uint64_t sequence;                                          ///< The sequence number of the packet. Always 0 if the packet is not encrypted.
+            Address address;                                            ///< The address of the packet. Depending on the queue, this is the address the packet should be sent to, or the address that sent the packet.
+            Packet * packet;                                            ///< The packet object. While the packet in a queue, it is owned by that queue, and the queue is responsible for destroying that packet, or handing ownership off to somebody else (eg. after ReceivePacket).
         };
 
-        Queue<PacketEntry> m_sendQueue;
-        Queue<PacketEntry> m_receiveQueue;
+        Queue<PacketEntry> m_sendQueue;                                 ///< The packet send queue. Packets sent via Transport::SendPacket are added to this queue (unless the immediate flag is true). This queue is flushed to the network each time Transport::WritePackets is called.
+
+        Queue<PacketEntry> m_receiveQueue;                              ///< The packet receive queue. As packets are read from the network in Transport::ReadPackets they are added to this queue. Packets are popped off the receive queue by Transport::ReadPacket.
 
 #if !YOJIMBO_SECURE_MODE
-        uint8_t * m_allPacketTypes;
+        uint8_t * m_allPacketTypes;                                     ///< An array with each entry for valid packet types from the PacketFactory set to 1.
 #endif // #if !YOJIMBO_SECURE_MODE
-        uint8_t * m_packetTypeIsEncrypted;
-        uint8_t * m_packetTypeIsUnencrypted;
+        
+        uint8_t * m_packetTypeIsEncrypted;                              ///< An array with each entry set to 1 if that packet type is encrypted. See Transport::EnablePacketEncryption.
 
-        EncryptionManager * m_encryptionManager;
+        uint8_t * m_packetTypeIsUnencrypted;                            ///< An array with each entry set to 1 if that packet type is NOT encrypted.
 
-        TransportContextManager * m_contextManager;
+        EncryptionManager * m_encryptionManager;                        ///< The encryption manager. Manages encryption contexts and lets the transport look up send and receive keys for encrypting and decrypting packets.
 
-        bool m_allocateNetworkSimulator;
+        TransportContextManager * m_contextManager;                     ///< The context manager. Manages the set of contexts on the transport, which allows certain addresses to be assigned to their own set of resources (like packet factories, message factories and allocators).
 
-        class NetworkSimulator * m_networkSimulator;
+        bool m_allocateNetworkSimulator;                                ///< True if the network simulator was allocated in the constructor, and must be freed in the destructor.
 
-        uint64_t m_counters[TRANSPORT_COUNTER_NUM_COUNTERS];
+        class NetworkSimulator * m_networkSimulator;                    ///< The network simulator. May be NULL.
+
+        uint64_t m_counters[TRANSPORT_COUNTER_NUM_COUNTERS];            ///< The array of transport counters. Used for stats, debugging and telemetry.
     };
 
     /**
@@ -694,6 +807,19 @@ namespace yojimbo
     {
     public:
 
+        /**
+            Local transport constructor.
+
+            @param allocator The allocator used for transport allocations.
+            @param networkSimulator The network simulator to use. Typically, you use one network simulator shared across multiple local transports. See test.cpp and client_server.cpp for examples.
+            @param address The address to send packets to that would be received by this transport.
+            @param protocolId The protocol id for this transport. Protocol id is included in the packet header, packets received with a different protocol id are discarded. This allows multiple versions of your protocol to exist on the same network.
+            @param time The current time value in seconds.
+            @param maxPacketSize The maximum packet size that can be sent across this transport.
+            @param sendQueueSize The size of the packet send queue (number of packets).
+            @param receiveQueueSize The size of the packet receive queue (number of packets).
+         */
+
         LocalTransport( Allocator & allocator,
                         class NetworkSimulator & networkSimulator,
                         const Address & address,
@@ -705,7 +831,11 @@ namespace yojimbo
 
         ~LocalTransport();
 
+        /// The local transport guarantees that any packets sent to this transport prior to a call to reset will not cross this boundary.
+
         void Reset();
+
+        /// As an optimization, the local transport receives packets from the simulator inside this function. This avoids O(n^2) performance, where n is the maximum number of packets that can be stored in the simulator.
 
         void AdvanceTime( double time );
 
@@ -721,12 +851,17 @@ namespace yojimbo
 
     private:
 
-        int m_receivePacketIndex;                           // current index into receive packet (for InternalReceivePacket)
-        int m_numReceivePackets;                            // number of receive packets from last AdvanceTime update
-        int m_maxReceivePackets;                            // size of receive packet buffer (matches size of packet receive queue)
-        uint8_t ** m_receivePacketData;                     // array of packet data to be received. pointers are owned and must be freed with simulator allocator.
-        int * m_receivePacketBytes;                         // array of packet sizes in bytes.
-        Address * m_receiveFrom;                            // array of packet from addresses.
+        int m_receivePacketIndex;                           ///< Current index into receive packet (for InternalReceivePacket)
+
+        int m_numReceivePackets;                            ///< Number of receive packets from last AdvanceTime update
+        
+        int m_maxReceivePackets;                            ///< Size of receive packet buffer (matches size of packet receive queue)
+        
+        uint8_t ** m_receivePacketData;                     ///< Array of packet data to be received. pointers are owned and must be freed with simulator allocator.
+        
+        int * m_receivePacketBytes;                         ///< Array of packet sizes in bytes.
+        
+        Address * m_receiveFrom;                            ///< Array of packet from addresses.
     };
 
 #if YOJIMBO_SOCKETS
@@ -739,6 +874,19 @@ namespace yojimbo
     {
     public:
 
+        /**
+            Network transport constructor.
+
+            @param allocator The allocator used for transport allocations.
+            @param address The address to send packets to that would be received by this transport.
+            @param protocolId The protocol id for this transport. Protocol id is included in the packet header, packets received with a different protocol id are discarded. This allows multiple versions of your protocol to exist on the same network.
+            @param time The current time value in seconds.
+            @param maxPacketSize The maximum packet size that can be sent across this transport.
+            @param sendQueueSize The size of the packet send queue (number of packets).
+            @param receiveQueueSize The size of the packet receive queue (number of packets).
+            @param socketBufferSize The size of the buffers to set on the socket (eg. SO_RCVBUF and SO_SNDBUF).
+         */
+
         NetworkTransport( Allocator & allocator,
                           const Address & address,
                           uint32_t protocolId,
@@ -750,16 +898,36 @@ namespace yojimbo
 
         ~NetworkTransport();
 
-        // todo: this is a bit naff
+        /**
+
+            You should call this after creating a network transport, to make sure the socket was created successfully.
+
+            @returns True if the socket is in error state.
+
+            @see NetworkTransport::GetError
+         */
 
         bool IsError() const;
+
+        /** 
+            Get the socket error code. 
+
+            @returns The socket error code. One of the values in yojimbo::SocketError enum.
+
+            @see yojimbo::SocketError
+            @see NetworkTransport::IsError
+         */
 
         int GetError() const;
 
     protected:
 
+        /// Overridden internal packet send function. Effectively just calls through to sendto.
+
         virtual void InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
     
+        /// Overriden internal packet receive function. Effectively just wraps recvfrom.
+
         virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
 
     private:

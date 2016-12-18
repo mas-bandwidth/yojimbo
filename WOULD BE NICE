@@ -2,14 +2,6 @@ WOULD BE NICE
 
     ------------------
 
-    When the server stops it clears the context on the transport.
-
-    But is the transport in an undefined state at this point? If it pumps packet send/recieve, will it crash? 
-
-    Make sure it's actually well defined and won't assert, crash or add a bunch of spurious counters for packets that couldn't be read when in that state.
-
-    ------------------
-
     Definitely need more usage documentation and samples showing how to do stuff.
 
     It's not immediately obvious how to use libyojimbo from the samples. Or, what exactly libyojimbo does or even what it's for?

@@ -90,7 +90,7 @@ namespace yojimbo
     };
 
     /**
-        Used to remember and reject connect tokens that have already been used.
+        Used by the server to remember and reject connect tokens that have already been used.
 
         This protects against attacks where the same connect token is used to connect multiple clients to the server in a short period of time.
      */

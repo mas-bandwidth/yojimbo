@@ -40,18 +40,20 @@ namespace yojimbo
 {
 #if YOJIMBO_SOCKETS
 
+    /// Socket error values.
+
     enum SocketError
     {
-        SOCKET_ERROR_NONE,
-        SOCKET_ERROR_CREATE_FAILED,
-        SOCKET_ERROR_SET_NON_BLOCKING_FAILED,
-        SOCKET_ERROR_SOCKOPT_IPV6_ONLY_FAILED,
-        SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED,
-        SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED,
-        SOCKET_ERROR_BIND_IPV4_FAILED,
-        SOCKET_ERROR_BIND_IPV6_FAILED,
-        SOCKET_ERROR_GET_SOCKNAME_IPV4_FAILED,
-        SOCKET_ERROR_GET_SOCKNAME_IPV6_FAILED
+        SOCKET_ERROR_NONE,                                                  ///< No socket error. All is well!
+        SOCKET_ERROR_CREATE_FAILED,                                         ///< Create socket failed.
+        SOCKET_ERROR_SET_NON_BLOCKING_FAILED,                               ///< Setting the socket as non-blocking failed.
+        SOCKET_ERROR_SOCKOPT_IPV6_ONLY_FAILED,                              ///< Setting the socket as IPv6 only failed.
+        SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED,                                 ///< Setting the socket receive buffer size failed.
+        SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED,                                 ///< Setting the socket send buffer size failed.
+        SOCKET_ERROR_BIND_IPV4_FAILED,                                      ///< Failed to bind the socket (IPv4).
+        SOCKET_ERROR_BIND_IPV6_FAILED,                                      ///< Failed to bind the socket (IPv6).
+        SOCKET_ERROR_GET_SOCKNAME_IPV4_FAILED,                              ///< Call to getsockname failed on the socket (IPv4).
+        SOCKET_ERROR_GET_SOCKNAME_IPV6_FAILED                               ///< Call to getsockname failed on the socket (IPv6).
     };
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
@@ -59,6 +61,8 @@ namespace yojimbo
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
     typedef int SocketHandle;
 #endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
+
+    /// Simple wrapper around a non-blocking UDP socket.
                            
     class Socket
     {
