@@ -12,15 +12,21 @@ DONE
 
         3. yojimbo_transport.h
 
+        4. InitializeYojimbo/ShutdownYojimbo
+
 TODO
 
-        4. yojimbo_connection.h
+        5. yojimbo_connection.h ---> channel, etc?
 
-        5. yojimbo_address.h
+        6. yojimbo_address.h
 
-        7. InitializeYojimbo/ShutdownYojimbo
+        7. packets, messages, allocators, message factory, packet factory.
 
-        8. Front page overview linking to rest of docs
+        8. Front page overview linking to rest of docs?
+
+    What other major bits need to be documented? Stream classes? Serialization macros? Helper macros for packet and message factories?
+
+    My major concern at this point is that doxygen doesn't seem to allow documentation of macros? But, this would make it really hard to document all the serialize_* functions and how they should be used, and the helper macros.
 
     =========================================
 

@@ -32,13 +32,21 @@
 
 namespace yojimbo
 {
+    /// This magic number is used as a safety check to make sure the context accessed from Stream::GetContext is really a ConnectionContext object.
+
     const uint32_t ConnectionContextMagic = 0x11223344;
+
+    /**
+        Provides information required to read and write connection packets.
+
+        @see ConnectionPacket.
+     */
 
     struct ConnectionContext
     {
-        uint32_t magic;
-        const ConnectionConfig * connectionConfig;
-        class MessageFactory * messageFactory;
+        uint32_t magic;                                                         ///< The magic number for safety checks. Set to ConnectionContextMagic.
+        const ConnectionConfig * connectionConfig;                              ///< The connection config. So we know the number of channels and how they are setup.
+        class MessageFactory * messageFactory;                                  ///< The message factory used for creating and destroying messages.
 
         ConnectionContext()
         {
@@ -48,15 +56,25 @@ namespace yojimbo
         }
     };
 
+    /** 
+        The connection packet implements packet level acks and transmits messages across a Connection.
+
+        Connection packets should be generated and sent at a steady rate like 10, 20 or 30 times per-second in both directions across a connection. 
+
+        The packet ack system is designed around this assumption (there are no separate ack packets, only connection packets).
+     */
+
     struct ConnectionPacket : public Packet
     {
-        uint16_t sequence;
-        uint16_t ack;
-        uint32_t ack_bits;
+        uint16_t sequence;                                                      ///< The connection packet sequence number. Wraps around and keeps working. See yojimbo::sequence_greater_than and yojimbo::sequence_less_than.
 
-        int numChannelEntries;
+        uint16_t ack;                                                           ///< The sequence number of the most recent packet received from the other side of the connection.
 
-        ChannelPacketData * channelEntry;
+        uint32_t ack_bits;                                                      ///< Bit n is set if packet ack - n was received from the other side of the connection. See yojimbo::GenerateAckBits.
+
+        int numChannelEntries;                                                  ///< The number of channel entries in this packet. Each channel entry corresponds to message data for a particular channel.
+
+        ChannelPacketData * channelEntry;                                       ///< Per-channel message data that was included in this packet.
 
         ConnectionPacket();
 
@@ -76,27 +94,37 @@ namespace yojimbo
 
     private:
 
-        MessageFactory * m_messageFactory;
+        MessageFactory * m_messageFactory;                                      ///< The message factory is cached so we can release messages included in this packet when the packet is destroyed.
 
         ConnectionPacket( const ConnectionPacket & other );
 
         const ConnectionPacket & operator = ( const ConnectionPacket & other );
     };
 
+    /**
+        Connection counters provide insight into the number of times an action was performed by the connection.
+
+        They are intended for use in a telemetry system, eg. the server would report these counters to some backend logging system to track behavior in a production environment.
+     */
+
     enum ConnectionCounters
     {
-        CONNECTION_COUNTER_PACKETS_GENERATED,                   // number of packets generated
-        CONNECTION_COUNTER_PACKETS_PROCESSED,                   // number of packets processed
-        CONNECTION_COUNTER_PACKETS_ACKED,                       // number of packets acked
-        CONNECTION_COUNTER_NUM_COUNTERS
+        CONNECTION_COUNTER_PACKETS_GENERATED,                   ///< Number of connection packets generated
+        CONNECTION_COUNTER_PACKETS_PROCESSED,                   ///< Number of connection packets processed
+        CONNECTION_COUNTER_PACKETS_ACKED,                       ///< Number of connection packets acked
+        CONNECTION_COUNTER_NUM_COUNTERS                         ///< Number of connection counters.
     };
+
+    /// Connection error states.
 
     enum ConnectionError
     {
-        CONNECTION_ERROR_NONE = 0,
-        CONNECTION_ERROR_CHANNEL = 1,
-        CONNECTION_ERROR_OUT_OF_MEMORY = 1
+        CONNECTION_ERROR_NONE = 0,                              ///< No error. All is well.
+        CONNECTION_ERROR_CHANNEL = 1,                           ///< One of the connection channels is in an error state.
+        CONNECTION_ERROR_OUT_OF_MEMORY = 1                      ///< The connection ran out of memory when it tried to perform an allocation.
     };
+
+    /// Implement this interface to get callbacks when connection events occur.
 
     class ConnectionListener
     {
@@ -119,6 +147,8 @@ namespace yojimbo
     };
 
     struct ConnectionReceivedPacketData {};
+
+    /// Implements packet level acks and transmits messages between two endpoints.
 
     class Connection : public ChannelListener
     {

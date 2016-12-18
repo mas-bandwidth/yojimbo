@@ -45,7 +45,21 @@
 #include "yojimbo_connection.h"
 #include "yojimbo_replay_protection.h"
 
+/**
+    Initialize the yojimbo library.
+
+    You must call this before calling any other 
+
+    @returns True if the library was successfully initialized, false otherwise.
+ */
+
 bool InitializeYojimbo();
+
+/**
+    Shutdown the yojimbo library.
+
+    Call this after you finish using the library and it will run some checks for you (for example, checking for memory leaks and so on).
+ */
 
 void ShutdownYojimbo();
 
