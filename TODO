@@ -25,6 +25,14 @@ TODO
 
     But I think if somebody wants to actually understand the library, they are going to want to understand the implementation. This is open source after all.
 
+    I think the key is to split the documentation into sections:
+
+    API, internals. I think I can section it up like this. Put the socket, connection, channel into the internal section.
+
+    Some information on grouping here: http://www.stack.nl/~dimitri/doxygen/manual/grouping.html
+
+    OK. That's enough for the day. Man this is slow, punishing work =p
+
     -----------------------------------------
 
         6. yojimbo_address.h
