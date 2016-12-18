@@ -149,7 +149,7 @@ namespace yojimbo
         should be used on top of the generated packet to split it up into into smaller packets that can be sent across typical internet MTU (<1500 bytes). 
         Because of this, you need to make sure that the maximum block size for an unreliable-unordered channel fits within the maximum packet size.
         
-        Channels are typically configured as part of a MessageConfig, which is included inside the ClientServerConfig that is passed into the Client and Server constructors.
+        Channels are typically configured as part of a ConnectionConfig, which is included inside the ClientServerConfig that is passed into the Client and Server constructors.
      */
 
     struct ChannelConfig
@@ -187,14 +187,14 @@ namespace yojimbo
     };
 
     /** 
-        Configures message properties and the set of message channels for a Connection.
+        Configures connection properties and the set of channels used for sending and receiving messages.
         
         Specifies the maximum packet size to generate, and the number of message channels, and the per-channel configuration data. See ChannelConfig for details.
         
         Typically configured as part of a ClientServerConfig which is passed into Client and Server constructors.
      */
     
-    struct MessageConfig
+    struct ConnectionConfig
     {
         int connectionPacketType;                               ///< Connection packet type (so you can override it). Only necessary to set this if you are using Connection directly. Not necessary to set when using client/server as it overrides it to CLIENT_SERVER_PACKET_CONNECTION for you automatically.
         int slidingWindowSize;                                  ///< The size of the sliding window used for packet acks (# of packets in history). Depending on your packet send rate, you should make sure this buffer is large enough to cover at least a few seconds worth of packets.
@@ -202,7 +202,7 @@ namespace yojimbo
         int numChannels;                                        ///< Number of message channels in [1,MaxChannels]. Each message channel must have a corresponding configuration below.
         ChannelConfig channel[MaxChannels];                     ///< Per-channel configuration. See ChannelConfig for details.
 
-        MessageConfig()
+        ConnectionConfig()
         {
             connectionPacketType = 0;
             maxPacketSize = 4 * 1024;
@@ -230,7 +230,7 @@ namespace yojimbo
         float connectionKeepAliveSendRate;                      ///< Keep alive packets are sent at this rate between client and server if no other packets are sent by the client or server. Avoids timeout in situations where you are not sending packets at a steady rate (packets per-second).
         float connectionTimeOut;                                ///< Once a connection is established, it times out if it hasn't received any packets from the other side in this amount of time (seconds).
         bool enableMessages;                                    ///< If this is true then you can send messages between client and server. Set to false if you don't want to use messages and you want to extend the protocol by adding new packet types instead.
-        MessageConfig messageConfig;                            ///< Configures the message channels for the connection between client and server. Must be identical between client and server to work properly. Only used if enableMessages is true.
+        ConnectionConfig connectionConfig;                      ///< Configures connection properties and message channels between client and server. Must be identical between client and server to work properly. Only used if enableMessages is true.
 
         ClientServerConfig()
         {

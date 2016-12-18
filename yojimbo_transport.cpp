@@ -832,7 +832,7 @@ namespace yojimbo
     { 
         m_networkSimulator = &networkSimulator;
 
-        m_receivePacketIndex = 0;
+		m_receivePacketIndex = 0;
         m_numReceivePackets = 0;
         m_maxReceivePackets = receiveQueueSize;
         m_receivePacketData = (uint8_t**) YOJIMBO_ALLOCATE( allocator, sizeof( uint8_t*) * m_maxReceivePackets );

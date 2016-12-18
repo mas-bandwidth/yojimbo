@@ -83,7 +83,7 @@ namespace yojimbo
         assert( context );
         assert( context->magic == ConnectionContextMagic );
         assert( context->messageFactory );
-        assert( context->messageConfig );
+        assert( context->connectionConfig );
 
         // ack system
 
@@ -102,9 +102,9 @@ namespace yojimbo
 
         // channel entries
 
-        const int numChannels = context->messageConfig->numChannels;
+        const int numChannels = context->connectionConfig->numChannels;
 
-        serialize_int( stream, numChannelEntries, 0, context->messageConfig->numChannels );
+        serialize_int( stream, numChannelEntries, 0, context->connectionConfig->numChannels );
 
 #if YOJIMBO_VALIDATE_PACKET_BUDGET
         assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
@@ -130,7 +130,7 @@ namespace yojimbo
             {
                 assert( channelEntry[i].messageFailedToSerialize == 0 );
 
-                if ( !channelEntry[i].SerializeInternal( stream, *m_messageFactory, context->messageConfig->channel, numChannels ) )
+                if ( !channelEntry[i].SerializeInternal( stream, *m_messageFactory, context->connectionConfig->channel, numChannels ) )
                 {
                     debug_printf( "error: failed to serialize channel %d\n", i );
                     return false;
@@ -156,9 +156,9 @@ namespace yojimbo
         return Serialize( stream );
     }
 
-    Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const MessageConfig & messageConfig ) : m_messageConfig( messageConfig )
+    Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : m_connectionConfig( connectionConfig )
     {
-        assert( ( 65536 % messageConfig.slidingWindowSize ) == 0 );
+        assert( ( 65536 % connectionConfig.slidingWindowSize ) == 0 );
 
         m_allocator = &allocator;
 
@@ -174,19 +174,19 @@ namespace yojimbo
 
         memset( m_channel, 0, sizeof( m_channel ) );
 
-        assert( m_messageConfig.numChannels >= 1 );
-        assert( m_messageConfig.numChannels <= MaxChannels );
+        assert( m_connectionConfig.numChannels >= 1 );
+        assert( m_connectionConfig.numChannels <= MaxChannels );
 
-        for ( int channelId = 0; channelId < m_messageConfig.numChannels; ++channelId )
+        for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
         {
-            switch ( m_messageConfig.channel[channelId].type )
+            switch ( m_connectionConfig.channel[channelId].type )
             {
                 case CHANNEL_TYPE_RELIABLE_ORDERED: 
-                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_messageConfig.channel[channelId], channelId ); 
+                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelId], channelId ); 
                     break;
 
                 case CHANNEL_TYPE_UNRELIABLE_UNORDERED: 
-                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_messageConfig.channel[channelId], channelId ); 
+                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelId], channelId ); 
                     break;
 
                 default: 
@@ -196,9 +196,9 @@ namespace yojimbo
             m_channel[channelId]->SetListener( this );
         }
 
-        m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, *m_allocator, m_messageConfig.slidingWindowSize );
+        m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, *m_allocator, m_connectionConfig.slidingWindowSize );
         
-        m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, *m_allocator, m_messageConfig.slidingWindowSize );
+        m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, *m_allocator, m_connectionConfig.slidingWindowSize );
 
         Reset();
     }
@@ -207,7 +207,7 @@ namespace yojimbo
     {
         Reset();
 
-        for ( int i = 0; i < m_messageConfig.numChannels; ++i )
+        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
             YOJIMBO_DELETE( *m_allocator, Channel, m_channel[i] );
 
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, m_sentPackets );
@@ -218,7 +218,7 @@ namespace yojimbo
     {
         m_error = CONNECTION_ERROR_NONE;
 
-        for ( int i = 0; i < m_messageConfig.numChannels; ++i )
+        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
             m_channel[i]->Reset();
 
         m_sentPackets->Reset();
@@ -230,21 +230,21 @@ namespace yojimbo
     bool Connection::CanSendMsg( int channelId ) const
     {
         assert( channelId >= 0 );
-        assert( channelId < m_messageConfig.numChannels );
+        assert( channelId < m_connectionConfig.numChannels );
         return m_channel[channelId]->CanSendMsg();
     }
 
     void Connection::SendMsg( Message * message, int channelId )
     {
         assert( channelId >= 0 );
-        assert( channelId < m_messageConfig.numChannels );
+        assert( channelId < m_connectionConfig.numChannels );
         return m_channel[channelId]->SendMsg( message );
     }
 
     Message * Connection::ReceiveMsg( int channelId )
     {
         assert( channelId >= 0 );
-        assert( channelId < m_messageConfig.numChannels );
+        assert( channelId < m_connectionConfig.numChannels );
         return m_channel[channelId]->ReceiveMsg();
     }
 
@@ -253,7 +253,7 @@ namespace yojimbo
         if ( m_error != CONNECTION_ERROR_NONE )
             return NULL;
 
-        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->CreatePacket( m_messageConfig.connectionPacketType );
+        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->CreatePacket( m_connectionConfig.connectionPacketType );
 
         if ( !packet )
             return NULL;
@@ -266,7 +266,7 @@ namespace yojimbo
 
         m_counters[CONNECTION_COUNTER_PACKETS_GENERATED]++;
 
-        if ( m_messageConfig.numChannels == 0 )
+        if ( m_connectionConfig.numChannels == 0 )
             return packet;
 
         int numChannelsWithData = 0;
@@ -274,11 +274,11 @@ namespace yojimbo
         memset( channelHasData, 0, sizeof( channelHasData ) );
         ChannelPacketData channelData[MaxChannels];
 
-        int availableBits = m_messageConfig.maxPacketSize * 8;
+        int availableBits = m_connectionConfig.maxPacketSize * 8;
 
         availableBits -= ConservativeConnectionPacketHeaderEstimate;
 
-        for ( int channelId = 0; channelId < m_messageConfig.numChannels; ++channelId )
+        for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
         {
             int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packet->sequence, availableBits );
 
@@ -304,7 +304,7 @@ namespace yojimbo
 
             int index = 0;
 
-            for ( int channelId = 0; channelId < m_messageConfig.numChannels; ++channelId )
+            for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
             {
                 if ( channelHasData[channelId] )
                 {
@@ -323,7 +323,7 @@ namespace yojimbo
             return false;
 
         assert( packet );
-        assert( packet->GetType() == m_messageConfig.connectionPacketType );
+        assert( packet->GetType() == m_connectionConfig.connectionPacketType );
 
         m_counters[CONNECTION_COUNTER_PACKETS_PROCESSED]++;
 
@@ -340,7 +340,7 @@ namespace yojimbo
             const int channelId = packet->channelEntry[i].channelId;
 
             assert( channelId >= 0 );
-            assert( channelId <= m_messageConfig.numChannels );
+            assert( channelId <= m_connectionConfig.numChannels );
 
             m_channel[channelId]->ProcessPacketData( packet->channelEntry[i], packet->sequence );
         }
@@ -350,7 +350,7 @@ namespace yojimbo
 
     void Connection::AdvanceTime( double time )
     {
-        for ( int i = 0; i < m_messageConfig.numChannels; ++i )
+        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
         {
             m_channel[i]->AdvanceTime( time );
 
@@ -410,7 +410,7 @@ namespace yojimbo
     {
         OnPacketAcked( sequence );
 
-        for ( int channelId = 0; channelId < m_messageConfig.numChannels; ++channelId )
+        for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
             m_channel[channelId]->ProcessAck( sequence );
 
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;

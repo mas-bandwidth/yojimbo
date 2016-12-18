@@ -67,7 +67,7 @@ namespace yojimbo
         m_allocator = &allocator;
         m_transport = &transport;
         m_config = config;
-        m_config.messageConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
+        m_config.connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
         m_allocateConnections = m_config.enableMessages;
         m_time = time;
     }
@@ -151,7 +151,7 @@ namespace yojimbo
                 
                 assert( m_clientMessageFactory[clientIndex] );
 
-                m_clientConnection[clientIndex] = YOJIMBO_NEW( clientAllocator, Connection, clientAllocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_config.messageConfig );
+                m_clientConnection[clientIndex] = YOJIMBO_NEW( clientAllocator, Connection, clientAllocator, *m_clientPacketFactory[clientIndex], *m_clientMessageFactory[clientIndex], m_config.connectionConfig );
                
                 m_clientConnection[clientIndex]->SetListener( this );
 
@@ -168,9 +168,9 @@ namespace yojimbo
 
             if ( m_allocateConnections )
             {
-                m_clientConnectionContext[clientIndex].messageConfig = &m_config.messageConfig;
                 m_clientConnectionContext[clientIndex].messageFactory = m_clientMessageFactory[clientIndex];
-                m_clientTransportContext[clientIndex].connectionContext = &m_clientConnectionContext[clientIndex];
+                m_clientConnectionContext[clientIndex].connectionConfig = &m_config.connectionConfig;
+				m_clientTransportContext[clientIndex].connectionContext = &m_clientConnectionContext[clientIndex];
             }
         }     
 

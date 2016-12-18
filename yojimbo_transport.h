@@ -343,9 +343,7 @@ namespace yojimbo
 
             This allows a mixture of secure and insecure client connections, which is convenient for development over a LAN, but should NEVER be enabled in production. 
 
-            Therefore, the insecure mode flag is disabled #if YOJIMBO_SECURE_MODE 1. 
-
-            Please make sure you #define YOJIMBO_SECURE_MODE 1 in your production build!
+            Please make sure you \#define YOJIMBO_SECURE_MODE 1 in your production build!
 
             @see Transport::DisablePacketEncryption
             @see Transport::DisableEncryptionForPacketType
