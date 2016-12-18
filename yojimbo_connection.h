@@ -57,7 +57,7 @@ namespace yojimbo
     };
 
     /** 
-        The connection packet implements packet level acks and transmits messages across a Connection.
+        Implements packet level acks and carries messages across a connection.
 
         Connection packets should be generated and sent at a steady rate like 10, 20 or 30 times per-second in both directions across a connection. 
 
@@ -148,7 +148,7 @@ namespace yojimbo
 
     struct ConnectionReceivedPacketData {};
 
-    /// Implements packet level acks and transmits messages between two endpoints.
+    /// Implements packet level acks and transmits messages.
 
     class Connection : public ChannelListener
     {

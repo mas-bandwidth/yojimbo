@@ -14,9 +14,18 @@ DONE
 
         4. InitializeYojimbo/ShutdownYojimbo
 
+        5. yojimbo_connection.h ---> channel, etc?
 TODO
 
-        5. yojimbo_connection.h ---> channel, etc?
+    Very basic channel and connection level documentation has been added, but a second pass is required.
+
+    Lots more information needs to be added here.
+
+    However, this feels somewhat frustrating documenting this, because channels and connections are effectively *internals*, transparent to the user inside a client or server, in most cases.
+
+    But I think if somebody wants to actually understand the library, they are going to want to understand the implementation. This is open source after all.
+
+    -----------------------------------------
 
         6. yojimbo_address.h
 

@@ -32,6 +32,8 @@
 
 namespace yojimbo
 {
+    /// Per-channel data inside a connection packet.
+
     struct ChannelPacketData
     {
         uint32_t channelId : 16;
@@ -75,6 +77,8 @@ namespace yojimbo
         bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
     };
 
+    /// Implement this interface to recieve callbacks for channel events.
+
     class ChannelListener
     {
     public:
@@ -84,22 +88,32 @@ namespace yojimbo
         virtual void OnChannelFragmentReceived( class Channel * /*channel*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*numFragmentsReceived*/, int /*numFragmentsInBlock*/ ) {}
     };
 
+    /**
+        Channel counters provide insight into the number of times an action was performed by a channel.
+
+        They are intended for use in a telemetry system, eg. the server would report these counters to some backend logging system to track behavior in a production environment.
+     */
+
     enum ChannelCounters
     {
-        CHANNEL_COUNTER_MESSAGES_SENT,                          // number of messages sent
-        CHANNEL_COUNTER_MESSAGES_RECEIVED,                      // number of messages received
-        CHANNEL_COUNTER_NUM_COUNTERS
+        CHANNEL_COUNTER_MESSAGES_SENT,                          ///< Number of messages sent over this channel.
+        CHANNEL_COUNTER_MESSAGES_RECEIVED,                      ///< Number of messages received over this channel.
+        CHANNEL_COUNTER_NUM_COUNTERS                            ///< The number of channel counters.
     };
+
+    /// Channel error codes.
 
     enum ChannelError
     {
-        CHANNEL_ERROR_NONE = 0,
-        CHANNEL_ERROR_DESYNC,
-        CHANNEL_ERROR_SEND_QUEUE_FULL,
-        CHANNEL_ERROR_OUT_OF_MEMORY,
-        CHANNEL_ERROR_BLOCKS_DISABLED,
-        CHANNEL_ERROR_FAILED_TO_SERIALIZE
+        CHANNEL_ERROR_NONE = 0,                                 ///< No error. All is well.
+        CHANNEL_ERROR_DESYNC,                                   ///< This channel has desynced. This happens when something super-weird happens. Typically a message has a desync in its serialize read and write.
+        CHANNEL_ERROR_SEND_QUEUE_FULL,                          ///< The user tried to send a message but the send queue was full. This will assert out in development, but in production it sets this error on the channel.
+        CHANNEL_ERROR_BLOCKS_DISABLED,                          ///< The channel received a packet containing data for blocks, but this channel is configured to disable blocks. See ChannelConfig::disableBlocks.
+        CHANNEL_ERROR_FAILED_TO_SERIALIZE                       ///< Serialize read failed for a message sent to this channel. Check your message serialize functions, one of them is returning false on serialize read. This can also be caused by a desync in message read and write.
+        CHANNEL_ERROR_OUT_OF_MEMORY,                            ///< The channel tried to allocate some memory but couldn't.
     };
+
+    /// Helper function to convert a channel error to a user friendly string.
 
     inline const char * GetChannelErrorString( ChannelError error )
     {
@@ -116,6 +130,8 @@ namespace yojimbo
                 return "(unknown)";
         }
     }
+
+    /// Functionality common across all channel types.
 
     class Channel
     {
@@ -169,6 +185,8 @@ namespace yojimbo
         
         ChannelError m_error;
     };
+
+    /// Messages sent across this channel are guaranteed to arrive and in the same order they were sent.
 
     class ReliableOrderedChannel : public Channel
     {
@@ -224,35 +242,35 @@ namespace yojimbo
 
     private:
 
-        const ChannelConfig m_config;                                                   // const configuration data
+        const ChannelConfig m_config;                                                   ///< Channel configuration data.
 
-        Allocator * m_allocator;                                                        // allocator for allocations matching life cycle of object
+        Allocator * m_allocator;                                                        ///< Allocator for allocations matching the life cycle of the channel.
 
-        ChannelListener * m_listener;                                                   // channel listener for callbacks. optional.
+        ChannelListener * m_listener;                                                   ///< Channel listener for callbacks. Optional.
 
-        MessageFactory * m_messageFactory;                                              // message factory creates and destroys messages
+        MessageFactory * m_messageFactory;                                              ///< Message factory creates and destroys messages.
 
-        double m_time;                                                                  // current time
+        double m_time;                                                                  ///< The current time.
 
-        uint16_t m_sendMessageId;                                                       // id for next message added to send queue
+        uint16_t m_sendMessageId;                                                       ///< Id for next message added to send queue.
 
-        uint16_t m_receiveMessageId;                                                    // id for next message to be received
+        uint16_t m_receiveMessageId;                                                    ///< Id for next message to be received.
 
-        uint16_t m_oldestUnackedMessageId;                                              // id for oldest unacked message in send queue
+        uint16_t m_oldestUnackedMessageId;                                              ///< Id for oldest unacked message in send queue.
 
-        SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;                     // message send queue
+        SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;                     ///< Message send queue.
 
-        SequenceBuffer<MessageSentPacketEntry> * m_messageSentPackets;                  // messages in sent packets (for acks)
+        SequenceBuffer<MessageSentPacketEntry> * m_messageSentPackets;                  ///< Stores information per sent connection packet about messages and block data included in each packet. Used to walk from connection packet level acks to message and data block fragment level acks.
 
-        SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               // message receive queue
+        SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               ///< Message receive queue
 
-        uint16_t * m_sentPacketMessageIds;                                              // array of message ids, n ids per-sent packet
+        uint16_t * m_sentPacketMessageIds;                                              ///< Array of message ids per-sent connection packet. Allows the maximum number of messages per-packet to be allocated dynamically.
 
-        SendBlockData * m_sendBlock;                                                    // block being sent
+        SendBlockData * m_sendBlock;                                                    ///< Data about the block being currently sent.
 
-        ReceiveBlockData * m_receiveBlock;                                              // block being received
+        ReceiveBlockData * m_receiveBlock;                                              ///< Data about the block being currently received.
 
-        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              // counters for unit testing, stats etc.
+        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
 
     private:
 
@@ -260,6 +278,8 @@ namespace yojimbo
 
         ReliableOrderedChannel & operator = ( const ReliableOrderedChannel & other );
     };
+
+    /// Messages sent across this channel are not guaranteed to arrive, and may be received in a different order than they were sent.
 
     class UnreliableUnorderedChannel : public Channel
     {
@@ -291,19 +311,19 @@ namespace yojimbo
 
     protected:
 
-        const ChannelConfig m_config;                                                   // const configuration data
+        const ChannelConfig m_config;                                                   ///< Channel configuration data.
 
-        Allocator * m_allocator;                                                        // allocator for allocations matching life cycle of object
+        Allocator * m_allocator;                                                        ///< Allocator for allocations matching life cycle of this channel.
 
-        ChannelListener * m_listener;                                                   // channel listener for callbacks. optional.
+        ChannelListener * m_listener;                                                   ///< Channel listener for callbacks. Optional.
 
-        MessageFactory * m_messageFactory;                                              // message factory creates and destroys messages
+        MessageFactory * m_messageFactory;                                              ///< Message factory creates and destroys messages.
 
-        Queue<Message*> * m_messageSendQueue;                                           // message send queue. messages that don't fit in the next packet are discarded.
+        Queue<Message*> * m_messageSendQueue;                                           ///< Message send queue. Messages that don't fit in the next connection packet sent are discarded.
 
-        Queue<Message*> * m_messageReceiveQueue;                                        // message receive queue. should generally be larger than the send queue.
+        Queue<Message*> * m_messageReceiveQueue;                                        ///< Message receive queue. Should generally be larger than the send queue.
 
-        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              // counters for unit testing, stats etc.
+        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
 
     private:
 
