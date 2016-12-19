@@ -20,11 +20,17 @@ DONE
 
     Connection doxygen finished first pass. Enough detail for now I think.
 
-TODO
-
     Next, need to pass over channel and finish first pass documentation.
 
-    After this, it's probably a good idea to hit the small classes like Address, Message, MessageFactory, Packet, PacketFactory, Allocator.
+    Base channel completed.
+
+TODO
+    
+    Need to pass over ReliableOrderedChannel, lots of detail here. Don't bother documenting stuff already in the channel base class again. Maybe move all those functions up top.
+
+    And then UnreliableUnorderedChannel. Not much here.
+
+    After this, it's probably a good idea to hit the small classes like Address, Message, MessageFactory, Packet, PacketFactory, Allocator, and the various packet classes used in client/server connection negotiation, and the tokens, and the functions supporting those, and the encryption manager...
 
     What other major bits need to be documented? Stream classes? Serialization macros? Helper macros for packet and message factories?
 
