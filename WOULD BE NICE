@@ -22,6 +22,14 @@ WOULD BE NICE
 
     ------------------
 
+    Probably a good safety measure to verify that a message sent across a channel belongs to the message factory set on the channel. It's an easy mistake to make, and would be hard to track down otherwise.
+
+    ------------------
+
+    Probably a good idea on client connect/disconnect, and server per-client connect client, disconnect client that all messages in the message factory are cleaned up, all allocations are freed, packets are destroyed, and so on.
+
+    ------------------
+
     Add a unit test for user context to make sure it's working end-to-end.
 
     NOTE: User context is definitely not properly hooked up yet inside yojimbo_client.cpp, so it's not even functional yet.
