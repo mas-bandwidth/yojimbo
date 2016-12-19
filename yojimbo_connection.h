@@ -104,7 +104,7 @@ namespace yojimbo
             @param messageFactory The message factory used to create and destroy messages.
             @param numEntries The number of channel entries to allocate. This corresponds to the number of channels that have data to include in the connection packet.
 
-            @bool True if the allocation succeeded, false otherwise.
+            @returns True if the allocation succeeded, false otherwise.
 
             @see Connection::GeneratePacket
          */
@@ -272,7 +272,7 @@ namespace yojimbo
             Typical usage is to iterate across the set of channels and poll this function to receive messages until it returns NULL.
 
             @param channelId The id of the channel to try to receive a message from.
-            @returns If a message is available to be received, a pointer to the message. The caller now owns this message object, and is responsible for releasing it via Message::Release. NULL if no message is available to be received.
+            @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns message objects returned by this function and is responsible for releasing them via Message::Release.
          */
 
         Message * ReceiveMsg( int channelId = 0 );

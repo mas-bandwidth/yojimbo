@@ -320,7 +320,7 @@ Used this to implement tests that check that the reliable ordered and unreliable
 
 Add a test for a very large message send queue (and large # of messages per-packet) with a tiny message receive queue.
 
-This would make sure we never send messages that the reciever can't buffer. Seems to be working fine.
+This would make sure we never send messages that the receiver can't buffer. Seems to be working fine.
 
 Added some bad network conditions to the last few client/server tests. Now the start/stop/restart test is hanging. Why?
 

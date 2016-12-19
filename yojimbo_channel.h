@@ -36,48 +36,82 @@ namespace yojimbo
 
     struct ChannelPacketData
     {
-        uint32_t channelId : 16;
-        uint32_t initialized : 1;
-        uint32_t blockMessage : 1;
-        uint32_t messageFailedToSerialize : 1;
+        uint32_t channelId : 16;                                        ///< The id of the channel this data belongs to in [0,numChannels-1].
+        
+        uint32_t initialized : 1;                                       ///< 1 if this channel packet data was properly initialized, 0 otherwise. This is a safety measure to make sure ChannelPacketData::Initialize gets called.
+        
+        uint32_t blockMessage : 1;                                      ///< 1 if this channel data contains data for a block (eg. a fragment of that block), 0 if this channel data contains messages.
+        
+        uint32_t messageFailedToSerialize : 1;                          ///< Set to 1 if a message for this channel fails to serialized. Used to set CHANNEL_ERROR_FAILED_TO_SERIALIZE on the Channel object.
+
+        /// Packet data when the channel is sending regular messages.
 
         struct MessageData
         {
-            int numMessages;
-            Message ** messages;
+            int numMessages;                                            ///< The number of messages included in the packet for this channel.
+            Message ** messages;                                        ///< Array of message pointers (dynamically allocated). The messages in this array have references added, so they must be released when the packet containing this channel data is destroyed.
         };
+
+        /// Packet data when the channel is sending a message with a block attached. @see BlockMessage.
 
         struct BlockData
         {
-            BlockMessage * message;
-            uint8_t * fragmentData;
-            uint64_t messageId : 16;
-            uint64_t fragmentId : 16;
-            uint64_t fragmentSize : 16;
-            uint64_t numFragments : 16;
-            int messageType;
+            BlockMessage * message;                                     ///< The message the block is attached to. The message is serialized and included as well as the block data which is split up into fragments.
+            uint8_t * fragmentData;                                     ///< Pointer to the fragment data being sent in this packet. Blocks are split up into fragments of size ChannelConfig::fragmentSize.
+            uint64_t messageId : 16;                                    ///< The message id that this block is attached to. Used for ordering. Message id increases with each packet sent across a channel.
+            uint64_t fragmentId : 16;                                   ///< The id of the fragment being sent in [0,numFragments-1].
+            uint64_t fragmentSize : 16;                                 ///< The size of the fragment. Typically this is ChannelConfig::fragmentSize, except for the last fragment, which may be smaller.
+            uint64_t numFragments : 16;                                 ///< The number of fragments this block is split up into. Lets the receiver know when all fragments have been received.
+            int messageType;                                            ///< The message type. Used to create the corresponding message object on the receiver side once all fragments are received.
         };
 
         union
         {
-            MessageData message;                                        // packet data for sending messages
-            BlockData block;                                            // packet data for sending a block
+            MessageData message;                                        ///< Data for sending messages.
+            BlockData block;                                            ///< Data for sending a block fragment.
         };
+
+        /**
+            Initialize the channel packet data to default values.
+         */
 
         void Initialize();
 
+        /**
+            Release messages stored in channel packet data and free allocations.
+
+            @param messageFactory Since we don't cache the message factory on this class, it must be passed in so we can release the messages. This is the reason there isn't a constructor/destructor for this struct.
+         */
+
         void Free( MessageFactory & messageFactory );
+
+        /** 
+            Templated serialize function for the channel packet data.
+
+            Unifies packet read and write, making it harder to accidentally desync.
+
+            @param stream The stream used for serialization.
+            @param messageFactory The message factory used to create message objects on serialize read.
+            @param channelConfigs Array of channel configs, indexed by channel id in [0,numChannels-1].
+            @param numChannels The number of channels configured on the connection.
+         */
 
         template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
+        /// Implements serialize read by a calling into ChannelPacketData::Serialize with a ReadStream.
+
         bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
+        /// Implements serialize write by a calling into ChannelPacketData::Serialize with a WriteStream.
+
         bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
+
+        /// Implements serialize measure by a calling into ChannelPacketData::Serialize with a MeasureStream.
 
         bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
     };
 
-    /// Implement this interface to recieve callbacks for channel events.
+    /// Implement this interface to receive callbacks for channel events.
 
     class ChannelListener
     {
@@ -85,7 +119,20 @@ namespace yojimbo
 
         virtual ~ChannelListener() {}
 
-        virtual void OnChannelFragmentReceived( class Channel * /*channel*/, uint16_t /*messageId*/, uint16_t /*fragmentId*/, int /*fragmentBytes*/, int /*numFragmentsReceived*/, int /*numFragmentsInBlock*/ ) {}
+        /**
+            Override this method to get a callback when a block fragment is received.
+
+            @param channel The channel the block is being sent over.
+            @param messageId The message id the block is attached to.
+            @param fragmentId The fragment id that is being processed. Fragment ids are in the range [0,numFragments-1].
+            @param fragmentBytes The size of the fragment in bytes.
+            @param numFragmentsReceived The number of fragments received for this block so far (including this one).
+            @param numFragmentsInBlock The total number of fragments in this block. The block receive completes when all fragments are received.
+
+            @see BlockMessage::AttachBlock
+         */
+
+        virtual void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock ) { (void) channel; (void) messageId; (void) fragmentId; (void) fragmentBytes; (void) numFragmentsReceived; }
     };
 
     /**
@@ -131,7 +178,7 @@ namespace yojimbo
         }
     }
 
-    /// Functionality common across all channel types.
+    /// Common functionality shared across all channel types.
 
     class Channel
     {
@@ -143,23 +190,89 @@ namespace yojimbo
 
         virtual void SetListener( ChannelListener * listener ) = 0;
 
+        /**
+            Reset the channel. 
+         */
+
         virtual void Reset() = 0;
+
+        /**
+            Returns true if a message can be sent over this channel.
+         */            
 
         virtual bool CanSendMsg() const = 0;
 
+        /**
+            Queue a message to be sent across this channel.
+
+            @param message The message to be sent.
+         */
+
         virtual void SendMsg( Message * message ) = 0;
+
+        /** 
+            Pops the next message off the receive queue if one is available.
+
+            @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns message objects returned by this function and is responsible for releasing them via Message::Release.
+         */
 
         virtual Message * ReceiveMsg() = 0;
 
+        /**
+            Advance channel time.
+
+            Called by Connection::AdvanceTime for each channel configured on the connection.
+         */
+
         virtual void AdvanceTime( double time ) = 0;
+
+        /**
+            Get packet data for this channel to include in a connection packet.
+
+            @param packetData The packet data to be generated [out]
+            @param packetSequence The sequence number of the packet being generated.
+            @param availableBits The maximum number of bits of packet data the channel may write.
+
+            @returns The number of bits of packet data taken up by this channel.
+
+            @see ConnectionPacket
+            @see Connection::GeneratePacket
+         */
 
         virtual int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits ) = 0;
 
+        /**
+            Process packet data included in a connection packet.
+
+            @param packetData The channel packet data to process.
+            @param packetSequence The sequence number of the connection packet that contains the channel packet data.
+         */
+
         virtual void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence ) = 0;
+
+        /**
+            Process a connection packet ack.
+
+            Depending on the channel type, this could ack messages so they stop being sent (reliable-ordered), or do nothing at all (unreliable-unordered).
+
+            @param sequence The sequence number of the connection packet that was acked.
+         */
 
         virtual void ProcessAck( uint16_t sequence ) = 0;
 
+        /**
+            Get the channel error level.
+
+            @returns The channel error. 
+         */
+
         ChannelError GetError() const { return m_error; }
+
+        /** 
+            Gets the channel id.
+
+            @returns The channel id in [0,numChannels-1].
+         */
 
         int GetChannelId() const { return m_channelId; }
 
@@ -181,20 +294,28 @@ namespace yojimbo
 
     protected:
 
-        int m_channelId;
+        int m_channelId;                                            ///< The channel id in [0,numChannels-1].
         
-        ChannelError m_error;
+        ChannelError m_error;                                       ///< The channel error level.
     };
 
     /**
-        Messages sent across this channel are guaranteed to arrive, and in the same order they were sent.
+        Messages sent across this channel are guaranteed to arrive, and in the order they were sent.
 
         This channel type is best used for control messages and RPCs.
+
+        Messages sent over this channel are included in connection packets until one of those packets is acked.
+
+        Blocks attached to messages sent over this channel are split up into fragments. Each fragment of the block is included in a connection packet until one of those packets are acked. Eventually, all fragments are received on the other side, and the block is reassembled and attached to the block message and added to the message receive queue for this channel.
+
+        Only one message block may be in flight over the network at any time, so blocks stall out message delivery slightly. Therefore, only use blocks for large data that won't fit inside a single connection packet. 
      */
 
     class ReliableOrderedChannel : public Channel
     {
     public:
+
+        // todo: document this class
 
         ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
 
@@ -292,6 +413,8 @@ namespace yojimbo
     class UnreliableUnorderedChannel : public Channel
     {
     public:
+
+        // todo: document this class
 
         UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
 

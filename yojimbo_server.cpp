@@ -1302,7 +1302,7 @@ namespace yojimbo
         (void) from;
     }
 
-    void Server::OnConnectionPacketSent( Connection * connection, uint16_t sequence )
+    void Server::OnConnectionPacketGenerated( Connection * connection, uint16_t sequence )
     {
         (void) connection;
         (void) sequence;
