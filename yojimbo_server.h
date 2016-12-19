@@ -621,7 +621,7 @@ namespace yojimbo
             @see Connection::GetClientIndex
          */
 
-        virtual void OnConnectionPacketSent( Connection * connection, uint16_t sequence );
+        virtual void OnConnectionPacketGenerated( Connection * connection, uint16_t sequence );
 
         /**
             Override this method to get a callback when a connection packet is acked by the client (eg. the client notified the server that packet was received).
@@ -629,7 +629,7 @@ namespace yojimbo
             Connection packets are carrier packets that transmit messages between the client and server. They are automatically generated when messages are enabled in ClientServerConfig (true by default).
 
             @param connection The connection that the packet belongs to. To get the client index call Connection::GetClientIndex.
-            @param sequence The packet sequence number of the connection packet that was acked by the client. Corresponds to the sequence number passed in to Server::OnConnectionPacketSent for that packet when it was sent.
+            @param sequence The packet sequence number of the connection packet that was acked by the client.
 
             @see ClientServerConfig::enableMessages
             @see Connection::GetClientIndex

@@ -22,7 +22,7 @@ DONE
 
 TODO
 
-    Next, need to pass over channel and finish a first pass documentation.
+    Next, need to pass over channel and finish first pass documentation.
 
     After this, it's probably a good idea to hit the small classes like Address, Message, MessageFactory, Packet, PacketFactory, Allocator.
 

@@ -471,7 +471,7 @@ namespace yojimbo
         virtual void OnPacketReceived( int packetType, const Address & from ) { (void) packetType; (void) from; }
 
         /**
-            Override this method to get a callback when a connection packet is sent to the server.
+            Override this method to get a callback when a connection packet is generated and sent to the server.
 
             Connection packets are carrier packets that transmit messages between the client and server. They are only generated if you enabled messages in the ClientServerConfig (true by default).
 
@@ -481,7 +481,7 @@ namespace yojimbo
             @see ClientServerConfig::enableMessages
          */
 
-        virtual void OnConnectionPacketSent( Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
+        virtual void OnConnectionPacketGenerated( Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
 
         /**
             Override this method to get a callback when a connection packet is acked by the client (eg. the client notified the server that packet was received).
@@ -489,7 +489,7 @@ namespace yojimbo
             Connection packets are carrier packets that transmit messages between the client and server. They are automatically generated when messages are enabled in ClientServerConfig (true by default).
 
             @param connection The connection that the packet belongs to. There is just one connection object on the client-side.
-            @param sequence The packet sequence number of the connection packet that was acked by the client. Corresponds to the sequence number passed in to Server::OnConnectionPacketSent for that packet when it was sent.
+            @param sequence The packet sequence number of the connection packet that was acked by the server.
 
             @see ClientServerConfig::enableMessages
          */

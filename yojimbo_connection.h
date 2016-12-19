@@ -39,12 +39,14 @@ namespace yojimbo
     /**
         Provides information required to read and write connection packets.
 
-        @see ConnectionPacket.
+        @see ConnectionPacket
+        @see Stream::SetContext
+        @see Stream::GetContext
      */
 
     struct ConnectionContext
     {
-        uint32_t magic;                                                         ///< The magic number for safety checks. Set to ConnectionContextMagic.
+        uint32_t magic;                                                         ///< The magic number for safety checks. Set to yojimbo::ConnectionContextMagic.
         const ConnectionConfig * connectionConfig;                              ///< The connection config. So we know the number of channels and how they are setup.
         class MessageFactory * messageFactory;                                  ///< The message factory used for creating and destroying messages.
 
@@ -61,7 +63,7 @@ namespace yojimbo
 
         Connection packets should be generated and sent at a steady rate like 10, 20 or 30 times per-second in both directions across a connection. 
 
-        The packet ack system is designed around this assumption (there are no separate ack packets, only connection packets).
+        The packet ack system is designed around this assumption (there are no separate ack packets).
      */
 
     struct ConnectionPacket : public Packet
@@ -78,17 +80,50 @@ namespace yojimbo
 
         ConnectionPacket();
 
+        /** 
+            Connection packet destructor.
+
+            Releases all references to messages included in this packet.
+
+            @see Message
+            @see MessageFactory
+            @see ChannelPacketData
+         */
+
         ~ConnectionPacket();
+
+        /** 
+            Allocate channel data in this packet.
+
+            The allocation is performed with the allocator that is set on the message factory.
+
+            When this is used on the server, the allocator corresponds to the per-client allocator corresponding to the client that is sending this connection packet. See Server::m_clientAllocator.
+
+            This is intended to silo each client to their own set of resources on the server, so malicious clients cannot launch an attack to deplete resources shared with other clients.
+
+            @param messageFactory The message factory used to create and destroy messages.
+            @param numEntries The number of channel entries to allocate. This corresponds to the number of channels that have data to include in the connection packet.
+
+            @bool True if the allocation succeeded, false otherwise.
+
+            @see Connection::GeneratePacket
+         */
 
         bool AllocateChannelData( MessageFactory & messageFactory, int numEntries );
 
+        /** 
+            The template function for serializing the connection packet.
+
+            Unifies packet read and write, making it harder to accidentally desync one from the other.
+         */
+
         template <typename Stream> bool Serialize( Stream & stream );
 
-        bool SerializeInternal( ReadStream & stream );
+        bool SerializeInternal( ReadStream & stream );                          ///< Implements serialize read by calling into ConnectionPacket::Serialize with a ReadStream.
 
-        bool SerializeInternal( WriteStream & stream );
+        bool SerializeInternal( WriteStream & stream );                         ///< Implements serialize write by calling into ConnectionPacket::Serialize with a WriteStream.
 
-        bool SerializeInternal( MeasureStream & stream );
+        bool SerializeInternal( MeasureStream & stream );                       ///< Implements serialize measure by calling into ConnectionPacket::Serialize with a MeasureStream.
 
         void SetMessageFactory( MessageFactory & messageFactory ) { m_messageFactory = &messageFactory; }
 
@@ -131,6 +166,8 @@ namespace yojimbo
     public:
 
         virtual ~ConnectionListener() {}
+
+
 
         virtual void OnConnectionPacketGenerated( class Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
 
