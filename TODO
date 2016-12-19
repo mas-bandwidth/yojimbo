@@ -15,31 +15,16 @@ DONE
         4. InitializeYojimbo/ShutdownYojimbo
 
         5. yojimbo_connection.h ---> channel, etc?
-TODO
 
     Very basic channel and connection level documentation has been added, but a second pass is required.
 
-    -----------------------------------------
+    Connection doxygen finished first pass. Enough detail for now I think.
 
-    However, this feels somewhat frustrating documenting this, because channels and connections are effectively *internals*, transparent to the user inside a client or server, in most cases.
+TODO
 
-    But I think if somebody wants to actually understand the library, they are going to want to understand the implementation. This is open source after all.
+    Next, need to pass over channel and finish a first pass documentation.
 
-    I think the key is to split the documentation into sections:
-
-    API, internals. I think I can section it up like this. Put the socket, connection, channel into the internal section.
-
-    Some information on grouping here: http://www.stack.nl/~dimitri/doxygen/manual/grouping.html
-
-    OK. That's enough for the day. Man this is slow, punishing work =p
-
-    -----------------------------------------
-
-        6. yojimbo_address.h
-
-        7. packets, messages, allocators, message factory, packet factory.
-
-        8. Front page overview linking to rest of docs?
+    After this, it's probably a good idea to hit the small classes like Address, Message, MessageFactory, Packet, PacketFactory, Allocator.
 
     What other major bits need to be documented? Stream classes? Serialization macros? Helper macros for packet and message factories?
 

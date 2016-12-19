@@ -186,7 +186,11 @@ namespace yojimbo
         ChannelError m_error;
     };
 
-    /// Messages sent across this channel are guaranteed to arrive and in the same order they were sent.
+    /**
+        Messages sent across this channel are guaranteed to arrive, and in the same order they were sent.
+
+        This channel type is best used for control messages and RPCs.
+     */
 
     class ReliableOrderedChannel : public Channel
     {
@@ -279,7 +283,11 @@ namespace yojimbo
         ReliableOrderedChannel & operator = ( const ReliableOrderedChannel & other );
     };
 
-    /// Messages sent across this channel are not guaranteed to arrive, and may be received in a different order than they were sent.
+    /**
+        Messages sent across this channel are not guaranteed to arrive, and may be received in a different order than they were sent.
+        
+        This channel type is best used for time critical data like snapshots and object state.
+     */
 
     class UnreliableUnorderedChannel : public Channel
     {
