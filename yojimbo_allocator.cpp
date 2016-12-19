@@ -71,14 +71,17 @@ namespace yojimbo
 
 #else // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
-        (void)file;
-        (void)line;
+        (void) p;
+        (void) size;
+        (void) file;
+        (void) line;
 
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
 
     void Allocator::TrackFree( void * p, const char * file, int line )
     {
+        (void) p;
         (void) file;
         (void) line;
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
