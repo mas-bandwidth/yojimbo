@@ -349,8 +349,8 @@ namespace yojimbo
 
             It walks across the ack bits and if bit n is set, then sequence number "ack - n" has been received be the other side, so it should be acked if it is not already.
 
-            @param The most recent acked packet sequence number.
-            @param The ack bitfield. Bit n is set if ack - n packet has been received.
+            @param ack The most recent acked packet sequence number.
+            @param ack_bits The ack bitfield. Bit n is set if ack - n packet has been received.
 
             @see ConnectionPacket
          */
