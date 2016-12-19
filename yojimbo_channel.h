@@ -132,13 +132,13 @@ namespace yojimbo
             @see BlockMessage::AttachBlock
          */
 
-        virtual void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock ) { (void) channel; (void) messageId; (void) fragmentId; (void) fragmentBytes; (void) numFragmentsReceived; }
+        virtual void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock ) { (void) channel; (void) messageId; (void) fragmentId; (void) fragmentBytes; (void) numFragmentsReceived; (void) numFragmentsInBlock; }
     };
 
     /**
         Channel counters provide insight into the number of times an action was performed by a channel.
 
-        They are intended for use in a telemetry system, eg. the server would report these counters to some backend logging system to track behavior in a production environment.
+        They are intended for use in a telemetry system, eg. reported to some backend logging system to track behavior in a production environment.
      */
 
     enum ChannelCounters

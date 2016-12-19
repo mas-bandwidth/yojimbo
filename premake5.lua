@@ -13,7 +13,7 @@ solution "Yojimbo"
     kind "ConsoleApp"
     language "C++"
     platforms { "x64" }
-    configurations { "Debug", "Release", "Debug_Secure", "Release_Secure" }
+    configurations { "Debug", "Release", "Secure" }
     if os.is "windows" then
         includedirs { ".", "./windows" }
         libdirs { "./windows" }
@@ -31,11 +31,7 @@ solution "Yojimbo"
         optimize "Speed"
         defines { "NDEBUG" }
         links { release_libs }
-    configuration "Debug_Secure"
-        symbols "On"
-        defines { "YOJIMBO_SECURE_MODE=1", "DEBUG", "_DEBUG" }
-        links { debug_libs }
-    configuration "Release_Secure"
+    configuration "Secure"
         optimize "Speed"
         defines { "YOJIMBO_SECURE_MODE=1", "NDEBUG" }
         links { release_libs }
