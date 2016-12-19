@@ -264,55 +264,58 @@ namespace yojimbo
 
         InsertAckPacketEntry( packet->sequence );
 
-        m_counters[CONNECTION_COUNTER_PACKETS_GENERATED]++;
-
-        if ( m_connectionConfig.numChannels == 0 )
-            return packet;
-
-        int numChannelsWithData = 0;
-        bool channelHasData[MaxChannels];
-        memset( channelHasData, 0, sizeof( channelHasData ) );
-        ChannelPacketData channelData[MaxChannels];
-
-        int availableBits = m_connectionConfig.maxPacketSize * 8;
-
-        availableBits -= ConservativeConnectionPacketHeaderEstimate;
-
-        for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+        if ( m_connectionConfig.numChannels > 0 )
         {
-            int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packet->sequence, availableBits );
+            int numChannelsWithData = 0;
+            bool channelHasData[MaxChannels];
+            memset( channelHasData, 0, sizeof( channelHasData ) );
+            ChannelPacketData channelData[MaxChannels];
 
-            if ( packetDataBits > 0 )
-            {
-                availableBits -= ConservativeChannelHeaderEstimate;
+            int availableBits = m_connectionConfig.maxPacketSize * 8;
 
-                availableBits -= packetDataBits;
-
-                channelHasData[channelId] = true;
-
-                numChannelsWithData++;
-            }
-        }
-
-        if ( numChannelsWithData > 0 )
-        {
-            if ( !packet->AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
-            {
-                m_error = CONNECTION_ERROR_OUT_OF_MEMORY;
-                return NULL;
-            }
-
-            int index = 0;
+            availableBits -= ConservativeConnectionPacketHeaderEstimate;
 
             for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
             {
-                if ( channelHasData[channelId] )
+                int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packet->sequence, availableBits );
+
+                if ( packetDataBits > 0 )
                 {
-                    memcpy( &packet->channelEntry[index], &channelData[channelId], sizeof( ChannelPacketData ) );
-                    index++;
+                    availableBits -= ConservativeChannelHeaderEstimate;
+
+                    availableBits -= packetDataBits;
+
+                    channelHasData[channelId] = true;
+
+                    numChannelsWithData++;
+                }
+            }
+
+            if ( numChannelsWithData > 0 )
+            {
+                if ( !packet->AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
+                {
+                    m_error = CONNECTION_ERROR_OUT_OF_MEMORY;
+                    return NULL;
+                }
+
+                int index = 0;
+
+                for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+                {
+                    if ( channelHasData[channelId] )
+                    {
+                        memcpy( &packet->channelEntry[index], &channelData[channelId], sizeof( ChannelPacketData ) );
+                        index++;
+                    }
                 }
             }
         }
+
+        m_counters[CONNECTION_COUNTER_PACKETS_GENERATED]++;
+
+        if ( m_listener )
+            m_listener->OnConnectionPacketGenerated( this, packet->sequence );
 
         return packet;
     }
@@ -325,13 +328,16 @@ namespace yojimbo
         assert( packet );
         assert( packet->GetType() == m_connectionConfig.connectionPacketType );
 
+        if ( !m_receivedPackets->Insert( packet->sequence ) )
+        {
+            // todo: probably a good idea to have a counter for this situation. a stale connection packet came in and we couldn't process it.
+            return false;
+        }
+
         m_counters[CONNECTION_COUNTER_PACKETS_PROCESSED]++;
 
         if ( m_listener )
             m_listener->OnConnectionPacketReceived( this, packet->sequence );
-
-        if ( !m_receivedPackets->Insert( packet->sequence ) )
-            return false;
 
         ProcessAcks( packet->ack, packet->ack_bits );
 
@@ -409,6 +415,9 @@ namespace yojimbo
     void Connection::PacketAcked( uint16_t sequence )
     {
         OnPacketAcked( sequence );
+
+        if ( m_listener )
+            m_listener->OnConnectionPacketAcked( this, sequence );
 
         for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
             m_channel[channelId]->ProcessAck( sequence );

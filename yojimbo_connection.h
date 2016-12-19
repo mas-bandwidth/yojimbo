@@ -132,7 +132,7 @@ namespace yojimbo
 
         virtual ~ConnectionListener() {}
 
-        virtual void OnConnectionPacketSent( class Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
+        virtual void OnConnectionPacketGenerated( class Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
 
         virtual void OnConnectionPacketAcked( class Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
 
@@ -157,7 +157,7 @@ namespace yojimbo
 
         The connection class is used internally by client and server to send and receive messages over connection packets. 
 
-        You don't need to use this class directly, unless you are bypassing client/server entirely and using the low-level parts of libyojimbo directly.
+        You don't need to interact with this class, unless you are bypassing client/server entirely and using the low-level parts of libyojimbo directly.
      */
 
     class Connection : public ChannelListener
@@ -194,13 +194,11 @@ namespace yojimbo
         /** 
             True if there is room in the send queue to send a message.
 
-            In reliable-ordered channels, all messages that are sent are guaranteed to arrive, however, if the send queue is full, we have nowhere to buffer the message, so it is lost. 
+            In reliable-ordered channels, all messages that are sent are guaranteed to arrive, however, if the send queue is full, we have nowhere to buffer the message, so it is lost. This is a fatal error.
 
-            Therefore, sending a message when the message send queue is full is a fatal error. This function is available for you to query beforing sending a message so you can test if the send queue is full.
+            Therefore, in debug builds Connection::SendMsg checks this method and asserts it returns true. In release builds, this function is checked and an error flag is set on the connection if it returns false. 
 
-            IMPORTANT: In debug builds, Connection::SendMessage already checks this method and asserts it returns true. In release builds, this function is checked and an error flag is set on the connection if it returns false. 
-
-            This is designed to result in the automatic disconnection of any client that overflows its message send queue. You don't have to do this yourself manually. In most cases, just don't worry about it and let this handle it for you, and just make sure you have a sufficiently large send queue configured via ChannelConfig::sendQueueSize.
+            This errorc flag will trigger the automatic disconnection of any client that overflows its message send queue. This is by design so you don't have to do this checking manually. Just make sure you have a sufficiently large send queue configured via ChannelConfig::sendQueueSize and everything will be fine.
 
             @param channelId The id of the channel in [0,numChannels-1].
             @returns True if the channel has room for one more message in its send queue. False otherwise.
@@ -334,21 +332,44 @@ namespace yojimbo
 
     protected:
 
-        virtual void OnPacketSent( uint16_t sequence ) { (void) sequence; }
+        /**
+            This is called for each connection packet generated, to mark that connection packet as unacked.
 
-        virtual void OnPacketAcked( uint16_t sequence ) { (void) sequence; }
+            Later on this entry is used to determine if a connection packet has already been acked, so we only trigger packet acked callbacks the first time we receive an ack for that packet.
 
-        virtual void OnPacketReceived( uint16_t sequence ) { (void) sequence; }
-
-    protected:
+            @param sequence The sequence number of the connection packet that was generated.
+         */
 
         void InsertAckPacketEntry( uint16_t sequence );
 
+        /**
+            This is the payload function called to process acks in the packet header of the connection packet. 
+
+            It walks across the ack bits and if bit n is set, then sequence number "ack - n" has been received be the other side, so it should be acked if it is not already.
+
+            @param The most recent acked packet sequence number.
+            @param The ack bitfield. Bit n is set if ack - n packet has been received.
+
+            @see ConnectionPacket
+         */
+
         void ProcessAcks( uint16_t ack, uint32_t ack_bits );
+
+        /**
+            This method is called when a packet is acked.
+
+            It drives all the things that must happen when a packet is acked, such as callbacks, acking messages and data block fragments in send queues, and so on.
+
+            @param sequence The sequence number of the packet that was acked.
+         */
 
         void PacketAcked( uint16_t sequence );
 
-        void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock );
+    protected:
+
+        virtual void OnPacketAcked( uint16_t sequence ) { (void) sequence; }
+
+        virtual void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock );
 
     private:
 
