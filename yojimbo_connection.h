@@ -198,7 +198,9 @@ namespace yojimbo
 
             Therefore, in debug builds Connection::SendMsg checks this method and asserts it returns true. In release builds, this function is checked and an error flag is set on the connection if it returns false. 
 
-            This errorc flag will trigger the automatic disconnection of any client that overflows its message send queue. This is by design so you don't have to do this checking manually. Just make sure you have a sufficiently large send queue configured via ChannelConfig::sendQueueSize and everything will be fine.
+            This error flag triggers the automatic disconnection of any client that overflows its message send queue. This is by design so you don't have to do this checking manually. 
+
+            All you have to do is make sure you have a sufficiently large send queue configured via ChannelConfig::sendQueueSize.
 
             @param channelId The id of the channel in [0,numChannels-1].
             @returns True if the channel has room for one more message in its send queue. False otherwise.
@@ -283,7 +285,7 @@ namespace yojimbo
         /**
             Get the connection error level.
 
-            @returns The connection error code. See ConnectionError for details.
+            @returns The connection error level. See ConnectionError for details.
          */
 
         ConnectionError GetError() const;
@@ -299,9 +301,9 @@ namespace yojimbo
         /**
             Set the client index.
 
-            This is used by the server to associate per-client connection objects with the client id of their slot. This makes it easier to work out which client a connection belongs to inside a connection callback. For example, Server::OnConnectionPacketAcked.
+            This is used by the server to associate per-client connection objects with the index of their client slot. This makes it easier to work out which client a connection object belongs to on the server.
 
-            @param clientIndex The client index in [0,numClients-1]. If you don't set this, the client index for a connection defaults to zero.
+            @param clientIndex The client index in [0,numClients-1]. If you don't set this, it defaults to zero.
 
             @see GetClientIndex
          */
@@ -311,7 +313,7 @@ namespace yojimbo
         /**
             Get the client index set on the connection.
 
-            This is a helper function to make it easy to work out which client a connection objects belongs to on the server.
+            This is a helper function to make it easy to work out which client a connection object belongs to on the server.
 
             @returns The client index in [0,numClients-1].
 
