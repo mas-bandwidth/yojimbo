@@ -278,6 +278,14 @@ namespace yojimbo
 #endif // #ifdef __GNUC__
     }
 
+    /**
+        Reverse the order of bytes in a 64 bit integer.
+        
+        @param value The input value.
+
+        @returns The input value with the byte order reversed.
+     */
+
     inline uint64_t bswap( uint64_t value )
     {
 #ifdef __GNUC__
@@ -290,6 +298,14 @@ namespace yojimbo
 #endif // #ifdef __GNUC__
     }
 
+    /**
+        Reverse the order of bytes in a 32 bit integer.
+        
+        @param value The input value.
+
+        @returns The input value with the byte order reversed.
+     */
+
     inline uint32_t bswap( uint32_t value )
     {
 #ifdef __GNUC__
@@ -299,12 +315,30 @@ namespace yojimbo
 #endif // #ifdef __GNUC__
     }
 
+    /**
+        Reverse the order of bytes in a 16 bit integer.
+        
+        @param value The input value.
+
+        @returns The input value with the byte order reversed.
+     */
+
     inline uint16_t bswap( uint16_t value )
     {
         return ( value & 0x00ff ) << 8 | ( value & 0xff00 ) >> 8;
     }
 
-    // IMPORTANT: These functions consider network order to be little endian because most modern processors are little endian. Least amount of work!
+    /**
+        Template to convert an integer value from local byte order to network byte order.
+
+        IMPORTANT: Yojimbo defines network byte order to be little endian, because most machines running yojimbo are little endian, this creates the least amount of work.
+
+        @param value The input value in local byte order. Supported integer types: uint64_t, uint32_t, uint16_t.
+
+        @returns The input value converted to network byte order. If this processor is little endian the output is the same as the input. If the processor is big endian, the output is the input byte swapped.
+
+        @see yojimbo::bswap
+     */
 
     template <typename T> T host_to_network( T value )
     {
@@ -315,6 +349,18 @@ namespace yojimbo
 #endif // #if YOJIMBO_BIG_ENDIAN
     }
 
+    /**
+        Template to convert an integer value from network byte order to local byte order.
+
+        IMPORTANT: Yojimbo defines network byte order to be little endian, because most machines running yojimbo are little endian, this creates the least amount of work.
+
+        @param value The input value in network byte order. Supported integer types: uint64_t, uint32_t, uint16_t.
+
+        @returns The input value converted to local byte order. If this processor is little endian the output is the same as the input. If the processor is big endian, the output is the input byte swapped.
+
+        @see yojimbo::bswap
+     */
+
     template <typename T> T network_to_host( T value )
     {
 #if YOJIMBO_BIG_ENDIAN
@@ -324,35 +370,75 @@ namespace yojimbo
 #endif // #if YOJIMBO_BIG_ENDIAN
     }
 
+    /** 
+        Compares two 16 bit sequence numbers and returns true if the first one is greater than the second (considering wrapping).
+
+        IMPORTANT: This is not the same as s1 > s2!
+
+        Greater than is defined specially to handle wrapping sequence numbers. 
+
+        If the two sequence numbers are close together, it is as normal, but they are far apart, it is assumed that they have wrapped around.
+
+        Thus, sequence_greater_than( 1, 0 ) returns true, and so does sequence_greater_than( 0, 65535 )!
+
+        @param s1 The first sequence number.
+        @param s2 The second sequence number.
+
+        @returns True if the s1 is greater than s2, with sequence number wrapping considered.
+     */
+
     inline bool sequence_greater_than( uint16_t s1, uint16_t s2 )
     {
         return ( ( s1 > s2 ) && ( s1 - s2 <= 32768 ) ) || 
                ( ( s1 < s2 ) && ( s2 - s1  > 32768 ) );
     }
 
+    /** 
+        Compares two 16 bit sequence numbers and returns true if the first one is less than the second (considering wrapping).
+
+        IMPORTANT: This is not the same as s1 < s2!
+
+        Greater than is defined specially to handle wrapping sequence numbers. 
+
+        If the two sequence numbers are close together, it is as normal, but they are far apart, it is assumed that they have wrapped around.
+
+        Thus, sequence_less_than( 0, 1 ) returns true, and so does sequence_greater_than( 65535, 0 )!
+
+        @param s1 The first sequence number.
+        @param s2 The second sequence number.
+
+        @returns True if the s1 is less than s2, with sequence number wrapping considered.
+     */
+
     inline bool sequence_less_than( uint16_t s1, uint16_t s2 )
     {
         return sequence_greater_than( s2, s1 );
     }
 
-    inline int sequence_difference( uint16_t _s1, uint16_t _s2 )
-    {
-        int s1 = _s1;
-        int s2 = _s2;
-        if ( abs( s1 - s2 ) >= 32768 )
-        {
-            if ( s1 > s2 )
-                s2 += 65536;
-            else
-                s1 += 65536;
-        }
-        return s1 - s2;
-    }
+    /**
+        Convert a signed integer to an unsigned integer with zig-zag encoding.
+
+        0,-1,+1,-2,+2... becomes 0,1,2,3,4 ...
+
+        @param n The input value
+
+        @returns The input value converted from signed to unsigned with zig-zag encoding.
+     */
 
     inline int signed_to_unsigned( int n )
     {
         return ( n << 1 ) ^ ( n >> 31 );
     }
+
+    /**
+        Convert an unsigned integer to as signed integer with zig-zag encoding.
+
+        0,1,2,3,4... becomes 0,-1,+1,-2,+2...
+
+        @param n The input value
+
+        @returns The input value converted from unsigned to signed with zig-zag encoding.
+     */
 
     inline int unsigned_to_signed( uint32_t n )
     {
