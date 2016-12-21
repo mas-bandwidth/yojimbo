@@ -498,7 +498,6 @@ namespace yojimbo
             This lets us know our starting point for considering messages to include in the next packet we send.
 
             @see GetMessagesToSend
-            @see m_oldestUnackedMessageId
          */
 
         void UpdateOldestUnackedMessageId();
