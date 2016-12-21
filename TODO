@@ -28,10 +28,10 @@ DONE
 
     Don't really need to add anything to unreliable unordered channel, it's sorted.
 
-TODO
-    
     Pass over ReliableOrderedChannel. Lets of detail here to cover.
 
+TODO
+    
     After this, it's probably a good idea to hit the small classes like Address, Message, MessageFactory, Packet, PacketFactory, Allocator, and the various packet classes used in client/server connection negotiation, and the tokens, and the functions supporting those, and the encryption manager...
 
     What other major bits need to be documented? Stream classes? Serialization macros? Helper macros for packet and message factories?
