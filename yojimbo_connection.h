@@ -63,7 +63,7 @@ namespace yojimbo
 
         Connection packets should be generated and sent at a steady rate like 10, 20 or 30 times per-second in both directions across a connection. 
 
-        The packet ack system is designed around this assumption (there are no separate ack packets).
+        The packet ack system is designed around this assumption. There are no separate ack packets!
      */
 
     struct ConnectionPacket : public Packet
@@ -272,7 +272,7 @@ namespace yojimbo
             Typical usage is to iterate across the set of channels and poll this function to receive messages until it returns NULL.
 
             @param channelId The id of the channel to try to receive a message from.
-            @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns message objects returned by this function and is responsible for releasing them via Message::Release.
+            @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns the message object returned by this function and is responsible for releasing it via Message::Release.
          */
 
         Message * ReceiveMsg( int channelId = 0 );
@@ -406,7 +406,7 @@ namespace yojimbo
 
     protected:
 
-        virtual void OnPacketAcked( uint16_t sequence ) { (void) sequence; }
+        virtual void OnPacketAcked( uint16_t sequence );
 
         virtual void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock );
 

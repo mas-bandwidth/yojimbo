@@ -24,11 +24,13 @@ DONE
 
     Base channel completed.
 
+    Cleaned up and finished documentation in channel.
+
+    Don't really need to add anything to unreliable unordered channel, it's sorted.
+
 TODO
     
-    Need to pass over ReliableOrderedChannel, lots of detail here. Don't bother documenting stuff already in the channel base class again. Maybe move all those functions up top.
-
-    And then UnreliableUnorderedChannel. Not much here.
+    Pass over ReliableOrderedChannel. Lets of detail here to cover.
 
     After this, it's probably a good idea to hit the small classes like Address, Message, MessageFactory, Packet, PacketFactory, Allocator, and the various packet classes used in client/server connection negotiation, and the tokens, and the functions supporting those, and the encryption manager...
 

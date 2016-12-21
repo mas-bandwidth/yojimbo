@@ -416,20 +416,67 @@ namespace yojimbo
         return Serialize( stream, messageFactory, channelConfigs, numChannels );
     }
 
-    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
-        : m_config( config )
-    {
-        assert( ( 65536 % config.sendQueueSize ) == 0 );
-        assert( ( 65536 % config.receiveQueueSize ) == 0 );
-        assert( ( 65536 % config.sentPacketBufferSize ) == 0 );
+	// ------------------------------------------------------------------------------------
 
-        SetChannelId( channelId );
+    Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) : m_config( config )
+    {
+        assert( channelId >= 0 );
+        assert( channelId < MaxChannels );
+
+		m_channelId = channelId;
 
         m_allocator = &allocator;
 
         m_messageFactory = &messageFactory;
 
         m_listener = NULL;
+
+        m_error = CHANNEL_ERROR_NONE;
+
+		ResetCounters();
+    }
+
+    uint64_t Channel::GetCounter( int index ) const
+    {
+        assert( index >= 0 );
+        assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
+        return m_counters[index];
+    }
+
+    void Channel::ResetCounters() 
+    { 
+        memset( m_counters, 0, sizeof( m_counters ) ); 
+    }
+
+    int Channel::GetChannelId() const 
+    { 
+        return m_channelId;
+    }
+
+    void Channel::SetError( ChannelError error )
+    {
+        if ( error != m_error && error != CHANNEL_ERROR_NONE )
+        {
+            debug_printf( "channel error: %s\n", GetChannelErrorString( error ) );
+        }
+
+        m_error = error;
+    }
+
+	ChannelError Channel::GetError() const
+	{
+		return m_error;
+	}
+
+	// ------------------------------------------------------------------------------------
+
+    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) : Channel( allocator, messageFactory, config, channelId )
+	{
+		assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
+
+        assert( ( 65536 % config.sendQueueSize ) == 0 );
+        assert( ( 65536 % config.receiveQueueSize ) == 0 );
+        assert( ( 65536 % config.sentPacketBufferSize ) == 0 );
 
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.sendQueueSize );
         
@@ -513,8 +560,8 @@ namespace yojimbo
             }
         }
 
-        memset( m_counters, 0, sizeof( m_counters ) );
-    }
+		ResetCounters();
+	}
 
     bool ReliableOrderedChannel::CanSendMsg() const
     {
@@ -525,7 +572,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::SendMsg( Message * message )
     {
-        assert( message );
+		assert( message );
         assert( CanSendMsg() );
 
         if ( GetError() != CHANNEL_ERROR_NONE )
@@ -1168,25 +1215,11 @@ namespace yojimbo
         }
     }
 
-    uint64_t ReliableOrderedChannel::GetCounter( int index ) const
-    {
-        assert( index >= 0 );
-        assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
-        return m_counters[index];
-    }
-
     // ------------------------------------------------
 
-    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) 
-        : m_config( config )
+    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) : Channel( allocator, messageFactory, config, channelId )
     {
-        SetChannelId( channelId );
-
-        m_allocator = &allocator;
-
-        m_messageFactory = &messageFactory;
-
-        m_listener = NULL;
+        assert( config.type == CHANNEL_TYPE_UNRELIABLE_UNORDERED );
 
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.sendQueueSize );
         
@@ -1216,7 +1249,7 @@ namespace yojimbo
         m_messageSendQueue->Clear();
         m_messageReceiveQueue->Clear();
   
-        memset( m_counters, 0, sizeof( m_counters ) );
+        ResetCounters();
     }
 
     bool UnreliableUnorderedChannel::CanSendMsg() const
@@ -1278,11 +1311,13 @@ namespace yojimbo
 
     void UnreliableUnorderedChannel::AdvanceTime( double time )
     {
-        (void)time;
+        (void) time;
     }
     
-    int UnreliableUnorderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t /*packetSequence*/, int availableBits )
+    int UnreliableUnorderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
+        (void) packetSequence;
+
         if ( m_messageSendQueue->IsEmpty() )
             return 0;
 
@@ -1392,12 +1427,5 @@ namespace yojimbo
     void UnreliableUnorderedChannel::ProcessAck( uint16_t ack )
     {
         (void)ack;
-    }
-
-    uint64_t UnreliableUnorderedChannel::GetCounter( int index ) const
-    {
-        assert( index >= 0 );
-        assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
-        return m_counters[index];
     }
 }

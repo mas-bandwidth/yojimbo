@@ -32,7 +32,14 @@
 
 namespace yojimbo
 {
-    /// Per-channel data inside a connection packet.
+    /**
+        Per-channel data inside a connection packet.
+
+        @see ConnectionPacket
+        @see Connection::GeneratePacket
+        @see Channel::GeneratePacketData
+        @see Channel::ProcessPacketData
+     */
 
     struct ChannelPacketData
     {
@@ -52,7 +59,7 @@ namespace yojimbo
             Message ** messages;                                        ///< Array of message pointers (dynamically allocated). The messages in this array have references added, so they must be released when the packet containing this channel data is destroyed.
         };
 
-        /// Packet data when the channel is sending a message with a block attached. @see BlockMessage.
+        /// Packet data when the channel is sending a block message. @see BlockMessage.
 
         struct BlockData
         {
@@ -80,7 +87,7 @@ namespace yojimbo
         /**
             Release messages stored in channel packet data and free allocations.
 
-            @param messageFactory Since we don't cache the message factory on this class, it must be passed in so we can release the messages. This is the reason there isn't a constructor/destructor for this struct.
+            @param messageFactory The message factory used to release messages in this packet data.
          */
 
         void Free( MessageFactory & messageFactory );
@@ -148,7 +155,17 @@ namespace yojimbo
         CHANNEL_COUNTER_NUM_COUNTERS                            ///< The number of channel counters.
     };
 
-    /// Channel error codes.
+    /**
+        Channel error codes.
+
+        If the channel gets into an error state, it sets an error state on the corresponding connection. See yojimbo::CONNECTION_ERROR_CHANNEL.
+
+        This way if any channel on a client/server connection gets into a bad state, that client is automatically kicked from the server.
+
+        @see Client
+        @see Server
+        @see Connection
+     */
 
     enum ChannelError
     {
@@ -184,11 +201,17 @@ namespace yojimbo
     {
     public:
 
-        Channel() : m_channelId(0), m_error( CHANNEL_ERROR_NONE ) {}
+		/**
+			Channel constructor.
+		 */
+
+        Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+
+		/**
+			Channel destructor.
+		 */
 
         virtual ~Channel() {}
-
-        virtual void SetListener( ChannelListener * listener ) = 0;
 
         /**
             Reset the channel. 
@@ -213,7 +236,7 @@ namespace yojimbo
         /** 
             Pops the next message off the receive queue if one is available.
 
-            @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns message objects returned by this function and is responsible for releasing them via Message::Release.
+            @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns the message object returned by this function and is responsible for releasing it via Message::Release.
          */
 
         virtual Message * ReceiveMsg() = 0;
@@ -227,13 +250,13 @@ namespace yojimbo
         virtual void AdvanceTime( double time ) = 0;
 
         /**
-            Get packet data for this channel to include in a connection packet.
+            Get channel packet data for this channel.
 
-            @param packetData The packet data to be generated [out]
+            @param packetData The channel packet data to be filled [out]
             @param packetSequence The sequence number of the packet being generated.
-            @param availableBits The maximum number of bits of packet data the channel may write.
+            @param availableBits The maximum number of bits of packet data the channel is allowed to write.
 
-            @returns The number of bits of packet data taken up by this channel.
+            @returns The number of bits of packet data written by the channel.
 
             @see ConnectionPacket
             @see Connection::GeneratePacket
@@ -246,6 +269,9 @@ namespace yojimbo
 
             @param packetData The channel packet data to process.
             @param packetSequence The sequence number of the connection packet that contains the channel packet data.
+
+            @see ConnectionPacket
+            @see Connection::ProcessPacket
          */
 
         virtual void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence ) = 0;
@@ -253,12 +279,30 @@ namespace yojimbo
         /**
             Process a connection packet ack.
 
-            Depending on the channel type, this could ack messages so they stop being sent (reliable-ordered), or do nothing at all (unreliable-unordered).
+            Depending on the channel type:
+
+                1. Acks messages and block fragments so they stop being included in outgoing connection packets (reliable-ordered channel)
+
+                2. Does nothing at all (unreliable-unordered).
 
             @param sequence The sequence number of the connection packet that was acked.
          */
 
         virtual void ProcessAck( uint16_t sequence ) = 0;
+
+    public:
+
+        // common implementation across all channel types
+
+        /** 
+            Set the channel listener.
+
+            The typical usage is to set the connection as the channel listener, so it gets callbacks from channels it owns.
+
+            @see Connection
+         */
+
+        void SetListener( ChannelListener * listener ) { m_listener = listener; }
 
         /**
             Get the channel error level.
@@ -266,7 +310,7 @@ namespace yojimbo
             @returns The channel error. 
          */
 
-        ChannelError GetError() const { return m_error; }
+        ChannelError GetError() const;
 
         /** 
             Gets the channel id.
@@ -274,29 +318,54 @@ namespace yojimbo
             @returns The channel id in [0,numChannels-1].
          */
 
-        int GetChannelId() const { return m_channelId; }
+        int GetChannelId() const;
+
+		/**
+			Get a counter value.
+
+			@param index The index of the counter to retrieve. See ChannelCounters.
+			@returns The value of the counter.
+
+			@see ResetCounters
+		 */
+
+        uint64_t GetCounter( int index ) const;
+
+		/**
+			Resets all counter values to zero.
+		 */
+
+        void ResetCounters();
 
     protected:
 
-        void SetError( ChannelError error )
-        {
-            if ( error != m_error && error != CHANNEL_ERROR_NONE )
-                debug_printf( "channel error: %s\n", GetChannelErrorString( error ) );
-            m_error = error;
-        }
+		/**
+			Set the channel error state.
 
-        void SetChannelId( int channelId )
-        {
-            assert( channelId >= 0 );
-            assert( channelId < MaxChannels );
-            m_channelId = channelId;
-        }
+			All errors go through this function to make debug logging easier. 
+			
+			@see yojimbo::debug_printf
+		 */
+		
+        void SetError( ChannelError error );
 
     protected:
 
-        int m_channelId;                                            ///< The channel id in [0,numChannels-1].
+        const ChannelConfig m_config;                                                   ///< Channel configuration data.
+
+        Allocator * m_allocator;                                                        ///< Allocator for allocations matching life cycle of this channel.
+
+        int m_channelId;                                                                ///< The channel id in [0,numChannels-1].
+
+		double m_time;																	///< The current time.
         
-        ChannelError m_error;                                       ///< The channel error level.
+        ChannelError m_error;                                                           ///< The channel error level.
+
+        ChannelListener * m_listener;                                                   ///< Channel listener for callbacks. Optional.
+
+        MessageFactory * m_messageFactory;                                              ///< Message factory for creaing and destroying messages.
+
+		uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
     };
 
     /**
@@ -306,18 +375,31 @@ namespace yojimbo
 
         Messages sent over this channel are included in connection packets until one of those packets is acked.
 
-        Blocks attached to messages sent over this channel are split up into fragments. Each fragment of the block is included in a connection packet until one of those packets are acked. Eventually, all fragments are received on the other side, and the block is reassembled and attached to the block message and added to the message receive queue for this channel.
+        Blocks attached to messages sent over this channel are split up into fragments. Each fragment of the block is included in a connection packet until one of those packets are acked. Eventually, all fragments are received on the other side, and block is reassembled and attached to the message.
 
-        Only one message block may be in flight over the network at any time, so blocks stall out message delivery slightly. Therefore, only use blocks for large data that won't fit inside a single connection packet. 
+        Only one message block may be in flight over the network at any time, so blocks stall out message delivery slightly. Therefore, only use blocks for large data that won't fit inside a single connection packet where you actually need the channel to split it up into fragments. If your block fits inside a packet, just serialize it inside your message serialize via serialize_bytes instead.
      */
 
     class ReliableOrderedChannel : public Channel
     {
     public:
 
-        // todo: document this class
+        /** 
+            Reliable ordered channel constructor.
+
+            @param allocator The allocator to use.
+            @param messageFactory Message factory for creating and destroying messages.
+            @param config The configuration for this channel.
+            @param channelId The channel id in [0,numChannels-1].
+         */
 
         ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+
+        /**
+            Reliable ordered channel destructor.
+
+			Frees any messages that are still in the message send and receive queues.
+         */
 
         ~ReliableOrderedChannel();
 
@@ -333,6 +415,10 @@ namespace yojimbo
 
         int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
 
+        void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence );
+
+        void ProcessAck( uint16_t ack );
+
         bool HasMessagesToSend() const;
 
         int GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits );
@@ -342,10 +428,6 @@ namespace yojimbo
         void AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence );
 
         void ProcessPacketMessages( int numMessages, Message ** messages );
-
-        void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence );
-
-        void ProcessAck( uint16_t ack );
 
         void UpdateOldestUnackedMessageId();
 
@@ -359,43 +441,25 @@ namespace yojimbo
 
         void ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage );
 
-        Message * GetSendQueueMessage( uint16_t messageId );
-
-        uint64_t GetCounter( int index ) const;
-
-        void SetListener( ChannelListener * listener ) { m_listener = listener; }
-
     private:
 
-        const ChannelConfig m_config;                                                   ///< Channel configuration data.
+        uint16_t m_sendMessageId;                                                       ///< Id of the next message to be added to the send queue.
 
-        Allocator * m_allocator;                                                        ///< Allocator for allocations matching the life cycle of the channel.
+        uint16_t m_receiveMessageId;                                                    ///< Id of the next message to be added to the receive queue.
 
-        ChannelListener * m_listener;                                                   ///< Channel listener for callbacks. Optional.
-
-        MessageFactory * m_messageFactory;                                              ///< Message factory creates and destroys messages.
-
-        double m_time;                                                                  ///< The current time.
-
-        uint16_t m_sendMessageId;                                                       ///< Id for next message added to send queue.
-
-        uint16_t m_receiveMessageId;                                                    ///< Id for next message to be received.
-
-        uint16_t m_oldestUnackedMessageId;                                              ///< Id for oldest unacked message in send queue.
+        uint16_t m_oldestUnackedMessageId;                                              ///< Id of the oldest unacked message in the send queue.
 
         SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;                     ///< Message send queue.
 
+		SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               ///< Message receive queue.
+
         SequenceBuffer<MessageSentPacketEntry> * m_messageSentPackets;                  ///< Stores information per sent connection packet about messages and block data included in each packet. Used to walk from connection packet level acks to message and data block fragment level acks.
 
-        SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               ///< Message receive queue
-
-        uint16_t * m_sentPacketMessageIds;                                              ///< Array of message ids per-sent connection packet. Allows the maximum number of messages per-packet to be allocated dynamically.
+        uint16_t * m_sentPacketMessageIds;                                              ///< Array of n message ids per sent connection packet. Allows the maximum number of messages per-packet to be allocated dynamically.
 
         SendBlockData * m_sendBlock;                                                    ///< Data about the block being currently sent.
 
         ReceiveBlockData * m_receiveBlock;                                              ///< Data about the block being currently received.
-
-        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
 
     private:
 
@@ -436,25 +500,11 @@ namespace yojimbo
 
         void ProcessAck( uint16_t ack );
 
-        uint64_t GetCounter( int index ) const;
+	protected:
 
-        void SetListener( ChannelListener * listener ) { m_listener = listener; }
+        Queue<Message*> * m_messageSendQueue;									        ///< Message send queue.
 
-    protected:
-
-        const ChannelConfig m_config;                                                   ///< Channel configuration data.
-
-        Allocator * m_allocator;                                                        ///< Allocator for allocations matching life cycle of this channel.
-
-        ChannelListener * m_listener;                                                   ///< Channel listener for callbacks. Optional.
-
-        MessageFactory * m_messageFactory;                                              ///< Message factory creates and destroys messages.
-
-        Queue<Message*> * m_messageSendQueue;                                           ///< Message send queue. Messages that don't fit in the next connection packet sent are discarded.
-
-        Queue<Message*> * m_messageReceiveQueue;                                        ///< Message receive queue. Should generally be larger than the send queue.
-
-        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
+        Queue<Message*> * m_messageReceiveQueue;								        ///< Message receive queue
 
     private:
 

@@ -416,13 +416,18 @@ namespace yojimbo
     {
         OnPacketAcked( sequence );
 
-        if ( m_listener )
-            m_listener->OnConnectionPacketAcked( this, sequence );
-
         for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
             m_channel[channelId]->ProcessAck( sequence );
 
         m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
+    }
+
+    void Connection::OnPacketAcked( uint16_t sequence )
+    {
+        if ( m_listener )
+        {
+            m_listener->OnConnectionPacketAcked( this, sequence );
+        }
     }
 
     void Connection::OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock )

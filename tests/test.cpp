@@ -2961,6 +2961,8 @@ public:
 
     virtual void OnPacketAcked( uint16_t sequence )
     {
+        Connection::OnPacketAcked( sequence );
+
         if ( m_ackedPackets )
             m_ackedPackets[sequence] = true;
     }
