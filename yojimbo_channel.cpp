@@ -656,47 +656,45 @@ namespace yojimbo
     
     int ReliableOrderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
-        if ( HasMessagesToSend() )
+        if ( !HasMessagesToSend() )
+            return 0;
+
+        if ( SendingBlockMessage() )
         {
-            if ( SendingBlockMessage() )
+            uint16_t messageId;
+            uint16_t fragmentId;
+            int fragmentBytes;
+            int numFragments;
+            int messageType;
+
+            uint8_t * fragmentData = GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
+
+            if ( fragmentData )
             {
-                uint16_t messageId;
-                uint16_t fragmentId;
-                int fragmentBytes;
-                int numFragments;
-                int messageType;
+                const int fragmentBits = GetFragmentPacketData( packetData, messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
 
-                uint8_t * fragmentData = GetFragmentToSend( messageId, fragmentId, fragmentBytes, numFragments, messageType );
+                AddFragmentPacketEntry( messageId, fragmentId, packetSequence );
 
-                if ( fragmentData )
-                {
-                    const int fragmentBits = GetFragmentPacketData( packetData, messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
-
-                    AddFragmentPacketEntry( messageId, fragmentId, packetSequence );
-
-                    return fragmentBits;
-                }
-            }
-            else
-            {
-                int numMessageIds = 0;
-
-                uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
-                
-                const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits );
-
-                if ( numMessageIds > 0 )
-                {
-                    GetMessagePacketData( packetData, messageIds, numMessageIds );
-
-                    AddMessagePacketEntry( messageIds, numMessageIds, packetSequence );
-
-                    return messageBits;
-                }
+                return fragmentBits;
             }
         }
+        else
+        {
+            int numMessageIds = 0;
 
-        return 0;
+            uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
+            
+            const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits );
+
+            if ( numMessageIds > 0 )
+            {
+                GetMessagePacketData( packetData, messageIds, numMessageIds );
+
+                AddMessagePacketEntry( messageIds, numMessageIds, packetSequence );
+
+                return messageBits;
+            }
+        }
     }
 
     bool ReliableOrderedChannel::HasMessagesToSend() const

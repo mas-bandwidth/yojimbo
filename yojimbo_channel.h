@@ -292,8 +292,6 @@ namespace yojimbo
 
     public:
 
-        // common implementation across all channel types
-
         /** 
             Set the channel listener.
 
@@ -373,7 +371,7 @@ namespace yojimbo
 
         This channel type is best used for control messages and RPCs.
 
-        Messages sent over this channel are included in connection packets until one of those packets is acked.
+        Messages sent over this channel are included in connection packets until one of those packets is acked. Messages are acked individually and remain in the send queue until acked.
 
         Blocks attached to messages sent over this channel are split up into fragments. Each fragment of the block is included in a connection packet until one of those packets are acked. Eventually, all fragments are received on the other side, and block is reassembled and attached to the message.
 
@@ -398,10 +396,12 @@ namespace yojimbo
         /**
             Reliable ordered channel destructor.
 
-			Frees any messages that are still in the message send and receive queues.
+			IMPORTANT: Any messages still in send or receive queues will be released.
          */
 
         ~ReliableOrderedChannel();
+
+        // -----------------------------
 
         void Reset();
 
@@ -419,25 +419,168 @@ namespace yojimbo
 
         void ProcessAck( uint16_t ack );
 
+        // -----------------------------
+
+        /**
+            Are there any unacked messages in the send queue?
+
+            Messages are acked individually and remain in the send queue until acked.
+
+            @returns True if there is at least one unacked message in the send queue.            
+         */
+
         bool HasMessagesToSend() const;
+
+        /**
+            Get messages to include in a packet.
+
+            Messages are measured to see how many bits they take, and only messages that fit within the channel packet budget will be included. See ChannelConfig::packetBudget.
+
+            Takes care not to send messages too rapidly by respecting ChannelConfig::messageResendTime for each message, and to only include messages that that the receiver is able to buffer in their receive queue. In other words, won't run ahead of the receiver.
+
+            @param messageIds Array of message ids to be filled [out]. Fills up to ChannelConfig::maxMessagesPerPacket messages, make sure your array is at least this size.
+            @param numMessageIds The number of message ids written to the array.
+            @param remainingPacketBits Number of bits remaining in the packet. Considers this as a hard limit when determining how many messages can fit into the packet.
+
+            @returns Estimate of the number of bits required to serialize the messages (upper bound).
+
+            @see GetMessagePacketData
+         */
 
         int GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits );
 
+        /**
+            Fill channel packet data with messages.
+
+            This is the payload function to fill packet data while sending regular messages (without blocks attached).
+
+            Messages have references added to them when they are added to the packet. They also have a reference while they are stored in a send or receive queue. Messages are cleaned up when they are no longer in a queue, and no longer referenced by any packets.
+
+            @param packetData The packet data to fill [out]
+            @param messageIds Array of message ids identifying which messages to add to the packet from the message send queue.
+            @param numMessageIds The number of message ids in the array.
+
+            @see GetMessagesToSend
+         */
+
         void GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds );
+
+        /**
+            Add a packet entry for the set of messages included in a packet.
+
+            This lets us look up the set of messages that were included in that packet later on when it is acked, so we can ack those messages individually.
+
+            @param messageIds The set of message ids that were included in the packet.
+            @param numMessageIds The number of message ids in the array.
+            @param sequence The sequence number of the connection packet the messages were included in.
+         */
 
         void AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence );
 
+        /**
+            Process messages included in a packet.
+
+            Any messages that have not already been received are added to the message receive queue. Messages that are added to the receive queue have a reference added. See Message::AddRef.
+
+            @param numMessages The number of messages to process.
+            @param messages Array of pointers to messages.
+         */
+
         void ProcessPacketMessages( int numMessages, Message ** messages );
+
+        /**
+            Track the oldest unacked message id in the send queue.
+
+            Because messages are acked individually, the send queue is not a true queue and may have holes. 
+
+            Because of this it is necessary to periodically walk forward from the previous oldest unacked message id, to find the current oldest unacked message id. 
+
+            This lets us know our starting point for considering messages to include in the next packet we send.
+
+            @see GetMessagesToSend
+            @see m_oldestUnackedMessageId
+         */
 
         void UpdateOldestUnackedMessageId();
 
+        /**
+            True if we are currently sending a block message.
+
+            Block messages are treated differently to regular messages. 
+
+            Regular messages are small so we try to fit as many into the packet we can. See ReliableChannelData::GetMessagesToSend.
+
+            Blocks attached to block messages are usually larger than the maximum packet size or channel budget, so they are split up fragments. 
+
+            While in the mode of sending a block message, each channel packet data generated has exactly one fragment from the current block in it. Fragments keep getting included in packets until all fragments of that block are acked.
+
+            @returns True if currently sending a block message over the network, false otherwise.
+
+            @see BlockMessage
+            @see GetFragmentToSend
+         */
+
         bool SendingBlockMessage();
+
+        /**
+            Get the next block fragment to send.
+
+            The next block fragment is selected by scanning left to right over the set of fragments in the block, skipping over any fragments that have already been acked or have been sent within ChannelConfig::fragmentResendTime.
+
+            @param messageId The id of the message that the block is attached to [out].
+            @param fragmentId The id of the fragment to send [out].
+            @param fragmentBytes The size of the fragment in bytes.
+            @param numFragments The total number of fragments in this block.
+            @param messageType The type of message the block is attached to. See MessageFactory.
+
+            @returns Pointer to the fragment data.
+         */
 
         uint8_t * GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType );
 
+        /**
+            Fill the packet data with block and fragment data.
+
+            This is the payload function that fills the channel packet data while we are sending a block message.
+
+            @param packetData The packet data to fill [out]
+            @param messageId The id of the message that the block is attached to.
+            @param fragmentId The id of the block fragment being sent.
+            @param fragmentData The fragment data.
+            @param fragmentSize The size of the fragment data (bytes).
+            @param numFragments The number of fragments in the block.
+            @param messageType The type of message the block is attached to.
+
+            @returns An estimate of the number of bits required to serialize the block message and fragment data (upper bound).
+         */
+
         int GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType );
 
+        /**
+            Adds a packet entry for the fragment.
+
+            This lets us look up the fragment that was in the packet later on when it is acked, so we can ack that block fragment.
+
+            @param messageId The message id that the block was attached to.
+            @param fragmentId The fragment id.
+            @param sequence The sequence number of the packet the fragment was included in.
+         */
+
         void AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence );
+
+        /**
+            Process a packet fragment.
+
+            The fragment is added to the set of received fragments for the block. When all packet fragments are received, that block is reconstructed, attached to the block message and added to the message receive queue.
+
+            @param messageType The type of the message this block fragment is attached to. This is used to make sure this message type actually allows blocks to be attached to it.
+            @param messageId The id of the message the block fragment belongs to.
+            @param numFragments The number of fragments in the block.
+            @param fragmentId The id of the fragment in [0,numFragments-1].
+            @param fragmentData The fragment data.
+            @param fragmentBytes The size of the fragment data in bytes.
+            @param blockMessage Pointer to the block message. Passed this in only with the first fragment (0), pass NULL for all other fragments.
+         */
 
         void ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage );
 
@@ -478,9 +621,22 @@ namespace yojimbo
     {
     public:
 
-        // todo: document this class
+        /** 
+            Reliable ordered channel constructor.
+
+            @param allocator The allocator to use.
+            @param messageFactory Message factory for creating and destroying messages.
+            @param config The configuration for this channel.
+            @param channelId The channel id in [0,numChannels-1].
+         */
 
         UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+
+        /**
+            Unreliable unordered channel destructor.
+
+            IMPORTANT: Any messages still in send or receive queues will be released.
+         */
 
         ~UnreliableUnorderedChannel();
 
