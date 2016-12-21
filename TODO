@@ -1,38 +1,31 @@
 DONE    
 
-    Kicked build to resolve premake5 download issue with travis.
+    Document smaller classes:
 
-    Key documentation areas: outside -> in.
+        Address
 
-        0. yojimbo_config.h
-
-        1. yojimbo_server.h
-
-        2. yojimbo_client.h
-
-        3. yojimbo_transport.h
-
-        4. InitializeYojimbo/ShutdownYojimbo
-
-        5. yojimbo_connection.h ---> channel, etc?
-
-    Very basic channel and connection level documentation has been added, but a second pass is required.
-
-    Connection doxygen finished first pass. Enough detail for now I think.
-
-    Next, need to pass over channel and finish first pass documentation.
-
-    Base channel completed.
-
-    Cleaned up and finished documentation in channel.
-
-    Don't really need to add anything to unreliable unordered channel, it's sorted.
-
-    Pass over ReliableOrderedChannel. Lets of detail here to cover.
 
 TODO
     
-    After this, it's probably a good idea to hit the small classes like Address, Message, MessageFactory, Packet, PacketFactory, Allocator, and the various packet classes used in client/server connection negotiation, and the tokens, and the functions supporting those, and the encryption manager...
+        Message
+
+        BlockMessage
+
+        MessageFactory
+
+        Packet
+
+        PacketFactory
+
+        Allocator
+
+        Utility functions
+
+        Packet classes for client/server
+
+        Token support classes and functions
+
+        Encryption manager
 
     What other major bits need to be documented? Stream classes? Serialization macros? Helper macros for packet and message factories?
 

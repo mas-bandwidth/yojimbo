@@ -166,7 +166,7 @@ namespace yojimbo
         if ( address[0] == '[' )
         {
             const int base_index = addressLength - 1;
-            for ( int i = 0; i < 6; ++i )   // note: no need to search past 6 characters as ":65535" is longest port value
+            for ( int i = 0; i < 6; ++i )                                       // note: no need to search past 6 characters as ":65535" is longest port value
             {
                 const int index = base_index - i;
                 if ( index < 3 )
@@ -193,7 +193,7 @@ namespace yojimbo
 
         addressLength = (int) strlen( address );
         const int base_index = addressLength - 1;
-        for ( int i = 0; i < 6; ++i )   // note: no need to search past 6 characters as ":65535" is longest port value
+        for ( int i = 0; i < 6; ++i )                                           // note: no need to search past 6 characters as ":65535" is longest port value
         {
             const int index = base_index - i;
             if ( index < 0 )
@@ -213,7 +213,7 @@ namespace yojimbo
         }
         else
         {
-            // nope: it's not an IPv4 address. maybe it's a hostname? set address as invalid.
+            // Not a valid IPv4 address. Set address as invalid.
             Clear();
         }
     }
@@ -254,6 +254,8 @@ namespace yojimbo
 
     const char * Address::ToString( char buffer[], int bufferSize ) const
     {
+        assert( bufferSize >= MaxAddressLength );
+
         if ( m_type == ADDRESS_IPV4 )
         {
             const uint8_t a =   m_address.ipv4 & 0xff;
