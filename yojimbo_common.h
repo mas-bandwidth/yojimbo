@@ -34,6 +34,19 @@
     
 namespace yojimbo
 {
+    /**
+        Generated a random integer between a and b (inclusive).
+
+        IMPORTANT: This is not a crytographically secure random. It's used only for test functions and in the network simulator.
+
+        For a crytographically secure random, please see yojimbo::RandomBytes which is built on libsodium.
+
+        @param a The minimum integer value to generate.
+        @param b The maximum integer value to generate.
+
+        @returns A pseudo random integer value in [a,b].
+     */
+
     inline int random_int( int a, int b )
     {
         assert( a < b );
@@ -42,6 +55,19 @@ namespace yojimbo
         assert( result <= b );
         return result;
     }
+
+    /** 
+        Generates a random float between a and b.
+
+        IMPORTANT: This is not a crytographically secure random. It's used only for test functions and in the network simulator.
+
+        For a crytographically secure random, please see yojimbo::RandomBytes which is built on libsodium.
+
+        @param a The minimum integer value to generate.
+        @param b The maximum integer value to generate.
+
+        @returns A pseudo random float value in [a,b].
+     */
 
     inline float random_float( float a, float b )
     {
@@ -53,28 +79,67 @@ namespace yojimbo
     }
 
     #ifndef min
+
+    /**
+        Template function to get the minimum of two values.
+
+        @param a The first value.
+        @param b The second value.
+
+        @returns The minimum of a and b.
+     */
+
     template <typename T> const T & min( const T & a, const T & b )
     {
         return ( a < b ) ? a : b;
     }
-    #endif
+
+    #endif // #ifndef min
 
     #ifndef max
+
+    /**
+        Template function to get the maximum of two values.
+
+        @param a The first value.
+        @param b The second value.
+
+        @returns The maximum of a and b.
+     */
+
     template <typename T> const T & max( const T & a, const T & b )
     {
         return ( a > b ) ? a : b;
     }
-    #endif
 
-    template <typename T> T clamp( const T & value, const T & min, const T & max )
+    #endif // #ifndef max
+
+    /**
+        Template function to clamp a value.
+
+        @param value The value to be clamped.
+        @param a The minimum value.
+        @param b The minimum value.
+
+        @returns The clamped value in [a,b].
+     */
+
+    template <typename T> T clamp( const T & value, const T & a, const T & b )
     {
-        if ( value < min )
-            return min;
-        else if ( value > max )
-            return max;
+        if ( value < a )
+            return a;
+        else if ( value > b )
+            return b;
         else
             return value;
     }
+
+    /**
+        Swaps two values.
+
+        @param a First value.
+        @param b Second value.
+     */
 
     template <typename T> void swap( T & a, T & b )
     {
@@ -83,10 +148,29 @@ namespace yojimbo
         b = tmp;
     };
 
+    /**
+        Get the absolute value.
+
+        @param value The input value.
+
+        @returns The absolute value.
+     */
+
     template <typename T> T abs( const T & value )
     {
         return ( value < 0 ) ? -value : value;
     }
+
+    /**
+        Calculate the population count of an unsigned 32 bit integer at compile time.
+
+        Population count is the number of bits in the integer that set to 1.
+
+        See "Hacker's Delight" and http://www.hackersdelight.org/hdcodetxt/popArrayHS.c.txt
+
+        @see yojimbo::Log2
+        @see yojimbo::BitsRequired
+     */
 
     template <uint32_t x> struct PopCount
     {
@@ -99,6 +183,13 @@ namespace yojimbo
             result = e & 0x0000003f 
         };
     };
+
+    /**
+        Calculate the log 2 of an unsigned 32 bit integer at compile time.
+
+        @see yojimbo::Log2
+        @see yojimbo::BitsRequired
+     */
 
     template <uint32_t x> struct Log2
     {
@@ -113,12 +204,27 @@ namespace yojimbo
         };
     };
 
+    /**
+        Calculate the number of bits required to serialize an integer value in [min,max] at compile time.
+
+        @see Log2
+        @see PopCount
+     */
+
     template <int64_t min, int64_t max> struct BitsRequired
     {
         static const uint32_t result = ( min == max ) ? 0 : ( Log2<uint32_t(max-min)>::result + 1 );
     };
 
-    #define BITS_REQUIRED( min, max ) BitsRequired<min,max>::result
+    /**
+        Calculate the population count of an unsigned 32 bit integer.
+
+        The population count is the number of bits in the integer set to 1.
+
+        @param x The input integer value.
+
+        @returns The number of bits set to 1 in the input value.
+     */
 
     inline uint32_t popcount( uint32_t x )
     {
@@ -135,14 +241,13 @@ namespace yojimbo
 #endif // #ifdef __GNUC__
     }
 
-#ifdef __GNUC__
+    /**
+        Calculate the log base 2 of an unsigned 32 bit integer.
+    
+        @param x The input integer value.
 
-    inline int bits_required( uint32_t min, uint32_t max )
-    {
-        return 32 - __builtin_clz( max - min );
-    }
-
-#else // #ifdef __GNUC__
+        @returns The log base 2 of the input.
+     */
 
     inline uint32_t log2( uint32_t x )
     {
@@ -155,14 +260,25 @@ namespace yojimbo
         return popcount( f );
     }
 
+    /**
+        Calculate the number of bits required to serialize an integer in range [min,max].
+
+        @param min The minimum value.
+        @param max The maximum value.
+
+        @returns The number of bits required to serialize the integer.
+     */
+
     inline int bits_required( uint32_t min, uint32_t max )
     {
+#ifdef __GNUC__
+        return 32 - __builtin_clz( max - min );
+#else // #ifdef __GNUC__
         return ( min == max ) ? 0 : log2( max - min ) + 1;
+#endif // #ifdef __GNUC__
     }
 
-#endif // #ifdef __GNUC__
-
-    inline uint32_t bswap( uint64_t value )
+    inline uint64_t bswap( uint64_t value )
     {
 #ifdef __GNUC__
         return __builtin_bswap64( value );
