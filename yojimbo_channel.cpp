@@ -695,6 +695,8 @@ namespace yojimbo
                 return messageBits;
             }
         }
+
+		return 0;
     }
 
     bool ReliableOrderedChannel::HasMessagesToSend() const
