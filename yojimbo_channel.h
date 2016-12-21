@@ -396,7 +396,7 @@ namespace yojimbo
         /**
             Reliable ordered channel destructor.
 
-			IMPORTANT: Any messages still in send or receive queues will be released.
+            Any messages still in the send or receive queues will be released.
          */
 
         ~ReliableOrderedChannel();
@@ -634,7 +634,7 @@ namespace yojimbo
         /**
             Unreliable unordered channel destructor.
 
-            IMPORTANT: Any messages still in send or receive queues will be released.
+            Any messages still in the send or receive queues will be released.
          */
 
         ~UnreliableUnorderedChannel();
