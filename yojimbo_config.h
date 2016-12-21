@@ -187,7 +187,7 @@ namespace yojimbo
     };
 
     /** 
-        Configures connection properties and the set of channels used for sending and receiving messages.
+        Configures connection properties and the set of channels for sending and receiving messages.
         
         Specifies the maximum packet size to generate, and the number of message channels, and the per-channel configuration data. See ChannelConfig for details.
         
