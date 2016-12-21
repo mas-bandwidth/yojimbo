@@ -155,8 +155,8 @@ namespace yojimbo
         for ( uint32_t i = 0; i < length; ++i )
         {
             hash += data[i];
-            hash += (hash << 10);
-            hash ^= (hash >> 6);
+            hash += ( hash << 10 );
+            hash ^= ( hash >> 6 );
         }
         return hash;
     } 
@@ -170,8 +170,8 @@ namespace yojimbo
             if ( ( c >= 'a' ) && ( c <= 'z' ) ) 
                 c = ( c - 'a' ) + 'A';
             hash += c;
-            hash += (hash << 10);
-            hash ^= (hash >> 6);
+            hash += ( hash << 10 );
+            hash ^= ( hash >> 6 );
         }
         return hash;
     }

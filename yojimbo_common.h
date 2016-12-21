@@ -445,29 +445,167 @@ namespace yojimbo
         return ( n >> 1 ) ^ ( -int32_t( n & 1 ) );
     }
 
+    /** 
+        Compresses a 64 bit packet sequence number into a variable number of bytes.
+
+        Format is [prefix byte] [sequence bytes...].
+
+        Algorithm: Bit n in the prefix byte is set if byte n+1 in the sequence is non-zero. 
+
+        Byte 0 of the sequence number is always sent. This leaves the top bit of the prefix byte free, which is used to distinguish encrypted vs. non-encrypted packets in the wire format.
+
+        @param sequence The input sequence number.
+        @param prefix_byte The prefix byte that describes the encoding of the sequence number.
+        @param num_sequence_bytes The number of sequence bytes written in [1,8].
+        @param sequence_bytes The data containing the sequence bytes. Must be at least 8 bytes long.
+     */
+
     void compress_packet_sequence( uint64_t sequence, uint8_t & prefix_byte, int & num_sequence_bytes, uint8_t * sequence_bytes );
+
+    /**
+        Get the number of sequence bytes to read for a prefix byte.
+
+        This is used to decode a packet and its 64 bit sequence number when it is received.
+
+        @param prefix_byte The prefix byte that describes the sequence bytes that follow in the packet.
+
+        @returns The number of sequence number bytes to read.
+
+        @see yojimbo::compress_packet_sequence.
+     */
 
     int get_packet_sequence_bytes( uint8_t prefix_byte );
 
+    /**
+        Decompress the packet sequence number from the variable length encoding.
+    
+        @param prefix_byte The prefix byte. This is the first byte of the packet in the wire format.
+        @param sequence_bytes Pointer to the variable length sequence bytes to decompress.
+
+        @returns The 64bit packet sequence number. This is used as the nonce for packet encryption.
+     */
+
     uint64_t decompress_packet_sequence( uint8_t prefix_byte, const uint8_t * sequence_bytes );
 
-    uint32_t calculate_crc32( const uint8_t *buffer, size_t length, uint32_t crc32 = 0 );
+    /**
+        Calculate the CRC32 of a buffer.
+
+        IMPORTANT: This is only used as a rudimentary check for packets. Actual signature check for encrypted packets is done via libsodium.
+
+        @param buffer The input buffer.
+        @param length The length of the buffer (bytes).
+        @param crc32 The previous crc32 result, for concatenating multiple buffers into one CRC32 (optional).
+
+        @returns The CRC32 of the packet buffer.
+     */
+
+    uint32_t calculate_crc32( const uint8_t * buffer, size_t length, uint32_t crc32 = 0 );
+
+    /**
+        Hash a block of data.
+
+        @param data The input data.
+        @param length The length of the data (bytes).
+        @param hash The previous hash result, to chain together multiple hashes (optional).
+
+        @returns A hash of the input data.
+     */
 
     uint32_t hash_data( const uint8_t * data, uint32_t length, uint32_t hash );
 
+    /**
+        Hash a string.
+
+        IMPORTANT: The hash is case insensitive.
+
+        @param string The input string. Must be null terminated.
+        @param hash The previous hash result, to chain together multiple hashes (optional).
+
+        @returns A hash of the input string (case insensitive).
+     */
+
     uint32_t hash_string( const char string[], uint32_t hash );
+
+    /**
+        Implementation of the 64 bit murmur hash.
+
+        @param key The input value.
+        @param length The length of the key (bytes).
+        @param seed The initial seed for the hash. Used to chain together multiple hash calls.
+
+        @returns A 64 bit hash of the input value.
+     */
 
     uint64_t murmur_hash_64( const void * key, uint32_t length, uint64_t seed );
 
-    void print_bytes( const char * label, const uint8_t * data, int data_bytes );
+    /**
+        Base 64 encode a string.
+    
+        @param input The input string value. Must be null terminated.
+        @param output The output base64 encoded string. Will be null terminated.
+        @param output_size The size of the output buffer (bytes). Must be large enough to store the base 64 encoded string.
+
+        @returns The number of bytes in the base64 encoded string, including terminating null. -1 if the base64 encode failed because the output buffer was too small.
+     */
 
     int base64_encode_string( const char * input, char * output, int output_size );
 
+    /**
+        Base 64 decode a string.
+
+        @param input The base64 encoded string.
+        @param output The decoded string. Guaranteed to be null terminated, even if the base64 is maliciously encoded.
+        @param output_size The size of the output buffer (bytes).
+
+        @returns The number of bytes in the decoded string, including terminating null. -1 if the base64 decode failed.
+     */
+
     int base64_decode_string( const char * input, char * output, int output_size );
+
+    /**
+        Base 64 encode a block of data.
+
+        @param input The data to encode.
+        @param input_length The length of the input data (bytes).
+        @param output The output base64 encoded string. Will be null terminated.
+        @param output_size The size of the output buffer. Must be large enough to store the base 64 encoded string.
+
+        @returns The number of bytes in the base64 encoded string, including terminating null. -1 if the base64 encode failed because the output buffer was too small.
+     */
 
     int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size );
 
+    /**
+        Base 64 decode a block of data.
+
+        @param input The base 64 string to decode. Must be a null terminated string.
+        @param output The output data. Will *not* be null terminated.
+        @param output_size The size of the output buffer. Must be large enough to store the decoded data.
+
+        @returns The number of bytes of decoded data. -1 if the base64 decode failed.
+     */
+
     int base64_decode_data( const char * input, uint8_t * output, int output_size );
+
+    /**
+        Print bytes with a label. 
+
+        Useful for printing out packets, encryption keys, nonce etc.
+
+        @param label The label to print out before the bytes.
+        @param data The data to print out to stdout.
+        @param data_bytes The number of bytes of data to print.
+     */
+
+    void print_bytes( const char * label, const uint8_t * data, int data_bytes );
+
+    /**
+        Debug printf used for spammy logs. 
+
+        Off by default. You can enable these logs by setting \#define YOJIMBO_DEBUG_SPAM 1 in yojimbo_config.h
+
+        This is very useful for debugging things, like breakages in the client/server connection protocol, weird bugs and so on. My last resort!
+     */
 
     void debug_printf( const char * format, ... );
 }
