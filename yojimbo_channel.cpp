@@ -140,7 +140,7 @@ namespace yojimbo
                         return false;
                     }
 
-                    messages[i]->AssignId( messageIds[i] );
+                    messages[i]->SetId( messageIds[i] );
                 }
 
                 assert( messages[i] );
@@ -598,7 +598,7 @@ namespace yojimbo
             return;
         }
 
-        message->AssignId( m_sendMessageId );
+        message->SetId( m_sendMessageId );
 
         MessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
 
@@ -1194,7 +1194,7 @@ namespace yojimbo
 
                     blockMessage->AttachBlock( m_messageFactory->GetAllocator(), blockData, m_receiveBlock->blockSize );
 
-                    blockMessage->AssignId( messageId );
+                    blockMessage->SetId( messageId );
 
                     MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
 
@@ -1413,7 +1413,7 @@ namespace yojimbo
 
             assert( message );  
 
-            message->AssignId( packetSequence );
+            message->SetId( packetSequence );
 
             if ( !m_messageReceiveQueue->IsFull() )
             {
