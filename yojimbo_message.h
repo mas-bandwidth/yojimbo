@@ -447,7 +447,7 @@ namespace yojimbo
         /**
             Create a message by type.
 
-            Messages returned from this function have one reference added to them. When you are finished with the message, pass the message to MessageFactory::Release.
+            Messages returned from this function have one reference added to them. When you are finished with the message, pass it to MessageFactory::Release.
 
             @param type The message type in [0,numTypes-1].
 
