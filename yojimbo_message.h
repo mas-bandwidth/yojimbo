@@ -77,7 +77,7 @@ namespace yojimbo
         /**
             Message constructor.
 
-            You shouldn't call this directly, use a message factory instead.
+            Don't call this directly, use a message factory instead.
 
             @param blockMessage 1 if this is a block message, 0 otherwise.
 
@@ -183,7 +183,7 @@ namespace yojimbo
 
             Called by the message factory after it creates a message.
 
-            @param The message type.
+            @param type The message type.
          */
 
         void SetType( int type ) { m_type = type; }
@@ -209,7 +209,7 @@ namespace yojimbo
         /**
             Message destructor.
 
-            Protected because you aren't supposed to create/delete messages directly. Use MessageFactory::Release instead.
+            Protected because you aren't supposed delete messages directly because they are reference counted. Use MessageFactory::Release instead.
 
             @see MessageFactory::Release
          */
@@ -254,7 +254,7 @@ namespace yojimbo
         /**
             Block message constructor.
 
-            You shouldn't call this directly, use a message factory instead.
+            Don't call this directly, use a message factory instead.
 
             @see MessageFactory::Create
          */
@@ -366,10 +366,6 @@ namespace yojimbo
 
     /**
         Message factory error level.
-
-        If the client sees its (one) message factory in an error state, it disconnects from the server.
-
-        If the server seems a client message factory in error state, the client that owns it is disconnected.
      */
 
     enum MessageFactoryError
@@ -378,17 +374,40 @@ namespace yojimbo
         MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,                       ///< Failed to allocate a message. Typically this means we ran out of memory on the allocator backing the message factory.
     };
 
+    /**
+        Defines the set of message types that can be created.
+
+        You can derive a message factory yourself to create your own message types, or you can use these helper macros to do it for you:
+
+            YOJIMBO_MESSAGE_FACTORY_START
+            YOJIMBO_DECLARE_MESSAGE_TYPE
+            YOJIMBO_MESSAGE_FACTORY_FINISH
+
+        See tests/shared.h for an example showing how to use the macros.
+     */
+
     class MessageFactory
     {        
         #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-        std::map<void*,int> allocated_messages;
+        std::map<void*,int> allocated_messages;                                 ///< The set of allocated messages for this factory. Used to track dowm message leaks.
         #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
-        Allocator * m_allocator;
-        int m_numTypes;
-        int m_error;
+        Allocator * m_allocator;                                                ///< The allocator used to create messages.
+
+        int m_numTypes;                                                         ///< The number of message types.
+        
+        int m_error;                                                            ///< The message factory error level.
 
     public:
+
+        /**
+            Message factory allocator.
+
+            Pass in the number of message types for the message factory from the derived class.
+
+            @param allocator The allocator used to create messages.
+            @param numTypes The number of message types. Valid types are in [0,numTypes-1].
+         */
 
         MessageFactory( Allocator & allocator, int numTypes )
         {
@@ -396,6 +415,12 @@ namespace yojimbo
             m_numTypes = numTypes;
             m_error = MESSAGE_FACTORY_ERROR_NONE;
         }
+
+        /**
+            Message factory destructor.
+
+            Checks for message leaks if YOJIMBO_DEBUG_MESSAGE_LEAKS is defined and not equal to zero. This is on by default in debug build.
+         */
 
         virtual ~MessageFactory()
         {
@@ -419,6 +444,19 @@ namespace yojimbo
             #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
         }
 
+        /**
+            Create a message by type.
+
+            Messages returned from this function have one reference added to them. When you are finished with the message, pass the message to MessageFactory::Release.
+
+            @param type The message type in [0,numTypes-1].
+
+            @returns The allocated message, or NULL if the message could not be allocated. If the message allocation fails, the message factory error level is set to MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE.
+
+            @see MessageFactory::AddRef
+            @see MessageFactory::Release
+         */
+
         Message * Create( int type )
         {
             assert( type >= 0 );
@@ -440,6 +478,15 @@ namespace yojimbo
             return message;
         }
 
+        /**
+            Add a reference to a message.
+
+            @param message The message to add a reference to.
+
+            @see MessageFactory::Create
+            @see MessageFactory::Release
+         */   
+
         void AddRef( Message * message )
         {
             assert( message );
@@ -448,6 +495,15 @@ namespace yojimbo
 
             message->AddRef();
         }
+
+        /**
+            Remove a reference from a message.
+
+            Messages have 1 reference when created. When the reference count reaches 0, they are destroyed.
+
+            @see MessageFactory::Create
+            @see MessageFactory::AddRef
+         */
 
         void Release( Message * message )
         {
@@ -470,10 +526,22 @@ namespace yojimbo
             }
         }
 
+        /**
+            Get the number of message types supported by this message factory.
+
+            @returns The number of message types.
+         */
+
         int GetNumTypes() const
         {
             return m_numTypes;
         }
+
+        /**
+            Get the allocator used to create messages.
+
+            @returns The allocator.
+         */
 
         Allocator & GetAllocator()
         {
@@ -481,10 +549,20 @@ namespace yojimbo
             return *m_allocator;
         }
 
+        /**
+            Get the error level.
+
+            When used with a client or server, an error level on a message factory other than MESSAGE_FACTORY_ERROR_NONE triggers a client disconnect.
+         */
+
         int GetError() const
         {
             return m_error;
         }
+
+        /**
+            Clear the error level back to no error.
+         */
 
         void ClearError()
         {
@@ -493,128 +571,30 @@ namespace yojimbo
 
     protected:
 
-        void SetMessageType( Message * message, int type ) { message->SetType( type ); }
+        /**
+            This method is overridden to create messages by type.
+
+            @param type The type of message to be created.
+
+            @returns The message created. Its reference count is 1.
+         */
 
         virtual Message * CreateInternal( int type ) { (void) type; return NULL; }
-    };
 
-    struct MessageSendQueueEntry
-    {
-        Message * message;
-        double timeLastSent;
-        uint32_t measuredBits : 31;
-        uint32_t block : 1;
-    };
+        /**
+            Set the message type of a message.
 
-    struct MessageSentPacketEntry
-    {
-        double timeSent;
-        uint16_t * messageIds;
-        uint32_t numMessageIds : 16;                 // number of messages in this packet
-        uint32_t acked : 1;                          // 1 if this sent packet has been acked
-        uint64_t block : 1;                          // 1 if this sent packet contains a block fragment
-        uint64_t blockMessageId : 16;                // block id. valid only when sending block.
-        uint64_t blockFragmentId : 16;               // fragment id. valid only when sending block.
-    };
+            Put here because Message::SetMessageType is protected, but we need to be able to call this inside the overridden MessageFactory::CreateInternal method.
+            
+            @param message The message object.
+            @param type The message type to set.
+         */
 
-    struct MessageReceiveQueueEntry
-    {
-        Message * message;
-    };
-
-    struct SendBlockData
-    {
-        SendBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
-        {
-            m_allocator = &allocator;
-            ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
-            blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-            assert( ackedFragment && blockData && fragmentSendTime );
-            Reset();
-        }
-
-        ~SendBlockData()
-        {
-            YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
-            YOJIMBO_FREE( *m_allocator, blockData );
-            YOJIMBO_FREE( *m_allocator, fragmentSendTime );
-        }
-
-        void Reset()
-        {
-            active = false;
-            numFragments = 0;
-            numAckedFragments = 0;
-            blockMessageId = 0;
-            blockSize = 0;
-        }
-
-        bool active;                                                    // true if we are currently sending a block
-        int numFragments;                                               // number of fragments in the current block being sent
-        int numAckedFragments;                                          // number of acked fragments in current block being sent
-        int blockSize;                                                  // send block size in bytes
-        uint16_t blockMessageId;                                        // the message id of the block being sent
-        BitArray * ackedFragment;                                       // has fragment n been received?
-        double * fragmentSendTime;                                      // time fragment was last sent in seconds.
-        uint8_t * blockData;                                            // block data storage as it is received.
-
-    private:
-
-        Allocator * m_allocator;                                        // allocator used to free the data on shutdown
-    
-        SendBlockData( const SendBlockData & other );
-        
-        SendBlockData & operator = ( const SendBlockData & other );
-    };
-
-    struct ReceiveBlockData
-    {
-        ReceiveBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
-        {
-            m_allocator = &allocator;
-            receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-            assert( receivedFragment && blockData );
-            blockMessage = NULL;
-            Reset();
-        }
-
-        ~ReceiveBlockData()
-        {
-            YOJIMBO_DELETE( *m_allocator, BitArray, receivedFragment );
-            YOJIMBO_FREE( *m_allocator, blockData );
-        }
-
-        void Reset()
-        {
-            active = false;
-            numFragments = 0;
-            numReceivedFragments = 0;
-            messageId = 0;
-            messageType = 0;
-            blockSize = 0;
-        }
-
-        bool active;                                                    // true if we are currently receiving a block
-        int numFragments;                                               // number of fragments in this block
-        int numReceivedFragments;                                       // number of fragments received.
-        uint16_t messageId;                                             // message id of block being currently received.
-        int messageType;                                                // message type of the block being received.
-        uint32_t blockSize;                                             // block size in bytes.
-        BitArray * receivedFragment;                                    // has fragment n been received?
-        uint8_t * blockData;                                            // block data for receive
-        BlockMessage * blockMessage;                                    // block message (sent with fragment 0)
-
-    private:
-
-        Allocator * m_allocator;                                        // allocator used to free the data on shutdown
-
-        ReceiveBlockData( const ReceiveBlockData & other );
-        
-        ReceiveBlockData & operator = ( const ReceiveBlockData & other );
+        void SetMessageType( Message * message, int type ) { message->SetType( type ); }
     };
 }
+
+// Helper macros to make it easier to setup message factories for your message types. See tests/shared.h for an example of usage!
 
 #define YOJIMBO_MESSAGE_FACTORY_START( factory_class, base_factory_class, num_message_types )                                           \
                                                                                                                                         \
@@ -634,20 +614,20 @@ namespace yojimbo
             {                                                                                                                           \
 
 
-#define YOJIMBO_DECLARE_MESSAGE_TYPE( message_type, message_class )                                                 \
-                                                                                                                    \
-                case message_type:                                                                                  \
-                    message = YOJIMBO_NEW( allocator, message_class );                                              \
-                    if ( !message )                                                                                 \
-                        return NULL;                                                                                \
-                    SetMessageType( message, message_type );                                                        \
+#define YOJIMBO_DECLARE_MESSAGE_TYPE( message_type, message_class )                                                                     \
+                                                                                                                                        \
+                case message_type:                                                                                                      \
+                    message = YOJIMBO_NEW( allocator, message_class );                                                                  \
+                    if ( !message )                                                                                                     \
+                        return NULL;                                                                                                    \
+                    SetMessageType( message, message_type );                                                                            \
                     return message;
 
-#define YOJIMBO_MESSAGE_FACTORY_FINISH()                                                                            \
-                                                                                                                    \
-                default: return NULL;                                                                               \
-            }                                                                                                       \
-        }                                                                                                           \
+#define YOJIMBO_MESSAGE_FACTORY_FINISH()                                                                                                \
+                                                                                                                                        \
+                default: return NULL;                                                                                                   \
+            }                                                                                                                           \
+        }                                                                                                                               \
     };
 
 #endif

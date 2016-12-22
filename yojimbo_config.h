@@ -73,7 +73,7 @@
 
 #define YOJIMBO_SERIALIZE_CHECKS                    1
 
-#if DEBUG
+#ifndef NDEBUG
 
 #define YOJIMBO_DEBUG_MEMORY_LEAKS                  1
 
@@ -83,7 +83,7 @@
 
 #define YOJIMBO_VALIDATE_PACKET_BUDGET              1
 
-#endif // #if DEBUG
+#endif // #ifndef NDEBUG
 
 #define YOJIMBO_DEBUG_SPAM                          0
 
