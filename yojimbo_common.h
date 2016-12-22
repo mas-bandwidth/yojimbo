@@ -162,7 +162,7 @@ namespace yojimbo
     }
 
     /**
-        Calculate the population count of an unsigned 32 bit integer at compile time.
+        Calculates the population count of an unsigned 32 bit integer at compile time.
 
         Population count is the number of bits in the integer that set to 1.
 
@@ -185,7 +185,7 @@ namespace yojimbo
     };
 
     /**
-        Calculate the log 2 of an unsigned 32 bit integer at compile time.
+        Calculates the log 2 of an unsigned 32 bit integer at compile time.
 
         @see yojimbo::Log2
         @see yojimbo::BitsRequired
@@ -205,7 +205,7 @@ namespace yojimbo
     };
 
     /**
-        Calculate the number of bits required to serialize an integer value in [min,max] at compile time.
+        Calculates the number of bits required to serialize an integer value in [min,max] at compile time.
 
         @see Log2
         @see PopCount
@@ -217,7 +217,7 @@ namespace yojimbo
     };
 
     /**
-        Calculate the population count of an unsigned 32 bit integer.
+        Calculates the population count of an unsigned 32 bit integer.
 
         The population count is the number of bits in the integer set to 1.
 
@@ -242,7 +242,7 @@ namespace yojimbo
     }
 
     /**
-        Calculate the log base 2 of an unsigned 32 bit integer.
+        Calculates the log base 2 of an unsigned 32 bit integer.
     
         @param x The input integer value.
 
@@ -261,7 +261,7 @@ namespace yojimbo
     }
 
     /**
-        Calculate the number of bits required to serialize an integer in range [min,max].
+        Calculates the number of bits required to serialize an integer in range [min,max].
 
         @param min The minimum value.
         @param max The maximum value.
@@ -488,7 +488,7 @@ namespace yojimbo
     uint64_t decompress_packet_sequence( uint8_t prefix_byte, const uint8_t * sequence_bytes );
 
     /**
-        Calculate the CRC32 of a buffer.
+        Calculates the CRC32 of a buffer.
 
         IMPORTANT: This is only used as a rudimentary check for packets. Actual signature check for encrypted packets is done via libsodium.
 

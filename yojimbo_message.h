@@ -37,6 +37,33 @@
 
 namespace yojimbo
 {
+    /**
+        A message is a reference counted object that knows how to serialize itself to and from a bitstream.
+
+        The typical usage is to create your own set of message classes by inheriting from this class (or BlockMessage, if you want to attach data blocks to your message).
+
+        Then you setup an enum of all your message types, and derive a message factory class to create message instances by type. The set of messages must be known at compile time. 
+
+        There are macros to help make declaring the message factory painless:
+
+            YOJIMBO_MESSAGE_FACTORY_START
+            YOJIMBO_DECLARE_MESSAGE_TYPE
+            YOJIMBO_MESSAGE_FACTORY_FINISH
+
+        Once you have a message factory, it is declared inside your client and server classes, which overrides Client::CreateMessageFactory and Server::CreateMessageFactory methods (each client has their own message factory on the server, for security reasons).
+
+        Please look at tests/shared.h for an example showing how to set up messages and a message factory, and how to configure the message factory on the client and server with this macro:
+        
+            YOJIMBO_MESSAGE_FACTORY
+
+        @see BlockMessage
+        @see MessageFactory
+        @see ClientServerConfig
+        @see Connection
+        @see ConnectionConfig
+        @see ChannelConfig
+     */
+
     class Message : public Serializable
     {
     public:
@@ -135,7 +162,7 @@ namespace yojimbo
             return m_blockSize;
         }
 
-        template <typename Stream> bool Serialize( Stream & /*stream*/ ) { return true; }
+        template <typename Stream> bool Serialize( Stream & stream ) { (void) stream; return true; }
 
         YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
 
@@ -271,7 +298,7 @@ namespace yojimbo
 
         void SetMessageType( Message * message, int type ) { message->SetType( type ); }
 
-        virtual Message * CreateInternal( int /*type*/ ) { return NULL; }
+        virtual Message * CreateInternal( int type ) { (void) type; return NULL; }
     };
 
     struct MessageSendQueueEntry

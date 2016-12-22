@@ -125,11 +125,11 @@ namespace yojimbo
     };
 
     /** 
-        Maps addresses to transport contexts so each client on the server has its own set of resources.
+        Maps addresses to transport contexts so each client on the server can have its own set of resources.
 
         Typically, one context mapping is added to the transport per-connected client, allowing the server to silo each client to its own set of resources, eliminating the risk of malicious clients depleting shared resources on the server.
 
-        This is the implementation class for the Transport::AddContextMapping, Transport::RemoveContextMapping and Transport::ResetContextMappings set of functions. It allows multiple transport implementations to reuse the same context mappping implementation.
+        This is the implementation class for the Transport::AddContextMapping, Transport::RemoveContextMapping and Transport::ResetContextMappings set of functions. It allows different transport implementations to reuse the same context mappping implementation.
 
         @see TransportContext
         @see Transport::AddContextMapping
