@@ -588,10 +588,10 @@ namespace yojimbo
         /**
             A message in the send queue of a reliable-ordered channel.
 
-            Messages stay into the send queue until acked and each message is acked individually. This means there can be "holes" in the message send queue.
+            Messages stay into the send queue until acked. Each message is acked individually, so there can be "holes" in the message send queue.
          */
 
-        struct SendQueueEntry
+        struct MessageSendQueueEntry
         {
             Message * message;                                                          ///< Pointer to the message. When inserted in the send queue the message has one reference. It is released when the message is acked and removed from the send queue.
             double timeLastSent;                                                        ///< The time the message was last sent. Used to implement ChannelConfig::messageResendTime.
@@ -600,7 +600,16 @@ namespace yojimbo
         };
 
         /**
-            Used by the reliable-ordered channel to map packet level acks to messages and fragments.
+            A message in the receive queue of a reliable-ordered channel.
+         */
+
+        struct MessageReceiveQueueEntry
+        {
+            Message * message;                                                          ///< The message pointer. Has at a reference count of at least 1 while in the receive queue. Ownership of the message is passed back to the caller when the message is dequeued.
+        };
+
+        /**
+            Maps packet level acks to messages and fragments for the reliable-ordered channel.
          */
 
         struct SentPacketEntry
@@ -614,16 +623,7 @@ namespace yojimbo
             uint64_t blockFragmentId : 16;                                              ///< The block fragment id. Valid only if "block" is 1.
         };
 
-        /**
-            A message in the receive queue of a reliable-ordered channel.
-         */
-
-        struct ReceiveQueueEntry
-        {
-            Message * message;                                                          ///< The message pointer. Has at a reference count of at least 1 while in the receive queue. Ownership of the message is passed back to the caller when the message is dequeued.
-        };
-
-        /**
+		/**
             Internal state for a block being sent across the reliable ordered channel.
             
             Stores the block data and tracks which fragments have been acked. The block send completes when all fragments have been acked.
@@ -737,9 +737,9 @@ namespace yojimbo
         uint16_t m_sendMessageId;                                                       ///< Id of the next message to be added to the send queue.
         uint16_t m_receiveMessageId;                                                    ///< Id of the next message to be added to the receive queue.
         uint16_t m_oldestUnackedMessageId;                                              ///< Id of the oldest unacked message in the send queue.
-        SequenceBuffer<SendQueueEntry> * m_messageSendQueue;							///< Message send queue.
-		SequenceBuffer<ReceiveQueueEntry> * m_messageReceiveQueue;						///< Message receive queue.
-        SequenceBuffer<SentPacketEntry> * m_sentPackets;								///< Stores information per sent connection packet about messages and block data included in each packet. Used to walk from connection packet level acks to message and data block fragment level acks.
+        SequenceBuffer<SentPacketEntry> * m_sentPackets;                                ///< Stores information per sent connection packet about messages and block data included in each packet. Used to walk from connection packet level acks to message and data block fragment level acks.
+        SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;						///< Message send queue.
+		SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               ///< Message receive queue.
         uint16_t * m_sentPacketMessageIds;                                              ///< Array of n message ids per sent connection packet. Allows the maximum number of messages per-packet to be allocated dynamically.
         SendBlockData * m_sendBlock;                                                    ///< Data about the block being currently sent.
         ReceiveBlockData * m_receiveBlock;                                              ///< Data about the block being currently received.

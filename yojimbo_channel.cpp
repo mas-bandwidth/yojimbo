@@ -480,9 +480,9 @@ namespace yojimbo
 
         m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<SentPacketEntry>, *m_allocator, m_config.sentPacketBufferSize );
         
-        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<SendQueueEntry>, *m_allocator, m_config.sendQueueSize );
+        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.sendQueueSize );
         
-        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ReceiveQueueEntry>, *m_allocator, m_config.receiveQueueSize );
+        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.receiveQueueSize );
         
         m_sentPacketMessageIds = (uint16_t*) YOJIMBO_ALLOCATE( *m_allocator, sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.sendQueueSize );
 
@@ -508,8 +508,8 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, SendBlockData, m_sendBlock );
         YOJIMBO_DELETE( *m_allocator, ReceiveBlockData, m_receiveBlock );
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<SentPacketEntry>, m_sentPackets );
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<SendQueueEntry>, m_messageSendQueue );
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ReceiveQueueEntry>, m_messageReceiveQueue );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, m_messageSendQueue );
+        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, m_messageReceiveQueue );
         
         YOJIMBO_FREE( *m_allocator, m_sentPacketMessageIds );
 
@@ -528,14 +528,14 @@ namespace yojimbo
 
         for ( int i = 0; i < m_messageSendQueue->GetSize(); ++i )
         {
-            SendQueueEntry * entry = m_messageSendQueue->GetAtIndex( i );
+            MessageSendQueueEntry * entry = m_messageSendQueue->GetAtIndex( i );
             if ( entry && entry->message )
                 m_messageFactory->Release( entry->message );
         }
 
         for ( int i = 0; i < m_messageReceiveQueue->GetSize(); ++i )
         {
-            ReceiveQueueEntry * entry = m_messageReceiveQueue->GetAtIndex( i );
+            MessageReceiveQueueEntry * entry = m_messageReceiveQueue->GetAtIndex( i );
             if ( entry && entry->message )
                 m_messageFactory->Release( entry->message );
         }
@@ -600,7 +600,7 @@ namespace yojimbo
 
         message->SetId( m_sendMessageId );
 
-        SendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
+        MessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
 
         assert( entry );
 
@@ -631,7 +631,7 @@ namespace yojimbo
         if ( GetError() != CHANNEL_ERROR_NONE )
             return NULL;
 
-        ReceiveQueueEntry * entry = m_messageReceiveQueue->Find( m_receiveMessageId );
+        MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Find( m_receiveMessageId );
         if ( !entry )
             return NULL;
 
@@ -735,7 +735,7 @@ namespace yojimbo
 
             uint16_t messageId = m_oldestUnackedMessageId + i;
 
-            SendQueueEntry * entry = m_messageSendQueue->Find( messageId );
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
 
             if ( !entry )
                 continue;
@@ -797,7 +797,7 @@ namespace yojimbo
 
         for ( int i = 0; i < numMessageIds; ++i )
         {
-            SendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
             assert( entry );
             packetData.message.messages[i] = entry->message;
             m_messageFactory->AddRef( packetData.message.messages[i] );
@@ -849,7 +849,7 @@ namespace yojimbo
             if ( m_messageReceiveQueue->Find( messageId ) )
                 continue;
 
-            ReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+            MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
 
             entry->message = message;
 
@@ -893,7 +893,7 @@ namespace yojimbo
         {
             const uint16_t messageId = sentPacketEntry->messageIds[i];
 
-            SendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
+            MessageSendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
             
             if ( sendQueueEntry )
             {
@@ -923,7 +923,7 @@ namespace yojimbo
                 {
                     m_sendBlock->active = false;
 
-                    SendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
+                    MessageSendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
 
                     assert( sendQueueEntry );
 
@@ -946,7 +946,7 @@ namespace yojimbo
             if ( m_oldestUnackedMessageId == stopMessageId )
                 break;
 
-            SendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
             if ( entry )
                 break;
            
@@ -960,14 +960,14 @@ namespace yojimbo
     {
         assert( HasMessagesToSend() );
 
-        SendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+        MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
 
         return entry ? entry->block : false;
     }
 
     uint8_t * ReliableOrderedChannel::GetFragmentToSend( uint16_t & messageId, uint16_t & fragmentId, int & fragmentBytes, int & numFragments, int & messageType )
     {
-        SendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+        MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
 
         assert( entry );
         assert( entry->block );
@@ -1063,7 +1063,7 @@ namespace yojimbo
 
         if ( fragmentId == 0 )
         {
-            SendQueueEntry * entry = m_messageSendQueue->Find( packetData.block.messageId );
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( packetData.block.messageId );
 
             assert( entry );
             assert( entry->message );
@@ -1196,7 +1196,7 @@ namespace yojimbo
 
                     blockMessage->SetId( messageId );
 
-                    ReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+                    MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
 
                     assert( entry );
 
