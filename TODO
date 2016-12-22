@@ -10,9 +10,13 @@ DONE
 
         BlockMessage
 
-TODO
-
         MessageFactory
+
+        Document the helper structs used in reliable ordered message (moved back to yojimbo_channel.h)
+
+        Maybe move them inside the reliable-ordered message class? They are really internal implementation classes... Yep. cleaned it up a bit.
+
+TODO
 
         Packet
 

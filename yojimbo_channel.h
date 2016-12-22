@@ -366,129 +366,6 @@ namespace yojimbo
 		uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
     };
 
-    // ---------------------------------------------
-
-    // todo: document these
-
-    struct MessageSendQueueEntry
-    {
-        Message * message;
-        double timeLastSent;
-        uint32_t measuredBits : 31;
-        uint32_t block : 1;
-    };
-
-    struct MessageSentPacketEntry
-    {
-        double timeSent;
-        uint16_t * messageIds;
-        uint32_t numMessageIds : 16;                 // number of messages in this packet
-        uint32_t acked : 1;                          // 1 if this sent packet has been acked
-        uint64_t block : 1;                          // 1 if this sent packet contains a block fragment
-        uint64_t blockMessageId : 16;                // block id. valid only when sending block.
-        uint64_t blockFragmentId : 16;               // fragment id. valid only when sending block.
-    };
-
-    struct MessageReceiveQueueEntry
-    {
-        Message * message;
-    };
-
-    struct SendBlockData
-    {
-        SendBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
-        {
-            m_allocator = &allocator;
-            ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
-            blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-            assert( ackedFragment && blockData && fragmentSendTime );
-            Reset();
-        }
-
-        ~SendBlockData()
-        {
-            YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
-            YOJIMBO_FREE( *m_allocator, blockData );
-            YOJIMBO_FREE( *m_allocator, fragmentSendTime );
-        }
-
-        void Reset()
-        {
-            active = false;
-            numFragments = 0;
-            numAckedFragments = 0;
-            blockMessageId = 0;
-            blockSize = 0;
-        }
-
-        bool active;                                                    // true if we are currently sending a block
-        int numFragments;                                               // number of fragments in the current block being sent
-        int numAckedFragments;                                          // number of acked fragments in current block being sent
-        int blockSize;                                                  // send block size in bytes
-        uint16_t blockMessageId;                                        // the message id of the block being sent
-        BitArray * ackedFragment;                                       // has fragment n been received?
-        double * fragmentSendTime;                                      // time fragment was last sent in seconds.
-        uint8_t * blockData;                                            // block data storage as it is received.
-
-    private:
-
-        Allocator * m_allocator;                                        // allocator used to free the data on shutdown
-    
-        SendBlockData( const SendBlockData & other );
-        
-        SendBlockData & operator = ( const SendBlockData & other );
-    };
-
-    struct ReceiveBlockData
-    {
-        ReceiveBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
-        {
-            m_allocator = &allocator;
-            receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
-            blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-            assert( receivedFragment && blockData );
-            blockMessage = NULL;
-            Reset();
-        }
-
-        ~ReceiveBlockData()
-        {
-            YOJIMBO_DELETE( *m_allocator, BitArray, receivedFragment );
-            YOJIMBO_FREE( *m_allocator, blockData );
-        }
-
-        void Reset()
-        {
-            active = false;
-            numFragments = 0;
-            numReceivedFragments = 0;
-            messageId = 0;
-            messageType = 0;
-            blockSize = 0;
-        }
-
-        bool active;                                                    // true if we are currently receiving a block
-        int numFragments;                                               // number of fragments in this block
-        int numReceivedFragments;                                       // number of fragments received.
-        uint16_t messageId;                                             // message id of block being currently received.
-        int messageType;                                                // message type of the block being received.
-        uint32_t blockSize;                                             // block size in bytes.
-        BitArray * receivedFragment;                                    // has fragment n been received?
-        uint8_t * blockData;                                            // block data for receive
-        BlockMessage * blockMessage;                                    // block message (sent with fragment 0)
-
-    private:
-
-        Allocator * m_allocator;                                        // allocator used to free the data on shutdown
-
-        ReceiveBlockData( const ReceiveBlockData & other );
-        
-        ReceiveBlockData & operator = ( const ReceiveBlockData & other );
-    };
-
-    // -----------------------------
-
     /**
         Messages sent across this channel are guaranteed to arrive, and in the order they were sent.
 
@@ -706,24 +583,165 @@ namespace yojimbo
 
         void ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage );
 
+    protected:
+
+        /**
+            A message in the send queue of a reliable-ordered channel.
+
+            Messages stay into the send queue until acked and each message is acked individually. This means there can be "holes" in the message send queue.
+         */
+
+        struct SendQueueEntry
+        {
+            Message * message;                                                          ///< Pointer to the message. When inserted in the send queue the message has one reference. It is released when the message is acked and removed from the send queue.
+            double timeLastSent;                                                        ///< The time the message was last sent. Used to implement ChannelConfig::messageResendTime.
+            uint32_t measuredBits : 31;                                                 ///< The number of bits the message takes up in a bit stream.
+            uint32_t block : 1;                                                         ///< 1 if this is a block message. Block messages are treated differently to regular messages when sent over a reliable-ordered channel.
+        };
+
+        /**
+            Used by the reliable-ordered channel to map packet level acks to messages and fragments.
+         */
+
+        struct SentPacketEntry
+        {
+            double timeSent;                                                            ///< The time the packet was sent. Used to estimate round trip time.
+            uint16_t * messageIds;                                                      ///< Pointer to an array of message ids. Dynamically allocated because the user can configure the maximum number of messages in a packet per-channel with ChannelConfig::maxMessagesPerPacket.
+            uint32_t numMessageIds : 16;                                                ///< The number of message ids in in the array.
+            uint32_t acked : 1;                                                         ///< 1 if this packet has been acked.
+            uint64_t block : 1;                                                         ///< 1 if this packet contains a fragment of a block message.
+            uint64_t blockMessageId : 16;                                               ///< The block message id. Valid only if "block" is 1.
+            uint64_t blockFragmentId : 16;                                              ///< The block fragment id. Valid only if "block" is 1.
+        };
+
+        /**
+            A message in the receive queue of a reliable-ordered channel.
+         */
+
+        struct ReceiveQueueEntry
+        {
+            Message * message;                                                          ///< The message pointer. Has at a reference count of at least 1 while in the receive queue. Ownership of the message is passed back to the caller when the message is dequeued.
+        };
+
+        /**
+            Internal state for a block being sent across the reliable ordered channel.
+            
+            Stores the block data and tracks which fragments have been acked. The block send completes when all fragments have been acked.
+
+            IMPORTANT: Although there can be multiple block messages in the message send and receive queues, only one data block can be in flights over the wire at a time.
+         */
+
+        struct SendBlockData
+        {
+            SendBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
+            {
+                m_allocator = &allocator;
+                ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
+                fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
+                blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
+                assert( ackedFragment && blockData && fragmentSendTime );
+                Reset();
+            }
+
+            ~SendBlockData()
+            {
+                YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
+                YOJIMBO_FREE( *m_allocator, blockData );
+                YOJIMBO_FREE( *m_allocator, fragmentSendTime );
+            }
+
+            void Reset()
+            {
+                active = false;
+                numFragments = 0;
+                numAckedFragments = 0;
+                blockMessageId = 0;
+                blockSize = 0;
+            }
+
+            bool active;                                                                ///< True if we are currently sending a block.
+            int blockSize;                                                              ///< The size of the block (bytes).
+            int numFragments;                                                           ///< Number of fragments in the block being sent.
+            int numAckedFragments;                                                      ///< Number of acked fragments in the block being sent.
+            uint16_t blockMessageId;                                                    ///< The message id the block is attached to.
+            BitArray * ackedFragment;                                                   ///< Has fragment n been received?
+            double * fragmentSendTime;                                                  ///< Last time fragment was sent.
+            uint8_t * blockData;                                                        ///< The block data.
+
+        private:
+
+            Allocator * m_allocator;                                                    ///< Allocator used to create the block data.
+        
+            SendBlockData( const SendBlockData & other );
+            
+            SendBlockData & operator = ( const SendBlockData & other );
+        };
+
+        /**
+            Internal state for a block being received across the reliable ordered channel.
+
+            Stores the fragments received over the network for the block, and completes once all fragments have been received.
+
+            IMPORTANT: Although there can be multiple block messages in the message send and receive queues, only one data block can be in flights over the wire at a time.
+         */
+
+        struct ReceiveBlockData
+        {
+            ReceiveBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
+            {
+                m_allocator = &allocator;
+                receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
+                blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
+                assert( receivedFragment && blockData );
+                blockMessage = NULL;
+                Reset();
+            }
+
+            ~ReceiveBlockData()
+            {
+                YOJIMBO_DELETE( *m_allocator, BitArray, receivedFragment );
+                YOJIMBO_FREE( *m_allocator, blockData );
+            }
+
+            void Reset()
+            {
+                active = false;
+                numFragments = 0;
+                numReceivedFragments = 0;
+                messageId = 0;
+                messageType = 0;
+                blockSize = 0;
+            }
+
+            bool active;                                                                ///< True if we are currently receiving a block.
+            int numFragments;                                                           ///< The number of fragments in this block
+            int numReceivedFragments;                                                   ///< The number of fragments received.
+            uint16_t messageId;                                                         ///< The message id corresponding to the block.
+            int messageType;                                                            ///< Message type of the block being received.
+            uint32_t blockSize;                                                         ///< Block size in bytes.
+            BitArray * receivedFragment;                                                ///< Has fragment n been received?
+            uint8_t * blockData;                                                        ///< Block data for receive.
+            BlockMessage * blockMessage;                                                ///< Block message (sent with fragment 0).
+
+        private:
+
+            Allocator * m_allocator;                                                    ///< Allocator used to free the data on shutdown.
+
+            ReceiveBlockData( const ReceiveBlockData & other );
+            
+            ReceiveBlockData & operator = ( const ReceiveBlockData & other );
+        };
+
     private:
 
         uint16_t m_sendMessageId;                                                       ///< Id of the next message to be added to the send queue.
-
         uint16_t m_receiveMessageId;                                                    ///< Id of the next message to be added to the receive queue.
-
         uint16_t m_oldestUnackedMessageId;                                              ///< Id of the oldest unacked message in the send queue.
-
-        SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;                     ///< Message send queue.
-
-		SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               ///< Message receive queue.
-
-        SequenceBuffer<MessageSentPacketEntry> * m_messageSentPackets;                  ///< Stores information per sent connection packet about messages and block data included in each packet. Used to walk from connection packet level acks to message and data block fragment level acks.
-
+        SequenceBuffer<SendQueueEntry> * m_messageSendQueue;							///< Message send queue.
+		SequenceBuffer<ReceiveQueueEntry> * m_messageReceiveQueue;						///< Message receive queue.
+        SequenceBuffer<SentPacketEntry> * m_sentPackets;								///< Stores information per sent connection packet about messages and block data included in each packet. Used to walk from connection packet level acks to message and data block fragment level acks.
         uint16_t * m_sentPacketMessageIds;                                              ///< Array of n message ids per sent connection packet. Allows the maximum number of messages per-packet to be allocated dynamically.
-
         SendBlockData * m_sendBlock;                                                    ///< Data about the block being currently sent.
-
         ReceiveBlockData * m_receiveBlock;                                              ///< Data about the block being currently received.
 
     private:
@@ -781,8 +799,7 @@ namespace yojimbo
 	protected:
 
         Queue<Message*> * m_messageSendQueue;									        ///< Message send queue.
-
-        Queue<Message*> * m_messageReceiveQueue;								        ///< Message receive queue
+        Queue<Message*> * m_messageReceiveQueue;								        ///< Message receive queue.
 
     private:
 
