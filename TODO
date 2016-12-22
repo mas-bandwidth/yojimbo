@@ -2,13 +2,15 @@ DONE
 
     Document smaller classes:
 
+        Utility functions
+
         Address
 
-TODO
-    
         Message
 
         BlockMessage
+
+TODO
 
         MessageFactory
 
@@ -17,8 +19,6 @@ TODO
         PacketFactory
 
         Allocator
-
-        Utility functions
 
         Packet classes for client/server
 
