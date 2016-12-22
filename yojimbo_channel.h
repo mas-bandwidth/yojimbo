@@ -586,7 +586,7 @@ namespace yojimbo
     protected:
 
         /**
-            A message in the send queue of a reliable-ordered channel.
+            An entry in the send queue of the reliable-ordered channel.
 
             Messages stay into the send queue until acked. Each message is acked individually, so there can be "holes" in the message send queue.
          */
@@ -600,7 +600,7 @@ namespace yojimbo
         };
 
         /**
-            A message in the receive queue of a reliable-ordered channel.
+            An entry in the receive queue of the reliable-ordered channel.
          */
 
         struct MessageReceiveQueueEntry
