@@ -487,6 +487,20 @@ namespace yojimbo
     #define write_int_relative          serialize_int_relative
     #define write_ack_relative          serialize_ack_relative
     #define write_sequence_relative     serialize_sequence_relative
+
+    /**
+        Interface for an object that knows how to read, write and measure how many bits it would take up in a bit stream.
+
+        IMPORTANT: Instead of overridding the serialize virtual methods method directly, use the YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS macro in your derived class to override and redirect them to your templated serialize method.
+
+        This way you can implement read and write for your messages in a single method and the C++ compiler takes care of generating specialized read, write and measure implementations for you.
+
+        See tests/shared.h for some examples of this.
+
+        @see ReadStream
+        @see WriteStream
+        @see MeasureStream
+     */
     
     class Serializable
     {  
@@ -494,12 +508,44 @@ namespace yojimbo
 
         virtual ~Serializable() {}
 
+        /**
+            Virtual serialize function (read).
+
+            Reads the object in from a bitstream.
+
+            @param stream The stream to read from.
+         */
+
         virtual bool SerializeInternal( class ReadStream & stream ) = 0;
+
+        /**
+            Virtual serialize function (write).
+
+            Writes the object to a bitstream.
+
+            @param stream The stream to write to.
+         */
 
         virtual bool SerializeInternal( class WriteStream & stream ) = 0;
 
+        /**
+            Virtual serialize function (measure).
+
+            Quickly measures how many bits the object would take if it were written to a bit stream.
+
+            @param stream The read stream.
+         */
+
         virtual bool SerializeInternal( class MeasureStream & stream ) = 0;
     };
+
+    /**
+        Helper macro to define virtual serialize functions for read, write and measure that call into the templated serialize function.
+
+        This helps avoid writing boilerplate code, which is nice when you have lots of hand coded message types.
+
+        See tests/shared.h for examples of usage.
+     */
 
     #define YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()                                                               \
         bool SerializeInternal( class yojimbo::ReadStream & stream ) { return Serialize( stream ); };           \

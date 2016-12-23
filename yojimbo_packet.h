@@ -39,17 +39,55 @@ namespace yojimbo
 {
     class PacketFactory;
 
+    /**
+        A packet that can be serialized to a bit stream.
+     */
+
     class Packet : public Serializable
     {
     public:        
         
         Packet() : m_packetFactory( NULL ), m_type( 0 ) {}
 
+        /**
+            Destroy the packet.
+
+            Unlike messages, packets are not reference counted. Call this method to destroy the packet. It takes care to call through to the message factory that created the packet for you.
+
+            IMPORTANT: If the packet lives longer than the packet that created it, the packet factory will assert that you have a packet leak its destructor, as a safety feature. Make sure you destroy all packets before cleaning up the packet factory!
+         */
+
         void Destroy();
+
+        /**
+            Checks if the packet is valid. 
+
+            Packet type is clearedh to -1 when a packet is destroyed, to aid with tracking down pointers to already deleted packets.
+
+            @returns True if the packet is valid, false otherwise.
+         */
 
         bool IsValid() const { return m_type >= 0; }
 
+        /**
+            Get the type of the packet.
+
+            Corresponds to the type value passed in to the packet factory when this packet object was created.
+
+            @returns The packet type in [0,numTypes-1] as defined by the packet factory.
+
+            @see PacketFactory::Create
+         */
+
         int GetType() const { return m_type; }
+
+        /**
+            Get the packet factory that was used to create this packet.
+
+            IMPORTANT: The packet factory must remain valid while packets created with it still exist. Make sure you destroy all packets before destroying the message factory that created them.
+
+            @returns The packet factory.
+         */
 
         PacketFactory & GetPacketFactory() { return *m_packetFactory; }
 
@@ -57,17 +95,43 @@ namespace yojimbo
 
         friend class PacketFactory;
 
+        /**
+            Set the type of the packet factory.
+
+            Used internally by the packet factory to set the packet type on the packet object on creation.
+
+            Protected because a bunch of stuff would break if the user were to change the packet type dynamically.
+
+            @param type The packet type.
+         */
+
         void SetType( int type) { m_type = type; }
 
+        /**
+            Set the packet factory.
+
+            Used internally by the packet factory to set its own pointer on packets it creates, so those packets remember this and call back to the packet factory that created them when they are destroyed.
+
+            Protected because everything would break if the user were to modify the packet factory on an object after creation.
+
+            @param packetFactory The packet factory that created this packet.
+         */
+
         void SetPacketFactory( PacketFactory & packetFactory ) { m_packetFactory = &packetFactory; }
+
+        /**
+            Packet destructor.
+
+            Protected because you need to call in to Packet::Destroy to destroy this packet, instead of just deleting it, to make sure it gets cleaned up with the packet factory and allocator that created it.
+         */
 
         virtual ~Packet() { m_packetFactory = NULL; m_type = -1; }
 
     private:
 
-        PacketFactory * m_packetFactory;
+        PacketFactory * m_packetFactory;                                    ///< The factory that was used to create this packet. Used by Packet::Destroy to ensure that the packet is cleaned up by the factory that created it.
 
-        int m_type;
+        int m_type;                                                         ///< The packet type, as defined by the packet factory.
 
         Packet( const Packet & other );
 
