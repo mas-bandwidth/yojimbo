@@ -212,10 +212,14 @@ namespace yojimbo
 
             If any packet fails to allocate, the error level is set to yojimbo::PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET.
 
-
+            @see PacketFactory::ClearError
 		 */
 
         PacketFactoryError GetError() const;
+
+        /**
+            Clears the error level back to none.
+         */
 
         void ClearError();
 
@@ -223,54 +227,109 @@ namespace yojimbo
 
         friend class Packet;
 
+        /**
+            Internal method to destroy a packet called by Packet::Destroy.
+
+            This is done so packets can be destroyed unilaterally, without the user needing to remember which packet factory they need to be destroyed with.
+
+            This is important because the server has one global packet factory (for connection negotiation packets) and one packet factory per-client for security reasons. 
+
+            It would be too much of a burden and too error prone to require the user to look-up the packet factory by client index for packets belonging to client connections.
+
+            @param packet The packet to destroy.
+         */
+
         void DestroyPacket( Packet * packet );
+
+        /**
+            Set the packet type on a packet.
+
+            Called by the packet factory to set the type of packets it has just created in PacketFactory::Create.
+
+            @param packet The packet to set the type on.
+            @param type The packet type to be set.
+         */
 
         void SetPacketType( Packet * packet, int type );
 
+        /**
+            Set the packet factory on a packet.
+
+            Called by packet factory to set the packet factory on packets it has created in PacketFactory::Create, so those packets know how to destroy themselves.
+
+            @param packet The packet to set the this packet factory on.
+         */
+
         void SetPacketFactory( Packet * packet );
+
+        /**
+            Get the allocator used to create packets.
+
+            @returns The allocator.
+         */
 
         Allocator & GetAllocator();
 
     protected:
+
+        /**
+            Internal function used to create packets.
+
+            This is typically overridden using helper macros instead of doing it manually.
+
+            See:
+
+                YOJIMBO_PACKET_FACTORY_START
+                YOJIMBO_DECLARE_PACKET_TYPE
+                YOJIMBO_PACKET_FACTORY_FINISH
+
+            See tests/shared.h for an example of usage.
+
+            @param type The type of packet to create.
+
+            @returns The packet created, or NULL if no packet could be created (eg. the allocator is out of memory).
+         */
 
         virtual Packet * CreatePacket( int type ) { (void) type; return NULL; }
 
     private:
 
 #if YOJIMBO_DEBUG_PACKET_LEAKS
-        std::map<void*,int> allocated_packets;
+        std::map<void*,int> allocated_packets;                                          ///< Tracks packets created by this packet factory. Used in debug builds to check that all packets created by the factory are destroyed before the packet factory is destroyed.
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
 
-        Allocator * m_allocator;
+        Allocator * m_allocator;                                                        ///< The allocator used to create and destroy packet objects.
 
-        PacketFactoryError m_error;
+        PacketFactoryError m_error;                                                     ///< The error level. Used to track failed packet allocations and take action.
 
-        int m_numPacketTypes;
+        int m_numPacketTypes;                                                           ///< The number of packet types that can be created with this factory. Valid packet types are in range [0,m_numPacketTypes-1].
         
-		int m_numAllocatedPackets;
-
         PacketFactory( const PacketFactory & other );
         
         PacketFactory & operator = ( const PacketFactory & other );
     };
 
+    /**
+        Information passed into low-level functions to read and write packets.
+     */
+
     struct PacketReadWriteInfo
     {
-        bool rawFormat;                             // if true packets are written in "raw" format without crc32 (useful for encrypted packets).
+        bool rawFormat;                                                                 ///< If true then packets are written in "raw" format without crc32 (useful for encrypted packets which have packet signature elsewhere).
 
-        int prefixBytes;                            // prefix this number of bytes when reading and writing packets. stick your own data there.
+        int prefixBytes;                                                                ///< Prefix this number of bytes when reading and writing packets. Used for the variable length sequence number at the start of encrypted packets.
 
-        uint32_t protocolId;                        // protocol id that distinguishes your protocol from other packets sent over UDP.
+        uint32_t protocolId;                                                            ///< Protocol id that distinguishes your protocol from other packets sent over UDP.
 
-        Allocator * streamAllocator;                // this allocator is passed in to the stream and used for dynamic allocations, typically in serialize read. required.
+        Allocator * streamAllocator;                                                    ///< This allocator is passed in to the stream and used for dynamic allocations while reading and writing packets.
 
-        PacketFactory * packetFactory;              // create packets and determine information about packet types. required.
+        PacketFactory * packetFactory;                                                  ///< Packet factory defines the set of packets that can be read. Also called to create packet objects when a packet is read from the network.
 
-        const uint8_t * allowedPacketTypes;         // array of allowed packet types. if a packet type is not allowed the serialize read or write will fail.
+        const uint8_t * allowedPacketTypes;                                             ///< Array of allowed packet types. One entry per-packet type in [0,numPacketTypes-1] as defined by the packet factory. If a packet type is not allowed then serialization of that packet will fail. Allows the caller to disable certain packet types dynamically.
 
-        void * context;                             // context for packet serialization (optional, you may pass in NULL)
+        void * context;                                                                 ///< Context for packet serialization. Optional. Pass in NULL if not using it. Set on the stream and accessible during packet serialization via ReadStream::GetContext, WriteStream::GetContext, etc.
 
-        void * userContext;                         // user context for packet serialization (optional, you may pass in NULL)
+        void * userContext;                                                             ///< User context for packet serialization. Optional. Pass in NULL if not using it. Set on the stream and accessible during packet serialization via ReadStream::GetUserContext, WriteStream::GetUserContext, etc.
 
         PacketReadWriteInfo()
         {
@@ -285,10 +344,44 @@ namespace yojimbo
         }
     };
 
+    /**
+        Low-level function to write a packet to a byte buffer.
+
+        The packet is written to the byte buffer in wire format, with CRC32 prefixed to the packet, unless the packet is configured to write in raw format without CRC32.
+
+        Packet encryption is done elsewhere. See PacketProcessor for details.
+
+        @param info Describes how to write the packet.
+        @param packet The packet object to write to the buffer.
+        @param buffer The buffer to write to.
+        @param bufferSize The size of the buffer to write to (bytes). This effectively sets the maximum packet size that can be written.
+
+        @returns The number of bytes written to the buffer.
+
+        @see yojimbo::ReadPacket
+     */
+
     int WritePacket( const PacketReadWriteInfo & info, Packet * packet, uint8_t * buffer, int bufferSize );
+
+    // todo: int errorCode is lame. Make it a specific enum type, so the docs will point to the set of error codes naturally.
+
+    /**
+        Read a packet from a byte buffer.
+
+        Lots of checking is performed. If the packet fails to read for some reason, this function returns NULL. Check the errorCode parameter for the reason why.
+
+        @param info Describing how to read the packet. Should be the same data as when the packet was written, otherwise the packet serialize can desync.
+        @param buffer The packet data read from the network (eg. from recvfrom).
+        @param bufferSize The number of bytes of packet data to read.
+        @param errorCode The error code describing the reason the packet failed to serialize.
+
+        @see yojimbo::WritePacket
+     */
 
     Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, int * errorCode = NULL );
 }
+
+// todo: can I document macros? That would be really helpful. Help me doxygen.
 
 #define YOJIMBO_PACKET_FACTORY_START( factory_class, base_factory_class, num_packet_types )                                         \
                                                                                                                                     \

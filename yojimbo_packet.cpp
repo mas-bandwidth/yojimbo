@@ -246,7 +246,6 @@ cleanup:
     {
         m_error = PACKET_FACTORY_ERROR_NONE;
         m_numPacketTypes = numPacketTypes;
-        m_numAllocatedPackets = 0;
         m_allocator = &allocator;
     }
 
@@ -257,7 +256,7 @@ cleanup:
         {
             assert( false );
             printf( "you leaked packets!\n" );
-            printf( "%d packets leaked\n", m_numAllocatedPackets );
+            printf( "%d packets leaked\n", (int) allocated_packets.size() );
             typedef std::map<void*,int>::iterator itor_type;
             for ( itor_type i = allocated_packets.begin(); i != allocated_packets.end(); ++i ) 
             {
@@ -266,8 +265,6 @@ cleanup:
             exit(1);
         }
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
-
-        assert( m_numAllocatedPackets == 0 );
     }
 
     Packet * PacketFactory::Create( int type )
@@ -288,8 +285,6 @@ cleanup:
         assert( allocated_packets.find( packet ) != allocated_packets.end() );
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
         
-        m_numAllocatedPackets++;
-
         return packet;
     }
 
@@ -303,10 +298,6 @@ cleanup:
         assert( allocated_packets.find( packet ) != allocated_packets.end() );
         allocated_packets.erase( packet );
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
-
-        assert( m_numAllocatedPackets > 0 );
-
-        m_numAllocatedPackets--;
 
         YOJIMBO_DELETE( *m_allocator, Packet, packet );
     }

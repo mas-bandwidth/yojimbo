@@ -2,7 +2,11 @@ WOULD BE NICE
 
     ------------------
 
-    For some reason, Debug_Secure configuration seems to be the default in the generated solution. This is not ideal. It should be Debug instead.
+    Protocol id should probably be extended to 64 bits I think. 
+
+    Also, protocol it should be mapped on top of the private key, so it's active for encrypted packets that don't use the CRC32.
+
+    (Make sure encrypted packets aren't using CRC32 inside the encrypted+signed data, as that is redundant...)
 
     ------------------
 
