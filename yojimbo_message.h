@@ -451,6 +451,8 @@ namespace yojimbo
         /**
             Create a message by type.
 
+            IMPORTANT: Check the message pointer returned by this call. It can be NULL if there is no memory to create a message!
+
             Messages returned from this function have one reference added to them. When you are finished with the message, pass it to MessageFactory::Release.
 
             @param type The message type in [0,numTypes-1].
@@ -466,7 +468,7 @@ namespace yojimbo
             assert( type >= 0 );
             assert( type < m_numTypes );
 
-            Message * message = CreateInternal( type );
+            Message * message = CreateMessage( type );
 
             if ( !message )
             {
@@ -583,12 +585,12 @@ namespace yojimbo
             @returns The message created. Its reference count is 1.
          */
 
-        virtual Message * CreateInternal( int type ) { (void) type; return NULL; }
+        virtual Message * CreateMessage( int type ) { (void) type; return NULL; }
 
         /**
             Set the message type of a message.
 
-            Put here because Message::SetMessageType is protected, but we need to be able to call this inside the overridden MessageFactory::CreateInternal method.
+            Put here because Message::SetMessageType is protected, but we need to be able to call this inside the overridden MessageFactory::CreateMessage method.
             
             @param message The message object.
             @param type The message type to set.
@@ -607,9 +609,9 @@ namespace yojimbo
     public:                                                                                                                             \
         factory_class( yojimbo::Allocator & allocator = yojimbo::GetDefaultAllocator(), int numMessageTypes = num_message_types )       \
          : base_factory_class( allocator, numMessageTypes ) {}                                                                          \
-        yojimbo::Message * CreateInternal( int type )                                                                                   \
+        yojimbo::Message * CreateMessage( int type )                                                                                    \
         {                                                                                                                               \
-            yojimbo::Message * message = base_factory_class::CreateInternal( type );                                                    \
+            yojimbo::Message * message = base_factory_class::CreateMessage( type );                                                     \
             if ( message )                                                                                                              \
                 return message;                                                                                                         \
             yojimbo::Allocator & allocator = GetAllocator();                                                                            \

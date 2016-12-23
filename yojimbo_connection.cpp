@@ -253,7 +253,7 @@ namespace yojimbo
         if ( m_error != CONNECTION_ERROR_NONE )
             return NULL;
 
-        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->CreatePacket( m_connectionConfig.connectionPacketType );
+        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->Create( m_connectionConfig.connectionPacketType );
 
         if ( !packet )
             return NULL;

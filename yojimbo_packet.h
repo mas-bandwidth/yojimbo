@@ -138,26 +138,84 @@ namespace yojimbo
         Packet & operator = ( const Packet & other );
     };
 
+    /**
+        The packet factory error level.
+
+        Any error level set other than PACKET_FACTORY_ERROR_NONE results in the connection being torn down and the client being disconnected.
+
+        @see Connection
+        @see Client
+        @see Server
+     */
+
     enum PacketFactoryError
     {
-        PACKET_FACTORY_ERROR_NONE,
-        PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,
-        PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED
+        PACKET_FACTORY_ERROR_NONE,                                          ///< No error. All is well.
+        PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET,                     ///< Tried to allocate a packet but failed. The allocator backing the packet factory is probably out of memory.
     };
+
+    /**
+        Defines the set of packet types and a function to create packets.
+
+        Packets are not reference counted. They are typically added to send/receive queues, dequeued, processed and then destroyed.
+
+        @see Packet::Destroy
+     */
 
     class PacketFactory
     {        
     public:
 
+        /**
+            The packet factory constructor.
+
+            @param allocator The allocator used to create packets.
+            @param numTypes The number of packet types that can be created with this factory.
+         */
+
         PacketFactory( class Allocator & allocator, int numTypes );
+
+        /**
+            Packet factory destructor.
+
+            IMPORTANT: You must destroy all packets created by this factory before you destroy it. 
+
+            As a safety check, in debug builds the packet factory track packets created and will assert if you don't destroy them all before destroying the factory.
+         */
 
         virtual ~PacketFactory();
 
-        Packet * CreatePacket( int type );
+        /**
+            Create a packet by type.
+
+            IMPORTANT: Check the packet pointer returned by this call. It can be NULL if there is no memory to create a packet!
+
+            @param type The type of packet to create in [0,numTypes-1].
+
+            @returns The packet object created. NULL if packet could not be created. You are responsible for destroying non-NULL packets via Packet::Destroy, or to pass ownership of the packte to some other function like Transport::SendPacket.
+         */
+
+        Packet * Create( int type );
+
+        /**
+            Get the number of packet types that can be created with this factory.
+
+            Packet types that can be created are in [0,numTypes-1].
+
+            @returns The number of packet types.
+         */
 
         int GetNumPacketTypes() const;
 
-        int GetError() const;
+        /**
+            Get the error level of the packet factory.
+
+            If any packet fails to allocate, the error level is set to yojimbo::PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET.
+
+
+		 */
+
+        PacketFactoryError GetError() const;
 
         void ClearError();
 
@@ -175,7 +233,7 @@ namespace yojimbo
 
     protected:
 
-        virtual Packet * CreateInternal( int /*type*/ ) { return NULL; }
+        virtual Packet * CreatePacket( int type ) { (void) type; return NULL; }
 
     private:
 
@@ -185,9 +243,11 @@ namespace yojimbo
 
         Allocator * m_allocator;
 
-        int m_error;
+        PacketFactoryError m_error;
+
         int m_numPacketTypes;
-        int m_numAllocatedPackets;
+        
+		int m_numAllocatedPackets;
 
         PacketFactory( const PacketFactory & other );
         
@@ -237,9 +297,9 @@ namespace yojimbo
     public:                                                                                                                         \
         factory_class( yojimbo::Allocator & allocator = yojimbo::GetDefaultAllocator(), int numPacketTypes = num_packet_types )     \
          : base_factory_class( allocator, numPacketTypes ) {}                                                                       \
-        yojimbo::Packet * CreateInternal( int type )                                                                                \
+        yojimbo::Packet * CreatePacket( int type )																					\
         {                                                                                                                           \
-            yojimbo::Packet * packet = base_factory_class::CreateInternal( type );                                                  \
+            yojimbo::Packet * packet = base_factory_class::CreatePacket( type );													\
             if ( packet )                                                                                                           \
                 return packet;                                                                                                      \
             yojimbo::Allocator & allocator = GetAllocator();                                                                        \

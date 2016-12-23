@@ -337,7 +337,7 @@ namespace yojimbo
 
     Packet * Server::CreateGlobalPacket( int type )
     {
-        return m_globalPacketFactory->CreatePacket( type );
+        return m_globalPacketFactory->Create( type );
     }
 
     Packet * Server::CreateClientPacket( int clientIndex, int type )
@@ -345,7 +345,7 @@ namespace yojimbo
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
         assert( m_clientPacketFactory[clientIndex] );
-        return m_clientPacketFactory[clientIndex]->CreatePacket( type );
+        return m_clientPacketFactory[clientIndex]->Create( type );
     }
 
     void Server::SendPackets()

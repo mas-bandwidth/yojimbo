@@ -301,7 +301,7 @@ namespace yojimbo
     Packet * Client::CreatePacket( int type )
     {
         assert( m_packetFactory );
-        return m_packetFactory ? m_packetFactory->CreatePacket( type ) : NULL;
+        return m_packetFactory ? m_packetFactory->Create( type ) : NULL;
     }
 
     void Client::SendPackets()

@@ -252,7 +252,7 @@ namespace yojimbo
         /**
             Queue a packet to be sent.
 
-            This function transfers ownership of the packet object to the transport. Don't call Packet::Destroy on the packet after you send it with this function, the transport will do that for you automatically.
+            Ownership of the packet object is transferred to the transport. Don't call Packet::Destroy on the packet after you send it with this function, the transport will do that for you automatically.
 
             IMPORTANT: The packet will be sent over a UDP-equivalent network. It may arrive out of order, in duplicate or not at all.
 

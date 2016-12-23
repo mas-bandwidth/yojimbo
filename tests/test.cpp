@@ -386,9 +386,9 @@ void test_packets()
 {
     TestPacketFactory packetFactory;
 
-    TestPacketA * a = (TestPacketA*) packetFactory.CreatePacket( TEST_PACKET_A );
-    TestPacketB * b = (TestPacketB*) packetFactory.CreatePacket( TEST_PACKET_B );
-    TestPacketC * c = (TestPacketC*) packetFactory.CreatePacket( TEST_PACKET_C );
+    TestPacketA * a = (TestPacketA*) packetFactory.Create( TEST_PACKET_A );
+    TestPacketB * b = (TestPacketB*) packetFactory.Create( TEST_PACKET_B );
+    TestPacketC * c = (TestPacketC*) packetFactory.Create( TEST_PACKET_C );
 
     check( a );
     check( b );
@@ -947,7 +947,7 @@ void test_unencrypted_packets()
 
     for ( int i = 0; i < NumIterations; ++i )
     {
-        Packet * sendPacket = packetFactory.CreatePacket( CLIENT_SERVER_PACKET_KEEPALIVE );
+        Packet * sendPacket = packetFactory.Create( CLIENT_SERVER_PACKET_KEEPALIVE );
         check( sendPacket );
         clientTransport.SendPacket( serverAddress, sendPacket, 0, false );
 

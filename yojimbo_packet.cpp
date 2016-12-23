@@ -198,7 +198,7 @@ namespace yojimbo
             }
         }
 
-        Packet * packet = info.packetFactory->CreatePacket( packetType );
+        Packet * packet = info.packetFactory->Create( packetType );
         if ( !packet )
         {
             debug_printf( "create packet type %d failed (read packet)\n", packetType );
@@ -270,12 +270,12 @@ cleanup:
         assert( m_numAllocatedPackets == 0 );
     }
 
-    Packet * PacketFactory::CreatePacket( int type )
+    Packet * PacketFactory::Create( int type )
     {
         assert( type >= 0 );
         assert( type < m_numPacketTypes );
 
-        Packet * packet = CreateInternal( type );
+        Packet * packet = CreatePacket( type );
         
         if ( !packet )
         {
@@ -336,14 +336,13 @@ cleanup:
         return *m_allocator;
     }
 
-    int PacketFactory::GetError() const
+    PacketFactoryError PacketFactory::GetError() const
     {
-        return m_allocator->GetError() ? PACKET_FACTORY_ERROR_ALLOCATOR_IS_EXHAUSTED : m_error;
+        return m_error;
     }
 
     void PacketFactory::ClearError()
     {
-        m_allocator->ClearError();
         m_error = PACKET_FACTORY_ERROR_NONE;
     }
 }

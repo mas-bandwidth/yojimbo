@@ -16,17 +16,17 @@ DONE
 
         Maybe move them inside the reliable-ordered message class? They are really internal implementation classes... Yep. cleaned it up a bit.
 
-TODO
-
         Packet
 
-        PacketFactory
+TODO
 
-        Allocator
+        PacketFactory
 
         Packet classes for client/server
 
         Token support classes and functions
+
+        Allocator
 
         Encryption manager
 
