@@ -51,7 +51,7 @@ namespace yojimbo
         
         uint32_t messageFailedToSerialize : 1;                          ///< Set to 1 if a message for this channel fails to serialized. Used to set CHANNEL_ERROR_FAILED_TO_SERIALIZE on the Channel object.
 
-        /// Data sent when the channel is sending regular messages.
+        /// Data sent when a channel is sending regular messages.
 
         struct MessageData
         {
@@ -59,7 +59,7 @@ namespace yojimbo
             Message ** messages;                                        ///< Array of message pointers (dynamically allocated). The messages in this array have references added, so they must be released when the packet containing this channel data is destroyed.
         };
 
-        /// Data sent when the channel is sending a block message. @see BlockMessage.
+        /// Data sent when a channel is sending a block message. @see BlockMessage.
 
         struct BlockData
         {

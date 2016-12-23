@@ -18,11 +18,11 @@ DONE
 
         Packet
 
-TODO
-
         PacketFactory
 
         Packet classes for client/server
+
+TODO
 
         Token support classes and functions
 
