@@ -30,7 +30,13 @@ TODO
 
         Encryption manager
 
-    What other major bits need to be documented? Stream classes? Serialization macros? Helper macros for packet and message factories?
+        Packet Processor
+
+        Stream classes
+
+    Anything else?
+
+    What other major bits need to be documented? Serialization macros? Helper macros for packet and message factories?
 
     My major concern at this point is that doxygen doesn't seem to allow documentation of macros? But, this would make it really hard to document all the serialize_* functions and how they should be used, and the helper macros.
 
