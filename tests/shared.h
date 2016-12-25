@@ -423,6 +423,10 @@ protected:
                 printf( "ignored connection request from %s. server address not in whitelist\n", addressString );
                 break;
 
+            case SERVER_CONNECTION_REQUEST_IGNORED_PROTOCOL_ID_MISMATCH:
+                printf( "ignored connection request from %s. protocol id mismatch\n", addressString );
+                break;
+
             case SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO:
                 printf( "ignored connection request from %s. client id is zero\n", addressString );
                 break;

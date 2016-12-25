@@ -342,7 +342,7 @@ namespace yojimbo
         return true;
     }
 
-    bool EncryptChallengeToken( ChallengeToken & token, uint8_t *encryptedMessage, const uint8_t *additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
+    bool EncryptChallengeToken( ChallengeToken & token, uint8_t * encryptedMessage, const uint8_t * nonce, const uint8_t * key )
     {
         uint8_t message[ChallengeTokenBytes - MacBytes];
         memset( message, 0, ChallengeTokenBytes - MacBytes );
@@ -357,7 +357,7 @@ namespace yojimbo
 
         uint64_t encryptedLength;
 
-        if ( !Encrypt_AEAD( message, ChallengeTokenBytes - MacBytes, encryptedMessage, encryptedLength, additional, additionalLength, nonce, key ) )
+        if ( !Encrypt_AEAD( message, ChallengeTokenBytes - MacBytes, encryptedMessage, encryptedLength, NULL, 0, nonce, key ) )
             return false;
 
         assert( encryptedLength == ChallengeTokenBytes );
@@ -365,14 +365,14 @@ namespace yojimbo
         return true;
     }
 
-    bool DecryptChallengeToken( const uint8_t * encryptedMessage, ChallengeToken & decryptedToken, const uint8_t * additional, int additionalLength, const uint8_t * nonce, const uint8_t * key )
+    bool DecryptChallengeToken( const uint8_t * encryptedMessage, ChallengeToken & decryptedToken, const uint8_t * nonce, const uint8_t * key )
     {
         const int encryptedMessageLength = ChallengeTokenBytes;
 
         uint64_t decryptedMessageLength;
         uint8_t decryptedMessage[ChallengeTokenBytes];
 
-        if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, additional, additionalLength, nonce, key ) )
+        if ( !Decrypt_AEAD( encryptedMessage, encryptedMessageLength, decryptedMessage, decryptedMessageLength, NULL, 0, nonce, key ) )
             return false;
 
         assert( decryptedMessageLength == ChallengeTokenBytes - MacBytes );

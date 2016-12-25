@@ -890,14 +890,14 @@ void test_client_server_tokens()
         exit( 1 );
     }
 
-    if ( !EncryptChallengeToken( challengeToken, challengeTokenData, NULL, 0, challengeTokenNonce, key ) )
+    if ( !EncryptChallengeToken( challengeToken, challengeTokenData, challengeTokenNonce, key ) )
     {
         printf( "error: failed to encrypt challenge token\n" );
         exit( 1 );
     }
 
     ChallengeToken decryptedChallengeToken;
-    if ( !DecryptChallengeToken( challengeTokenData, decryptedChallengeToken, NULL, 0, challengeTokenNonce, key ) )
+    if ( !DecryptChallengeToken( challengeTokenData, decryptedChallengeToken, challengeTokenNonce, key ) )
     {
         printf( "error: failed to decrypt challenge token\n" );
         exit( 1 );

@@ -66,8 +66,6 @@ func Encrypt( message [] byte, additional [] byte, nonce uint64, key [] byte ) (
         (*C.uchar) ( nil ),
         (*C.uchar) ( &nonceBytes[0] ),
         (*C.uchar) ( &key[0] ) ) ) == 0
-//    PrintBytes( "nonce", nonceBytes )
-//    PrintBytes( "encrypted", encrypted )
     return encrypted, ok
 }
 

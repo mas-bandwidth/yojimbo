@@ -825,6 +825,11 @@ namespace yojimbo
         return m_address;
     }
 
+    uint32_t BaseTransport::GetProtocolId() const
+    {
+        return m_protocolId;
+    }
+
     // =====================================================
 
     LocalTransport::LocalTransport( Allocator & allocator, NetworkSimulator & networkSimulator, const Address & address, uint32_t protocolId, double time, int maxPacketSize, int sendQueueSize, int receiveQueueSize )

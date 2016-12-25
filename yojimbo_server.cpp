@@ -912,7 +912,13 @@ namespace yojimbo
             return;
         }
 
-        // todo: missing code here to reject connect tokens that have a different protocol id to our transport!
+        if ( connectToken.protocolId != m_transport->GetProtocolId() )
+        {
+            debug_printf( "ignored connection request: protocol id mismatch\n" );
+            OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_PROTOCOL_ID_MISMATCH, packet, address, connectToken );
+            m_counters[SERVER_COUNTER_CONNECTION_REQUEST_IGNORED_PROTOCOL_ID_MISMATCH]++;
+            return;
+        }
 
         if ( connectToken.clientId == 0 )
         {
@@ -993,7 +999,7 @@ namespace yojimbo
 
         memcpy( challengePacket->challengeTokenNonce, (uint8_t*) &m_challengeTokenNonce, NonceBytes );
 
-        if ( !EncryptChallengeToken( challengeToken, challengePacket->challengeTokenData, NULL, 0, challengePacket->challengeTokenNonce, m_privateKey ) )
+        if ( !EncryptChallengeToken( challengeToken, challengePacket->challengeTokenData, challengePacket->challengeTokenNonce, m_privateKey ) )
         {
             debug_printf( "ignored connection request: failed to encrypt challenge token\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN, packet, address, connectToken );
@@ -1025,7 +1031,7 @@ namespace yojimbo
         m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED]++;
 
         ChallengeToken challengeToken;
-        if ( !DecryptChallengeToken( packet.challengeTokenData, challengeToken, NULL, 0, packet.challengeTokenNonce, m_privateKey ) )
+        if ( !DecryptChallengeToken( packet.challengeTokenData, challengeToken, packet.challengeTokenNonce, m_privateKey ) )
         {
             debug_printf( "ignored challenge response: failed to decrypt challenge token\n" );
             OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN, packet, address, challengeToken );

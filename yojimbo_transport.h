@@ -542,6 +542,14 @@ namespace yojimbo
          */
 
         virtual const Address & GetAddress() const = 0;
+
+        /**
+            Get the protocol id for the transport.
+
+            Protocol id is used to enable multiple versions of your protocol at the same time, by excluding communication between protocols with different ids.
+         */
+
+        virtual uint32_t GetProtocolId() const = 0;
     };
 
     /**
@@ -631,6 +639,8 @@ namespace yojimbo
         uint64_t GetFlags() const;
 
         const Address & GetAddress() const;
+
+        uint32_t GetProtocolId() const;
 
     protected:
 

@@ -2,14 +2,6 @@ WOULD BE NICE
 
     ------------------
 
-    Protocol id should probably be extended to 64 bits I think. 
-
-    Also, protocol it should be mapped on top of the private key, so it's active for encrypted packets that don't use the CRC32.
-
-    (Make sure encrypted packets aren't using CRC32 inside the encrypted+signed data, as that is redundant...)
-
-    ------------------
-
     Definitely need more usage documentation and samples showing how to do stuff.
 
     It's not immediately obvious how to use libyojimbo from the samples. Or, what exactly libyojimbo does or even what it's for?
