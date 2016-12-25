@@ -363,7 +363,7 @@ namespace yojimbo
 
     int WritePacket( const PacketReadWriteInfo & info, Packet * packet, uint8_t * buffer, int bufferSize );
 
-    // todo: int errorCode is lame. Make it a specific enum type, so the docs will point to the set of error codes naturally.
+    // ^---- todo: int errorCode is lame. Make it a specific enum type, so the docs will point to the set of error codes naturally.
 
     /**
         Read a packet from a byte buffer.

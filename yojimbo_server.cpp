@@ -109,6 +109,12 @@ namespace yojimbo
 
         CreateAllocators();
 
+        // roll a new challenge key. security measure because multiple servers are generating challenge tokens and otherwise we risk using the same nonce multiple times and exposing the private key.
+
+        GenerateKey( m_challengeKey );
+
+        m_challengeTokenNonce = 0;
+
         // global resources
 
         Allocator & globalAllocator = GetAllocator( SERVER_RESOURCE_GLOBAL );
@@ -999,7 +1005,7 @@ namespace yojimbo
 
         memcpy( challengePacket->challengeTokenNonce, (uint8_t*) &m_challengeTokenNonce, NonceBytes );
 
-        if ( !EncryptChallengeToken( challengeToken, challengePacket->challengeTokenData, challengePacket->challengeTokenNonce, m_privateKey ) )
+        if ( !EncryptChallengeToken( challengeToken, challengePacket->challengeTokenData, challengePacket->challengeTokenNonce, m_challengeKey ) )
         {
             debug_printf( "ignored connection request: failed to encrypt challenge token\n" );
             OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ENCRYPT_CHALLENGE_TOKEN, packet, address, connectToken );
@@ -1031,7 +1037,7 @@ namespace yojimbo
         m_counters[SERVER_COUNTER_CHALLENGE_RESPONSE_PACKETS_RECEIVED]++;
 
         ChallengeToken challengeToken;
-        if ( !DecryptChallengeToken( packet.challengeTokenData, challengeToken, packet.challengeTokenNonce, m_privateKey ) )
+        if ( !DecryptChallengeToken( packet.challengeTokenData, challengeToken, packet.challengeTokenNonce, m_challengeKey ) )
         {
             debug_printf( "ignored challenge response: failed to decrypt challenge token\n" );
             OnChallengeResponse( SERVER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN, packet, address, challengeToken );

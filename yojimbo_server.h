@@ -771,7 +771,9 @@ namespace yojimbo
 
         ReplayProtection * m_clientReplayProtection[MaxClients];            ///< Per-client protection against packet replay attacks. Discards old and already received packets.
 
-        uint8_t m_privateKey[KeyBytes];                                     ///< Private key used for encrypting and decrypting connect and challenge tokens.
+        uint8_t m_privateKey[KeyBytes];                                     ///< Private key used for encrypting and decrypting connect and challenge tokens. Must be the same between the matcher and the server and not know to clients.
+
+        uint8_t m_challengeKey[KeyBytes];                                   ///< Random key rolled each time Server::Start is called. Used to encrypt and decrypt challenge tokens without risking exposing the private key if two different servers use the same nonce (of course they will...).
 
         uint64_t m_challengeTokenNonce;                                     ///< Nonce used for encoding challenge tokens
 

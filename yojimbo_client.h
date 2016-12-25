@@ -395,7 +395,7 @@ namespace yojimbo
 
         uint64_t GetCounter( int index ) const;
 
-        // todo: below here
+        // todo: document below here
 
         Allocator & GetClientAllocator();
 
