@@ -35,6 +35,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+
     class Allocator & GetDefaultAllocator();
 
     #define YOJIMBO_NEW( a, T, ... ) ( new ( (a).Allocate( sizeof(T), __FILE__, __LINE__ ) ) T(__VA_ARGS__) )

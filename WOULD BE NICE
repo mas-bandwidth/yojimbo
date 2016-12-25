@@ -64,10 +64,6 @@ WOULD BE NICE
 
     ------------------
 
-    The connection and channels code seems a bit rough. Should consider a second pass, to see if I can make it simpler. It's the code is hard to understand. Even for me, and I wrote it =p
-
-    ------------------
-
     Clean up profile.cpp with helper methods. It's overly complicated for what it does!
 
     ------------------

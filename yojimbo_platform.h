@@ -29,6 +29,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+
     void platform_sleep( double time );
 
     double platform_time();

@@ -48,7 +48,7 @@
 /**
     Initialize the yojimbo library.
 
-    You must call this before calling any other 
+    Call this before calling any other library functions.
 
     @returns True if the library was successfully initialized, false otherwise.
  */
@@ -58,7 +58,7 @@ bool InitializeYojimbo();
 /**
     Shutdown the yojimbo library.
 
-    Call this after you finish using the library and it will run some checks for you (for example, checking for memory leaks and so on).
+    Call this after you finish using the library and it will run some checks for you (for example, checking for memory leaks in debug build).
  */
 
 void ShutdownYojimbo();

@@ -62,6 +62,8 @@ namespace yojimbo
     typedef int SocketHandle;
 #endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
+    // todo: second pass documentation for socket
+
     /// Simple wrapper around a non-blocking UDP socket.
                            
     class Socket

@@ -31,6 +31,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+
     enum MatcherStatus
     {
         MATCHER_IDLE,

@@ -34,11 +34,29 @@ TODO
 
         Stream classes
 
-    Anything else?
+        BitReader, BitWriter
 
-    What other major bits need to be documented? Serialization macros? Helper macros for packet and message factories?
+        Network simulator.
 
-    My major concern at this point is that doxygen doesn't seem to allow documentation of macros? But, this would make it really hard to document all the serialize_* functions and how they should be used, and the helper macros.
+        Socket class needs another pass.
+
+        BitArray
+
+        Sequence buffer
+
+        yojimbo_platform.h
+
+        yojimbo_network.h
+
+        yojimbo_matcher.h
+
+        yojimbo_encryption.h
+
+        Serialization macros (if possible)
+
+        Helper macros for packet factories, message factories, setting up allocations in client/server (if possible)
+
+    Wow. There's still so much left to document... I estimate I'm probably only 3/4 done. This is taking so long. It's so much work :(
 
     =========================================
 
@@ -50,8 +68,10 @@ TODO
 
     Only allow fragmented packets if they are encrypted in secure mode. Unencrypted ones will not be accepted.   
 
-    ------------------
+    =========================================
 
-    v0.3.0 release (!!!) YEY! :D
+    Implement matcher and extend it to work with redis in real world examples.
 
-    ------------------
+    eg. Be a functional matcher that will accept registration information from servers, and match clients to connect to servers.
+
+    =========================================

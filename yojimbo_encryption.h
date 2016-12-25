@@ -33,6 +33,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+  
     extern void GenerateKey( uint8_t * key );
 
     extern void RandomBytes( uint8_t * data, int bytes );

@@ -33,6 +33,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+
     class ReplayProtection
     {
     public:

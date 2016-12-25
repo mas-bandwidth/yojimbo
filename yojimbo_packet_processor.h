@@ -30,6 +30,8 @@
 
 namespace yojimbo
 {
+    // todo: document packet processor
+
     class ReplayProtection;
 
     enum PacketProcessErrors

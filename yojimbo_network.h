@@ -38,6 +38,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+
     bool InitializeNetwork();
 
     void ShutdownNetwork();

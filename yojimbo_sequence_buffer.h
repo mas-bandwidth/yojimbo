@@ -29,6 +29,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+
     template <typename T> class SequenceBuffer
     {
     public:

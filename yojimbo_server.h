@@ -501,7 +501,7 @@ namespace yojimbo
 
         // =====================================
 
-        // todo: sort this out
+        // todo: document these functions
 
         Message * CreateMsg( int clientIndex, int type );
 

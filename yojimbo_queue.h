@@ -33,6 +33,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+
     template <typename T> class Queue
     {
         Allocator * m_allocator;

@@ -32,6 +32,8 @@
 
 namespace yojimbo
 {
+    // todo: document this file
+
     class BitWriter
     {
     public:

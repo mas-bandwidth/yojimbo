@@ -29,6 +29,8 @@
 
 namespace yojimbo
 {
+    // todo: document this
+
     class BitArray
     {
     public:

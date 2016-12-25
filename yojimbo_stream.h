@@ -34,6 +34,8 @@
 
 namespace yojimbo
 {
+    // todo: nooooooo. don't make these errors defines. bad. make them an enum instead. also why are they in stream.h? what's the point of that. these are all error codes for yojimbo_packet.h, except the serialize ones. need to clean this up
+
     #define YOJIMBO_PROTOCOL_ERROR_NONE                         0
     #define YOJIMBO_PROTOCOL_ERROR_CRC32_MISMATCH               1
     #define YOJIMBO_PROTOCOL_ERROR_INVALID_PACKET_TYPE          2
