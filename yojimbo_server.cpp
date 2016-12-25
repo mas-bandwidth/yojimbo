@@ -912,6 +912,8 @@ namespace yojimbo
             return;
         }
 
+        // todo: missing code here to reject connect tokens that have a different protocol id to our transport!
+
         if ( connectToken.clientId == 0 )
         {
             debug_printf( "ignored connection request: client id is zero\n" );
