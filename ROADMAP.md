@@ -44,21 +44,28 @@ This release will extend the internal UDP-based network protocol to support:
 2. Data blocks larger than MTU in the same reliable-ordered stream as messages (done)
 3. Multiple user configurable message channels with different reliability and ordering guarantees (done)
 4. Support for channels with unreliable, unordered messages and blocks (done)
-6. Packet fragmentation and reassembly (soon)
 
-This release is finished short of the packet fragmentation and reassembly. This part is actually quite complicated so I'm going to take some time to design it properly. Work should recommence early August once I've worked out the best approach that doesn't expose the server to protocol attacks (eg. DOS'ing with fragments).
+Completed, but moved immediately on to documentation and finalizing the API. Expect a new 0.4.0 release shortly.
 
-## 0.4.0 - Matchmaker
+## 0.4.0 - Document and finalize API
 
-In this release I will extend matcher.go to support multiple dedicated servers reporting to it via HTTPS.
+Document the API with doxygen. Review and finalize all APIs where possible. Security audit and check.
+
+In progress. Estimate, aprox. 75% complete as of 12/26/2016.
+
+## 0.5.0 - Snapshots
+
+Add support for sending large messages across the unreliable-unordered channel, as required for a snapshot based system with delta encoding as used by first person shooters.
+
+## 0.6.0 - Matchmaker
+
+Extend matcher.go to support multiple dedicated servers reporting to it via HTTPS.
 
 Then I will and setup a docker swarm of libyojimbo servers, all reporting to the web backend, and now clients can connect to this swarm of instances.
 
 The matcher will satisfy client requests to join matches by directing clients towards servers with empty slots, sorting servers in the order of servers with the least free slots (1) to the most free slots (maxClients) so clients tend to cluster.
 
 I may even setup a swarm of fake clients as well for stress test behavior, this could be very interesting. As a stretch goal, it would be cool to implement a web visualization showing the behavior of clients and servers in this simulated system so you can see everything that is going on.
-
-This release sounds like a lot of fun. I'm looking forward to it! Estimate: 2 months.
 
 ## Feedback
 
