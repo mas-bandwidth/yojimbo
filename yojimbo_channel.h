@@ -367,7 +367,7 @@ namespace yojimbo
     };
 
     /**
-        Messages sent across this channel are guaranteed to arrive, and in the order they were sent.
+        Messages sent across this channel are guaranteed to arrive in the order they were sent.
 
         This channel type is best used for control messages and RPCs.
 

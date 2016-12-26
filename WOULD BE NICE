@@ -2,6 +2,20 @@ WOULD BE NICE
 
     ------------------
 
+    I notice that the allocators aren't checked on the server when a client finishes up.
+
+    It seems that although I have silo'd clients into their own allocator, I don't think I've done enough work (yet) to ensure that a malicious client can't shit up an allocator after it quits.
+
+    I really should add some code to check that all allocations are cleaned up after the server cleans up an allocator slot.
+
+    This might require adding some code to the transport to invalidate packets in queues that belong to a particular allocator.
+
+    This seems a bit weird, but I think, I'm not really comfortable with the allocator setup until I can assert that a client has properly cleaned up all allocations made by its client slot allocator when the server resets that slot.
+
+    Same logic applies to message factories. Make sure all messages are cleaned up. This is an important security measure, to make sure the server isn't leaking memory from one client session to the next.
+
+    ------------------
+
     Definitely need more usage documentation and samples showing how to do stuff.
 
     It's not immediately obvious how to use libyojimbo from the samples. Or, what exactly libyojimbo does or even what it's for?
