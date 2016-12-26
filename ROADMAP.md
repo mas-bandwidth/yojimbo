@@ -61,15 +61,13 @@ Add support for sending large messages across the unreliable-unordered channel, 
 
 Extend matcher.go to support multiple dedicated servers reporting to it via HTTPS.
 
-Then I will and setup a docker swarm of libyojimbo servers, all reporting to the web backend, and now clients can connect to this swarm of instances.
-
 The matcher will satisfy client requests to join matches by directing clients towards servers with empty slots, sorting servers in the order of servers with the least free slots (1) to the most free slots (maxClients) so clients tend to cluster.
 
 I may even setup a swarm of fake clients as well for stress test behavior, this could be very interesting. As a stretch goal, it would be cool to implement a web visualization showing the behavior of clients and servers in this simulated system so you can see everything that is going on.
 
 ## Feedback
 
-Yojimbo is now publically released on github for feedback and collaboration. Release early and release often!
+Yojimbo is released on github for feedback and collaboration. Release early and release often!
 
 Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
 
