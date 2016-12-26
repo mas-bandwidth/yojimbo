@@ -34,7 +34,7 @@ This release added support for:
 
 Some pretty good progress. Stopping now and calling this release done!
 
-## 0.3.0 - Reliable messages (current)
+## 0.3.0 - Reliable messages
 
 Now that a demonstration of backend infrastructure is in place, the focus for this release returns to the network protocol. The goal with this release is to get the internal network protocol to a stable API and feature set.
 
@@ -47,7 +47,7 @@ This release will extend the internal UDP-based network protocol to support:
 
 Completed, but moved immediately on to documentation and finalizing the API. Expect a new 0.4.0 release shortly.
 
-## 0.4.0 - Document and finalize API
+## 0.4.0 - Document and finalize API (current)
 
 Document the API with doxygen. Review and finalize all APIs where possible. Security audit and check.
 
