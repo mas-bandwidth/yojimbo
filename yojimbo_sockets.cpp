@@ -224,20 +224,18 @@ namespace yojimbo
         return m_error != SOCKET_ERROR_NONE;
     }
 
-    int Socket::GetError() const
+    SocketError Socket::GetError() const
     {
         return m_error;
     }
 
-    bool Socket::SendPacket( const Address & to, const void * packetData, size_t packetBytes )
+    void Socket::SendPacket( const Address & to, const void * packetData, size_t packetBytes )
     {
         assert( packetData );
         assert( packetBytes > 0 );
         assert( to.IsValid() );
         assert( m_socket );
         assert( !IsError() );
-
-        bool result = false;
 
         if ( to.GetType() == ADDRESS_IPV6 )
         {
@@ -246,8 +244,7 @@ namespace yojimbo
             socket_address.sin6_family = AF_INET6;
             socket_address.sin6_port = htons( to.GetPort() );
             memcpy( &socket_address.sin6_addr, to.GetAddress6(), sizeof( socket_address.sin6_addr ) );
-            size_t sent_bytes = sendto( m_socket, (const char*)packetData, (int) packetBytes, 0, (sockaddr*)&socket_address, sizeof( sockaddr_in6 ) );
-            result = sent_bytes == packetBytes;
+            sendto( m_socket, (const char*)packetData, (int) packetBytes, 0, (sockaddr*)&socket_address, sizeof( sockaddr_in6 ) );
         }
         else if ( to.GetType() == ADDRESS_IPV4 )
         {
@@ -256,11 +253,8 @@ namespace yojimbo
             socket_address.sin_family = AF_INET;
             socket_address.sin_addr.s_addr = to.GetAddress4();
             socket_address.sin_port = htons( (unsigned short) to.GetPort() );
-            size_t sent_bytes = sendto( m_socket, (const char*)packetData, (int) packetBytes, 0, (sockaddr*)&socket_address, sizeof(sockaddr_in) );
-            result = sent_bytes == packetBytes;
+            sendto( m_socket, (const char*)packetData, (int) packetBytes, 0, (sockaddr*)&socket_address, sizeof(sockaddr_in) );
         }
-
-        return result;
     }
 
     int Socket::ReceivePacket( Address & from, void * packetData, int maxPacketSize )

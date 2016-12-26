@@ -56,39 +56,102 @@ namespace yojimbo
         SOCKET_ERROR_GET_SOCKNAME_IPV6_FAILED                               ///< Call to getsockname failed on the socket (IPv6).
     };
 
+    /// Platfrom independent socket handle.
+
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
     typedef uint64_t SocketHandle;
 #else // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
     typedef int SocketHandle;
 #endif // #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
-    // todo: second pass documentation for socket
-
-    /// Simple wrapper around a non-blocking UDP socket.
+    /**
+         Simple wrapper around a non-blocking UDP socket.
+     */
                            
     class Socket
     {
     public:
 
+        /**
+            Creates a socket.
+
+            IMPORTANT: Please check Socket::IsError after creating a socket, it could be in an error state if something goes wrong.
+
+            @param address The address to bind the socket to.
+            @param bufferSize The size of buffers to allocate on the socket for SO_RCVBUF and SO_SNDBUF. Defaults to 1mb send and 1mb receive buffer.
+         */
+
         explicit Socket( const Address & address, int bufferSize = 1024*1024 );
+
+        /**
+            Socket destructor.
+         */
 
         ~Socket();
 
+        /**
+            Is the socket in an error state?
+
+            Corresponds to the socket error state being something other than yojimbo::SOCKET_ERROR_NONE.
+
+            @returns True if the socket is in an error state, false otherwise.
+         */
+
         bool IsError() const;
 
-        int GetError() const;
+        /**
+            Get the socket error state.
 
-        bool SendPacket( const Address & to, const void * packetData, size_t packetBytes );
+            These error states correspond to things that can go wrong in the socket constructor when it's created.
+
+            IMPORTANT: Please make sure you always check for error state after you create a socket.
+
+            @returns The socket error state.
+
+            @see Socket::IsError
+         */
+
+        SocketError GetError() const;
+
+        /**
+            Send a packet to an address using this socket.
+
+            The packet is sent unreliably over UDP. It may arrive out of order, in duplicate or not at all.
+
+            @param to The address to send the packet to.
+            @param packetData The packet data to send.
+            @param packetBytes The size of the packet data to send (bytes).
+         */
+
+        void SendPacket( const Address & to, const void * packetData, size_t packetBytes );
     
+        /**
+            Receive a packet from the network (non-blocking).
+
+            @param from The address that sent the packet [out]
+            @param packetData The buffer where the packet data will be copied to. Must be at least maxPacketSize large in bytes.
+            @param maxPacketSize The maximum packet size to read in bytes. Any packets received larger than this are discarded.
+
+            @returns The size of the packet received in [1,maxPacketSize], or 0 if no packet is available to read.
+         */
+
         int ReceivePacket( Address & from, void * packetData, int maxPacketSize );
+
+        /**
+            Get the socket address including the dynamically assigned port # for sockets bound to port 0.
+
+            @returns The socket address. Port is guaranteed to be non-zero, provided the socket is not in an error state.
+         */
 
         const Address & GetAddress() const;
 
     private:
 
-        int m_error;
-        Address m_address;
-        SocketHandle m_socket;
+        SocketError m_error;										///< The socket error level.
+
+        Address m_address;                                          ///< The address the socket is bound on. If the socket was bound to 0, the port number is resolved to the actual port number assigned by the system.
+        
+        SocketHandle m_socket;                                      ///< The socket handle in a platform independent form.
     };
 
 #endif // #if YOJIMBO_SOCKETS

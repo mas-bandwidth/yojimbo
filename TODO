@@ -28,6 +28,8 @@ DONE
 
 TODO
 
+        Socket class needs another pass.
+
         BitReader, BitWriter
 
         Encryption manager
@@ -37,8 +39,6 @@ TODO
         Stream classes
 
         Network simulator.
-
-        Socket class needs another pass.
 
         BitArray
 
