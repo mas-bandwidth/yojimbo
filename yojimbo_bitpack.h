@@ -232,7 +232,7 @@ namespace yojimbo
 
 			Corresponds to the data block passed in to the constructor.
 
-			@param returns Pointer to the data written by the bit writer.
+			@returns Pointer to the data written by the bit writer.
 		 */
 
         const uint8_t * GetData() const

@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.3.0-Preview10"
+libyojimbo_version = "0.4.0-Preview1"
 
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
