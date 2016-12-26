@@ -24,17 +24,17 @@ DONE
 
         Token support classes and functions
 
+        Allocator
+
 TODO
 
-        Allocator
+        BitReader, BitWriter
 
         Encryption manager
 
         Packet Processor
 
         Stream classes
-
-        BitReader, BitWriter
 
         Network simulator.
 
