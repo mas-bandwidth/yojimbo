@@ -66,6 +66,10 @@ namespace yojimbo
 
     /**
          Simple wrapper around a non-blocking UDP socket.
+
+         IMPORTANT: You must initialize the network layer before creating any sockets.
+
+         @see InitializeNetwork
      */
                            
     class Socket
@@ -75,7 +79,9 @@ namespace yojimbo
         /**
             Creates a socket.
 
-            IMPORTANT: Please check Socket::IsError after creating a socket, it could be in an error state if something goes wrong.
+            Please check Socket::IsError after creating a socket, as it could be in an error state.
+
+            IMPORTANT: You must initialize the network layer before creating sockets. See yojimbo::InitializeNetwork.
 
             @param address The address to bind the socket to.
             @param sendBufferSize The size of the send buffer to set on the socket (SO_SNDBUF).

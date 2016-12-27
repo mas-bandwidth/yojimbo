@@ -38,20 +38,60 @@
 
 namespace yojimbo
 {
-    // todo: document this file
+    /** 
+        Initialize the network layer.
+
+        On windows this calls in to WSAStartup.
+
+        IMPORTANT: You must call this before you create any sockets.
+
+        @see Socket
+        @see IsNetworkInitialized
+        @see ShutdownNetwork
+     */
 
     bool InitializeNetwork();
 
-    void ShutdownNetwork();
+    /**
+        Is the network layer initialized?
+
+        @returns True if the network layer is initialized, false otherwise.
+
+        @see InitializeNetwork
+        @see ShutdownNetwork
+     */
 
     bool IsNetworkInitialized();
 
+    /**
+        Shut down the network layer.
+
+        Call this after you have destroyed all sockets to shut down the network layer.
+     */
+
+    void ShutdownNetwork();
+
+    /**
+        Address filter for GetNetworkAddresses function.
+     */
+
     enum AddressFilter
     {
-        ADDRESS_FILTER_BOTH,
-        ADDRESS_FILTER_IPV4_ONLY,
-        ADDRESS_FILTER_IPV6_ONLY
+        ADDRESS_FILTER_BOTH,                                    ///< Get both IPv4 and IPv6 addresses.
+        ADDRESS_FILTER_IPV4_ONLY,                               ///< IPv4 addresses only.
+        ADDRESS_FILTER_IPV6_ONLY                                ///< IPv6 addresses only.
     };
+
+    /**
+        Get the list of network interface addresses available on the system.
+
+        IMPORTANT: Loopback and link local addresses are filtered out.
+
+        @param addresses Pointer to an array of addresses to be filled with addresses on the system [out].
+        @param numAddresses The number of addresses that were written to the array [out].
+        @param maxAddresses The maximum number of addresses that can be written to the array.
+        @param filter The filter specifying the type of addresses to retrieve.
+     */
 
     void GetNetworkAddresses( Address * addresses, int & numAddresses, int maxAddresses, AddressFilter filter = ADDRESS_FILTER_BOTH );
 }

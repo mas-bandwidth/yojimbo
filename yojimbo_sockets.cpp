@@ -72,8 +72,9 @@ namespace yojimbo
 {
     Socket::Socket( const Address & address, int sendBufferSize, int receiveBufferSize )
     {
-        assert( address.IsValid() );
         assert( IsNetworkInitialized() );
+
+        assert( address.IsValid() );
 
         m_error = SOCKET_ERROR_NONE;
 
@@ -206,6 +207,8 @@ namespace yojimbo
 
     Socket::~Socket()
     {
+        assert( IsNetworkInitialized() );
+
         if ( m_socket != 0 )
         {
             #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
