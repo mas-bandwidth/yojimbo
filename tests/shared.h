@@ -37,7 +37,7 @@
 using namespace std;
 using namespace yojimbo;
 
-const uint32_t ProtocolId = 0x12341651;
+const uint64_t ProtocolId = 0x11223344556677ULL;
 
 const int ClientPort = 30000;
 const int ServerPort = 40000;

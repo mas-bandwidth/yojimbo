@@ -36,7 +36,6 @@ type ConnectToken struct {
     ServerAddresses [] string `json:"serverAddresses"`
     ClientToServerKey  string `json:"clientToServerKey"`
     ServerToClientKey  string `json:"serverToClientKey"`
-    Random             string `json:"random"`
 }
 
 func GenerateKey() [] byte {
@@ -69,16 +68,15 @@ func Encrypt( message [] byte, additional [] byte, nonce uint64, key [] byte ) (
     return encrypted, ok
 }
 
-func GenerateConnectToken( protocolId uint32, clientId uint64, serverAddresses [] string ) ConnectToken {
+func GenerateConnectToken( protocolId uint64, clientId uint64, serverAddresses [] string ) ConnectToken {
     connectToken := ConnectToken {}
-    connectToken.ProtocolId = strconv.FormatUint( uint64(protocolId), 10 )
+    connectToken.ProtocolId = strconv.FormatUint( protocolId, 10 )
     connectToken.ClientId = strconv.FormatUint( clientId, 10 )
     connectToken.ExpireTimestamp = strconv.FormatUint( uint64( time.Now().Unix() + ConnectTokenExpireSeconds ), 10 )
     connectToken.NumServerAddresses = strconv.Itoa( len( serverAddresses ) )
     connectToken.ServerAddresses = serverAddresses
     connectToken.ClientToServerKey = base64.StdEncoding.EncodeToString( GenerateKey() )
     connectToken.ServerToClientKey = base64.StdEncoding.EncodeToString( GenerateKey() )
-    connectToken.Random = base64.StdEncoding.EncodeToString( GenerateKey() )
     return connectToken
 }
 
@@ -130,9 +128,9 @@ func Base64EncodeString( s string ) string {
 func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     vars := mux.Vars( r )
     clientId, _ := strconv.ParseUint( vars["clientId"], 10, 64 )
-    protocolId, _ := strconv.ParseUint( vars["protocolId"], 10, 32 )
+    protocolId, _ := strconv.ParseUint( vars["protocolId"], 10, 64 )
     serverAddresses := []string { Base64EncodeString( ServerAddress ) }
-    connectToken := GenerateConnectToken( uint32( protocolId ), clientId, serverAddresses[:] )
+    connectToken := GenerateConnectToken( protocolId, clientId, serverAddresses[:] )
     matchResponse, ok := GenerateMatchResponse( connectToken, atomic.AddUint64( &MatchNonce, 1 ) )
     w.Header().Set( "Content-Type", "application/json" )
     if ( ok ) { 

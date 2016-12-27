@@ -319,7 +319,7 @@ namespace yojimbo
 
         int prefixBytes;                                                                ///< Prefix this number of bytes when reading and writing packets. Used for the variable length sequence number at the start of encrypted packets.
 
-        uint32_t protocolId;                                                            ///< Protocol id that distinguishes your protocol from other packets sent over UDP.
+        uint64_t protocolId;                                                            ///< Protocol id that distinguishes your protocol from other packets sent over UDP.
 
         Allocator * streamAllocator;                                                    ///< This allocator is passed in to the stream and used for dynamic allocations while reading and writing packets.
 

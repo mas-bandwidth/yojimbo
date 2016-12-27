@@ -66,9 +66,8 @@
 
 #define YOJIMBO_SOCKETS                             1
 
-
 #if !defined( YOJIMBO_SECURE_MODE )
-#define YOJIMBO_SECURE_MODE                         0               ///< IMPORTANT: This should be set to 1 in your retail build
+#define YOJIMBO_SECURE_MODE                         0               ///< IMPORTANT: This should be set to 1 in your retail build!
 #endif // #if !defined( YOJIMBO_SECURE_MODE )
 
 #define YOJIMBO_SERIALIZE_CHECKS                    1

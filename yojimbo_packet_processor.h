@@ -50,7 +50,7 @@ namespace yojimbo
     {
     public:
 
-        PacketProcessor( Allocator & allocator, uint32_t protocolId, int maxPacketSize );
+        PacketProcessor( Allocator & allocator, uint64_t protocolId, int maxPacketSize );
 
         ~PacketProcessor();
 
@@ -85,7 +85,7 @@ namespace yojimbo
 
         Allocator * m_allocator;
 
-        uint32_t m_protocolId;
+        uint64_t m_protocolId;
 
         int m_error;
         int m_maxPacketSize;

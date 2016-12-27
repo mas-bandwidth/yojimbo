@@ -37,7 +37,7 @@ namespace yojimbo
 {
     const int MaxPrefixBytes = 9;
 
-    PacketProcessor::PacketProcessor( Allocator & allocator, uint32_t protocolId, int maxPacketSize )
+    PacketProcessor::PacketProcessor( Allocator & allocator, uint64_t protocolId, int maxPacketSize )
     {
         m_allocator = &allocator;
 

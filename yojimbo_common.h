@@ -502,18 +502,6 @@ namespace yojimbo
     uint32_t calculate_crc32( const uint8_t * buffer, size_t length, uint32_t crc32 = 0 );
 
     /**
-        Hash a block of data.
-
-        @param data The input data.
-        @param length The length of the data (bytes).
-        @param hash The previous hash result, to chain together multiple hashes (optional).
-
-        @returns A hash of the input data.
-     */
-
-    uint32_t hash_data( const uint8_t * data, uint32_t length, uint32_t hash );
-
-    /**
         Implementation of the 64 bit murmur hash.
 
         @param key The input value.

@@ -138,7 +138,7 @@ namespace yojimbo
 
     BaseTransport::BaseTransport( Allocator & allocator, 
                                   const Address & address,
-                                  uint32_t protocolId,
+                                  uint64_t protocolId,
                                   double time,
                                   int maxPacketSize, 
                                   int sendQueueSize, 
@@ -825,14 +825,14 @@ namespace yojimbo
         return m_address;
     }
 
-    uint32_t BaseTransport::GetProtocolId() const
+    uint64_t BaseTransport::GetProtocolId() const
     {
         return m_protocolId;
     }
 
     // =====================================================
 
-    LocalTransport::LocalTransport( Allocator & allocator, NetworkSimulator & networkSimulator, const Address & address, uint32_t protocolId, double time, int maxPacketSize, int sendQueueSize, int receiveQueueSize )
+    LocalTransport::LocalTransport( Allocator & allocator, NetworkSimulator & networkSimulator, const Address & address, uint64_t protocolId, double time, int maxPacketSize, int sendQueueSize, int receiveQueueSize )
         : BaseTransport( allocator, address, protocolId, time, maxPacketSize, sendQueueSize, receiveQueueSize, false ) 
     { 
         m_networkSimulator = &networkSimulator;
@@ -946,7 +946,7 @@ namespace yojimbo
 
     NetworkTransport::NetworkTransport( Allocator & allocator, 
                                         const Address & address,
-                                        uint32_t protocolId,
+                                        uint64_t protocolId,
                                         double time,
                                         int maxPacketSize, 
                                         int sendQueueSize, 

@@ -93,11 +93,13 @@ namespace yojimbo
 
         if ( ( result = mbedtls_ctr_drbg_seed( &m_internal->ctr_drbg, mbedtls_entropy_func, &m_internal->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
         {
+			debug_printf( "mbedtls_ctr_drbg_seed failed - error code = %d\n", result );
             return false;
         }
 
         if ( mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len ) < 0 )
         {
+			debug_printf( "mbedtls_x509_crt_parse failed - error code = %d\n", result );
             return false;
         }
 
@@ -106,28 +108,31 @@ namespace yojimbo
         return true;
     }
 
-    void Matcher::RequestMatch( uint32_t protocolId, uint64_t clientId )
+    void Matcher::RequestMatch( uint64_t protocolId, uint64_t clientId )
     {
         assert( m_initialized );
 
-        int ret;
         uint32_t flags;
         char buf[4*1024];
         char request[1024];
 		int bytesRead = 0;
 		const char * json;
 
-        if ( ( ret = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
+		int result;
+
+        if ( ( result = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
+			debug_printf( "mbedtls_net_connect failed - error code = %d\n", result );
             m_status = MATCHER_FAILED;
             goto cleanup;
         }
 
-        if ( ( ret = mbedtls_ssl_config_defaults( &m_internal->conf,
+        if ( ( result = mbedtls_ssl_config_defaults( &m_internal->conf,
                         MBEDTLS_SSL_IS_CLIENT,
                         MBEDTLS_SSL_TRANSPORT_STREAM,
                         MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
         {
+			debug_printf( "mbedtls_net_connect failed - error code = %d\n", result );
             m_status = MATCHER_FAILED;
             goto cleanup;
         }
@@ -140,25 +145,28 @@ namespace yojimbo
         mbedtls_ssl_conf_ca_chain( &m_internal->conf, &m_internal->cacert, NULL );
         mbedtls_ssl_conf_rng( &m_internal->conf, mbedtls_ctr_drbg_random, &m_internal->ctr_drbg );
 
-        if ( ( ret = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
+        if ( ( result = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
         {
+			debug_printf( "mbedtls_ssl_setup failed - error code = %d\n", result );
             m_status = MATCHER_FAILED;
             goto cleanup;
         }
 
-        if ( ( ret = mbedtls_ssl_set_hostname( &m_internal->ssl, "yojimbo" ) ) != 0 )
+        if ( ( result = mbedtls_ssl_set_hostname( &m_internal->ssl, "yojimbo" ) ) != 0 )
         {
+			debug_printf( "mbedtls_ssl_set_hostname failed - error code = %d\n", result );
             m_status = MATCHER_FAILED;
             goto cleanup;
         }
 
         mbedtls_ssl_set_bio( &m_internal->ssl, &m_internal->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
 
-        while ( ( ret = mbedtls_ssl_handshake( &m_internal->ssl ) ) != 0 )
+        while ( ( result = mbedtls_ssl_handshake( &m_internal->ssl ) ) != 0 )
         {
-            if ( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
+			if ( result != MBEDTLS_ERR_SSL_WANT_READ && result != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
-                m_status = MATCHER_FAILED;
+				debug_printf( "mbedtls_ssl_handshake failed - error code = %d\n", result );
+	            m_status = MATCHER_FAILED;
                 goto cleanup;
             }
         }
@@ -167,17 +175,22 @@ namespace yojimbo
         {
 #if YOJIMBO_SECURE_MODE
             // IMPORTANT: In secure mode you must use a valid certificate, not a self signed one!
+			debug_printf( "mbedtls_ssl_get_verify_result failed - flags = %x\n", flags );
             m_status = MATCHER_FAILED;
             goto cleanup;
 #endif // #if YOJIMBO_SECURE_MODE
         }
 
-        sprintf( request, "GET /match/%d/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
+        sprintf( request, "GET /match/%" PRIu64 "/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
 
-        while ( ( ret = mbedtls_ssl_write( &m_internal->ssl, (uint8_t*) request, strlen( request ) ) ) <= 0 )
+		debug_printf( "match request:\n" );
+		debug_printf( "%s\n", request );
+
+        while ( ( result = mbedtls_ssl_write( &m_internal->ssl, (uint8_t*) request, strlen( request ) ) ) <= 0 )
         {
-            if ( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
+            if ( result != MBEDTLS_ERR_SSL_WANT_READ && result != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
+				debug_printf( "mbedtls_ssl_write failed - error code = %d\n", result );
                 m_status = MATCHER_FAILED;
                 goto cleanup;
             }
@@ -187,18 +200,18 @@ namespace yojimbo
 
         do
         {
-            ret = mbedtls_ssl_read( &m_internal->ssl, (uint8_t*) ( buf + bytesRead ), sizeof( buf ) - bytesRead - 1 );
+            result = mbedtls_ssl_read( &m_internal->ssl, (uint8_t*) ( buf + bytesRead ), sizeof( buf ) - bytesRead - 1 );
 
-            if ( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
+            if ( result == MBEDTLS_ERR_SSL_WANT_READ || result == MBEDTLS_ERR_SSL_WANT_WRITE )
                 continue;
 
-            if ( ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
+            if ( result == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
                 break;
 
-            if ( ret <= 0 )
+            if ( result <= 0 )
                 break;
 
-			bytesRead += ret;
+			bytesRead += result;
         }
         while( 1 );
 
@@ -210,6 +223,8 @@ namespace yojimbo
         }
 		else
 		{
+			debug_printf( "failed to parse match response json\n" );
+			debug_printf( "%s\n", json );
 			m_status = MATCHER_FAILED;
 		}
 

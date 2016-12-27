@@ -51,7 +51,7 @@ namespace yojimbo
 
     struct ConnectToken
     {
-        uint32_t protocolId;                                                ///< The protocol id the connect token corresponds to.
+        uint64_t protocolId;                                                ///< The protocol id the connect token corresponds to. Filters out unrelated protocols from connecting.
      
         uint64_t clientId;                                                  ///< The unique client id. Only one connection per-client id is allowed at a time on a server.
      
@@ -65,8 +65,6 @@ namespace yojimbo
      
         uint8_t serverToClientKey[KeyBytes];                                ///< The key for encrypted communication from server -> client.
 
-        uint8_t random[KeyBytes];                                           ///< Random data. Security experts: Is there any point to doing this or am I being overly paranoid here?
-
         ConnectToken()
         {
             protocolId = 0;
@@ -75,7 +73,6 @@ namespace yojimbo
             numServerAddresses = 0;
             memset( clientToServerKey, 0, KeyBytes );
             memset( serverToClientKey, 0, KeyBytes );
-            memset( random, 0, KeyBytes );
         }
 
         bool operator == ( const ConnectToken & other ) const;
@@ -105,15 +102,12 @@ namespace yojimbo
      
         uint8_t serverToClientKey[KeyBytes];                                ///< The key for encrypted communication from server -> client.
 
-        uint8_t random[KeyBytes];                                           ///< Random bytes the client cannot possibly know. Security experts: am I being overly paranoid here?
-
         ChallengeToken()
         {
             clientId = 0;
             memset( connectTokenMac, 0, MacBytes );
             memset( clientToServerKey, 0, KeyBytes );
             memset( serverToClientKey, 0, KeyBytes );
-            memset( random, 0, KeyBytes );
         }
 
         template <typename Stream> bool Serialize( Stream & stream )
@@ -125,8 +119,6 @@ namespace yojimbo
             serialize_bytes( stream, clientToServerKey, KeyBytes );
 
             serialize_bytes( stream, serverToClientKey, KeyBytes );
-
-            serialize_bytes( stream, random, KeyBytes );
 
             return true;
         }
@@ -150,7 +142,7 @@ namespace yojimbo
         @see DecryptConnectToken
      */
 
-    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId, int expirySeconds );
+    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint64_t protocolId, int expirySeconds );
 
     /**
         Encrypt a connect token. 

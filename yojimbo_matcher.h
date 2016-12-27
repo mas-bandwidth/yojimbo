@@ -72,7 +72,7 @@ namespace yojimbo
 
         bool Initialize();
 
-        void RequestMatch( uint32_t protocolId, uint64_t clientId );
+        void RequestMatch( uint64_t protocolId, uint64_t clientId );
 
         MatcherStatus GetStatus();
 

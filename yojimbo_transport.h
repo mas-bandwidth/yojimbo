@@ -549,7 +549,7 @@ namespace yojimbo
             Protocol id is used to enable multiple versions of your protocol at the same time, by excluding communication between protocols with different ids.
          */
 
-        virtual uint32_t GetProtocolId() const = 0;
+        virtual uint64_t GetProtocolId() const = 0;
     };
 
     /**
@@ -575,7 +575,7 @@ namespace yojimbo
 
         BaseTransport( Allocator & allocator,
                        const Address & address,
-                       uint32_t protocolId,
+                       uint64_t protocolId,
                        double time,
                        int maxPacketSize = DefaultMaxPacketSize,
                        int sendQueueSize = DefaultPacketSendQueueSize,
@@ -640,7 +640,7 @@ namespace yojimbo
 
         const Address & GetAddress() const;
 
-        uint32_t GetProtocolId() const;
+        uint64_t GetProtocolId() const;
 
     protected:
 
@@ -765,7 +765,7 @@ namespace yojimbo
 
         uint64_t m_flags;                                               ///< The transport flags. See Transport::SetFlags.
 
-        uint32_t m_protocolId;                                          ///< The protocol id. You set it when you create the transport and it's used to filter out any packets sent that have different protocols ids. Lets you implement basic versioning (eg. ignore packets sent by other versions of your protocol on the network).
+        uint64_t m_protocolId;                                          ///< The protocol id. You set it when you create the transport and it's used to filter out any packets sent that have different protocols ids. Lets you implement basic versioning (eg. ignore packets sent by other versions of your protocol on the network).
 
         Allocator * m_allocator;                                        ///< The allocator passed in to the transport constructor. Used for all allocations inside the transport class, except for packets, messages and stream allocations, which are determined by the factories and allocators passed in to the context.
 
@@ -833,7 +833,7 @@ namespace yojimbo
         LocalTransport( Allocator & allocator,
                         class NetworkSimulator & networkSimulator,
                         const Address & address,
-                        uint32_t protocolId,
+                        uint64_t protocolId,
                         double time,
                         int maxPacketSize = DefaultMaxPacketSize,
                         int sendQueueSize = DefaultPacketSendQueueSize,
@@ -900,7 +900,7 @@ namespace yojimbo
 
         NetworkTransport( Allocator & allocator,
                           const Address & address,
-                          uint32_t protocolId,
+                          uint64_t protocolId,
                           double time,
                           int maxPacketSize = DefaultMaxPacketSize,
                           int sendQueueSize = DefaultPacketSendQueueSize,

@@ -65,9 +65,6 @@ namespace yojimbo
         if ( memcmp( serverToClientKey, other.serverToClientKey, KeyBytes ) != 0 )
             return false;
 
-        if ( memcmp( random, other.random, KeyBytes ) != 0 )
-            return false;
-
         return true;
     }
 
@@ -76,7 +73,7 @@ namespace yojimbo
         return ! ( (*this) == other );
     }
 
-    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint32_t protocolId, int expireSeconds )
+    void GenerateConnectToken( ConnectToken & token, uint64_t clientId, int numServerAddresses, const Address * serverAddresses, uint64_t protocolId, int expireSeconds )
     {
         uint64_t timestamp = (uint64_t) time( NULL );
         
@@ -93,8 +90,6 @@ namespace yojimbo
         GenerateKey( token.clientToServerKey );    
 
         GenerateKey( token.serverToClientKey );
-
-        GenerateKey( token.random );
     }
 
     bool EncryptConnectToken( const ConnectToken & token, uint8_t * encryptedMessage, const uint8_t * nonce, const uint8_t * key )
@@ -184,8 +179,6 @@ namespace yojimbo
 
         insert_data_as_base64_string( writer, "serverToClientKey", connectToken.serverToClientKey, KeyBytes );
 
-        insert_data_as_base64_string( writer, "random", connectToken.random, KeyBytes );
-    
         writer.EndObject();
 
         const char * json_output = s.GetString();
@@ -209,19 +202,6 @@ namespace yojimbo
             return false;
 
         value = atoi( doc[key].GetString() );
-
-        return true;
-    }
-
-    static bool read_uint32_from_string( Document & doc, const char * key, uint32_t & value )
-    {
-        if ( !doc.HasMember( key ) )
-            return false;
-
-        if ( !doc[key].IsString() )
-            return false;
-
-        value = (uint32_t) strtoull( doc[key].GetString(), NULL, 10 );
 
         return true;
     }
@@ -265,7 +245,7 @@ namespace yojimbo
         if ( doc.HasParseError() )
             return false;
 
-        if ( !read_uint32_from_string( doc, "protocolId", connectToken.protocolId ) )
+        if ( !read_uint64_from_string( doc, "protocolId", connectToken.protocolId ) )
             return false;
 
         if ( !read_uint64_from_string( doc, "clientId", connectToken.clientId ) )
@@ -317,10 +297,7 @@ namespace yojimbo
 
         if ( !read_data_from_base64_string( doc, "serverToClientKey", connectToken.serverToClientKey, KeyBytes ) )
             return false;
-
-        if ( !read_data_from_base64_string( doc, "random", connectToken.random, KeyBytes ) )
-            return false;
-
+        
         return true;
     }
 
@@ -336,8 +313,6 @@ namespace yojimbo
         memcpy( challengeToken.clientToServerKey, connectToken.clientToServerKey, KeyBytes );
 
         memcpy( challengeToken.serverToClientKey, connectToken.serverToClientKey, KeyBytes );
-
-        GenerateKey( challengeToken.random );
 
         return true;
     }

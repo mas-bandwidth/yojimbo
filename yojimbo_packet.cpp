@@ -105,8 +105,8 @@ namespace yojimbo
 
         if ( !info.rawFormat )
         {
-            uint32_t network_protocolId = host_to_network( info.protocolId );
-            crc32 = calculate_crc32( (uint8_t*) &network_protocolId, 4 );
+            uint64_t network_protocolId = host_to_network( info.protocolId );
+            crc32 = calculate_crc32( (uint8_t*) &network_protocolId, 8 );
             crc32 = calculate_crc32( buffer + info.prefixBytes, stream.GetBytesProcessed() - info.prefixBytes, crc32 );
             *((uint32_t*)(buffer+info.prefixBytes)) = host_to_network( crc32 );
         }
@@ -153,8 +153,8 @@ namespace yojimbo
                 return 0;
             }
 
-            uint32_t network_protocolId = host_to_network( info.protocolId );
-            uint32_t crc32 = calculate_crc32( (const uint8_t*) &network_protocolId, 4 );
+            uint64_t network_protocolId = host_to_network( info.protocolId );
+            uint32_t crc32 = calculate_crc32( (const uint8_t*) &network_protocolId, 8 );
             uint32_t zero = 0;
             crc32 = calculate_crc32( (const uint8_t*) &zero, 4, crc32 );
             crc32 = calculate_crc32( buffer + info.prefixBytes + 4, bufferSize - 4 - info.prefixBytes, crc32 );
