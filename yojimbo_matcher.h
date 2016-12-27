@@ -76,11 +76,11 @@ namespace yojimbo
     };
 
     /**
-        The matcher class.
+        Communicates with the matcher web service over HTTPS.
 
-        This is a stub class for HTTPS requests to matcher.go.
+        See docker/matcher/matcher.go for details. Launch the matcher via "premake5 matcher".
 
-        It will be improved in the future, most importantly to make Matcher::RequestMatch a non-blocking operation.
+        This class will be improved in the future, most importantly to make Matcher::RequestMatch a non-blocking operation.
      */
 
     class Matcher
@@ -134,7 +134,7 @@ namespace yojimbo
 
             If the status is MATCH_READY you can call Matcher::GetMatchResponse to get the match response data corresponding to the last call to Matcher::RequestMatch.
 
-            @param The current match status.
+            @returns The current match status.
          */
 
         MatchStatus GetMatchStatus();
@@ -154,19 +154,28 @@ namespace yojimbo
 
     protected:
 
+        /**
+            Helper function to parse the match response JSON into the MatchResponse struct.
+
+            @param json The JSON match response string to parse.
+            @param matchResponse The match response structure to fill [out].
+
+            @returns True if the match response JSON was successfully parsed, false otherwise.
+         */
+
         bool ParseMatchResponse( const char * json, MatchResponse & matchResponse );
 
     private:
 
-        Allocator * m_allocator;
+        Allocator * m_allocator;                                ///< The allocator passed into the constructor.
 
-        bool m_initialized;
+        bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
         
-		MatchStatus m_matchStatus;
+		MatchStatus m_matchStatus;                              ///< The current match status.
         
-		MatchResponse m_matchResponse;
+		MatchResponse m_matchResponse;                          ///< The match response status from the last call to Matcher::RequestMatch if the match status is MATCH_READY.
         
-		struct MatcherInternal * m_internal;
+		struct MatcherInternal * m_internal;                    ///< Internal match data is contained in this structure here so we don't have to spill details of mbedtls library outside yojimbo_matcher.cpp
     };
 }
 
