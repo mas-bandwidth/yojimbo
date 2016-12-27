@@ -28,9 +28,9 @@
 #include "yojimbo_config.h"
 #include "yojimbo_bitpack.h"
 #include "yojimbo_allocator.h"
-#ifdef DEBUG
+#ifndef NDEBUG
 #include <stdio.h>
-#endif // #ifdef DEBUG
+#endif // #ifndef NDEBUG
 
 namespace yojimbo
 {
@@ -44,7 +44,7 @@ namespace yojimbo
     #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_HEADER_FAILED      5
     #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_PACKET_FAILED      6
     #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_CHECK_FAILED       7
-    #define YOJIMBO_PROTOCOL_ERROR_STREAM_OVERFLOW              8
+    #define YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END	8
     #define YOJIMBO_PROTOCOL_ERROR_STREAM_ABORTED               9
 
     class WriteStream
@@ -193,9 +193,9 @@ namespace yojimbo
         {
             assert( min < max );
             const int bits = bits_required( min, max );
-            if ( m_reader.WouldOverflow( bits ) )
+            if ( m_reader.WouldReadPastEnd( bits ) )
             {
-                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_OVERFLOW;
+                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END;
                 return false;
             }
             uint32_t unsigned_value = m_reader.ReadBits( bits );
@@ -208,9 +208,9 @@ namespace yojimbo
         {
             assert( bits > 0 );
             assert( bits <= 32 );
-            if ( m_reader.WouldOverflow( bits ) )
+            if ( m_reader.WouldReadPastEnd( bits ) )
             {
-                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_OVERFLOW;
+                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END;
                 return false;
             }
             uint32_t read_value = m_reader.ReadBits( bits );
@@ -223,9 +223,9 @@ namespace yojimbo
         {
             if ( !SerializeAlign() )
                 return false;
-            if ( m_reader.WouldOverflow( bytes * 8 ) )
+            if ( m_reader.WouldReadPastEnd( bytes * 8 ) )
             {
-                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_OVERFLOW;
+                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END;
                 return false;
             }
             m_reader.ReadBytes( data, bytes );
@@ -236,9 +236,9 @@ namespace yojimbo
         bool SerializeAlign()
         {
             const int alignBits = m_reader.GetAlignBits();
-            if ( m_reader.WouldOverflow( alignBits ) )
+            if ( m_reader.WouldReadPastEnd( alignBits ) )
             {
-                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_OVERFLOW;
+                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END;
                 return false;
             }
             if ( !m_reader.ReadAlign() )
@@ -261,12 +261,12 @@ namespace yojimbo
             if ( !SerializeBits( value, 32 ) )
                 return false;
             const uint32_t magic = hash_string( string, 0 );
-#ifdef DEBUG
+#ifndef NDEBUG
             if ( magic != value )
             {
                 printf( "serialize check failed: '%s'. expected %x, got %x\n", string, magic, value );
             }
-#endif // #ifdef DEBUG
+#endif // #ifndef NDEBUG
             return value == magic;
 #else // #if YOJIMBO_SERIALIZE_CHECKS
             (void)string;
@@ -307,11 +307,6 @@ namespace yojimbo
         int GetError() const
         {
             return m_error;
-        }
-
-        int GetBytesRead() const
-        {
-            return m_reader.GetBytesRead();
         }
 
         Allocator & GetAllocator()

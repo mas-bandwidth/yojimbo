@@ -1,38 +1,8 @@
 DONE    
 
-    Document smaller classes:
-
-        Utility functions
-
-        Address
-
-        Message
-
-        BlockMessage
-
-        MessageFactory
-
-        Document the helper structs used in reliable ordered message (moved back to yojimbo_channel.h)
-
-        Maybe move them inside the reliable-ordered message class? They are really internal implementation classes... Yep. cleaned it up a bit.
-
-        Packet
-
-        PacketFactory
-
-        Packet classes for client/server
-
-        Token support classes and functions
-
-        Allocator
-
-        Socket class needs another pass.
-
-        BitWriter
+        BitReader
 
 TODO
-
-        BitReader
 
         Encryption manager
 

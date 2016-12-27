@@ -33,13 +33,15 @@
 namespace yojimbo
 {
     /**
-        Bitpacks unsigned integer values, flushing to memory one dword at a time.
+        Bitpacks unsigned integer values to a buffer.
 
-        How does it work? Integer bit values are written to a scratch value that is 64 bits wide, writing bits from right to left.
+        Integer bit values are written to a 64 bit scratch value from right to left.
 
-        Once low 32 bits of the scratch is filled with bits, the low 32 bits of scratch are flushed to memory as a dword, and the scratch buffer is shifted right by 32.
+        Once the low 32 bits of the scratch is filled with bits it is flushed to memory as a dword and the scratch buffer is shifted right by 32.
 
         The bit stream is written to memory in little endian order, which is considered network byte order for this library.
+
+        @see BitReader
      */
 
     class BitWriter
@@ -77,6 +79,8 @@ namespace yojimbo
 
             @param value The integer value to write to the buffer. Must be in [0,(1<<bits)-1].
             @param bits The number of bits to encode in [1,32].
+
+            @see BitReader::ReadBits
          */
 
         void WriteBits( uint32_t value, int bits )
@@ -108,6 +112,8 @@ namespace yojimbo
 			This is useful if you want to write some data to a packet that should be byte aligned. For example, an array of bytes, or a string.
 
 			IMPORTANT: If the current bit index is already a multiple of 8, nothing is written.
+
+            @see BitReader::ReadAlign
 		 */
 
         void WriteAlign()
@@ -131,6 +137,8 @@ namespace yojimbo
 
 			@param data The byte array data to write to the bit stream.
 			@param bytes The number of bytes to write.
+
+            @see BitReader::ReadBytes
 		 */
 
         void WriteBytes( const uint8_t * data, int bytes )
@@ -178,6 +186,8 @@ namespace yojimbo
 			Flush any remaining bits to memory.
 
 			Call this once after you've finished writing bits to flush the last dword of scratch to memory!
+
+            @see BitWriter::WriteBits
 		 */
 
         void FlushBits()
@@ -266,18 +276,37 @@ namespace yojimbo
         int m_scratchBits;									///< The number of bits in scratch. When this is >= 32, the low 32 bits of scratch is flushed to memory as a dword and scratch is shifted right by 32.
     };
 
+    /**
+        Reads bit packed integer values from a buffer.
+
+        Relies on the user reconstructing the exact same set of bit reads as bit writes when the buffer was written. This is an unattributed bitpacked binary stream!
+
+        Implementation: 32 bit dwords are read in from memory to the high bits of a scratch buffer as required. The user reads off bit values from the scratch buffer from the right, after which the scrathc buffer is shifted by the same number of bits.
+     */
+
     class BitReader
     {
     public:
 
-#ifdef DEBUG
+        /**
+            Bit reader constructor.
+
+            Non-multiples of four buffer sizes are supported, as this naturally tends to occur when packets are read from the network.
+
+			However, actual buffer allocated for the packet data must round up at least to the next 4 bytes in memory, because the bit reader reads dwords from memory not bytes.
+
+            @param data Pointer to the bitpacked data to read.
+            @param bytes The number of bytes of bitpacked data to read.
+
+            @see BitWriter
+         */
+
+#ifndef NDEBUG
         BitReader( const void * data, int bytes ) : m_data( (const uint32_t*) data ), m_numBytes( bytes ), m_numWords( ( bytes + 3 ) / 4)
-#else // #ifdef DEBUG
+#else // #ifndef NDEBUG
         BitReader( const void * data, int bytes ) : m_data( (const uint32_t*) data ), m_numBytes( bytes )
-#endif // #ifdef DEBUG
+#endif // #ifndef NDEBUG
         {
-            // IMPORTANT: Although we support non-multiples of four bytes passed in, the actual buffer
-            // underneath the bit reader must round up to at least 4 bytes because we read a dword at a time.
             assert( data );
             m_numBits = m_numBytes * 8;
             m_bitsRead = 0;
@@ -286,10 +315,33 @@ namespace yojimbo
             m_wordIndex = 0;
         }
 
-        bool WouldOverflow( int bits ) const
+        /**
+            Would the bit reader would read past the end of the buffer if it read this many bits?
+
+            @param bits The number of bits that would be read.
+
+            @returns True if reading the number of bits would read past the end of the buffer.
+         */
+
+        bool WouldReadPastEnd( int bits ) const
         {
             return m_bitsRead + bits > m_numBits;
         }
+
+        /**
+            Read bits from the bit buffer.
+
+            This function will assert in debug builds if this read would read past the end of the buffer.
+
+            In production situations, the higher level ReadStream takes care of checking all packet data and never calling this function if it would read past the end of the buffer.
+
+            @param bits The number of bits to read in [1,32].
+
+            @returns The integer value read in range [0,(1<<bits)-1].
+
+            @see BitReader::WouldReadPastEnd
+            @see BitWriter::WriteBits
+         */
 
         uint32_t ReadBits( int bits )
         {
@@ -319,6 +371,20 @@ namespace yojimbo
             return output;
         }
 
+        /**
+            Read an align.
+
+            Call this on read to correspond to a WriteAlign call when the bitpacked buffer was written. 
+
+            This makes sure we skip ahead to the next aligned byte index. As a safety check, we verify that the padding to next byte is zero bits and return false if that's not the case. 
+
+            This will typically abort packet read. Just another safety measure...
+
+            @returns True if we successfully read an align and skipped ahead past zero pad, false otherwise (probably means, no align was written to the stream).
+
+            @see BitWriter::WriteAlign
+         */
+
         bool ReadAlign()
         {
             const int remainderBits = m_bitsRead % 8;
@@ -331,6 +397,12 @@ namespace yojimbo
             }
             return true;
         }
+
+        /**
+            Read bytes from the bitpacked data.
+
+            @see BitWriter::WriteBytes
+         */
 
         void ReadBytes( uint8_t * data, int bytes )
         {
@@ -371,43 +443,53 @@ namespace yojimbo
             assert( headBytes + numWords * 4 + tailBytes == bytes );
         }
 
+        /**
+            How many align bits would be read, if we were to read an align right now?
+
+            @returns Result in [0,7], where 0 is zero bits required to align (already aligned) and 7 is worst case.
+         */
+
         int GetAlignBits() const
         {
             return ( 8 - m_bitsRead % 8 ) % 8;
         }
+
+        /** 
+            How many bits have we read so far?
+
+            @returns The number of bits read from the bit buffer so far.
+         */
 
         int GetBitsRead() const
         {
             return m_bitsRead;
         }
 
-        int GetBytesRead() const
-        {
-            return m_wordIndex * 4;
-        }
+        /**
+            How many bits are still available to read?
+
+            For example, if the buffer size is 4, we have 32 bits available to read, if we have already written 10 bytes then 22 are still available.
+
+            @returns The number of bits available to read.
+         */
 
         int GetBitsRemaining() const
         {
             return m_numBits - m_bitsRead;
         }
 
-        int GetBytesRemaining() const
-        {
-            return GetBitsRemaining() / 8;
-        }
-
     private:
 
-        const uint32_t * m_data;
-        uint64_t m_scratch;
-        int m_numBits;
-        int m_numBytes;
+        const uint32_t * m_data;							///< The bitpacked data we're reading as a dword array.
+        uint64_t m_scratch;									///< The scratch buffer. New data is read in 32 bits at a top to the left of this buffer, and data is read off to the right.
+        int m_numBits;										///< Number of bits to read in the buffer. Of course, we can't *really* know this so it's actually m_numBytes * 8.
+        int m_numBytes;										///< Number of bytes to read in the buffer. We know this, and this is the non-rounded up version.
 #ifndef NDEBUG
-        int m_numWords;
+        int m_numWords;										///< Number of words to read in the buffer. This is rounded up to the next word if necessary.
 #endif // #ifndef NDEBUG
-        int m_bitsRead;
-        int m_scratchBits;
-        int m_wordIndex;
+        int m_bitsRead;										///< Number of bits read from the buffer so far.
+        int m_scratchBits;									///< Number of bits currently in the scratch buffer. If the user wants to read more bits than this, we have to go fetch another dword from memory.
+        int m_wordIndex;									///< Index of the next word to read from memory.
     };
 }
 
