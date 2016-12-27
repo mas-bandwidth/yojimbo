@@ -37,17 +37,6 @@
 
 namespace yojimbo
 {
-    // todo: nooooooo. don't make these errors defines. bad. make them an enum instead. also why are they in stream.h? what's the point of that. these are all error codes for yojimbo_packet.h, except the serialize ones. need to clean this up
-
-    #define YOJIMBO_PROTOCOL_ERROR_NONE                         0
-    #define YOJIMBO_PROTOCOL_ERROR_CRC32_MISMATCH               1
-    #define YOJIMBO_PROTOCOL_ERROR_INVALID_PACKET_TYPE          2
-    #define YOJIMBO_PROTOCOL_ERROR_PACKET_TYPE_NOT_ALLOWED      3
-    #define YOJIMBO_PROTOCOL_ERROR_CREATE_PACKET_FAILED         4
-    #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_HEADER_FAILED      5
-    #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_PACKET_FAILED      6
-    #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_CHECK_FAILED       7
-
     class PacketFactory;
 
     /**
@@ -374,7 +363,22 @@ namespace yojimbo
 
     int WritePacket( const PacketReadWriteInfo & info, Packet * packet, uint8_t * buffer, int bufferSize );
 
-    // todo: int errorCode is lame. Make it a specific enum type, so the docs will point to the set of error codes naturally.
+    /**
+        Error codes for read packet function.
+
+        @see yojimbo::ReadPacket
+     */
+
+    enum ReadPacketError
+    {
+        READ_PACKET_ERROR_NONE,                                     ///< Packet read OK.
+        READ_PACKET_ERROR_CRC32_MISMATCH,                           ///< Packet CRC32 check failed.
+        READ_PACKET_ERROR_CREATE_PACKET_FAILED,                     ///< Tried to create a packet but failed. The allocator backing the packet factory is probably out of memory.
+        READ_PACKET_ERROR_PACKET_TYPE_NOT_ALLOWED,                  ///< Packet type is not one we are allowed to read. See PacketReadWriteInfo::allowedPacketTypes.
+        READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER,                  ///< Failed to serialize the packet header. One of the packet header elements returned false when serialized.
+        READ_PACKET_ERROR_SERIALIZE_PACKET_BODY,	                ///< Failed to serialize the packet body. The packet serialize read function returned false.
+        READ_PACKET_ERROR_SERIALIZE_PACKET_FOOTER,					///< Failed to serialize the packet footer. The serialize check at the end of the packet failed. The packet data is probably truncated.
+    };
 
     /**
         Read a packet from a byte buffer.
@@ -389,7 +393,7 @@ namespace yojimbo
         @see yojimbo::WritePacket
      */
 
-    Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, int * errorCode = NULL );
+    Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, ReadPacketError * errorCode = NULL );
 }
 
 // todo: can I document macros? That would be really helpful. Help me doxygen.

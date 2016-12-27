@@ -225,12 +225,13 @@ namespace yojimbo
             info.allowedPacketTypes = encryptedPacketTypes;
             info.rawFormat = 1;
 
-            int readError;
+            ReadPacketError readPacketError;
             
-            Packet * packet = yojimbo::ReadPacket( info, m_scratchBuffer, decryptedPacketBytes, &readError );
+            Packet * packet = yojimbo::ReadPacket( info, m_scratchBuffer, decryptedPacketBytes, &readPacketError );
+
             if ( !packet )
             {
-                debug_printf( "packet processor (read packet): read packet failed\n" );
+                debug_printf( "packet processor (read packet): read packet failed - error code %d (encrypted)\n", readPacketError );
                 m_error = PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED;
                 return NULL;
             }
@@ -249,13 +250,13 @@ namespace yojimbo
 
             sequence = 0;
             
-            int readError;
+            ReadPacketError readPacketError;
 
-            Packet * packet = yojimbo::ReadPacket( info, packetData, packetBytes, &readError );
+            Packet * packet = yojimbo::ReadPacket( info, packetData, packetBytes, &readPacketError );
 
             if ( !packet )
             {
-                debug_printf( "packet processor (read packet): read packet failed (unencrypted)\n" );
+                debug_printf( "packet processor (read packet): read packet failed - error code = %d (unencrypted)\n", readPacketError );
                 m_error = PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED;
                 return NULL;
             }

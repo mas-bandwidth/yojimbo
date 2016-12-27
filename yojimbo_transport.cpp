@@ -951,7 +951,8 @@ namespace yojimbo
                                         int maxPacketSize, 
                                         int sendQueueSize, 
                                         int receiveQueueSize,
-                                        int socketBufferSize )
+                                        int socketSendBufferSize,
+										int socketReceiveBufferSize )
         : BaseTransport( allocator, 
                          address,
                          protocolId,
@@ -960,7 +961,7 @@ namespace yojimbo
                          sendQueueSize,
                          receiveQueueSize )
     {
-        m_socket = YOJIMBO_NEW( allocator, Socket, address, socketBufferSize );
+        m_socket = YOJIMBO_NEW( allocator, Socket, address, socketSendBufferSize, socketReceiveBufferSize );
 
         if ( m_address.GetPort() == 0 && !m_socket->IsError() )
         {

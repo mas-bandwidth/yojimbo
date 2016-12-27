@@ -219,6 +219,7 @@ namespace yojimbo
             return m_reader.GetAlignBits();
         }
 
+		// todo: turn serialize check back into a uint32_t. the hash string is a performance problem.
         bool SerializeCheck( const char * string )
         {
 #if YOJIMBO_SERIALIZE_CHECKS            

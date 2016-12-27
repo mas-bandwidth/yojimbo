@@ -78,10 +78,11 @@ namespace yojimbo
             IMPORTANT: Please check Socket::IsError after creating a socket, it could be in an error state if something goes wrong.
 
             @param address The address to bind the socket to.
-            @param bufferSize The size of buffers to allocate on the socket for SO_RCVBUF and SO_SNDBUF. Defaults to 1mb send and 1mb receive buffer.
+            @param sendBufferSize The size of the send buffer to set on the socket (SO_SNDBUF).
+            @param receiveBufferSize The size of the receive buffer to set on the socket (SO_RCVBUF).
          */
 
-        explicit Socket( const Address & address, int bufferSize = 1024*1024 );
+        explicit Socket( const Address & address, int sendBufferSize = 1024*1024, int receiveBufferSize = 1024*1024 );
 
         /**
             Socket destructor.

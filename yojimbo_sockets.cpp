@@ -70,7 +70,7 @@
 
 namespace yojimbo
 {
-    Socket::Socket( const Address & address, int bufferSize )
+    Socket::Socket( const Address & address, int sendBufferSize, int receiveBufferSize )
     {
         assert( address.IsValid() );
         assert( IsNetworkInitialized() );
@@ -105,15 +105,15 @@ namespace yojimbo
 
         // increase socket send and receive buffer sizes
 
-        if ( setsockopt( m_socket, SOL_SOCKET, SO_RCVBUF, (char*)&bufferSize, sizeof(int) ) != 0 )
+        if ( setsockopt( m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&sendBufferSize, sizeof(int) ) != 0 )
         {
-            m_error = SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED;
+            m_error = SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED;
             return;
         }
 
-        if ( setsockopt( m_socket, SOL_SOCKET, SO_SNDBUF, (char*)&bufferSize, sizeof(int) ) != 0 )
+        if ( setsockopt( m_socket, SOL_SOCKET, SO_RCVBUF, (char*)&receiveBufferSize, sizeof(int) ) != 0 )
         {
-            m_error = SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED;
+            m_error = SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED;
             return;
         }
 

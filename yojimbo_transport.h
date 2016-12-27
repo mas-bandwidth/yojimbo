@@ -894,7 +894,8 @@ namespace yojimbo
             @param maxPacketSize The maximum packet size that can be sent across this transport.
             @param sendQueueSize The size of the packet send queue (number of packets).
             @param receiveQueueSize The size of the packet receive queue (number of packets).
-            @param socketBufferSize The size of the buffers to set on the socket (eg. SO_RCVBUF and SO_SNDBUF).
+            @param socketSendBufferSize The size of the send buffers to set on the socket (SO_SNDBUF).
+            @param socketReceiveBufferSize The size of the send buffers to set on the socket (SO_RCVBUF).
          */
 
         NetworkTransport( Allocator & allocator,
@@ -904,7 +905,8 @@ namespace yojimbo
                           int maxPacketSize = DefaultMaxPacketSize,
                           int sendQueueSize = DefaultPacketSendQueueSize,
                           int receiveQueueSize = DefaultPacketReceiveQueueSize,
-                          int socketBufferSize = DefaultSocketBufferSize );
+                          int socketSendBufferSize = DefaultSocketSendBufferSize,
+						  int socketReceiveBufferSize = DefaultSocketReceiveBufferSize );
 
         ~NetworkTransport();
 

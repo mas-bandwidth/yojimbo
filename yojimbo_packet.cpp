@@ -114,7 +114,7 @@ namespace yojimbo
         return stream.GetBytesProcessed();
     }
 
-    Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, int * errorCode )
+    Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, ReadPacketError * errorCode )
     {
         assert( buffer );
         assert( bufferSize > 0 );
@@ -123,7 +123,7 @@ namespace yojimbo
         assert( info.streamAllocator );
 
         if ( errorCode )
-            *errorCode = YOJIMBO_PROTOCOL_ERROR_NONE;
+            *errorCode = READ_PACKET_ERROR_NONE;
 
         ReadStream stream( buffer, bufferSize, *info.streamAllocator );
 
@@ -134,7 +134,9 @@ namespace yojimbo
             uint32_t dummy = 0;
             if ( !stream.SerializeBits( dummy, 8 ) )
             {
-                debug_printf( "serialize prefix byte failed (read packet)\n" );
+                debug_printf( "serialize prefix bytes failed (read packet)\n" );
+				if ( errorCode )
+					*errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER;
                 return 0;
             }
         }
@@ -146,6 +148,8 @@ namespace yojimbo
             if ( !stream.SerializeBits( read_crc32, 32 ) )
             {
                 debug_printf( "serialize crc32 failed (read packet)\n" );
+				if ( errorCode )
+					*errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER;
                 return 0;
             }
 
@@ -157,9 +161,9 @@ namespace yojimbo
 
             if ( crc32 != read_crc32 )
             {
-                debug_printf( "corrupt packet. expected crc32 %x, got %x (read packet)\n", crc32, read_crc32 );
+                debug_printf( "packet crc32 mismatch: expected crc32 %x, got %x (read packet)\n", crc32, read_crc32 );
                 if ( errorCode )
-                    *errorCode = YOJIMBO_PROTOCOL_ERROR_CRC32_MISMATCH;
+                    *errorCode = READ_PACKET_ERROR_CRC32_MISMATCH;
                 return NULL;
             }
         }
@@ -174,9 +178,9 @@ namespace yojimbo
         {
             if ( !stream.SerializeInteger( packetType, 0, numPacketTypes - 1 ) )
             {
-                debug_printf( "invalid packet type %d (read packet)\n", packetType );
+                debug_printf( "failed to serialize packet type in packet header\n" );
                 if ( errorCode )
-                    *errorCode = YOJIMBO_PROTOCOL_ERROR_INVALID_PACKET_TYPE;
+                    *errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER;
                 return NULL;
             }
         }
@@ -187,17 +191,18 @@ namespace yojimbo
             {
                 debug_printf( "packet type %d not allowed (read packet)\n", packetType );
                 if ( errorCode )
-                    *errorCode = YOJIMBO_PROTOCOL_ERROR_PACKET_TYPE_NOT_ALLOWED;
+                    *errorCode = READ_PACKET_ERROR_PACKET_TYPE_NOT_ALLOWED;
                 return NULL;
             }
         }
 
         Packet * packet = info.packetFactory->Create( packetType );
+
         if ( !packet )
         {
             debug_printf( "create packet type %d failed (read packet)\n", packetType );
             if ( errorCode )
-                *errorCode = YOJIMBO_PROTOCOL_ERROR_CREATE_PACKET_FAILED;
+                *errorCode = READ_PACKET_ERROR_CREATE_PACKET_FAILED;
             return NULL;
         }
 
@@ -205,7 +210,7 @@ namespace yojimbo
         {
             debug_printf( "serialize packet type %d failed (read packet)\n", packetType );
             if ( errorCode )
-                *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_PACKET_FAILED;
+                *errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_BODY;
             goto cleanup;
         }
 
@@ -214,7 +219,7 @@ namespace yojimbo
         {
             debug_printf( "serialize check failed at end of packet type %d (read packet)\n", packetType );
             if ( errorCode )
-                *errorCode = YOJIMBO_PROTOCOL_ERROR_SERIALIZE_CHECK_FAILED;
+                *errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_FOOTER;
             goto cleanup;
         }
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
