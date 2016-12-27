@@ -95,7 +95,7 @@ namespace yojimbo
             return 0;
         }
 
-        if ( !stream.SerializeCheck( "end of packet" ) )
+        if ( !stream.SerializeCheck() )
         {
             debug_printf( "serialize check at end of packed failed (write packet)\n" );
             return 0;
@@ -215,7 +215,7 @@ namespace yojimbo
         }
 
 #if YOJIMBO_SERIALIZE_CHECKS
-        if ( !stream.SerializeCheck( "end of packet" ) )
+        if ( !stream.SerializeCheck() )
         {
             debug_printf( "serialize check failed at end of packet type %d (read packet)\n", packetType );
             if ( errorCode )

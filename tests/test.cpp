@@ -316,7 +316,7 @@ struct TestObject : public Serializable
 
         serialize_bool( stream, data.g );
 
-        serialize_check( stream, "test object serialize check" );
+        serialize_check( stream );
 
         serialize_int( stream, data.numItems, 0, MaxItems - 1 );
         for ( int i = 0; i < data.numItems; ++i )
@@ -332,7 +332,7 @@ struct TestObject : public Serializable
 
         serialize_string( stream, data.string, sizeof( data.string ) );
 
-        serialize_check( stream, "end of test object" );
+        serialize_check( stream );
 
         return true;
     }

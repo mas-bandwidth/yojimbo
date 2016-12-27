@@ -116,6 +116,7 @@ namespace yojimbo
     const int ConservativeFragmentHeaderEstimate = 64;              ///< Conservative fragment header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
     const int ConservativeChannelHeaderEstimate = 32;               ///< Conservative channel header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
     const int ConservativeConnectionPacketHeaderEstimate = 128;     ///< Conservative packet header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
+	const uint32_t SerializeCheckValue = 0x12345678;				///< The value written to the stream for serialize checks. See WriteStream::SerializeCheck and ReadStream::SerializeCheck.
 
     /// Channel type. Determines the reliability and ordering guarantees for a channel.
 

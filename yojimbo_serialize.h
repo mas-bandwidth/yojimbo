@@ -207,10 +207,10 @@ namespace yojimbo
                 return false;                                                               \
         } while (0)
 
-    #define serialize_check( stream, string )                                               \
+    #define serialize_check( stream )														\
         do                                                                                  \
         {                                                                                   \
-            if ( !stream.SerializeCheck( string ) )                                         \
+            if ( !stream.SerializeCheck() )													\
                 return false;                                                               \
         } while (0)
 

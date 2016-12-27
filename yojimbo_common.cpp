@@ -161,21 +161,6 @@ namespace yojimbo
         return hash;
     } 
 
-    uint32_t hash_string( const char string[], uint32_t hash )
-    {
-        assert( string );
-        while ( *string != '\0' )
-        {
-            char c = *string++;
-            if ( ( c >= 'a' ) && ( c <= 'z' ) ) 
-                c = ( c - 'a' ) + 'A';
-            hash += c;
-            hash += ( hash << 10 );
-            hash ^= ( hash >> 6 );
-        }
-        return hash;
-    }
-
     uint64_t murmur_hash_64( const void * key, uint32_t length, uint64_t seed )
     {
         const uint64_t m = 0xc6a4a7935bd1e995ULL;

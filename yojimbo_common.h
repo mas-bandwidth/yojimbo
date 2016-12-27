@@ -514,19 +514,6 @@ namespace yojimbo
     uint32_t hash_data( const uint8_t * data, uint32_t length, uint32_t hash );
 
     /**
-        Hash a string.
-
-        IMPORTANT: The hash is case insensitive.
-
-        @param string The input string. Must be null terminated.
-        @param hash The previous hash result, to chain together multiple hashes (optional).
-
-        @returns A hash of the input string (case insensitive).
-     */
-
-    uint32_t hash_string( const char string[], uint32_t hash );
-
-    /**
         Implementation of the 64 bit murmur hash.
 
         @param key The input value.

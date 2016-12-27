@@ -87,13 +87,12 @@ namespace yojimbo
             return m_writer.GetAlignBits();
         }
 
-        bool SerializeCheck( const char * string )
+        bool SerializeCheck()
         {
 #if YOJIMBO_SERIALIZE_CHECKS
             if ( !SerializeAlign() )
                 return false;
-            const uint32_t magic = hash_string( string, 0 );
-            if ( !SerializeBits( magic, 32 ) )
+            if ( !SerializeBits( SerializeCheckValue, 32 ) )
                 return false;
 #else // #if YOJIMBO_SERIALIZE_CHECKS
             (void)string;
@@ -219,8 +218,7 @@ namespace yojimbo
             return m_reader.GetAlignBits();
         }
 
-		// todo: turn serialize check back into a uint32_t. the hash string is a performance problem.
-        bool SerializeCheck( const char * string )
+        bool SerializeCheck()
         {
 #if YOJIMBO_SERIALIZE_CHECKS            
             if ( !SerializeAlign() )
@@ -228,16 +226,14 @@ namespace yojimbo
             uint32_t value = 0;
             if ( !SerializeBits( value, 32 ) )
                 return false;
-            const uint32_t magic = hash_string( string, 0 );
 #ifndef NDEBUG
-            if ( magic != value )
+            if ( value != SerializeCheckValue )
             {
-                printf( "serialize check failed: '%s'. expected %x, got %x\n", string, magic, value );
+                printf( "serialize check failed: expected %x, got %x\n", SerializeCheckValue, value );
             }
 #endif // #ifndef NDEBUG
-            return value == magic;
+            return value == SerializeCheckValue;
 #else // #if YOJIMBO_SERIALIZE_CHECKS
-            (void)string;
             return true;
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
         }
@@ -334,10 +330,10 @@ namespace yojimbo
 
         int GetAlignBits() const
         {
-            return 7;       // we can't know for sure, so be conservative and assume worst case
+            return 7;       // this changes depending on where the object is written to the bit stream, so we must be conservative and assume worst case
         }
 
-        bool SerializeCheck( const char * /*string*/ )
+        bool SerializeCheck()
         {
 #if YOJIMBO_SERIALIZE_CHECKS
             SerializeAlign();
