@@ -119,11 +119,36 @@ namespace yojimbo
 
     // =============================================
 
+    static void * AlignPointerUp( void * memory, int align )
+    {
+        assert( ( align & ( align - 1 ) ) == 0 );
+        uintptr_t p = (uintptr_t) memory;
+        return (void*) ( ( p + ( align - 1 ) ) & ~( align - 1 ) );
+    }
+
+    static void * AlignPointerDown( void * memory, int align )
+    {
+        assert( ( align & ( align - 1 ) ) == 0 );
+        uintptr_t p = (uintptr_t) memory;
+        return (void*) ( p - ( p & ( align - 1 ) ) );
+    }
+
     TLSF_Allocator::TLSF_Allocator( void * memory, size_t size ) 
     {
+        assert( size > 0 );
+
         m_error = ALLOCATOR_ERROR_NONE;
 
-        m_tlsf = tlsf_create_with_pool( memory, size );
+        const int AlignBytes = 8;
+
+        uint8_t * aligned_memory_start = (uint8_t*) AlignPointerUp( memory, AlignBytes );
+        uint8_t * aligned_memory_finish = (uint8_t*) AlignPointerDown( ( (uint8_t*) memory ) + size, AlignBytes );
+
+        assert( aligned_memory_start < aligned_memory_finish );
+        
+        size_t aligned_memory_size = aligned_memory_finish - aligned_memory_start;
+
+        m_tlsf = tlsf_create_with_pool( aligned_memory_start, aligned_memory_size );
     }
 
     TLSF_Allocator::~TLSF_Allocator()

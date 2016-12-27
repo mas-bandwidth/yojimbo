@@ -28,9 +28,11 @@ DONE
 
         Socket class needs another pass.
 
+        BitWriter
+
 TODO
 
-        BitReader, BitWriter
+        BitReader
 
         Encryption manager
 
