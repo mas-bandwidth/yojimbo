@@ -34,15 +34,15 @@ namespace yojimbo
     /**
         Matcher status enum.
 
-        Designed for when the matcher will be made non-blocking. Currently the matcher is blocking.
+        Designed for when the matcher will be made non-blocking. The matcher is currently blocking in Matcher::RequestMatch
      */
 
-    enum MatcherStatus
+    enum MatchStatus
     {
-        MATCHER_IDLE,                                                       ///< The matcher is idle.
-        MATCHER_BUSY,                                                       ///< The matcher is busy requesting a match.
-        MATCHER_READY,                                                      ///< The matcher is finished requesting a match. The match response is ready to read with Matcher::GetMatchResponse.
-        MATCHER_FAILED                                                      ///< The matcher failed to find a match.
+        MATCH_IDLE,                                                         ///< The matcher is idle.
+        MATCH_BUSY,                                                         ///< The matcher is busy requesting a match.
+        MATCH_READY,                                                        ///< The matcher is finished requesting a match. The match response is ready to read with Matcher::GetMatchResponse.
+        MATCH_FAILED                                                        ///< The matcher failed to find a match.
     };
 
     /** 
@@ -87,15 +87,68 @@ namespace yojimbo
     {
     public:
 
+        /**
+            Matcher constructor.
+
+            @param allocator The allocator to use for allocations.
+         */
+
         explicit Matcher( Allocator & allocator );
        
+        /**
+            Matcher destructor.
+         */
+
         ~Matcher();
+
+        /**
+            Initialize the matcher. 
+
+            @returns True if the matcher initialized successfully, false otherwise.
+         */
 
         bool Initialize();
 
+        /** 
+            Request a match.
+
+            This is how clients get connect tokens from matcher.go. 
+
+            They request a match and the server replies with a set of servers to connect to, and a connect token to pass to that server.
+
+            IMPORTANT: This function is currently blocking. It will be made non-blocking in the near future.
+
+            @param protocolId The protocol id that we are using. Used to filter out servers with different protocol versions.
+            @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64bit number.
+
+            @see Matcher::GetMatchStatus
+            @see Matcher::GetMatchResponse
+         */
+
         void RequestMatch( uint64_t protocolId, uint64_t clientId );
 
-        MatcherStatus GetStatus();
+        /**
+            Get the current match status.
+
+            Because Matcher::RequestMatch is currently blocking this will be MATCH_READY or MATCH_FAILED immediately after that function returns.
+
+            If the status is MATCH_READY you can call Matcher::GetMatchResponse to get the match response data corresponding to the last call to Matcher::RequestMatch.
+
+            @param The current match status.
+         */
+
+        MatchStatus GetMatchStatus();
+
+        /**
+            Get match response data.
+
+            This can only be called if the match status is MATCH_READY.
+
+            @param matchResponse The match response data to fill [out].
+
+            @see Matcher::RequestMatch
+            @see Matcher::GetMatchStatus
+         */
 
         void GetMatchResponse( MatchResponse & matchResponse );
 
@@ -106,10 +159,14 @@ namespace yojimbo
     private:
 
         Allocator * m_allocator;
+
         bool m_initialized;
-        MatcherStatus m_status;
-        MatchResponse m_matchResponse;
-        struct MatcherInternal * m_internal;
+        
+		MatchStatus m_matchStatus;
+        
+		MatchResponse m_matchResponse;
+        
+		struct MatcherInternal * m_internal;
     };
 }
 

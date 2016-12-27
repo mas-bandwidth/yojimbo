@@ -63,7 +63,7 @@ int ConnectMain( int argc, char * argv[] )
 
     matcher.RequestMatch( ProtocolId, clientId );
 
-    if ( matcher.GetStatus() == MATCHER_FAILED )
+    if ( matcher.GetMatchStatus() == MATCH_FAILED )
     {
         printf( "\nRequest match failed. Is the matcher running? Please run \"premake5 matcher\" before you connect a secure client\n\n" );
         return 1;

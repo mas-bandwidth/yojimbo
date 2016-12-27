@@ -62,7 +62,7 @@ namespace yojimbo
     {
         m_allocator = &allocator;
         m_initialized = false;
-        m_status = MATCHER_IDLE;
+        m_matchStatus = MATCH_IDLE;
         m_internal = YOJIMBO_NEW( allocator, MatcherInternal );
     }
 
@@ -123,7 +123,7 @@ namespace yojimbo
         if ( ( result = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
 			debug_printf( "mbedtls_net_connect failed - error code = %d\n", result );
-            m_status = MATCHER_FAILED;
+            m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
 
@@ -133,7 +133,7 @@ namespace yojimbo
                         MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
         {
 			debug_printf( "mbedtls_net_connect failed - error code = %d\n", result );
-            m_status = MATCHER_FAILED;
+            m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
 
@@ -148,14 +148,14 @@ namespace yojimbo
         if ( ( result = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
         {
 			debug_printf( "mbedtls_ssl_setup failed - error code = %d\n", result );
-            m_status = MATCHER_FAILED;
+            m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
 
         if ( ( result = mbedtls_ssl_set_hostname( &m_internal->ssl, "yojimbo" ) ) != 0 )
         {
 			debug_printf( "mbedtls_ssl_set_hostname failed - error code = %d\n", result );
-            m_status = MATCHER_FAILED;
+            m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
 
@@ -166,7 +166,7 @@ namespace yojimbo
 			if ( result != MBEDTLS_ERR_SSL_WANT_READ && result != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
 				debug_printf( "mbedtls_ssl_handshake failed - error code = %d\n", result );
-	            m_status = MATCHER_FAILED;
+	            m_matchStatus = MATCH_FAILED;
                 goto cleanup;
             }
         }
@@ -176,7 +176,7 @@ namespace yojimbo
 #if YOJIMBO_SECURE_MODE
             // IMPORTANT: In secure mode you must use a valid certificate, not a self signed one!
 			debug_printf( "mbedtls_ssl_get_verify_result failed - flags = %x\n", flags );
-            m_status = MATCHER_FAILED;
+            m_matchStatus = MATCH_FAILED;
             goto cleanup;
 #endif // #if YOJIMBO_SECURE_MODE
         }
@@ -191,7 +191,7 @@ namespace yojimbo
             if ( result != MBEDTLS_ERR_SSL_WANT_READ && result != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
 				debug_printf( "mbedtls_ssl_write failed - error code = %d\n", result );
-                m_status = MATCHER_FAILED;
+                m_matchStatus = MATCH_FAILED;
                 goto cleanup;
             }
         }
@@ -219,13 +219,12 @@ namespace yojimbo
 
         if ( json && ParseMatchResponse( json, m_matchResponse ) )
         {
-	        m_status = MATCHER_READY;
+	        m_matchStatus = MATCH_READY;
         }
 		else
 		{
-			debug_printf( "failed to parse match response json\n" );
-			debug_printf( "%s\n", json );
-			m_status = MATCHER_FAILED;
+			debug_printf( "failed to parse match response json:\n%s\n", json );
+			m_matchStatus = MATCH_FAILED;
 		}
 
     cleanup:
@@ -233,14 +232,14 @@ namespace yojimbo
         mbedtls_ssl_close_notify( &m_internal->ssl );
     }
 
-    MatcherStatus Matcher::GetStatus()
+    MatchStatus Matcher::GetMatchStatus()
     {
-        return m_status;
+        return m_matchStatus;
     }
 
     void Matcher::GetMatchResponse( MatchResponse & matchResponse )
     {
-        matchResponse = ( m_status == MATCHER_READY ) ? m_matchResponse : MatchResponse();
+        matchResponse = ( m_matchStatus == MATCH_READY ) ? m_matchResponse : MatchResponse();
     }
 
     static bool exists_and_is_string( Document & doc, const char * key )
