@@ -144,9 +144,10 @@ namespace yojimbo
 
     enum ConnectionCounters
     {
-        CONNECTION_COUNTER_PACKETS_GENERATED,                                   ///< Number of connection packets generated
-        CONNECTION_COUNTER_PACKETS_PROCESSED,                                   ///< Number of connection packets processed
-        CONNECTION_COUNTER_PACKETS_ACKED,                                       ///< Number of connection packets acked
+        CONNECTION_COUNTER_PACKETS_GENERATED,                                   ///< Number of connection packets generated.
+        CONNECTION_COUNTER_PACKETS_PROCESSED,                                   ///< Number of connection packets processed.
+        CONNECTION_COUNTER_PACKETS_STALE,                                       ///< Number of connection packets that could not be processed because they were stale.
+        CONNECTION_COUNTER_PACKETS_ACKED,                                       ///< Number of connection packets acked.
         CONNECTION_COUNTER_NUM_COUNTERS                                         ///< The number of connection counters.
     };
 

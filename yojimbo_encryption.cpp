@@ -119,6 +119,8 @@ namespace yojimbo
 
     EncryptionManager::EncryptionManager()
     {
+        // todo: idea. what if the timeout was specified when an encrypted mapping was added? this way it could easily be set short for pending client connections, and made longer once clients establish conenction. I like this idea!
+
         m_encryptionMappingTimeout = DefaultEncryptionMappingTimeOut;
 
         ResetEncryptionMappings();

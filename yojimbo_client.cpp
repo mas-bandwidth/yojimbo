@@ -708,6 +708,8 @@ namespace yojimbo
             m_connection->Reset();
 
 		// todo: verify that no packets, messages or allocations are outstanding at this point. may need to call into the transport first to free all packets allocated with the specific allocator.
+
+        // todo: also need to do this on client disconnect.
     }
 
     bool Client::ConnectToNextServer()

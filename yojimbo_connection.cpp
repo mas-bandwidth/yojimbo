@@ -330,7 +330,7 @@ namespace yojimbo
 
         if ( !m_receivedPackets->Insert( packet->sequence ) )
         {
-            // todo: probably a good idea to have a counter for this situation. a stale connection packet came in and we couldn't process it.
+            m_counters[CONNECTION_COUNTER_PACKETS_STALE]++;
             return false;
         }
 
