@@ -111,12 +111,6 @@ namespace yojimbo
             *((uint32_t*)(buffer+info.prefixBytes)) = host_to_network( crc32 );
         }
 
-        if ( stream.GetError() )
-        {
-            debug_printf( "stream error %d (write packet)\n", stream.GetError() );
-            return 0;
-        }
-
         return stream.GetBytesProcessed();
     }
 
@@ -224,14 +218,6 @@ namespace yojimbo
             goto cleanup;
         }
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
-
-        if ( stream.GetError() )
-        {
-            debug_printf( "stream error %d (read packet)\n", stream.GetError() );
-            if ( errorCode )
-                *errorCode = stream.GetError();
-            goto cleanup;
-        }
 
         return packet;
 

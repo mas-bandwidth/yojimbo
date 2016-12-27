@@ -352,9 +352,6 @@ namespace yojimbo
 
         stream.Flush();
         
-        if ( stream.GetError() )
-            return false;
-
         uint64_t encryptedLength;
 
         if ( !Encrypt_AEAD( message, ChallengeTokenBytes - MacBytes, encryptedMessage, encryptedLength, NULL, 0, nonce, key ) )
@@ -379,9 +376,6 @@ namespace yojimbo
 
         ReadStream stream( decryptedMessage, ChallengeTokenBytes - MacBytes );
         if ( !decryptedToken.Serialize( stream ) )
-            return false;
-
-        if ( stream.GetError() )
             return false;
 
         return true;

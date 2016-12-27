@@ -34,19 +34,6 @@
 
 namespace yojimbo
 {
-    // todo: nooooooo. don't make these errors defines. bad. make them an enum instead. also why are they in stream.h? what's the point of that. these are all error codes for yojimbo_packet.h, except the serialize ones. need to clean this up
-
-    #define YOJIMBO_PROTOCOL_ERROR_NONE                         0
-    #define YOJIMBO_PROTOCOL_ERROR_CRC32_MISMATCH               1
-    #define YOJIMBO_PROTOCOL_ERROR_INVALID_PACKET_TYPE          2
-    #define YOJIMBO_PROTOCOL_ERROR_PACKET_TYPE_NOT_ALLOWED      3
-    #define YOJIMBO_PROTOCOL_ERROR_CREATE_PACKET_FAILED         4
-    #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_HEADER_FAILED      5
-    #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_PACKET_FAILED      6
-    #define YOJIMBO_PROTOCOL_ERROR_SERIALIZE_CHECK_FAILED       7
-    #define YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END	8
-    #define YOJIMBO_PROTOCOL_ERROR_STREAM_ABORTED               9
-
     class WriteStream
     {
     public:
@@ -58,7 +45,6 @@ namespace yojimbo
             : m_allocator( &allocator ), 
               m_context( NULL ), 
               m_userContext( NULL ), 
-              m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), 
               m_writer( buffer, bytes ) {}
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
@@ -155,11 +141,6 @@ namespace yojimbo
             return m_userContext;
         }
 
-        int GetError() const
-        {
-            return m_error;
-        }
-
         Allocator & GetAllocator()
         {
             return *m_allocator;
@@ -170,7 +151,6 @@ namespace yojimbo
         Allocator * m_allocator;
         void * m_context;
         void * m_userContext;
-        int m_error;
         BitWriter m_writer;
     };
 
@@ -185,7 +165,6 @@ namespace yojimbo
             : m_allocator( &allocator ), 
               m_context( NULL ), 
               m_userContext( NULL ),
-              m_error( YOJIMBO_PROTOCOL_ERROR_NONE ), 
               m_bitsRead(0), 
               m_reader( buffer, bytes ) {}
 
@@ -194,10 +173,7 @@ namespace yojimbo
             assert( min < max );
             const int bits = bits_required( min, max );
             if ( m_reader.WouldReadPastEnd( bits ) )
-            {
-                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END;
                 return false;
-            }
             uint32_t unsigned_value = m_reader.ReadBits( bits );
             value = (int32_t) unsigned_value + min;
             m_bitsRead += bits;
@@ -209,10 +185,7 @@ namespace yojimbo
             assert( bits > 0 );
             assert( bits <= 32 );
             if ( m_reader.WouldReadPastEnd( bits ) )
-            {
-                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END;
                 return false;
-            }
             uint32_t read_value = m_reader.ReadBits( bits );
             value = read_value;
             m_bitsRead += bits;
@@ -224,10 +197,7 @@ namespace yojimbo
             if ( !SerializeAlign() )
                 return false;
             if ( m_reader.WouldReadPastEnd( bytes * 8 ) )
-            {
-                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END;
                 return false;
-            }
             m_reader.ReadBytes( data, bytes );
             m_bitsRead += bytes * 8;
             return true;
@@ -237,10 +207,7 @@ namespace yojimbo
         {
             const int alignBits = m_reader.GetAlignBits();
             if ( m_reader.WouldReadPastEnd( alignBits ) )
-            {
-                m_error = YOJIMBO_PROTOCOL_ERROR_STREAM_WOULD_READ_PAST_END;
                 return false;
-            }
             if ( !m_reader.ReadAlign() )
                 return false;
             m_bitsRead += alignBits;
@@ -304,11 +271,6 @@ namespace yojimbo
             return m_userContext;
         }
 
-        int GetError() const
-        {
-            return m_error;
-        }
-
         Allocator & GetAllocator()
         {
             return *m_allocator;
@@ -319,7 +281,6 @@ namespace yojimbo
         Allocator * m_allocator;
         void * m_context;
         void * m_userContext;
-        int m_error;
         int m_bitsRead;
         BitReader m_reader;
     };
@@ -427,11 +388,6 @@ namespace yojimbo
         void * GetUserContext() const
         {
             return m_userContext;
-        }
-
-        int GetError() const
-        {
-            return YOJIMBO_PROTOCOL_ERROR_NONE;
         }
 
         Allocator & GetAllocator()
