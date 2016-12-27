@@ -4,23 +4,21 @@ DONE
 
 TODO
 
+        yojimbo_network.h
+
+        yojimbo_matcher.h
+
+        yojimbo_encryption.h
+
         Stream classes
 
         Packet Processor
-
-        Encryption manager
 
         Network simulator.
 
         BitArray
 
         Sequence buffer
-
-        yojimbo_network.h
-
-        yojimbo_matcher.h
-
-        yojimbo_encryption.h
 
         Serialization macros (if possible)
 

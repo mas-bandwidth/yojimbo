@@ -39,6 +39,18 @@ WOULD BE NICE
     Probably a good safety measure to verify that a message sent across a channel belongs to the message factory set on the channel. It's an easy mistake to make, and would be hard to track down otherwise.
 
     ------------------
+    
+    Would be nice if packet factories named each packet type as it is registered, so this could be used in debugging.
+
+    Same logic could apply to message factories as well.
+
+    ------------------
+
+    Would be nice if each packet factory or message factory had an easy to access hash (uint64_t) that could be use to quickly test if two factories are compatible.
+
+    This hash also input into a protocol id hash now that it's 64 bit as well.
+
+    ------------------
 
     Probably a good idea on client connect/disconnect, and server per-client connect client, disconnect client that all messages in the message factory are cleaned up, all allocations are freed, packets are destroyed, and so on.
 
@@ -55,6 +67,8 @@ WOULD BE NICE
     ------------------
 
     Add functionality to connection and client/server to get the set of packet acks, so users can get acks and build their own systems on top of that.
+
+    The current system based around callbacks is unweildy.
 
     ------------------
 
@@ -95,16 +109,6 @@ WOULD BE NICE
     Could these concepts be split apart? Would this make porting to other platforms easier?
 
     (Attempting such a port at the transport level would be, IMO, foolish...)
-
-    ------------------
-    
-    It would be cool if packet factories had a hash that could be quickly tested to see if they are compatible.
-
-    ------------------
-
-    Would be nice if packet factories named each packet type as it is registered, so this could be used in debugging.
-
-    Same logic could apply to message factories as well.
 
     ------------------
     
