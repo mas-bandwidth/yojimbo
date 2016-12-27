@@ -46,7 +46,7 @@ namespace yojimbo
     };
 
     /** 
-        Match response sent back from matcher for match request.
+        Response sent back from the matcher web service when the client requests a match.
 
         IMPORTANT: This response is transmitted over HTTPS because it contains encryption keys for packets sent between the client and server.
 
