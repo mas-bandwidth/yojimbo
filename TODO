@@ -1,6 +1,6 @@
 DONE    
 
-        BitReader
+        yojimbo_platform.h
 
 TODO
 
@@ -15,8 +15,6 @@ TODO
         BitArray
 
         Sequence buffer
-
-        yojimbo_platform.h
 
         yojimbo_network.h
 
