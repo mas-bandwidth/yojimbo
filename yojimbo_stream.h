@@ -479,6 +479,19 @@ namespace yojimbo
         BitReader m_reader;									///< The bit reader used for all bitpacked read operations.
     };
 
+    /**
+        Stream class for estimating how many bits it would take to serialize something.
+
+        This class acts like a bit writer (IsWriting is 1, IsReading is 0), but it doesn't actually write anything, it just counts how many bits would be written.
+
+        It's used by the connection channel classes to work out how many messages will fit in the channel packet budget.
+
+        Note that when the serialization includes alignment to byte (see MeasureStream::SerializeAlign), this is an estimate and not an exact measurement. The estimate is guaranteed to be conservative. 
+
+        @see BitWriter
+        @see BitReader
+     */
+
     class MeasureStream : public BaseStream
     {
     public:
@@ -486,11 +499,27 @@ namespace yojimbo
         enum { IsWriting = 1 };
         enum { IsReading = 0 };
 
+        /**
+            Measure stream constructor.
+
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you write packets.
+         */
+
         explicit MeasureStream( Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_bitsWritten(0) {}
+
+        /**
+            Serialize an integer (measure).
+
+            @param value The integer value to write. Not actually used or checked.
+            @param min The minimum value.
+            @param max The maximum value.
+
+            @returns Always returns true. All checking is performed by debug asserts only on measure.
+         */
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {   
-            (void)value;
+            (void) value;
             assert( min < max );
             assert( value >= min );
             assert( value <= max );
@@ -499,20 +528,46 @@ namespace yojimbo
             return true;
         }
 
-        bool SerializeBits( uint32_t /*value*/, int bits )
+        /**
+            Serialize a number of bits (write).
+
+            @param value The unsigned integer value to serialize. Not actually used or checked.
+            @param bits The number of bits to write in [1,32].
+
+            @returns Always returns true. All checking is performed by debug asserts on write.
+         */
+
+        bool SerializeBits( uint32_t value, int bits )
         {
+            (void) value;
             assert( bits > 0 );
             assert( bits <= 32 );
             m_bitsWritten += bits;
             return true;
         }
 
-        bool SerializeBytes( const uint8_t * /*data*/, int bytes )
+        /**
+            Serialize an array of bytes (measure).
+
+            @param data Array of bytes to 'write'. Not actually used.
+            @param bytes The number of bytes to 'write'.
+
+            @returns Always returns true. All checking is performed by debug asserts on write.
+         */
+
+        bool SerializeBytes( const uint8_t * data, int bytes )
         {
+            (void) data;
             SerializeAlign();
             m_bitsWritten += bytes * 8;
             return true;
         }
+
+        /**
+            Serialize an align (measure).
+
+            @returns Always returns true. All checking is performed by debug asserts on write.
+         */
 
         bool SerializeAlign()
         {
@@ -521,10 +576,24 @@ namespace yojimbo
             return true;
         }
 
+        /** 
+            If we were to write an align right now, how many bits would be required?
+
+            IMPORTANT: Since the number of bits required for alignment depends on where an object is written in the final bit stream, this measurement is conservative. 
+
+            @returns Always returns worst case 7 bits.
+         */
+
         int GetAlignBits() const
         {
-            return 7;       // this changes depending on where the object is written to the bit stream, so we must be conservative and assume worst case
+            return 7;
         }
+
+        /**
+            Serialize a safety check to the stream (measure).
+
+            @returns Always returns true. All checking is performed by debug asserts on write.
+         */
 
         bool SerializeCheck()
         {
@@ -535,34 +604,31 @@ namespace yojimbo
             return true;
         }
 
+        /**
+            Get number of bits written so far.
+
+            @returns Number of bits written.
+         */
+
         int GetBitsProcessed() const
         {
             return m_bitsWritten;
         }
 
-        int GetBitsRemaining() const
-        {
-            return 0;
-        }
+        /**
+            How many bytes have been written so far?
+
+            @returns Number of bytes written.
+         */
 
         int GetBytesProcessed() const
         {
             return ( m_bitsWritten + 7 ) / 8;
         }
 
-        int GetTotalBytes() const
-        {
-            return 0;
-        }
-
-        int GetTotalBits() const
-        {
-            return 0;
-        }
-
     private:
 
-        int m_bitsWritten;
+        int m_bitsWritten;                                  ///< Counter for the number of bits written.
     };
 }
 
