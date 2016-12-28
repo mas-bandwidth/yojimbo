@@ -1,22 +1,12 @@
 DONE    
 
-        Queue
-
-        BitArray
-
-        Packet Processor
-
-        Replay protection
-
-        Sequence buffer
-
 TODO
 
-        Network simulator.
-
-        Serialization macros (if possible)
+    Almost done...
 
         Send and receive message functions in client and server.
+
+        Serialization macros (if possible)
 
         Helper macros for packet factories, message factories, setting up allocations in client/server (if possible)
 
