@@ -396,8 +396,6 @@ namespace yojimbo
     Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, ReadPacketError * errorCode = NULL );
 }
 
-// todo: can I document macros? That would be really helpful. Help me doxygen.
-
 #define YOJIMBO_PACKET_FACTORY_START( factory_class, base_factory_class, num_packet_types )                                         \
                                                                                                                                     \
     class factory_class : public base_factory_class                                                                                 \
