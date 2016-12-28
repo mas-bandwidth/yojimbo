@@ -34,6 +34,98 @@
 
 namespace yojimbo
 {
+    /** 
+        Functionality common to all stream classes.
+     */
+
+    class BaseStream
+    {
+    public:
+
+        /**
+            Base stream constructor.
+
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you write packets.
+         */
+
+        BaseStream( Allocator & allocator ) : m_allocator( &allocator ) {}
+
+        /**
+            Set a context on the stream.
+
+            Contexts are used by the library supply data that is needed to read and write packets.
+
+            Specifically, this context is used by the connection to supply data needed to read and write connection packets.
+
+            If you are using the yojimbo client/server or connection classes you should NOT set this manually. It's already taken!
+
+            However, if you are using only the low-level parts of yojimbo, feel free to take this over and use it for whatever you want.
+
+            @see ConnectionContext
+            @see ConnectionPacket
+         */
+
+        void SetContext( void * context )
+        {
+            m_context = context;
+        }
+
+        /**
+            Get the context pointer set on the stream.
+
+            @returns The context pointer. May be NULL.
+         */
+
+        void * GetContext() const
+        {
+            return m_context;
+        }
+
+        /**
+            Set a user context on the stream.
+
+            This is designed for users of the library to be able to set their own context on the stream, without interfering with the context used for connection packets.
+
+            @see Client::SetUserContext
+            @see Server::SetUserContext
+         */
+
+        void SetUserContext( void * context )
+        {
+            m_userContext = context;
+        }
+
+        /**
+            Get the user context pointer set on the stream.
+
+            @returns The user context pointer. May be NULL.
+         */
+
+        void * GetUserContext() const
+        {
+            return m_userContext;
+        }
+
+        /**
+            Get the allocator set on the stream.
+
+            You can use this allocator to dynamically allocate memory while reading and writing packets.
+
+            @returns The stream allocator.
+         */
+
+        Allocator & GetAllocator()
+        {
+            return *m_allocator;
+        }
+
+    private:
+
+        Allocator * m_allocator;                            ///< The allocator passed into the constructor.
+        void * m_context;                                   ///< The context pointer set on the stream. May be NULL.
+        void * m_userContext;                               ///< The user context pointer set on the stream. May be NULL.        
+    };
+
     /**
         Stream class for writing bitpacked data.
 
@@ -48,7 +140,7 @@ namespace yojimbo
         @see BitWriter
      */
 
-    class WriteStream
+    class WriteStream : public BaseStream
     {
     public:
 
@@ -60,14 +152,10 @@ namespace yojimbo
 
             @param buffer The buffer to write to.
             @param bytes The number of bytes in the buffer. Must be a multiple of four.
-            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you write packets.
          */
 
-        WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) 
-            : m_allocator( &allocator ), 
-              m_context( NULL ), 
-              m_userContext( NULL ), 
-              m_writer( buffer, bytes ) {}
+		WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_writer( buffer, bytes ) {}
 
         /**
             Serialize an integer (write).
@@ -98,7 +186,6 @@ namespace yojimbo
 
             @returns Always returns true. All checking is performed by debug asserts on write.
          */
-
 
         bool SerializeBits( uint32_t value, int bits )
         {
@@ -216,82 +303,7 @@ namespace yojimbo
             return m_writer.GetBitsWritten();
         }
 
-        /**
-            Set a context on the stream.
-
-            Contexts are used by the library supply data that is needed to read and write packets.
-
-            Specifically, this context is used by the connection to supply data needed to read and write connection packets.
-
-            If you are using the yojimbo client/server or connection classes you should not set this manually. It's already taken!
-
-            However, if you are using only the low-level parts of yojimbo, feel free to take this over and use it for whatever you want.
-
-            @see ConnectionContext
-            @see ConnectionPacket
-         */
-
-        void SetContext( void * context )
-        {
-            m_context = context;
-        }
-
-        /**
-            Get the context pointer set on the stream.
-
-            @returns The context pointer. May be NULL.
-         */
-
-        void * GetContext() const
-        {
-            return m_context;
-        }
-
-        /**
-            Set a user context on the stream.
-
-            This is designed for users of the library to be able to set their own context on the stream, without interfering with the context used for connection packets.
-
-            @see Client::SetUserContext
-            @see Server::SetUserContext
-         */
-
-        void SetUserContext( void * context )
-        {
-            m_userContext = context;
-        }
-
-        /**
-            Get the user context pointer set on the stream.
-
-            @returns The user context pointer. May be NULL.
-         */
-
-        void * GetUserContext() const
-        {
-            return m_userContext;
-        }
-
-        /**
-            Get the allocator set on the stream.
-
-            You can use this allocator to dynamically allocate memory while reading and writing packets.
-
-            @returns The stream allocator.
-         */
-
-        Allocator & GetAllocator()
-        {
-            return *m_allocator;
-        }
-
     private:
-
-        Allocator * m_allocator;                            ///< The allocator passed into the constructor.
-
-        void * m_context;                                   ///< The context pointer set on the stream. May be NULL.
-
-        void * m_userContext;                               ///< The user context pointer set on the stream. May be NULL.
 
         BitWriter m_writer;                                 ///< The bit writer used for all bitpacked write operations.
     };
@@ -299,7 +311,7 @@ namespace yojimbo
     /**
         Stream class for reading bitpacked data.
 
-        This class is a wrapper around the bit reader class. It's purpose is to provide unified interface for reading and writing.
+        This class is a wrapper around the bit reader class. Its purpose is to provide unified interface for reading and writing.
 
         You can determine if you are reading from a stream by calling Stream::IsReading inside your templated serialize method.
 
@@ -310,19 +322,32 @@ namespace yojimbo
         @see BitReader
      */
 
-    class ReadStream
+    class ReadStream : public BaseStream
     {
     public:
 
         enum { IsWriting = 0 };
         enum { IsReading = 1 };
 
-        ReadStream( const uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) 
-            : m_allocator( &allocator ), 
-              m_context( NULL ), 
-              m_userContext( NULL ),
-              m_bitsRead(0), 
-              m_reader( buffer, bytes ) {}
+        /**
+            Read stream constructor.
+
+            @param buffer The buffer to read from.
+            @param bytes The number of bytes in the buffer. May be a non-multiple of four, however if it is, the underlying buffer allocated should be large enough to read the any remainder bytes as a dword.
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read packets.
+         */
+
+        ReadStream( const uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_reader( buffer, bytes ) {}
+
+        /**
+            Serialize an integer (read).
+
+            @param value The integer value read is stored here. It is guaranteed to be in [min,max] if this function succeeds.
+            @param min The minimum allowed value.
+            @param max The maximum allowed value.
+
+            @returns Returns true if the serialize succeeded and the value is in the correct range. False otherwise.
+         */
 
         bool SerializeInteger( int32_t & value, int32_t min, int32_t max )
         {
@@ -332,9 +357,17 @@ namespace yojimbo
                 return false;
             uint32_t unsigned_value = m_reader.ReadBits( bits );
             value = (int32_t) unsigned_value + min;
-            m_bitsRead += bits;
             return true;
         }
+
+        /**
+            Serialize a number of bits (read).
+
+            @param value The integer value read is stored here. Will be in range [0,(1<<bits)-1].
+            @param bits The number of bits to read in [1,32].
+
+            @returns Returns true if the serialize read succeeded, false otherwise.
+         */
 
         bool SerializeBits( uint32_t & value, int bits )
         {
@@ -344,9 +377,17 @@ namespace yojimbo
                 return false;
             uint32_t read_value = m_reader.ReadBits( bits );
             value = read_value;
-            m_bitsRead += bits;
             return true;
         }
+
+        /**
+            Serialize an array of bytes (read).
+
+            @param data Array of bytes to read.
+            @param bytes The number of bytes to read.
+
+            @returns Returns true if the serialize read succeeded. False otherwise.
+         */
 
         bool SerializeBytes( uint8_t * data, int bytes )
         {
@@ -355,9 +396,14 @@ namespace yojimbo
             if ( m_reader.WouldReadPastEnd( bytes * 8 ) )
                 return false;
             m_reader.ReadBytes( data, bytes );
-            m_bitsRead += bytes * 8;
             return true;
         }
+
+        /**
+            Serialize an align (read).
+
+            @returns Returns true if the serialize read succeeded. False otherwise.
+         */
 
         bool SerializeAlign()
         {
@@ -366,14 +412,27 @@ namespace yojimbo
                 return false;
             if ( !m_reader.ReadAlign() )
                 return false;
-            m_bitsRead += alignBits;
             return true;
         }
+
+        /** 
+            If we were to read an align right now, how many bits would we need to read?
+
+            @returns The number of zero pad bits required to achieve byte alignment in [0,7].
+         */
 
         int GetAlignBits() const
         {
             return m_reader.GetAlignBits();
         }
+
+        /**
+            Serialize a safety check from the stream (read).
+
+            Safety checks help track down desyncs. A check is written to the stream, and on the other side if the check is not present it asserts and fails the serialize.
+
+            @returns Returns true if the serialize check passed. False otherwise.
+         */
 
         bool SerializeCheck()
         {
@@ -383,74 +442,51 @@ namespace yojimbo
             uint32_t value = 0;
             if ( !SerializeBits( value, 32 ) )
                 return false;
-#ifndef NDEBUG
             if ( value != SerializeCheckValue )
             {
-                printf( "serialize check failed: expected %x, got %x\n", SerializeCheckValue, value );
+                debug_printf( "serialize check failed: expected %x, got %x\n", SerializeCheckValue, value );
             }
-#endif // #ifndef NDEBUG
             return value == SerializeCheckValue;
 #else // #if YOJIMBO_SERIALIZE_CHECKS
             return true;
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
         }
 
+        /**
+            Get number of bits read so far.
+
+            @returns Number of bits read.
+         */
+
         int GetBitsProcessed() const
         {
-            return m_bitsRead;
+            return m_reader.GetBitsRead();
         }
+
+        /**
+            How many bytes have been read so far?
+
+            @returns Number of bytes read. Effectively this is the number of bits read, rounded up to the next byte where necessary.
+         */
 
         int GetBytesProcessed() const
         {
-            return ( m_bitsRead + 7 ) / 8;
-        }
-
-        void SetContext( void * context )
-        {
-            m_context = context;
-        }
-
-        void * GetContext() const
-        {
-            return m_context;
-        }
-
-        void SetUserContext( void * context )
-        {
-            m_userContext = context;
-        }
-
-        void * GetUserContext() const
-        {
-            return m_userContext;
-        }
-
-        Allocator & GetAllocator()
-        {
-            return *m_allocator;
+            return ( m_reader.GetBitsRead() + 7 ) / 8;
         }
 
     private:
 
-        Allocator * m_allocator;
-        void * m_context;
-        void * m_userContext;
-        int m_bitsRead;
-        BitReader m_reader;
+        BitReader m_reader;									///< The bit reader used for all bitpacked read operations.
     };
 
-    class MeasureStream
+    class MeasureStream : public BaseStream
     {
     public:
 
         enum { IsWriting = 1 };
         enum { IsReading = 0 };
 
-        explicit MeasureStream( Allocator & allocator = GetDefaultAllocator() ) 
-            : m_allocator( &allocator ), 
-              m_context( NULL ), 
-              m_userContext( NULL ), 
-              m_bitsWritten(0) {}
+        explicit MeasureStream( Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_bitsWritten(0) {}
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {   
@@ -524,36 +560,8 @@ namespace yojimbo
             return 0;
         }
 
-        void SetContext( void * context )
-        {
-            m_context = context;
-        }
-
-        void * GetContext() const
-        {
-            return m_context;
-        }
-
-        void SetUserContext( void * context )
-        {
-            m_userContext = context;
-        }
-
-        void * GetUserContext() const
-        {
-            return m_userContext;
-        }
-
-        Allocator & GetAllocator()
-        {
-            return *m_allocator;
-        }
-
     private:
 
-        Allocator * m_allocator;
-        void * m_context;
-        void * m_userContext;
         int m_bitsWritten;
     };
 }

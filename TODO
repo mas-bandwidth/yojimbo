@@ -10,9 +10,13 @@ DONE
 
         Encryption Manager
 
+        Write stream.
+
 TODO
 
-        Stream classes
+        Read stream.
+
+        Measure stream.
 
         Packet Processor
 
