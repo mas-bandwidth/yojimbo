@@ -198,6 +198,19 @@ namespace yojimbo
         {
             return m_numEntries;
         }
+
+    private:
+
+
+        Allocator * m_allocator;                        ///< The allocator passed in to the constructor.
+
+        T * m_entries;                                  ///< Array of entries backing the queue (circular buffer).
+
+        int m_arraySize;                                ///< The size of the array, in number of entries. This is the "size" of the queue.
+    
+        int m_startIndex;                               ///< The start index for the queue. This is the next value that gets popped off.
+
+        int m_numEntries;                               ///< The number of entries currently stored in the queue.
     };
 }
 
