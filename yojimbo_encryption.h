@@ -150,7 +150,7 @@ namespace yojimbo
 
         EncryptionManager();
 
-        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time );
+        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time, double timeout );
 
         bool RemoveEncryptionMapping( const Address & address, double time );
 
@@ -166,9 +166,9 @@ namespace yojimbo
 
         int m_numEncryptionMappings;
 
-        double m_encryptionMappingTimeout;
-
         double m_lastAccessTime[MaxEncryptionMappings];
+
+        double m_timeout[MaxEncryptionMappings];
         
         Address m_address[MaxEncryptionMappings];
         

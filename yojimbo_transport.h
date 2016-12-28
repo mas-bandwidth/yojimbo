@@ -404,9 +404,10 @@ namespace yojimbo
             @param address The address to associate with encryption keys.
             @param sendKey The key used to encrypt packets sent to this address.
             @param receiveKey The key used to decrypt packets received from this address.
+			@param timeout The timeout value in seconds for this encryption mapping (seconds). Encyrption mapping times out if no packets are sent to this address or received from this address for the timeout period.
          */
 
-        virtual bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey ) = 0;
+        virtual bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double timeout ) = 0;
 
         /**
             Remove the encryption mapping for an address.
@@ -612,7 +613,7 @@ namespace yojimbo
 
         bool IsEncryptedPacketType( int type ) const;
 
-        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey );
+        bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double timeout );
 
         bool RemoveEncryptionMapping( const Address & address );
 

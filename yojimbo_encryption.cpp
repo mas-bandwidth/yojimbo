@@ -51,7 +51,11 @@ namespace yojimbo
 
     bool Encrypt( const uint8_t * message, int messageLength, uint8_t * encryptedMessage, int & encryptedMessageLength, const uint8_t * nonce, const uint8_t * key )
     {
-        if ( crypto_secretbox_easy( encryptedMessage, message, messageLength, nonce, key ) != 0 )
+        uint8_t actual_nonce[crypto_secretbox_NONCEBYTES];
+        memset( actual_nonce, 0, sizeof( actual_nonce ) );
+        memcpy( actual_nonce, nonce, NonceBytes );
+
+        if ( crypto_secretbox_easy( encryptedMessage, message, messageLength, actual_nonce, key ) != 0 )
             return false;
 
         encryptedMessageLength = messageLength + MacBytes;
@@ -63,7 +67,11 @@ namespace yojimbo
                   uint8_t * decryptedMessage, int & decryptedMessageLength, 
                   const uint8_t * nonce, const uint8_t * key )
     {
-        if ( crypto_secretbox_open_easy( decryptedMessage, encryptedMessage, encryptedMessageLength, nonce, key ) != 0 )
+        uint8_t actual_nonce[crypto_secretbox_NONCEBYTES];
+        memset( actual_nonce, 0, sizeof( actual_nonce ) );
+        memcpy( actual_nonce, nonce, NonceBytes );
+
+        if ( crypto_secretbox_open_easy( decryptedMessage, encryptedMessage, encryptedMessageLength, actual_nonce, key ) != 0 )
             return false;
 
         decryptedMessageLength = encryptedMessageLength - MacBytes;
@@ -77,12 +85,16 @@ namespace yojimbo
                        const uint8_t * nonce,
                        const uint8_t * key )
     {
+        uint8_t actual_nonce[crypto_secretbox_NONCEBYTES];
+        memset( actual_nonce, 0, sizeof( actual_nonce ) );
+        memcpy( actual_nonce, nonce, NonceBytes );
+
         unsigned long long encryptedLength;
 
         int result = crypto_aead_chacha20poly1305_encrypt( encryptedMessage, &encryptedLength,
                                                            message, (unsigned long long) messageLength,
                                                            additional, (unsigned long long) additionalLength,
-                                                           NULL, nonce, key );
+                                                           NULL, actual_nonce, key );
 
         encryptedMessageLength = (uint64_t) encryptedLength;
 
@@ -95,13 +107,17 @@ namespace yojimbo
                        const uint8_t * nonce,
                        const uint8_t * key )
     {
+        uint8_t actual_nonce[crypto_secretbox_NONCEBYTES];
+        memset( actual_nonce, 0, sizeof( actual_nonce ) );
+        memcpy( actual_nonce, nonce, NonceBytes );
+
         unsigned long long decryptedLength;
 
         int result = crypto_aead_chacha20poly1305_decrypt( decryptedMessage, &decryptedLength,
                                                            NULL,
                                                            encryptedMessage, (unsigned long long) encryptedMessageLength,
                                                            additional, (unsigned long long) additionalLength,
-                                                           nonce, key );
+                                                           actual_nonce, key );
 
         decryptedMessageLength = (uint64_t) decryptedLength;
 
@@ -110,26 +126,25 @@ namespace yojimbo
 
     EncryptionManager::EncryptionManager()
     {
-        // todo: idea. what if the timeout was specified when an encrypted mapping was added? this way it could easily be set short for pending client connections, and made longer once clients establish conenction. I like this idea!
-
-        m_encryptionMappingTimeout = DefaultEncryptionMappingTimeOut;
-
         ResetEncryptionMappings();
     }
 
-    bool EncryptionManager::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time )
+    bool EncryptionManager::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time, double timeout )
     {
+#if YOJIMBO_DEBUG_SPAM
         {
             char addressString[MaxAddressLength];
             address.ToString( addressString, sizeof( addressString ) );
             debug_printf( "add encryption mapping: %s (t=%f)\n", addressString, time );
         }
+#endif // #if YOJIMBO_DEBUG_SPAM
 
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
-            if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
+            if ( m_address[i] == address && m_lastAccessTime[i] + m_timeout[i] >= time )
             {
                 m_lastAccessTime[i] = time;
+                m_timeout[i] = timeout;
                 memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
                 memcpy( m_receiveKey + i*KeyBytes, receiveKey, KeyBytes );
                 return true;
@@ -138,10 +153,11 @@ namespace yojimbo
 
         for ( int i = 0; i < MaxEncryptionMappings; ++i )
         {
-            if ( m_lastAccessTime[i] + m_encryptionMappingTimeout < time )
+            if ( m_lastAccessTime[i] + m_timeout[i] < time )
             {
                 m_address[i] = address;
                 m_lastAccessTime[i] = time;
+                m_timeout[i] = timeout;
                 memcpy( m_sendKey + i*KeyBytes, sendKey, KeyBytes );
                 memcpy( m_receiveKey + i*KeyBytes, receiveKey, KeyBytes );
                 if ( i + 1 > m_numEncryptionMappings )
@@ -175,6 +191,7 @@ namespace yojimbo
             {
                 m_address[i] = Address();
                 m_lastAccessTime[i] = -1000.0;
+                m_timeout[i] = 0.0;
                 
                 memset( m_sendKey + i*KeyBytes, 0, KeyBytes );
                 memset( m_receiveKey + i*KeyBytes, 0, KeyBytes );
@@ -184,7 +201,7 @@ namespace yojimbo
                     int index = i - 1;
                     while ( index >= 0 )
                     {
-                        if ( m_lastAccessTime[index] + m_encryptionMappingTimeout >= time )
+                        if ( m_lastAccessTime[index] + m_timeout[index] >= time )
                             break;
                         index--;
                     }
@@ -213,6 +230,7 @@ namespace yojimbo
         for ( int i = 0; i < MaxEncryptionMappings; ++i )
         {
             m_lastAccessTime[i] = -1000.0;
+            m_timeout[i] = 0.0f;
             m_address[i] = Address();
         }
         
@@ -224,7 +242,7 @@ namespace yojimbo
     {
         for ( int i = 0; i < m_numEncryptionMappings; ++i )
         {
-            if ( m_address[i] == address && m_lastAccessTime[i] + m_encryptionMappingTimeout >= time )
+            if ( m_address[i] == address && m_lastAccessTime[i] + m_timeout[i] >= time )
             {
                 m_lastAccessTime[i] = time;
                 return i;

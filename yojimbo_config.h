@@ -116,9 +116,6 @@ namespace yojimbo
     const int ConservativeConnectionPacketHeaderEstimate = 128;     ///< Conservative packet header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
 	const uint32_t SerializeCheckValue = 0x12345678;				///< The value written to the stream for serialize checks. See WriteStream::SerializeCheck and ReadStream::SerializeCheck.
 
-    // todo: this is problematic. it should be dynamically specified as part of the config. setting this to some value is wrong, and would override any dynamic timeout values set by the user.
-    const double DefaultEncryptionMappingTimeOut = 5;               ///< The default encryption mapping timeout (seconds). Encryption mappings associate addresses with encryption keys. If no packets are received from an address for this number of seconds, the encryption mapping for that address times out. You can override this by passing in a different value to the transport constructor.
-
     /// Channel type. Determines the reliability and ordering guarantees for a channel.
 
     enum ChannelType

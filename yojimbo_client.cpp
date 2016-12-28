@@ -772,7 +772,7 @@ namespace yojimbo
 
         m_transport->ResetEncryptionMappings();
 
-        m_transport->AddEncryptionMapping( serverAddress, m_clientToServerKey, m_serverToClientKey );
+        m_transport->AddEncryptionMapping( serverAddress, m_clientToServerKey, m_serverToClientKey, m_config.connectionTimeOut );
     }
 
     void Client::SendPacketToServer( Packet * packet )

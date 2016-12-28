@@ -687,6 +687,8 @@ void test_encrypt_and_decrypt()
 
 void test_encryption_manager()
 {
+	const double EncryptionMappingTimeout = 5.0f;
+
     EncryptionManager encryptionManager;
 
     struct EncryptionMapping
@@ -715,7 +717,7 @@ void test_encryption_manager()
         check( encryptionManager.GetSendKey( encryptionIndex ) == NULL );
         check( encryptionManager.GetReceiveKey( encryptionIndex ) == NULL );
 
-        check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time ) );
+        check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time, EncryptionMappingTimeout ) );
 
         encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
 
@@ -757,8 +759,8 @@ void test_encryption_manager()
         }
     }
 
-    check( encryptionManager.AddEncryptionMapping( encryptionMapping[0].address, encryptionMapping[0].sendKey, encryptionMapping[0].receiveKey, time ) );
-    check( encryptionManager.AddEncryptionMapping( encryptionMapping[NumEncryptionMappings-1].address, encryptionMapping[NumEncryptionMappings-1].sendKey, encryptionMapping[NumEncryptionMappings-1].receiveKey, time ) );
+    check( encryptionManager.AddEncryptionMapping( encryptionMapping[0].address, encryptionMapping[0].sendKey, encryptionMapping[0].receiveKey, time, EncryptionMappingTimeout ) );
+    check( encryptionManager.AddEncryptionMapping( encryptionMapping[NumEncryptionMappings-1].address, encryptionMapping[NumEncryptionMappings-1].sendKey, encryptionMapping[NumEncryptionMappings-1].receiveKey, time, EncryptionMappingTimeout ) );
 
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
@@ -774,7 +776,7 @@ void test_encryption_manager()
         check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
     }
 
-    time += DefaultEncryptionMappingTimeOut * 2;
+    time += EncryptionMappingTimeout * 2;
 
     for ( int i = 0; i < NumEncryptionMappings; ++i )
     {
@@ -795,7 +797,7 @@ void test_encryption_manager()
         GenerateKey( encryptionMapping[i].receiveKey );
 
         check( encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time ) == -1 );
-        check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time ) );
+        check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time, EncryptionMappingTimeout ) );
 
         int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
 

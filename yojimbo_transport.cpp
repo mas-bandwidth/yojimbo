@@ -740,9 +740,9 @@ namespace yojimbo
         return m_packetTypeIsEncrypted[type] != 0;
     }
 
-    bool BaseTransport::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey )
+    bool BaseTransport::AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double timeout )
     {
-        return m_encryptionManager->AddEncryptionMapping( address, sendKey, receiveKey, GetTime() );
+        return m_encryptionManager->AddEncryptionMapping( address, sendKey, receiveKey, GetTime(), timeout );
     }
 
     bool BaseTransport::RemoveEncryptionMapping( const Address & address )

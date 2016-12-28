@@ -952,7 +952,7 @@ namespace yojimbo
 
         if ( !FindConnectTokenEntry( packet.connectTokenData ) )
         {
-            if ( !m_transport->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey ) )
+            if ( !m_transport->AddEncryptionMapping( address, connectToken.serverToClientKey, connectToken.clientToServerKey, m_config.connectionTimeOut ) )
             {
                 debug_printf( "ignored connection request: failed to add encryption mapping\n" );
                 OnConnectionRequest( SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING, packet, address, connectToken );
