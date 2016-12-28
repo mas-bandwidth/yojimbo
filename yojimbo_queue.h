@@ -33,17 +33,22 @@
 
 namespace yojimbo
 {
-    // todo: document this file
+    /**
+        A simple templated queue.
+
+        This is a FIFO queue. First entry in, first entry out.
+     */
 
     template <typename T> class Queue
     {
-        Allocator * m_allocator;
-        T * m_entries;
-        int m_arraySize;
-        int m_startIndex;
-        int m_numEntries;
-
     public:
+
+        /**
+            Queue constructor.
+
+            @param allocator The allocator to use.
+            @param size The maximum number of entries in the queue.
+         */
 
         Queue( Allocator & allocator, int size )
         {
@@ -55,6 +60,10 @@ namespace yojimbo
             m_entries = (T*) YOJIMBO_ALLOCATE( allocator, sizeof(T) * size );
             memset( m_entries, 0, sizeof(T) * size );
         }
+
+        /**
+            Queue destructor.
+         */
 
         ~Queue()
         {
@@ -69,11 +78,23 @@ namespace yojimbo
             m_allocator = NULL;
         }
 
+        /**
+            Clear all entries in the queue and reset back to default state.
+         */
+
         void Clear()
         {
             m_numEntries = 0;
             m_startIndex = 0;
         }
+
+        /**
+            Pop a value off the queue.
+
+            IMPORTANT: This will assert if the queue is empty. Check Queue::IsEmpty or Queue::GetNumEntries first!
+
+            @returns The value popped off the queue.
+         */
 
         T Pop()
         {
@@ -84,13 +105,29 @@ namespace yojimbo
             return entry;
         }
 
-        void Push( const T & entry )
+        /**
+            Push a value on to the queue.
+
+            @param value The value to push onto the queue.
+
+            IMPORTANT: Will assert if the queue is already full. Check Queue::IsFull before calling this!   
+         */
+
+        void Push( const T & value )
         {
             assert( !IsFull() );
             const int index = ( m_startIndex + m_numEntries ) % m_arraySize;
-            m_entries[index] = entry;
+            m_entries[index] = value;
             m_numEntries++;
         }
+
+        /**
+            Random access for entries in the queue.
+
+            @param index The index into the queue. 0 is the oldest entry, Queue::GetNumEntries() - 1 is the newest.
+
+            @returns The value in the queue at the index.
+         */
 
         T & operator [] ( int index )
         {
@@ -100,6 +137,14 @@ namespace yojimbo
             return m_entries[ ( m_startIndex + index ) % m_arraySize ];
         }
 
+        /**
+            Random access for entries in the queue (const version).
+
+            @param index The index into the queue. 0 is the oldest entry, Queue::GetNumEntries() - 1 is the newest.
+
+            @returns The value in the queue at the index.
+         */
+
         const T & operator [] ( int index ) const
         {
             assert( !IsEmpty() );
@@ -108,20 +153,46 @@ namespace yojimbo
             return m_entries[ ( m_startIndex + index ) % m_arraySize ];
         }
 
+        /**
+            Get the size of the queue.
+
+            This is the maximum number of values that can be pushed on the queue.
+
+            @returns The size of the queue.
+         */
+
         int GetSize() const
         {
             return m_arraySize;
         }
+
+        /**
+            Is the queue currently full?
+
+            @returns True if the queue is full. False otherwise.
+         */
 
         bool IsFull() const
         {
             return m_numEntries == m_arraySize;
         }
 
+        /**
+            Is the queue currently empty?
+
+            @returns True if there are no entries in the queue.
+         */
+
         bool IsEmpty() const
         {
             return m_numEntries == 0;
         }
+
+        /**
+            Get the number of entries in the queue.
+
+            @returns The number of entries in the queue in [0,GetSize()].
+         */
 
         int GetNumEntries() const
         {

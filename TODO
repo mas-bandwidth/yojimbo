@@ -1,32 +1,22 @@
 DONE    
 
-        yojimbo_platform.h
-
-        yojimbo_network.h
-
-        yojimbo_matcher.h
-
-        yojimbo_encryption.h
-
-        Encryption Manager
-
-        Write stream.
-
-        Read stream.
-
 TODO
-
-        Measure stream.
 
         Packet Processor
 
-        Network simulator.
+        Queue
 
         BitArray
 
         Sequence buffer
 
+        Replay protection
+
+        Network simulator.
+
         Serialization macros (if possible)
+
+        Send and receive message functions in client and server.
 
         Helper macros for packet factories, message factories, setting up allocations in client/server (if possible)
 
