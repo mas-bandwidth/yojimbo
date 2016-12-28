@@ -386,6 +386,8 @@ namespace yojimbo
             @see EnablePacketEncryption
             @see DisablePacketEncryption
             @see DisableEncryptionForPacketType
+
+            @returns True if the packet type is encrypted, false otherwise.
          */
 
         virtual bool IsEncryptedPacketType( int type ) const = 0;
@@ -404,7 +406,9 @@ namespace yojimbo
             @param address The address to associate with encryption keys.
             @param sendKey The key used to encrypt packets sent to this address.
             @param receiveKey The key used to decrypt packets received from this address.
-			@param timeout The timeout value in seconds for this encryption mapping (seconds). Encyrption mapping times out if no packets are sent to this address or received from this address for the timeout period.
+			@param timeout The timeout value in seconds for this encryption mapping (seconds). Encyrption mapping times out if no packets are sent to or received from this address in the timeout period.
+
+            @returns True if the encryption mapping was added successfully, false otherwise.
          */
 
         virtual bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double timeout ) = 0;

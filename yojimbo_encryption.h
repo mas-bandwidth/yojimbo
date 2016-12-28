@@ -140,41 +140,110 @@ namespace yojimbo
 
     extern bool Decrypt_AEAD( const uint8_t * encryptedMessage, uint64_t encryptedMessageLength, uint8_t * decryptedMessage, uint64_t & decryptedMessageLength, const uint8_t * additional, uint64_t additionalLength, const uint8_t * nonce, const uint8_t * key );
 
-    // todo: document the encryption manager
+    /** 
+        Associates addresses with encryption keys so each client gets their own keys for packet encryption.
 
-    /// Associates addresses with encryption keys so each client gets their own keys for packet encryption.
+        Separate keys are used for packets sent to an address vs. packets received from this address. 
+
+        This was done to allow the client/server to use the sequence numbers of packets as a nonce in both directions. An alternative would have been to set the high bit of the packet sequence number in one of the directions, but I felt this was cleaner.
+     */
+
 
     class EncryptionManager
     {
     public:
 
+        /**
+            Encryption manager constructor.
+         */
+
         EncryptionManager();
+
+        /**
+            Associates an address with send and receive keys for packet encryption.
+
+            @param address The address to associate with encryption keys.
+            @param sendKey The key used to encrypt packets sent to this address.
+            @param receiveKey The key used to decrypt packets received from this address.
+            @param time The current time (seconds).
+            @param timeout The timeout value in seconds for this encryption mapping (seconds). Encyrption mapping times out if no packets are sent to or received from this address in the timeout period.
+
+            @returns True if the encryption mapping was added successfully, false otherwise.
+         */
 
         bool AddEncryptionMapping( const Address & address, const uint8_t * sendKey, const uint8_t * receiveKey, double time, double timeout );
 
+        /**
+            Remove the encryption mapping for an address.
+
+            @param address The address of the encryption mapping to remove.
+            @param time The current time (seconds).
+
+            @returns True if an encryption mapping for the address exists and was removed, false if no encryption mapping could be found for the address.
+         */
+
         bool RemoveEncryptionMapping( const Address & address, double time );
+
+        /**
+            Reset all encryption mappings.
+
+            Any encryption mappings that were added are cleared and the encryption manager is reset back to default state.
+         */
 
         void ResetEncryptionMappings();
 
+        /**
+            Find an encryption mapping (index) for the specified address.
+
+            IMPORTANT: This function "touches" the encryption mapping and resets its last access time to the current time. As long as this is called regularly for an encryption mapping it won't time out.
+
+            @param address The address of the encryption mapping to search for.
+
+            @returns The index of the encryption mapping if one exists for the address. -1 if no encryption mapping was found.
+
+            @see EncryptionManager::GetSendKey
+            @see EncryptionManager::GetReceiveKey
+         */
+
         int FindEncryptionMapping( const Address & address, double time );
 
+        /**
+            Get the send key for an encryption mapping (by index).
+
+            @see EncryptionManager::FindEncryptionMapping
+
+            @param The encryption mapping index. See EncryptionMapping::FindEncryptionMapping
+
+            @returns The key to encrypt sent packets.
+         */
+
         const uint8_t * GetSendKey( int index ) const ;
+
+        /**
+            Get the receive key for an encryption mapping (by index).
+
+            @see EncryptionManager::FindEncryptionMapping
+
+            @param The encryption mapping index. See EncryptionMapping::FindEncryptionMapping
+
+            @returns The key to decrypt received packets.
+         */
 
         const uint8_t * GetReceiveKey( int index ) const;
 
     private:
 
-        int m_numEncryptionMappings;
+        int m_numEncryptionMappings;                                                    ///< The number of encryption mappings in the array. This is how far we search from left to right starting at index 0. It's updated as entries are removed from the right.
 
-        double m_lastAccessTime[MaxEncryptionMappings];
+        double m_lastAccessTime[MaxEncryptionMappings];                                 ///< Array of last access times used to time out encryption mappings.
 
-        double m_timeout[MaxEncryptionMappings];
+        double m_timeout[MaxEncryptionMappings];                                        ///< Array of timeout values (seconds) for each encryption mapping. Allows each encryption mapping to potentially have its own timeout value.
         
-        Address m_address[MaxEncryptionMappings];
+        Address m_address[MaxEncryptionMappings];                                       ///< The address associated with each encryption mapping index. If no encryption mapping exists at this index, this is set to an invalid address. See Address::IsValid.
         
-        uint8_t m_sendKey[KeyBytes*MaxEncryptionMappings];
+        uint8_t m_sendKey[KeyBytes*MaxEncryptionMappings];                              ///< Array containing all send keys. The send key for an encryption mapping index n starts at offset KeyBytes * n.
         
-        uint8_t m_receiveKey[KeyBytes*MaxEncryptionMappings];
+        uint8_t m_receiveKey[KeyBytes*MaxEncryptionMappings];                           ///< Array containing all receive keys. The receive key for an encryption mapping index n starts at offset KeyBytes * n.
     };
 }
 

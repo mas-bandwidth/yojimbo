@@ -6,9 +6,11 @@ DONE
 
         yojimbo_matcher.h
 
+        yojimbo_encryption.h
+
 TODO
 
-        yojimbo_encryption.h
+        Encryption Manager
 
         Stream classes
 
