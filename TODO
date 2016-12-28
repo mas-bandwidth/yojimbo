@@ -4,13 +4,13 @@ DONE
 
         BitArray
 
-TODO
-
         Packet Processor
 
-        Sequence buffer
+TODO
 
         Replay protection
+
+        Sequence buffer
 
         Network simulator.
 

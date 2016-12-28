@@ -33,16 +33,44 @@
 
 namespace yojimbo
 {
-    // todo: document this file
+    /**
+        Provides protection against packets being sniffed and replayed.
+        
+        Basically a ring buffer that stores packets indexed by packet sequence number modulo replay buffer size.
+
+        The logic is pretty much:
+
+            1. If a packet is older than what can be stored in the buffer, ignore it. 
+
+            2. If an entry in the reply buffer exists and matches the packet sequence, it's already been received, so ignore it.
+
+            3. Otherwise, this is the first time the packet has been received, so let it in.
+
+        The whole point is to avoid the possibility of an attacker capturing and replaying encrypted packets, in an attempt to break some internal protocol state, like packet level acks or reliable-messages.
+
+        Without this protection, that would be reasonably easy to do. Just capture a packet and then keep replaying it. Eventually the packet or message sequence number would wrap around and you'd corrupt the connection state for that client.
+     */
 
     class ReplayProtection
     {
     public:
 
+        /**
+            Replay protection constructor.
+
+            Starts at packet sequence number 0.
+         */
+
         ReplayProtection()
         {
             Reset( 0 );
         }
+
+        /**
+            Reset the replay protection buffer at a particular sequence number.
+
+            @param mostRecentSequence The sequence number to start at, defaulting to zero.
+         */
 
         void Reset( uint64_t mostRecentSequence = 0LL )
         {
@@ -50,10 +78,20 @@ namespace yojimbo
             memset( m_receivedPacket, 0xFF, sizeof( m_receivedPacket ) );
         }
 
+        /**
+            Has a packet already been received with this sequence?
+
+            IMPORTANT: Global packets sent by the server (packets that don't correspond to any connected client) have the high bit of the sequence number set to 1. These packets should NOT have replay protection applied to them.
+
+            This is not a problem in practice, as modification of the packet sequence number by an attacker would cause it to fail to decrypt (the sequence number is the nonce).
+
+            @param sequence The packet sequence number.
+
+            @returns True if you should ignore this packet, because it's potentially a replay attack. False if it's OK to process the packet.
+         */
+
         bool PacketAlreadyReceived( uint64_t sequence )
         {
-            // IMPORTANT: Global server packets don't follow the same sequencing as per-client packets
-            // These packets are marked with high bit of sequence set to 1. Ignore them completely.
             if ( sequence & ( 1LL << 63 ) )
                 return false;
 
@@ -79,12 +117,21 @@ namespace yojimbo
             return false;
         }
 
+        /**
+            Get the most recent packet sequence number received.
+
+            Packets older than this sequence number minus yojimbo::ReplayProtectionBufferSize are discarded. This way we can keep the replay protection buffer small (about one seconds worth).
+
+            @returns The most recent packet sequence number.
+         */
+
         uint64_t GetMostRecentSequence() const { return m_mostRecentSequence; }
 
     protected:
 
-        uint64_t m_mostRecentSequence;
-        uint64_t m_receivedPacket[ReplayProtectionBufferSize];
+        uint64_t m_mostRecentSequence;                                  ///< The most recent sequence number received.
+
+        uint64_t m_receivedPacket[ReplayProtectionBufferSize];          ///< The ring buffer that stores packet sequence numbers at index sequence modulo buffer size.
     };
 }
 
