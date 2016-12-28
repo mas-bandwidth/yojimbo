@@ -198,6 +198,7 @@ namespace yojimbo
             IMPORTANT: This function "touches" the encryption mapping and resets its last access time to the current time. As long as this is called regularly for an encryption mapping it won't time out.
 
             @param address The address of the encryption mapping to search for.
+            @param time The current time (seconds).
 
             @returns The index of the encryption mapping if one exists for the address. -1 if no encryption mapping was found.
 
@@ -212,7 +213,7 @@ namespace yojimbo
 
             @see EncryptionManager::FindEncryptionMapping
 
-            @param The encryption mapping index. See EncryptionMapping::FindEncryptionMapping
+            @param index The encryption mapping index. See EncryptionMapping::FindEncryptionMapping
 
             @returns The key to encrypt sent packets.
          */
@@ -224,7 +225,7 @@ namespace yojimbo
 
             @see EncryptionManager::FindEncryptionMapping
 
-            @param The encryption mapping index. See EncryptionMapping::FindEncryptionMapping
+            @param index The encryption mapping index. See EncryptionMapping::FindEncryptionMapping
 
             @returns The key to decrypt received packets.
          */

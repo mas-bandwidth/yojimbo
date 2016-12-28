@@ -8,9 +8,9 @@ DONE
 
         yojimbo_encryption.h
 
-TODO
-
         Encryption Manager
+
+TODO
 
         Stream classes
 
@@ -25,8 +25,6 @@ TODO
         Serialization macros (if possible)
 
         Helper macros for packet factories, message factories, setting up allocations in client/server (if possible)
-
-    Wow. There's still so much left to document... I estimate I'm probably only 3/4 done. This is taking so long. It's so much work :(
 
     =========================================
 

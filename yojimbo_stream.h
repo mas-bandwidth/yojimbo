@@ -34,6 +34,20 @@
 
 namespace yojimbo
 {
+    /**
+        Stream class for writing bitpacked data.
+
+        This class is a wrapper around the bit writer class. Its purpose is to provide unified interface for reading and writing.
+
+        You can determine if you are writing to a stream by calling Stream::IsWriting inside your templated serialize method.
+
+        This is evaluated at compile time, letting the compiler generate optimized serialize functions without the hassle of maintaining separate read and write functions.
+
+        IMPORTANT: Generally, you don't call methods on this class directly. Use the serialize_* macros instead. See test/shared.h for some examples.
+
+        @see BitWriter
+     */
+
     class WriteStream
     {
     public:
@@ -41,11 +55,29 @@ namespace yojimbo
         enum { IsWriting = 1 };
         enum { IsReading = 0 };
 
+        /**
+            Write stream constructor.
+
+            @param buffer The buffer to write to.
+            @param bytes The number of bytes in the buffer. Must be a multiple of four.
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
+         */
+
         WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) 
             : m_allocator( &allocator ), 
               m_context( NULL ), 
               m_userContext( NULL ), 
               m_writer( buffer, bytes ) {}
+
+        /**
+            Serialize an integer (write).
+
+            @param value The integer value in [min,max].
+            @param min The minimum value.
+            @param max The maximum value.
+
+            @returns Always returns true. All checking is performed by debug asserts only on write.
+         */
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {
@@ -58,6 +90,16 @@ namespace yojimbo
             return true;
         }
 
+        /**
+            Serialize a number of bits (write).
+
+            @param value The unsigned integer value to serialize. Must be in range [0,(1<<bits)-1].
+            @param bits The number of bits to write in [1,32].
+
+            @returns Always returns true. All checking is performed by debug asserts on write.
+         */
+
+
         bool SerializeBits( uint32_t value, int bits )
         {
             assert( bits > 0 );
@@ -66,15 +108,29 @@ namespace yojimbo
             return true;
         }
 
+        /**
+            Serialize an array of bytes (write).
+
+            @param data Array of bytes to be written.
+            @param bytes The number of bytes to write.
+
+            @returns Always returns true. All checking is performed by debug asserts on write.
+         */
+
         bool SerializeBytes( const uint8_t * data, int bytes )
         {
             assert( data );
             assert( bytes >= 0 );
-            if ( !SerializeAlign() )
-                return false;
+            SerializeAlign();
             m_writer.WriteBytes( data, bytes );
             return true;
         }
+
+        /**
+            Serialize an align (write).
+
+            @returns Always returns true. All checking is performed by debug asserts on write.
+         */
 
         bool SerializeAlign()
         {
@@ -82,63 +138,147 @@ namespace yojimbo
             return true;
         }
 
+        /** 
+            If we were to write an align right now, how many bits would be required?
+
+            @returns The number of zero pad bits required to achieve byte alignment in [0,7].
+         */
+
         int GetAlignBits() const
         {
             return m_writer.GetAlignBits();
         }
 
+        /**
+            Serialize a safety check to the stream (write).
+
+            Safety checks help track down desyncs. A check is written to the stream, and on the other side if the check is not present it asserts and fails the serialize.
+
+            @returns Always returns true. All checking is performed by debug asserts on write.
+         */
+
         bool SerializeCheck()
         {
 #if YOJIMBO_SERIALIZE_CHECKS
-            if ( !SerializeAlign() )
-                return false;
-            if ( !SerializeBits( SerializeCheckValue, 32 ) )
-                return false;
+            SerializeAlign();
+            SerializeBits( SerializeCheckValue, 32 );
 #else // #if YOJIMBO_SERIALIZE_CHECKS
             (void)string;
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
             return true;
         }
 
+        /**
+            Flush the stream to memory after you finish writing.
+
+            Always call this after you finish writing and before you call WriteStream::GetData, or you'll potentially truncate the last dword of data you wrote.
+
+            @see BitWriter::FlushBits
+         */
+
         void Flush()
         {
             m_writer.FlushBits();
         }
+
+        /**
+            Get a pointer to the data written by the stream.
+
+            IMPORTANT: Call WriteStream::Flush before you call this function!
+
+            @returns A pointer to the data written by the stream
+         */
 
         const uint8_t * GetData() const
         {
             return m_writer.GetData();
         }
 
+        /**
+            How many bytes have been written so far?
+
+            @returns Number of bytes written. This is effectively the packet size.
+         */
+
         int GetBytesProcessed() const
         {
             return m_writer.GetBytesWritten();
         }
+
+        /**
+            Get number of bits written so far.
+
+            @returns Number of bits written.
+         */
 
         int GetBitsProcessed() const
         {
             return m_writer.GetBitsWritten();
         }
 
+        /**
+            Set a context on the stream.
+
+            Contexts are used by the library supply data that is needed to read and write packets.
+
+            Specifically, this context is used by the connection to supply data needed to read and write connection packets.
+
+            If you are using the yojimbo client/server or connection classes you should not set this manually. It's already taken!
+
+            However, if you are using only the low-level parts of yojimbo, feel free to take this over and use it for whatever you want.
+
+            @see ConnectionContext
+            @see ConnectionPacket
+         */
+
         void SetContext( void * context )
         {
             m_context = context;
         }
+
+        /**
+            Get the context pointer set on the stream.
+
+            @returns The context pointer. May be NULL.
+         */
 
         void * GetContext() const
         {
             return m_context;
         }
 
+        /**
+            Set a user context on the stream.
+
+            This is designed for users of the library to be able to set their own context on the stream, without interfering with the context used for connection packets.
+
+            @see Client::SetUserContext
+            @see Server::SetUserContext
+         */
+
         void SetUserContext( void * context )
         {
             m_userContext = context;
         }
 
+        /**
+            Get the user context pointer set on the stream.
+
+            @returns The user context pointer. May be NULL.
+         */
+
         void * GetUserContext() const
         {
             return m_userContext;
         }
+
+        /**
+            Get the allocator set on the stream.
+
+            You can use this allocator to dynamically allocate memory while reading and writing packets.
+
+            @returns The stream allocator.
+         */
 
         Allocator & GetAllocator()
         {
@@ -147,11 +287,28 @@ namespace yojimbo
 
     private:
 
-        Allocator * m_allocator;
-        void * m_context;
-        void * m_userContext;
-        BitWriter m_writer;
+        Allocator * m_allocator;                            ///< The allocator passed into the constructor.
+
+        void * m_context;                                   ///< The context pointer set on the stream. May be NULL.
+
+        void * m_userContext;                               ///< The user context pointer set on the stream. May be NULL.
+
+        BitWriter m_writer;                                 ///< The bit writer used for all bitpacked write operations.
     };
+
+    /**
+        Stream class for reading bitpacked data.
+
+        This class is a wrapper around the bit reader class. It's purpose is to provide unified interface for reading and writing.
+
+        You can determine if you are reading from a stream by calling Stream::IsReading inside your templated serialize method.
+
+        This is evaluated at compile time, letting the compiler generate optimized serialize functions without the hassle of maintaining separate read and write functions.
+
+        IMPORTANT: Generally, you don't call methods on this class directly. Use the serialize_* macros instead. See test/shared.h for some examples.
+
+        @see BitReader
+     */
 
     class ReadStream
     {
