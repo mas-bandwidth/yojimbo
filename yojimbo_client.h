@@ -605,6 +605,8 @@ namespace yojimbo
 
         Allocator * m_allocator;                                            ///< The allocator passed in to the client on creation.
 
+        void * m_userContext;                                               ///< The user context. Lets the user pass information to packet serialize functions.
+
         uint8_t * m_clientMemory;                                           ///< Memory backing the client allocator. Allocated from m_allocator.
 
         Allocator * m_clientAllocator;                                      ///< The client allocator. Everything allocated between Client::Connect and Client::Disconnect is allocated and freed via this allocator.

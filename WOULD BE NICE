@@ -58,8 +58,6 @@ WOULD BE NICE
 
     Add a unit test for user context to make sure it's working end-to-end.
 
-    NOTE: User context is definitely not properly hooked up yet inside yojimbo_client.cpp, so it's not even functional yet.
-
     ------------------
 
     Add tests that simulate each of the server-side client error conditions, eg. allocator, packet factory, message factory, connection, and then verify that after these errors happen, that client slot is cleared and a client can connect to it again, otherwise, possibility that I have error codes not getting cleared by accident on client disconnect.
