@@ -26,7 +26,6 @@ solution "Yojimbo"
     configuration "Debug"
         symbols "On"
         links { debug_libs }
-        defines { "DEBUG", "_DEBUG" }
     configuration "Release"
         optimize "Speed"
         defines { "NDEBUG" }
