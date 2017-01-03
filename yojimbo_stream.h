@@ -45,10 +45,10 @@ namespace yojimbo
         /**
             Base stream constructor.
 
-            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you write packets.
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
-        BaseStream( Allocator & allocator ) : m_allocator( &allocator ) {}
+        explicit BaseStream( Allocator & allocator ) : m_allocator( &allocator ), m_context( NULL ), m_userContext( NULL ) {}
 
         /**
             Set a context on the stream.
@@ -152,7 +152,7 @@ namespace yojimbo
 
             @param buffer The buffer to write to.
             @param bytes The number of bytes in the buffer. Must be a multiple of four.
-            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you write packets.
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
 		WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_writer( buffer, bytes ) {}
@@ -334,7 +334,7 @@ namespace yojimbo
 
             @param buffer The buffer to read from.
             @param bytes The number of bytes in the buffer. May be a non-multiple of four, however if it is, the underlying buffer allocated should be large enough to read the any remainder bytes as a dword.
-            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read packets.
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
         ReadStream( const uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_reader( buffer, bytes ) {}
@@ -502,7 +502,7 @@ namespace yojimbo
         /**
             Measure stream constructor.
 
-            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you write packets.
+            @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
         explicit MeasureStream( Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_bitsWritten(0) {}

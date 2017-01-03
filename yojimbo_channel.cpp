@@ -433,6 +433,8 @@ namespace yojimbo
 
         m_error = CHANNEL_ERROR_NONE;
 
+        m_time = 0.0;
+
 		ResetCounters();
     }
 

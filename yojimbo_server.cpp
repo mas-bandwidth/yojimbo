@@ -48,6 +48,7 @@ namespace yojimbo
         m_globalPacketFactory = NULL;
 
         memset( m_privateKey, 0, KeyBytes );
+        memset( m_challengeKey, 0, KeyBytes );
         memset( m_clientMemory, 0, sizeof( m_clientMemory ) );
         memset( m_clientAllocator, 0, sizeof( m_clientAllocator ) );
         memset( m_clientMessageFactory, 0, sizeof( m_clientMessageFactory ) );
