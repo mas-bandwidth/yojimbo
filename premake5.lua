@@ -25,7 +25,6 @@ solution "Yojimbo"
     flags { "ExtraWarnings", "StaticRuntime", "FloatFast", "EnableSSE2" }
     configuration "Debug"
         symbols "On"
-        defines { "DEBUG", "_DEBUG" }
         links { debug_libs }
     configuration "Release"
         optimize "Speed"
