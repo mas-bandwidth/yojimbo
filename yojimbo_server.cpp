@@ -280,9 +280,6 @@ namespace yojimbo
 
     bool Server::CanSendMsg( int clientIndex, int channelId ) const
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-
         if ( !IsRunning() )
             return false;
 

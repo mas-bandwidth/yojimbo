@@ -1,12 +1,14 @@
 DONE    
 
+    Message related functions in client.
+
+    Message related functions in server.
+
 TODO
 
     =========================================
 
     Almost done...
-
-        Send and receive message functions in client and server.
 
         Serialization macros (if possible)
 

@@ -398,23 +398,11 @@ namespace yojimbo
         uint64_t GetCounter( int index ) const;
 
         /**
-            Get the allocator used for client allocations.
-
-            This allocator is created with memory allocated by the allocator passed in to the constructor.
-
-            This is done to unify treatment of allocators between client and server with a macro YOJIMBO_CLIENT_ALLOCATOR on the derived client class.
-
-            The size of the memory to be allocated to back this allocator is specified by ClientServerConfig::clientMemory. This memory is used for packet, message allocations and stream allocations while the client is connecting/connected to the server.
-         */
-
-        Allocator & GetClientAllocator();
-
-        /**
             Create a message of the specified type.
 
             The message created by this function is typically passed to Client::SendMsg. In this case, the send message function takes ownership of the message pointer and will release it for you.
 
-            If you are using the message in some other way, you are responsible for manually releasing it via MessageFactory::Release.
+            If you are using the message in some other way, you are responsible for manually releasing it via Client::ReleaseMsg.
 
             @param type The message type. The set of message types depends on the message factory set on the client.
 
@@ -465,6 +453,7 @@ namespace yojimbo
             IMPORTANT: The message returned by this function has one reference. You are responsible for releasing this message via Client::ReleaseMsg.
 
             @param channelId The id of the channel to try to receive a message from.
+
             @returns A pointer to the received message, NULL if there are no messages to receive.
          */
 
@@ -487,10 +476,22 @@ namespace yojimbo
 
             The message factory determines the set of messages exchanged between the client and server.
 
+            @returns The message factory.
+
             @see YOJIMBO_CLIENT_MESSAGE_FACTORY
          */
 
         MessageFactory & GetMsgFactory();
+
+        /**
+            Get the allocator used for client allocations.
+
+            This memory is used for packet, message allocations and stream allocations while the client is connecting/connected to the server.
+
+            The amount of memory backing this allocator is specified by ClientServerConfig::clientMemory.
+         */
+
+        Allocator & GetClientAllocator();
 
     protected:
 

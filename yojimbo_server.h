@@ -499,31 +499,146 @@ namespace yojimbo
 
         double GetTime() const;
 
-        // =====================================
+        /**
+            Create a message of the specified type.
 
-        // todo: document these functions
+            The message created by this function is typically passed to Server::SendMsg. In this case, the send message function takes ownership of the message pointer and will release it for you.
+
+            If you are using the message in some other way, you are responsible for manually releasing it via Server::ReleaseMsg.
+
+            @param clientIndex The index of the client the message will be sent to. This is necessary because each client has their own message factory and allocator.
+            @param type The message type. The set of message types depends on the message factory set on the client.
+
+            @returns A pointer to the message created, or NULL if no message could be created.
+
+            @see MessageFactory
+         */
 
         Message * CreateMsg( int clientIndex, int type );
 
+        /** 
+            Check if there is room in the channel send queue to send one message to a client.
+
+            This function is useful in soak tests and unit tests where I want to send messages as quickly as possible, but don't want to overflow the send queue.
+
+            You don't need to call this function manually each time you call Server::SendMsg. It's already asserted on in debug build and in release if it returns false it sets a runtime error that disconnects the client from the server.
+
+            @param clientIndex The index of the client the message will be sent to.
+            @param channelId The id of the channel in [0,numChannels-1].
+            
+            @returns True if the channel has room for one more message to be added to its send queue. False otherwise.
+         */
+
         bool CanSendMsg( int clientIndex, int channelId = 0 ) const;
+
+        /**
+            Queue a message to be sent to a server.
+
+            Adds a message to the send queue of the specified channel of the client connection.
+
+            The reliability and ordering guarantees of how the message will be received on the other side are determined by the configuration of the channel.
+    
+            IMPORTANT: This function takes ownership of the message and ensures that the message is released when it finished being sent. This lets you create a message with Server::CreateMsg and pass it directly into this function. You don't need to manually release the message.
+
+            @param clientIndex The index of the client the message will be sent to.
+            @param message The message to be sent. It must be allocated from the message factory set on this client.
+            @param channelId The id of the channel to send the message across in [0,numChannels-1].
+
+            @see ChannelConfig
+            @see ClientServerConfig
+         */
 
         void SendMsg( int clientIndex, Message * message, int channelId = 0 );
 
+        /** 
+            Poll this method to receive messages sent from a client.
+
+            Typical usage is to iterate across the set of clients, iterate across the set of the channels, and poll this to receive messages until it returns NULL.
+
+            IMPORTANT: The message returned by this function has one reference. You are responsible for releasing this message via Server::ReleaseMsg.
+
+            @param clientIndex The index of the client that we want to receive messages from.
+            @param channelId The id of the channel to try to receive a message from.
+
+            @returns A pointer to the received message, NULL if there are no messages to receive.
+         */
+
         Message * ReceiveMsg( int clientIndex, int channelId = 0 );
+
+        /**
+            Release a message returned by Server::ReceiveMsg.
+
+            This is a convenience function. It is equivalent to calling MessageFactory::Release on the message factory set on this client (see Server::GetMsgFactory).
+
+            @param clientIndex The index of the client. This is necessary because each client has their own message factory, and messages must be released with the same message factory they were created with.
+            @param The message to release. Must be non-NULL.
+
+            @see Server::ReceiveMsg
+         */
 
         void ReleaseMsg( int clientIndex, Message * message );
 
+        /**
+            Get the message factory instance belonging to a particular client.
+
+            The message factory determines the set of messages exchanged between the client and server.
+
+            @param clientIndex The index of the client. Each client has their own message factory.
+
+            @returns The message factory.
+
+            @see YOJIMBO_SERVER_MESSAGE_FACTORY
+         */
+
         MessageFactory & GetMsgFactory( int clientIndex );
 
-        Packet * CreateGlobalPacket( int type );
+        /**
+            Get the allocator used for global allocations.
 
-        Packet * CreateClientPacket( int clientIndex, int type );
+            Global allocations are allocations that aren't tied to any particular client. 
+
+            Typically, this means data structures that correspond to connection negotiation, processing connection requests and so on.
+
+            The amount of memory backing this allocator is specified by ClientServerConfig::serverGlobalMemory.
+         */
 
         Allocator & GetGlobalAllocator() { assert( m_globalAllocator ); return *m_globalAllocator; }
+
+        /**
+            Get the allocator used for per-client.
+
+            Per-client allocations are allocations that are tied to a particular client index. The idea is to silo each client on the server to their own set of resources, making it impossible for a client to exhaust resources shared with other clients connected to the server.
+
+            The amount of memory backing this allocator is specified by ClientServerConfig::perClientMemory. There is one allocator per-client slot allocated in Server::Start. These allocators are undefined outside of Start/Stop and will assert in that case.
+         */
 
         Allocator & GetClientAllocator( int clientIndex ) { assert( clientIndex >= 0 ); assert( clientIndex < m_maxClients ); assert( m_clientAllocator[clientIndex] ); return *m_clientAllocator[clientIndex]; }
 
     protected:
+
+        /**
+            Helper function to create a global packet by type.
+
+            Global packets don't belong to any particular client. These are packets send and received as part of the connection negotiation protocol.
+
+            @param type The type of packet to create.
+
+            @returns The packet object that was created. NULL if a packet could be created. You *must* check this. It *will* happen when the packet factory runs out of memory to allocate packets!
+         */
+
+        Packet * CreateGlobalPacket( int type );
+
+        /**
+            Helper function to create a client packet by type.
+
+            Client packets belong to particular client index. These are packets sent after a client/server connection has been established.
+
+            @param type The type of packet to create.
+
+            @returns The packet object that was created. NULL if a packet could be created. You *must* check this. It *will* happen when the packet factory runs out of memory to allocate packets!
+         */
+
+        Packet * CreateClientPacket( int clientIndex, int type );
 
         /**
             Override this method to get a callback when the server is started.
