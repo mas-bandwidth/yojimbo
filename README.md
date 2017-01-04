@@ -10,7 +10,7 @@ It is designed around the networking requirements of competitive realtime multip
 
 **libyojimbo** is currently in pre-release for early feedback. Right now it provides support for: cryptographically secure authentication, client/server connection management, encryption for packets sent over UDP, reliable-ordered messages and data blocks, plus a serialization framework for extending the protocol with custom messages and packet types.
 
-Current work is focused on documenting the library and finalizing the API. Once the library is sufficiently documented, it will be extended to support large unreliable-unordered snapshot messages with MTU fragmentation and reassembly at the yojimbo wire protocol level. After this, the next milestone is to extend the matcher to support dynamically registered server instances.
+Work over the past few months has been focused on documenting and finalizing the API. This work is nearly completion and a new release is imminent. After the documentation push, new features coming soon include packet fragmentation and reassembly and extending the matcher to support dynamically registered server instances.
 
 For more details please refer to the [roadmap](https://github.com/networkprotocol/libyojimbo/blob/master/ROADMAP.md).
 
