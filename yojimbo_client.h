@@ -173,11 +173,11 @@ namespace yojimbo
 
             IMPORTANT: Insecure connections are not encrypted and do not provide authentication. 
 
-            They are provided for convienence in development only, and should not be used in production code!
+            They are provided for convenience in development only, and should not be used in production code!
 
             You can completely disable insecure connections in your retail build by defining YOJIMBO_SECURE_MODE 1
 
-            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64bit integer.
+            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64 bit integer.
             @param serverAddress The address of the server to connect to.
          */
 
@@ -190,11 +190,11 @@ namespace yojimbo
 
             IMPORTANT: Insecure connections are not encrypted and do not provide authentication. 
 
-            They are provided for convienence in development only, and should not be used in production code!
+            They are provided for convenience in development only, and should not be used in production code!
 
             You can completely disable insecure connections in your retail build by defining YOJIMBO_SECURE_MODE 1
 
-            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64bit integer.
+            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64 bit integer.
             @param serverAddresses The list of server addresses to connect to, in order of first to last.
             @param numServerAddresses Number of server addresses in [1,yojimbo::MaxServersPerConnect].
          */
@@ -210,7 +210,7 @@ namespace yojimbo
 
             Secure connections are encrypted and authenticated. If the server runs in secure mode, it will only accept connections from clients with a connect token, thus stopping unauthenticated clients from connecting to your server.
 
-            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64bit integer.
+            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64 bit integer.
             @param serverAddress The address of the server to connect to.
             @param connectTokenData Pointer to the connect token data from the matcher.
             @param connectTokenNonce Pointer to the connect token nonce from the matcher.
@@ -236,7 +236,7 @@ namespace yojimbo
 
             Secure connections are encrypted and authenticated. If the server runs in secure mode, it will only accept connections from clients with a connect token, thus stopping unauthenticated from connecting to your server.
 
-            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64bit integer.
+            @param clientId A globally unique client id used to identify clients when your server talks to your web backend. If you don't have a concept of client id yet, roll a random 64 bit integer.
             @param serverAddresses The list of server addresses to connect to, in order of first to last.
             @param numServerAddresses Number of server addresses in [1,yojimbo::MaxServersPerConnect].
             @param connectTokenData Pointer to the connect token data from the matcher.

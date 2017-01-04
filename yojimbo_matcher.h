@@ -121,7 +121,7 @@ namespace yojimbo
             IMPORTANT: This function is currently blocking. It will be made non-blocking in the near future.
 
             @param protocolId The protocol id that we are using. Used to filter out servers with different protocol versions.
-            @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64bit number.
+            @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64 bit number.
 
             @see Matcher::GetMatchStatus
             @see Matcher::GetMatchResponse

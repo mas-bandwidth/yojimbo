@@ -97,7 +97,7 @@ namespace yojimbo
 
         Extend this class to hook up your own allocator to yojimbo.
 
-        IMPORTANT: This allocator is not yet threadsafe. Only call it from one thread!
+        IMPORTANT: This allocator is not yet thread safe. Only call it from one thread!
      */
 
     class Allocator
@@ -287,7 +287,7 @@ namespace yojimbo
             Make sure your constructor has the same signature as this one, and it will work with the YOJIMBO_SERVER_ALLOCATOR and YOJIMBO_CLIENT_ALLOCATOR helper macros.
 
             @param memory Block of memory in which the allocator will work. This block must remain valid while this allocator exists. The allocator does not assume ownership of it, you must free it elsewhere, if necessary.
-            @param bytes The size of the block of memory (bytes). Actual amount of memor you can allocate will be less than this, due to allocator overhead.
+            @param bytes The size of the block of memory (bytes). The maximum amount of memory you can allocate will be less, due to allocator overhead.
          */
 
         TLSF_Allocator( void * memory, size_t bytes );

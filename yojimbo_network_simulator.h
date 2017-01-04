@@ -131,7 +131,7 @@ namespace yojimbo
             IMPORTANT: Ownership of the packet data pointer is *not* transferred to the network simulator. It makes a copy of the data instead.
 
             @param from The address the packet is sent from.
-            @param to The addresrs the packet is sent to.
+            @param to The address the packet is sent to.
             @param packetData The packet data.
             @param packetSize The packet size (bytes).
          */

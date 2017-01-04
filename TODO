@@ -61,15 +61,17 @@ DONE
 
     Nope. It's a big step backwards. Sticking with doxygen html for now.
 
+    Is there some automated spell check that I can run on code comments? That would save me a bunch of time.
+
+    Sublime Text probably has something...
+
+    Yeah, F6 runs a basic spellcheck. Good enough. Finding a bunch of simple typos and fat fingers...
+
 TODO
 
     =========================================
 
     Tomorrow I have to work out why the windows build is having trouble with docker. Am I also on beta docker on windows? If so, drop back to stable.
-
-    =========================================
-
-    Is there some automated spell check that I can run on code comments? That would save me a bunch of time.
 
     =========================================
 

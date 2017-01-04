@@ -63,7 +63,7 @@ namespace yojimbo
         TRANSPORT_COUNTER_PACKETS_WRITTEN,                                          ///< Number of packets written to the network.
         TRANSPORT_COUNTER_SEND_QUEUE_OVERFLOW,                                      ///< Number of times the packet send queue has overflowed. When this is non-zero, it means that packets are being dropped because the transport send queue is too small.
         TRANSPORT_COUNTER_RECEIVE_QUEUE_OVERFLOW,                                   ///< Number of times the packet receive queue has overflowed. When this is non-zero, packets read from the network aren't able to be queued up and are dropped because there is no room in the receive queue.
-        TRANSPORT_COUNTER_READ_PACKET_FAILURES,                                     ///< Number of times a failure has occured while reading a packet. This usually corresponds to the number of corrupt packet that return false from their serialize read function, but it's also possible it is user error causing packets to fail to deserialize properly.
+        TRANSPORT_COUNTER_READ_PACKET_FAILURES,                                     ///< Number of times a failure has occurred while reading a packet. This usually corresponds to the number of corrupt packet that return false from their serialize read function, but it's also possible it is user error causing packets to fail to deserialize properly.
         TRANSPORT_COUNTER_WRITE_PACKET_FAILURES,                                    ///< Number of times a packet failed to serialize write. This is not common. If it does fail, it's probably you're fault. You're the one who wrote the packet serialize function after all :)
         TRANSPORT_COUNTER_ENCRYPT_PACKET_FAILURES,                                  ///< Number of times packet encryption failed. This usually only fails if there is something wrong with libsodium installed on your system.
         TRANSPORT_COUNTER_DECRYPT_PACKET_FAILURES,                                  ///< Number of times libsodium failed to decrypt a packet. Non-zero indicates that corrupt packets were received and could not be decrypted.
@@ -84,7 +84,7 @@ namespace yojimbo
 
         The server uses per-client contexts to setup a mapping between connected clients and the resources for that client like allocators, packet factories, message factories and replay protection.
 
-        The benefit is that each client is silo'd to their own set of resources and cannot launch an attack to deplete resources shared with other clients.
+        The benefit is that each client is restricted to their own set of resources and cannot launch an attack to deplete resources shared with other clients.
 
         @see TransportContext
         @see Transport::SetContext
@@ -154,7 +154,7 @@ namespace yojimbo
 
             @param address The address that maps to the context.
             @param context A reference to the context data to be copied across.
-            @returns True if the context mapping was added successfully. False if the context is already added context mapping slots are avalable. See yojimbo::MaxContextMappings.
+            @returns True if the context mapping was added successfully. False if the context is already added context mapping slots are available. See yojimbo::MaxContextMappings.
          */
 
         bool AddContextMapping( const Address & address, const TransportContext & context );
@@ -276,7 +276,7 @@ namespace yojimbo
             To make sure packet latency is minimized call Transport::ReceivePackets just before looping and calling this function until it returns NULL.
 
             @param from The address that the packet was received from.
-            @param sequence Pointer to an unsigned 64bit sequence number (optional). If the pointer is not NULL, it will be dereferenced to store the sequence number of the received packet. Only encrypted packets have these sequence numbers.
+            @param sequence Pointer to an unsigned 64 bit sequence number (optional). If the pointer is not NULL, it will be dereferenced to store the sequence number of the received packet. Only encrypted packets have these sequence numbers.
             @returns The next packet in the receive queue, or NULL if no packets are left in the receive queue.
          */
 
@@ -345,7 +345,7 @@ namespace yojimbo
 
             When a packet is sent the transport checks if that packet type is encrypted. If it's an encrypted, the transport looks for an encryption mapping for the destination address, and encrypts the packet with that key. Otherwise, the packet is sent out unencrypted.
 
-            When a packet is received, the transport checks if that packetet type should be encrypted. If it should be, but the packet itself is not encrypted, the packet is discarded. Otherwise, the server looks for a decryption key for the packet sender address and decrypts the packet before adding it to the packet receive queue.
+            When a packet is received, the transport checks if that packet type should be encrypted. If it should be, but the packet itself is not encrypted, the packet is discarded. Otherwise, the server looks for a decryption key for the packet sender address and decrypts the packet before adding it to the packet receive queue.
 
             The exception to this rule is when you enable TRANSPORT_FLAG_INSECURE_MODE via Transport::SetFlags, which makes encryption optional for encrypted packet types. 
 
@@ -408,7 +408,7 @@ namespace yojimbo
             @param address The address to associate with encryption keys.
             @param sendKey The key used to encrypt packets sent to this address.
             @param receiveKey The key used to decrypt packets received from this address.
-			@param timeout The timeout value in seconds for this encryption mapping (seconds). Encyrption mapping times out if no packets are sent to or received from this address in the timeout period.
+			@param timeout The timeout value in seconds for this encryption mapping (seconds). Encryption mapping times out if no packets are sent to or received from this address in the timeout period.
 
             @returns True if the encryption mapping was added successfully, false otherwise.
          */
@@ -945,7 +945,7 @@ namespace yojimbo
 
         virtual void InternalSendPacket( const Address & to, const void * packetData, int packetBytes );
     
-        /// Overriden internal packet receive function. Effectively just wraps recvfrom.
+        /// Overridden internal packet receive function. Effectively just wraps recvfrom.
 
         virtual int InternalReceivePacket( Address & from, void * packetData, int maxPacketSize );
 

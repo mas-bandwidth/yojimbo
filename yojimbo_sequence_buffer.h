@@ -216,7 +216,7 @@ namespace yojimbo
 
             This sequence number can wrap around, so if you are at 65535 and add an entry for sequence 0, then 0 becomes the new "most recent" sequence number.
 
-            @returns The most recent sequence nmuber.
+            @returns The most recent sequence number.
 
             @see yojimbo::sequence_greater_than
             @see yojimbo::sequence_less_than

@@ -119,11 +119,11 @@ namespace yojimbo
             @param key The key used to decrypt the packet, if it is encrypted.
             @param encryptedPacketTypes Entry n is 1 if packet type n is encrypted. Passed into the low-level packet read as the set of allowed packet types, if the packet is encrypted.
             @param unencryptedPacketTypes Entry n is 1 if packet type n is unencrypted. Passed into the low-level packet read as the set of allowed packet types, if the packet is not encrypted.
-            @param streamAllocator The allocator to set on the steram. See BaseStream::GetAllocator.
+            @param streamAllocator The allocator to set on the stream. See BaseStream::GetAllocator.
             @param packetFactory The packet factory used to create the packet.
             @param replayProtection The replay protection buffer. Optional. Pass in NULL if not used.
 
-            @returns The packet object if it was sucessfully read, NULL otherwise. You are responsible for destroying the packet created by this function.
+            @returns The packet object if it was successfully read, NULL otherwise. You are responsible for destroying the packet created by this function.
          */
 
         Packet * ReadPacket( const uint8_t * packetData, uint64_t & sequence, int packetBytes, bool & encrypted, const uint8_t * key, const uint8_t * encryptedPacketTypes, const uint8_t * unencryptedPacketTypes, Allocator & streamAllocator, PacketFactory & packetFactory, ReplayProtection * replayProtection );

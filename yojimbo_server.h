@@ -141,7 +141,7 @@ namespace yojimbo
         SERVER_COUNTER_CHALLENGE_RESPONSE_ACCEPTED,                                             ///< Number of times the server accepted a challenge response and transitioned that client to connected.
         SERVER_COUNTER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,                                ///< Number of times the server denied a challenge response because the server is full. This happens when multiple clients are racing to connect to the same client slot.
         SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET,                          ///< Number of times the server ignored a challenge response packet sent from a client because the SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES flag is set.
-        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,                    ///< Number of times the server ignored a challange response packet because a client with that address is already connected.
+        SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,                    ///< Number of times the server ignored a challenge response packet because a client with that address is already connected.
         SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                  ///< Number of times the server ignored a challenge response because a client with that client id is already connected. 
         SERVER_COUNTER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,            ///< Number of times the server ignored a challenge response because it couldn't decrypt the challenge token.
         
@@ -176,7 +176,7 @@ namespace yojimbo
         SERVER_CONNECTION_REQUEST_IGNORED_PROTOCOL_ID_MISMATCH,                                 ///< The server ignored the connection request because the connect token protocol id does not match the protocol id set on the transport.
         SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_IS_ZERO,                                    ///< The server ignored the connection request because the client id is zero.
         SERVER_CONNECTION_REQUEST_IGNORED_ADDRESS_ALREADY_CONNECTED,                            ///< The server ignored the connection request because a client with that address is already connected.
-        SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                          ///< The server ignored the connection request because a client with thath client id is already connected.
+        SERVER_CONNECTION_REQUEST_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                          ///< The server ignored the connection request because a client with that client id is already connected.
         SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_ADD_ENCRYPTION_MAPPING,                     ///< The server ignored the connection request because it could not add an encryption mapping for that client. This is bad.
         SERVER_CONNECTION_REQUEST_IGNORED_CONNECT_TOKEN_ALREADY_USED,                           ///< The server ignored the connection request because another client has already used that connect token to connect to this server. This is bad.
         SERVER_CONNECTION_REQUEST_IGNORED_FAILED_TO_GENERATE_CHALLENGE_TOKEN,                   ///< The server ignored the connection request because it couldn't generate a challenge token. This is bad.
@@ -193,10 +193,10 @@ namespace yojimbo
     enum ServerChallengeResponseAction
     {
         SERVER_CHALLENGE_RESPONSE_ACCEPTED,                                                     ///< The server accepted the challenge response and transitioned the client to connected.
-        SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,                                        ///< The server denied the challenge respeonse because the server is full.
+        SERVER_CHALLENGE_RESPONSE_DENIED_SERVER_IS_FULL,                                        ///< The server denied the challenge response because the server is full.
         SERVER_CHALLENGE_RESPONSE_IGNORED_BECAUSE_FLAG_IS_SET,                                  ///< The server ignored the challenge response because the SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES flag is set.
         SERVER_CHALLENGE_RESPONSE_IGNORED_FAILED_TO_DECRYPT_CHALLENGE_TOKEN,                    ///< The server ignored the challenge response because it could not decrypt the challenge token.
-        SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,                            ///< The server ignored the challange response because a client with that address is already connected.
+        SERVER_CHALLENGE_RESPONSE_IGNORED_ADDRESS_ALREADY_CONNECTED,                            ///< The server ignored the challenge response because a client with that address is already connected.
         SERVER_CHALLENGE_RESPONSE_IGNORED_CLIENT_ID_ALREADY_CONNECTED,                          ///< The server ignored the challenge response because a client with that client id is already connected.
     };
 
@@ -207,7 +207,7 @@ namespace yojimbo
     enum ServerFlags
     {
         SERVER_FLAG_IGNORE_CONNECTION_REQUESTS = (1<<0),                                        ///< When this flag is set the server ignores all connection requests.
-        SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES = (1<<1),                                        ///< When this flag is set the server ignores all challerge respeonses.
+        SERVER_FLAG_IGNORE_CHALLENGE_RESPONSES = (1<<1),                                        ///< When this flag is set the server ignores all challenge response.
 #if !YOJIMBO_SECURE_MODE
         SERVER_FLAG_ALLOW_INSECURE_CONNECT = (1<<2)                                             ///< When this flag is set the server allows insecure connects via Client::InsecureConnect. Please don't use this in production environments!
 #endif // #if !YOJIMBO_SECURE_MODE
@@ -711,7 +711,7 @@ namespace yojimbo
             IMPORTANT: The client is (still) fully connected at the point this callback is made, so all data structures are setup for the client, and query functions based around client index will work properly.
 
             @param clientIndex The client slot index of the client that is about to error out.
-            @param error The error that occured.
+            @param error The error that occurred.
          */
 
         virtual void OnClientError( int clientIndex, ServerClientError error );

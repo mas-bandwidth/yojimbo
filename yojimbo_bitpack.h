@@ -39,7 +39,7 @@ namespace yojimbo
 
         Integer bit values are written to a 64 bit scratch value from right to left.
 
-        Once the low 32 bits of the scratch is filled with bits it is flushed to memory as a dword and the scratch buffer is shifted right by 32.
+        Once the low 32 bits of the scratch is filled with bits it is flushed to memory as a dword and the scratch value is shifted right by 32.
 
         The bit stream is written to memory in little endian order, which is considered network byte order for this library.
 
@@ -270,9 +270,9 @@ namespace yojimbo
     private:
 
         uint32_t * m_data;									///< The buffer we are writing to, as a uint32_t * because we're writing dwords at a time.
-        uint64_t m_scratch;									///< The scratch buffer where we write bits to (right to left). 64 bit for overflow. Once # of bits in scratch is >= 32, the low 32 bits are flushed to memory.
+        uint64_t m_scratch;									///< The scratch value where we write bits to (right to left). 64 bit for overflow. Once # of bits in scratch is >= 32, the low 32 bits are flushed to memory.
         int m_numBits;										///< The number of bits in the buffer. This is equivalent to the size of the buffer in bytes multiplied by 8. Note that the buffer size must always be a multiple of 4.
-        int m_numWords;										///< The number of words in the buffer. This is equivalent to the size of the buffer in bytes divided by 4. Note that the buffer size mult always be a multiple of 4.
+        int m_numWords;										///< The number of words in the buffer. This is equivalent to the size of the buffer in bytes divided by 4. Note that the buffer size must always be a multiple of 4.
         int m_bitsWritten;									///< The number of bits written so far.
         int m_wordIndex;									///< The current word index. The next word flushed to memory will be at this index in m_data.
         int m_scratchBits;									///< The number of bits in scratch. When this is >= 32, the low 32 bits of scratch is flushed to memory as a dword and scratch is shifted right by 32.
@@ -283,7 +283,7 @@ namespace yojimbo
 
         Relies on the user reconstructing the exact same set of bit reads as bit writes when the buffer was written. This is an unattributed bitpacked binary stream!
 
-        Implementation: 32 bit dwords are read in from memory to the high bits of a scratch buffer as required. The user reads off bit values from the scratch buffer from the right, after which the scrathc buffer is shifted by the same number of bits.
+        Implementation: 32 bit dwords are read in from memory to the high bits of a scratch value as required. The user reads off bit values from the scratch value from the right, after which the scratch value is shifted by the same number of bits.
      */
 
     class BitReader
@@ -483,14 +483,14 @@ namespace yojimbo
     private:
 
         const uint32_t * m_data;							///< The bitpacked data we're reading as a dword array.
-        uint64_t m_scratch;									///< The scratch buffer. New data is read in 32 bits at a top to the left of this buffer, and data is read off to the right.
+        uint64_t m_scratch;									///< The scratch value. New data is read in 32 bits at a top to the left of this buffer, and data is read off to the right.
         int m_numBits;										///< Number of bits to read in the buffer. Of course, we can't *really* know this so it's actually m_numBytes * 8.
         int m_numBytes;										///< Number of bytes to read in the buffer. We know this, and this is the non-rounded up version.
 #ifndef NDEBUG
         int m_numWords;										///< Number of words to read in the buffer. This is rounded up to the next word if necessary.
 #endif // #ifndef NDEBUG
         int m_bitsRead;										///< Number of bits read from the buffer so far.
-        int m_scratchBits;									///< Number of bits currently in the scratch buffer. If the user wants to read more bits than this, we have to go fetch another dword from memory.
+        int m_scratchBits;									///< Number of bits currently in the scratch value. If the user wants to read more bits than this, we have to go fetch another dword from memory.
         int m_wordIndex;									///< Index of the next word to read from memory.
     };
 }

@@ -64,7 +64,7 @@ namespace yojimbo
         /**
             Checks if the packet is valid. 
 
-            Packet type is clearedh to -1 when a packet is destroyed, to aid with tracking down pointers to already deleted packets.
+            Packet type is cleared to -1 when a packet is destroyed, to aid with tracking down pointers to already deleted packets.
 
             @returns True if the packet is valid, false otherwise.
          */

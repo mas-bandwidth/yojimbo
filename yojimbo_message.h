@@ -87,9 +87,9 @@ namespace yojimbo
         /** 
             Set the message id.
 
-            When messages are sent across the ReliableOrderedChannel, the message id starts at 0 and increases with each message sent over that channel, wrapping around from 65535 -> 0. It's used to reconstruct message order on the receiver, so messages are received in the same order they were sent.
+            When messages are sent over a reliable-ordered channel, the message id starts at 0 and increases with each message sent over that channel.
 
-            Over the UnreliableUnorderedChannel, there is no ordering, so the message id is set to the sequence number of the connection packet instead.
+            When messages are sent over an unreliable-unordered channel, the message id is set to the sequence number of the packet they are included in.
 
             @param id The message id.
          */
@@ -395,7 +395,7 @@ namespace yojimbo
     class MessageFactory
     {        
         #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-        std::map<void*,int> allocated_messages;                                 ///< The set of allocated messages for this factory. Used to track dowm message leaks.
+        std::map<void*,int> allocated_messages;                                 ///< The set of allocated messages for this factory. Used to track down message leaks.
         #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
         Allocator * m_allocator;                                                ///< The allocator used to create messages.

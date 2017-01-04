@@ -39,9 +39,9 @@ namespace yojimbo
     /**
         Generated a random integer between a and b (inclusive).
 
-        IMPORTANT: This is not a crytographically secure random. It's used only for test functions and in the network simulator.
+        IMPORTANT: This is not a cryptographically secure random. It's used only for test functions and in the network simulator.
 
-        For a crytographically secure random, please see yojimbo::RandomBytes which is built on libsodium.
+        For a cryptographically secure random, please see yojimbo::RandomBytes which is built on libsodium.
 
         @param a The minimum integer value to generate.
         @param b The maximum integer value to generate.
@@ -61,9 +61,9 @@ namespace yojimbo
     /** 
         Generates a random float between a and b.
 
-        IMPORTANT: This is not a crytographically secure random. It's used only for test functions and in the network simulator.
+        IMPORTANT: This is not a cryptographically secure random. It's used only for test functions and in the network simulator.
 
-        For a crytographically secure random, please see yojimbo::RandomBytes which is built on libsodium.
+        For a cryptographically secure random, please see yojimbo::RandomBytes which is built on libsodium.
 
         @param a The minimum integer value to generate.
         @param b The maximum integer value to generate.
@@ -484,7 +484,7 @@ namespace yojimbo
         @param prefix_byte The prefix byte. This is the first byte of the packet in the wire format.
         @param sequence_bytes Pointer to the variable length sequence bytes to decompress.
 
-        @returns The 64bit packet sequence number. This is used as the nonce for packet encryption.
+        @returns The 64 bit packet sequence number. This is used as the nonce for packet encryption.
      */
 
     uint64_t decompress_packet_sequence( uint8_t prefix_byte, const uint8_t * sequence_bytes );

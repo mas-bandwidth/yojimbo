@@ -213,7 +213,7 @@ namespace yojimbo
         This is used by the server to generate a challenge token in response to a valid connection request packet sent from a potential client.
 
         @param connectToken The connect token sent from the client.
-        @param connectTokenMac The MAC fo the connect token. Used for quick lookup from challenge response to the pending client entry on the server.
+        @param connectTokenMac The MAC of the connect token. Used for quick lookup from challenge response to the pending client entry on the server.
         @param challengeToken The challenge token to generate [out]. Only valid if this function returns true.
 
         @returns True if a challange token was successfully generated. False otherwise.
@@ -224,7 +224,7 @@ namespace yojimbo
     /**
         Encrypt a challenge token.
 
-        Writes the challenge token to a binary format and encrypts that buffer using libsodium's AEAD privitive.
+        Writes the challenge token to a binary format and encrypts that buffer using libsodium's AEAD primitive.
 
         @param token The challenge token to encrypt.
         @param encryptedMessage The buffer that the encrypted message should be written to. Should be at least yojimbo::ChallengeTokenBytes large.

@@ -153,7 +153,7 @@ namespace yojimbo
 
         int m_bytes;                                        ///< The size of the bit array in bytes.
         
-        uint64_t * m_data;                                  ///< The data backing the bit array is an array of 64bit integer values.
+        uint64_t * m_data;                                  ///< The data backing the bit array is an array of 64 bit integer values.
 
         BitArray( const BitArray & other );
         BitArray & operator = ( const BitArray & other );

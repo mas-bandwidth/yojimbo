@@ -363,7 +363,7 @@ namespace yojimbo
 
         ChannelListener * m_listener;                                                   ///< Channel listener for callbacks. Optional.
 
-        MessageFactory * m_messageFactory;                                              ///< Message factory for creaing and destroying messages.
+        MessageFactory * m_messageFactory;                                              ///< Message factory for creating and destroying messages.
 
 		uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
     };

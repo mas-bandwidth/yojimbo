@@ -134,7 +134,7 @@ namespace yojimbo
             @param e Fifth field of the IPv6 address (local byte order).
             @param f Sixth field of the IPv6 address (local byte order).
             @param g Seventh field of the IPv6 address (local byte order).
-            @param h Eigth field of the IPv6 address (local byte order).
+            @param h Eighth field of the IPv6 address (local byte order).
             @param port The IPv6 port (local byte order).
          */
 
@@ -147,7 +147,7 @@ namespace yojimbo
 
             IMPORTANT: Pass in address fields and the port in local byte order. The address class handles the conversion to network order for you.
 
-            @param address Array containing 8 16bit address fields for the IPv6 address (local byte order).
+            @param address Array of 8 16 bit address fields for the IPv6 address (local byte order).
             @param port The IPv6 port (local byte order).
          */
 
@@ -192,7 +192,7 @@ namespace yojimbo
         /**
             Parse a string to an address.
 
-            This versions overrides any port read in the address with the port parameter. This lets you parse "127.0.0.1" and "[::1]" and pass in the port you want programatically.
+            This versions overrides any port read in the address with the port parameter. This lets you parse "127.0.0.1" and "[::1]" and pass in the port you want programmatically.
 
             Parsing is performed via inet_pton once the port # has been extracted from the string, so you may specify any IPv4 or IPv6 address formatted in any valid way, and it should work as you expect.
 
@@ -238,7 +238,7 @@ namespace yojimbo
         /**
             Set the port.
 
-            This is useful when you want to programatically set a server port, eg. try to open a server on ports 40000, 40001, etc...
+            This is useful when you want to programmatically set a server port, eg. try to open a server on ports 40000, 40001, etc...
 
             @param port The port number (local byte order). Works for both IPv4 and IPv6 addresses.
          */

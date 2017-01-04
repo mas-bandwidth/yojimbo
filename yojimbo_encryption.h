@@ -91,15 +91,15 @@ namespace yojimbo
         @param nonce The nonce used to encrypt the message.
         @param key The key used to encrypt the message.
 
-        @returns True if the message was sucessfully decrypted, false otherwise.
+        @returns True if the message was successfully decrypted, false otherwise.
      */
 
     extern bool Decrypt( const uint8_t * encryptedMessage, int encryptedMessageLength, uint8_t * decryptedMessage, int & decryptedMessageLength, const uint8_t * nonce, const uint8_t * key );
 
     /**
-        Encrypt a message with an AEAD privitive (authenticated encryption with associated data).
+        Encrypt a message with an AEAD primitive (authenticated encryption with associated data).
 
-        This is used to encrypt connect tokens and challenge tokens. Connect tokens set the associated data to the connect token expiry timestap for quick rejection of stale tokens.
+        This is used to encrypt connect tokens and challenge tokens. Connect tokens set the associated data to the connect token expiry timestamp for quick rejection of stale tokens.
 
         See https://en.wikipedia.org/wiki/Authenticated_encryption for an overview of AEAD.
 
@@ -120,9 +120,9 @@ namespace yojimbo
     extern bool Encrypt_AEAD( const uint8_t * message, uint64_t messageLength, uint8_t * encryptedMessage, uint64_t & encryptedMessageLength, const uint8_t * additional, uint64_t additionalLength, const uint8_t * nonce, const uint8_t * key );
 
     /**
-        Decrypt a message encrypted an AEAD privitive (authenticated encryption with associated data).
+        Decrypt a message encrypted an AEAD primitive (authenticated encryption with associated data).
 
-        This is used to encrypt connect tokens and challenge tokens. Connect tokens set the associated data to the connect token expiry timestap for quick rejection of stale tokens.
+        This is used to encrypt connect tokens and challenge tokens. Connect tokens set the associated data to the connect token expiry timestamp for quick rejection of stale tokens.
 
         See https://en.wikipedia.org/wiki/Authenticated_encryption for an overview of AEAD.
 
@@ -168,7 +168,7 @@ namespace yojimbo
             @param sendKey The key used to encrypt packets sent to this address.
             @param receiveKey The key used to decrypt packets received from this address.
             @param time The current time (seconds).
-            @param timeout The timeout value in seconds for this encryption mapping (seconds). Encyrption mapping times out if no packets are sent to or received from this address in the timeout period.
+            @param timeout The timeout value in seconds for this encryption mapping (seconds). Encryption mapping times out if no packets are sent to or received from this address in the timeout period.
 
             @returns True if the encryption mapping was added successfully, false otherwise.
          */
