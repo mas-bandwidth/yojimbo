@@ -78,14 +78,6 @@ WOULD BE NICE
 
     ------------------
 
-    Need to get coverity setup to run with a travis job. Right now, it needs to be run manually, by somebody.
-
-    It should be setup to run automatically on each commit to "coverity" branch, then I can create a premake action to determine current branch, mainline or development, and integrate across current head to that branch.
-
-    eg. pm coverity
-
-    ------------------
-
     Implement QoS within the connection, eg. packet loss, latency measurements etc, and make this available to the user to query.
 
     ------------------

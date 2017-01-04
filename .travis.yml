@@ -54,4 +54,4 @@ addons:
     notification_email: glenn.fiedler@gmail.com
     build_command_prepend: "./premake5 gmake; make clean"
     build_command:   "make -j 4"
-    branch_pattern: master
+    branch_pattern: coverity_scan
