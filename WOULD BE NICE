@@ -36,21 +36,11 @@ WOULD BE NICE
 
     There should definitely be some documentation from the point of view of a new user, how do you use this library? What does it do? etc.
 
-    The existing BUILDING.md is OK, but it's doesn't guide the user at all about what is going on, and how to use the library past building a few samples.
-
-    It would be nice to do a documentation pass over the code as well, what is the best documentation solution these days? (eg. doxygen replacement?)
-
-    Some good documentation examples: 
-
-    http://sourcey.com/generating-beautiful-markdown-documentation-with-moxygen/
-
-    http://google.github.io/flatbuffers/
-
-    http://www.glfw.org
-
     ------------------
 
-    Probably a good safety measure to verify that a message sent across a channel belongs to the message factory set on the channel. It's an easy mistake to make, and would be hard to track down otherwise.
+    Probably a good safety measure to verify that a message sent across a channel belongs to the message factory set on the channel. 
+
+    It's an easy mistake to make, and would be hard to track down otherwise.
 
     ------------------
     
@@ -63,10 +53,6 @@ WOULD BE NICE
     Would be nice if each packet factory or message factory had an easy to access hash (uint64_t) that could be use to quickly test if two factories are compatible.
 
     This hash also input into a protocol id hash now that it's 64 bit as well.
-
-    ------------------
-
-    Probably a good idea on client connect/disconnect, and server per-client connect client, disconnect client that all messages in the message factory are cleaned up, all allocations are freed, packets are destroyed, and so on.
 
     ------------------
 
