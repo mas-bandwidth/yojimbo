@@ -107,20 +107,3 @@ WOULD BE NICE
     Clean up profile.cpp with helper methods. It's overly complicated for what it does!
 
     ------------------
-
-    While documenting the client/server, the observation is pretty clear that it's two concepts mashed into one:
-
-    The first concept is all the implementation details of the actual connection negotiation protocol.
-
-    The second concept is that after the connection has been established, the ability to send and receive packets and messages between server and client.
-
-    The first concept would actively get in the way of any attempt to port to existing console APIs like X1 or PS4.
-
-    The second conceopt is quite general, and could live on top of any "session" implementation.
-
-    Could these concepts be split apart? Would this make porting to other platforms easier?
-
-    (Attempting such a port at the transport level would be, IMO, foolish...)
-
-    ------------------
-    
