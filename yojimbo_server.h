@@ -939,21 +939,47 @@ namespace yojimbo
     };
 }
 
+/** 
+    Helper macro to set the server allocator class.
+
+    You can use this macro to specify that the server uses your own custom allocator class. The default allocator to use is TLSF_Allocator. 
+
+    The constructor of your derived allocator class must match the signature of the TLSF_Allocator constructor to work with this macro.
+    
+    See tests/shared.h for an example of usage.
+ */
+
 #define YOJIMBO_SERVER_ALLOCATOR( allocator_class )                                                                     \
     Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )                                   \
     {                                                                                                                   \
         return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                                \
     }
 
+/** 
+    Helper macro to set the server packet factory class.
+   
+    See tests/shared.h for an example of usage.
+ */
+
 #define YOJIMBO_SERVER_PACKET_FACTORY( packet_factory_class )                                                           \
-    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )      \
+    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType type, int clientIndex )              \
     {                                                                                                                   \
+        (void) type;                                                                                                    \
+        (void) clientIndex;                                                                                             \
         return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                                               \
     }
 
+/** 
+    Helper macro to set the server message factory class.
+   
+    See tests/shared.h for an example of usage.
+ */
+
 #define YOJIMBO_SERVER_MESSAGE_FACTORY( message_factory_class )                                                         \
-    MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType /*type*/, int /*clientIndex*/ )    \
+    MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType type, int clientIndex )            \
     {                                                                                                                   \
+        (void) type;                                                                                                    \
+        (void) clientIndex;                                                                                             \
         return YOJIMBO_NEW( allocator, message_factory_class, allocator );                                              \
     }
 

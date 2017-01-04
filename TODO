@@ -4,23 +4,37 @@ DONE
 
     Message related functions in server.
 
+    Serialization macros.
+
+    Helper macros in yojimbo_client.h
+
+    Helper macros in yojimbo_server.h
+
 TODO
 
     =========================================
 
-    Almost done...
+    Helper macros to define packet factories.
 
-        Serialization macros (if possible)
-
-            It *is* possible! http://stackoverflow.com/questions/4542626/documenting-macro-functions-in-c-with-doxygen
-
-        Helper macros for packet factories, message factories, setting up allocations in client/server (if possible)
+    Helper macros to define message factories.
 
     =========================================
 
-    Proof read generated documentation. Expand on it. Fix typos. Add more references, etc.
+    Is there some automated spell check that I can run on code comments? That would save me a bunch of time.
+
+    =========================================
+
+    Proof read generated documentation. Expand on it. Add more references, etc.
 
     Make a new release "0.4 - Documentation". It's been a while since the last release. It's time!
+
+    =========================================
+
+    Where to host the generated documentation?
+
+    How to build it automatically and upload it. Is this possible via travis? Wouldn't this create a security issue? (I can't exactly put KEYS in the source code...)
+
+    How do other projects usually do this?
 
     =========================================
 
