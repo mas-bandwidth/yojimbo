@@ -1,4 +1,4 @@
-[![Travis Build Status](https://travis-ci.org/networkprotocol/libyojimbo.svg?branch=master)](https://travis-ci.org/networkprotocol/libyojimbo) [![Coverity Scan Build Status](https://scan.coverity.com/projects/9652/badge.svg)](https://scan.coverity.com/projects/9652)
+[![Travis Build Status](https://travis-ci.org/networkprotocol/libyojimbo.svg?branch=master)](https://travis-ci.org/networkprotocol/libyojimbo) [![Coverity Scan Build Status](https://scan.coverity.com/projects/11339/badge.svg)](https://scan.coverity.com/projects/11339)
 
 # libyojimbo
 
@@ -10,7 +10,7 @@ It is designed around the networking requirements of competitive realtime multip
 
 **libyojimbo** is currently in pre-release for early feedback. Right now it provides support for: cryptographically secure authentication, client/server connection management, encryption for packets sent over UDP, reliable-ordered messages and data blocks, plus a serialization framework for extending the protocol with custom messages and packet types.
 
-Work over the past few months has been focused on documenting and finalizing the API. This work is nearly completion and a new release is imminent. After the documentation push, new features coming soon include packet fragmentation and reassembly and extending the matcher to support dynamically registered server instances.
+Work over the past few months has been focused on documenting and finalizing the API. This work is nearly complete and a new release is imminent. After the documentation push, new features coming soon include packet fragmentation and reassembly and extending the matcher to support dynamically registered server instances.
 
 For more details please refer to the [roadmap](https://github.com/networkprotocol/libyojimbo/blob/master/ROADMAP.md).
 
