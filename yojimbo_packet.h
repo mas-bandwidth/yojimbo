@@ -35,6 +35,8 @@
 #include <map>
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
 
+/** @file */
+
 namespace yojimbo
 {
     class PacketFactory;

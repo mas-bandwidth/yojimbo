@@ -30,6 +30,8 @@
 #include "yojimbo_queue.h"
 #include "yojimbo_sequence_buffer.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /**

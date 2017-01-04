@@ -30,6 +30,8 @@
 #include "yojimbo_allocator.h"
 #include "yojimbo_channel.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /// This magic number is used as a safety check to make sure the context accessed from Stream::GetContext is really a ConnectionContext object.

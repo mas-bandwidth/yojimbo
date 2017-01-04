@@ -30,6 +30,8 @@
 #include "yojimbo_stream.h"
 #include "yojimbo_address.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /**

@@ -35,6 +35,8 @@
 #include "yojimbo_client_server_packets.h"
 #include "yojimbo_tokens.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /**

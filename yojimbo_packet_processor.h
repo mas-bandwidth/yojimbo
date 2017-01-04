@@ -28,6 +28,8 @@
 #include "yojimbo_config.h"
 #include "yojimbo_packet.h"
 
+/** @file */
+
 namespace yojimbo
 {
     class ReplayProtection;

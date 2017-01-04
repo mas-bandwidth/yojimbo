@@ -35,6 +35,8 @@
 #include "yojimbo_client_server_packets.h"
 #include "yojimbo_tokens.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /// Server resource type. Resources are either global, or per-client. Resources include things like packet factories, message factories, and allocators.

@@ -31,6 +31,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+/** @file */
+
 namespace yojimbo
 {
     /**

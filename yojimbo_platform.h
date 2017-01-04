@@ -27,6 +27,8 @@
 
 #include "yojimbo_config.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /**

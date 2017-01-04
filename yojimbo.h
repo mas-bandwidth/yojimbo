@@ -45,6 +45,8 @@
 #include "yojimbo_connection.h"
 #include "yojimbo_replay_protection.h"
 
+/** @file */
+
 /**
     Initialize the yojimbo library.
 

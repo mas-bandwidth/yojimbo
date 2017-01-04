@@ -35,6 +35,8 @@
 #include <map>
 #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
+/** @file */
+
 namespace yojimbo
 {
     /**

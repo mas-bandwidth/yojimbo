@@ -32,6 +32,8 @@
 #include <stdarg.h>
 #include <assert.h>
     
+/** @file */
+
 namespace yojimbo
 {
     /**

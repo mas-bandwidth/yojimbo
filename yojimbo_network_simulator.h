@@ -31,6 +31,8 @@
 #include "yojimbo_allocator.h"
 #include "yojimbo_transport.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /**

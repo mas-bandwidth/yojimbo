@@ -38,6 +38,8 @@ struct addrinfo;
 struct sockaddr_in6;
 struct sockaddr_storage;
 
+/** @file */
+
 namespace yojimbo
 {
     /**
