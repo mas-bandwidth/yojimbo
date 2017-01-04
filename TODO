@@ -14,8 +14,6 @@ DONE
 
     Helper macros to define message factories.
 
-TODO
-
     Now prepping for release. Checking over everything...
 
     There is a problem where the windows build gives "TLS handshake error" when it tries to connect to the matcher on windows. What's going on?!
@@ -30,6 +28,34 @@ TODO
     No idea what is going on. Docker install broken on Mac? Try reinstall?
 
     What's going on Windowns then? Seems like a different issue... This is frustrating.
+
+    Switching back to docker stable. No good reason for me to be on beta...   
+
+    Yeah that fixes it. Seeing if the matcher/client will connect now. If so, then something has broken that's windows specific.
+
+    OK. Docker matcher and everything else is working fine on MacOSX.
+
+    Testing rest of functionality...
+
+    soak passes
+
+    profile is working
+
+    client/server pair is working.
+
+    verified client cannot connect to secure server.
+
+    verified secure_server/secure_client pair.
+
+    Everything seems fine.
+
+    Testing on linux...
+
+    Everything is working fine.
+
+TODO
+
+    Tomorrow I have to work out why the windows build is having trouble with docker. Am I also on beta docker on windows? If so, drop back to stable.
 
     =========================================
 
