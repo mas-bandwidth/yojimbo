@@ -627,7 +627,7 @@ namespace yojimbo
             if ( message )                                                                                                              \
                 return message;                                                                                                         \
             yojimbo::Allocator & allocator = GetAllocator();                                                                            \
-            (void)allocator;                                                                                                            \
+            (void) allocator;                                                                                                           \
             switch ( type )                                                                                                             \
             {                                                                                                                           \
 

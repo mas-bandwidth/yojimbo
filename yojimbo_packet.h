@@ -423,7 +423,7 @@ namespace yojimbo
             if ( packet )                                                                                                           \
                 return packet;                                                                                                      \
             yojimbo::Allocator & allocator = GetAllocator();                                                                        \
-            (void)allocator;                                                                                                        \
+            (void) allocator;                                                                                                       \
             switch ( type )                                                                                                         \
             {                                                                                                       
 
