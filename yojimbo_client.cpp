@@ -99,6 +99,7 @@ namespace yojimbo
         m_config = config;
         m_config.connectionConfig.connectionPacketType = CLIENT_SERVER_PACKET_CONNECTION;
         m_allocateConnection = m_config.enableMessages;
+        m_userContext = NULL;
         m_time = time;
     }
 
@@ -113,8 +114,8 @@ namespace yojimbo
 
     void Client::SetUserContext( void * context )
     {
-        (void) context;
-        // todo: this needs to be implemented and unit tested end-to-end between a client and server
+        assert( m_clientState == CLIENT_STATE_DISCONNECTED );
+        m_userContext = context;
     }
 
 #if !YOJIMBO_SECURE_MODE
@@ -590,6 +591,7 @@ namespace yojimbo
         m_transportContext = TransportContext();
 
         m_transportContext.allocator = m_clientAllocator;
+        m_transportContext.userContext = m_userContext;
         m_transportContext.packetFactory = m_packetFactory;
         m_transportContext.replayProtection = m_replayProtection;
         m_transportContext.encryptionIndex = m_transport->FindEncryptionMapping( m_serverAddress );
@@ -706,10 +708,6 @@ namespace yojimbo
 
         if ( m_connection )
             m_connection->Reset();
-
-		// todo: verify that no packets, messages or allocations are outstanding at this point. may need to call into the transport first to free all packets allocated with the specific allocator.
-
-        // todo: also need to do this on client disconnect.
     }
 
     bool Client::ConnectToNextServer()

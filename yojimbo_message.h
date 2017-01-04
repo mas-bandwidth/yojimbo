@@ -35,6 +35,8 @@
 #include <map>
 #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
+/** @file */
+
 namespace yojimbo
 {
     /**
@@ -600,7 +602,17 @@ namespace yojimbo
     };
 }
 
-// Helper macros to make it easier to setup message factories for your message types. See tests/shared.h for an example of usage!
+/** 
+    Start a definition of a new message factory.
+
+    This is a helper macro to make declaring your own message factory class easier.
+
+    @param factory_class The name of the message factory class to generate.
+    @param base_factory_class The name of the message factory class to derive from. If you don't have a custom base class, pass in MessageFactory.
+    @param num_message_types The number of message types for this factory.
+
+    See tests/shared.h for an example of usage.
+ */
 
 #define YOJIMBO_MESSAGE_FACTORY_START( factory_class, base_factory_class, num_message_types )                                           \
                                                                                                                                         \
@@ -615,10 +627,20 @@ namespace yojimbo
             if ( message )                                                                                                              \
                 return message;                                                                                                         \
             yojimbo::Allocator & allocator = GetAllocator();                                                                            \
-            (void)allocator;                                                                                                            \
+            (void) allocator;                                                                                                           \
             switch ( type )                                                                                                             \
             {                                                                                                                           \
 
+/** 
+    Add a message type to a message factory.
+
+    This is a helper macro to make declaring your own message factory class easier.
+
+    @param message_type The message type value. This is typically an enum value.
+    @param message_class The message class to instantiate when a message of this type is created.
+
+    See tests/shared.h for an example of usage.
+ */
 
 #define YOJIMBO_DECLARE_MESSAGE_TYPE( message_type, message_class )                                                                     \
                                                                                                                                         \
@@ -628,6 +650,14 @@ namespace yojimbo
                         return NULL;                                                                                                    \
                     SetMessageType( message, message_type );                                                                            \
                     return message;
+
+/** 
+    Finish the definition of a new message factory.
+
+    This is a helper macro to make declaring your own message factory class easier.
+
+    See tests/shared.h for an example of usage.
+ */
 
 #define YOJIMBO_MESSAGE_FACTORY_FINISH()                                                                                                \
                                                                                                                                         \

@@ -25,9 +25,10 @@ yojimbo.sublime-workspace
 bin
 obj
 ipch
+Debug
 release
 Release
-Debug
+Secure
 .vs
 cov-int
 Docker/libyojimbo

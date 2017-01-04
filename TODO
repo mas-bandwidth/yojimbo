@@ -1,14 +1,42 @@
 DONE    
 
+    Message related functions in client.
+
+    Message related functions in server.
+
+    Serialization macros.
+
+    Helper macros in yojimbo_client.h
+
+    Helper macros in yojimbo_server.h
+
+    Helper macros to define packet factories.
+
+    Helper macros to define message factories.
+
 TODO
 
-    Almost done...
+    Now prepping for release. Checking over everything...
 
-        Send and receive message functions in client and server.
+    There is a problem where the windows build gives "TLS handshake error" when it tries to connect to the matcher on windows. What's going on?!
 
-        Serialization macros (if possible)
+    =========================================
 
-        Helper macros for packet factories, message factories, setting up allocations in client/server (if possible)
+    Is there some automated spell check that I can run on code comments? That would save me a bunch of time.
+
+    =========================================
+
+    Proof read generated documentation. Expand on it. Add more references, etc.
+
+    Make a new release "0.4 - Documentation". It's been a while since the last release. It's time!
+
+    =========================================
+
+    Where to host the generated documentation?
+
+    How to build it automatically and upload it. Is this possible via travis? Wouldn't this create a security issue? (I can't exactly put KEYS in the source code...)
+
+    How do other projects usually do this?
 
     =========================================
 

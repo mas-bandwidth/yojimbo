@@ -2,6 +2,14 @@ WOULD BE NICE
 
     ------------------
 
+    Packet processor max packet size is deceptive. You give it a max packet size, it adds encryption overhead to it.
+
+    It should be the other way around. Specify the maximum packet size you want to generate (total). Calculate how much packet payload data can be allowed while still hitting that maximum, vs. padding it out.
+
+    I think this is more honest, and it is what the user of this system would be expecting. It would also simplify the interface for the packet processor.
+
+    ------------------
+
     I notice that the allocators aren't checked on the server when a client finishes up.
 
     It seems that although I have silo'd clients into their own allocator, I don't think I've done enough work (yet) to ensure that a malicious client can't shit up an allocator after it quits.
@@ -13,6 +21,12 @@ WOULD BE NICE
     This seems a bit weird, but I think, I'm not really comfortable with the allocator setup until I can assert that a client has properly cleaned up all allocations made by its client slot allocator when the server resets that slot.
 
     Same logic applies to message factories. Make sure all messages are cleaned up. This is an important security measure, to make sure the server isn't leaking memory from one client session to the next.
+
+    ------------------
+
+    Client should also do the same checks on the allocator between each connect/disconnect.
+
+    This is less important on the client than the server, because it would only bring down the one client, but there should still be no memory leaks as the client connects and disconnects.
 
     ------------------
 
@@ -57,8 +71,6 @@ WOULD BE NICE
     ------------------
 
     Add a unit test for user context to make sure it's working end-to-end.
-
-    NOTE: User context is definitely not properly hooked up yet inside yojimbo_client.cpp, so it's not even functional yet.
 
     ------------------
 

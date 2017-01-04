@@ -27,6 +27,8 @@
 
 #include "yojimbo_allocator.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /**

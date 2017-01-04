@@ -35,6 +35,8 @@
 #include <map>
 #endif // #if YOJIMBO_DEBUG_PACKET_LEAKS
 
+/** @file */
+
 namespace yojimbo
 {
     class PacketFactory;
@@ -396,6 +398,18 @@ namespace yojimbo
     Packet * ReadPacket( const PacketReadWriteInfo & info, const uint8_t * buffer, int bufferSize, ReadPacketError * errorCode = NULL );
 }
 
+/** 
+    Start a definition of a new packet factory.
+
+    This is a helper macro to make declaring your own packet factory class easier.
+
+    @param factory_class The name of the packet factory class to generate.
+    @param base_factory_class The name of the packet factory class to derive from. If you don't have a custom base class, pass in PacketFactory.
+    @param num_packet_types The number of packet types for this factory.
+
+    See tests/shared.h for an example of usage.
+ */
+
 #define YOJIMBO_PACKET_FACTORY_START( factory_class, base_factory_class, num_packet_types )                                         \
                                                                                                                                     \
     class factory_class : public base_factory_class                                                                                 \
@@ -409,10 +423,21 @@ namespace yojimbo
             if ( packet )                                                                                                           \
                 return packet;                                                                                                      \
             yojimbo::Allocator & allocator = GetAllocator();                                                                        \
-            (void)allocator;                                                                                                        \
+            (void) allocator;                                                                                                       \
             switch ( type )                                                                                                         \
             {                                                                                                       
 
+
+/** 
+    Add a packet type to a packet factory.
+
+    This is a helper macro to make declaring your own packet factory class easier.
+
+    @param packet_type The packet type value. This is typically an enum value.
+    @param packet_class The packet class to instantiate when a packet of this type is created.
+
+    See tests/shared.h for an example of usage.
+ */
 
 #define YOJIMBO_DECLARE_PACKET_TYPE( packet_type, packet_class )                                                    \
                                                                                                                     \
@@ -423,6 +448,14 @@ namespace yojimbo
                     SetPacketType( packet, packet_type );                                                           \
                     SetPacketFactory( packet );                                                                     \
                     return packet;        
+
+/** 
+    Finish the definition of a new packet factory.
+
+    This is a helper macro to make declaring your own packet factory class easier.
+
+    See tests/shared.h for an example of usage.
+ */
 
 #define YOJIMBO_PACKET_FACTORY_FINISH()                                                                             \
                                                                                                                     \

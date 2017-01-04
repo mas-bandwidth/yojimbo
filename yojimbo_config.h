@@ -25,6 +25,8 @@
 #ifndef YOJIMBO_CONFIG_H
 #define YOJIMBO_CONFIG_H
 
+/** @file */
+
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif

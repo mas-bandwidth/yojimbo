@@ -35,6 +35,8 @@
 #include "yojimbo_client_server_packets.h"
 #include "yojimbo_tokens.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /**
@@ -78,7 +80,9 @@ namespace yojimbo
 
     /** 
         Helper function to convert client state enum value to a string. Useful for logging and debugging.
+
         @param clientState The client state to convert to a string.
+        
         @returns The client state in a user friendly string, eg. "connected".
      */
 
@@ -395,25 +399,117 @@ namespace yojimbo
 
         uint64_t GetCounter( int index ) const;
 
-        // todo: document below here
+        /**
+            Create a message of the specified type.
 
-        Allocator & GetClientAllocator();
+            The message created by this function is typically passed to Client::SendMsg. In this case, the send message function takes ownership of the message pointer and will release it for you.
+
+            If you are using the message in some other way, you are responsible for manually releasing it via Client::ReleaseMsg.
+
+            @param type The message type. The set of message types depends on the message factory set on the client.
+
+            @returns A pointer to the message created, or NULL if no message could be created.
+
+            @see MessageFactory
+         */
 
         Message * CreateMsg( int type );
 
+        /** 
+            Check if there is room in the channel send queue to send one message.
+
+            This function is useful in soak tests and unit tests where I want to send messages as quickly as possible, but don't want to overflow the send queue.
+
+            You don't need to call this function manually each time you call Client::SendMsg. It's already asserted on in debug build and in release if it returns false it sets a runtime error that disconnects the client.
+
+            @param channelId The id of the channel in [0,numChannels-1].
+            
+            @returns True if the channel has room for one more message to be added to its send queue. False otherwise.
+         */
+
         bool CanSendMsg( int channelId = 0 );
+
+        /**
+            Queue a message to be sent to the server.
+
+            Adds a message to the send queue of the specified channel. 
+
+            The reliability and ordering guarantees of how the message will be received on the other side are determined by the configuration of the channel.
+    
+            IMPORTANT: This function takes ownership of the message and ensures that the message is released when it finished being sent. This lets you create a message with Client::CreateMsg and pass it directly into this function. You don't need to manually release the message.
+
+            @param message The message to be sent. It must be allocated from the message factory set on this client.
+            @param channelId The id of the channel to send the message across in [0,numChannels-1].
+
+            @see ChannelConfig
+            @see ClientServerConfig
+         */
 
         void SendMsg( Message * message, int channelId = 0 );
 
+        /** 
+            Poll this method to receive messages from the server.
+
+            Typical usage is to iterate across the set of channels and poll this to receive messages until it returns NULL.
+
+            IMPORTANT: The message returned by this function has one reference. You are responsible for releasing this message via Client::ReleaseMsg.
+
+            @param channelId The id of the channel to try to receive a message from.
+
+            @returns A pointer to the received message, NULL if there are no messages to receive.
+         */
+
         Message * ReceiveMsg( int channelId = 0 );
+
+        /**
+            Release a message returned by Client::ReceiveMsg.
+
+            This is a convenience function. It is equivalent to calling MessageFactory::Release on the message factory set on this client (see Client::GetMsgFactory).
+
+            @param message The message to release. Must be non-NULL.
+
+            @see Client::ReceiveMsg
+         */
 
         void ReleaseMsg( Message * message );
 
+        /**
+            Get the message factory used by the client.
+
+            The message factory determines the set of messages exchanged between the client and server.
+
+            @returns The message factory.
+
+            @see YOJIMBO_CLIENT_MESSAGE_FACTORY
+         */
+
         MessageFactory & GetMsgFactory();
 
-        Packet * CreatePacket( int type );
+        /**
+            Get the allocator used for client allocations.
+
+            This memory is used for packet, message allocations and stream allocations while the client is connecting/connected to the server.
+
+            The amount of memory backing this allocator is specified by ClientServerConfig::clientMemory.
+
+            @returns The allocator client allocator.
+         */
+
+        Allocator & GetClientAllocator();
 
     protected:
+
+        /**
+            Helper function to create a packet by type.
+
+            Just a shortcut to PacketFactory::CreatePacket for convenience.
+
+            @param type The type of packet to create.
+
+            @returns The packet object that was created. NULL if a packet could be created. You *must* check this. It *will* happen when the packet factory runs out of memory to allocate packets!
+         */
+
+        Packet * CreatePacket( int type );
 
         /**
             Override this method to get a callback when the client starts to connect to a server.
@@ -605,6 +701,8 @@ namespace yojimbo
 
         Allocator * m_allocator;                                            ///< The allocator passed in to the client on creation.
 
+        void * m_userContext;                                               ///< The user context. Lets the user pass information to packet serialize functions.
+
         uint8_t * m_clientMemory;                                           ///< Memory backing the client allocator. Allocated from m_allocator.
 
         Allocator * m_clientAllocator;                                      ///< The client allocator. Everything allocated between Client::Connect and Client::Disconnect is allocated and freed via this allocator.
@@ -679,17 +777,39 @@ namespace yojimbo
     };
 }
 
+/** 
+    Helper macro to set the client allocator class.
+
+    You can use this macro to specify that the client uses your own custom allocator class. The default allocator to use is TLSF_Allocator. 
+
+    The constructor of your derived allocator class must match the signature of the TLSF_Allocator constructor to work with this macro.
+    
+    See tests/shared.h for an example of usage.
+ */
+
 #define YOJIMBO_CLIENT_ALLOCATOR( allocator_class )                                                     \
     Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )                   \
     {                                                                                                   \
         return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                \
     }
 
+/** 
+    Helper macro to set the client packet factory class.
+    
+    See tests/shared.h for an example of usage.
+ */
+
 #define YOJIMBO_CLIENT_PACKET_FACTORY( packet_factory_class )                                           \
     PacketFactory * CreatePacketFactory( Allocator & allocator )                                        \
     {                                                                                                   \
         return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                               \
     }
+
+/** 
+    Helper macro to set the client message factory class.
+    
+    See tests/shared.h for an example of usage.
+ */
 
 #define YOJIMBO_CLIENT_MESSAGE_FACTORY( message_factory_class )                                         \
     MessageFactory * CreateMessageFactory( Allocator & allocator )                                      \

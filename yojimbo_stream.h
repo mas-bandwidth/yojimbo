@@ -32,6 +32,8 @@
 #include <stdio.h>
 #endif // #ifndef NDEBUG
 
+/** @file */
+
 namespace yojimbo
 {
     /** 

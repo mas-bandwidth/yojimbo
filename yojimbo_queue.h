@@ -31,6 +31,8 @@
 #include <string.h>
 #include <stdio.h>
 
+/** @file */
+
 namespace yojimbo
 {
     /**

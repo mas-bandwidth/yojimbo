@@ -28,6 +28,8 @@
 #include "yojimbo_config.h"
 #include "yojimbo_packet.h"
 
+/** @file */
+
 namespace yojimbo
 {
     class ReplayProtection;
@@ -41,7 +43,7 @@ namespace yojimbo
         PACKET_PROCESSOR_ERROR_NONE,                            ///< No error. All is well.
         PACKET_PROCESSOR_ERROR_KEY_IS_NULL,                     ///< Needed an encryption/decryption key but it was passed in as NULL.
         PACKET_PROCESSOR_ERROR_PACKET_TOO_SMALL,                ///< An encrypted packet was discarded because it was too short to possibly contain valid data.
-        PACKET_PROCESSOR_ERROR_PACKET_ALREADY_RECEIVED,         ///< An encrypted packet discarded because it has already been received (replay protection).
+        PACKET_PROCESSOR_ERROR_PACKET_ALREADY_RECEIVED,         ///< An encrypted packet was discarded because it has already been received (replay protection).
         PACKET_PROCESSOR_ERROR_WRITE_PACKET_FAILED,             ///< Failed to write packet. See yojimbo::WritePacket.
         PACKET_PROCESSOR_ERROR_READ_PACKET_FAILED,              ///< Failed to read packet. See yojimbo::ReadPacket.
         PACKET_PROCESSOR_ERROR_ENCRYPT_FAILED,                  ///< Encrypt packet failed.
@@ -50,6 +52,9 @@ namespace yojimbo
 
     /**
         Adds packet encryption and decryption on top of low-level read and write packet functions.
+
+        @see yojimbo::WritePacket
+        @see yojimbo::ReadPacket
      */
 
     class PacketProcessor
@@ -91,8 +96,6 @@ namespace yojimbo
         /**
             Write a packet.
 
-            HTake
-
             @param packet The packet to write.
             @param sequence The sequence number of the packet. Used as the nonce for encrypted packets. Ignored for unencrypted packets.
             @param packetBytes The number of bytes of packet data written [out].
@@ -126,7 +129,7 @@ namespace yojimbo
         Packet * ReadPacket( const uint8_t * packetData, uint64_t & sequence, int packetBytes, bool & encrypted, const uint8_t * key, const uint8_t * encryptedPacketTypes, const uint8_t * unencryptedPacketTypes, Allocator & streamAllocator, PacketFactory & packetFactory, ReplayProtection * replayProtection );
 
         /**
-            Gets the maximum supported packet size.
+            Gets the maximum packet size to be generated.
 
             @returns The maximum packet size in bytes.
          */
@@ -158,8 +161,6 @@ namespace yojimbo
 
         int m_absoluteMaxPacketSize;                        ///< The absolute maximum packet size, considering header and encryption overhead.
         
-        // todo: ^---- this is a bit naff. if you pass in max packet size, you expect it to be respected. perhaps work backwards from max packet size, to max packet size before encryption or whatever.
-
         uint8_t * m_packetBuffer;                           ///< The packet buffer for reading and writing packets.
         
         uint8_t * m_scratchBuffer;                          ///< Scratch buffer used when one packet buffer is just not enough.

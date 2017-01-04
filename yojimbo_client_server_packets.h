@@ -29,6 +29,8 @@
 #include "yojimbo_packet.h"
 #include "yojimbo_tokens.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /**

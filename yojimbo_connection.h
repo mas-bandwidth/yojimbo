@@ -30,6 +30,8 @@
 #include "yojimbo_allocator.h"
 #include "yojimbo_channel.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /// This magic number is used as a safety check to make sure the context accessed from Stream::GetContext is really a ConnectionContext object.
@@ -258,7 +260,7 @@ namespace yojimbo
         void Reset();
 
         /** 
-            True if there is room in the send queue to send a message.
+            Check if there is room in the send queue to send a message.
 
             In reliable-ordered channels, all messages that are sent are guaranteed to arrive, however, if the send queue is full, we have nowhere to buffer the message, so it is lost. This is a fatal error.
 
@@ -283,13 +285,12 @@ namespace yojimbo
 
             This function adds a message to the send queue of the specified channel. 
 
-            The reliability and ordering guarantees of how the message will be received on the other side are determined by the configuration of that channel.
+           The reliability and ordering guarantees of how the message will be received on the other side are determined by the configuration of the channel.
     
             @param message The message to be sent. It must be allocated from the message factory set on this connection.
             @param channelId The id of the channel to send the message across in [0,numChannels-1].
 
             @see Connection::CanSendMsg
-            @see Connection::SendMsg
             @see ChannelConfig
          */
 
@@ -298,10 +299,12 @@ namespace yojimbo
         /** 
             Poll this method to receive messages.
 
-            Typical usage is to iterate across the set of channels and poll this function to receive messages until it returns NULL.
+            Typical usage is to iterate across the set of channels and poll this to receive messages until it returns NULL.
+
+            IMPORTANT: The message returned by this function has one reference. You are responsible for releasing this message via MessageFactory::Release.
 
             @param channelId The id of the channel to try to receive a message from.
-            @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns the message object returned by this function and is responsible for releasing it via Message::Release.
+            @returns A pointer to the received message, NULL if there are no messages to receive.
          */
 
         Message * ReceiveMsg( int channelId = 0 );

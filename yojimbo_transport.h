@@ -34,6 +34,8 @@
 #include "yojimbo_encryption.h"
 #include "yojimbo_packet_processor.h"
 
+/** @file */
+
 namespace yojimbo
 {
     /// Transport flags are used to enable and disable features on a transport.
