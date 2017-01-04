@@ -35,7 +35,18 @@
 namespace yojimbo
 {
     /**
-        Serialize an integer.
+        Serialize integer value (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The integer value to serialize in [min,max].
+        @param min The minimum value.
+        @param max The maximum value.
      */
 
     #define serialize_int( stream, value, min, max )                    \
@@ -60,6 +71,20 @@ namespace yojimbo
             }                                                           \
         } while (0)
 
+    /**
+        Serialize bits to the stream (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned integer value to serialize.
+        @param bits The number of bits to serialize in [1,32].
+     */
+
     #define serialize_bits( stream, value, bits )                       \
         do                                                              \
         {                                                               \
@@ -74,6 +99,19 @@ namespace yojimbo
                 value = uint32_value;                                   \
         } while (0)
 
+    /**
+        Serialize a boolean value to the stream (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The boolean value to serialize.
+     */
+
     #define serialize_bool( stream, value )                             \
         do                                                              \
         {                                                               \
@@ -84,17 +122,6 @@ namespace yojimbo
             if ( Stream::IsReading )                                    \
                 value = uint32_bool_value ? true : false;               \
         } while (0)
-
-    #define serialize_enum( stream, value, type, num_entries )          \
-        do                                                              \
-        {                                                               \
-            uint32_t int_value = 0;                                     \
-            if ( Stream::IsWriting )                                    \
-                int_value = (uint32_t) value;                           \
-            serialize_int( stream, int_value, 0, num_entries - 1 );     \
-            if ( Stream::IsReading )                                    \
-                value = (type) int_value;                               \
-        } while (0) 
 
     template <typename Stream> bool serialize_float_internal( Stream & stream, float & value )
     {
@@ -111,12 +138,38 @@ namespace yojimbo
         return result;
     }
 
+    /**
+        Serialize floating point value (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The float value to serialize.
+     */
+
     #define serialize_float( stream, value )                                        \
         do                                                                          \
         {                                                                           \
             if ( !yojimbo::serialize_float_internal( stream, value ) )              \
                 return false;                                                       \
         } while (0)
+
+    /**
+        Serialize a 32 bit unsigned integer to the stream (read/write/measure).
+
+        This is a helper macro to make unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned 32 bit integer value to serialize.
+     */
 
     #define serialize_uint32( stream, value )                                       \
         serialize_bits( stream, value, 32 );
@@ -135,6 +188,19 @@ namespace yojimbo
             value = ( uint64_t(hi) << 32 ) | lo;
         return true;
     }
+
+    /**
+        Serialize a 64 bit unsigned integer to the stream (read/write/measure).
+
+        This is a helper macro to make unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned 64 bit integer value to serialize.
+     */
 
     #define serialize_uint64( stream, value )                                       \
         do                                                                          \
@@ -163,6 +229,19 @@ namespace yojimbo
         return true;
     }
 
+    /**
+        Serialize double precision floating point value to the stream (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The double precision floating point value to serialize.
+     */
+
     #define serialize_double( stream, value )                                       \
         do                                                                          \
         {                                                                           \
@@ -170,10 +249,24 @@ namespace yojimbo
                 return false;                                                       \
         } while (0)
 
-    template <typename Stream> bool serialize_bytes_internal( Stream & stream, uint8_t* data, int bytes )
+    template <typename Stream> bool serialize_bytes_internal( Stream & stream, uint8_t * data, int bytes )
     {
         return stream.SerializeBytes( data, bytes );
     }
+
+    /**
+        Serialize an array of bytes to the stream (read/write/measure).
+
+        This is a helper macro to make unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param data Pointer to the data to be serialized.
+        @param bytes The number of bytes to serialize.
+     */
 
     #define serialize_bytes( stream, data, bytes )                                  \
         do                                                                          \
@@ -182,7 +275,7 @@ namespace yojimbo
                 return false;                                                       \
         } while (0)
 
-    template <typename Stream> bool serialize_string_internal( Stream & stream, char* string, int buffer_size )
+    template <typename Stream> bool serialize_string_internal( Stream & stream, char * string, int buffer_size )
     {
         int length = 0;
         if ( Stream::IsWriting )
@@ -197,12 +290,38 @@ namespace yojimbo
         return true;
     }
 
+    /**
+        Serialize a string to the stream (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param string The string to serialize write/measure. Pointer to buffer to be filled on read.
+        @param buffer_size The size of the string buffer. String with terminating null character must fit into this buffer.
+     */
+
     #define serialize_string( stream, string, buffer_size )                                 \
         do                                                                                  \
         {                                                                                   \
             if ( !yojimbo::serialize_string_internal( stream, string, buffer_size ) )       \
                 return false;                                                               \
         } while (0)
+
+    /**
+        Serialize an alignment to the stream (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+     */
 
     #define serialize_align( stream )                                                       \
         do                                                                                  \
@@ -211,12 +330,37 @@ namespace yojimbo
                 return false;                                                               \
         } while (0)
 
+    /**
+        Serialize a safety check to the stream (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+     */
+
     #define serialize_check( stream )														\
         do                                                                                  \
         {                                                                                   \
             if ( !stream.SerializeCheck() )													\
                 return false;                                                               \
         } while (0)
+
+    /**
+        Serialize an object to the stream (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param object The object to serialize. Must have a serialize method on it.
+     */
 
     #define serialize_object( stream, object )                                              \
         do                                                                                  \
@@ -247,6 +391,19 @@ namespace yojimbo
 
         return true;
     }
+
+    /**
+        Serialize an address to the stream (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The address to serialize. Must be a valid address.
+     */
 
     #define serialize_address( stream, value )                                              \
         do                                                                                  \
@@ -344,10 +501,24 @@ namespace yojimbo
         return true;
     }
 
-    #define serialize_int_relative( stream, string, buffer_size )                           \
+    /**
+        Serialize an integer value relative to another (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param previous The previous integer value.
+        @param current The current integer value.
+     */
+
+    #define serialize_int_relative( stream, previous, current )                             \
         do                                                                                  \
         {                                                                                   \
-            if ( !yojimbo::serialize_int_relative_internal( stream, string, buffer_size ) ) \
+            if ( !yojimbo::serialize_int_relative_internal( stream, previous, current ) )   \
                 return false;                                                               \
         } while (0)
 
@@ -385,40 +556,70 @@ namespace yojimbo
         return true;
     }
 
-    #define serialize_ack_relative( stream, string, buffer_size )                                   \
+    /**
+        Serialize an ack relative to the current sequence number (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param sequence The current sequence number.
+        @param ack The ack sequence number, which is typically near the current sequence number.
+     */
+
+    #define serialize_ack_relative( stream, sequence, ack  )                                        \
         do                                                                                          \
         {                                                                                           \
-            if ( !yojimbo::serialize_ack_relative_internal( stream, string, buffer_size ) )         \
+            if ( !yojimbo::serialize_ack_relative_internal( stream, sequence, ack ) )               \
                 return false;                                                                       \
         } while (0)
 
-    template <typename Stream> bool serialize_sequence_relative_internal( Stream & stream, uint16_t messageId1, uint16_t & messageId2 )
+    template <typename Stream> bool serialize_sequence_relative_internal( Stream & stream, uint16_t sequence1, uint16_t & sequence2 )
     {
         if ( Stream::IsWriting )
         {
-            uint32_t a = messageId1;
-            uint32_t b = messageId2 + ( ( messageId1 > messageId2 ) ? 65536 : 0 );
+            uint32_t a = sequence1;
+            uint32_t b = sequence2 + ( ( sequence1 > sequence2 ) ? 65536 : 0 );
             serialize_int_relative( stream, a, b );
         }
         else
         {
-            uint32_t a = messageId1;
+            uint32_t a = sequence1;
             uint32_t b = 0;
             serialize_int_relative( stream, a, b );
             if ( b >= 65536 )
                 b -= 65536;
-            messageId2 = uint16_t( b );
+            sequence2 = uint16_t( b );
         }
 
         return true;
     }
 
-    #define serialize_sequence_relative( stream, string, buffer_size )                              \
+    /**
+        Serialize a sequence number relative to another (read/write/measure).
+
+        This is a helper macro to make writing unified serialize functions easier.
+
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+
+        @param stream The stream object. May be a read, write or measure stream.
+        @param sequence1 The first sequence number to serialize relative to.
+        @param sequence2 The second sequence number to be encoded relative to the first.
+     */
+
+    #define serialize_sequence_relative( stream, sequence1, sequence2 )                             \
         do                                                                                          \
         {                                                                                           \
-            if ( !yojimbo::serialize_sequence_relative_internal( stream, string, buffer_size ) )    \
+            if ( !yojimbo::serialize_sequence_relative_internal( stream, sequence1, sequence2 ) )   \
                 return false;                                                                       \
         } while (0)
+
+    // read macros corresponding to each serialize_*. useful when you want separate read and write functions for some reason.
 
     #define read_bits( stream, value, bits )                                                \
     do                                                                                      \
@@ -458,6 +659,8 @@ namespace yojimbo
     #define read_int_relative           serialize_int_relative
     #define read_ack_relative           serialize_ack_relative
     #define read_sequence_relative      serialize_sequence_relative
+
+    // write macros corresponding to each serialize_*. useful when you want separate read and write functions for some reason.
 
     #define write_bits( stream, value, bits )                                               \
         do                                                                                  \
