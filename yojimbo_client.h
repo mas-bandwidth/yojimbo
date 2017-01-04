@@ -464,7 +464,7 @@ namespace yojimbo
 
             This is a convenience function. It is equivalent to calling MessageFactory::Release on the message factory set on this client (see Client::GetMsgFactory).
 
-            @param The message to release. Must be non-NULL.
+            @param message The message to release. Must be non-NULL.
 
             @see Client::ReceiveMsg
          */
@@ -489,6 +489,8 @@ namespace yojimbo
             This memory is used for packet, message allocations and stream allocations while the client is connecting/connected to the server.
 
             The amount of memory backing this allocator is specified by ClientServerConfig::clientMemory.
+
+            @returns The allocator client allocator.
          */
 
         Allocator & GetClientAllocator();

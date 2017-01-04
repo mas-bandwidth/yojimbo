@@ -1,4 +1,4 @@
-/*
+`/*
     Yojimbo Client/Server Network Protocol Library.
     
     Copyright © 2016, The Network Protocol Company, Inc.
@@ -571,7 +571,7 @@ namespace yojimbo
             This is a convenience function. It is equivalent to calling MessageFactory::Release on the message factory set on this client (see Server::GetMsgFactory).
 
             @param clientIndex The index of the client. This is necessary because each client has their own message factory, and messages must be released with the same message factory they were created with.
-            @param The message to release. Must be non-NULL.
+            @param message The message to release. Must be non-NULL.
 
             @see Server::ReceiveMsg
          */
@@ -585,7 +585,7 @@ namespace yojimbo
 
             @param clientIndex The index of the client. Each client has their own message factory.
 
-            @returns The message factory.
+            @returns The message factory for the client.
 
             @see YOJIMBO_SERVER_MESSAGE_FACTORY
          */
@@ -600,6 +600,8 @@ namespace yojimbo
             Typically, this means data structures that correspond to connection negotiation, processing connection requests and so on.
 
             The amount of memory backing this allocator is specified by ClientServerConfig::serverGlobalMemory.
+
+            @returns The global allocator.
          */
 
         Allocator & GetGlobalAllocator() { assert( m_globalAllocator ); return *m_globalAllocator; }
@@ -610,6 +612,10 @@ namespace yojimbo
             Per-client allocations are allocations that are tied to a particular client index. The idea is to silo each client on the server to their own set of resources, making it impossible for a client to exhaust resources shared with other clients connected to the server.
 
             The amount of memory backing this allocator is specified by ClientServerConfig::perClientMemory. There is one allocator per-client slot allocated in Server::Start. These allocators are undefined outside of Start/Stop and will assert in that case.
+
+            @param clientIndex The index of the client.
+
+            @returns The per-client allocator corresponding to the client index.
          */
 
         Allocator & GetClientAllocator( int clientIndex ) { assert( clientIndex >= 0 ); assert( clientIndex < m_maxClients ); assert( m_clientAllocator[clientIndex] ); return *m_clientAllocator[clientIndex]; }
@@ -633,6 +639,7 @@ namespace yojimbo
 
             Client packets belong to particular client index. These are packets sent after a client/server connection has been established.
 
+            @param clientIndex Index of the client that the packet will be sent to.
             @param type The type of packet to create.
 
             @returns The packet object that was created. NULL if a packet could be created. You *must* check this. It *will* happen when the packet factory runs out of memory to allocate packets!

@@ -32,6 +32,10 @@
 
 namespace yojimbo
 {
+    /**
+        Serialize an integer.
+     */
+
     #define serialize_int( stream, value, min, max )                    \
         do                                                              \
         {                                                               \
