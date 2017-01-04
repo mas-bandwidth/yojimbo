@@ -32,8 +32,6 @@
 
 namespace yojimbo
 {
-    // todo: document serialize macros, if possible.
-
     #define serialize_int( stream, value, min, max )                    \
         do                                                              \
         {                                                               \

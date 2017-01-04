@@ -2,13 +2,23 @@ DONE
 
 TODO
 
+    =========================================
+
     Almost done...
 
         Send and receive message functions in client and server.
 
         Serialization macros (if possible)
 
+            It *is* possible! http://stackoverflow.com/questions/4542626/documenting-macro-functions-in-c-with-doxygen
+
         Helper macros for packet factories, message factories, setting up allocations in client/server (if possible)
+
+    =========================================
+
+    Proof read generated documentation. Expand on it. Fix typos. Add more references, etc.
+
+    Make a new release "0.4 - Documentation". It's been a while since the last release. It's time!
 
     =========================================
 
