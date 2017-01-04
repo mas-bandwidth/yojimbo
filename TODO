@@ -20,6 +20,17 @@ TODO
 
     There is a problem where the windows build gives "TLS handshake error" when it tries to connect to the matcher on windows. What's going on?!
 
+    Checking on MacOS, docker is boned for some reason:
+
+    gafferongames:libyojimbo gaffer$ pm docker
+    Running action 'docker'...
+    Sending build context to Docker daemon 1.757 MB
+    Error response from daemon: Unknown instruction: TAR
+
+    No idea what is going on. Docker install broken on Mac? Try reinstall?
+
+    What's going on Windowns then? Seems like a different issue... This is frustrating.
+
     =========================================
 
     Is there some automated spell check that I can run on code comments? That would save me a bunch of time.
