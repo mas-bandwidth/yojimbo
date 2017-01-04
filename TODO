@@ -10,13 +10,15 @@ DONE
 
     Helper macros in yojimbo_server.h
 
-TODO
-
-    =========================================
-
     Helper macros to define packet factories.
 
     Helper macros to define message factories.
+
+TODO
+
+    Now prepping for release. Checking over everything...
+
+    There is a problem where the windows build gives "TLS handshake error" when it tries to connect to the matcher on windows. What's going on?!
 
     =========================================
 
