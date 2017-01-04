@@ -97,9 +97,9 @@ namespace yojimbo
 
     struct ConnectTokenEntry
     {
-        double time;                                                       ///< The time for this entry. Used to replace the oldest entries once the connect token array fills up.
-        Address address;                                                   ///< Address of the client that sent this connect token. Binds a connect token to a particular address so it can't be exploited.
-        uint8_t mac[MacBytes];                                             ///< HMAC of connect token. We use this to avoid replay attacks where the same token is sent repeatedly for different addresses.
+        double time;                                                ///< The time for this entry. Used to replace the oldest entries once the connect token array fills up.
+        Address address;                                            ///< Address of the client that sent this connect token. Binds a connect token to a particular address so it can't be exploited.
+        uint8_t mac[MacBytes];                                      ///< HMAC of connect token. We use this to avoid replay attacks where the same token is sent repeatedly for different addresses.
 
         ConnectTokenEntry()
         {
