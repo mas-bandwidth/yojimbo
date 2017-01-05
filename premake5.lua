@@ -356,10 +356,10 @@ else
     newaction
     {
         trigger     = "stress",
-        description = "Launch 64 connect instances to stress the matcher and server",
+        description = "Launch 64 secure client instances to stress the matcher and server",
         execute = function ()
             for i = 0, 63 do
-                os.execute "if exist bin\\x64\\Debug\\connect.exe ( start /B bin\\x64\\Debug\\connect ) else ( echo could not find bin\\x64\\Debug\\connect.exe )"
+                os.execute "if exist bin\\x64\\Debug\\secure_client.exe ( start /B bin\\x64\\Debug\\secure_client ) else ( echo could not find bin\\x64\\Debug\\secure_client.exe )"
             end
         end
     }
