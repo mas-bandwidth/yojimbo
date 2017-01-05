@@ -5,13 +5,13 @@ Building libyojimbo
 
 Download [premake 5](https://premake.github.io/download.html) and copy the **premake5** executable somewhere in your path. Please make sure you have at least premake5 alpha 10.
 
-If you don't have Visual Studio 2015 you can [download the community edition for free](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx).
+You need Visual Studio to build the source code. If you don't have Visual Studio 2015 you can [download the community edition for free](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx).
 
-Go to the command line under the libyojimbo directory and type:
+Once you have Visual Studio installed, go to the command line under the libyojimbo directory and type:
 
     premake5 solution
 
-This creates Yojimbo.sln and a bunch of project files and opens them in Visual Studio for you.
+This creates Yojimbo.sln and opens it in Visual Studio for you.
 
 Now you can build the library and run individual test programs as you would for any other Visual Studio solution.
 
