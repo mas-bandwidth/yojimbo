@@ -259,7 +259,7 @@ if not os.is "windows" then
         trigger     = "coverity",
         description = "Integrate latest code into coverity_scan so it gets coverity scanned by travis job",
         execute = function ()
-            os.execute "git checkout coverity_scan && git merge master && git push"
+            os.execute "git checkout coverity_scan && git merge master && git push && git checkout master"
         end
     }
 
