@@ -2,8 +2,6 @@ DONE
 
 TODO
 
-    Make a new build. It's time.
-
     =========================================
 
     Where to host the generated documentation?
@@ -11,6 +9,12 @@ TODO
     How to build it automatically and upload it. Is this possible via travis? Wouldn't this create a security issue? (I can't exactly put KEYS in the source code...)
 
     How do other projects usually do this?
+
+    =========================================
+
+    What's the most important documentation I can write next? Basic usage documentation. 
+
+    This could take some time. Think through it and focus on answering questions on issues for libyojimbo so I can determine what documentation is necessary, and what topics should be covered.
 
     =========================================
 
