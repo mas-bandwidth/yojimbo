@@ -250,9 +250,16 @@ if not os.is "windows" then
         trigger     = "scan-build",
         description = "Run clang scan-build over the project",
         execute = function ()
-            os.execute "premake5 clean"
-            os.execute "premake5 gmake"
-            os.execute "scan-build make all -j32"
+            os.execute "premake5 clean && premake5 gmake && scan-build make all -j32"
+        end
+    }
+
+    newaction
+    {
+        trigger     = "coverity"
+        description = "Integrate latest code into coverity_scan so it gets coverity scanned by travis job"
+        execute = function ()
+            os.execute "git checkout coverity_scan && git merge master && git push"
         end
     }
 
