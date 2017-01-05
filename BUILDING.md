@@ -47,8 +47,6 @@ Alternatively, you can use the following shortcuts to build and run test program
 
 First, install the latest version of Docker from <http://www.docker.com>
 
-If you are running on Windows go into Docker network settings and enable "Expose container ports on localhost".
-
 Now go to the command line at the yojimbo directory and enter:
 
     premake5 docker
@@ -139,22 +137,20 @@ This is accomplished via an encrypted connect token that the matchmaker generate
 
 Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed with a private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances for the security model to work.
 
-## Documentation
+## Documentation and Support
 
-Libyojimbo has reference documentation built with doxygen.
+libyojimbo now has reference documentation built from code comments with [doxygen](http://www.stack.nl/~dimitri/doxygen/).
 
-You can build and view the documentation with this command:
+To build the documentation first install doxygen on your platform.
+
+Once you have doxygen installed and in y our path, you can build and view the documentation with this command:
 
     premake5 docs
     
-More documentation including usage documentation will be coming shortly. 
+More documentation including usage documentation is coming shortly. 
 
-Until then, if you have questions and you don't find the answer in the documentation, please create an issue at http://www.libyojimbo.com and I'll do my best to help you out.
+Until then, if you have questions and you don't find the answer you need in the documentation, please create an issue at http://www.libyojimbo.com and I'll do my best to help you out.
 
-## Feedback
-
-This is pre-release software so please email me with any feedback you have <glenn.fiedler@gmail.com>
-
-Thanks!
+cheers
 
  - Glenn
