@@ -97,7 +97,7 @@ Which should return a match response in JSON that looks something like this:
 
 You can run the "secure_client" program to securely connect a client to that server through the matcher. 
 
-Connect this way requires having the matcher running, eg. "premake5 matcher"
+Connecting this way requires having the matcher running, eg. "premake5 matcher"
 
 The benefit of secure connect is that it enables packet encryption between the client and server.
 
@@ -129,13 +129,13 @@ You can run a secure server like this on MacOS and Linux:
 
 Or, if you are building under Visual Studio, run the "secure_server" project from the IDE.
 
-When a secure server is running, you will notice that connecting via "secure_client" works, but regular (insecure) connects via "client" do not.
+When a secure server is running, you will notice that connecting via "secure_client" works, but regular connects via "client" do not.
 
 This is the entire point of secure servers. **Secure servers only allow connections that come from the matcher.**
 
 This is accomplished via an encrypted connect token that the matchmaker generates and passes back to the client. This connect token is valid only for a particular globally unique 64bit client id (of your choice), for a limited period of time, and for a limited whitelist of server addresses. 
 
-Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed with a private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances for the security model to work.
+Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed with a private key known only to the matcher and the dedicated server instances. This is also why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances for the security model to work.
 
 ## Documentation and Support
 
@@ -143,11 +143,11 @@ libyojimbo now has reference documentation built from code comments with [doxyge
 
 To build the documentation first install doxygen on your platform.
 
-Once you have doxygen installed and in y our path, you can build and view the documentation with this command:
+Once you have doxygen installed and in your path, you can build and view the documentation with this command:
 
     premake5 docs
     
-More documentation including usage documentation is coming shortly. 
+More documentation including getting started guide and usage documentation is coming shortly. 
 
 Until then, if you have questions and you don't find the answer you need in the documentation, please create an issue at http://www.libyojimbo.com and I'll do my best to help you out.
 
