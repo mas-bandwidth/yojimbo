@@ -256,21 +256,10 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "coverity"
-        description = "Integrate latest code into coverity_scan so it gets coverity scanned by travis job"
+        trigger     = "coverity",
+        description = "Integrate latest code into coverity_scan so it gets coverity scanned by travis job",
         execute = function ()
             os.execute "git checkout coverity_scan && git merge master && git push"
-        end
-    }
-
-    newaction
-    {
-        trigger     = "coverity",                            -- i can't get this to work on latest MacOS. if you know how please let me know!
-        description = "Run coverity over the project",
-        execute = function ()
-            os.execute "premake5 clean"
-            os.execute "premake5 gmake"
-            os.execute "cov-build --dir cov-int make -j32 all"
         end
     }
 
