@@ -10,7 +10,7 @@ WOULD BE NICE
 
     ------------------
 
-    I notice that the allocators aren't checked on the server when a client finishes up.
+    I notice that the allocators aren't checked on the server when a client is disconnected.
 
     It seems that although I have silo'd clients into their own allocator, I don't think I've done enough work (yet) to ensure that a malicious client can't shit up an allocator after it quits.
 
