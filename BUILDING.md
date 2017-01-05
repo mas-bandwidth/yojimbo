@@ -139,48 +139,17 @@ This is accomplished via an encrypted connect token that the matchmaker generate
 
 Connect tokens cannot be decrypted or forged by clients because they are encrypted and signed with a private key known only to the matcher and the dedicated server instances. This is why libyojimbo is designed only for games that host dedicated servers. The private key must be known only to the matcher and the dedicated server instances for the security model to work.
 
-## Reliable Messages and Blocks
+## Documentation
 
-Once you've established a yojimbo client/server connection, you can extend the protocol to send your own custom packets types, or extend the protocol to send messages which are included in regularly sent "connection packets" exchanged between client and server.
+Libyojimbo has reference documentation built with doxygen.
 
-Messages can be sent in both directions. Client to server **and** server to client. Messages are reliable, ordered and time critical. They are resent rapidly until acked.
+You can build and view the documentation with this command:
 
-Blocks of data larger than MTU may be sent in the same reliable ordered stream. They are sliced up and reassembled on the other side and injected into the same reliable ordered stream of messages. This is very convenient for example when you need to send down a large block of initial state (eg. initial delta baseline, or state of the world) on client connect. 
+    premake5 docs
+    
+More documentation including usage documentation will be coming shortly. 
 
-To see the blocks and messages in action, run:
-
-    premake5 soak
-
-Or, in Visual Studio, build and run the "soak" project.
-
-This soak program sends messages and reliable blocks over very bad network conditions, and loops forever. It is designed to run overnight to verify correct behavior of the reliability system. The soak test is self validating. As long as it's sending and receiving messages it's working. CTRL-C to stop.
-
-## Profiling
-
-There is now a profiling testbed for libyojimbo. 
-
-This testbed connects local 64 clients to a secure server in the same process and exchanges packets, messages and blocks continuously between them. Packets are still encrypted and sent over sockets so performance is representative of real world usage of the library.
-
-The good news: The performance is very good, and after fixing some minor hotspots (see CHANGES.md) the total cost of libyojimbo library is smaller than the time it takes to call sendto/recvfrom, and much, much less than the time spent encrypting and decrypting packets inside libsodium. 
-
-If you'd like to look at the profile results yourself, you'll need a copy of Visual Studio 2015 (Community edition is fine). 
-
-First it is necessary to make some modifications to premake5.lua so you have debug symbols in release build for the profiler:
-
-In the solution "Yojimbo" section near the top of premake5, add symbols to the release configuration:
-
-    configuration "Release"
-        Symbols "On"             --  add this line!"
-        optimize "Speed"
-        defines { "NDEBUG" }
-
-Now run "premake5 solution", switch to "Release" configuration and rebuild all. 
-
-Right click on "profile" project an set it as the startup project. 
-
-Press ALT-F2, check "CPU Usage" and click the "Start" to begin profiling.
-
-After about minute you should have enough samples. Close the profile process and view the results.
+Until then, if you have questions and you don't find the answer in the documentation, please create an issue at http://www.libyojimbo.com and I'll do my best to help you out.
 
 ## Feedback
 
