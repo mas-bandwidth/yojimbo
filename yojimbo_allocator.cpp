@@ -31,6 +31,8 @@
 #include <stdio.h>
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
+#include "tlsf/tlsf.h"
+
 namespace yojimbo
 {
     Allocator::Allocator() 

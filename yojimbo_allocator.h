@@ -31,9 +31,9 @@
 #include <map>
 #endif // YOJIMBO_DEBUG_MEMORY_LEAKS
 
-#include "yojimbo_tlsf.h"
-
 /** @file */
+
+typedef void* tlsf_t;
 
 namespace yojimbo
 {
