@@ -2,6 +2,57 @@ WOULD BE NICE
 
     ------------------
 
+    Maximum worst case IPv6 address is 39 bytes.
+
+    But considering IPv4 thru IPv6 it is 45 bytes.
+
+    If I add port number to it:
+
+    [ipv6]:port
+
+    This adds up to 2 + 1 + 5 = 8 chars
+
+    So the world case IPv6 string as text with port is 53 bytes.
+
+    This is frankly pretty huge, lets say we want 32 addresses to try in order for a connect token:
+
+    That's 32 * 53 = 1696 bytes!
+
+    However, if addresses were included as binary data, that would be just 128 bits = 16 bytes, + 2 bytes for port. So 18 bytes.
+
+    18 bytes each address, I could have 32 * 18 = 576, which is much more reasonable. Add some overhead to this for base64 encode in JSON
+    has overhead tending to 1.3333, so 32 addresses would fit into 767.99808 bytes. 
+
+    Subtract this from a conservative modern MTU of 1500, lets assume we have 1400 payload for the connect token, this leaves:
+
+    633 bytes for potentially including some base64 user data to pass from the matcher to the dedicated server instance with the connect token.
+
+    More if the tokens are configured to have less servers per-token.
+
+    ------------------
+
+    So it seems that the addresses should be specified in a binary format to save space, and this binary format should indicate, one byte, IPv4 or IPv6?
+
+    From this point of view, is there even any benefit to implementing the connect token as JSON now?
+
+    It could really just be a binary format written to from multiple languages, and it would be more efficient.
+
+    Hmmmmm
+
+    ------------------
+
+    Should also include protocol id in the associated data for the AEAD of the connect token.
+
+    This would allow trivial rejects for connect tokens with different protocol ids.
+
+    Then we can remove the protocol id from the connect token, there is no need to duplicate it.
+
+    ------------------
+
+    The additional data for the connect token AEAD should be converted to little endian format on big endian machines, it's currently passed in host byte order, so machines that are big endian will have problems generating or processing connect tokens.
+
+    ------------------
+
     Packet processor max packet size is deceptive. You give it a max packet size, it adds encryption overhead to it.
 
     It should be the other way around. Specify the maximum packet size you want to generate (total). Calculate how much packet payload data can be allowed while still hitting that maximum, vs. padding it out.
