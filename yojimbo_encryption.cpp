@@ -52,6 +52,7 @@ namespace yojimbo
     bool Encrypt( const uint8_t * message, int messageLength, uint8_t * encryptedMessage, int & encryptedMessageLength, const uint8_t * nonce, const uint8_t * key )
     {
         assert( KeyBytes == crypto_secretbox_KEYBYTES );
+        assert( MacBytes == crypto_secretbox_MACBYTES );
 
         uint8_t actual_nonce[crypto_secretbox_NONCEBYTES];
         memset( actual_nonce, 0, sizeof( actual_nonce ) );
@@ -70,6 +71,7 @@ namespace yojimbo
                   const uint8_t * nonce, const uint8_t * key )
     {
         assert( KeyBytes == crypto_secretbox_KEYBYTES );
+        assert( MacBytes == crypto_secretbox_MACBYTES );
 
         uint8_t actual_nonce[crypto_secretbox_NONCEBYTES];
         memset( actual_nonce, 0, sizeof( actual_nonce ) );
@@ -90,6 +92,7 @@ namespace yojimbo
                        const uint8_t * key )
     {
         assert( KeyBytes == crypto_aead_chacha20poly1305_KEYBYTES );
+        assert( MacBytes == crypto_aead_chacha20poly1305_ABYTES );
 
         uint8_t actual_nonce[crypto_aead_chacha20poly1305_NPUBBYTES];
         memset( actual_nonce, 0, sizeof( actual_nonce ) );
@@ -114,6 +117,7 @@ namespace yojimbo
                        const uint8_t * key )
     {
         assert( KeyBytes == crypto_aead_chacha20poly1305_KEYBYTES );
+        assert( MacBytes == crypto_aead_chacha20poly1305_ABYTES );
 
         uint8_t actual_nonce[crypto_aead_chacha20poly1305_NPUBBYTES];
         memset( actual_nonce, 0, sizeof( actual_nonce ) );
