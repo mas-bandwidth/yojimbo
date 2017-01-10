@@ -85,7 +85,7 @@ namespace yojimbo
                        const uint8_t * nonce,
                        const uint8_t * key )
     {
-        uint8_t actual_nonce[crypto_secretbox_NONCEBYTES];
+        uint8_t actual_nonce[crypto_aead_chacha20poly1305_NPUBBYTES];
         memset( actual_nonce, 0, sizeof( actual_nonce ) );
         memcpy( actual_nonce, nonce, NonceBytes );
 
@@ -107,7 +107,7 @@ namespace yojimbo
                        const uint8_t * nonce,
                        const uint8_t * key )
     {
-        uint8_t actual_nonce[crypto_secretbox_NONCEBYTES];
+        uint8_t actual_nonce[crypto_aead_chacha20poly1305_NPUBBYTES];
         memset( actual_nonce, 0, sizeof( actual_nonce ) );
         memcpy( actual_nonce, nonce, NonceBytes );
 
