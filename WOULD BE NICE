@@ -2,6 +2,14 @@ WOULD BE NICE
 
     ------------------
 
+    Client should be smart enough to know the expiry time on a connect token.
+
+    If the connect doesn't complete within the expiry time, give up.
+
+    Right now, it risks, worst case, hitting n servers, with timeout per-server, which if n is high could be worst case a lot higher than expiry time.
+
+    ------------------
+
     Packet processor max packet size is deceptive. You give it a max packet size, it adds encryption overhead to it.
 
     It should be the other way around. Specify the maximum packet size you want to generate (total). Calculate how much packet payload data can be allowed while still hitting that maximum, vs. padding it out.
