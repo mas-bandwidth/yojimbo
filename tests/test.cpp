@@ -458,6 +458,8 @@ void test_address_ipv4()
         check( address.GetAddress4() == 0xffffffff );
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "255.255.255.255:65535" ) == 0 );
     }
+
+    // todo: should test ipv4 address parse from strings
 }
 
 inline uint16_t test_htons( uint16_t input )
@@ -570,6 +572,8 @@ void test_address_ipv6()
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
 
+    // todo: don't just test string parse and then to string, test the address values and port # are correct (endianness)
+
     // parse addresses from strings (no ports)
 
     {
@@ -594,7 +598,7 @@ void test_address_ipv6()
         Address address( "[fe80::202:b3ff:fe1e:8329]:65535" );
         check( address.IsValid() );
         check( address.GetType() == ADDRESS_IPV6 );
-        check( address.GetPort() == 65535 );
+        check( address.GetPort() == 65535 );            // todo: don't just test 65535, because endian being wrong won't get picked up
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
 
@@ -602,7 +606,7 @@ void test_address_ipv6()
         Address address( "[::1]:65535" );
         check( address.IsValid() );
         check( address.GetType() == ADDRESS_IPV6 );
-        check( address.GetPort() == 65535 );
+        check( address.GetPort() == 65535 );            // todo: don't just test 65535, because endian being wrong won't get picked up
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
 }
