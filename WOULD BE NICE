@@ -2,6 +2,33 @@ WOULD BE NICE
 
     ------------------
 
+    Add user info to the match info 
+
+    ------------------
+
+    Connect token can time out. Update the code to abort the client connect on connect token timeout, otherwise it's possible, when lots of addresses
+    are specified in the match data, for the client to keep trying to connect and timing out per-server (5 seconds), which would be painful if I extended the # of servers per-connect token past the current 8. 
+
+    ------------------
+
+    Add more tests to ensure address parse from string is robust. 
+
+    Add safety padding to the buffer as well. This is an external input (inside connect token), so make sure it's robust.
+
+    ------------------
+
+    Fix up the address class endianness. It's inconsistent. Should prefer values to be in local byte order vs. network. 
+
+    Nowhere else in the library does network order (big endian), and in fact the library considers network order to be little endian.
+
+    ------------------
+
+    Probably best to just store the IPv4 address as uint8_t ipv4[4]. 
+
+    Get little benefit for mantaining it in an integer. It has to be endian swapped to/from network byte order anyway on send/recv.
+
+    ------------------
+
     Maximum worst case IPv6 address is 39 bytes.
 
     But considering IPv4 thru IPv6 it is 45 bytes.

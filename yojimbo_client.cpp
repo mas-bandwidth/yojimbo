@@ -679,13 +679,13 @@ namespace yojimbo
         m_clientSalt = 0;
 #endif // #if !YOJIMBO_SECURE_MODE
 
+        m_sequence = 0;
+
         ResetBeforeNextConnect();
     }
 
     void Client::ResetBeforeNextConnect()
     {
-        m_sequence = 0;
-
         m_lastPacketSendTime = m_time - 1.0f;
         m_lastPacketReceiveTime = m_time;
 

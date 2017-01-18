@@ -130,7 +130,7 @@ namespace yojimbo
 
             if ( ::bind( m_socket, (const sockaddr*) &sock_address, sizeof(sock_address) ) < 0 )
             {
-                m_socket = SOCKET_ERROR_BIND_IPV6_FAILED;
+                m_error = SOCKET_ERROR_BIND_IPV6_FAILED;
                 return;
             }
         }
