@@ -486,8 +486,6 @@ namespace yojimbo
 
     void Client::AdvanceTime( double time )
     {
-        assert( time >= m_time );
-
         m_time = time;
 
         if ( m_clientAllocator && m_clientAllocator->GetError() )

@@ -440,8 +440,6 @@ namespace yojimbo
 
     void Server::AdvanceTime( double time )
     {
-        assert( time >= m_time );
-
         m_time = time;
 
         // check for global allocator error, increase counter and clear error. nothing we can do but take note.

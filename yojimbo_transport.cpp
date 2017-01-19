@@ -783,8 +783,6 @@ namespace yojimbo
 
     void BaseTransport::AdvanceTime( double time )
     {
-        assert( time >= m_time );
-     
         m_time = time;
      
         if ( m_networkSimulator )
