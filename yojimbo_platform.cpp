@@ -58,7 +58,8 @@ namespace yojimbo
 
         uint64_t current = mach_absolute_time();
 
-        assert( current > start );
+        if ( current < start )
+            current = start;
 
         return ( double( current - start ) * double( timebase_info.numer ) / double( timebase_info.denom ) ) / 1000000000.0;
     }
@@ -95,6 +96,8 @@ namespace yojimbo
         timespec ts;
         clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
         double current = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
+        if ( current < start )
+            current = start;
         return current - start;
     }
 }
@@ -130,6 +133,8 @@ namespace yojimbo
         }
         LARGE_INTEGER now;
         QueryPerformanceCounter( &now );
+        if ( now.QuadPart < timer_start.QuadPart )
+            now.QuadPart = timer_start.QuadPart;
         return double( now.QuadPart - timer_start.QuadPart ) / double( timer_frequency.QuadPart );
     }
 }
