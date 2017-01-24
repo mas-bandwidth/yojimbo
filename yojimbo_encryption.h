@@ -150,7 +150,6 @@ namespace yojimbo
         This was done to allow the client/server to use the sequence numbers of packets as a nonce in both directions. An alternative would have been to set the high bit of the packet sequence number in one of the directions, but I felt this was cleaner.
      */
 
-
     class EncryptionManager
     {
     public:

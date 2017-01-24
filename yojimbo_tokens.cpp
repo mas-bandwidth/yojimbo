@@ -310,10 +310,6 @@ namespace yojimbo
 
         memcpy( challengeToken.connectTokenMac, connectTokenMac, MacBytes );
 
-        memcpy( challengeToken.clientToServerKey, connectToken.clientToServerKey, KeyBytes );
-
-        memcpy( challengeToken.serverToClientKey, connectToken.serverToClientKey, KeyBytes );
-
         return true;
     }
 

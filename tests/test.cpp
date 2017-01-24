@@ -909,8 +909,6 @@ void test_client_server_tokens()
 
     check( challengeToken.clientId == clientId );
     check( memcmp( challengeToken.connectTokenMac, connectTokenData, MacBytes ) == 0 );
-    check( memcmp( challengeToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
-    check( memcmp( challengeToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
 }
 
 void test_unencrypted_packets()

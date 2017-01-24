@@ -100,16 +100,10 @@ namespace yojimbo
 
         uint8_t connectTokenMac[MacBytes];                                  ///< Mac of the initial connect token this challenge corresponds to. Used to quickly map the challenge response from a client to a pending connection entry on the server.
      
-        uint8_t clientToServerKey[KeyBytes];                                ///< The key for encrypted communication from client -> server.
-     
-        uint8_t serverToClientKey[KeyBytes];                                ///< The key for encrypted communication from server -> client.
-
         ChallengeToken()
         {
             clientId = 0;
             memset( connectTokenMac, 0, MacBytes );
-            memset( clientToServerKey, 0, KeyBytes );
-            memset( serverToClientKey, 0, KeyBytes );
         }
 
         template <typename Stream> bool Serialize( Stream & stream )
@@ -117,10 +111,6 @@ namespace yojimbo
             serialize_uint64( stream, clientId );
 
             serialize_bytes( stream, connectTokenMac, MacBytes );
-
-            serialize_bytes( stream, clientToServerKey, KeyBytes );
-
-            serialize_bytes( stream, serverToClientKey, KeyBytes );
 
             return true;
         }
