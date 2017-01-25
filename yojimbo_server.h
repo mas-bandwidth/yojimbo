@@ -949,10 +949,10 @@ namespace yojimbo
     See tests/shared.h for an example of usage.
  */
 
-#define YOJIMBO_SERVER_ALLOCATOR( allocator_class )                                                                     \
-    Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )                                   \
-    {                                                                                                                   \
-        return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                                \
+#define YOJIMBO_SERVER_ALLOCATOR( allocator_class )                                                                                         \
+    yojimbo::Allocator * CreateAllocator( yojimbo::Allocator & allocator, void * memory, size_t bytes )                                     \
+    {                                                                                                                                       \
+        return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                                                    \
     }
 
 /** 
@@ -961,12 +961,12 @@ namespace yojimbo
     See tests/shared.h for an example of usage.
  */
 
-#define YOJIMBO_SERVER_PACKET_FACTORY( packet_factory_class )                                                           \
-    PacketFactory * CreatePacketFactory( Allocator & allocator, ServerResourceType type, int clientIndex )              \
-    {                                                                                                                   \
-        (void) type;                                                                                                    \
-        (void) clientIndex;                                                                                             \
-        return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                                               \
+#define YOJIMBO_SERVER_PACKET_FACTORY( packet_factory_class )                                                                               \
+    yojimbo::PacketFactory * CreatePacketFactory( yojimbo::Allocator & allocator, yojimbo::ServerResourceType type, int clientIndex )       \
+    {                                                                                                                                       \
+        (void) type;                                                                                                                        \
+        (void) clientIndex;                                                                                                                 \
+        return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                                                                   \
     }
 
 /** 
@@ -975,12 +975,12 @@ namespace yojimbo
     See tests/shared.h for an example of usage.
  */
 
-#define YOJIMBO_SERVER_MESSAGE_FACTORY( message_factory_class )                                                         \
-    MessageFactory * CreateMessageFactory( Allocator & allocator, ServerResourceType type, int clientIndex )            \
-    {                                                                                                                   \
-        (void) type;                                                                                                    \
-        (void) clientIndex;                                                                                             \
-        return YOJIMBO_NEW( allocator, message_factory_class, allocator );                                              \
+#define YOJIMBO_SERVER_MESSAGE_FACTORY( message_factory_class )                                                                             \
+    yojimbo::MessageFactory * CreateMessageFactory( yojimbo::Allocator & allocator, yojimbo::ServerResourceType type, int clientIndex )     \
+    {                                                                                                                                       \
+        (void) type;                                                                                                                        \
+        (void) clientIndex;                                                                                                                 \
+        return YOJIMBO_NEW( allocator, message_factory_class, allocator );                                                                  \
     }
 
 #endif // #ifndef YOJIMBO_SERVER_H
