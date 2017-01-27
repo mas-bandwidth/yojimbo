@@ -2,7 +2,15 @@ WOULD BE NICE
 
     ------------------
 
-    Add user info to the match info 
+    Is there an attack where a pending client can take a connect token and dick around with pre-connect packets and states forever?
+
+    Perhaps there should be a time limit for pending client connects. If an encryption mapping is setup for a pending client, but that client doesn't connect within a certain amount of time (connect token timeout?) then blacklist that IP address?
+
+    But is this an effective attack? I'm not sure yet.
+
+    ------------------
+
+    Add user data to the match info
 
     ------------------
 

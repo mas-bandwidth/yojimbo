@@ -950,14 +950,16 @@ namespace yojimbo
                                         int sendQueueSize, 
                                         int receiveQueueSize,
                                         int socketSendBufferSize,
-										int socketReceiveBufferSize )
+										int socketReceiveBufferSize,
+                                        bool allocateNetworkSimulator )
         : BaseTransport( allocator, 
                          address,
                          protocolId,
                          time,
                          maxPacketSize,
                          sendQueueSize,
-                         receiveQueueSize )
+                         receiveQueueSize,
+                         allocateNetworkSimulator )
     {
         m_socket = YOJIMBO_NEW( allocator, Socket, address, socketSendBufferSize, socketReceiveBufferSize );
 

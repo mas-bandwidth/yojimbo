@@ -903,6 +903,7 @@ namespace yojimbo
             @param receiveQueueSize The size of the packet receive queue (number of packets).
             @param socketSendBufferSize The size of the send buffers to set on the socket (SO_SNDBUF).
             @param socketReceiveBufferSize The size of the send buffers to set on the socket (SO_RCVBUF).
+            @param allocateNetworkSimulator If true then a network simulator is allocated for simulating network conditions. Pass false to disable this.
          */
 
         NetworkTransport( Allocator & allocator,
@@ -913,7 +914,8 @@ namespace yojimbo
                           int sendQueueSize = DefaultPacketSendQueueSize,
                           int receiveQueueSize = DefaultPacketReceiveQueueSize,
                           int socketSendBufferSize = DefaultSocketSendBufferSize,
-						  int socketReceiveBufferSize = DefaultSocketReceiveBufferSize );
+						  int socketReceiveBufferSize = DefaultSocketReceiveBufferSize,
+                          bool allocateNetworkSimulator = true );
 
         ~NetworkTransport();
 
