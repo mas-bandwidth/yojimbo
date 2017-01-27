@@ -788,7 +788,7 @@ namespace yojimbo
  */
 
 #define YOJIMBO_CLIENT_ALLOCATOR( allocator_class )                                                     \
-    Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )                   \
+    yojimbo::Allocator * CreateAllocator( yojimbo::Allocator & allocator, void * memory, size_t bytes ) \
     {                                                                                                   \
         return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                \
     }
@@ -800,7 +800,7 @@ namespace yojimbo
  */
 
 #define YOJIMBO_CLIENT_PACKET_FACTORY( packet_factory_class )                                           \
-    PacketFactory * CreatePacketFactory( Allocator & allocator )                                        \
+    yojimbo::PacketFactory * CreatePacketFactory( yojimbo::Allocator & allocator )                      \
     {                                                                                                   \
         return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                               \
     }
@@ -812,7 +812,7 @@ namespace yojimbo
  */
 
 #define YOJIMBO_CLIENT_MESSAGE_FACTORY( message_factory_class )                                         \
-    MessageFactory * CreateMessageFactory( Allocator & allocator )                                      \
+    yojimbo::MessageFactory * CreateMessageFactory( yojimbo::Allocator & allocator )                    \
     {                                                                                                   \
         return YOJIMBO_NEW( allocator, message_factory_class, allocator );                              \
     }
