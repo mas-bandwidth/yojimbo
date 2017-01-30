@@ -196,6 +196,7 @@ namespace yojimbo
         {
             if ( m_scratchBits != 0 )
             {
+                assert( m_scratchBits <= 32 );
                 assert( m_wordIndex < m_numWords );
                 m_data[m_wordIndex] = host_to_network( uint32_t( m_scratch & 0xFFFFFFFF ) );
                 m_scratch >>= 32;
