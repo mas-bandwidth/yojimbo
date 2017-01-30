@@ -173,11 +173,11 @@ namespace yojimbo
 
         bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
         
-		MatchStatus m_matchStatus;                              ///< The current match status.
+        MatchStatus m_matchStatus;                              ///< The current match status.
         
-		MatchResponse m_matchResponse;                          ///< The match response status from the last call to Matcher::RequestMatch if the match status is MATCH_READY.
+        MatchResponse m_matchResponse;                          ///< The match response status from the last call to Matcher::RequestMatch if the match status is MATCH_READY.
         
-		struct MatcherInternal * m_internal;                    ///< Internal match data is contained in this structure here so we don't have to spill details of mbedtls library outside yojimbo_matcher.cpp
+        struct MatcherInternal * m_internal;                    ///< Internal match data is contained in this structure here so we don't have to spill details of mbedtls library outside yojimbo_matcher.cpp
     };
 }
 

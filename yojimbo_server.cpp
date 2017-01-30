@@ -75,8 +75,8 @@ namespace yojimbo
 
     Server::~Server()
     {
-		// IMPORTANT: You must stop the server before you destroy it
-		assert( !IsRunning() );
+        // IMPORTANT: You must stop the server before you destroy it
+        assert( !IsRunning() );
 
         assert( m_transport );
 
@@ -177,7 +177,7 @@ namespace yojimbo
             {
                 m_clientConnectionContext[clientIndex].messageFactory = m_clientMessageFactory[clientIndex];
                 m_clientConnectionContext[clientIndex].connectionConfig = &m_config.connectionConfig;
-				m_clientTransportContext[clientIndex].connectionContext = &m_clientConnectionContext[clientIndex];
+                m_clientTransportContext[clientIndex].connectionContext = &m_clientConnectionContext[clientIndex];
             }
         }     
 

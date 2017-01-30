@@ -408,7 +408,7 @@ namespace yojimbo
             @param address The address to associate with encryption keys.
             @param sendKey The key used to encrypt packets sent to this address.
             @param receiveKey The key used to decrypt packets received from this address.
-			@param timeout The timeout value in seconds for this encryption mapping (seconds). Encryption mapping times out if no packets are sent to or received from this address in the timeout period.
+            @param timeout The timeout value in seconds for this encryption mapping (seconds). Encryption mapping times out if no packets are sent to or received from this address in the timeout period.
 
             @returns True if the encryption mapping was added successfully, false otherwise.
          */
@@ -914,7 +914,7 @@ namespace yojimbo
                           int sendQueueSize = DefaultPacketSendQueueSize,
                           int receiveQueueSize = DefaultPacketReceiveQueueSize,
                           int socketSendBufferSize = DefaultSocketSendBufferSize,
-						  int socketReceiveBufferSize = DefaultSocketReceiveBufferSize,
+                          int socketReceiveBufferSize = DefaultSocketReceiveBufferSize,
                           bool allocateNetworkSimulator = true );
 
         ~NetworkTransport();

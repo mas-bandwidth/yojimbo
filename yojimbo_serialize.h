@@ -342,10 +342,10 @@ namespace yojimbo
         @param stream The stream object. May be a read, write or measure stream.
      */
 
-    #define serialize_check( stream )														\
+    #define serialize_check( stream )                                                       \
         do                                                                                  \
         {                                                                                   \
-            if ( !stream.SerializeCheck() )													\
+            if ( !stream.SerializeCheck() )                                                 \
                 return false;                                                               \
         } while (0)
 

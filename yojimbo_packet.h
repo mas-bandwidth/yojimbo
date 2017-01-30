@@ -215,7 +215,7 @@ namespace yojimbo
             If any packet fails to allocate, the error level is set to yojimbo::PACKET_FACTORY_ERROR_FAILED_TO_ALLOCATE_PACKET.
 
             @see PacketFactory::ClearError
-		 */
+         */
 
         PacketFactoryError GetError() const;
 
@@ -378,8 +378,8 @@ namespace yojimbo
         READ_PACKET_ERROR_CREATE_PACKET_FAILED,                     ///< Tried to create a packet but failed. The allocator backing the packet factory is probably out of memory.
         READ_PACKET_ERROR_PACKET_TYPE_NOT_ALLOWED,                  ///< Packet type is not one we are allowed to read. See PacketReadWriteInfo::allowedPacketTypes.
         READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER,                  ///< Failed to serialize the packet header. One of the packet header elements returned false when serialized.
-        READ_PACKET_ERROR_SERIALIZE_PACKET_BODY,	                ///< Failed to serialize the packet body. The packet serialize read function returned false.
-        READ_PACKET_ERROR_SERIALIZE_PACKET_FOOTER,					///< Failed to serialize the packet footer. The serialize check at the end of the packet failed. The packet data is probably truncated.
+        READ_PACKET_ERROR_SERIALIZE_PACKET_BODY,                    ///< Failed to serialize the packet body. The packet serialize read function returned false.
+        READ_PACKET_ERROR_SERIALIZE_PACKET_FOOTER,                  ///< Failed to serialize the packet footer. The serialize check at the end of the packet failed. The packet data is probably truncated.
     };
 
     /**
@@ -417,9 +417,9 @@ namespace yojimbo
     public:                                                                                                                         \
         factory_class( yojimbo::Allocator & allocator = yojimbo::GetDefaultAllocator(), int numPacketTypes = num_packet_types )     \
          : base_factory_class( allocator, numPacketTypes ) {}                                                                       \
-        yojimbo::Packet * CreatePacket( int type )																					\
+        yojimbo::Packet * CreatePacket( int type )                                                                                  \
         {                                                                                                                           \
-            yojimbo::Packet * packet = base_factory_class::CreatePacket( type );													\
+            yojimbo::Packet * packet = base_factory_class::CreatePacket( type );                                                    \
             if ( packet )                                                                                                           \
                 return packet;                                                                                                      \
             yojimbo::Allocator & allocator = GetAllocator();                                                                        \

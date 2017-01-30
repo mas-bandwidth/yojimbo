@@ -416,14 +416,14 @@ namespace yojimbo
         return Serialize( stream, messageFactory, channelConfigs, numChannels );
     }
 
-	// ------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------
 
     Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) : m_config( config )
     {
         assert( channelId >= 0 );
         assert( channelId < MaxChannels );
 
-		m_channelId = channelId;
+        m_channelId = channelId;
 
         m_allocator = &allocator;
 
@@ -435,7 +435,7 @@ namespace yojimbo
 
         m_time = 0.0;
 
-		ResetCounters();
+        ResetCounters();
     }
 
     uint64_t Channel::GetCounter( int index ) const
@@ -465,16 +465,16 @@ namespace yojimbo
         m_error = error;
     }
 
-	ChannelError Channel::GetError() const
-	{
-		return m_error;
-	}
+    ChannelError Channel::GetError() const
+    {
+        return m_error;
+    }
 
-	// ------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------
 
     ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) : Channel( allocator, messageFactory, config, channelId )
-	{
-		assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
+    {
+        assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
 
         assert( ( 65536 % config.sendQueueSize ) == 0 );
         assert( ( 65536 % config.receiveQueueSize ) == 0 );
@@ -562,8 +562,8 @@ namespace yojimbo
             }
         }
 
-		ResetCounters();
-	}
+        ResetCounters();
+    }
 
     bool ReliableOrderedChannel::CanSendMsg() const
     {
@@ -574,7 +574,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::SendMsg( Message * message )
     {
-		assert( message );
+        assert( message );
         assert( CanSendMsg() );
 
         if ( GetError() != CHANNEL_ERROR_NONE )
@@ -698,7 +698,7 @@ namespace yojimbo
             }
         }
 
-		return 0;
+        return 0;
     }
 
     bool ReliableOrderedChannel::HasMessagesToSend() const

@@ -135,8 +135,8 @@ namespace yojimbo
             if ( !stream.SerializeBits( dummy, 8 ) )
             {
                 debug_printf( "serialize prefix bytes failed (read packet)\n" );
-				if ( errorCode )
-					*errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER;
+                if ( errorCode )
+                    *errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER;
                 return 0;
             }
         }
@@ -148,8 +148,8 @@ namespace yojimbo
             if ( !stream.SerializeBits( read_crc32, 32 ) )
             {
                 debug_printf( "serialize crc32 failed (read packet)\n" );
-				if ( errorCode )
-					*errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER;
+                if ( errorCode )
+                    *errorCode = READ_PACKET_ERROR_SERIALIZE_PACKET_HEADER;
                 return 0;
             }
 
