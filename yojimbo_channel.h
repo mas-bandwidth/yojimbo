@@ -203,15 +203,15 @@ namespace yojimbo
     {
     public:
 
-		/**
-			Channel constructor.
-		 */
+        /**
+            Channel constructor.
+         */
 
         Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
 
-		/**
-			Channel destructor.
-		 */
+        /**
+            Channel destructor.
+         */
 
         virtual ~Channel() {}
 
@@ -320,33 +320,33 @@ namespace yojimbo
 
         int GetChannelId() const;
 
-		/**
-			Get a counter value.
+        /**
+            Get a counter value.
 
-			@param index The index of the counter to retrieve. See ChannelCounters.
-			@returns The value of the counter.
+            @param index The index of the counter to retrieve. See ChannelCounters.
+            @returns The value of the counter.
 
-			@see ResetCounters
-		 */
+            @see ResetCounters
+         */
 
         uint64_t GetCounter( int index ) const;
 
-		/**
-			Resets all counter values to zero.
-		 */
+        /**
+            Resets all counter values to zero.
+         */
 
         void ResetCounters();
 
     protected:
 
-		/**
-			Set the channel error state.
+        /**
+            Set the channel error state.
 
-			All errors go through this function to make debug logging easier. 
-			
-			@see yojimbo::debug_printf
-		 */
-		
+            All errors go through this function to make debug logging easier. 
+            
+            @see yojimbo::debug_printf
+         */
+        
         void SetError( ChannelError error );
 
     protected:
@@ -357,7 +357,7 @@ namespace yojimbo
 
         int m_channelId;                                                                ///< The channel id in [0,numChannels-1].
 
-		double m_time;																	///< The current time.
+        double m_time;                                                                  ///< The current time.
         
         ChannelError m_error;                                                           ///< The channel error level.
 
@@ -365,7 +365,7 @@ namespace yojimbo
 
         MessageFactory * m_messageFactory;                                              ///< Message factory for creating and destroying messages.
 
-		uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
+        uint64_t m_counters[CHANNEL_COUNTER_NUM_COUNTERS];                              ///< Counters for unit testing, stats etc.
     };
 
     /**
@@ -625,7 +625,7 @@ namespace yojimbo
             uint64_t blockFragmentId : 16;                                              ///< The block fragment id. Valid only if "block" is 1.
         };
 
-		/**
+        /**
             Internal state for a block being sent across the reliable ordered channel.
             
             Stores the block data and tracks which fragments have been acked. The block send completes when all fragments have been acked.
@@ -740,8 +740,8 @@ namespace yojimbo
         uint16_t m_receiveMessageId;                                                    ///< Id of the next message to be added to the receive queue.
         uint16_t m_oldestUnackedMessageId;                                              ///< Id of the oldest unacked message in the send queue.
         SequenceBuffer<SentPacketEntry> * m_sentPackets;                                ///< Stores information per sent connection packet about messages and block data included in each packet. Used to walk from connection packet level acks to message and data block fragment level acks.
-        SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;						///< Message send queue.
-		SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               ///< Message receive queue.
+        SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;                     ///< Message send queue.
+        SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               ///< Message receive queue.
         uint16_t * m_sentPacketMessageIds;                                              ///< Array of n message ids per sent connection packet. Allows the maximum number of messages per-packet to be allocated dynamically.
         SendBlockData * m_sendBlock;                                                    ///< Data about the block being currently sent.
         ReceiveBlockData * m_receiveBlock;                                              ///< Data about the block being currently received.
@@ -798,10 +798,10 @@ namespace yojimbo
 
         void ProcessAck( uint16_t ack );
 
-	protected:
+    protected:
 
-        Queue<Message*> * m_messageSendQueue;									        ///< Message send queue.
-        Queue<Message*> * m_messageReceiveQueue;								        ///< Message receive queue.
+        Queue<Message*> * m_messageSendQueue;                                           ///< Message send queue.
+        Queue<Message*> * m_messageReceiveQueue;                                        ///< Message receive queue.
 
     private:
 

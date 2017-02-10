@@ -75,8 +75,8 @@ namespace yojimbo
 
     Server::~Server()
     {
-		// IMPORTANT: You must stop the server before you destroy it
-		assert( !IsRunning() );
+        // IMPORTANT: You must stop the server before you destroy it
+        assert( !IsRunning() );
 
         assert( m_transport );
 
@@ -177,7 +177,7 @@ namespace yojimbo
             {
                 m_clientConnectionContext[clientIndex].messageFactory = m_clientMessageFactory[clientIndex];
                 m_clientConnectionContext[clientIndex].connectionConfig = &m_config.connectionConfig;
-				m_clientTransportContext[clientIndex].connectionContext = &m_clientConnectionContext[clientIndex];
+                m_clientTransportContext[clientIndex].connectionContext = &m_clientConnectionContext[clientIndex];
             }
         }     
 
@@ -440,8 +440,6 @@ namespace yojimbo
 
     void Server::AdvanceTime( double time )
     {
-        assert( time >= m_time );
-
         m_time = time;
 
         // check for global allocator error, increase counter and clear error. nothing we can do but take note.

@@ -157,7 +157,7 @@ namespace yojimbo
             @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
-		WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_writer( buffer, bytes ) {}
+        WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_writer( buffer, bytes ) {}
 
         /**
             Serialize an integer (write).
@@ -478,7 +478,7 @@ namespace yojimbo
 
     private:
 
-        BitReader m_reader;									///< The bit reader used for all bitpacked read operations.
+        BitReader m_reader;                                 ///< The bit reader used for all bitpacked read operations.
     };
 
     /**

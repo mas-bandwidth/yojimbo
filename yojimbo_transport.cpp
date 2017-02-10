@@ -172,9 +172,9 @@ namespace yojimbo
         m_packetTypeIsEncrypted = NULL;
         m_packetTypeIsUnencrypted = NULL;
 
-		m_contextManager = YOJIMBO_NEW( allocator, TransportContextManager );
+        m_contextManager = YOJIMBO_NEW( allocator, TransportContextManager );
 
-		m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
+        m_encryptionManager = YOJIMBO_NEW( allocator, EncryptionManager );
 
         (void) allocateNetworkSimulator;
 
@@ -188,7 +188,7 @@ namespace yojimbo
         {
             m_networkSimulator = NULL;
         }
-	}
+    }
 
     BaseTransport::~BaseTransport()
     {
@@ -258,13 +258,16 @@ namespace yojimbo
         ResetContextMappings();
         ResetEncryptionMappings();
 
-        if ( m_allocateNetworkSimulator )
+        if ( m_networkSimulator )
         {
-            m_networkSimulator->DiscardPackets();
-        }
-        else
-        {
-            m_networkSimulator->DiscardPacketsFromAddress( m_address );
+            if ( m_allocateNetworkSimulator )
+            {
+                m_networkSimulator->DiscardPackets();
+            }
+            else
+            {
+                m_networkSimulator->DiscardPacketsFromAddress( m_address );
+            }
         }
     }
 
@@ -783,8 +786,6 @@ namespace yojimbo
 
     void BaseTransport::AdvanceTime( double time )
     {
-        assert( time >= m_time );
-     
         m_time = time;
      
         if ( m_networkSimulator )
@@ -837,7 +838,7 @@ namespace yojimbo
     { 
         m_networkSimulator = &networkSimulator;
 
-		m_receivePacketIndex = 0;
+        m_receivePacketIndex = 0;
         m_numReceivePackets = 0;
         m_maxReceivePackets = receiveQueueSize;
         m_receivePacketData = (uint8_t**) YOJIMBO_ALLOCATE( allocator, sizeof( uint8_t*) * m_maxReceivePackets );
@@ -952,14 +953,16 @@ namespace yojimbo
                                         int sendQueueSize, 
                                         int receiveQueueSize,
                                         int socketSendBufferSize,
-										int socketReceiveBufferSize )
+                                        int socketReceiveBufferSize,
+                                        bool allocateNetworkSimulator )
         : BaseTransport( allocator, 
                          address,
                          protocolId,
                          time,
                          maxPacketSize,
                          sendQueueSize,
-                         receiveQueueSize )
+                         receiveQueueSize,
+                         allocateNetworkSimulator )
     {
         m_socket = YOJIMBO_NEW( allocator, Socket, address, socketSendBufferSize, socketReceiveBufferSize );
 
@@ -971,9 +974,9 @@ namespace yojimbo
 
     NetworkTransport::~NetworkTransport()
     {
-		assert( m_socket );
-		assert( m_allocator );
-		YOJIMBO_DELETE( *m_allocator, Socket, m_socket );
+        assert( m_socket );
+        assert( m_allocator );
+        YOJIMBO_DELETE( *m_allocator, Socket, m_socket );
     }
 
     bool NetworkTransport::IsError() const

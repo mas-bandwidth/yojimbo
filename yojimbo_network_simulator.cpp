@@ -304,8 +304,6 @@ namespace yojimbo
 
     void NetworkSimulator::AdvanceTime( double time )
     {
-        assert( time >= m_time );
-
         m_time = time;
 
         UpdatePendingReceivePackets();

@@ -156,7 +156,7 @@ namespace yojimbo
 
     private:
 
-        SocketError m_error;										///< The socket error level.
+        SocketError m_error;                                        ///< The socket error level.
 
         Address m_address;                                          ///< The address the socket is bound on. If the socket was bound to 0, the port number is resolved to the actual port number assigned by the system.
         

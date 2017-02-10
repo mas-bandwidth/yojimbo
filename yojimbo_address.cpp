@@ -166,7 +166,7 @@ namespace yojimbo
         if ( address[0] == '[' )
         {
             const int base_index = addressLength - 1;
-            for ( int i = 0; i < 6; ++i )                                       // note: no need to search past 6 characters as ":65535" is longest port value
+            for ( int i = 0; i < 6; ++i )                 // note: no need to search past 6 characters as ":65535" is longest port value
             {
                 const int index = base_index - i;
                 if ( index < 3 )
@@ -182,6 +182,7 @@ namespace yojimbo
         struct in6_addr sockaddr6;
         if ( inet_pton( AF_INET6, address, &sockaddr6 ) == 1 )
         {
+            // todo: should convert this to local byte order
             memcpy( m_address.ipv6, &sockaddr6, 16 );
             m_type = ADDRESS_IPV6;
             return;
@@ -193,7 +194,7 @@ namespace yojimbo
 
         addressLength = (int) strlen( address );
         const int base_index = addressLength - 1;
-        for ( int i = 0; i < 6; ++i )                                           // note: no need to search past 6 characters as ":65535" is longest port value
+        for ( int i = 0; i < 6; ++i )
         {
             const int index = base_index - i;
             if ( index < 0 )
@@ -209,6 +210,7 @@ namespace yojimbo
         if ( inet_pton( AF_INET, address, &sockaddr4.sin_addr ) == 1 )
         {
             m_type = ADDRESS_IPV4;
+            // todo: should convert this to local byte order
             m_address.ipv4 = sockaddr4.sin_addr.s_addr;
         }
         else
