@@ -258,13 +258,16 @@ namespace yojimbo
         ResetContextMappings();
         ResetEncryptionMappings();
 
-        if ( m_allocateNetworkSimulator )
+        if ( m_networkSimulator )
         {
-            m_networkSimulator->DiscardPackets();
-        }
-        else
-        {
-            m_networkSimulator->DiscardPacketsFromAddress( m_address );
+            if ( m_allocateNetworkSimulator )
+            {
+                m_networkSimulator->DiscardPackets();
+            }
+            else
+            {
+                m_networkSimulator->DiscardPacketsFromAddress( m_address );
+            }
         }
     }
 
