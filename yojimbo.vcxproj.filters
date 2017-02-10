@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="tlsf">
+      <UniqueIdentifier>{1E869E7C-0ABD-9F0D-B3A9-85109FBF1B0F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tlsf\tlsf.h">
+      <Filter>tlsf</Filter>
+    </ClInclude>
+    <ClInclude Include="yojimbo.h" />
+    <ClInclude Include="yojimbo_address.h" />
+    <ClInclude Include="yojimbo_allocator.h" />
+    <ClInclude Include="yojimbo_bit_array.h" />
+    <ClInclude Include="yojimbo_bitpack.h" />
+    <ClInclude Include="yojimbo_channel.h" />
+    <ClInclude Include="yojimbo_client.h" />
+    <ClInclude Include="yojimbo_client_server_packets.h" />
+    <ClInclude Include="yojimbo_common.h" />
+    <ClInclude Include="yojimbo_config.h" />
+    <ClInclude Include="yojimbo_connection.h" />
+    <ClInclude Include="yojimbo_encryption.h" />
+    <ClInclude Include="yojimbo_matcher.h" />
+    <ClInclude Include="yojimbo_message.h" />
+    <ClInclude Include="yojimbo_network.h" />
+    <ClInclude Include="yojimbo_network_simulator.h" />
+    <ClInclude Include="yojimbo_packet.h" />
+    <ClInclude Include="yojimbo_packet_processor.h" />
+    <ClInclude Include="yojimbo_platform.h" />
+    <ClInclude Include="yojimbo_queue.h" />
+    <ClInclude Include="yojimbo_replay_protection.h" />
+    <ClInclude Include="yojimbo_sequence_buffer.h" />
+    <ClInclude Include="yojimbo_serialize.h" />
+    <ClInclude Include="yojimbo_server.h" />
+    <ClInclude Include="yojimbo_sockets.h" />
+    <ClInclude Include="yojimbo_stream.h" />
+    <ClInclude Include="yojimbo_tokens.h" />
+    <ClInclude Include="yojimbo_transport.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="tlsf\tlsf.c">
+      <Filter>tlsf</Filter>
+    </ClCompile>
+    <ClCompile Include="yojimbo.cpp" />
+    <ClCompile Include="yojimbo_address.cpp" />
+    <ClCompile Include="yojimbo_allocator.cpp" />
+    <ClCompile Include="yojimbo_channel.cpp" />
+    <ClCompile Include="yojimbo_client.cpp" />
+    <ClCompile Include="yojimbo_common.cpp" />
+    <ClCompile Include="yojimbo_connection.cpp" />
+    <ClCompile Include="yojimbo_encryption.cpp" />
+    <ClCompile Include="yojimbo_matcher.cpp" />
+    <ClCompile Include="yojimbo_network.cpp" />
+    <ClCompile Include="yojimbo_network_simulator.cpp" />
+    <ClCompile Include="yojimbo_packet.cpp" />
+    <ClCompile Include="yojimbo_packet_processor.cpp" />
+    <ClCompile Include="yojimbo_platform.cpp" />
+    <ClCompile Include="yojimbo_server.cpp" />
+    <ClCompile Include="yojimbo_sockets.cpp" />
+    <ClCompile Include="yojimbo_tokens.cpp" />
+    <ClCompile Include="yojimbo_transport.cpp" />
+  </ItemGroup>
+</Project>
