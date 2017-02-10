@@ -5,6 +5,7 @@
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filter
+*.vcxproj.filters
 *.sln
 
 # Makefiles
