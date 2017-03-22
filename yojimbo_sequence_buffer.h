@@ -263,15 +263,26 @@ namespace yojimbo
             Otherwise, if when entries are added with holes (eg. receive buffer for packets or messages, where not all sequence numbers are added to the buffer because we have high packet loss), 
             and we are extremely unlucky, we can have old sequence buffer entries from the previous sequence # wrap around still in the buffer, which corrupts our internal connection state.
 
-            This actually happens in the soak test at high packet loss levels (>90%). It took me days to track it down :)
+            This actually happened in the soak test at high packet loss levels (>90%). It took me days to track it down :)
          */
 
         void RemoveEntries( int start_sequence, int finish_sequence )
         {
             if ( finish_sequence < start_sequence ) 
                 finish_sequence += 65535;
-            for ( int sequence = start_sequence; sequence <= finish_sequence; ++sequence )
-                m_entry_sequence[sequence % m_size] = 0xFFFFFFFF;
+
+            assert( finish_sequence >= start_sequence );
+
+            if ( finish_sequence - start_sequence < m_size )
+            {
+                for ( int sequence = start_sequence; sequence <= finish_sequence; ++sequence )
+                    m_entry_sequence[sequence % m_size] = 0xFFFFFFFF;
+            }
+            else
+            {
+                for ( int i = 0; i < m_size; ++i )
+                    m_entry_sequence[i] = 0xFFFFFFFF;
+            }
         }
 
     private:
