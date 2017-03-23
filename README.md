@@ -26,15 +26,15 @@ You can support Glenn's work writing articles and open source code via [Patreon]
 
 **libyojimbo** is generously sponsored by:
 
-* Gold Sponsors
- - [Cloud Imperium Games](https://cloudimperiumgames.com)
- 
-* Silver Sponsors
- - [The Network Protocol Company](http://www.thenetworkprotocolcompany.com)
-
-* Bronze Sponsors
- - [Kite & Lightning](http://kiteandlightning.la/)
- - [Data Realms](http://datarealms.com)
+* **Gold Sponsors**
+    * [Cloud Imperium Games](https://cloudimperiumgames.com)
+    
+* **Silver Sponsors**
+    * [The Network Protocol Company](http://www.thenetworkprotocolcompany.com)
+    
+* **Bronze Sponsors**
+    * [Kite & Lightning](http://kiteandlightning.la/)
+    * [Data Realms](http://datarealms.com)
  
 And by individual supporters on [Patreon](http://www.patreon.com/gafferongames). Thank you. You make this possible!
 
