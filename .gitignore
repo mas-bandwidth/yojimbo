@@ -18,7 +18,7 @@ Makefile
 *.zip
 *.tar.gz
 
-# Sublime text 3
+# Sublime text
 *.sublime-project
 *.sublime-workspace
 
