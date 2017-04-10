@@ -28,6 +28,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_packet.h"
 #include "yojimbo_tokens.h"
+#include "yojimbo_connection.h"
 
 /** @file */
 
