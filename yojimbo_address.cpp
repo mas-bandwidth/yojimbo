@@ -23,7 +23,6 @@
 */
 
 #include "yojimbo_config.h"
-#include "yojimbo_address.h"
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
@@ -49,7 +48,6 @@
     #include <sys/types.h>
     #include <sys/socket.h>
     #include <netinet/in.h>
-    #include <ifaddrs.h>
     #include <net/if.h>
     #include <fcntl.h>
     #include <netdb.h>
@@ -65,6 +63,9 @@
 
 #include <memory.h>
 #include <string.h>
+
+#include "yojimbo_address.h"
+
 
 namespace yojimbo
 {
