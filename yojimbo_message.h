@@ -322,6 +322,17 @@ namespace yojimbo
         }
 
         /**
+            Get a constant pointer to the block data.
+
+            @returns A constant pointer to the block data. NULL if no block is attached.
+         */
+
+        const uint8_t * GetBlockData() const
+        {
+            return m_blockData;
+        }
+
+        /**
             Get the size of the block attached to this message.
 
             @returns The size of the block (bytes). 0 if no block is attached.
