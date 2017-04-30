@@ -23,7 +23,6 @@
 */
 
 #include "yojimbo_config.h"
-#include "yojimbo_network.h"
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
@@ -59,6 +58,7 @@
     
 #endif
 
+#include "yojimbo_network.h"
 #include <memory.h>
 #include <string.h>
 

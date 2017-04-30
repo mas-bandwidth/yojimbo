@@ -23,7 +23,6 @@
 */
 
 #include "yojimbo_config.h"
-#include "yojimbo_sockets.h"
 
 #if YOJIMBO_SOCKETS
 
@@ -64,6 +63,8 @@
     #error yojimbo unknown platform!
 
 #endif
+
+#include "yojimbo_sockets.h"
 
 #include <memory.h>
 #include <string.h>

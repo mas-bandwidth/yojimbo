@@ -18,9 +18,9 @@ Makefile
 *.zip
 *.tar.gz
 
-# Sublime text 3
-yojimbo.sublime-project
-yojimbo.sublime-workspace
+# Sublime text
+*.sublime-project
+*.sublime-workspace
 
 # Directories we don't ever want to commit
 bin
