@@ -148,7 +148,7 @@ namespace yojimbo
         }
 
         /**
-            Does an entry exists for a sequence number?
+            Does an entry exist for a sequence number?
 
             @param sequence The sequence number.
 

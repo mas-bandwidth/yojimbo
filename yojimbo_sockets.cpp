@@ -256,7 +256,7 @@ namespace yojimbo
             socket_address.sin_family = AF_INET;
             socket_address.sin_addr.s_addr = to.GetAddress4();
             socket_address.sin_port = htons( (unsigned short) to.GetPort() );
-            sendto( m_socket, (const char*)packetData, (int) packetBytes, 0, (sockaddr*)&socket_address, sizeof(sockaddr_in) );
+            sendto( m_socket, (const char*)packetData, (int) packetBytes, 0, (sockaddr*)&socket_address, sizeof( sockaddr_in ) );
         }
     }
 
