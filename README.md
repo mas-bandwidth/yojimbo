@@ -30,6 +30,7 @@ You can support Glenn's work writing articles and open source code via [Patreon]
     * [Cloud Imperium Games](https://cloudimperiumgames.com)
     
 * **Silver Sponsors**
+    * [Moon Studios](http://www.oriblindforest.com/#!moon-3/)
     * [The Network Protocol Company](http://www.thenetworkprotocolcompany.com)
     
 * **Bronze Sponsors**
