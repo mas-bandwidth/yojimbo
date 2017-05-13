@@ -34,11 +34,6 @@ namespace yojimbo
 {
     /**
         The set of client states.
-        
-        @see Client::GetClientState
-        @see Client::IsConnecting
-        @see Client::IsConnected
-        @see Client::ConnectedFailed
      */
 
     enum ClientState
@@ -50,7 +45,7 @@ namespace yojimbo
     };
 
     /** 
-        Interface common to all client implementations.
+        Client interface.
      */
 
     class ClientInterface
@@ -62,13 +57,11 @@ namespace yojimbo
         /**
             Set the context for reading and writing packets.
 
-            This lets you pass in a pointer to some structure that you want to have available when reading and writing packets.
+            This is optional. It lets you pass in a pointer to some structure that you want to have available when reading and writing packets via Stream::GetContext.
 
             Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
 
-            If you do use a user context, make sure the same context data is set on client and server, and include a checksum of the context data in the protocol id.
-
-            @see Stream::GetContext
+            If you do use a context, make sure the same context data is set on client and server, and include a checksum of the context data in the protocol id.
          */
 
         virtual void SetContext( void * context ) = 0;
@@ -158,12 +151,47 @@ namespace yojimbo
         virtual int GetClientIndex() const = 0;
 
         /**
-            Gets the current client time.
+            Get the current client time.
 
             @see Client::AdvanceTime
          */
 
         virtual double GetTime() const = 0;
+
+        /**
+            Get the protocol id.
+         */
+
+        virtual uint64_t GetProtocolId() const = 0;
+    };
+
+    /**
+        Functionality shared across all client implementations.
+     */
+
+    class BaseClient : public ClientInterface
+    {
+    public:
+
+        /**
+            The base client constructor.
+
+            @param allocator The allocator for all memory used by the client.
+            @param config The base client/server configuration.
+            @param time The current time in seconds. See Client::AdvanceTime
+         */
+
+        explicit BaseClient( Allocator & allocator, const ClientServerConfig & config, double time );
+
+        // ...
+
+    protected:
+
+        // ...
+
+    private:
+
+        // ...
     };
 }
 
