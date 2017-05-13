@@ -29,6 +29,8 @@
 #include <inttypes.h>
 #include <time.h>
 
+#if 0 // todo
+
 namespace yojimbo
 {
     void Server::Defaults()
@@ -1348,3 +1350,5 @@ namespace yojimbo
         return false; 
     }
 }
+
+#endif

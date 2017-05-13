@@ -46,6 +46,8 @@ const int ServerPort = 40000;
 static bool verbose_logging = false;
 #endif // #if LOGGING
 
+#if 0 // todo
+
 struct TestPacketA : public Packet
 {
     int a,b,c;
@@ -164,6 +166,8 @@ YOJIMBO_PACKET_FACTORY_START( TestPacketFactory, ClientServerPacketFactory, NUM_
     YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_C, TestPacketC );
     YOJIMBO_DECLARE_PACKET_TYPE( TEST_USER_PACKET, TestUserPacket );
 YOJIMBO_PACKET_FACTORY_FINISH();
+
+#endif
 
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
@@ -310,6 +314,17 @@ public:
         if ( clientId == 0 )
             return false;
 
+        (void) tokenData;
+        (void) tokenNonce;
+        (void) clientToServerKey;
+        (void) serverToClientKey;
+        (void) connectTokenExpireTimestamp;
+        (void) numServerAddresses;
+        (void) serverAddresses;
+        (void) timestampOffsetInSeconds;
+        (void) serverPortOverride;
+
+#if 0 // todo
         numServerAddresses = 1;
         serverAddresses[0] = Address( "::1", serverPortOverride == -1 ? ServerPort : serverPortOverride );
 
@@ -331,6 +346,8 @@ public:
 
         m_nonce++;
 
+#endif // #if 0
+
         return true;
     }
 };
@@ -338,6 +355,8 @@ public:
 #endif // #if MATCHER
 
 #if SERVER
+
+#if 0 // todo
 
 class GameServer : public Server
 {
@@ -571,9 +590,13 @@ protected:
 #endif // #if LOGGING
 };
 
+#endif
+
 #endif // #if SERVER
 
 #if CLIENT
+
+#if 0 // todo
 
 class GameClient : public Client
 {
@@ -699,6 +722,8 @@ protected:
 
 #endif // #if LOGGING
 };
+
+#endif // #if 0
 
 #endif // #if CLIENT
 

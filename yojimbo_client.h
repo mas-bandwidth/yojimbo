@@ -26,14 +26,10 @@
 #define YOJIMBO_CLIENT_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_packet.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_transport.h"
-#include "yojimbo_encryption.h"
 #include "yojimbo_connection.h"
-#include "yojimbo_packet_processor.h"
-#include "yojimbo_client_server_packets.h"
-#include "yojimbo_tokens.h"
+
+#if 0 // todo
 
 /** @file */
 
@@ -816,5 +812,7 @@ namespace yojimbo
     {                                                                                                   \
         return YOJIMBO_NEW( allocator, message_factory_class, allocator );                              \
     }
+
+#endif
 
 #endif // #ifndef YOJIMBO_CLIENT_H

@@ -25,7 +25,6 @@
 #ifndef YOJIMBO_CONNECTION_H
 #define YOJIMBO_CONNECTION_H
 
-#include "yojimbo_packet.h"
 #include "yojimbo_message.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_channel.h"
@@ -85,6 +84,8 @@ namespace yojimbo
             mask <<= 1;
         }
     }
+
+#if 0 // todo
 
     /** 
         Implements packet level acks and carries messages across a connection.
@@ -472,6 +473,8 @@ namespace yojimbo
 
         Connection & operator = ( const Connection & other );
     };
+
+#endif
 }
 
 #endif // #ifndef YOJIMBO_CONNECTION

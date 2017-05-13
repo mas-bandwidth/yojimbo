@@ -35,9 +35,7 @@
 #include <mbedtls/error.h>
 #include <mbedtls/certs.h>
 
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
+#if 0 // todo
 
 #include "sodium.h"
 
@@ -329,3 +327,5 @@ namespace yojimbo
         return true;
     }
 }
+
+#endif

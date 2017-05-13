@@ -29,6 +29,8 @@
 #include <inttypes.h>
 #include <time.h>
 
+#if 0 // todo
+
 namespace yojimbo
 {
     void Client::Defaults()
@@ -952,3 +954,5 @@ namespace yojimbo
         m_lastPacketReceiveTime = GetTime();
     }
 }
+
+#endif

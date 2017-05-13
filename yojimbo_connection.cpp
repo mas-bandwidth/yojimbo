@@ -25,6 +25,8 @@
 #include "yojimbo_config.h"
 #include "yojimbo_connection.h"
 
+#if 0 // todo
+
 namespace yojimbo
 {
     ConnectionPacket::ConnectionPacket()
@@ -438,3 +440,5 @@ namespace yojimbo
         }
     }
 }
+
+#endif

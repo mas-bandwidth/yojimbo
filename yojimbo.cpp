@@ -51,21 +51,20 @@ bool InitializeYojimbo()
 {
     g_defaultAllocator = new yojimbo::DefaultAllocator();
 
-    assert( yojimbo::NonceBytes == crypto_aead_chacha20poly1305_NPUBBYTES );
-    assert( yojimbo::KeyBytes == crypto_aead_chacha20poly1305_KEYBYTES );
-    assert( yojimbo::MacBytes == crypto_aead_chacha20poly1305_ABYTES );
-    assert( yojimbo::KeyBytes == crypto_secretbox_KEYBYTES );
-    assert( yojimbo::MacBytes == crypto_secretbox_MACBYTES );
-
+    // todo: initialize netcode.io here
+    /*
     if ( !yojimbo::InitializeNetwork() )
         return false;
+        */
 
     return sodium_init() != -1;
 }
 
 void ShutdownYojimbo()
 {
-    yojimbo::ShutdownNetwork();
+    // todo: shutdown netcode.io here
+
+    //yojimbo::ShutdownNetwork();
 
     assert( g_defaultAllocator );
     delete g_defaultAllocator;

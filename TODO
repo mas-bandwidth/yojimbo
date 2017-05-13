@@ -2,34 +2,42 @@ DONE
 
 TODO
 
-    =========================================
+    Tear down yojimbo so I can rebuild it on top of netcode.io and reliable.io
 
-    Where to host the generated documentation?
+    What parts definitely go? 
 
-    How to build it automatically and upload it. Is this possible via travis? Wouldn't this create a security issue? (I can't exactly put KEYS in the source code...)
+        - Transport classes. 
 
-    How do other projects usually do this?
+        - Socket classes etc. 
 
-    =========================================
+        - Connection class w. ack system.
 
-    What's the most important documentation I can write next? Basic usage documentation. 
+        - Packet class. Packet factory.
 
-    This could take some time. Think through it and focus on answering questions on issues for libyojimbo so I can determine what documentation is necessary, and what topics should be covered.
+        - Connect token, challenge token etc.
 
-    =========================================
+        - Client/server packet types and negotiation sequence.
 
-    Packet fragmentation and reassembly.
+        - Encryption manager.
 
-    Definitely needed for large snapshot blocks.
+        - Dependency on rapidjson.
 
-    Default to maximum packet size of 8k, so up to 7 ~1200 MTU packets
+        - Network simulator. netcode.io provides the transport, and the simulator support internally as required.
 
-    Only allow fragmented packets if they are encrypted in secure mode. Unencrypted ones will not be accepted.   
+        - Replay protection. Provided by netcode.io.
 
-    =========================================
+        - Packet processor.
 
-    Implement matcher and extend it to work with redis in real world examples.
+        - Code for CRC32. We don't need it.
 
-    eg. Be a functional matcher that will accept registration information from servers, and match clients to connect to servers.
+    What stays? 
 
-    =========================================
+        - Client/server (although refactored heavily!)
+
+        - Message class. Message factory.
+
+        - Stream classes, bitpacker, serialize functions etc.
+
+        - Channel concept, reliable/unreliable channel types.
+
+        - Address class, for convenience only.

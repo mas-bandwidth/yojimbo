@@ -147,6 +147,8 @@ void test_queue()
     check( queue.GetSize() == QueueSize );
 }
 
+#if 0 // todo
+
 void test_base64()
 {
     const int BufferSize = 256;
@@ -182,6 +184,8 @@ void test_base64()
 
     check( memcmp( key, decoded_key, KeyBytes ) == 0 );
 }
+
+#endif
 
 void test_bitpacker()
 {
@@ -378,27 +382,6 @@ void test_stream()
     readObject.Serialize( readStream );
 
     check( readObject == writeObject );
-}
-
-void test_packets()
-{
-    TestPacketFactory packetFactory;
-
-    TestPacketA * a = (TestPacketA*) packetFactory.Create( TEST_PACKET_A );
-    TestPacketB * b = (TestPacketB*) packetFactory.Create( TEST_PACKET_B );
-    TestPacketC * c = (TestPacketC*) packetFactory.Create( TEST_PACKET_C );
-
-    check( a );
-    check( b );
-    check( c );
-
-    check( a->GetType() == TEST_PACKET_A );
-    check( b->GetType() == TEST_PACKET_B );
-    check( c->GetType() == TEST_PACKET_C );
-
-    a->Destroy();
-    b->Destroy();
-    c->Destroy();
 }
 
 void test_address_ipv4()
@@ -611,372 +594,6 @@ void test_address_ipv6()
     }
 }
 
-void test_packet_sequence()
-{
-    uint64_t sequence = 0x00001100223344;
-
-    uint8_t prefix_byte;
-    uint8_t sequence_bytes[8];
-    int num_sequence_bytes;
-
-    yojimbo::compress_packet_sequence( sequence, prefix_byte, num_sequence_bytes, sequence_bytes );
-
-    check( prefix_byte == ( 1 | (1<<1) | (1<<3) ) );
-
-    check( num_sequence_bytes == 4 );
-
-    check( sequence_bytes[0] == 0x11 );
-    check( sequence_bytes[1] == 0x22 );
-    check( sequence_bytes[2] == 0x33 );
-    check( sequence_bytes[3] == 0x44 );
-
-    int decoded_num_sequence_bytes = yojimbo::get_packet_sequence_bytes( prefix_byte );
-
-    check( decoded_num_sequence_bytes == num_sequence_bytes );
-
-    uint64_t decoded_sequence = yojimbo::decompress_packet_sequence( prefix_byte, sequence_bytes );
-
-    check( decoded_sequence == sequence );
-}
-
-#include <sodium.h>
-
-void test_encrypt_and_decrypt()
-{
-    using namespace yojimbo;
-
-    uint8_t packet[1024];
-  
-    int packet_length = 1;
-    memset( packet, 0, sizeof( packet ) );
-    packet[0] = 1;  
-  
-    uint8_t key[KeyBytes];
-    uint8_t nonce[NonceBytes];
-
-    memset( key, 1, sizeof( key ) );
-    memset( nonce, 1, sizeof( nonce ) );
-
-    uint8_t encrypted_packet[2048];
-
-    int encrypted_length;
-    if ( !Encrypt( packet, packet_length, encrypted_packet, encrypted_length, nonce, key ) )
-    {
-        printf( "error: failed to encrypt\n" );
-        exit(1);
-    }
-
-    const int expected_encrypted_length = 17;
-    const uint8_t expected_encrypted_packet[] = { 0xfa, 0x6c, 0x91, 0xf7, 0xef, 0xdc, 0xed, 0x22, 0x09, 0x23, 0xd5, 0xbf, 0xa1, 0xe9, 0x17, 0x70, 0x14 };
-    if ( encrypted_length != expected_encrypted_length || memcmp( expected_encrypted_packet, encrypted_packet, encrypted_length ) != 0 )
-    {
-        printf( "error: packet encryption failed\n" );
-        exit(1);
-    }
-
-    uint8_t decrypted_packet[2048];
-    int decrypted_length;
-    if ( !Decrypt( encrypted_packet, encrypted_length, decrypted_packet, decrypted_length, nonce, key ) )
-    {
-        printf( "error: failed to decrypt\n" );
-        exit(1);
-    }
-
-    if ( decrypted_length != packet_length || memcmp( packet, decrypted_packet, packet_length ) != 0 )
-    {
-        printf( "error: decrypted packet does not match original packet\n" );
-        exit(1);
-    }
-}
-
-void test_encryption_manager()
-{
-	const double EncryptionMappingTimeout = 5.0f;
-
-    EncryptionManager encryptionManager;
-
-    struct EncryptionMapping
-    {
-        Address address;
-        uint8_t sendKey[KeyBytes];
-        uint8_t receiveKey[KeyBytes];
-    };
-
-    const int NumEncryptionMappings = 5;
-
-    EncryptionMapping encryptionMapping[NumEncryptionMappings];
-
-    double time = 100.0;
-
-    for ( int i = 0; i < NumEncryptionMappings; ++i )
-    {
-        encryptionMapping[i].address = Address( "::1", 20000 + i );
-        GenerateKey( encryptionMapping[i].sendKey );
-        GenerateKey( encryptionMapping[i].receiveKey );
-
-        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
-
-        check( encryptionIndex == -1 );
-
-        check( encryptionManager.GetSendKey( encryptionIndex ) == NULL );
-        check( encryptionManager.GetReceiveKey( encryptionIndex ) == NULL );
-
-        check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time, EncryptionMappingTimeout ) );
-
-        encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
-
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
-
-        check( sendKey );
-        check( receiveKey );
-
-        check( memcmp( sendKey, encryptionMapping[i].sendKey, KeyBytes ) == 0 );
-        check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
-    }
-
-    check( encryptionManager.RemoveEncryptionMapping( Address( "::1", 50000 ), time ) == false );
-
-    check( encryptionManager.RemoveEncryptionMapping( encryptionMapping[0].address, time ) );
-    check( encryptionManager.RemoveEncryptionMapping( encryptionMapping[NumEncryptionMappings-1].address, time ) );
-
-    for ( int i = 0; i < NumEncryptionMappings; ++i )
-    {
-        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
-
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
-
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
-
-        if ( i != 0 && i != NumEncryptionMappings -1 )
-        {
-            check( sendKey );
-            check( receiveKey );
-
-            check( memcmp( sendKey, encryptionMapping[i].sendKey, KeyBytes ) == 0 );
-            check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
-        }
-        else
-        {
-            check( !sendKey );
-            check( !receiveKey );
-        }
-    }
-
-    check( encryptionManager.AddEncryptionMapping( encryptionMapping[0].address, encryptionMapping[0].sendKey, encryptionMapping[0].receiveKey, time, EncryptionMappingTimeout ) );
-    check( encryptionManager.AddEncryptionMapping( encryptionMapping[NumEncryptionMappings-1].address, encryptionMapping[NumEncryptionMappings-1].sendKey, encryptionMapping[NumEncryptionMappings-1].receiveKey, time, EncryptionMappingTimeout ) );
-
-    for ( int i = 0; i < NumEncryptionMappings; ++i )
-    {
-        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
-
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
-
-        check( sendKey );
-        check( receiveKey );
-
-        check( memcmp( sendKey, encryptionMapping[i].sendKey, KeyBytes ) == 0 );
-        check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
-    }
-
-    time += EncryptionMappingTimeout * 2;
-
-    for ( int i = 0; i < NumEncryptionMappings; ++i )
-    {
-        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
-
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
-
-        check( !sendKey );
-        check( !receiveKey );
-    }
-
-    for ( int i = 0; i < NumEncryptionMappings; ++i )
-    {
-        encryptionMapping[i].address = Address( "::1", 20000 + i );
-
-        GenerateKey( encryptionMapping[i].sendKey );
-        GenerateKey( encryptionMapping[i].receiveKey );
-
-        check( encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time ) == -1 );
-        check( encryptionManager.AddEncryptionMapping( encryptionMapping[i].address, encryptionMapping[i].sendKey, encryptionMapping[i].receiveKey, time, EncryptionMappingTimeout ) );
-
-        int encryptionIndex = encryptionManager.FindEncryptionMapping( encryptionMapping[i].address, time );
-
-        const uint8_t * sendKey = encryptionManager.GetSendKey( encryptionIndex );
-        const uint8_t * receiveKey = encryptionManager.GetReceiveKey( encryptionIndex );
-
-        check( sendKey );
-        check( receiveKey );
-
-        check( memcmp( sendKey, encryptionMapping[i].sendKey, KeyBytes ) == 0 );
-        check( memcmp( receiveKey, encryptionMapping[i].receiveKey, KeyBytes ) == 0 );
-    }
-}
-
-void test_client_server_tokens()
-{
-    uint8_t key[KeyBytes];
-
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t challengeTokenData[ChallengeTokenBytes];
-    
-    uint8_t connectTokenNonce[NonceBytes];
-    uint8_t challengeTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnect];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-    memset( challengeTokenNonce, 0, NonceBytes );
-
-    GenerateKey( key );
-
-    numServerAddresses = 1;
-    serverAddresses[0] = Address( "::1", ServerPort );
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
-    uint64_t connectTokenExpireTimestamp;
-
-    {
-        ConnectToken token;
-        GenerateConnectToken( token, clientId, numServerAddresses, serverAddresses, ProtocolId, 10 );
-
-        connectTokenExpireTimestamp = token.expireTimestamp;
-
-        char json[2048];
-
-        check( WriteConnectTokenToJSON( token, json, sizeof( json ) ) );
-
-        check( strlen( json ) > 0 );
-
-        ConnectToken readToken;
-        check( ReadConnectTokenFromJSON( json, readToken ) );
-        check( token == readToken );
-
-        memcpy( clientToServerKey, token.clientToServerKey, KeyBytes );
-        memcpy( serverToClientKey, token.serverToClientKey, KeyBytes );
-
-        if ( !EncryptConnectToken( token, connectTokenData, connectTokenNonce, key ) )
-        {
-            printf( "error: failed to encrypt connect token\n" );
-            exit( 1 );
-        }
-    }
-
-    ConnectToken connectToken;
-    if ( !DecryptConnectToken( connectTokenData, connectToken, connectTokenNonce, key, connectTokenExpireTimestamp ) )
-    {
-        printf( "error: failed to decrypt connect token\n" );
-        exit( 1 );
-    }
-
-    check( connectToken.clientId == clientId );
-    check( connectToken.numServerAddresses == 1 );
-    check( connectToken.serverAddresses[0] == Address( "::1", ServerPort ) );
-    check( memcmp( connectToken.clientToServerKey, clientToServerKey, KeyBytes ) == 0 );
-    check( memcmp( connectToken.serverToClientKey, serverToClientKey, KeyBytes ) == 0 );
-
-    Address clientAddress( "::1", ClientPort );
-
-    ChallengeToken challengeToken;
-    if ( !GenerateChallengeToken( connectToken, connectTokenData, challengeToken ) )
-    {
-        printf( "error: failed to generate challenge token\n" );
-        exit( 1 );
-    }
-
-    if ( !EncryptChallengeToken( challengeToken, challengeTokenData, challengeTokenNonce, key ) )
-    {
-        printf( "error: failed to encrypt challenge token\n" );
-        exit( 1 );
-    }
-
-    ChallengeToken decryptedChallengeToken;
-    if ( !DecryptChallengeToken( challengeTokenData, decryptedChallengeToken, challengeTokenNonce, key ) )
-    {
-        printf( "error: failed to decrypt challenge token\n" );
-        exit( 1 );
-    }
-
-    check( challengeToken.clientId == clientId );
-    check( memcmp( challengeToken.connectTokenMac, connectTokenData, MacBytes ) == 0 );
-}
-
-void test_unencrypted_packets()
-{
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
-
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
-    double time = 100.0;
-
-    TestPacketFactory packetFactory;
-
-    TransportContext context( GetDefaultAllocator(), packetFactory );
-
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
-
-    clientTransport.SetContext( context );
-    serverTransport.SetContext( context );
-
-    clientTransport.EnablePacketEncryption();
-    serverTransport.EnablePacketEncryption();
-
-    check( clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_KEEPALIVE ) );
-    check( serverTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_KEEPALIVE ) );
-
-    clientTransport.DisableEncryptionForPacketType( CLIENT_SERVER_PACKET_KEEPALIVE );
-
-    check( !clientTransport.IsEncryptedPacketType( CLIENT_SERVER_PACKET_KEEPALIVE ) );
-
-    const int NumIterations = 32;
-
-    int numPacketsReceived = 0;
-
-    for ( int i = 0; i < NumIterations; ++i )
-    {
-        Packet * sendPacket = packetFactory.Create( CLIENT_SERVER_PACKET_KEEPALIVE );
-        check( sendPacket );
-        clientTransport.SendPacket( serverAddress, sendPacket, 0, false );
-
-        clientTransport.WritePackets();
-
-        serverTransport.ReadPackets();
-
-        while ( true )
-        {
-            Address address;
-            uint64_t sequence;
-            Packet * packet = serverTransport.ReceivePacket( address, &sequence );
-            if ( !packet )
-                break;
-            if ( packet->GetType() == CLIENT_SERVER_PACKET_KEEPALIVE )
-                numPacketsReceived++;
-        }
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
-
-        time += 0.1;
-    }
-
-    check( numPacketsReceived == 0 );
-}
-
 void test_allocator_tlsf()
 {
     const int NumBlocks = 256;
@@ -1026,6 +643,8 @@ void test_allocator_tlsf()
 
     free( memory );
 }
+
+#if 0 // todo
 
 void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports, float deltaTime = 0.1f )
 {
@@ -2702,41 +2321,7 @@ void test_client_server_insecure_secure_insecure_secure()
 
 #endif // #if !YOJIMBO_SECURE_MODE
 
-void test_matcher()
-{
-    uint8_t key[] = { 0x60,0x6a,0xbe,0x6e,0xc9,0x19,0x10,0xea,0x9a,0x65,0x62,0xf6,0x6f,0x2b,0x30,0xe4,0x43,0x71,0xd6,0x2c,0xd1,0x99,0x27,0x26,0x6b,0x3c,0x60,0xf4,0xb7,0x15,0xab,0xa1 };
-
-    // test base64 decrypt from matcher.go
-
-    {
-        char serverAddress[MaxAddressLength];
-
-        const char serverAddressBase64[] = "MTI3LjAuMC4xOjUwMDAwAA==";
-
-        base64_decode_string( serverAddressBase64, serverAddress, sizeof( serverAddress ) );
-
-        check( strcmp( serverAddress, "127.0.0.1:50000" ) == 0 );
-    }
-
-    // test base64 encoded connect token from matcher.go
-
-    {
-        const char encryptedConnectTokenBase64[] = "3P9n5y1P/bifBaauDT3ASH1LkRTKP6/WpayDb8sTiTW7dGWnr5WWH1odwBCu4b6c/GkZW24OZbFVOBcCXJF8n3J02o52/sZXMPRNFOBp4aZiicZn/m7gJ8sHJgWZUc67KwTPzZjtSBmUhiMrKKgQOunazQegrSiZmdVvxXEzrySzX8stFV6+VdjYqguoM5hE0JJxCWAlcHVQWiJ8zeYbg2gnBx7AGllNrTQa8E0J2N149ar2Bx38ucDe+W1TPup3V+I9IA4jEK7C1Q1chPgbgcR6utTJSNYxNuy+Vg5YOWq0Om/jAd8wj+3PlaDkjplX3RGmUxTzCfJLahCB41peV2XGaprQOA9T0Ui/lZ2x28GiPUZlg4rVXj+wojgIe7TyCmQf7m6TkQpMgLzaQ4I7KcVfv+fbhwHK0rB78/KhWATaJPdS/yiB2z3ZDzqMHeRyE+8gg7DYIIPB50gJOer4NBe6Z8musO9lkw5MtPR6tqohStSygJXMaKzoHTO6Fgd7WkL30tbLMvg7P6GBSafGUXEdHKboI6TlREY0nxcDZBn5DW9mF/x+8iaVzlX9M1I8UZehKUtH62VDKicdS0ILlrOaTMjH2+fRrr3DyMbGFT4irNLWsazJIeHGvklFCQWrCiY5vTfLrETyH3VQQiToxjbXqoRFxIH+Zx6i4QzTTXMXXx0b+1pZbx0rdNh4/X95GAxA5MwDCNmapvZcW57+fwgg2xI/RekqgQyhBFtaLaGjpfOqjLp2G1uMOZjsAo2J2w5oz7n5C7P40jqDG0hapq6suR3Xov+2Focy4qxKW7qr5jfO1Rd4h4ZH4yBfdJ9xGXtHETOnDIVNJNmfdJhk9o6aLEKAnNFcpBAqqfuLgQfEpTd5mQZaiOFLvpJN/yGcTJrZMg4+mH+nCw0o44cpBmIqunJMPIJnd/4Kse5q8WM8P5cG6MjR+RIxaSyUDdgIaxof2UCP6SCx90W1PhdT465PFbZaeJT4Ji4b9Gm++ku4bwLJ+BwIJh9L87loJUu8Z6iGSRop4rZNobstIzeyoYnGv1MZrcmHspa5mJbpFsMn5XTgQR+3nwt3614GEOy2f8cRWU43bTC0FvbEf+1CsO6Oyu5gDyGs7SRAp9GdYn+0hLPv/gmW+5sVgr392xwpooHTNLQb1PfNnhQeol1l0KSc+MPk9olpXNDvBtijWaiFE+SEnZEmO6Ls8KiCHgu9iLVxwrQHHY3ukFvUbPgvI9gVH4o3UnezOo3JLMUFPm9v9QhBY4H8hLDsg3QrcVHgOQhfpd7V6BOGdyUNtvYT3NrfJBUfVahu6bAP1EcdHxy8wWVSnLnYOTPFob9KgORtKAqkJrsLAINXLhrD3oR+kg==";
-
-        uint8_t encryptedConnectToken[ConnectTokenBytes];
-
-        int encryptedLength = base64_decode_data( encryptedConnectTokenBase64, encryptedConnectToken, ConnectTokenBytes );
-
-        check( encryptedLength == ConnectTokenBytes );
-
-        uint8_t nonce[] = { 0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00  };
-
-        uint64_t expireTimestamp = 1477934054ULL;
-
-        ConnectToken connectToken;
-        check( DecryptConnectToken( encryptedConnectToken, connectToken, (const uint8_t*) &nonce, key, expireTimestamp ) );
-    }
-}
+#endif
 
 void test_bit_array()
 {
@@ -2862,207 +2447,7 @@ void test_sequence_buffer()
         check( sequence_buffer.Find(i) == NULL );
 }
 
-void test_replay_protection()
-{
-    ReplayProtection replayProtection;
-
-    for ( int i = 0; i < 2; ++i )
-    {
-        check( replayProtection.GetMostRecentSequence() == 0 );
-
-        // sequence numbers with high bit set should be ignored
-
-        check( replayProtection.PacketAlreadyReceived( 1ULL<<63 ) == false );
-
-        check( replayProtection.GetMostRecentSequence() == 0 );
-
-        // the first time we receive packets, they should not be already received
-
-        const uint64_t MaxSequence = ReplayProtectionBufferSize * 4;
-
-        for ( uint64_t sequence = 0; sequence < MaxSequence; ++sequence )
-        {
-            check( replayProtection.PacketAlreadyReceived( sequence ) == false );
-        }
-
-        // old packets outside buffer should be considered already received
-
-        check( replayProtection.PacketAlreadyReceived( 0 ) == true );
-
-        // packets received a second time should be flagged already received
-
-        for ( uint64_t sequence = MaxSequence - 10; sequence < MaxSequence; ++sequence )
-        {
-            check( replayProtection.PacketAlreadyReceived( sequence ) == true );
-        }
-
-        // jumping ahead to a much higher sequence should be considered not already received
-
-        check( replayProtection.PacketAlreadyReceived( MaxSequence + ReplayProtectionBufferSize ) == false );
-
-        // old packets should be considered already received
-
-        for ( uint64_t sequence = 0; sequence < MaxSequence; ++sequence )
-        {
-            check( replayProtection.PacketAlreadyReceived( sequence ) == true );
-        }
-
-        // reset and repeat
-
-        replayProtection.Reset();
-    }
-}
-
-void test_generate_ack_bits()
-{
-    const int Size = 256;
-
-    SequenceBuffer<TestSequenceData> received_packets( GetDefaultAllocator(), Size );
-
-    uint16_t ack = 0xFFFF;
-    uint32_t ack_bits = 0xFFFF;
-
-    GenerateAckBits( received_packets, ack, ack_bits );
-    check( ack == 0xFFFF );
-    check( ack_bits == 0 );
-
-    for ( int i = 0; i <= Size; ++i )
-        received_packets.Insert( i );
-
-    GenerateAckBits( received_packets, ack, ack_bits );
-    check( ack == Size );
-    check( ack_bits == 0xFFFFFFFF );
-
-    received_packets.Reset();
-    uint16_t input_acks[] = { 1, 5, 9, 11 };
-    int input_num_acks = sizeof( input_acks ) / sizeof( uint16_t );
-    for ( int i = 0; i < input_num_acks; ++i )
-        received_packets.Insert( input_acks[i] );
-
-    GenerateAckBits( received_packets, ack, ack_bits );
-
-    check( ack == 11 );
-    check( ack_bits == ( 1 | (1<<(11-9)) | (1<<(11-5)) | (1<<(11-1)) ) );
-}
-
-class TestConnection : public Connection
-{
-    int * m_ackedPackets;
-
-public:
-
-    TestConnection( PacketFactory & packetFactory, MessageFactory & messageFactory, ConnectionConfig & connectionConfig ) : Connection( GetDefaultAllocator(), packetFactory, messageFactory, connectionConfig )
-    {
-        m_ackedPackets = NULL;
-    }
-
-    void SetAckedPackets( int * ackedPackets )
-    {
-        m_ackedPackets = ackedPackets;
-    }
-
-    virtual void OnPacketAcked( uint16_t sequence )
-    {
-        Connection::OnPacketAcked( sequence );
-
-        if ( m_ackedPackets )
-            m_ackedPackets[sequence] = true;
-    }
-};
-
-void test_connection_counters()
-{
-    TestPacketFactory packetFactory;
-
-    TestMessageFactory messageFactory;
-
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
-
-    TestConnection connection( packetFactory, messageFactory, connectionConfig );
-
-    const int NumAcks = 100;
-
-    for ( int i = 0; i < NumAcks * 2; ++i )
-    {
-        ConnectionPacket * packet = connection.GeneratePacket();
-
-        check( packet );
-
-        check( connection.ProcessPacket( packet ) );
-
-        packet->Destroy();
-        packet = NULL;
-
-        if ( connection.GetCounter( CONNECTION_COUNTER_PACKETS_ACKED ) >= NumAcks )
-            break;
-    }
-
-    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_ACKED ) == NumAcks );
-    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_GENERATED ) == NumAcks + 1 );
-    check( connection.GetCounter( CONNECTION_COUNTER_PACKETS_PROCESSED ) == NumAcks + 1 );
-}
-
-void test_connection_acks()
-{
-    const int NumIterations = 10 * 1024;
-
-    int receivedPackets[NumIterations];
-    int ackedPackets[NumIterations];
-
-    memset( receivedPackets, 0, sizeof( receivedPackets ) );
-    memset( ackedPackets, 0, sizeof( ackedPackets ) );
-
-    TestPacketFactory packetFactory;
-
-    TestMessageFactory messageFactory;
-
-    ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
-
-    TestConnection connection( packetFactory, messageFactory, connectionConfig );
-
-    connection.SetAckedPackets( ackedPackets );
-
-    for ( int i = 0; i < NumIterations; ++i )
-    {
-        ConnectionPacket * packet = connection.GeneratePacket();
-
-        check( packet );
-
-        if ( rand() % 100 == 0 )
-        {
-            connection.ProcessPacket( packet );
-
-            if ( packet )
-            {
-                uint16_t sequence = packet->sequence;
-
-                receivedPackets[sequence] = true;
-            }
-        }
-
-        packet->Destroy();
-        packet = NULL;
-    }
-
-    int numAckedPackets = 0;
-    int numReceivedPackets = 0;
-    for ( int i = 0; i < NumIterations; ++i )
-    {
-        if ( ackedPackets[i] )
-            numAckedPackets++;
-
-        if ( receivedPackets[i] )
-            numReceivedPackets++;
-
-        if ( ackedPackets[i] && !receivedPackets[i] )
-            check( false );
-    }
-
-    check( numAckedPackets > 0 );
-    check( numReceivedPackets >= numAckedPackets );
-}
+#if 0 // todo
 
 void PumpConnectionUpdate( double & time, Connection & sender, Connection & receiver, Transport & senderTransport, Transport & receiverTransport, float deltaTime = 0.1f )
 {
@@ -3770,6 +3155,10 @@ void test_connection_unreliable_unordered_blocks()
     check( numMessagesReceived == NumMessagesSent );
 }
 
+#endif
+
+#if 0 // todo
+
 void SendClientToServerMessages( Client & client, int numMessagesToSend )
 {
     for ( int i = 0; i < numMessagesToSend; ++i )
@@ -4425,6 +3814,8 @@ void test_client_server_message_receive_queue_full()
     server.Stop();
 }
 
+#endif
+
 #define RUN_TEST( test_function )                                           \
     do                                                                      \
     {                                                                       \
@@ -4453,49 +3844,15 @@ int main()
     {
         RUN_TEST( test_endian );
         RUN_TEST( test_queue );
-        RUN_TEST( test_base64 );
+        //RUN_TEST( test_base64 );
         RUN_TEST( test_bitpacker );
         RUN_TEST( test_stream );
-        RUN_TEST( test_packets );
         RUN_TEST( test_address_ipv4 );
         RUN_TEST( test_address_ipv6 );
-        RUN_TEST( test_packet_sequence );
-        RUN_TEST( test_encrypt_and_decrypt );
-        RUN_TEST( test_encryption_manager );
-        RUN_TEST( test_unencrypted_packets );
         RUN_TEST( test_allocator_tlsf );
-        RUN_TEST( test_client_server_tokens );
-        RUN_TEST( test_client_server_connect );
-        RUN_TEST( test_client_server_reconnect );
-        RUN_TEST( test_client_server_keep_alive );
-        RUN_TEST( test_client_server_client_side_disconnect );
-        RUN_TEST( test_client_server_server_side_disconnect );
-        RUN_TEST( test_client_server_connection_request_timeout );
-        RUN_TEST( test_client_server_connection_response_timeout );
-        RUN_TEST( test_client_server_client_side_timeout );
-        RUN_TEST( test_client_server_server_side_timeout );
-        RUN_TEST( test_client_server_server_is_full );
-        RUN_TEST( test_client_server_connect_token_reuse );
-        RUN_TEST( test_client_server_connect_token_expired );
-        RUN_TEST( test_client_server_connect_token_whitelist );
-        RUN_TEST( test_client_server_connect_token_invalid );
-        RUN_TEST( test_client_server_connect_address_already_connected );
-        RUN_TEST( test_client_server_connect_client_id_already_connected );
-        RUN_TEST( test_client_server_connect_multiple_servers );
-        RUN_TEST( test_client_server_user_packets );
-#if !YOJIMBO_SECURE_MODE
-        RUN_TEST( test_client_server_insecure_connect );
-        RUN_TEST( test_client_server_insecure_connect_multiple_servers );
-        RUN_TEST( test_client_server_insecure_connect_timeout );
-        RUN_TEST( test_client_server_insecure_secure_insecure_secure );
-#endif // #if !YOJIMBO_SECURE_MODE
-        RUN_TEST( test_matcher );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
-        RUN_TEST( test_replay_protection );
-        RUN_TEST( test_generate_ack_bits );
-        RUN_TEST( test_connection_counters );
-        RUN_TEST( test_connection_acks );
+        /*
         RUN_TEST( test_connection_reliable_ordered_messages );
         RUN_TEST( test_connection_reliable_ordered_blocks );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks );
@@ -4508,6 +3865,7 @@ int main()
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_full );
+        */
 
 #if SOAK
         if ( quit )
