@@ -29,6 +29,8 @@
 
 #include "shared.h"
 
+#if 0 // TODO
+
 int ClientServerMain()
 {
     LocalMatcher matcher;
@@ -155,4 +157,14 @@ int main()
     printf( "\n" );
 
     return result;
+}
+
+#endif
+
+int main( int argc, char * argv[] )
+{
+    (void)argc;
+    (void)argv;
+    printf( "\nclient/server\n\n" );
+    return 0;
 }

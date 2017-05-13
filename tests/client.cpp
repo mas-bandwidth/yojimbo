@@ -28,6 +28,8 @@
 #include "shared.h"
 #include <signal.h>
 
+#if 0 // todo
+
 #if !YOJIMBO_SECURE_MODE
 
 static volatile int quit = 0;
@@ -145,4 +147,15 @@ int main( int argc, char * argv[] )
 }
 
 #endif // #if !YOJIMBO_SECURE_MODE
+
+#endif
+
+int main( int argc, char * argv[] )
+{
+    (void)argc;
+    (void)argv;
+    printf( "\nclient\n\n" );
+    return 0;
+}
+
 

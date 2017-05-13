@@ -28,6 +28,8 @@
 #include "shared.h"
 #include <signal.h>
 
+#if 0 // TODO
+
 static volatile int quit = 0;
 
 void interrupt_handler( int /*dummy*/ )
@@ -110,4 +112,14 @@ int main()
     printf( "\n" );
 
     return result;
+}
+
+#endif
+
+int main( int argc, char * argv[] )
+{
+    (void)argc;
+    (void)argv;
+    printf( "\nsecure server\n\n" );
+    return 0;
 }

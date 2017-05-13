@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.4.0"
+libyojimbo_version = "0.5.0"
 
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
@@ -264,7 +264,7 @@ if not os.is "windows" then
         trigger     = "loc",
         description = "Count lines of code",
         execute = function ()
-            os.execute "wc -l *.h *.cpp"
+            os.execute "wc -l *.h *.cpp netcode.io/c/*.c netcode.io/c/*.h reliable.io/*.c reliable.io/*.h"
         end
     }
 

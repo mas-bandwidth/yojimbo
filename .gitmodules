@@ -1,0 +1,3 @@
+[submodule "netcode.io"]
+	path = netcode.io
+	url = https://github.com/networkprotocol/netcode.io

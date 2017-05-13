@@ -30,7 +30,8 @@
 #include "shared.h"
 #include <signal.h>
 
-static const int MaxBlockSize = 25 * 1024;
+// todo
+//static const int MaxBlockSize = 25 * 1024;
 
 static volatile int quit = 0;
 
@@ -41,6 +42,8 @@ void interrupt_handler( int /*dummy*/ )
 
 int SoakMain()
 {
+#if 0
+
     srand( (unsigned int) time( NULL ) );
 
     LocalMatcher matcher;
@@ -256,14 +259,17 @@ int SoakMain()
     
     server.Stop();
 
+#endif
+
     return 0;
 }
 
 int main()
 {
-    printf( "\nsoak test\n\n" );
+    printf( "\nsoak\n\n" );
 
-    verbose_logging = true;
+// todo
+//    verbose_logging = true;
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize Yojimbo!\n" );
@@ -276,7 +282,7 @@ int main()
 
     ShutdownYojimbo();
 
-    printf( "\n" );
+//    printf( "\n" );
 
     return result;
 }

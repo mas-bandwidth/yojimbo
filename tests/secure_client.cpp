@@ -31,6 +31,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#if 0 // TODO
+
 static volatile int quit = 0;
 
 void interrupt_handler( int /*dummy*/ )
@@ -156,4 +158,14 @@ int main( int argc, char * argv[] )
     ShutdownYojimbo();
 
     return result;
+}
+
+#endif
+
+int main( int argc, char * argv[] )
+{
+    (void)argc;
+    (void)argv;
+    printf( "\nsecure client\n\n" );
+    return 0;
 }

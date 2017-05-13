@@ -447,62 +447,6 @@ namespace yojimbo
         return ( n >> 1 ) ^ ( -int32_t( n & 1 ) );
     }
 
-    /** 
-        Compresses a 64 bit packet sequence number into a variable number of bytes.
-
-        Format is [prefix byte] [sequence bytes...].
-
-        Algorithm: Bit n in the prefix byte is set if byte n+1 in the sequence is non-zero. 
-
-        Byte 0 of the sequence number is always sent. This leaves the top bit of the prefix byte free, which is used to distinguish encrypted vs. non-encrypted packets in the wire format.
-
-        @param sequence The input sequence number.
-        @param prefix_byte The prefix byte that describes the encoding of the sequence number.
-        @param num_sequence_bytes The number of sequence bytes written in [1,8].
-        @param sequence_bytes The data containing the sequence bytes. Must be at least 8 bytes long.
-     */
-
-    void compress_packet_sequence( uint64_t sequence, uint8_t & prefix_byte, int & num_sequence_bytes, uint8_t * sequence_bytes );
-
-    /**
-        Get the number of sequence bytes to read for a prefix byte.
-
-        This is used to decode a packet and its 64 bit sequence number when it is received.
-
-        @param prefix_byte The prefix byte that describes the sequence bytes that follow in the packet.
-
-        @returns The number of sequence number bytes to read.
-
-        @see yojimbo::compress_packet_sequence.
-     */
-
-    int get_packet_sequence_bytes( uint8_t prefix_byte );
-
-    /**
-        Decompress the packet sequence number from the variable length encoding.
-    
-        @param prefix_byte The prefix byte. This is the first byte of the packet in the wire format.
-        @param sequence_bytes Pointer to the variable length sequence bytes to decompress.
-
-        @returns The 64 bit packet sequence number. This is used as the nonce for packet encryption.
-     */
-
-    uint64_t decompress_packet_sequence( uint8_t prefix_byte, const uint8_t * sequence_bytes );
-
-    /**
-        Calculates the CRC32 of a buffer.
-
-        IMPORTANT: This is only used as a rudimentary check for packets. Actual signature check for encrypted packets is done via libsodium.
-
-        @param buffer The input buffer.
-        @param length The length of the buffer (bytes).
-        @param crc32 The previous crc32 result, for concatenating multiple buffers into one CRC32 (optional).
-
-        @returns The CRC32 of the packet buffer.
-     */
-
-    uint32_t calculate_crc32( const uint8_t * buffer, size_t length, uint32_t crc32 = 0 );
-
     /**
         Implementation of the 64 bit murmur hash.
 

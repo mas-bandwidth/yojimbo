@@ -30,6 +30,8 @@
 #include "shared.h"
 #include <signal.h>
 
+#if 0 // TODO
+
 static const int MaxBlockSize = 21 * 1024;
 
 static volatile int quit = 0;
@@ -382,4 +384,12 @@ int main()
     printf( "\n" );
 
     return result;
+}
+
+#endif
+
+int main()
+{
+    printf( "\nprofile\n\n" );
+    return 0;
 }
