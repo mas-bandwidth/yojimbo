@@ -114,11 +114,11 @@
 
 #define YOJIMBO_DEBUG_MESSAGE_LEAKS                 1
 
-#define YOJIMBO_VALIDATE_PACKET_BUDGET              1
+#define YOJIMBO_VALIDATE_PACKET_BUDGET              1               // todo: probably best to rename to "VALIDATE_MESSAGE_BUDGET". that's what really is going on
 
 #endif // #ifndef NDEBUG
 
-#define YOJIMBO_DEBUG_SPAM                          0
+#define YOJIMBO_DEBUG_SPAM                          0               // todo: would be much nicer to have advanced logging with log levels, as per-netcode.io
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -128,7 +128,7 @@
 namespace yojimbo
 {
     const int MaxClients = 64;                                      ///< The maximum number of clients supported by this library. You can increase this if you want, but this library is designed around patterns that work best for [2,64] player games. If your game has less than 64 clients, reducing this will save memory.
-    const int MaxChannels = 64;                                     ///< The maximum number of message channels supported by this library. If you need less than 64 channels, reducing this will save memory.
+    const int MaxChannels = 64;                                     ///< The maximum number of message channels supported by this library. If you need less than 64 channels per-packet, reducing this saves memory.
     const int ConservativeMessageHeaderEstimate = 32;               ///< Conservative message header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
     const int ConservativeFragmentHeaderEstimate = 64;              ///< Conservative fragment header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
     const int ConservativeChannelHeaderEstimate = 32;               ///< Conservative channel header estimate used when checking that message data fits within the packet budget. See YOJIMBO_VALIDATE_PACKET_BUDGET
@@ -245,11 +245,6 @@ namespace yojimbo
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
-        int numDisconnectPackets;                               ///< Number of disconnect packets to send on clean disconnect. Make sure the other side of the connection receives a disconnect packet and disconnects cleanly, even under packet loss. Without this, the other side times out and this ties up that slot on the server for an extended period.
-        float connectionNegotiationSendRate;                    ///< Send rate for packets sent during connection negotiation process. eg. connection request and challenge response packets (packets per-second).
-        float connectionNegotiationTimeOut;                     ///< Connection negotiation times out if no response is received from the other side in this amount of time (seconds).
-        float connectionKeepAliveSendRate;                      ///< Keep alive packets are sent at this rate between client and server if no other packets are sent by the client or server. Avoids timeout in situations where you are not sending packets at a steady rate (packets per-second).
-        float connectionTimeOut;                                ///< Once a connection is established, it times out if it hasn't received any packets from the other side in this amount of time (seconds).
         bool enableMessages;                                    ///< If this is true then you can send messages between client and server. Set to false if you don't want to use messages and you want to extend the protocol by adding new packet types instead.
         ConnectionConfig connectionConfig;                      ///< Configures connection properties and message channels between client and server. Must be identical between client and server to work properly. Only used if enableMessages is true.
 
@@ -258,11 +253,6 @@ namespace yojimbo
             clientMemory = 2 * 1024 * 1024;
             serverGlobalMemory = 2 * 1024 * 1024;
             serverPerClientMemory = 2 * 1024 * 1024;
-            numDisconnectPackets = 10;
-            connectionNegotiationSendRate = 10.0f;
-            connectionNegotiationTimeOut = 5.0f;
-            connectionKeepAliveSendRate = 10.0f;
-            connectionTimeOut = 5.0f;
             enableMessages = true;
         }
     };
