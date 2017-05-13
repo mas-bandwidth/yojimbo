@@ -57,16 +57,6 @@ namespace yojimbo
         // todo
     }
 
-    void BaseClient::SendPackets()
-    {
-        // todo
-    }
-
-    void BaseClient::ReceivePackets()
-    {
-        // todo
-    }
-
     void BaseClient::AdvanceTime( double time )
     {
         m_time = time;
@@ -128,6 +118,36 @@ namespace yojimbo
         Disconnect();
         CreateClient( m_address );
         netcode_client_connect( m_client, connectToken );
+        // todo: if client is in an error state, go to error state
+    }
+
+    void Client::SendPackets()
+    {
+        if ( !IsConnected() )
+            return;
+
+        // todo: generate packet to send (with contents from connection channels)
+
+        // todo: send packet over netcode.io client
+    }
+
+    void Client::ReceivePackets()
+    {
+        if ( !IsConnected() )
+            return;
+
+        // todo: pump packets from netcode.io client
+
+        // todo: process messages in the packets
+    }
+
+    void Client::AdvanceTime( double time )
+    {
+        BaseClient::AdvanceTime( time );
+        if ( m_client )
+        {
+            netcode_client_update( m_client, time );
+        }
     }
 
     void Client::CreateClient( const Address & address )

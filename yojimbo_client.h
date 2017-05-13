@@ -187,10 +187,6 @@ namespace yojimbo
 
         void Disconnect();
 
-        void SendPackets();
-
-        void ReceivePackets();
-
         void AdvanceTime( double time );
 
         bool IsConnecting() const { return m_clientState == CLIENT_STATE_CONNECTING; }
@@ -264,6 +260,12 @@ namespace yojimbo
 #endif // #ifndef YOJIMBO_SECURE_MODE
 
         void Connect( uint8_t * connectToken );
+
+        void SendPackets();
+
+        void ReceivePackets();
+
+        void AdvanceTime( double time );
 
     private:
 
