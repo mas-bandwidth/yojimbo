@@ -39,10 +39,6 @@ project "test"
     files { "tests/test.cpp" }
     links { "yojimbo" }
 
-project "info"
-    files { "tests/info.cpp" }
-    links { "yojimbo" }
-
 project "yojimbo"
     kind "StaticLib"
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp", "tlsf/tlsf.h", "tlsf/tlsf.c" }
@@ -172,7 +168,7 @@ if not os.is "windows" then
 		description = "Build and run a yojimbo server inside a docker container",
 		execute = function ()
             os.execute "docker run --rm --privileged alpine hwclock -s" -- workaround for clock getting out of sync on macos. see https://docs.docker.com/docker-for-mac/troubleshoot/#issues
-            os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && mkdir -p docker/libyojimbo/tests && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cp tests/* docker/libyojimbo/tests && cp -R rapidjson docker/libyojimbo && cp -R tlsf docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 40000:40000/udp networkprotocol:yojimbo-server"
+            os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && mkdir -p docker/libyojimbo/tests && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cp tests/* docker/libyojimbo/tests && cp -R tlsf docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 40000:40000/udp networkprotocol:yojimbo-server"
 		end
 	}
 
@@ -241,7 +237,7 @@ if not os.is "windows" then
         trigger     = "cppcheck",
         description = "Run cppcheck over the source code and write to cppcheck.txt",
         execute = function ()
-            os.execute "cppcheck *.h *.cpp --force --std=c++03 --language=c++ --quiet -U min -U max 2>&1 --config-exclude=rapidjson --config-exclude=tlsf --suppress=incorrectStringBooleanError --suppress=cstyleCast --suppress=unusedFunction --suppress=unusedStructMember --suppress=variableScope --suppress=memsetClassFloat --enable=warning --enable=performance --enable=style --platform=native -j 32 | tee -a cppcheck.txt"
+            os.execute "cppcheck *.h *.cpp --force --std=c++03 --language=c++ --quiet -U min -U max 2>&1 --config-exclude=tlsf --suppress=incorrectStringBooleanError --suppress=cstyleCast --suppress=unusedFunction --suppress=unusedStructMember --suppress=variableScope --suppress=memsetClassFloat --enable=warning --enable=performance --enable=style --platform=native -j 32 | tee -a cppcheck.txt"
         end
     }
 
@@ -279,7 +275,7 @@ if not os.is "windows" then
         execute = function ()
             _ACTION = "clean"
             premake.action.call( "clean" )
-            files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker tests rapidjson tlsf windows"
+            files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker tests tlsf windows"
             os.execute( "rm -rf *.zip *.tar.gz" );
             os.execute( "rm -rf docker/libyojimbo" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )

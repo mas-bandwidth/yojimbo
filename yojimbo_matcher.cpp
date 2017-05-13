@@ -39,8 +39,6 @@
 
 #include "sodium.h"
 
-using namespace rapidjson;
-
 #define SERVER_PORT "8080"
 #define SERVER_NAME "localhost"
 

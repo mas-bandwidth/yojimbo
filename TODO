@@ -41,3 +41,16 @@ TODO
         - Channel concept, reliable/unreliable channel types.
 
         - Address class, for convenience only.
+
+    What is added?
+
+        - Support for different client/server implementations
+
+        - Packet fragmentation and re-assembly from reliable.io
+
+        - Packet loss, latency, jitter estimates from reliable.io
+
+        - Congestion adoidance notification (if possible...)
+
+        - Better implementation of connect tokens via netcode.io
+
