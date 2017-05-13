@@ -48,7 +48,7 @@ namespace yojimbo
 
     BaseClient::~BaseClient()
     {
-        // IMPORTANT: You must disconnect the client before destroying it!
+        // IMPORTANT: Please disconnect the client before destroying it
         assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
     }
 
@@ -102,7 +102,7 @@ namespace yojimbo
 
     Client::~Client()
     {
-        // IMPORTANT: You must disconnect the client before destroying it!
+        // IMPORTANT: Please disconnect the client before destroying it
         assert( m_client == NULL );
     }
 
@@ -111,11 +111,13 @@ namespace yojimbo
     void Client::InsecureConnect( uint64_t clientId, const Address & address )
     {
         // todo
+        assert( false );
     }
 
     void Client::InsecureConnect( uint64_t clientId, const Address serverAddresses[], int numServerAddresses )
     {
         // todo
+        assert( false );
     }
 
 #endif // #ifndef YOJIMBO_SECURE_MODE
@@ -123,11 +125,8 @@ namespace yojimbo
     void Client::Connect( uint8_t * connectToken )
     {
         assert( connectToken );
-
         Disconnect();
-
         CreateClient( m_address );
-
         netcode_client_connect( m_client, connectToken );
     }
 
