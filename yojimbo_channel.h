@@ -27,8 +27,6 @@
 
 #include "yojimbo_message.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_queue.h"
-#include "yojimbo_sequence_buffer.h"
 
 /** @file */
 

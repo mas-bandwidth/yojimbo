@@ -29,7 +29,6 @@
 #include "yojimbo_stream.h"
 #include "yojimbo_serialize.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_bit_array.h"
 
 #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 #include <map>

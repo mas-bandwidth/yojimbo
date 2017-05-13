@@ -22,7 +22,7 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <reliable.h>
+#include "reliable.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <memory.h>
@@ -1578,8 +1578,6 @@ void test_packets()
 
 void reliable_test()
 {
-    printf( "\n" );
-
     //while ( 1 )
     {
         RUN_TEST( test_endian );
@@ -1590,8 +1588,6 @@ void reliable_test()
         RUN_TEST( test_acks_packet_loss );
         RUN_TEST( test_packets );
     }
-
-    printf( "\n*** ALL TESTS PASSED ***\n\n" );
 }
 
 #endif // #if RELIABLE_ENABLE_TESTS

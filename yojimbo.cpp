@@ -47,24 +47,29 @@ namespace yojimbo
     }
 }
 
+extern "C" int netcode_init();
+extern "C" int reliable_init();
+extern "C" void netcode_term();
+extern "C" void reliable_term();
+
 bool InitializeYojimbo()
 {
     g_defaultAllocator = new yojimbo::DefaultAllocator();
 
-    // todo: initialize netcode.io here
-    /*
-    if ( !yojimbo::InitializeNetwork() )
+    if ( !netcode_init() )
         return false;
-        */
+
+    if ( !reliable_init() )
+        return false;
 
     return sodium_init() != -1;
 }
 
 void ShutdownYojimbo()
 {
-    // todo: shutdown netcode.io here
+    reliable_term();
 
-    //yojimbo::ShutdownNetwork();
+    netcode_term();
 
     assert( g_defaultAllocator );
     delete g_defaultAllocator;

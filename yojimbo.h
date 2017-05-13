@@ -33,7 +33,6 @@
 #include "yojimbo_allocator.h"
 #include "yojimbo_client.h"
 #include "yojimbo_server.h"
-#include "yojimbo_sequence_buffer.h"
 #include "yojimbo_message.h"
 #include "yojimbo_connection.h"
 

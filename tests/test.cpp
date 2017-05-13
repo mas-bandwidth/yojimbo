@@ -147,7 +147,7 @@ void test_queue()
     check( queue.GetSize() == QueueSize );
 }
 
-#if 0 // todo
+extern "C" void netcode_random_bytes( uint8_t*, int );
 
 void test_base64()
 {
@@ -174,7 +174,7 @@ void test_base64()
     check( strcmp( input, decoded ) == 0 );
 
     uint8_t key[KeyBytes];
-    GenerateKey( key );
+    netcode_random_bytes( key, KeyBytes );
 
     char base64_key[KeyBytes*2];
     base64_encode_data( key, KeyBytes, base64_key, (int) sizeof( base64_key ) );
@@ -184,8 +184,6 @@ void test_base64()
 
     check( memcmp( key, decoded_key, KeyBytes ) == 0 );
 }
-
-#endif
 
 void test_bitpacker()
 {
@@ -592,6 +590,130 @@ void test_address_ipv6()
         check( address.GetPort() == 65535 );            // todo: don't just test 65535, because endian being wrong won't get picked up
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
+}
+
+void test_bit_array()
+{
+    const int Size = 300;
+
+    BitArray bit_array( GetDefaultAllocator(), Size );
+
+    // verify initial conditions
+
+    check( bit_array.GetSize() == Size );
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        check( bit_array.GetBit(i) == 0 );
+    }
+
+    // set every third bit and verify correct bits are set on read
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 3 ) == 0 )
+            bit_array.SetBit( i );
+    }
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 3 ) == 0 )
+        {
+            check( bit_array.GetBit( i ) == 1 );
+        }
+        else
+        {
+            check( bit_array.GetBit( i ) == 0 );
+        }
+    }
+
+    // now clear every third bit to zero and verify all bits are zero
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 3 ) == 0 )
+            bit_array.ClearBit( i );
+    }
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        check( bit_array.GetBit(i) == 0 );
+    }
+
+    // now set some more bits
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 10 ) == 0 )
+            bit_array.SetBit( i );
+    }
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        if ( ( i % 10 ) == 0 )
+        {
+            check( bit_array.GetBit( i ) == 1 );
+        }
+        else
+        {
+            check( bit_array.GetBit( i ) == 0 );
+        }
+    }
+
+    // clear and verify all bits are zero
+
+    bit_array.Clear();
+
+    for ( int i = 0; i < Size; ++i )
+    {
+        check( bit_array.GetBit(i) == 0 );
+    }
+}
+
+struct TestSequenceData
+{
+    TestSequenceData() : sequence(0xFFFF) {}
+    explicit TestSequenceData( uint16_t _sequence ) : sequence( _sequence ) {}
+    uint16_t sequence;
+};
+
+void test_sequence_buffer()
+{
+    const int Size = 256;
+
+    SequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
+
+    for ( int i = 0; i < Size; ++i )
+        check( sequence_buffer.Find(i) == NULL );
+
+    for ( int i = 0; i <= Size*4; ++i )
+    {
+        TestSequenceData * entry = sequence_buffer.Insert( i );
+        entry->sequence = i;
+        check( sequence_buffer.GetSequence() == i + 1 );
+    }
+
+    for ( int i = 0; i <= Size; ++i )
+    {
+        TestSequenceData * entry = sequence_buffer.Insert( i );
+        check( !entry );
+    }    
+
+    int index = Size * 4;
+    for ( int i = 0; i < Size; ++i )
+    {
+        TestSequenceData * entry = sequence_buffer.Find( index );
+        check( entry );
+        check( entry->sequence == uint32_t( index ) );
+        index--;
+    }
+
+    sequence_buffer.Reset();
+
+    check( sequence_buffer.GetSequence() == 0 );
+
+    for ( int i = 0; i < Size; ++i )
+        check( sequence_buffer.Find(i) == NULL );
 }
 
 void test_allocator_tlsf()
@@ -2323,130 +2445,6 @@ void test_client_server_insecure_secure_insecure_secure()
 
 #endif
 
-void test_bit_array()
-{
-    const int Size = 300;
-
-    BitArray bit_array( GetDefaultAllocator(), Size );
-
-    // verify initial conditions
-
-    check( bit_array.GetSize() == Size );
-
-    for ( int i = 0; i < Size; ++i )
-    {
-        check( bit_array.GetBit(i) == 0 );
-    }
-
-    // set every third bit and verify correct bits are set on read
-
-    for ( int i = 0; i < Size; ++i )
-    {
-        if ( ( i % 3 ) == 0 )
-            bit_array.SetBit( i );
-    }
-
-    for ( int i = 0; i < Size; ++i )
-    {
-        if ( ( i % 3 ) == 0 )
-        {
-            check( bit_array.GetBit( i ) == 1 );
-        }
-        else
-        {
-            check( bit_array.GetBit( i ) == 0 );
-        }
-    }
-
-    // now clear every third bit to zero and verify all bits are zero
-
-    for ( int i = 0; i < Size; ++i )
-    {
-        if ( ( i % 3 ) == 0 )
-            bit_array.ClearBit( i );
-    }
-
-    for ( int i = 0; i < Size; ++i )
-    {
-        check( bit_array.GetBit(i) == 0 );
-    }
-
-    // now set some more bits
-
-    for ( int i = 0; i < Size; ++i )
-    {
-        if ( ( i % 10 ) == 0 )
-            bit_array.SetBit( i );
-    }
-
-    for ( int i = 0; i < Size; ++i )
-    {
-        if ( ( i % 10 ) == 0 )
-        {
-            check( bit_array.GetBit( i ) == 1 );
-        }
-        else
-        {
-            check( bit_array.GetBit( i ) == 0 );
-        }
-    }
-
-    // clear and verify all bits are zero
-
-    bit_array.Clear();
-
-    for ( int i = 0; i < Size; ++i )
-    {
-        check( bit_array.GetBit(i) == 0 );
-    }
-}
-
-struct TestSequenceData
-{
-    TestSequenceData() : sequence(0xFFFF) {}
-    explicit TestSequenceData( uint16_t _sequence ) : sequence( _sequence ) {}
-    uint16_t sequence;
-};
-
-void test_sequence_buffer()
-{
-    const int Size = 256;
-
-    SequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
-
-    for ( int i = 0; i < Size; ++i )
-        check( sequence_buffer.Find(i) == NULL );
-
-    for ( int i = 0; i <= Size*4; ++i )
-    {
-        TestSequenceData * entry = sequence_buffer.Insert( i );
-        entry->sequence = i;
-        check( sequence_buffer.GetSequence() == i + 1 );
-    }
-
-    for ( int i = 0; i <= Size; ++i )
-    {
-        TestSequenceData * entry = sequence_buffer.Insert( i );
-        check( !entry );
-    }    
-
-    int index = Size * 4;
-    for ( int i = 0; i < Size; ++i )
-    {
-        TestSequenceData * entry = sequence_buffer.Find( index );
-        check( entry );
-        check( entry->sequence == uint32_t( index ) );
-        index--;
-    }
-
-    sequence_buffer.Reset();
-
-    check( sequence_buffer.GetSequence() == 0 );
-
-    for ( int i = 0; i < Size; ++i )
-        check( sequence_buffer.Find(i) == NULL );
-}
-
 #if 0 // todo
 
 void PumpConnectionUpdate( double & time, Connection & sender, Connection & receiver, Transport & senderTransport, Transport & receiverTransport, float deltaTime = 0.1f )
@@ -3830,6 +3828,9 @@ void test_client_server_message_receive_queue_full()
     }                                                                       \
     while (0)                                                                                                     
 
+extern "C" void netcode_test();
+extern "C" void reliable_test();
+
 int main()
 {
     srand( time( NULL ) );
@@ -3842,6 +3843,28 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        {
+            printf( "[netcode.io]\n\n" );
+
+            check( InitializeYojimbo() );
+            
+            netcode_test();
+
+            ShutdownYojimbo();
+        }
+
+        {
+            printf( "\n[reliable.io]\n\n" );
+
+            check( InitializeYojimbo() );
+            
+            reliable_test();
+
+            ShutdownYojimbo();
+        }
+
+        printf( "\n[yojimbo]\n\n" );
+
         RUN_TEST( test_endian );
         RUN_TEST( test_queue );
         //RUN_TEST( test_base64 );
@@ -3849,9 +3872,10 @@ int main()
         RUN_TEST( test_stream );
         RUN_TEST( test_address_ipv4 );
         RUN_TEST( test_address_ipv6 );
-        RUN_TEST( test_allocator_tlsf );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
+        RUN_TEST( test_allocator_tlsf );
+
         /*
         RUN_TEST( test_connection_reliable_ordered_messages );
         RUN_TEST( test_connection_reliable_ordered_blocks );

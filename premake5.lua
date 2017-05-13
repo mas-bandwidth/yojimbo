@@ -41,7 +41,7 @@ project "test"
 
 project "yojimbo"
     kind "StaticLib"
-    files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp", "tlsf/tlsf.h", "tlsf/tlsf.c" }
+    files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp", "tlsf/tlsf.h", "tlsf/tlsf.c", "netcode.io/c/netcode.c", "netcode.io/c/netcode.h", "reliable.io/reliable.c", "reliable.io/reliable.h" }
 
 project "client"
     files { "tests/client.cpp", "tests/shared.h" }
@@ -83,18 +83,6 @@ if not os.is "windows" then
             os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 test" == 0 then
                 os.execute "./bin/test"
-            end
-        end
-    }
-
-    newaction
-    {
-        trigger     = "info",
-        description = "Build and run network info utility",
-        execute = function ()
-            os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 info" == 0 then
-                os.execute "./bin/info"
             end
         end
     }
