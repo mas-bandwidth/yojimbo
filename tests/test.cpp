@@ -173,6 +173,8 @@ void test_base64()
 
     check( strcmp( input, decoded ) == 0 );
 
+    const int KeyBytes = 32;
+
     uint8_t key[KeyBytes];
     netcode_random_bytes( key, KeyBytes );
 
