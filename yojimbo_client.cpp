@@ -54,12 +54,17 @@ namespace yojimbo
 
     void BaseClient::Disconnect()
     {
-        // todo
+        SetClientState( CLIENT_STATE_DISCONNECTED );
     }
 
     void BaseClient::AdvanceTime( double time )
     {
         m_time = time;
+    }
+
+    void BaseClient::SetClientState( ClientState clientState )
+    {
+        m_clientState = clientState;
     }
 
     void BaseClient::CreateAllocators()
@@ -118,16 +123,19 @@ namespace yojimbo
         Disconnect();
         CreateClient( m_address );
         netcode_client_connect( m_client, connectToken );
-        // todo: if client is in an error state, go to error state
+    }
+
+    void Client::Disconnect()
+    {
+        DestroyClient();
+        BaseClient::Disconnect();
     }
 
     void Client::SendPackets()
     {
         if ( !IsConnected() )
             return;
-
         // todo: generate packet to send (with contents from connection channels)
-
         // todo: send packet over netcode.io client
     }
 
@@ -135,9 +143,7 @@ namespace yojimbo
     {
         if ( !IsConnected() )
             return;
-
         // todo: pump packets from netcode.io client
-
         // todo: process messages in the packets
     }
 
@@ -147,12 +153,17 @@ namespace yojimbo
         if ( m_client )
         {
             netcode_client_update( m_client, time );
+            if ( netcode_client_state( m_client ) < 0 )
+            {
+                SetClientState( CLIENT_STATE_ERROR );
+                return;
+            }
         }
     }
 
     void Client::CreateClient( const Address & address )
     {
-        assert( m_client == NULL );
+        DestroyClient();
         char addressString[MaxAddressLength];
         address.ToString( addressString, MaxAddressLength );
         m_client = netcode_client_create( addressString, GetTime() );
@@ -160,9 +171,11 @@ namespace yojimbo
 
     void Client::DestroyClient()
     {
-        assert( m_client != NULL );
-        netcode_client_destroy( m_client );
-        m_client = NULL;
+        if ( m_client )
+        {
+            netcode_client_destroy( m_client );
+            m_client = NULL;
+        }
     }
 
     // ------------------------------------------------------------------------------------------------------------------

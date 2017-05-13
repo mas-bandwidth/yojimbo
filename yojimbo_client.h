@@ -205,6 +205,8 @@ namespace yojimbo
 
     protected:
 
+        void SetClientState( ClientState clientState );
+
         virtual void CreateAllocators();
 
         virtual void DestroyAllocators();
@@ -260,6 +262,8 @@ namespace yojimbo
 #endif // #ifndef YOJIMBO_SECURE_MODE
 
         void Connect( uint8_t * connectToken );
+
+        void Disconnect();
 
         void SendPackets();
 
