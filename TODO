@@ -32,7 +32,7 @@ TODO
 
     What stays? 
 
-        - Client/server (although refactored heavily!)
+        - Client/server (although refactored heavily!) ----> ClientInterface/ServerInterface, BaseClient/BaseServer, Client/Server.
 
         - Message class. Message factory.
 
@@ -54,3 +54,4 @@ TODO
 
         - Better implementation of connect tokens via netcode.io
 
+        - Support for unreliable ordered channel type

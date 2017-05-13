@@ -27,7 +27,158 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_allocator.h"
-#include "yojimbo_connection.h"
+
+/** @file */
+
+namespace yojimbo
+{
+    /**
+        The set of client states.
+        
+        @see Client::GetClientState
+        @see Client::IsConnecting
+        @see Client::IsConnected
+        @see Client::ConnectedFailed
+     */
+
+    enum ClientState
+    {
+        CLIENT_STATE_ERROR = -1,
+        CLIENT_STATE_DISCONNECTED = 0,
+        CLIENT_STATE_CONNECTING,
+        CLIENT_STATE_CONNECTED,
+    };
+
+    /** 
+        Interface common to all client implementations.
+     */
+
+    class ClientInterface
+    {
+    public:
+
+        virtual ~ClientInterface() {}
+
+        /**
+            Set the context for reading and writing packets.
+
+            This lets you pass in a pointer to some structure that you want to have available when reading and writing packets.
+
+            Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
+
+            If you do use a user context, make sure the same context data is set on client and server, and include a checksum of the context data in the protocol id.
+
+            @see Stream::GetContext
+         */
+
+        virtual void SetContext( void * context ) = 0;
+
+        /**
+            Disconnect from the server.
+         */
+
+        virtual void Disconnect() = 0;
+
+        /**
+            Send packets to server.
+         */
+
+        virtual void SendPackets() = 0;
+
+        /**
+            Receive packets from the server.
+         */
+
+        virtual void ReceivePackets() = 0;
+
+        /**
+            Advance client time.
+
+            Call this at the end of each frame to advance the client time forward. 
+
+            IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
+         */
+
+        virtual void AdvanceTime( double time ) = 0;
+
+        /**
+            Is the client connecting to a server?
+
+            This is true while the client is negotiation connection with a server.
+
+            @returns true if the client is currently connecting to, but is not yet connected to a server.
+         */
+
+        virtual bool IsConnecting() const = 0;
+
+        /**
+            Is the client connected to a server?
+
+            This is true once a client successfully finishes connection negotiatio, and connects to a server. It is false while connecting to a server.
+
+            @returns true if the client is connected to a server.
+         */
+
+        virtual bool IsConnected() const = 0;
+
+        /**
+            Is the client in a disconnected state?
+
+            A disconnected state corresponds to the client being in the disconnected, or in an error state. Both are logically "disconnected".
+
+            @returns true if the client is disconnected.
+         */
+
+        virtual bool IsDisconnected() const = 0;
+
+        /**
+            Is the client in an error state?
+
+            When the client disconnects because of an error, it enters into this error state.
+
+            @returns true if the client is in an error state.
+         */
+
+        virtual bool IsError() const = 0;
+
+        /**
+            Get the current client state.
+         */
+
+        virtual ClientState GetClientState() const = 0;
+
+        /**
+            Get the client index.
+
+            The client index is the slot number that the client is occupying on the server. 
+
+            @returns The client index in [0,maxClients-1], where maxClients is the number of client slots allocated on the server in Server::Start.
+         */
+
+        virtual int GetClientIndex() const = 0;
+
+        /**
+            Gets the current client time.
+
+            @see Client::AdvanceTime
+         */
+
+        virtual double GetTime() const = 0;
+    };
+}
+
+
+
+
+
+
+
+
+
+
+
+// old code below!
+
 
 #if 0 // todo
 
@@ -787,18 +938,6 @@ namespace yojimbo
     yojimbo::Allocator * CreateAllocator( yojimbo::Allocator & allocator, void * memory, size_t bytes ) \
     {                                                                                                   \
         return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                \
-    }
-
-/** 
-    Helper macro to set the client packet factory class.
-    
-    See tests/shared.h for an example of usage.
- */
-
-#define YOJIMBO_CLIENT_PACKET_FACTORY( packet_factory_class )                                           \
-    yojimbo::PacketFactory * CreatePacketFactory( yojimbo::Allocator & allocator )                      \
-    {                                                                                                   \
-        return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                               \
     }
 
 /** 

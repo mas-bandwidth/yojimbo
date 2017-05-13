@@ -51,7 +51,6 @@ namespace yojimbo
         SERVER_CLIENT_ERROR_ALLOCATOR,                              ///< The allocator is in error state for this client
         SERVER_CLIENT_ERROR_CONNECTION,                             ///< The connection is in error state for this client
         SERVER_CLIENT_ERROR_MESSAGE_FACTORY,                        ///< The message factory is in error state for this client
-        SERVER_CLIENT_ERROR_PACKET_FACTORY,                         ///< The packet factory is in error state for this client
     };
 
     /**
@@ -149,7 +148,6 @@ namespace yojimbo
         SERVER_COUNTER_CLIENT_CONNECTION_ERRORS,                                                ///< Number of times a client was disconnected from the server because their connection entered into an error state. This indicates that something went wrong with the internal protocol for sending messages between client and server. Common situations include, sending too many messages and overflowing the message send queue in a channel. See Connection::CanSendMsg.
         SERVER_COUNTER_CLIENT_MESSAGE_FACTORY_ERRORS,                                           ///< Number of times a client was disconnected from the server because their packet factory went into an error state. This indicates that the client tried to create a packet but failed to do so.
         SERVER_COUNTER_CLIENT_PACKET_FACTORY_ERRORS,                                            ///< Number of times a client was disconnected from the server because their message factory went into an error state. This indicates that the client tried to create a message but failed to do so.
-        SERVER_COUNTER_GLOBAL_PACKET_FACTORY_ERRORS,                                            ///< Number of times the global packet factory entered into an error state because it could not allocate a packet. This probably indicates insufficient global memory for the connection negotiation process on the server. See ClientServerConfig::serverGlobalMemory.
         SERVER_COUNTER_GLOBAL_ALLOCATOR_ERRORS,                                                 ///< Number of times the global allocator went into error state because it could not perform an allocation. This probably indicates insufficient global memory for the connection negotiation process on the server. See ClientServerConfig::serverGlobalMemory.
         
         NUM_SERVER_COUNTERS                                                                     ///< The number of server counters.
@@ -949,20 +947,6 @@ namespace yojimbo
     yojimbo::Allocator * CreateAllocator( yojimbo::Allocator & allocator, void * memory, size_t bytes )                                     \
     {                                                                                                                                       \
         return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                                                    \
-    }
-
-/** 
-    Helper macro to set the server packet factory class.
-   
-    See tests/shared.h for an example of usage.
- */
-
-#define YOJIMBO_SERVER_PACKET_FACTORY( packet_factory_class )                                                                               \
-    yojimbo::PacketFactory * CreatePacketFactory( yojimbo::Allocator & allocator, yojimbo::ServerResourceType type, int clientIndex )       \
-    {                                                                                                                                       \
-        (void) type;                                                                                                                        \
-        (void) clientIndex;                                                                                                                 \
-        return YOJIMBO_NEW( allocator, packet_factory_class, allocator );                                                                   \
     }
 
 /** 

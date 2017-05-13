@@ -49,129 +49,6 @@ static bool verbose_logging = false;
 #endif // #if LOGGING
 */
 
-#if 0 // todo
-
-struct TestPacketA : public Packet
-{
-    int a,b,c;
-
-    TestPacketA()
-    {
-        a = 1;
-        b = 2;
-        c = 3;        
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {
-        serialize_int( stream, a, -10, 10 );
-        serialize_int( stream, b, -20, 20 );
-        serialize_int( stream, c, -30, 30 );
-        return true;
-    }
-
-    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-struct TestPacketB : public Packet
-{
-    int x,y;
-
-    TestPacketB()
-    {
-        x = 0;
-        y = 1;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {
-        serialize_int( stream, x, -5, +5 );
-        serialize_int( stream, y, -5, +5 );
-        return true;
-    }
-
-    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-struct TestPacketC : public Packet
-{
-    uint8_t data[16];
-
-    TestPacketC()
-    {
-        for ( int i = 0; i < (int) sizeof( data ); ++i )
-            data[i] = (uint8_t) i;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream )
-    {
-        for ( int i = 0; i < (int) sizeof( data ); ++i )
-            serialize_int( stream, data[i], 0, 255 );
-        return true;
-    }
-
-    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-struct TestUserPacket : public Packet
-{
-    uint32_t sequence;
-    uint32_t a,b,c;
-
-    TestUserPacket()
-    {
-        sequence = 0;
-        a = 0;
-        b = 0;
-        c = 0;
-    }
-
-    void Initialize( uint32_t seq )
-    {
-        sequence = seq;
-        a = seq % 2;
-        b = seq % 3;
-        c = seq % 5;
-    }
-
-    template <typename Stream> bool Serialize( Stream & stream ) 
-    { 
-        serialize_bits( stream, sequence, 32 );
-        
-        serialize_bits( stream, a, 32 );
-        serialize_bits( stream, b, 32 );
-        serialize_bits( stream, c, 32 );
-
-        assert( a == sequence % 2 );
-        assert( b == sequence % 3 );
-        assert( c == sequence % 5 );
-
-        return true;
-    }
-
-    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
-};
-
-enum TestPacketTypes
-{
-    TEST_PACKET_A = CLIENT_SERVER_NUM_PACKETS,          // because we are extending client/server packets
-    TEST_PACKET_B,
-    TEST_PACKET_C,
-    TEST_USER_PACKET,
-    NUM_TEST_PACKETS
-};
-
-static const int TEST_PACKET_CONNECTION = CLIENT_SERVER_PACKET_CONNECTION;
-
-YOJIMBO_PACKET_FACTORY_START( TestPacketFactory, ClientServerPacketFactory, NUM_TEST_PACKETS );
-    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_A, TestPacketA );
-    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_B, TestPacketB );
-    YOJIMBO_DECLARE_PACKET_TYPE( TEST_PACKET_C, TestPacketC );
-    YOJIMBO_DECLARE_PACKET_TYPE( TEST_USER_PACKET, TestUserPacket );
-YOJIMBO_PACKET_FACTORY_FINISH();
-
-#endif
-
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
     static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
@@ -366,14 +243,9 @@ public:
 
 class GameServer : public Server
 {
-    uint32_t m_userPacketSequence;
-    uint64_t m_numUserPacketsReceived[MaxClients];
-
     void Initialize()
     {
         SetPrivateKey( private_key );
-        m_userPacketSequence = 0;
-        memset( m_numUserPacketsReceived, 0, sizeof( m_numUserPacketsReceived ) );
     }
 
 public:
@@ -384,38 +256,7 @@ public:
         Initialize();
     }
 
-    uint64_t GetNumUserPacketsReceived( int clientIndex ) const
-    {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < GetMaxClients() );
-        return m_numUserPacketsReceived[clientIndex];
-    }
-
-    void SendUserPacketToClient( int clientIndex )
-    {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < GetMaxClients() );
-        assert( IsClientConnected( clientIndex ) );
-        TestUserPacket * packet = (TestUserPacket*) CreateClientPacket( clientIndex, TEST_USER_PACKET );
-        assert( packet );
-        packet->Initialize( ++m_userPacketSequence );
-        SendPacketToConnectedClient( clientIndex, packet );
-    }
-
-    bool ProcessUserPacket( int clientIndex, Packet * packet )
-    {
-        if ( packet->GetType() == TEST_USER_PACKET )
-        {
-            m_numUserPacketsReceived[clientIndex]++;
-            return true;
-        }
-
-        return false;
-    }
-
 protected:
-
-    YOJIMBO_SERVER_PACKET_FACTORY( TestPacketFactory );
 
     YOJIMBO_SERVER_MESSAGE_FACTORY( TestMessageFactory );
 
@@ -538,61 +379,6 @@ protected:
         printf( "client %d timed out (client address = %s, client id = %.16" PRIx64 ")\n", clientIndex, addressString, GetClientId( clientIndex ) );
     }
 
-    void OnPacketSent( int packetType, const Address & to, bool immediate )
-    {
-        const char * packetTypeString = NULL;
-
-        switch ( packetType )
-        {
-            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case CLIENT_SERVER_PACKET_CHALLENGE:                  packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_KEEPALIVE:                  packetTypeString = "keep alive";            break;
-            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";            break;
-
-            default:
-                return;
-        }
-
-        if ( verbose_logging )
-        {
-            char addressString[MaxAddressLength];
-            to.ToString( addressString, sizeof( addressString ) );
-            printf( "server sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
-        }
-    }
-
-    void OnPacketReceived( int packetType, const Address & from )
-    {
-        const char * packetTypeString = NULL;
-
-        switch ( packetType )
-        {
-            case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_KEEPALIVE:                  packetTypeString = "keep alive";                break;  
-            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
-
-            default:
-                return;
-        }
-
-        if ( verbose_logging )
-        {
-            char addressString[MaxAddressLength];
-            from.ToString( addressString, sizeof( addressString ) );
-            printf( "server received '%s' packet from %s\n", packetTypeString, addressString );
-        }
-    }
-
-    void OnConnectionFragmentReceived( Connection * /*connection*/, int /*channelId*/, uint16_t /*messageId*/, uint16_t fragmentId, int /*fragmentBytes*/, int /*numFragmentsReceived*/, int /*numFragmentsInBlock*/ )
-    {
-#if !YOJIMBO_DEBUG_SPAM
-        printf( "received fragment %d\n", fragmentId );
-#else
-        (void)fragmentId;
-#endif // #if !YOJIMBO_DEBUG_SPAM
-    }
-
 #endif // #if LOGGING
 };
 
@@ -606,15 +392,11 @@ protected:
 
 class GameClient : public Client
 {
-    uint64_t m_numGamePacketsReceived;
-    uint32_t m_gamePacketSequence;
-
 public:
 
     void Initialize()
     {
-        m_numGamePacketsReceived = 0;
-        m_gamePacketSequence = 0;
+        // ...
     }
 
     explicit GameClient( Allocator & allocator, Transport & transport, const ClientServerConfig & config, double time ) 
@@ -623,33 +405,7 @@ public:
         Initialize();
     }
 
-    uint64_t GetNumUserPacketsReceived() const
-    {
-        return m_numGamePacketsReceived;
-    }
-
-    void SendUserPacketToServer()
-    {
-        TestUserPacket * packet = (TestUserPacket*) CreatePacket( TEST_USER_PACKET );
-        assert( packet );
-        packet->Initialize( ++m_gamePacketSequence );
-        SendPacketToServer( packet );
-    }
-
-    bool ProcessUserPacket( Packet * packet )
-    {
-        if ( packet->GetType() == TEST_USER_PACKET )
-        {
-            m_numGamePacketsReceived++;
-            return true;
-        }
-
-        return false;
-    }
-
 protected:
-
-    YOJIMBO_CLIENT_PACKET_FACTORY( TestPacketFactory );
 
     YOJIMBO_CLIENT_MESSAGE_FACTORY( TestMessageFactory );
 
@@ -662,68 +418,9 @@ protected:
         printf( "client connecting to %s\n", addressString );
     }
 
-    void OnClientStateChange( ClientState previousState, ClientState currentState )
-    {
-        assert( previousState != currentState );
-        const char * previousStateString = GetClientStateName( previousState );
-        const char * currentStateString = GetClientStateName( currentState );
-        printf( "client changed state from '%s' to '%s'\n", previousStateString, currentStateString );
-
-        if ( currentState == CLIENT_STATE_CONNECTED )
-        {
-            printf( "client connected as client %d\n", GetClientIndex() );
-        }
-    }
-
     void OnDisconnect()
     {
         printf( "client disconnected\n" );
-    }
-
-    void OnPacketSent( int packetType, const Address & to, bool immediate )
-    {
-        const char * packetTypeString = NULL;
-
-        switch ( packetType )
-        {
-            case CLIENT_SERVER_PACKET_CONNECTION_REQUEST:         packetTypeString = "connection request";        break;
-            case CLIENT_SERVER_PACKET_CHALLENGE_RESPONSE:         packetTypeString = "challenge response";        break;
-            case CLIENT_SERVER_PACKET_KEEPALIVE:                  packetTypeString = "keep alive";                break;  
-            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";                break;
-
-            default:
-                return;
-        }
-
-        if ( verbose_logging )
-        {
-            char addressString[MaxAddressLength];
-            to.ToString( addressString, sizeof( addressString ) );
-            printf( "client sent %s packet to %s%s\n", packetTypeString, addressString, immediate ? " (immediate)" : "" );
-        }
-    }
-
-    void OnPacketReceived( int packetType, const Address & from )
-    {
-        const char * packetTypeString = NULL;
-
-        switch ( packetType )
-        {
-            case CLIENT_SERVER_PACKET_CONNECTION_DENIED:          packetTypeString = "connection denied";     break;
-            case CLIENT_SERVER_PACKET_CHALLENGE:                  packetTypeString = "challenge";             break;
-            case CLIENT_SERVER_PACKET_KEEPALIVE:                  packetTypeString = "keep alive";            break;
-            case CLIENT_SERVER_PACKET_DISCONNECT:                 packetTypeString = "disconnect";            break;
-
-            default:
-                return;
-        }
-
-        if ( verbose_logging )
-        {
-            char addressString[MaxAddressLength];
-            from.ToString( addressString, sizeof( addressString ) );
-            printf( "client received %s packet from %s\n", packetTypeString, addressString );
-        }
     }
 
 #endif // #if LOGGING
