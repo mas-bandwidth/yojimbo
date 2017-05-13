@@ -27,7 +27,10 @@
 
 #include <assert.h>
 #include "yojimbo_config.h"
+#include "yojimbo_address.h"
 #include "yojimbo_allocator.h"
+
+struct netcode_client_t;
 
 /** @file */
 
@@ -248,7 +251,7 @@ namespace yojimbo
             @param time The current time in seconds. See ClientInterface::AdvanceTime
          */
 
-        explicit Client( Allocator & allocator, const ClientServerConfig & config, double time );
+        explicit Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time );
 
         ~Client();
 
@@ -264,7 +267,13 @@ namespace yojimbo
 
     private:
 
-        uint64_t m_clientId;                                                ///< The globally unique client id (set on each call to connect)
+        void CreateClient( const Address & address );
+
+        void DestroyClient();
+
+        netcode_client_t * m_client;                                        ///< netcode.io client data
+        Address m_address;                                                  ///< The client address.
+//        uint64_t m_clientId;                                                ///< The globally unique client id (set on each call to connect)
     };
 }
 

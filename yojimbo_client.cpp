@@ -24,6 +24,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_client.h"
+#include "netcode.io/c/netcode.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -93,14 +94,16 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------------------------------------------
 
-    Client::Client( Allocator & allocator, const ClientServerConfig & config, double time ) : BaseClient( allocator, config, time )
+    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time ) : BaseClient( allocator, config, time )
     {
-        // ...
+        m_address = address;
+        m_client = NULL;
     }
 
     Client::~Client()
     {
-        // ...
+        // IMPORTANT: You must disconnect the client before destroying it!
+        assert( m_client == NULL );
     }
 
 #ifndef YOJIMBO_SECURE_MODE
@@ -121,9 +124,26 @@ namespace yojimbo
     {
         assert( connectToken );
 
-        (void) connectToken;
+        Disconnect();
 
-        // todo
+        CreateClient( m_address );
+
+        netcode_client_connect( m_client, connectToken );
+    }
+
+    void Client::CreateClient( const Address & address )
+    {
+        assert( m_client == NULL );
+        char addressString[MaxAddressLength];
+        address.ToString( addressString, MaxAddressLength );
+        m_client = netcode_client_create( addressString, GetTime() );
+    }
+
+    void Client::DestroyClient()
+    {
+        assert( m_client != NULL );
+        netcode_client_destroy( m_client );
+        m_client = NULL;
     }
 
     // ------------------------------------------------------------------------------------------------------------------
