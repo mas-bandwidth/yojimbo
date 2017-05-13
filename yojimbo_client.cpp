@@ -123,6 +123,7 @@ namespace yojimbo
         Disconnect();
         CreateClient( m_address );
         netcode_client_connect( m_client, connectToken );
+        SetClientState( CLIENT_STATE_CONNECTING );
     }
 
     void Client::Disconnect()
@@ -153,10 +154,18 @@ namespace yojimbo
         if ( m_client )
         {
             netcode_client_update( m_client, time );
-            if ( netcode_client_state( m_client ) < 0 )
+            const int state = netcode_client_state( m_client );
+            if ( state <= NETCODE_CLIENT_STATE_DISCONNECTED )
             {
                 SetClientState( CLIENT_STATE_ERROR );
-                return;
+            }
+            else if ( state == NETCODE_CLIENT_STATE_DISCONNECTED )
+            {
+                SetClientState( CLIENT_STATE_DISCONNECTED );
+            }
+            else
+            {
+                SetClientState( CLIENT_STATE_CONNECTED );
             }
         }
     }
