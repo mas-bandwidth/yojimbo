@@ -1,7 +1,7 @@
 /*
-    Yojimbo Client/Server Network Protocol Library.
+    Yojimbo Network Library.
     
-    Copyright © 2016, The Network Protocol Company, Inc.
+    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -27,7 +27,115 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <time.h>
+
+namespace yojimbo
+{
+    // ------------------------------------------------------------------------------------------------------------------
+
+    BaseClient::BaseClient( Allocator & allocator, const BaseClientServerConfig & config, double time )
+    {
+        m_allocator = &allocator;
+        m_config = config;
+        m_time = time;
+    }
+
+    BaseClient::~BaseClient()
+    {
+        assert( m_clientState <= CLIENT_STATE_DISCONNECTED );           // IMPORTANT: You must disconnect the client before destroying it!
+
+        // ...
+    }
+
+    void BaseClient::Disconnect()
+    {
+        // todo
+    }
+
+    void BaseClient::SendPackets()
+    {
+        // todo
+    }
+
+    void BaseClient::ReceivePackets()
+    {
+        // todo
+    }
+
+    void BaseClient::AdvanceTime( double time )
+    {
+        m_time = time;
+    }
+
+    void BaseClient::CreateAllocators()
+    {
+        assert( m_allocator );
+        assert( m_clientMemory == NULL );
+        m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
+        m_clientAllocator = YOJIMBO_NEW( *m_allocator, TLSF_Allocator, m_clientMemory, m_config.clientMemory );
+    }
+
+    void BaseClient::DestroyAllocators()
+    {
+        assert( m_allocator );
+        YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );
+        YOJIMBO_FREE( *m_allocator, m_clientMemory );
+    }
+
+    Allocator * BaseClient::CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
+    {
+        return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------
+
+    Client::Client( Allocator & allocator, const ClientServerConfig & config, double time ) : BaseClient( allocator, config, time )
+    {
+        // ...
+    }
+
+    Client::~Client()
+    {
+        // ...
+    }
+
+#ifndef YOJIMBO_SECURE_MODE
+
+    void Client::InsecureConnect( uint64_t clientId, const Address & address )
+    {
+        // todo
+    }
+
+    void Client::InsecureConnect( uint64_t clientId, const Address serverAddresses[], int numServerAddresses )
+    {
+        // todo
+    }
+
+#endif // #ifndef YOJIMBO_SECURE_MODE
+
+    void Client::Connect( uint8_t * connectToken )
+    {
+        assert( connectToken );
+
+        (void) connectToken;
+
+        // todo
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #if 0 // todo
 

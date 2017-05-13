@@ -1,7 +1,7 @@
 /*
-    Yojimbo Client/Server Network Protocol Library.
-
-    Copyright © 2016, The Network Protocol Company, Inc.
+    Yojimbo Network Library.
+    
+    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -240,21 +240,28 @@ namespace yojimbo
         Please make sure that the message configuration is identical between client and server or it will not work.
      */
 
-    struct ClientServerConfig
+    struct BaseClientServerConfig
     {
+        uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
         bool enableMessages;                                    ///< If this is true then you can send messages between client and server. Set to false if you don't want to use messages and you want to extend the protocol by adding new packet types instead.
         ConnectionConfig connectionConfig;                      ///< Configures connection properties and message channels between client and server. Must be identical between client and server to work properly. Only used if enableMessages is true.
 
-        ClientServerConfig()
+        BaseClientServerConfig()
         {
+            protocolId = 0;
             clientMemory = 2 * 1024 * 1024;
             serverGlobalMemory = 2 * 1024 * 1024;
             serverPerClientMemory = 2 * 1024 * 1024;
             enableMessages = true;
         }
+    };
+
+    struct ClientServerConfig : public BaseClientServerConfig
+    {
+        // ...
     };
 }
 
