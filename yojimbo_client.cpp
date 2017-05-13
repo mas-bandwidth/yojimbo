@@ -37,13 +37,18 @@ namespace yojimbo
         m_allocator = &allocator;
         m_config = config;
         m_time = time;
+        m_allocator = NULL;
+        m_context = NULL;
+        m_clientMemory = NULL;
+        m_clientAllocator = NULL;
+        m_clientIndex = -1;
+        m_clientState = CLIENT_STATE_DISCONNECTED;
     }
 
     BaseClient::~BaseClient()
     {
-        assert( m_clientState <= CLIENT_STATE_DISCONNECTED );           // IMPORTANT: You must disconnect the client before destroying it!
-
-        // ...
+        // IMPORTANT: You must disconnect the client before destroying it!
+        assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
     }
 
     void BaseClient::Disconnect()

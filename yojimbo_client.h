@@ -158,12 +158,6 @@ namespace yojimbo
          */
 
         virtual double GetTime() const = 0;
-
-        /**
-            Get the protocol id.
-         */
-
-        virtual uint64_t GetProtocolId() const = 0;
     };
 
     /**
@@ -175,18 +169,14 @@ namespace yojimbo
     public:
 
         /**
-            The base client constructor.
+            Base client constructor.
 
             @param allocator The allocator for all memory used by the client.
             @param config The base client/server configuration.
-            @param time The current time in seconds. See Client::AdvanceTime
+            @param time The current time in seconds. See ClientInterface::AdvanceTime
          */
 
         explicit BaseClient( Allocator & allocator, const BaseClientServerConfig & config, double time );
-
-        /**
-            Base client destructor.
-         */
 
         ~BaseClient();
 
@@ -214,7 +204,6 @@ namespace yojimbo
 
         double GetTime() const { return m_time; }
 
-        uint64_t GetProtocolId() const { return m_config.protocolId; }
     protected:
 
         virtual void CreateAllocators();
@@ -223,6 +212,8 @@ namespace yojimbo
 
         virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes );
 
+        Allocator & GetClientAllocator() { assert( m_clientAllocator ); return *m_clientAllocator; }
+
     private:
 
         BaseClientServerConfig m_config;                                    ///< The base client/server configuration.
@@ -230,9 +221,8 @@ namespace yojimbo
         void * m_context;                                                   ///< Context lets the user pass information to packet serialize functions.
         uint8_t * m_clientMemory;                                           ///< The memory backing the client allocator. Allocated from m_allocator.
         Allocator * m_clientAllocator;                                      ///< The client allocator. Everything allocated between connect and disconnected is allocated and freed via this allocator.
-        uint64_t m_clientId;                                                ///< The globally unique client id (set on each call to connect).
         int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.
-        ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState.
+        ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState
         double m_time;                                                      ///< The current client time. See ClientInterface::AdvanceTime
 
     private:
@@ -255,14 +245,10 @@ namespace yojimbo
 
             @param allocator The allocator for all memory used by the client.
             @param config The client/server configuration.
-            @param time The current time in seconds. See Client::AdvanceTime
+            @param time The current time in seconds. See ClientInterface::AdvanceTime
          */
 
         explicit Client( Allocator & allocator, const ClientServerConfig & config, double time );
-
-        /**
-            Client destructor.
-         */
 
         ~Client();
 
@@ -276,11 +262,9 @@ namespace yojimbo
 
         void Connect( uint8_t * connectToken );
 
-        // ...
-
     private:
 
-        // ...
+        uint64_t m_clientId;                                                ///< The globally unique client id (set on each call to connect)
     };
 }
 
