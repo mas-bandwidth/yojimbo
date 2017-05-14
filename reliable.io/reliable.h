@@ -54,10 +54,13 @@
 #define RELIABLE_MAX_PACKET_HEADER_BYTES 9
 #define RELIABLE_FRAGMENT_HEADER_BYTES 5
 
-#define RELIABLE_LOG_LEVEL_NONE      0
-#define RELIABLE_LOG_LEVEL_INFO      1
-#define RELIABLE_LOG_LEVEL_ERROR     2
-#define RELIABLE_LOG_LEVEL_DEBUG     3
+#define RELIABLE_LOG_LEVEL_NONE     0
+#define RELIABLE_LOG_LEVEL_INFO     1
+#define RELIABLE_LOG_LEVEL_ERROR    2
+#define RELIABLE_LOG_LEVEL_DEBUG    3
+
+#define RELIABLE_OK         1
+#define RELIABLE_ERROR      0
 
 void reliable_log_level( int level );
 

@@ -72,7 +72,7 @@ void reliable_printf( int level, const char * format, ... )
 
 int reliable_init()
 {
-    return 1;
+    return RELIABLE_OK;
 }
 
 void reliable_term()
