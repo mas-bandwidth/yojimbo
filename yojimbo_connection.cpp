@@ -108,9 +108,9 @@ namespace yojimbo
 
         serialize_int( stream, numChannelEntries, 0, context->connectionConfig->numChannels );
 
-#if YOJIMBO_VALIDATE_PACKET_BUDGET
+#if YOJIMBO_VALIDATE_MESSAGE_BUDGET
         assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
-#endif // #if YOJIMBO_VALIDATE_PACKET_BUDGET
+#endif // #if YOJIMBO_VALIDATE_MESSAGE_BUDGET
 
         if ( numChannelEntries > 0 )
         {

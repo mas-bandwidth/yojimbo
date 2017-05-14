@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <memory.h>
     
 /** @file */
 

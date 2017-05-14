@@ -59,32 +59,6 @@ namespace yojimbo
         }
     };
 
-    /**
-        Helper function to generate ack and ack_bits for the connection packet.
-
-        @param packets The sequence buffer of received packets.
-        @param ack The sequence number of the most recent received packet [out].
-        @param ack_bits The bitfield where bit n is set if ack - n was received [out].
-
-        @see ConnectionPacket
-     */
-
-    template <typename T> void GenerateAckBits( const SequenceBuffer<T> & packets, 
-                                                uint16_t & ack,
-                                                uint32_t & ack_bits )
-    {
-        ack = packets.GetSequence() - 1;
-        ack_bits = 0;
-        uint32_t mask = 1;
-        for ( int i = 0; i < 32; ++i )
-        {
-            uint16_t sequence = ack - i;
-            if ( packets.Exists( sequence ) )
-                ack_bits |= mask;
-            mask <<= 1;
-        }
-    }
-
 #if 0 // todo
 
     /** 

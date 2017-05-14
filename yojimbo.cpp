@@ -52,14 +52,17 @@ extern "C" int reliable_init();
 extern "C" void netcode_term();
 extern "C" void reliable_term();
 
+#define NETCODE_OK 1
+#define RELIABLE_OK 1
+
 bool InitializeYojimbo()
 {
     g_defaultAllocator = new yojimbo::DefaultAllocator();
 
-    if ( !netcode_init() )
+    if ( netcode_init() != NETCODE_OK )
         return false;
 
-    if ( !reliable_init() )
+    if ( reliable_init() != RELIABLE_OK )
         return false;
 
     return sodium_init() != -1;

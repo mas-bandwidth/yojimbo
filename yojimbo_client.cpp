@@ -137,7 +137,7 @@ namespace yojimbo
         }
         uint8_t privateKey[NETCODE_KEY_BYTES];
         memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
-        return netcode_generate_connect_token( numServerAddresses, serverAddressStringPointers, timeout, clientId, m_config.protocolId, 0, privateKey, connectToken ) != 0;
+        return netcode_generate_connect_token( numServerAddresses, serverAddressStringPointers, timeout, clientId, m_config.protocolId, 0, privateKey, connectToken ) != NETCODE_OK;
     }
 
 #endif // #if !YOJIMBO_SECURE_MODE

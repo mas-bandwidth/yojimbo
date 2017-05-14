@@ -69,6 +69,8 @@
 
 namespace yojimbo
 {
+    // todo: make sure to backport the netcode.io improvements
+
     Address::Address()
     {
         Clear();
