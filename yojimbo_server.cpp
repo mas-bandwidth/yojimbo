@@ -29,6 +29,54 @@
 #include <inttypes.h>
 #include <time.h>
 
+namespace yojimbo
+{
+    BaseServer::BaseServer()
+    {
+        // ...
+    }
+
+    BaseServer::~BaseServer()
+    {
+        // ...
+    }
+
+    void BaseServer::SetContext( void * context )
+    {
+        assert( !IsRunning() );
+        m_context = context;
+    }
+
+    void BaseServer::Start( int maxClients )
+    {
+        Stop();
+        m_maxClients = maxClients;
+        // todo: create the allocators
+    }
+
+    void BaseServer::Stop()
+    {
+        if ( !IsRunning() )
+            return;
+        // todo: tear down the allocators
+    }
+
+    void BaseServer::AdvanceTime( double time )
+    {
+        m_time = time;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 #if 0 // todo
 
 namespace yojimbo
