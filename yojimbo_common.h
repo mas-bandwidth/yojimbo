@@ -653,11 +653,8 @@ namespace yojimbo
     private:
 
         Allocator * m_allocator;                            ///< Allocator passed in to the constructor.
-
         int m_size;                                         ///< The size of the bit array in bits.
-
         int m_bytes;                                        ///< The size of the bit array in bytes.
-        
         uint64_t * m_data;                                  ///< The data backing the bit array is an array of 64 bit integer values.
 
         BitArray( const BitArray & other );
@@ -834,13 +831,9 @@ namespace yojimbo
 
 
         Allocator * m_allocator;                        ///< The allocator passed in to the constructor.
-
         T * m_entries;                                  ///< Array of entries backing the queue (circular buffer).
-
         int m_arraySize;                                ///< The size of the array, in number of entries. This is the "size" of the queue.
-    
         int m_startIndex;                               ///< The start index for the queue. This is the next value that gets popped off.
-
         int m_numEntries;                               ///< The number of entries currently stored in the queue.
     };
 
@@ -1083,9 +1076,7 @@ namespace yojimbo
         {
             if ( finish_sequence < start_sequence ) 
                 finish_sequence += 65535;
-
             assert( finish_sequence >= start_sequence );
-
             if ( finish_sequence - start_sequence < m_size )
             {
                 for ( int sequence = start_sequence; sequence <= finish_sequence; ++sequence )
@@ -1101,13 +1092,9 @@ namespace yojimbo
     private:
 
         Allocator * m_allocator;                                            ///< The allocator passed in to the constructor.
-
         int m_size;                                                         ///< The size of the sequence buffer.
-        
         uint16_t m_sequence;                                                ///< The most recent sequence number added to the buffer.
-
         uint32_t * m_entry_sequence;                                        ///< Array of sequence numbers corresponding to each sequence buffer entry for fast lookup. Set to 0xFFFFFFFF if no entry exists at that index.
-        
         T * m_entries;                                                      ///< The sequence buffer entries. This is where the data is stored per-entry. Separate from the sequence numbers for fast lookup (hot/cold split) when the data per-sequence number is relatively large.
         
         SequenceBuffer( const SequenceBuffer<T> & other );
