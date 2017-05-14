@@ -147,8 +147,6 @@ void test_queue()
     check( queue.GetSize() == QueueSize );
 }
 
-extern "C" void netcode_random_bytes( uint8_t*, int );
-
 void test_base64()
 {
     const int BufferSize = 256;
@@ -176,7 +174,7 @@ void test_base64()
     const int KeyBytes = 32;
 
     uint8_t key[KeyBytes];
-    netcode_random_bytes( key, KeyBytes );
+    random_bytes( key, KeyBytes );
 
     char base64_key[KeyBytes*2];
     base64_encode_data( key, KeyBytes, base64_key, (int) sizeof( base64_key ) );

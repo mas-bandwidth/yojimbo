@@ -91,6 +91,7 @@ namespace yojimbo
 
     Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time ) : BaseClient( allocator, config, time )
     {
+        m_config = config;
         m_address = address;
         m_client = NULL;
     }
@@ -101,21 +102,45 @@ namespace yojimbo
         assert( m_client == NULL );
     }
 
-#ifndef YOJIMBO_SECURE_MODE
+#if !YOJIMBO_SECURE_MODE
 
     void Client::InsecureConnect( uint64_t clientId, const Address & address )
     {
-        // todo
-        assert( false );
+        InsecureConnect( clientId, &address, 1 );
     }
 
     void Client::InsecureConnect( uint64_t clientId, const Address serverAddresses[], int numServerAddresses )
     {
-        // todo
-        assert( false );
+        assert( serverAddresses );
+        assert( numServerAddresses > 0 );
+        assert( numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
+        Disconnect();
+        CreateClient( m_address );
+        uint8_t connectToken[NETCODE_CONNECT_TOKEN_BYTES];
+        if ( !GenerateInsecureConnectToken( connectToken, clientId, serverAddresses, numServerAddresses ) )
+        {
+            SetClientState( CLIENT_STATE_ERROR );
+            return;
+        }
+        netcode_client_connect( m_client, connectToken );
+        SetClientState( CLIENT_STATE_CONNECTING );
     }
 
-#endif // #ifndef YOJIMBO_SECURE_MODE
+    bool Client::GenerateInsecureConnectToken( uint8_t * connectToken, uint64_t clientId, const Address serverAddresses[], int numServerAddresses, int timeout )
+    {
+        char serverAddressStrings[NETCODE_MAX_SERVERS_PER_CONNECT][MaxAddressLength];
+        char * serverAddressStringPointers[NETCODE_MAX_SERVERS_PER_CONNECT];
+        for ( int i = 0; i < numServerAddresses; ++i ) 
+        {
+            serverAddresses[i].ToString( serverAddressStrings[i], MaxAddressLength );
+            serverAddressStringPointers[i] = serverAddressStrings[i];
+        }
+        uint8_t privateKey[NETCODE_KEY_BYTES];
+        memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
+        return netcode_generate_connect_token( numServerAddresses, serverAddressStringPointers, timeout, clientId, m_config.protocolId, 0, privateKey, connectToken ) != 0;
+    }
+
+#endif // #if !YOJIMBO_SECURE_MODE
 
     void Client::Connect( uint8_t * connectToken )
     {
@@ -136,16 +161,27 @@ namespace yojimbo
     {
         if ( !IsConnected() )
             return;
-        // todo: generate packet to send (with contents from connection channels)
-        // todo: send packet over netcode.io client
+        assert( m_client );
+        uint8_t dummyPacket[32];
+        memset( dummyPacket, 0, sizeof( dummyPacket ) );
+        netcode_client_send_packet( m_client, dummyPacket, sizeof( dummyPacket ) );
     }
 
     void Client::ReceivePackets()
     {
         if ( !IsConnected() )
             return;
-        // todo: pump packets from netcode.io client
-        // todo: process messages in the packets
+        assert( m_client );
+        while ( true )
+        {
+            int packetBytes;
+            uint64_t packetSequence;
+            uint8_t * packetData = netcode_client_receive_packet( m_client, &packetBytes, &packetSequence );
+            if ( !packetData )
+                break;
+            // todo: process packet through reliable.io
+            netcode_client_free_packet( m_client, packetData );
+        }
     }
 
     void Client::AdvanceTime( double time )
@@ -155,7 +191,7 @@ namespace yojimbo
         {
             netcode_client_update( m_client, time );
             const int state = netcode_client_state( m_client );
-            if ( state <= NETCODE_CLIENT_STATE_DISCONNECTED )
+            if ( state < NETCODE_CLIENT_STATE_DISCONNECTED )
             {
                 SetClientState( CLIENT_STATE_ERROR );
             }

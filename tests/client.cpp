@@ -22,15 +22,19 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define CLIENT 1
-#define LOGGING 1
+#include "yojimbo.h"
+#include "netcode.io/c/netcode.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <time.h>
 
-#include "shared.h"
-#include <signal.h>
-
-#if 0 // todo
+using namespace yojimbo;
 
 #if !YOJIMBO_SECURE_MODE
+
+const uint16_t ServerPort = 40000;
 
 static volatile int quit = 0;
 
@@ -46,22 +50,12 @@ int ClientMain( int argc, char * argv[] )
     double time = 100.0;
 
     uint64_t clientId = 0;
-    RandomBytes( (uint8_t*) &clientId, 8 );
+    random_bytes( (uint8_t*) &clientId, 8 );
     printf( "client id is %.16" PRIx64 "\n", clientId );
 
-    NetworkTransport clientTransport( GetDefaultAllocator(), Address("0.0.0.0"), ProtocolId, time );
-    
-    if ( clientTransport.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize client socket\n" );
-        return 1;
-    }
-    
-    printf( "client started on port %d\n", clientTransport.GetAddress().GetPort() );
+    ClientServerConfig config;
 
-    clientTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
-
-    GameClient client( GetDefaultAllocator(), clientTransport, ClientServerConfig(), time );
+    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, time );
 
     Address serverAddress( "127.0.0.1", ServerPort );
 
@@ -86,22 +80,14 @@ int ClientMain( int argc, char * argv[] )
     {
         client.SendPackets();
 
-        clientTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-
         client.ReceivePackets();
-
-        client.CheckForTimeOut();
 
         if ( client.IsDisconnected() )
             break;
-
+     
         time += deltaTime;
 
         client.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
 
         if ( client.ConnectionFailed() )
             break;
@@ -125,6 +111,8 @@ int main( int argc, char * argv[] )
         return 1;
     }
 
+    netcode_log_level( NETCODE_LOG_LEVEL_INFO );
+
     srand( (unsigned int) time( NULL ) );
 
     int result = ClientMain( argc, argv );
@@ -138,24 +126,10 @@ int main( int argc, char * argv[] )
 
 #else // #if !YOJIMBO_SECURE_MODE
 
-int main( int argc, char * argv[] )
+int main()
 {
-    (void)argc;
-    (void)argv;
     printf( "\nYojimbo is in secure mode. Insecure client is disabled. See YOJIMBO_SECURE_MODE\n\n" );
     return 0;
 }
 
 #endif // #if !YOJIMBO_SECURE_MODE
-
-#endif
-
-int main( int argc, char * argv[] )
-{
-    (void)argc;
-    (void)argv;
-    printf( "\nclient\n\n" );
-    return 0;
-}
-
-

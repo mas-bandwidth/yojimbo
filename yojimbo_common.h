@@ -38,7 +38,15 @@
 namespace yojimbo
 {
     /**
-        Generated a random integer between a and b (inclusive).
+        Generate random bytes.
+
+        This is a cryptographically secure random number.
+     */
+
+    void random_bytes( uint8_t * data, int bytes );
+
+    /**
+        Generate a random integer between a and b (inclusive).
 
         IMPORTANT: This is not a cryptographically secure random. It's used only for test functions and in the network simulator.
 
@@ -58,7 +66,7 @@ namespace yojimbo
     }
 
     /** 
-        Generates a random float between a and b.
+        Generate a random float between a and b.
 
         IMPORTANT: This is not a cryptographically secure random. It's used only for test functions and in the network simulator.
 

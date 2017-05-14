@@ -136,7 +136,7 @@ namespace yojimbo
             @returns true if the client is in an error state.
          */
 
-        virtual bool IsError() const = 0;
+        virtual bool ConnectionFailed() const = 0;
 
         /**
             Get the current client state.
@@ -195,7 +195,7 @@ namespace yojimbo
 
         bool IsDisconnected() const { return m_clientState <= CLIENT_STATE_DISCONNECTED; }
 
-        bool IsError() const { return m_clientState == CLIENT_STATE_ERROR; }
+        bool ConnectionFailed() const { return m_clientState == CLIENT_STATE_ERROR; }
 
         ClientState GetClientState() const { return m_clientState; }
 
@@ -253,7 +253,7 @@ namespace yojimbo
 
         ~Client();
 
-#ifndef YOJIMBO_SECURE_MODE
+#if !YOJIMBO_SECURE_MODE
 
         void InsecureConnect( uint64_t clientId, const Address & address );
 
@@ -273,11 +273,16 @@ namespace yojimbo
 
     private:
 
+#if !YOJIMBO_SECURE_MODE
+        bool GenerateInsecureConnectToken( uint8_t * connectToken, uint64_t clientId, const Address serverAddresses[], int numServerAddresses, int timeout = 45 );
+#endif // #if !YOJIMBO_SECURE_MODE
+
         void CreateClient( const Address & address );
 
         void DestroyClient();
 
-        netcode_client_t * m_client;                                        ///< netcode.io client data
+        ClientServerConfig m_config;                                        ///< Client/server configuration.
+        netcode_client_t * m_client;                                        ///< netcode.io client data.
         Address m_address;                                                  ///< The client address.
 //        uint64_t m_clientId;                                                ///< The globally unique client id (set on each call to connect)
     };

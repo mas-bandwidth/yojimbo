@@ -226,7 +226,7 @@ namespace yojimbo
         ConnectionConfig()
         {
             connectionPacketType = 0;
-            maxPacketSize = 4 * 1024;
+            maxPacketSize = 8 * 1024;
             slidingWindowSize = 1024;
             numChannels = 1;
         }
@@ -246,7 +246,6 @@ namespace yojimbo
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
-        bool enableMessages;                                    ///< If this is true then you can send messages between client and server. Set to false if you don't want to use messages and you want to extend the protocol by adding new packet types instead.
         ConnectionConfig connectionConfig;                      ///< Configures connection properties and message channels between client and server. Must be identical between client and server to work properly. Only used if enableMessages is true.
 
         BaseClientServerConfig()
@@ -255,7 +254,6 @@ namespace yojimbo
             clientMemory = 2 * 1024 * 1024;
             serverGlobalMemory = 2 * 1024 * 1024;
             serverPerClientMemory = 2 * 1024 * 1024;
-            enableMessages = true;
         }
     };
 
