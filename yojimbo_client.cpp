@@ -50,6 +50,7 @@ namespace yojimbo
     {
         // IMPORTANT: Please disconnect the client before destroying it
         assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
+        m_allocator = NULL;
     }
 
     void BaseClient::Disconnect()

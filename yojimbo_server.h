@@ -188,7 +188,7 @@ namespace yojimbo
     {
     public:
 
-        BaseServer();
+        BaseServer( Allocator & allocator, const BaseClientServerConfig & config, double time );
 
         ~BaseServer();
 
@@ -209,13 +209,21 @@ namespace yojimbo
     protected:
 
         // ...
-
+        
     private:
 
+        virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes );
+
+        BaseClientServerConfig m_config;                            ///< Base client/server config.
+        Allocator * m_allocator;                                    ///< Allocator passed in to constructor.
         void * m_context;                                           ///< Optional serialization context.
         int m_maxClients;                                           ///< Maximum number of clients supported.
         bool m_running;                                             ///< True if server is currently running, eg. after "Start" is called, before "Stop".
         double m_time;                                              ///< Current server time in seconds.
+        uint8_t * m_globalMemory;                                   ///< The block of memory backing the global allocator. Allocated with m_allocator.
+        uint8_t * m_clientMemory[MaxClients];                       ///< The block of memory backing the per-client allocators. Allocated with m_allocator.
+        Allocator * m_globalAllocator;                              ///< The global allocator. Used for allocations that don't belong to a specific client.
+        Allocator * m_clientAllocator[MaxClients];                  ///< Array of per-client allocator. These are used for allocations related to connected clients.
     };
 
     /**
@@ -233,6 +241,37 @@ namespace yojimbo
         // ...
     };
 }
+
+/** 
+    Helper macro to set the server allocator class.
+
+    You can use this macro to specify that the server uses your own custom allocator class. The default allocator to use is TLSF_Allocator. 
+
+    The constructor of your derived allocator class must match the signature of the TLSF_Allocator constructor to work with this macro.
+    
+    See tests/shared.h for an example of usage.
+ */
+
+#define YOJIMBO_SERVER_ALLOCATOR( allocator_class )                                                                                         \
+    yojimbo::Allocator * CreateAllocator( yojimbo::Allocator & allocator, void * memory, size_t bytes )                                     \
+    {                                                                                                                                       \
+        return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                                                    \
+    }
+
+/** 
+    Helper macro to set the server message factory class.
+   
+    See tests/shared.h for an example of usage.
+ */
+
+#define YOJIMBO_SERVER_MESSAGE_FACTORY( message_factory_class )                                                                             \
+    yojimbo::MessageFactory * CreateMessageFactory( yojimbo::Allocator & allocator, yojimbo::ServerResourceType type, int clientIndex )     \
+    {                                                                                                                                       \
+        (void) type;                                                                                                                        \
+        (void) clientIndex;                                                                                                                 \
+        return YOJIMBO_NEW( allocator, message_factory_class, allocator );                                                                  \
+    }
+
 
 
 

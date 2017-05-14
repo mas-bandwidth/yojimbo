@@ -31,14 +31,28 @@
 
 namespace yojimbo
 {
-    BaseServer::BaseServer()
+    BaseServer::BaseServer( Allocator & allocator, const BaseClientServerConfig & config, double time )
     {
-        // ...
+        m_config = config;
+        m_allocator = &allocator;
+        m_context = NULL;
+        m_time = time;
+        m_running = false;
+        m_maxClients = 0;
+        m_globalMemory = NULL;
+        m_globalAllocator = NULL;
+        for ( int i = 0; i < MaxClients; ++i )
+        {
+            m_clientMemory[i] = NULL;
+            m_clientAllocator[i] = NULL;
+        }
     }
 
     BaseServer::~BaseServer()
     {
-        // ...
+        // IMPORTANT: Please stop the server before destroying it!
+        assert( !IsRunning () );
+        m_allocator = NULL;
     }
 
     void BaseServer::SetContext( void * context )
@@ -51,19 +65,44 @@ namespace yojimbo
     {
         Stop();
         m_maxClients = maxClients;
-        // todo: create the allocators
+        assert( !m_globalMemory );
+        assert( !m_globalAllocator );
+        m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
+        m_globalAllocator = CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
+        for ( int i = 0; i < m_maxClients; ++i )
+        {
+            assert( !m_clientMemory[i] );
+            assert( !m_clientAllocator[i] );
+            m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
+            m_clientAllocator[i] = CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
+        }
     }
 
     void BaseServer::Stop()
     {
         if ( !IsRunning() )
             return;
-        // todo: tear down the allocators
+        assert( m_globalMemory );
+        assert( m_globalAllocator );
+        for ( int i = 0; i < m_maxClients; ++i )
+        {
+            assert( m_clientMemory[i] );
+            assert( m_clientAllocator[i] );
+            YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
+            YOJIMBO_FREE( *m_allocator, m_clientMemory[i] );
+        }
+        YOJIMBO_DELETE( *m_allocator, Allocator, m_globalAllocator );
+        YOJIMBO_FREE( *m_allocator, m_globalMemory );
     }
 
     void BaseServer::AdvanceTime( double time )
     {
         m_time = time;
+    }
+
+    Allocator * BaseServer::CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
+    {
+        return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
     }
 }
 
