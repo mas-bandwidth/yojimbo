@@ -22,123 +22,17 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define SERVER 1
-#define CLIENT 1
-#define MATCHER 1
-#define LOGGING 1
-
-#include "shared.h"
-
-#if 0 // TODO
+#include "yojimbo.h"
+#include "netcode.io/c/netcode.h"
 
 int ClientServerMain()
 {
-    LocalMatcher matcher;
-
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnect];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        return 1;
-    }
-
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
-
-    double time = 100.0;
-
-    NetworkTransport clientTransport( GetDefaultAllocator(), clientAddress, ProtocolId, time );
-    NetworkTransport serverTransport( GetDefaultAllocator(), serverAddress, ProtocolId, time );
-
-    if ( clientTransport.GetError() != SOCKET_ERROR_NONE || serverTransport.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize sockets\n" );
-        return 1;
-    }
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
-
-    GameClient client( GetDefaultAllocator(), clientTransport, ClientServerConfig(), time );
-
-    GameServer server( GetDefaultAllocator(), serverTransport, ClientServerConfig(), time );
-
-    server.SetServerAddress( serverAddress );
-
-    server.Start();
-    
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
-
-    int result = 1;
-
-    const int NumIterations = 256;
-
-    for ( int iteration = 0; iteration < NumIterations; ++iteration )
-    {
-        client.SendPackets();
-        server.SendPackets();
-
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
-
-        client.ReceivePackets();
-        server.ReceivePackets();
-
-        client.CheckForTimeOut();
-        server.CheckForTimeOut();
-
-        if ( client.ConnectionFailed() )
-        {
-            printf( "error: client connect failed!\n" );
-            break;
-        }
-
-        if ( client.IsConnected() && server.GetNumConnectedClients() == 1 )
-        {
-            // success
-            client.Disconnect();
-            result = 0;
-        }
-
-        time += 0.1f;
-
-        if ( !client.IsConnecting() && !client.IsConnected() && server.GetNumConnectedClients() == 0 )
-            break;
-
-        client.AdvanceTime( time );
-        server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
-    }
-
-    client.Disconnect();
-
-    server.Stop();
-
-    return result;
+    return 0;
 }
 
 int main()
 {
-    printf( "\n" );
+    printf( "\n[client/server]\n\n" );
 
     verbose_logging = true;
 
@@ -147,6 +41,8 @@ int main()
         printf( "error: failed to initialize Yojimbo!\n" );
         return 1;
     }
+
+    netcode_log_level( NETCODE_LOG_LEVEL_INFO );
 
     srand( (unsigned int) time( NULL ) );
 
@@ -157,14 +53,4 @@ int main()
     printf( "\n" );
 
     return result;
-}
-
-#endif
-
-int main( int argc, char * argv[] )
-{
-    (void)argc;
-    (void)argv;
-    printf( "\nclient/server\n\n" );
-    return 0;
 }
