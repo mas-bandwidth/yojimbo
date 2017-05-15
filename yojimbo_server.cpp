@@ -110,8 +110,10 @@ namespace yojimbo
 
     // -----------------------------------------------------------------------------------------------------
 
-    Server::Server( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time ) : BaseServer( allocator, config, time )
+    Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, double time ) : BaseServer( allocator, config, time )
     {
+        assert( KeyBytes == NETCODE_KEY_BYTES );
+        memcpy( m_privateKey, privateKey, NETCODE_KEY_BYTES );
         m_address = address;
         m_config = config;
         m_server = NULL;
@@ -128,12 +130,9 @@ namespace yojimbo
         if ( IsRunning() )
             Stop();
         BaseServer::Start( maxClients );
-        // todo: private key sort out
-        uint8_t privateKey[NETCODE_KEY_BYTES];
-        memset( privateKey, 0, NETCODE_KEY_BYTES );
         char addressString[MaxAddressLength];
         m_address.ToString( addressString, MaxAddressLength );
-        m_server = netcode_server_create( addressString, m_config.protocolId, privateKey, GetTime() );
+        m_server = netcode_server_create( addressString, m_config.protocolId, m_privateKey, GetTime() );
         assert( m_server );
         netcode_server_start( m_server, maxClients );
     }

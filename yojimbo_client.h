@@ -255,13 +255,13 @@ namespace yojimbo
 
 #if !YOJIMBO_SECURE_MODE
 
-        void InsecureConnect( uint64_t clientId, const Address & address );
+        void InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address );
 
-        void InsecureConnect( uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
+        void InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
 
 #endif // #ifndef YOJIMBO_SECURE_MODE
 
-        void Connect( uint8_t * connectToken );
+        void Connect( uint64_t clientId, uint8_t * connectToken );
 
         void Disconnect();
 
@@ -274,7 +274,7 @@ namespace yojimbo
     private:
 
 #if !YOJIMBO_SECURE_MODE
-        bool GenerateInsecureConnectToken( uint8_t * connectToken, uint64_t clientId, const Address serverAddresses[], int numServerAddresses, int timeout = 45 );
+        bool GenerateInsecureConnectToken( uint8_t * connectToken, const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses, int timeout = 45 );
 #endif // #if !YOJIMBO_SECURE_MODE
 
         void CreateClient( const Address & address );
@@ -284,7 +284,7 @@ namespace yojimbo
         ClientServerConfig m_config;                                        ///< Client/server configuration.
         netcode_client_t * m_client;                                        ///< netcode.io client data.
         Address m_address;                                                  ///< The client address.
-//        uint64_t m_clientId;                                                ///< The globally unique client id (set on each call to connect)
+        uint64_t m_clientId;                                                ///< The globally unique client id (set on each call to connect)
     };
 }
 
@@ -315,5 +315,5 @@ namespace yojimbo
     {                                                                                                   \
         return YOJIMBO_NEW( allocator, message_factory_class, allocator );                              \
     }
-    
+
 #endif // #ifndef YOJIMBO_CLIENT_H

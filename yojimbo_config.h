@@ -129,6 +129,7 @@ namespace yojimbo
 {
     const int MaxClients = 64;                                      ///< The maximum number of clients supported by this library. You can increase this if you want, but this library is designed around patterns that work best for [2,64] player games. If your game has less than 64 clients, reducing this will save memory.
     const int MaxChannels = 64;                                     ///< The maximum number of message channels supported by this library. If you need less than 64 channels per-packet, reducing this saves memory.
+    const int KeyBytes = 32;                                        ///< Size of encryption key for dedicated client/server in bytes. Do not change.
     const int ConservativeMessageHeaderEstimate = 32;               ///< Conservative message header estimate used when checking that message data fits within the message budget. See YOJIMBO_VALIDATE_MESSAGE_BUDGET
     const int ConservativeFragmentHeaderEstimate = 64;              ///< Conservative fragment header estimate used when checking that message data fits within the message budget. See YOJIMBO_VALIDATE_MESSAGE_BUDGET
     const int ConservativeChannelHeaderEstimate = 32;               ///< Conservative channel header estimate used when checking that message data fits within the message budget. See YOJIMBO_VALIDATE_MESSAGE_BUDGET

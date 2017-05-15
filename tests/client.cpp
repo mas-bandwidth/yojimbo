@@ -70,7 +70,10 @@ int ClientMain( int argc, char * argv[] )
         }
     }
 
-    client.InsecureConnect( clientId, serverAddress );
+    uint8_t privateKey[NETCODE_KEY_BYTES];
+    memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
 
     const double deltaTime = 0.1;
 

@@ -236,7 +236,7 @@ namespace yojimbo
     {
     public:
 
-        Server( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time );
+        Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, double time );
 
         ~Server();
 
@@ -259,6 +259,7 @@ namespace yojimbo
         ClientServerConfig m_config;
         netcode_server_t * m_server;
         Address m_address;
+        uint8_t m_privateKey[KeyBytes];
     };
 }
 

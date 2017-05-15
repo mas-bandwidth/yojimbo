@@ -48,7 +48,10 @@ int ServerMain()
 
     ClientServerConfig config;
 
-    Server server( GetDefaultAllocator(), Address( "127.0.0.1", ServerPort ), config, time );
+    uint8_t privateKey[NETCODE_KEY_BYTES];
+    memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
+
+    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, time );
 
     server.Start( MaxClients );
 

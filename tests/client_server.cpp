@@ -49,7 +49,10 @@ int ClientServerMain()
 
     ClientServerConfig config;
 
-    Server server( GetDefaultAllocator(), Address( "127.0.0.1", ServerPort ), config, time );
+    uint8_t privateKey[NETCODE_KEY_BYTES];
+    memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
+
+    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, time );
 
     server.Start( MaxClients );
 
@@ -61,7 +64,7 @@ int ClientServerMain()
 
     Address serverAddress( "127.0.0.1", ServerPort );
 
-    client.InsecureConnect( clientId, serverAddress );
+    client.InsecureConnect( privateKey, clientId, serverAddress );
 
     const double deltaTime = 0.1;
 
