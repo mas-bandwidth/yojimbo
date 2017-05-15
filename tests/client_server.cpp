@@ -23,18 +23,84 @@
 */
 
 #include "yojimbo.h"
-#include "netcode.io/c/netcode.h"
+#include "netcode.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <time.h>
+
+using namespace yojimbo;
+
+const int ServerPort = 40000;
+
+static volatile int quit = 0;
+
+void interrupt_handler( int /*dummy*/ )
+{
+    quit = 1;
+}
 
 int ClientServerMain()
 {
+    printf( "started server on port %d\n", ServerPort );
+
+    double time = 100.0;
+
+    ClientServerConfig config;
+
+    Server server( GetDefaultAllocator(), Address( "127.0.0.1", ServerPort ), config, time );
+
+    server.Start( MaxClients );
+
+    uint64_t clientId = 0;
+    random_bytes( (uint8_t*) &clientId, 8 );
+    printf( "client id is %.16" PRIx64 "\n", clientId );
+
+    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, time );
+
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    client.InsecureConnect( clientId, serverAddress );
+
+    const double deltaTime = 0.1;
+
+    signal( SIGINT, interrupt_handler );    
+
+    while ( !quit )
+    {
+        server.SendPackets();
+        client.SendPackets();
+
+        server.ReceivePackets();
+        client.ReceivePackets();
+
+        if ( client.IsDisconnected() )
+            break;
+     
+        time += deltaTime;
+
+        client.AdvanceTime( time );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        time += deltaTime;
+
+        server.AdvanceTime( time );
+
+        platform_sleep( deltaTime );
+    }
+
+    client.Disconnect();
+    server.Stop();
+
     return 0;
 }
 
 int main()
 {
-    printf( "\n[client/server]\n\n" );
-
-    verbose_logging = true;
+    printf( "\n[client/server]\n" );
 
     if ( !InitializeYojimbo() )
     {

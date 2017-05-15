@@ -22,12 +22,14 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define SERVER 1
-#define LOGGING 1
-
-#include "shared.h"
-#include "netcode.io/c/netcode.h"
+#include "yojimbo.h"
+#include "netcode.h"
 #include <signal.h>
+#include <time.h>
+
+using namespace yojimbo;
+
+const int ServerPort = 40000;
 
 #if !YOJIMBO_SECURE_MODE
 
@@ -66,8 +68,6 @@ int ServerMain()
 
         platform_sleep( deltaTime );
     }
-
-    printf( "\nserver stopped\n" );
 
     server.Stop();
 

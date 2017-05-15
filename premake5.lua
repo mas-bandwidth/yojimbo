@@ -15,10 +15,10 @@ solution "Yojimbo"
     platforms { "x64" }
     configurations { "Debug", "Release", "Secure" }
     if os.is "windows" then
-        includedirs { ".", "./windows" }
+        includedirs { ".", "./windows", "netcode.io/c", "reliable.io" }
         libdirs { "./windows" }
     else
-        includedirs { ".", "/usr/local/include" }       -- for clang scan-build only. for some reason it needs this to work =p
+        includedirs { ".", "/usr/local/include", "netcode.io/c", "reliable.io" }
         targetdir "bin/"  
     end
     rtti "Off"

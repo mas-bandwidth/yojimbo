@@ -23,7 +23,7 @@
 */
 
 #include "yojimbo.h"
-#include "netcode.io/c/netcode.h"
+#include "netcode.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -83,26 +83,17 @@ int ClientMain( int argc, char * argv[] )
         client.ReceivePackets();
 
         if ( client.IsDisconnected() )
-        {
-            printf( "client disconnected\n" );
             break;
-        }
      
         time += deltaTime;
 
         client.AdvanceTime( time );
 
         if ( client.ConnectionFailed() )
-        {
-            printf( "client connection failed\n" );            
             break;
-        }
 
         platform_sleep( deltaTime );
     }
-
-    if ( quit )
-        printf( "\nclient stopped\n" );
 
     client.Disconnect();
 
