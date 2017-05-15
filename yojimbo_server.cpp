@@ -24,6 +24,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_server.h"
+#include "netcode.io/c/netcode.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -31,6 +32,8 @@
 
 namespace yojimbo
 {
+    // -----------------------------------------------------------------------------------------------------
+
     BaseServer::BaseServer( Allocator & allocator, const BaseClientServerConfig & config, double time )
     {
         m_config = config;
@@ -64,6 +67,7 @@ namespace yojimbo
     void BaseServer::Start( int maxClients )
     {
         Stop();
+        m_running = true;
         m_maxClients = maxClients;
         assert( !m_globalMemory );
         assert( !m_globalAllocator );
@@ -80,19 +84,22 @@ namespace yojimbo
 
     void BaseServer::Stop()
     {
-        if ( !IsRunning() )
-            return;
-        assert( m_globalMemory );
-        assert( m_globalAllocator );
-        for ( int i = 0; i < m_maxClients; ++i )
+        if ( IsRunning() )
         {
-            assert( m_clientMemory[i] );
-            assert( m_clientAllocator[i] );
-            YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
-            YOJIMBO_FREE( *m_allocator, m_clientMemory[i] );
+            assert( m_globalMemory );
+            assert( m_globalAllocator );
+            for ( int i = 0; i < m_maxClients; ++i )
+            {
+                assert( m_clientMemory[i] );
+                assert( m_clientAllocator[i] );
+                YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
+                YOJIMBO_FREE( *m_allocator, m_clientMemory[i] );
+            }
+            YOJIMBO_DELETE( *m_allocator, Allocator, m_globalAllocator );
+            YOJIMBO_FREE( *m_allocator, m_globalMemory );
         }
-        YOJIMBO_DELETE( *m_allocator, Allocator, m_globalAllocator );
-        YOJIMBO_FREE( *m_allocator, m_globalMemory );
+        m_running = false;
+        m_maxClients = 0;
     }
 
     void BaseServer::AdvanceTime( double time )
@@ -104,6 +111,87 @@ namespace yojimbo
     {
         return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
     }
+
+    // -----------------------------------------------------------------------------------------------------
+
+    Server::Server( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time ) : BaseServer( allocator, config, time )
+    {
+        m_address = address;
+        m_config = config;
+        m_server = NULL;
+    }
+
+    Server::~Server()
+    {
+        // IMPORTANT: Please stop the server before destroying it!
+        assert( !m_server );
+    }
+
+    void Server::Start( int maxClients )
+    {
+        if ( IsRunning() )
+            Stop();
+        BaseServer::Start( maxClients );
+        // todo: private key sort out
+        uint8_t privateKey[NETCODE_KEY_BYTES];
+        memset( privateKey, 0, NETCODE_KEY_BYTES );
+        char addressString[MaxAddressLength];
+        m_address.ToString( addressString, MaxAddressLength );
+        m_server = netcode_server_create( addressString, m_config.protocolId, privateKey, GetTime() );
+        assert( m_server );
+        netcode_server_start( m_server, maxClients );
+    }
+
+    void Server::Stop()
+    {
+        printf( "Server::Stop\n" );
+        if ( m_server )
+        {
+            netcode_server_stop( m_server );
+            netcode_server_destroy( m_server );
+            m_server = NULL;
+        }
+        BaseServer::Stop();
+    }
+
+    void Server::DisconnectClient( int clientIndex )
+    {
+        assert( m_server );
+        netcode_server_disconnect_client( m_server, clientIndex );
+    }
+
+    void Server::DisconnectAllClients()
+    {
+        assert( m_server );
+        netcode_server_disconnect_all_clients( m_server );
+    }
+
+    void Server::SendPackets()
+    {
+        if ( m_server )
+        {
+            // todo
+        }
+    }
+
+    void Server::ReceivePackets()
+    {
+        if ( m_server )
+        {
+            // todo
+        }
+    }
+
+    void Server::AdvanceTime( double time )
+    {
+        if ( m_server )
+        {
+            netcode_server_update( m_server, time );
+        }
+        BaseServer::AdvanceTime( time );
+    }
+
+    // -----------------------------------------------------------------------------------------------------
 }
 
 

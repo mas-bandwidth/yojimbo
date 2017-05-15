@@ -120,6 +120,7 @@ namespace yojimbo
         uint8_t connectToken[NETCODE_CONNECT_TOKEN_BYTES];
         if ( !GenerateInsecureConnectToken( connectToken, clientId, serverAddresses, numServerAddresses ) )
         {
+            printf( "failed to generate insecure connect token\n" );
             SetClientState( CLIENT_STATE_ERROR );
             return;
         }
@@ -138,7 +139,7 @@ namespace yojimbo
         }
         uint8_t privateKey[NETCODE_KEY_BYTES];
         memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
-        return netcode_generate_connect_token( numServerAddresses, serverAddressStringPointers, timeout, clientId, m_config.protocolId, 0, privateKey, connectToken ) != NETCODE_OK;
+        return netcode_generate_connect_token( numServerAddresses, serverAddressStringPointers, timeout, clientId, m_config.protocolId, 0, privateKey, connectToken ) == NETCODE_OK;
     }
 
 #endif // #if !YOJIMBO_SECURE_MODE

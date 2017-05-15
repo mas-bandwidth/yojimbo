@@ -83,14 +83,20 @@ int ClientMain( int argc, char * argv[] )
         client.ReceivePackets();
 
         if ( client.IsDisconnected() )
+        {
+            printf( "client disconnected\n" );
             break;
+        }
      
         time += deltaTime;
 
         client.AdvanceTime( time );
 
         if ( client.ConnectionFailed() )
+        {
+            printf( "client connection failed\n" );            
             break;
+        }
 
         platform_sleep( deltaTime );
     }

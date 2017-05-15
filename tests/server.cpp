@@ -26,9 +26,8 @@
 #define LOGGING 1
 
 #include "shared.h"
+#include "netcode.io/c/netcode.h"
 #include <signal.h>
-
-#if 0 // TODO
 
 #if !YOJIMBO_SECURE_MODE
 
@@ -43,29 +42,13 @@ int ServerMain()
 {
     printf( "started server on port %d\n", ServerPort );
 
-    Address serverBindAddress( "0.0.0.0", ServerPort );
-
-    Address serverPublicAddress( "127.0.0.1", ServerPort );
-
     double time = 100.0;
 
-    NetworkTransport serverTransport( GetDefaultAllocator(), serverBindAddress, ProtocolId, time );
+    ClientServerConfig config;
 
-    if ( serverTransport.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize server socket\n" );
-        return 1;
-    }
-    
-    GameServer server( GetDefaultAllocator(), serverTransport, ClientServerConfig(), time );
+    Server server( GetDefaultAllocator(), Address( "127.0.0.1", ServerPort ), config, time );
 
-    server.SetServerAddress( serverPublicAddress );
-
-    server.SetFlags( SERVER_FLAG_ALLOW_INSECURE_CONNECT );
-    
-    serverTransport.SetFlags( TRANSPORT_FLAG_INSECURE_MODE );
-
-    server.Start();
+    server.Start( MaxClients );
 
     const double deltaTime = 0.1;
 
@@ -75,19 +58,11 @@ int ServerMain()
     {
         server.SendPackets();
 
-        serverTransport.WritePackets();
-
-        serverTransport.ReadPackets();
-
         server.ReceivePackets();
-
-        server.CheckForTimeOut();
 
         time += deltaTime;
 
         server.AdvanceTime( time );
-
-        serverTransport.AdvanceTime( time );
 
         platform_sleep( deltaTime );
     }
@@ -108,6 +83,8 @@ int main()
         printf( "error: failed to initialize Yojimbo!\n" );
         return 1;
     }
+
+    netcode_log_level( NETCODE_LOG_LEVEL_INFO );
 
     srand( (unsigned int) time( NULL ) );
 
@@ -131,13 +108,3 @@ int main( int argc, char * argv[] )
 }
 
 #endif // #if !YOJIMBO_SECURE_MODE
-
-#endif
-
-int main( int argc, char * argv[] )
-{
-    (void)argc;
-    (void)argv;
-    printf( "\nserver\n\n" );
-    return 0;
-}

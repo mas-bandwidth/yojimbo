@@ -31,6 +31,8 @@
 
 /** @file */
 
+struct netcode_server_t;
+
 namespace yojimbo
 {
     /**
@@ -209,7 +211,7 @@ namespace yojimbo
     protected:
 
         // ...
-        
+
     private:
 
         virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes );
@@ -234,11 +236,29 @@ namespace yojimbo
     {
     public:
 
-        // ...
+        Server( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time );
+
+        ~Server();
+
+        void Start( int maxClients );
+
+        void Stop();
+
+        void DisconnectClient( int clientIndex );
+
+        void DisconnectAllClients();
+
+        void SendPackets();
+
+        void ReceivePackets();
+
+        void AdvanceTime( double time );
 
     private:
 
-        // ...
+        ClientServerConfig m_config;
+        netcode_server_t * m_server;
+        Address m_address;
     };
 }
 
