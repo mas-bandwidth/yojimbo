@@ -382,34 +382,55 @@ void test_stream()
     check( readObject == writeObject );
 }
 
-// todo
-
-#if 0
-
-static void test_address()
+bool parse_address( const char string[] )
 {
+    Address address( string );
+    return address.IsValid();
+}
+
+void test_address()
+{
+    check( parse_address( "" ) == false );
+    check( parse_address( "[" ) == false );
+    check( parse_address( "[]" ) == false );
+    check( parse_address( "[]:" ) == false );
+    check( parse_address( ":" ) == false );
+    check( parse_address( "1" ) == false );
+    check( parse_address( "12" ) == false );
+    check( parse_address( "123" ) == false );
+    check( parse_address( "1234" ) == false );
+    check( parse_address( "1234.0.12313.0000" ) == false );
+    check( parse_address( "1234.0.12313.0000.0.0.0.0.0" ) == false );
+    check( parse_address( "1312313:123131:1312313:123131:1312313:123131:1312313:123131:1312313:123131:1312313:123131" ) == false );
+    check( parse_address( "." ) == false );
+    check( parse_address( ".." ) == false );
+    check( parse_address( "..." ) == false );
+    check( parse_address( "...." ) == false );
+    check( parse_address( "....." ) == false );
+
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "107.77.207.77", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV4 );
-        check( address.port == 0 );
-        check( address.data.ipv4[0] == 107 );
-        check( address.data.ipv4[1] == 77 );
-        check( address.data.ipv4[2] == 207 );
-        check( address.data.ipv4[3] == 77 );
+        Address address( "107.77.207.77" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV4 );
+        check( address.GetPort() == 0 );
+        check( address.GetAddress4()[0] == 107 );
+        check( address.GetAddress4()[1] == 77 );
+        check( address.GetAddress4()[2] == 207 );
+        check( address.GetAddress4()[3] == 77 );
     }
 
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "127.0.0.1", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV4 );
-        check( address.port == 0 );
-        check( address.data.ipv4[0] == 127 );
-        check( address.data.ipv4[1] == 0 );
-        check( address.data.ipv4[2] == 0 );
-        check( address.data.ipv4[3] == 1 );
+        Address address( "127.0.0.1" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV4 );
+        check( address.GetPort() == 0 );
+        check( address.GetAddress4()[0] == 127 );
+        check( address.GetAddress4()[1] == 0 );
+        check( address.GetAddress4()[2] == 0 );
+        check( address.GetAddress4()[3] == 1 );
     }
 
+    /*
     {
         struct netcode_address_t address;
         check( netcode_parse_address( "107.77.207.77:40000", &address ) == NETCODE_OK );
@@ -521,56 +542,7 @@ static void test_address()
         check( address.data.ipv6[6] == 0x0000 );
         check( address.data.ipv6[7] == 0x0001 );
     }
-
-#endif // #if 0
-
-bool parse_address( const char string[] )
-{
-    Address address( string );
-    return address.IsValid();
-}
-
-// todo: we really shouldn't need this to use the address class
-inline uint16_t test_htons( uint16_t input )
-{
-#if YOJIMBO_LITTLE_ENDIAN
-    return ( ( input & 0xFF ) << 8 ) | 
-           ( ( input & 0xFF00 ) >> 8 );
-#else
-    return input;
-#endif // #if YOJIMBO_LITTLE_ENDIAN
-}
-
-void test_address()
-{
-    check( parse_address( "" ) == false );
-    check( parse_address( "[" ) == false );
-    check( parse_address( "[]" ) == false );
-    check( parse_address( "[]:" ) == false );
-    check( parse_address( ":" ) == false );
-    check( parse_address( "1" ) == false );
-    check( parse_address( "12" ) == false );
-    check( parse_address( "123" ) == false );
-    check( parse_address( "1234" ) == false );
-    check( parse_address( "1234.0.12313.0000" ) == false );
-    check( parse_address( "1234.0.12313.0000.0.0.0.0.0" ) == false );
-    check( parse_address( "1312313:123131:1312313:123131:1312313:123131:1312313:123131:1312313:123131:1312313:123131" ) == false );
-    check( parse_address( "." ) == false );
-    check( parse_address( ".." ) == false );
-    check( parse_address( "..." ) == false );
-    check( parse_address( "...." ) == false );
-    check( parse_address( "....." ) == false );
-
-    {
-        Address address( "107.77.207.77" );
-        check( address.IsValid() );
-        check( address.GetType() == ADDRESS_IPV4 );
-        check( address.GetPort() == 0 );
-        check( address.GetAddress4()[0] == 107 );
-        check( address.GetAddress4()[1] == 77 );
-        check( address.GetAddress4()[2] == 207 );
-        check( address.GetAddress4()[3] == 77 );
-    }
+    */
 
     // *** OLD ***
 

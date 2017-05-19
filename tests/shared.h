@@ -42,6 +42,10 @@ const uint64_t ProtocolId = 0x11223344556677ULL;
 const int ClientPort = 30000;
 const int ServerPort = 40000;
 
+// todo: clean up and remove this file
+
+// todo: add an "extender" concept for client/server, so you don't have to derive a custom class just to modify the allocator, or the message factory.
+
 // todo
 /*
 #if LOGGING
