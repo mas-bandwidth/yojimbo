@@ -86,10 +86,10 @@ namespace yojimbo
     }
 
     Address::Address( const uint8_t address[], uint16_t port )
-        : m_type( ADDRESS_IPV6 )
+        : m_type( ADDRESS_IPV4 )
     {
-        for ( int i = 0; i < 8; ++i )
-            m_address.ipv6[i] = htons( address[i] );
+        for ( int i = 0; i < 4; ++i )
+            m_address.ipv4[i] = address[i];
         m_port = port;
     }
 
@@ -257,13 +257,19 @@ namespace yojimbo
         {
             if ( m_port == 0 )
             {
-                inet_ntop( AF_INET6, (void*) &m_address.ipv6, buffer, bufferSize );
+                uint16_t address6[8];
+                for ( int i = 0; i < 8; ++i )
+                    address6[i] = ntohs( ((uint16_t*) &m_address.ipv6)[i] );
+                inet_ntop( AF_INET6, address6, buffer, bufferSize );
                 return buffer;
             }
             else
             {
                 char addressString[INET6_ADDRSTRLEN];
-                inet_ntop( AF_INET6, (void*) &m_address.ipv6, addressString, INET6_ADDRSTRLEN );
+                uint16_t address6[8];
+                for ( int i = 0; i < 8; ++i )
+                    address6[i] = ntohs( ((uint16_t*) &m_address.ipv6)[i] );
+                inet_ntop( AF_INET6, address6, addressString, INET6_ADDRSTRLEN );
                 snprintf( buffer, bufferSize, "[%s]:%d", addressString, m_port );
                 return buffer;
             }
@@ -282,17 +288,17 @@ namespace yojimbo
 
     bool Address::IsLinkLocal() const
     {
-        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == htons( 0xfe80 );
+        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == 0xfe80;
     }
 
     bool Address::IsSiteLocal() const
     {
-        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == htons( 0xfec0 );
+        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == 0xfec0;
     }
 
     bool Address::IsMulticast() const
     {
-        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == htons( 0xff00 );
+        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == 0xff00;
     }
 
     bool Address::IsLoopback() const
@@ -309,14 +315,14 @@ namespace yojimbo
                                         && m_address.ipv6[4] == 0
                                         && m_address.ipv6[5] == 0
                                         && m_address.ipv6[6] == 0
-                                        && m_address.ipv6[7] == htons( 0x0001 ) );
+                                        && m_address.ipv6[7] == 0x0001 );
     }
 
     bool Address::IsGlobalUnicast() const
     {
-        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] != htons( 0xfe80 )
-                                      && m_address.ipv6[0] != htons( 0xfec0 )
-                                      && m_address.ipv6[0] != htons( 0xff00 )
+        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] != 0xfe80
+                                      && m_address.ipv6[0] != 0xfec0
+                                      && m_address.ipv6[0] != 0xff00
                                       && !IsLoopback();
     }
 

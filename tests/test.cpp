@@ -417,6 +417,7 @@ void test_address()
         check( address.GetAddress4()[1] == 77 );
         check( address.GetAddress4()[2] == 207 );
         check( address.GetAddress4()[3] == 77 );
+        check( !address.IsLoopback() );
     }
 
     {
@@ -428,183 +429,130 @@ void test_address()
         check( address.GetAddress4()[1] == 0 );
         check( address.GetAddress4()[2] == 0 );
         check( address.GetAddress4()[3] == 1 );
-    }
-
-    /*
-    {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "107.77.207.77:40000", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV4 );
-        check( address.port == 40000 );
-        check( address.data.ipv4[0] == 107 );
-        check( address.data.ipv4[1] == 77 );
-        check( address.data.ipv4[2] == 207 );
-        check( address.data.ipv4[3] == 77 );
+        check( address.IsLoopback() );
     }
 
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "127.0.0.1:40000", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV4 );
-        check( address.port == 40000 );
-        check( address.data.ipv4[0] == 127 );
-        check( address.data.ipv4[1] == 0 );
-        check( address.data.ipv4[2] == 0 );
-        check( address.data.ipv4[3] == 1 );
+        Address address( "107.77.207.77:40000" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV4 );
+        check( address.GetPort() == 40000 );
+        check( address.GetAddress4()[0] == 107 );
+        check( address.GetAddress4()[1] == 77 );
+        check( address.GetAddress4()[2] == 207 );
+        check( address.GetAddress4()[3] == 77 );
+        check( !address.IsLoopback() );
     }
 
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "fe80::202:b3ff:fe1e:8329", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV6 );
-        check( address.port == 0 );
-        check( address.data.ipv6[0] == 0xfe80 );
-        check( address.data.ipv6[1] == 0x0000 );
-        check( address.data.ipv6[2] == 0x0000 );
-        check( address.data.ipv6[3] == 0x0000 );
-        check( address.data.ipv6[4] == 0x0202 );
-        check( address.data.ipv6[5] == 0xb3ff );
-        check( address.data.ipv6[6] == 0xfe1e );
-        check( address.data.ipv6[7] == 0x8329 );
+        Address address( "127.0.0.1:40000" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV4 );
+        check( address.GetPort() == 40000 );
+        check( address.GetAddress4()[0] == 127 );
+        check( address.GetAddress4()[1] == 0 );
+        check( address.GetAddress4()[2] == 0 );
+        check( address.GetAddress4()[3] == 1 );
+        check( address.IsLoopback() );
     }
 
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "::", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV6 );
-        check( address.port == 0 );
-        check( address.data.ipv6[0] == 0x0000 );
-        check( address.data.ipv6[1] == 0x0000 );
-        check( address.data.ipv6[2] == 0x0000 );
-        check( address.data.ipv6[3] == 0x0000 );
-        check( address.data.ipv6[4] == 0x0000 );
-        check( address.data.ipv6[5] == 0x0000 );
-        check( address.data.ipv6[6] == 0x0000 );
-        check( address.data.ipv6[7] == 0x0000 );
+        Address address( "fe80::202:b3ff:fe1e:8329" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 0 );
+        check( address.GetAddress6()[0] == 0xfe80 );
+        check( address.GetAddress6()[1] == 0x0000 );
+        check( address.GetAddress6()[2] == 0x0000 );
+        check( address.GetAddress6()[3] == 0x0000 );
+        check( address.GetAddress6()[4] == 0x0202 );
+        check( address.GetAddress6()[5] == 0xb3ff );
+        check( address.GetAddress6()[6] == 0xfe1e );
+        check( address.GetAddress6()[7] == 0x8329 );
+        check( !address.IsLoopback() );
     }
 
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "::1", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV6 );
-        check( address.port == 0 );
-        check( address.data.ipv6[0] == 0x0000 );
-        check( address.data.ipv6[1] == 0x0000 );
-        check( address.data.ipv6[2] == 0x0000 );
-        check( address.data.ipv6[3] == 0x0000 );
-        check( address.data.ipv6[4] == 0x0000 );
-        check( address.data.ipv6[5] == 0x0000 );
-        check( address.data.ipv6[6] == 0x0000 );
-        check( address.data.ipv6[7] == 0x0001 );
+        Address address( "::" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 0 );
+        check( address.GetAddress6()[0] == 0x0000 );
+        check( address.GetAddress6()[1] == 0x0000 );
+        check( address.GetAddress6()[2] == 0x0000 );
+        check( address.GetAddress6()[3] == 0x0000 );
+        check( address.GetAddress6()[4] == 0x0000 );
+        check( address.GetAddress6()[5] == 0x0000 );
+        check( address.GetAddress6()[6] == 0x0000 );
+        check( address.GetAddress6()[7] == 0x0000 );
+        check( !address.IsLoopback() );
     }
 
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "[fe80::202:b3ff:fe1e:8329]:40000", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV6 );
-        check( address.port == 40000 );
-        check( address.data.ipv6[0] == 0xfe80 );
-        check( address.data.ipv6[1] == 0x0000 );
-        check( address.data.ipv6[2] == 0x0000 );
-        check( address.data.ipv6[3] == 0x0000 );
-        check( address.data.ipv6[4] == 0x0202 );
-        check( address.data.ipv6[5] == 0xb3ff );
-        check( address.data.ipv6[6] == 0xfe1e );
-        check( address.data.ipv6[7] == 0x8329 );
+        Address address( "::1" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 0 );
+        check( address.GetAddress6()[0] == 0x0000 );
+        check( address.GetAddress6()[1] == 0x0000 );
+        check( address.GetAddress6()[2] == 0x0000 );
+        check( address.GetAddress6()[3] == 0x0000 );
+        check( address.GetAddress6()[4] == 0x0000 );
+        check( address.GetAddress6()[5] == 0x0000 );
+        check( address.GetAddress6()[6] == 0x0000 );
+        check( address.GetAddress6()[7] == 0x0001 );
+        check( address.IsLoopback() );
     }
 
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "[::]:40000", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV6 );
-        check( address.port == 40000 );
-        check( address.data.ipv6[0] == 0x0000 );
-        check( address.data.ipv6[1] == 0x0000 );
-        check( address.data.ipv6[2] == 0x0000 );
-        check( address.data.ipv6[3] == 0x0000 );
-        check( address.data.ipv6[4] == 0x0000 );
-        check( address.data.ipv6[5] == 0x0000 );
-        check( address.data.ipv6[6] == 0x0000 );
-        check( address.data.ipv6[7] == 0x0000 );
+        Address address( "[fe80::202:b3ff:fe1e:8329]:40000" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 40000 );
+        check( address.GetAddress6()[0] == 0xfe80 );
+        check( address.GetAddress6()[1] == 0x0000 );
+        check( address.GetAddress6()[2] == 0x0000 );
+        check( address.GetAddress6()[3] == 0x0000 );
+        check( address.GetAddress6()[4] == 0x0202 );
+        check( address.GetAddress6()[5] == 0xb3ff );
+        check( address.GetAddress6()[6] == 0xfe1e );
+        check( address.GetAddress6()[7] == 0x8329 );
+        check( !address.IsLoopback() );
     }
 
     {
-        struct netcode_address_t address;
-        check( netcode_parse_address( "[::1]:40000", &address ) == NETCODE_OK );
-        check( address.type == NETCODE_ADDRESS_IPV6 );
-        check( address.port == 40000 );
-        check( address.data.ipv6[0] == 0x0000 );
-        check( address.data.ipv6[1] == 0x0000 );
-        check( address.data.ipv6[2] == 0x0000 );
-        check( address.data.ipv6[3] == 0x0000 );
-        check( address.data.ipv6[4] == 0x0000 );
-        check( address.data.ipv6[5] == 0x0000 );
-        check( address.data.ipv6[6] == 0x0000 );
-        check( address.data.ipv6[7] == 0x0001 );
+        Address address( "[::]:40000" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 40000 );
+        check( address.GetAddress6()[0] == 0x0000 );
+        check( address.GetAddress6()[1] == 0x0000 );
+        check( address.GetAddress6()[2] == 0x0000 );
+        check( address.GetAddress6()[3] == 0x0000 );
+        check( address.GetAddress6()[4] == 0x0000 );
+        check( address.GetAddress6()[5] == 0x0000 );
+        check( address.GetAddress6()[6] == 0x0000 );
+        check( address.GetAddress6()[7] == 0x0000 );
+        check( !address.IsLoopback() );
     }
-    */
 
-    // *** OLD ***
-
-#if 0 // todo
+    {
+        Address address( "[::1]:40000" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 40000 );
+        check( address.GetAddress6()[0] == 0x0000 );
+        check( address.GetAddress6()[1] == 0x0000 );
+        check( address.GetAddress6()[2] == 0x0000 );
+        check( address.GetAddress6()[3] == 0x0000 );
+        check( address.GetAddress6()[4] == 0x0000 );
+        check( address.GetAddress6()[5] == 0x0000 );
+        check( address.GetAddress6()[6] == 0x0000 );
+        check( address.GetAddress6()[7] == 0x0001 );
+        check( address.IsLoopback() );
+    }
 
     char buffer[MaxAddressLength];
-
-    {
-        Address address( 127, 0, 0, 1 );
-        check( address.IsValid() );
-        check( address.GetType() == ADDRESS_IPV4 );
-        check( address.GetPort() == 0 );
-        check( address.GetAddress4() == 0x100007f );
-        check( strcmp( address.ToString( buffer, MaxAddressLength ), "127.0.0.1" ) == 0 );
-    }
-
-    {
-        Address address( 127, 0, 0, 1, 1000 );
-        check( address.IsValid() );
-        check( address.GetType() == ADDRESS_IPV4 );
-        check( address.GetPort() == 1000 );
-        check( address.GetAddress4() == 0x100007f );
-        check( strcmp( address.ToString( buffer, MaxAddressLength ), "127.0.0.1:1000" ) == 0 );
-    }
-
-    {
-        Address address( "127.0.0.1" );
-        check( address.IsValid() );
-        check( address.GetType() == ADDRESS_IPV4 );
-        check( address.GetPort() == 0 );
-        check( address.GetAddress4() == 0x100007f );
-        check( strcmp( address.ToString( buffer, MaxAddressLength ), "127.0.0.1" ) == 0 );
-    }
-
-    {
-        Address address( "127.0.0.1:65535" );
-        check( address.IsValid() );
-        check( address.GetType() == ADDRESS_IPV4 );
-        check( address.GetPort() == 65535 );
-        check( address.GetAddress4() == 0x100007f );
-        check( strcmp( address.ToString( buffer, MaxAddressLength ), "127.0.0.1:65535" ) == 0 );
-    }
-
-    {
-        Address address( "10.24.168.192:3000" );
-        check( address.IsValid() );
-        check( address.GetType() == ADDRESS_IPV4 );
-        check( address.GetPort() == 3000 );
-        check( address.GetAddress4() == 0xc0a8180a );
-        check( strcmp( address.ToString( buffer, MaxAddressLength ), "10.24.168.192:3000" ) == 0 );
-    }
-
-    {
-        Address address( "255.255.255.255:65535" );
-        check( address.IsValid() );
-        check( address.GetType() == ADDRESS_IPV4 );
-        check( address.GetPort() == 65535 );
-        check( address.GetAddress4() == 0xffffffff );
-        check( strcmp( address.ToString( buffer, MaxAddressLength ), "255.255.255.255:65535" ) == 0 );
-    }
-
-    // without port numbers
 
     {
         const uint16_t address6[] = { 0xFE80, 0x0000, 0x0000, 0x0000, 0x0202, 0xB3FF, 0xFE1E, 0x8329 };
@@ -617,7 +565,7 @@ void test_address()
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
-            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
+            check( address6[i] == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
     }
@@ -632,7 +580,7 @@ void test_address()
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
-            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
+            check( address6[i] == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "fe80::202:b3ff:fe1e:8329" ) == 0 );
     }
@@ -647,12 +595,10 @@ void test_address()
         check( address.GetPort() == 0 );
 
         for ( int i = 0; i < 8; ++i )
-            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
+            check( address6[i] == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "::1" ) == 0 );
     }
-
-    // same addresses but with port numbers
 
     {
         const uint16_t address6[] = { 0xFE80, 0x0000, 0x0000, 0x0000, 0x0202, 0xB3FF, 0xFE1E, 0x8329 };
@@ -665,7 +611,7 @@ void test_address()
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
-            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
+            check( address6[i] == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
@@ -680,7 +626,7 @@ void test_address()
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
-            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
+            check( address6[i] == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
@@ -695,14 +641,10 @@ void test_address()
         check( address.GetPort() == 65535 );
 
         for ( int i = 0; i < 8; ++i )
-            check( test_htons( address6[i] ) == address.GetAddress6()[i] );
+            check( address6[i] == address.GetAddress6()[i] );
 
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
-
-    // todo: don't just test string parse and then to string, test the address values and port # are correct (endianness)
-
-    // parse addresses from strings (no ports)
 
     {
         Address address( "fe80::202:b3ff:fe1e:8329" );
@@ -720,13 +662,11 @@ void test_address()
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "::1" ) == 0 );
     }
 
-    // parse addresses from strings (with ports)
-
     {
         Address address( "[fe80::202:b3ff:fe1e:8329]:65535" );
         check( address.IsValid() );
         check( address.GetType() == ADDRESS_IPV6 );
-        check( address.GetPort() == 65535 );            // todo: don't just test 65535, because endian being wrong won't get picked up
+        check( address.GetPort() == 65535 );
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[fe80::202:b3ff:fe1e:8329]:65535" ) == 0 );
     }
 
@@ -734,11 +674,9 @@ void test_address()
         Address address( "[::1]:65535" );
         check( address.IsValid() );
         check( address.GetType() == ADDRESS_IPV6 );
-        check( address.GetPort() == 65535 );            // todo: don't just test 65535, because endian being wrong won't get picked up
+        check( address.GetPort() == 65535 );
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
-
-#endif // #if 0
 }
 
 void test_bit_array()
