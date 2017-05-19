@@ -69,8 +69,6 @@
 
 namespace yojimbo
 {
-    // todo: make sure to backport the netcode.io improvements
-
     Address::Address()
     {
         Clear();
@@ -80,34 +78,14 @@ namespace yojimbo
         : m_type( ADDRESS_IPV4 )
     {
         
-        m_address.ipv4 = uint32_t(a) | (uint32_t(b)<<8) | (uint32_t(c)<<16) | (uint32_t(d)<<24);
+        m_address.ipv4[0] = a;
+        m_address.ipv4[1] = b;
+        m_address.ipv4[2] = c;
+        m_address.ipv4[3] = d;
         m_port = port;
     }
 
-    Address::Address( uint32_t address, int16_t port )
-        : m_type( ADDRESS_IPV4 )
-    {
-        m_address.ipv4 = htonl( address );        // IMPORTANT: stored in network byte order. eg. big endian!
-        m_port = port;
-    }
-
-    Address::Address( uint16_t a, uint16_t b, uint16_t c, uint16_t d,
-                      uint16_t e, uint16_t f, uint16_t g, uint16_t h,
-                      uint16_t port )
-        : m_type( ADDRESS_IPV6 )
-    {
-        m_address.ipv6[0] = htons( a );
-        m_address.ipv6[1] = htons( b );
-        m_address.ipv6[2] = htons( c );
-        m_address.ipv6[3] = htons( d );
-        m_address.ipv6[4] = htons( e );
-        m_address.ipv6[5] = htons( f );
-        m_address.ipv6[6] = htons( g );
-        m_address.ipv6[7] = htons( h );
-        m_port = port;
-    }
-
-    Address::Address( const uint16_t address[], uint16_t port )
+    Address::Address( const uint8_t address[], uint16_t port )
         : m_type( ADDRESS_IPV6 )
     {
         for ( int i = 0; i < 8; ++i )
@@ -115,29 +93,26 @@ namespace yojimbo
         m_port = port;
     }
 
-    Address::Address( const sockaddr_storage * addr )
+    Address::Address( uint16_t a, uint16_t b, uint16_t c, uint16_t d, uint16_t e, uint16_t f, uint16_t g, uint16_t h, uint16_t port )
+        : m_type( ADDRESS_IPV6 )
     {
-        assert( addr );
+        m_address.ipv6[0] = a;
+        m_address.ipv6[1] = b;
+        m_address.ipv6[2] = c;
+        m_address.ipv6[3] = d;
+        m_address.ipv6[4] = e;
+        m_address.ipv6[5] = f;
+        m_address.ipv6[6] = g;
+        m_address.ipv6[7] = h;
+        m_port = port;
+    }
 
-        if ( addr->ss_family == AF_INET )
-        {
-            const sockaddr_in * addr_ipv4 = (const sockaddr_in*) addr;
-            m_type = ADDRESS_IPV4;
-            m_address.ipv4 = addr_ipv4->sin_addr.s_addr;
-            m_port = ntohs( addr_ipv4->sin_port );
-        }
-        else if ( addr->ss_family == AF_INET6 )
-        {
-            const sockaddr_in6 * addr_ipv6 = (const sockaddr_in6*) addr;
-            m_type = ADDRESS_IPV6;
-            memcpy( m_address.ipv6, &addr_ipv6->sin6_addr, 16 );
-            m_port = ntohs( addr_ipv6->sin6_port );
-        }
-        else
-        {
-            assert( false );
-            Clear();
-        }
+    Address::Address( const uint16_t address[], uint16_t port )
+        : m_type( ADDRESS_IPV6 )
+    {
+        for ( int i = 0; i < 8; ++i )
+            m_address.ipv6[i] = address[i];
+        m_port = port;
     }
 
     Address::Address( const char * address )
@@ -185,8 +160,11 @@ namespace yojimbo
         struct in6_addr sockaddr6;
         if ( inet_pton( AF_INET6, address, &sockaddr6 ) == 1 )
         {
-            // todo: should convert this to local byte order
-            memcpy( m_address.ipv6, &sockaddr6, 16 );
+            int i;
+            for ( i = 0; i < 8; ++i )
+            {
+                m_address.ipv6[i] = ntohs( ( (uint16_t*) &sockaddr6 ) [i] );
+            }
             m_type = ADDRESS_IPV6;
             return;
         }
@@ -213,8 +191,10 @@ namespace yojimbo
         if ( inet_pton( AF_INET, address, &sockaddr4.sin_addr ) == 1 )
         {
             m_type = ADDRESS_IPV4;
-            // todo: should convert this to local byte order
-            m_address.ipv4 = sockaddr4.sin_addr.s_addr;
+            m_address.ipv4[3] = (uint8_t) ( ( sockaddr4.sin_addr.s_addr & 0xFF000000 ) >> 24 );
+            m_address.ipv4[2] = (uint8_t) ( ( sockaddr4.sin_addr.s_addr & 0x00FF0000 ) >> 16 );
+            m_address.ipv4[1] = (uint8_t) ( ( sockaddr4.sin_addr.s_addr & 0x0000FF00 ) >> 8  );
+            m_address.ipv4[0] = (uint8_t) ( ( sockaddr4.sin_addr.s_addr & 0x000000FF )       );
         }
         else
         {
@@ -230,7 +210,7 @@ namespace yojimbo
         m_port = 0;
     }
 
-    uint32_t Address::GetAddress4() const
+    const uint8_t * Address::GetAddress4() const
     {
         assert( m_type == ADDRESS_IPV4 );
         return m_address.ipv4;
@@ -263,10 +243,10 @@ namespace yojimbo
 
         if ( m_type == ADDRESS_IPV4 )
         {
-            const uint8_t a =   m_address.ipv4 & 0xff;
-            const uint8_t b = ( m_address.ipv4 >> 8  ) & 0xff;
-            const uint8_t c = ( m_address.ipv4 >> 16 ) & 0xff;
-            const uint8_t d = ( m_address.ipv4 >> 24 ) & 0xff;
+            const uint8_t a = m_address.ipv4[0];
+            const uint8_t b = m_address.ipv4[1];
+            const uint8_t c = m_address.ipv4[2];
+            const uint8_t d = m_address.ipv4[3];
             if ( m_port != 0 )
                 snprintf( buffer, bufferSize, "%d.%d.%d.%d:%d", a, b, c, d, m_port );
             else
@@ -317,7 +297,10 @@ namespace yojimbo
 
     bool Address::IsLoopback() const
     {
-        return ( m_type == ADDRESS_IPV4 && m_address.ipv4 == htonl( 0x7F000001 ) ) 
+        return ( m_type == ADDRESS_IPV4 && m_address.ipv4[0] == 127 
+                                        && m_address.ipv4[1] == 0
+                                        && m_address.ipv4[2] == 0
+                                        && m_address.ipv4[3] == 1 )
                                             ||
                ( m_type == ADDRESS_IPV6 && m_address.ipv6[0] == 0
                                         && m_address.ipv6[1] == 0

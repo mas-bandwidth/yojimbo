@@ -382,8 +382,200 @@ void test_stream()
     check( readObject == writeObject );
 }
 
-void test_address_ipv4()
+// todo
+
+#if 0
+
+static void test_address()
 {
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "107.77.207.77", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV4 );
+        check( address.port == 0 );
+        check( address.data.ipv4[0] == 107 );
+        check( address.data.ipv4[1] == 77 );
+        check( address.data.ipv4[2] == 207 );
+        check( address.data.ipv4[3] == 77 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "127.0.0.1", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV4 );
+        check( address.port == 0 );
+        check( address.data.ipv4[0] == 127 );
+        check( address.data.ipv4[1] == 0 );
+        check( address.data.ipv4[2] == 0 );
+        check( address.data.ipv4[3] == 1 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "107.77.207.77:40000", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV4 );
+        check( address.port == 40000 );
+        check( address.data.ipv4[0] == 107 );
+        check( address.data.ipv4[1] == 77 );
+        check( address.data.ipv4[2] == 207 );
+        check( address.data.ipv4[3] == 77 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "127.0.0.1:40000", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV4 );
+        check( address.port == 40000 );
+        check( address.data.ipv4[0] == 127 );
+        check( address.data.ipv4[1] == 0 );
+        check( address.data.ipv4[2] == 0 );
+        check( address.data.ipv4[3] == 1 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "fe80::202:b3ff:fe1e:8329", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV6 );
+        check( address.port == 0 );
+        check( address.data.ipv6[0] == 0xfe80 );
+        check( address.data.ipv6[1] == 0x0000 );
+        check( address.data.ipv6[2] == 0x0000 );
+        check( address.data.ipv6[3] == 0x0000 );
+        check( address.data.ipv6[4] == 0x0202 );
+        check( address.data.ipv6[5] == 0xb3ff );
+        check( address.data.ipv6[6] == 0xfe1e );
+        check( address.data.ipv6[7] == 0x8329 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "::", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV6 );
+        check( address.port == 0 );
+        check( address.data.ipv6[0] == 0x0000 );
+        check( address.data.ipv6[1] == 0x0000 );
+        check( address.data.ipv6[2] == 0x0000 );
+        check( address.data.ipv6[3] == 0x0000 );
+        check( address.data.ipv6[4] == 0x0000 );
+        check( address.data.ipv6[5] == 0x0000 );
+        check( address.data.ipv6[6] == 0x0000 );
+        check( address.data.ipv6[7] == 0x0000 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "::1", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV6 );
+        check( address.port == 0 );
+        check( address.data.ipv6[0] == 0x0000 );
+        check( address.data.ipv6[1] == 0x0000 );
+        check( address.data.ipv6[2] == 0x0000 );
+        check( address.data.ipv6[3] == 0x0000 );
+        check( address.data.ipv6[4] == 0x0000 );
+        check( address.data.ipv6[5] == 0x0000 );
+        check( address.data.ipv6[6] == 0x0000 );
+        check( address.data.ipv6[7] == 0x0001 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "[fe80::202:b3ff:fe1e:8329]:40000", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV6 );
+        check( address.port == 40000 );
+        check( address.data.ipv6[0] == 0xfe80 );
+        check( address.data.ipv6[1] == 0x0000 );
+        check( address.data.ipv6[2] == 0x0000 );
+        check( address.data.ipv6[3] == 0x0000 );
+        check( address.data.ipv6[4] == 0x0202 );
+        check( address.data.ipv6[5] == 0xb3ff );
+        check( address.data.ipv6[6] == 0xfe1e );
+        check( address.data.ipv6[7] == 0x8329 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "[::]:40000", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV6 );
+        check( address.port == 40000 );
+        check( address.data.ipv6[0] == 0x0000 );
+        check( address.data.ipv6[1] == 0x0000 );
+        check( address.data.ipv6[2] == 0x0000 );
+        check( address.data.ipv6[3] == 0x0000 );
+        check( address.data.ipv6[4] == 0x0000 );
+        check( address.data.ipv6[5] == 0x0000 );
+        check( address.data.ipv6[6] == 0x0000 );
+        check( address.data.ipv6[7] == 0x0000 );
+    }
+
+    {
+        struct netcode_address_t address;
+        check( netcode_parse_address( "[::1]:40000", &address ) == NETCODE_OK );
+        check( address.type == NETCODE_ADDRESS_IPV6 );
+        check( address.port == 40000 );
+        check( address.data.ipv6[0] == 0x0000 );
+        check( address.data.ipv6[1] == 0x0000 );
+        check( address.data.ipv6[2] == 0x0000 );
+        check( address.data.ipv6[3] == 0x0000 );
+        check( address.data.ipv6[4] == 0x0000 );
+        check( address.data.ipv6[5] == 0x0000 );
+        check( address.data.ipv6[6] == 0x0000 );
+        check( address.data.ipv6[7] == 0x0001 );
+    }
+
+#endif // #if 0
+
+bool parse_address( const char string[] )
+{
+    Address address( string );
+    return address.IsValid();
+}
+
+// todo: we really shouldn't need this to use the address class
+inline uint16_t test_htons( uint16_t input )
+{
+#if YOJIMBO_LITTLE_ENDIAN
+    return ( ( input & 0xFF ) << 8 ) | 
+           ( ( input & 0xFF00 ) >> 8 );
+#else
+    return input;
+#endif // #if YOJIMBO_LITTLE_ENDIAN
+}
+
+void test_address()
+{
+    check( parse_address( "" ) == false );
+    check( parse_address( "[" ) == false );
+    check( parse_address( "[]" ) == false );
+    check( parse_address( "[]:" ) == false );
+    check( parse_address( ":" ) == false );
+    check( parse_address( "1" ) == false );
+    check( parse_address( "12" ) == false );
+    check( parse_address( "123" ) == false );
+    check( parse_address( "1234" ) == false );
+    check( parse_address( "1234.0.12313.0000" ) == false );
+    check( parse_address( "1234.0.12313.0000.0.0.0.0.0" ) == false );
+    check( parse_address( "1312313:123131:1312313:123131:1312313:123131:1312313:123131:1312313:123131:1312313:123131" ) == false );
+    check( parse_address( "." ) == false );
+    check( parse_address( ".." ) == false );
+    check( parse_address( "..." ) == false );
+    check( parse_address( "...." ) == false );
+    check( parse_address( "....." ) == false );
+
+    {
+        Address address( "107.77.207.77" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV4 );
+        check( address.GetPort() == 0 );
+        check( address.GetAddress4()[0] == 107 );
+        check( address.GetAddress4()[1] == 77 );
+        check( address.GetAddress4()[2] == 207 );
+        check( address.GetAddress4()[3] == 77 );
+    }
+
+    // *** OLD ***
+
+#if 0 // todo
+
     char buffer[MaxAddressLength];
 
     {
@@ -439,23 +631,6 @@ void test_address_ipv4()
         check( address.GetAddress4() == 0xffffffff );
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "255.255.255.255:65535" ) == 0 );
     }
-
-    // todo: should test ipv4 address parse from strings
-}
-
-inline uint16_t test_htons( uint16_t input )
-{
-#if YOJIMBO_LITTLE_ENDIAN
-    return ( ( input & 0xFF ) << 8 ) | 
-           ( ( input & 0xFF00 ) >> 8 );
-#else
-    return input;
-#endif // #if YOJIMBO_LITTLE_ENDIAN
-}
-
-void test_address_ipv6()
-{
-    char buffer[MaxAddressLength];
 
     // without port numbers
 
@@ -590,6 +765,8 @@ void test_address_ipv6()
         check( address.GetPort() == 65535 );            // todo: don't just test 65535, because endian being wrong won't get picked up
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
+
+#endif // #if 0
 }
 
 void test_bit_array()
@@ -3870,8 +4047,7 @@ int main()
         //RUN_TEST( test_base64 );
         RUN_TEST( test_bitpacker );
         RUN_TEST( test_stream );
-        RUN_TEST( test_address_ipv4 );
-        RUN_TEST( test_address_ipv6 );
+        RUN_TEST( test_address );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
         RUN_TEST( test_allocator_tlsf );

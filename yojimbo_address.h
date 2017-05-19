@@ -77,7 +77,7 @@ namespace yojimbo
 
         union
         {
-            uint32_t ipv4;                                                  ///< IPv4 address data. Valid if type is ADDRESS_IPV4.
+            uint8_t ipv4[4];                                                ///< IPv4 address data. Valid if type is ADDRESS_IPV4.
             uint16_t ipv6[8];                                               ///< IPv6 address data. Valid if type is ADDRESS_IPV6.
         } m_address;
 
@@ -114,13 +114,11 @@ namespace yojimbo
         /**
             Create an IPv4 address.
 
-            IMPORTANT: Pass in address and port in local byte order. The address class handles the conversion to network order for you.
-
-            @param address The IPv4 address (local byte order).
-            @param port The IPv4 port (local byte order).
+            @param address Array of four address fields for the IPv4 address.
+            @param port The port number (local byte order).
          */
 
-        explicit Address( uint32_t address, int16_t port = 0 );
+        Address( const uint8_t address[], uint16_t port = 0 );
 
         /**
             Create an IPv6 address.
@@ -135,12 +133,10 @@ namespace yojimbo
             @param f Sixth field of the IPv6 address (local byte order).
             @param g Seventh field of the IPv6 address (local byte order).
             @param h Eighth field of the IPv6 address (local byte order).
-            @param port The IPv6 port (local byte order).
+            @param port The port number (local byte order).
          */
 
-        explicit Address( uint16_t a, uint16_t b, uint16_t c, uint16_t d,
-                          uint16_t e, uint16_t f, uint16_t g, uint16_t h,
-                          uint16_t port = 0 );
+        Address( uint16_t a, uint16_t b, uint16_t c, uint16_t d, uint16_t e, uint16_t f, uint16_t g, uint16_t h, uint16_t port = 0 );
 
         /**
             Create an IPv6 address.
@@ -151,24 +147,7 @@ namespace yojimbo
             @param port The IPv6 port (local byte order).
          */
 
-        explicit Address( const uint16_t address[], uint16_t port = 0 );
-
-        /**
-            Create an address from a sockaddr_storage.
-
-            This is a convenience function for working with BSD socket APIs.
-
-            Depending on the information in sockaddr_storage ss_family, the address will become ADDRESS_TYPE_IPV4 or ADDRESS_TYPE_IPV6.
-
-            If something goes wrong in the conversion the address type is set to ADDRESS_TYPE_NONE and Address::IsValid returns false.
-
-            @param addr The sockaddr_storage data to convert to an address.
-
-            @see Address::IsValid
-            @see Address::GetType
-         */
-
-        explicit Address( const sockaddr_storage * addr );
+        Address( const uint16_t address[], uint16_t port = 0 );
 
         /**
             Parse a string to an address.
@@ -222,15 +201,15 @@ namespace yojimbo
         /**
             Get the IPv4 address data.
 
-            @returns The IPv4 address (local byte order).
+            @returns The IPv4 address as an array of bytes.
          */
 
-        uint32_t GetAddress4() const;
+        const uint8_t * GetAddress4() const;
 
         /**
             Get the IPv6 address data.
 
-            @returns the IPv6 address data (local byte order).
+            @returns the IPv6 address data as an array of uint16_t (local byte order).
          */
 
         const uint16_t * GetAddress6() const;
