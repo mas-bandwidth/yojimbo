@@ -30,9 +30,12 @@
 #include <inttypes.h>
 #include <time.h>
 
-using namespace yojimbo;
+#define CLIENT 1
+#define SERVER 1
 
-const int ServerPort = 40000;
+#include "shared.h"
+
+using namespace yojimbo;
 
 static volatile int quit = 0;
 
@@ -52,7 +55,7 @@ int ClientServerMain()
     uint8_t privateKey[NETCODE_KEY_BYTES];
     memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, time );
+    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, time );
 
     server.Start( MaxClients );
 
@@ -60,7 +63,7 @@ int ClientServerMain()
     random_bytes( (uint8_t*) &clientId, 8 );
     printf( "client id is %.16" PRIx64 "\n", clientId );
 
-    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, time );
+    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 
     Address serverAddress( "127.0.0.1", ServerPort );
 

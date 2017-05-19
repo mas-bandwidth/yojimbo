@@ -30,10 +30,11 @@ namespace yojimbo
 {
     // -----------------------------------------------------------------------------------------------------
 
-    BaseServer::BaseServer( Allocator & allocator, const BaseClientServerConfig & config, double time )
+    BaseServer::BaseServer( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time )
     {
         m_config = config;
         m_allocator = &allocator;
+        m_adapter = &adapter;
         m_context = NULL;
         m_time = time;
         m_running = false;
@@ -68,13 +69,13 @@ namespace yojimbo
         assert( !m_globalMemory );
         assert( !m_globalAllocator );
         m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
-        m_globalAllocator = CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
+        m_globalAllocator = m_adapter->CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
         for ( int i = 0; i < m_maxClients; ++i )
         {
             assert( !m_clientMemory[i] );
             assert( !m_clientAllocator[i] );
             m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
-            m_clientAllocator[i] = CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
+            m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
         }
     }
 
@@ -103,14 +104,9 @@ namespace yojimbo
         m_time = time;
     }
 
-    Allocator * BaseServer::CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
-    {
-        return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
-    }
-
     // -----------------------------------------------------------------------------------------------------
 
-    Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, double time ) : BaseServer( allocator, config, time )
+    Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseServer( allocator, config, adapter, time )
     {
         assert( KeyBytes == NETCODE_KEY_BYTES );
         memcpy( m_privateKey, privateKey, NETCODE_KEY_BYTES );

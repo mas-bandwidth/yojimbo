@@ -30,11 +30,13 @@
 #include <inttypes.h>
 #include <time.h>
 
+#define CLIENT 1
+
+#include "shared.h"
+
 using namespace yojimbo;
 
 #if !YOJIMBO_SECURE_MODE
-
-const uint16_t ServerPort = 40000;
 
 static volatile int quit = 0;
 
@@ -55,7 +57,7 @@ int ClientMain( int argc, char * argv[] )
 
     ClientServerConfig config;
 
-    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, time );
+    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 
     Address serverAddress( "127.0.0.1", ServerPort );
 

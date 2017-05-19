@@ -1,6 +1,6 @@
 /*
-    Insecure Server.
-
+    Yojimbo Network Library.
+    
     Copyright © 2016, The Network Protocol Company, Inc.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -22,94 +22,40 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "yojimbo.h"
-#include "netcode.h"
-#include <signal.h>
-#include <time.h>
+#ifndef YOJIMBO_ADAPTER_H
+#define YOJIMBO_ADAPTER_H
 
-#define SERVER 1
+#include <assert.h>
+#include "yojimbo_config.h"
+#include "yojimbo_message.h"
+#include "yojimbo_allocator.h"
 
-#include "shared.h"
+/** @file */
 
-using namespace yojimbo;
-
-#if !YOJIMBO_SECURE_MODE
-
-static volatile int quit = 0;
-
-void interrupt_handler( int /*dummy*/ )
+namespace yojimbo
 {
-    quit = 1;
-}
+    /** 
+        Adapter class
+     */
 
-int ServerMain()
-{
-    printf( "started server on port %d\n", ServerPort );
-
-    double time = 100.0;
-
-    ClientServerConfig config;
-
-    uint8_t privateKey[NETCODE_KEY_BYTES];
-    memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
-
-    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, time );
-
-    server.Start( MaxClients );
-
-    const double deltaTime = 0.1;
-
-    signal( SIGINT, interrupt_handler );    
-
-    while ( !quit )
+    class Adapter
     {
-        server.SendPackets();
+    public:
 
-        server.ReceivePackets();
+        virtual ~Adapter() {}
 
-        time += deltaTime;
+        virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
+        {
+            return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
+        }
 
-        server.AdvanceTime( time );
-
-        platform_sleep( deltaTime );
-    }
-
-    server.Stop();
-
-    return 0;
+        virtual MessageFactory * CreateMessageFactory( Allocator & allocator )
+        {
+            (void) allocator;
+            assert( false );
+            return NULL;
+        }
+    };
 }
 
-int main()
-{
-    printf( "\n" );
-
-    if ( !InitializeYojimbo() )
-    {
-        printf( "error: failed to initialize Yojimbo!\n" );
-        return 1;
-    }
-
-    netcode_log_level( NETCODE_LOG_LEVEL_INFO );
-
-    srand( (unsigned int) time( NULL ) );
-
-    int result = ServerMain();
-
-    ShutdownYojimbo();
-
-    printf( "\n" );
-
-    return result;
-}
-
-#else // #if !YOJIMBO_SECURE_MODE
-
-int main( int argc, char * argv[] )
-{
-    (void)argc;
-    (void)argv;
-    printf( "\nYojimbo is in secure mode. Insecure server is disabled. See YOJIMBO_SECURE_MODE\n\n" );
-    return 0;
-}
-
-#endif // #if !YOJIMBO_SECURE_MODE
+#endif // #ifndef YOJIMBO_ADAPTER_H

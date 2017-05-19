@@ -33,9 +33,10 @@ namespace yojimbo
 {
     // ------------------------------------------------------------------------------------------------------------------
 
-    BaseClient::BaseClient( Allocator & allocator, const BaseClientServerConfig & config, double time )
+    BaseClient::BaseClient( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time )
     {
         m_allocator = &allocator;
+        m_adapter = &adapter;
         m_config = config;
         m_time = time;
         m_allocator = NULL;
@@ -51,6 +52,7 @@ namespace yojimbo
         // IMPORTANT: Please disconnect the client before destroying it
         assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
         m_allocator = NULL;
+        m_adapter = NULL;
     }
 
     void BaseClient::Disconnect()
@@ -71,9 +73,10 @@ namespace yojimbo
     void BaseClient::CreateAllocators()
     {
         assert( m_allocator );
+        assert( m_adapter );
         assert( m_clientMemory == NULL );
         m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
-        m_clientAllocator = YOJIMBO_NEW( *m_allocator, TLSF_Allocator, m_clientMemory, m_config.clientMemory );
+        m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
     }
 
     void BaseClient::DestroyAllocators()
@@ -83,14 +86,9 @@ namespace yojimbo
         YOJIMBO_FREE( *m_allocator, m_clientMemory );
     }
 
-    Allocator * BaseClient::CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
-    {
-        return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
-    }
-
     // ------------------------------------------------------------------------------------------------------------------
 
-    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time ) : BaseClient( allocator, config, time )
+    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseClient( allocator, config, adapter, time )
     {
         m_config = config;
         m_address = address;

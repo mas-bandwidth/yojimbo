@@ -26,6 +26,7 @@
 #define YOJIMBO_SERVER_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_adapter.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_connection.h"
 
@@ -44,6 +45,8 @@ namespace yojimbo
     public:
 
         virtual ~ServerInterface() {}
+
+        // todo: move this into the adapter
 
         /**
             Set the context for reading and writing packets.
@@ -190,7 +193,7 @@ namespace yojimbo
     {
     public:
 
-        BaseServer( Allocator & allocator, const BaseClientServerConfig & config, double time );
+        BaseServer( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time );
 
         ~BaseServer();
 
@@ -214,10 +217,9 @@ namespace yojimbo
 
     private:
 
-        virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes );
-
         BaseClientServerConfig m_config;                            ///< Base client/server config.
         Allocator * m_allocator;                                    ///< Allocator passed in to constructor.
+        Adapter * m_adapter;                                        ///< The adapter specifies the allocator to use, and the message factory class.
         void * m_context;                                           ///< Optional serialization context.
         int m_maxClients;                                           ///< Maximum number of clients supported.
         bool m_running;                                             ///< True if server is currently running, eg. after "Start" is called, before "Stop".
@@ -236,7 +238,7 @@ namespace yojimbo
     {
     public:
 
-        Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, double time );
+        Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time );
 
         ~Server();
 

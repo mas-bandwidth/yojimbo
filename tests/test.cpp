@@ -31,12 +31,9 @@
 
 #define SERVER 1
 #define CLIENT 1
-#define MATCHER 1
 #define LOGGING 0
 
 #include "shared.h"
-
-static LocalMatcher matcher;
 
 #define SOAK 0
 
@@ -3954,7 +3951,7 @@ int main()
 
         RUN_TEST( test_endian );
         RUN_TEST( test_queue );
-        //RUN_TEST( test_base64 );
+        RUN_TEST( test_base64 );
         RUN_TEST( test_bitpacker );
         RUN_TEST( test_stream );
         RUN_TEST( test_address );
@@ -3969,6 +3966,7 @@ int main()
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
+
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );

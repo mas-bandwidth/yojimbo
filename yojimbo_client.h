@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include "yojimbo_config.h"
+#include "yojimbo_adapter.h"
 #include "yojimbo_address.h"
 #include "yojimbo_allocator.h"
 
@@ -177,9 +178,10 @@ namespace yojimbo
             @param allocator The allocator for all memory used by the client.
             @param config The base client/server configuration.
             @param time The current time in seconds. See ClientInterface::AdvanceTime
+            @param allocator The adapter to the game program. Specifies allocators, message factory to use etc.
          */
 
-        explicit BaseClient( Allocator & allocator, const BaseClientServerConfig & config, double time );
+        explicit BaseClient( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time );
 
         ~BaseClient();
 
@@ -211,14 +213,13 @@ namespace yojimbo
 
         virtual void DestroyAllocators();
 
-        virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes );
-
         Allocator & GetClientAllocator() { assert( m_clientAllocator ); return *m_clientAllocator; }
 
     private:
 
         BaseClientServerConfig m_config;                                    ///< The base client/server configuration.
         Allocator * m_allocator;                                            ///< The allocator passed to the client on creation.
+        Adapter * m_adapter;                                                ///< The adapter specifies the allocator to use, and the message factory class.
         void * m_context;                                                   ///< Context lets the user pass information to packet serialize functions.
         uint8_t * m_clientMemory;                                           ///< The memory backing the client allocator. Allocated from m_allocator.
         Allocator * m_clientAllocator;                                      ///< The client allocator. Everything allocated between connect and disconnected is allocated and freed via this allocator.
@@ -249,7 +250,7 @@ namespace yojimbo
             @param time The current time in seconds. See ClientInterface::AdvanceTime
          */
 
-        explicit Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, double time );
+        explicit Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time );
 
         ~Client();
 
@@ -287,33 +288,5 @@ namespace yojimbo
         uint64_t m_clientId;                                                ///< The globally unique client id (set on each call to connect)
     };
 }
-
-/** 
-    Helper macro to set the client allocator class.
-
-    You can use this macro to specify that the client uses your own custom allocator class. The default allocator to use is TLSF_Allocator. 
-
-    The constructor of your derived allocator class must match the signature of the TLSF_Allocator constructor to work with this macro.
-    
-    See tests/shared.h for an example of usage.
- */
-
-#define YOJIMBO_CLIENT_ALLOCATOR( allocator_class )                                                     \
-    yojimbo::Allocator * CreateAllocator( yojimbo::Allocator & allocator, void * memory, size_t bytes ) \
-    {                                                                                                   \
-        return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                \
-    }
-
-/** 
-    Helper macro to set the client message factory class.
-    
-    See tests/shared.h for an example of usage.
- */
-
-#define YOJIMBO_CLIENT_MESSAGE_FACTORY( message_factory_class )                                         \
-    yojimbo::MessageFactory * CreateMessageFactory( yojimbo::Allocator & allocator )                    \
-    {                                                                                                   \
-        return YOJIMBO_NEW( allocator, message_factory_class, allocator );                              \
-    }
 
 #endif // #ifndef YOJIMBO_CLIENT_H
