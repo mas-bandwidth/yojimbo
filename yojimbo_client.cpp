@@ -64,6 +64,12 @@ namespace yojimbo
     void BaseClient::AdvanceTime( double time )
     {
         m_time = time;
+        if ( m_endpoint )
+        {
+            reliable_endpoint_update( m_endpoint );
+            // todo: grab and process acks
+            reliable_endpoint_clear_acks( m_endpoint );
+        }
     }
 
     void BaseClient::SetClientState( ClientState clientState )
@@ -224,7 +230,7 @@ namespace yojimbo
             uint8_t * packetData = netcode_client_receive_packet( m_client, &packetBytes, &packetSequence );
             if ( !packetData )
                 break;
-            // todo: process packet through reliable.io
+            reliable_endpoint_receive_packet( GetEndpoint(), packetData, packetBytes );
             netcode_client_free_packet( m_client, packetData );
         }
     }

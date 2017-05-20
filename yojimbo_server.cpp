@@ -117,6 +117,15 @@ namespace yojimbo
     void BaseServer::AdvanceTime( double time )
     {
         m_time = time;
+        if ( !IsRunning() )
+        {
+            for ( int i = 0; i < m_maxClients; ++i )
+            {
+                reliable_endpoint_update( m_clientEndpoint[i] );
+                // todo: grab and process acks
+                reliable_endpoint_clear_acks( m_clientEndpoint[i] );
+            }
+        }
     }
 
     MessageFactory & BaseServer::GetClientMessageFactory( int clientIndex ) 
@@ -223,7 +232,20 @@ namespace yojimbo
     {
         if ( m_server )
         {
-            // todo
+            const int maxClients = GetMaxClients();
+            for ( int clientIndex = 0; clientIndex < maxClients; ++clientIndex )
+            {
+                while ( true )
+                {
+                    int packetBytes;
+                    uint64_t packetSequence;
+                    uint8_t * packetData = netcode_server_receive_packet( m_server, clientIndex, &packetBytes, &packetSequence );
+                    if ( !packetData )
+                        break;
+                    reliable_endpoint_receive_packet( GetClientEndpoint( clientIndex ), packetData, packetBytes );
+                    netcode_server_free_packet( m_server, packetData );
+                }
+            }
         }
     }
 
