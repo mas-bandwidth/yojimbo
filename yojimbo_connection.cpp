@@ -42,10 +42,9 @@ namespace yojimbo
 
     void Connection::GeneratePacket( uint8_t * packetData, int maxPacketBytes, int & packetBytes )
     {
-        (void) packetData;
-        (void) maxPacketBytes;
-        (void) packetBytes;
-        // ...
+        // todo: temporary hack
+        packetBytes = maxPacketBytes / 10;
+        memset( packetData, 0, packetBytes );
     }
 
     void Connection::ProcessAcks( const uint16_t * acks, int numAcks )

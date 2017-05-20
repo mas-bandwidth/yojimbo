@@ -47,6 +47,7 @@ namespace yojimbo
             m_clientMemory[i] = NULL;
             m_clientAllocator[i] = NULL;
             m_clientMessageFactory[i] = NULL;
+            m_clientConnection[i] = NULL;
             m_clientEndpoint[i] = NULL;
         }
     }
@@ -73,21 +74,24 @@ namespace yojimbo
         assert( !m_globalAllocator );
         m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
         m_globalAllocator = m_adapter->CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
-        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
+        for ( int i = 0; i < m_maxClients; ++i )
         {
-            assert( !m_clientMemory[clientIndex] );
-            assert( !m_clientAllocator[clientIndex] );
-            m_clientMemory[clientIndex] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
-            m_clientAllocator[clientIndex] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[clientIndex], m_config.serverPerClientMemory );
-            m_clientMessageFactory[clientIndex] = m_adapter->CreateMessageFactory( *m_clientAllocator[clientIndex] );
+            assert( !m_clientMemory[i] );
+            assert( !m_clientAllocator[i] );
+            m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
+            m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
+            m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
+            // todo: need to get connection config setup from yojimbo client/server config
+            ConnectionConfig connectionConfig;
+            m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], connectionConfig );
             // todo: need to build reliable endpoint config from yojimbo config.
             reliable_config_t config;
             reliable_default_config( &config );
             config.context = (void*) this;
-            config.index = clientIndex;
+            config.index = i;
             config.transmit_packet_function = BaseServer::StaticTransmitPacketFunction;
             config.process_packet_function = BaseServer::StaticProcessPacketFunction;
-            m_clientEndpoint[clientIndex] = reliable_endpoint_create( &config );
+            m_clientEndpoint[i] = reliable_endpoint_create( &config );
         }
     }
 
@@ -104,6 +108,7 @@ namespace yojimbo
                 assert( m_clientMessageFactory[i] );
                 assert( m_clientEndpoint[i] );
                 reliable_endpoint_destroy( m_clientEndpoint[i] ); m_clientEndpoint[i] = NULL;
+                YOJIMBO_DELETE( *m_clientAllocator[i], Connection, m_clientConnection[i] );
                 YOJIMBO_DELETE( *m_clientAllocator[i], MessageFactory, m_clientMessageFactory[i] );
                 YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
                 YOJIMBO_FREE( *m_allocator, m_clientMemory[i] );

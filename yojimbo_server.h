@@ -37,6 +37,8 @@ struct reliable_endpoint_t;
 
 namespace yojimbo
 {
+    class Connection;
+
     /**
         Server interface
      */
@@ -230,6 +232,7 @@ namespace yojimbo
         Allocator * m_globalAllocator;                              ///< The global allocator. Used for allocations that don't belong to a specific client.
         Allocator * m_clientAllocator[MaxClients];                  ///< Array of per-client allocator. These are used for allocations related to connected clients.
         MessageFactory * m_clientMessageFactory[MaxClients];        ///< Array of per-client message factories. This silos message allocations per-client slot.
+        Connection * m_clientConnection[MaxClients];                ///< Array of per-client connection classes. This is how messages are exchanged with clients.
         reliable_endpoint_t * m_clientEndpoint[MaxClients];         ///< Array of per-client reliable.io endpoints.
     };
 

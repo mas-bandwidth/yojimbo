@@ -211,9 +211,11 @@ namespace yojimbo
         if ( !IsConnected() )
             return;
         assert( m_client );
-        uint8_t dummyPacket[32];
-        memset( dummyPacket, 0, sizeof( dummyPacket ) );
-        reliable_endpoint_send_packet( GetEndpoint(), dummyPacket, sizeof( dummyPacket ) );
+        // todo: we don't want to allocate this on the stack, as packet size can be larger than that now
+        uint8_t * packetData = (uint8_t*) alloca( m_config.connection.maxPacketSize );
+        int packetBytes;
+        GetConnection().GeneratePacket( packetData, m_config.connection.maxPacketSize, packetBytes );
+        reliable_endpoint_send_packet( GetEndpoint(), packetData, packetBytes );
     }
 
     void Client::ReceivePackets()
