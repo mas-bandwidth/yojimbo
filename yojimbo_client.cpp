@@ -25,6 +25,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_client.h"
 #include "netcode.h"
+#include "reliable.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -42,6 +43,7 @@ namespace yojimbo
         m_context = NULL;
         m_clientMemory = NULL;
         m_clientAllocator = NULL;
+        m_endpoint = NULL;
         m_messageFactory = NULL;
         m_clientState = CLIENT_STATE_DISCONNECTED;
         m_clientIndex = -1;
@@ -52,7 +54,6 @@ namespace yojimbo
         // IMPORTANT: Please disconnect the client before destroying it
         assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
         m_allocator = NULL;
-        m_adapter = NULL;
     }
 
     void BaseClient::Disconnect()
@@ -80,14 +81,49 @@ namespace yojimbo
         m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
         m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
         m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
+        // todo: need to build reliable endpoint config from yojimbo config.
+        reliable_config_t config;
+        reliable_default_config( &config );
+        config.transmit_packet_function = BaseClient::TransmitPacketFunction;
+        config.process_packet_function = BaseClient::ProcessPacketFunction;
+        m_endpoint = reliable_endpoint_create( &config );
     }
 
     void BaseClient::DestroyInternal()
     {
         assert( m_allocator );
+        if ( m_endpoint )
+        {
+            reliable_endpoint_destroy( m_endpoint ); 
+            m_endpoint = NULL;
+        }
         YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
         YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );
         YOJIMBO_FREE( *m_allocator, m_clientMemory );
+    }
+
+    void BaseClient::TransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    {
+        (void) context;
+        (void) index;
+        (void) packetSequence;
+        (void) packetData;
+        (void) packetBytes;
+
+        // todo
+    }
+    
+    int BaseClient::ProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    {
+        (void) context;
+        (void) index;
+        (void) packetSequence;
+        (void) packetData;
+        (void) packetBytes;
+
+        // todo
+
+        return 1;
     }
 
     // ------------------------------------------------------------------------------------------------------------------

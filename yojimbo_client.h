@@ -32,6 +32,7 @@
 #include "yojimbo_allocator.h"
 
 struct netcode_client_t;
+struct reliable_endpoint_t;
 
 /** @file */
 
@@ -217,7 +218,13 @@ namespace yojimbo
 
         MessageFactory & GetMessageFactory() { assert( m_messageFactory ); return *m_messageFactory; }
 
+        reliable_endpoint_t * GetEndpoint() { return m_endpoint; }
+
     private:
+
+        static void TransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        
+        static int ProcessPacketFunction( void * context,int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         BaseClientServerConfig m_config;                                    ///< The base client/server configuration.
         Allocator * m_allocator;                                            ///< The allocator passed to the client on creation.
@@ -225,6 +232,7 @@ namespace yojimbo
         void * m_context;                                                   ///< Context lets the user pass information to packet serialize functions.
         uint8_t * m_clientMemory;                                           ///< The memory backing the client allocator. Allocated from m_allocator.
         Allocator * m_clientAllocator;                                      ///< The client allocator. Everything allocated between connect and disconnected is allocated and freed via this allocator.
+        reliable_endpoint_t * m_endpoint;                                   ///< reliable.io endpoint.
         MessageFactory * m_messageFactory;                                  ///< The client message factory. Created and destroyed on each connection attempt.
         ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState
         int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.

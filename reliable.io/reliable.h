@@ -62,6 +62,10 @@
 #define RELIABLE_OK         1
 #define RELIABLE_ERROR      0
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void reliable_log_level( int level );
 
 int reliable_init();
@@ -104,5 +108,9 @@ void reliable_endpoint_clear_acks( struct reliable_endpoint_t * endpoint );
 void reliable_endpoint_update( struct reliable_endpoint_t * endpoint );
 
 void reliable_endpoint_destroy( struct reliable_endpoint_t * endpoint );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // #ifndef RELIABLE_H
