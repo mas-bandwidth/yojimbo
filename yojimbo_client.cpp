@@ -39,12 +39,12 @@ namespace yojimbo
         m_adapter = &adapter;
         m_config = config;
         m_time = time;
-        m_allocator = NULL;
         m_context = NULL;
         m_clientMemory = NULL;
         m_clientAllocator = NULL;
-        m_clientIndex = -1;
+        m_messageFactory = NULL;
         m_clientState = CLIENT_STATE_DISCONNECTED;
+        m_clientIndex = -1;
     }
 
     BaseClient::~BaseClient()
@@ -70,18 +70,22 @@ namespace yojimbo
         m_clientState = clientState;
     }
 
-    void BaseClient::CreateAllocators()
+    void BaseClient::CreateInternal()
     {
         assert( m_allocator );
         assert( m_adapter );
         assert( m_clientMemory == NULL );
+        assert( m_clientAllocator == NULL );
+        assert( m_messageFactory == NULL );
         m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
         m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
+        m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
     }
 
-    void BaseClient::DestroyAllocators()
+    void BaseClient::DestroyInternal()
     {
         assert( m_allocator );
+        YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
         YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );
         YOJIMBO_FREE( *m_allocator, m_clientMemory );
     }
@@ -114,6 +118,7 @@ namespace yojimbo
         assert( numServerAddresses > 0 );
         assert( numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
         Disconnect();
+        CreateInternal();
         m_clientId = clientId;
         CreateClient( m_address );
         uint8_t connectToken[NETCODE_CONNECT_TOKEN_BYTES];
@@ -145,6 +150,7 @@ namespace yojimbo
     {
         assert( connectToken );
         Disconnect();
+        CreateInternal();
         m_clientId = clientId;
         CreateClient( m_address );
         netcode_client_connect( m_client, connectToken );
@@ -153,8 +159,9 @@ namespace yojimbo
 
     void Client::Disconnect()
     {
-        DestroyClient();
         BaseClient::Disconnect();
+        DestroyClient();
+        DestroyInternal();
         m_clientId = 0;
     }
 

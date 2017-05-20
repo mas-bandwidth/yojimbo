@@ -46,8 +46,6 @@ namespace yojimbo
 
         virtual ~ServerInterface() {}
 
-        // todo: move this into the adapter
-
         /**
             Set the context for reading and writing packets.
 
@@ -177,14 +175,6 @@ namespace yojimbo
         virtual double GetTime() const = 0;
     };
 
-    /// Server resource type. Resources are either global, or per-client. Resources include message factories and allocators.
-
-    enum ServerResourceType
-    {
-        SERVER_RESOURCE_GLOBAL,                                     ///< Resource is global for the server. This is used for resources that are used by clients that are negotiating connection.
-        SERVER_RESOURCE_PER_CLIENT                                  ///< Resource is for a specific client slot. This is used for resources that belong to a connected client. The idea is that by giving clients their own resources, a client cannot launch an attack to exhaust server resources that affect other clients.
-    };
-
     /**
         Functionality common across all server implementations.
      */
@@ -213,7 +203,7 @@ namespace yojimbo
 
     protected:
 
-        // ...
+        MessageFactory & GetClientMessageFactory( int clientIndex );
 
     private:
 
@@ -228,6 +218,7 @@ namespace yojimbo
         uint8_t * m_clientMemory[MaxClients];                       ///< The block of memory backing the per-client allocators. Allocated with m_allocator.
         Allocator * m_globalAllocator;                              ///< The global allocator. Used for allocations that don't belong to a specific client.
         Allocator * m_clientAllocator[MaxClients];                  ///< Array of per-client allocator. These are used for allocations related to connected clients.
+        MessageFactory * m_clientMessageFactory[MaxClients];        ///< Array of per-client message factories. This silos message allocations per-client slot.
     };
 
     /**
@@ -264,35 +255,5 @@ namespace yojimbo
         uint8_t m_privateKey[KeyBytes];
     };
 }
-
-/** 
-    Helper macro to set the server allocator class.
-
-    You can use this macro to specify that the server uses your own custom allocator class. The default allocator to use is TLSF_Allocator. 
-
-    The constructor of your derived allocator class must match the signature of the TLSF_Allocator constructor to work with this macro.
-    
-    See tests/shared.h for an example of usage.
- */
-
-#define YOJIMBO_SERVER_ALLOCATOR( allocator_class )                                                                                         \
-    yojimbo::Allocator * CreateAllocator( yojimbo::Allocator & allocator, void * memory, size_t bytes )                                     \
-    {                                                                                                                                       \
-        return YOJIMBO_NEW( allocator, allocator_class, memory, bytes );                                                                    \
-    }
-
-/** 
-    Helper macro to set the server message factory class.
-   
-    See tests/shared.h for an example of usage.
- */
-
-#define YOJIMBO_SERVER_MESSAGE_FACTORY( message_factory_class )                                                                             \
-    yojimbo::MessageFactory * CreateMessageFactory( yojimbo::Allocator & allocator, yojimbo::ServerResourceType type, int clientIndex )     \
-    {                                                                                                                                       \
-        (void) type;                                                                                                                        \
-        (void) clientIndex;                                                                                                                 \
-        return YOJIMBO_NEW( allocator, message_factory_class, allocator );                                                                  \
-    }
 
 #endif // #ifndef YOJIMBO_SERVER_H

@@ -207,13 +207,15 @@ namespace yojimbo
 
     protected:
 
+        void CreateInternal();
+
+        void DestroyInternal();
+
         void SetClientState( ClientState clientState );
 
-        virtual void CreateAllocators();
-
-        virtual void DestroyAllocators();
-
         Allocator & GetClientAllocator() { assert( m_clientAllocator ); return *m_clientAllocator; }
+
+        MessageFactory & GetMessageFactory() { assert( m_messageFactory ); return *m_messageFactory; }
 
     private:
 
@@ -223,8 +225,9 @@ namespace yojimbo
         void * m_context;                                                   ///< Context lets the user pass information to packet serialize functions.
         uint8_t * m_clientMemory;                                           ///< The memory backing the client allocator. Allocated from m_allocator.
         Allocator * m_clientAllocator;                                      ///< The client allocator. Everything allocated between connect and disconnected is allocated and freed via this allocator.
-        int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.
+        MessageFactory * m_messageFactory;                                  ///< The client message factory. Created and destroyed on each connection attempt.
         ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState
+        int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.
         double m_time;                                                      ///< The current client time. See ClientInterface::AdvanceTime
 
     private:

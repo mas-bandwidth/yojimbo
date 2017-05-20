@@ -45,6 +45,7 @@ namespace yojimbo
         {
             m_clientMemory[i] = NULL;
             m_clientAllocator[i] = NULL;
+            m_clientMessageFactory[i] = NULL;
         }
     }
 
@@ -76,6 +77,7 @@ namespace yojimbo
             assert( !m_clientAllocator[i] );
             m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
+            m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
         }
     }
 
@@ -89,6 +91,8 @@ namespace yojimbo
             {
                 assert( m_clientMemory[i] );
                 assert( m_clientAllocator[i] );
+                assert( m_clientMessageFactory[i] );
+                YOJIMBO_DELETE( *m_clientAllocator[i], MessageFactory, m_clientMessageFactory[i] );
                 YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
                 YOJIMBO_FREE( *m_allocator, m_clientMemory[i] );
             }
@@ -102,6 +106,14 @@ namespace yojimbo
     void BaseServer::AdvanceTime( double time )
     {
         m_time = time;
+    }
+
+    MessageFactory & BaseServer::GetClientMessageFactory( int clientIndex ) 
+    { 
+        assert( IsRunning() ); 
+        assert( clientIndex >= 0 ); 
+        assert( clientIndex < m_maxClients );
+        return *m_clientMessageFactory[clientIndex];
     }
 
     // -----------------------------------------------------------------------------------------------------
