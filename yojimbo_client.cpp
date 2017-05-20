@@ -84,6 +84,7 @@ namespace yojimbo
         // todo: need to build reliable endpoint config from yojimbo config.
         reliable_config_t config;
         reliable_default_config( &config );
+        config.context = (void*) this;
         config.transmit_packet_function = BaseClient::TransmitPacketFunction;
         config.process_packet_function = BaseClient::ProcessPacketFunction;
         m_endpoint = reliable_endpoint_create( &config );

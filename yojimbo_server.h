@@ -33,6 +33,7 @@
 /** @file */
 
 struct netcode_server_t;
+struct reliable_endpoint_t;
 
 namespace yojimbo
 {
@@ -205,7 +206,13 @@ namespace yojimbo
 
         MessageFactory & GetClientMessageFactory( int clientIndex );
 
+        reliable_endpoint_t * GetClientEndpoint( int clientIndex );
+
     private:
+
+        static void TransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        
+        static int ProcessPacketFunction( void * context,int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         BaseClientServerConfig m_config;                            ///< Base client/server config.
         Allocator * m_allocator;                                    ///< Allocator passed in to constructor.
@@ -219,6 +226,7 @@ namespace yojimbo
         Allocator * m_globalAllocator;                              ///< The global allocator. Used for allocations that don't belong to a specific client.
         Allocator * m_clientAllocator[MaxClients];                  ///< Array of per-client allocator. These are used for allocations related to connected clients.
         MessageFactory * m_clientMessageFactory[MaxClients];        ///< Array of per-client message factories. This silos message allocations per-client slot.
+        reliable_endpoint_t * m_clientEndpoint[MaxClients];         ///< Array of per-client reliable.io endpoints.
     };
 
     /**
