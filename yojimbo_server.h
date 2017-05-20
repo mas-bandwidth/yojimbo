@@ -210,6 +210,8 @@ namespace yojimbo
 
         reliable_endpoint_t * GetClientEndpoint( int clientIndex );
 
+        Connection & GetClientConnection( int clientIndex );
+
         virtual void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
         virtual int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;

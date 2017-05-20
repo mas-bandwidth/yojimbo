@@ -128,7 +128,9 @@ namespace yojimbo
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 reliable_endpoint_update( m_clientEndpoint[i] );
-                // todo: grab and process acks
+                int numAcks;
+                const uint16_t * acks = reliable_endpoint_get_acks( m_clientEndpoint[i], &numAcks );
+                m_clientConnection[i]->ProcessAcks( acks, numAcks );
                 reliable_endpoint_clear_acks( m_clientEndpoint[i] );
             }
         }
@@ -148,6 +150,15 @@ namespace yojimbo
         assert( clientIndex >= 0 ); 
         assert( clientIndex < m_maxClients );
         return m_clientEndpoint[clientIndex];
+    }
+
+    Connection & BaseServer::GetClientConnection( int clientIndex )
+    {
+        assert( IsRunning() ); 
+        assert( clientIndex >= 0 ); 
+        assert( clientIndex < m_maxClients );
+        assert( m_clientConnection[clientIndex] );
+        return *m_clientConnection[clientIndex];
     }
 
     void BaseServer::StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
@@ -219,14 +230,15 @@ namespace yojimbo
         if ( m_server )
         {
             const int maxClients = GetMaxClients();
-            for ( int clientIndex = 0; clientIndex < maxClients; ++clientIndex )
+            for ( int i = 0; i < maxClients; ++i )
             {
-                if ( IsClientConnected( clientIndex ) )
+                if ( IsClientConnected( i ) )
                 {
-                    // todo: generate packet to send to client
-                    uint8_t dummyPacket[32];
-                    memset( dummyPacket, 0, sizeof( dummyPacket ) );
-                    reliable_endpoint_send_packet( GetClientEndpoint( clientIndex ), dummyPacket, sizeof( dummyPacket ) );
+                    // todo: we don't want to allocate this on the stack, as packet size can be larger than that now
+                    uint8_t * packetData = (uint8_t*) alloca( m_config.connection.maxPacketSize );
+                    int packetBytes;
+                    GetClientConnection(i).GeneratePacket( packetData, m_config.connection.maxPacketSize, packetBytes );
+                    reliable_endpoint_send_packet( GetClientEndpoint( i ), packetData, packetBytes );
                 }
             }
         }
@@ -280,13 +292,7 @@ namespace yojimbo
 
     int Server::ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
-        (void) clientIndex;
-        (void) packetSequence;
-        (void) packetData;
-        (void) packetBytes;
-//        printf( "process packet from client %d\n", clientIndex );
-        // todo: process message content in actual packet
-        return 1;
+        return (int) GetClientConnection(clientIndex).ProcessPacket( packetSequence, packetData, packetBytes );
     }
 
     // -----------------------------------------------------------------------------------------------------
