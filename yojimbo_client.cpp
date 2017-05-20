@@ -67,7 +67,7 @@ namespace yojimbo
         if ( m_endpoint )
         {
             reliable_endpoint_update( m_endpoint );
-            // todo: grab and process acks
+            // todo: process acks
             reliable_endpoint_clear_acks( m_endpoint );
         }
     }
@@ -91,8 +91,8 @@ namespace yojimbo
         reliable_config_t config;
         reliable_default_config( &config );
         config.context = (void*) this;
-        config.transmit_packet_function = BaseClient::TransmitPacketFunction;
-        config.process_packet_function = BaseClient::ProcessPacketFunction;
+        config.transmit_packet_function = BaseClient::StaticTransmitPacketFunction;
+        config.process_packet_function = BaseClient::StaticProcessPacketFunction;
         m_endpoint = reliable_endpoint_create( &config );
     }
 
@@ -109,28 +109,18 @@ namespace yojimbo
         YOJIMBO_FREE( *m_allocator, m_clientMemory );
     }
 
-    void BaseClient::TransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    void BaseClient::StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
-        (void) context;
         (void) index;
-        (void) packetSequence;
-        (void) packetData;
-        (void) packetBytes;
-
-        // todo
+        BaseClient * client = (BaseClient*) context;
+        client->TransmitPacketFunction( packetSequence, packetData, packetBytes );
     }
     
-    int BaseClient::ProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    int BaseClient::StaticProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
-        (void) context;
         (void) index;
-        (void) packetSequence;
-        (void) packetData;
-        (void) packetBytes;
-
-        // todo
-
-        return 1;
+        BaseClient * client = (BaseClient*) context;
+        return client->ProcessPacketFunction( packetSequence, packetData, packetBytes );
     }
 
     // ------------------------------------------------------------------------------------------------------------------
@@ -215,7 +205,7 @@ namespace yojimbo
         assert( m_client );
         uint8_t dummyPacket[32];
         memset( dummyPacket, 0, sizeof( dummyPacket ) );
-        netcode_client_send_packet( m_client, dummyPacket, sizeof( dummyPacket ) );
+        reliable_endpoint_send_packet( GetEndpoint(), dummyPacket, sizeof( dummyPacket ) );
     }
 
     void Client::ReceivePackets()
@@ -272,6 +262,22 @@ namespace yojimbo
             netcode_client_destroy( m_client );
             m_client = NULL;
         }
+    }
+
+    void Client::TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    {
+        (void) packetSequence;
+        netcode_client_send_packet( m_client, packetData, packetBytes );
+    }
+
+    int Client::ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    {
+        (void) packetSequence;
+        (void) packetData;
+        (void) packetBytes;
+        printf( "process packet from server\n" );
+        // todo: process message content in actual packet
+        return 1;
     }
 
     // ------------------------------------------------------------------------------------------------------------------

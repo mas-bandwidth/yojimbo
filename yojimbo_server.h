@@ -180,7 +180,7 @@ namespace yojimbo
         Functionality common across all server implementations.
      */
 
-    class BaseServer
+    class BaseServer : public ServerInterface
     {
     public:
 
@@ -208,11 +208,15 @@ namespace yojimbo
 
         reliable_endpoint_t * GetClientEndpoint( int clientIndex );
 
+        virtual void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
+
+        virtual int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
+
     private:
 
-        static void TransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        static void StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
         
-        static int ProcessPacketFunction( void * context,int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        static int StaticProcessPacketFunction( void * context,int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         BaseClientServerConfig m_config;                            ///< Base client/server config.
         Allocator * m_allocator;                                    ///< Allocator passed in to constructor.
@@ -255,7 +259,15 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
+        bool IsClientConnected( int clientIndex ) const;
+
+        int GetNumConnectedClients() const;
+
     private:
+
+        void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+
+        int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         ClientServerConfig m_config;
         netcode_server_t * m_server;

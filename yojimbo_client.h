@@ -220,11 +220,15 @@ namespace yojimbo
 
         reliable_endpoint_t * GetEndpoint() { return m_endpoint; }
 
+        virtual void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
+
+        virtual int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
+
     private:
 
-        static void TransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        static void StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
         
-        static int ProcessPacketFunction( void * context,int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        static int StaticProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         BaseClientServerConfig m_config;                                    ///< The base client/server configuration.
         Allocator * m_allocator;                                            ///< The allocator passed to the client on creation.
@@ -292,6 +296,12 @@ namespace yojimbo
         void CreateClient( const Address & address );
 
         void DestroyClient();
+
+    private:
+
+        void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+
+        int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         ClientServerConfig m_config;                                        ///< Client/server configuration.
         netcode_client_t * m_client;                                        ///< netcode.io client data.

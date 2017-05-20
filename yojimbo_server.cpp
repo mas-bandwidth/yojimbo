@@ -73,20 +73,21 @@ namespace yojimbo
         assert( !m_globalAllocator );
         m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
         m_globalAllocator = m_adapter->CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
-        for ( int i = 0; i < m_maxClients; ++i )
+        for ( int clientIndex = 0; clientIndex < m_maxClients; ++clientIndex )
         {
-            assert( !m_clientMemory[i] );
-            assert( !m_clientAllocator[i] );
-            m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
-            m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
-            m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
+            assert( !m_clientMemory[clientIndex] );
+            assert( !m_clientAllocator[clientIndex] );
+            m_clientMemory[clientIndex] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
+            m_clientAllocator[clientIndex] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[clientIndex], m_config.serverPerClientMemory );
+            m_clientMessageFactory[clientIndex] = m_adapter->CreateMessageFactory( *m_clientAllocator[clientIndex] );
             // todo: need to build reliable endpoint config from yojimbo config.
             reliable_config_t config;
             reliable_default_config( &config );
             config.context = (void*) this;
-            config.transmit_packet_function = BaseServer::TransmitPacketFunction;
-            config.process_packet_function = BaseServer::ProcessPacketFunction;
-            m_clientEndpoint[i] = reliable_endpoint_create( &config );
+            config.index = clientIndex;
+            config.transmit_packet_function = BaseServer::StaticTransmitPacketFunction;
+            config.process_packet_function = BaseServer::StaticProcessPacketFunction;
+            m_clientEndpoint[clientIndex] = reliable_endpoint_create( &config );
         }
     }
 
@@ -144,28 +145,16 @@ namespace yojimbo
         return m_clientEndpoint[clientIndex];
     }
 
-    void BaseServer::TransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    void BaseServer::StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
-        (void) context;
-        (void) index;
-        (void) packetSequence;
-        (void) packetData;
-        (void) packetBytes;
-
-        // todo
+        BaseServer * server = (BaseServer*) context;
+        server->TransmitPacketFunction( index, packetSequence, packetData, packetBytes );
     }
     
-    int BaseServer::ProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    int BaseServer::StaticProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
-        (void) context;
-        (void) index;
-        (void) packetSequence;
-        (void) packetData;
-        (void) packetBytes;
-
-        // todo
-
-        return 1;
+        BaseServer * server = (BaseServer*) context;
+        return server->ProcessPacketFunction( index, packetSequence, packetData, packetBytes );
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -224,7 +213,17 @@ namespace yojimbo
     {
         if ( m_server )
         {
-            // todo
+            const int maxClients = GetMaxClients();
+            for ( int clientIndex = 0; clientIndex < maxClients; ++clientIndex )
+            {
+                if ( IsClientConnected( clientIndex ) )
+                {
+                    // todo: generate packet to send to client
+                    uint8_t dummyPacket[32];
+                    memset( dummyPacket, 0, sizeof( dummyPacket ) );
+                    reliable_endpoint_send_packet( GetClientEndpoint( clientIndex ), dummyPacket, sizeof( dummyPacket ) );
+                }
+            }
         }
     }
 
@@ -256,6 +255,33 @@ namespace yojimbo
             netcode_server_update( m_server, time );
         }
         BaseServer::AdvanceTime( time );
+    }
+
+    bool Server::IsClientConnected( int clientIndex ) const
+    {
+        return netcode_server_client_connected( m_server, clientIndex ) != 0;
+    }
+
+    int Server::GetNumConnectedClients() const
+    {
+        return netcode_server_num_connected_clients( m_server );
+    }
+
+    void Server::TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    {
+        (void) packetSequence;
+        netcode_server_send_packet( m_server, clientIndex, packetData, packetBytes );
+    }
+
+    int Server::ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    {
+        (void) clientIndex;
+        (void) packetSequence;
+        (void) packetData;
+        (void) packetBytes;
+        printf( "process packet from client %d\n", clientIndex );
+        // todo: process message content in actual packet
+        return 1;
     }
 
     // -----------------------------------------------------------------------------------------------------
