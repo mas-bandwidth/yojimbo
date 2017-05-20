@@ -279,7 +279,7 @@ namespace yojimbo
         (void) packetSequence;
         (void) packetData;
         (void) packetBytes;
-        printf( "process packet from client %d\n", clientIndex );
+//        printf( "process packet from client %d\n", clientIndex );
         // todo: process message content in actual packet
         return 1;
     }

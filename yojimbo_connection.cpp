@@ -25,7 +25,60 @@
 #include "yojimbo_config.h"
 #include "yojimbo_connection.h"
 
-#if 0 // todo
+namespace yojimbo
+{
+    Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+    {
+        (void) allocator;
+        (void) messageFactory;
+        (void) connectionConfig;
+        // ...
+    }
+
+    Connection::~Connection()
+    {
+        // ...
+    }
+
+    void Connection::GeneratePacket( uint8_t * packetData, int maxPacketBytes, int & packetBytes )
+    {
+        (void) packetData;
+        (void) maxPacketBytes;
+        (void) packetBytes;
+        // ...
+    }
+
+    void Connection::ProcessAcks( const uint16_t * acks, int numAcks )
+    {
+        (void) acks;
+        (void) numAcks;
+        // ...
+    }
+
+    bool Connection::ProcessPacket( uint16_t packetSequence, const uint8_t * packetData, int packetBytes )
+    {
+        (void) packetSequence;
+        (void) packetData;
+        (void) packetBytes;
+        // ...
+        return true;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0 // old stuff
 
 namespace yojimbo
 {

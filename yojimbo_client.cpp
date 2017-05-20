@@ -24,6 +24,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_client.h"
+#include "yojimbo_connection.h"
 #include "netcode.h"
 #include "reliable.h"
 #include <stdint.h>
@@ -44,6 +45,7 @@ namespace yojimbo
         m_clientMemory = NULL;
         m_clientAllocator = NULL;
         m_endpoint = NULL;
+        m_connection = NULL;
         m_messageFactory = NULL;
         m_clientState = CLIENT_STATE_DISCONNECTED;
         m_clientIndex = -1;
@@ -67,7 +69,9 @@ namespace yojimbo
         if ( m_endpoint )
         {
             reliable_endpoint_update( m_endpoint );
-            // todo: process acks
+            int numAcks;
+            const uint16_t * acks = reliable_endpoint_get_acks( m_endpoint, &numAcks );
+            m_connection->ProcessAcks( acks, numAcks );
             reliable_endpoint_clear_acks( m_endpoint );
         }
     }
@@ -87,6 +91,9 @@ namespace yojimbo
         m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
         m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
         m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
+        // todo: need to get connection config setup from yojimbo client/server config
+        ConnectionConfig connectionConfig;
+        m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, connectionConfig );
         // todo: need to build reliable endpoint config from yojimbo config.
         reliable_config_t config;
         reliable_default_config( &config );
@@ -104,6 +111,7 @@ namespace yojimbo
             reliable_endpoint_destroy( m_endpoint ); 
             m_endpoint = NULL;
         }
+        YOJIMBO_DELETE( *m_clientAllocator, Connection, m_connection );
         YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
         YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );
         YOJIMBO_FREE( *m_allocator, m_clientMemory );
@@ -272,12 +280,7 @@ namespace yojimbo
 
     int Client::ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
-        (void) packetSequence;
-        (void) packetData;
-        (void) packetBytes;
-        printf( "process packet from server\n" );
-        // todo: process message content in actual packet
-        return 1;
+        return (int) GetConnection().ProcessPacket( packetSequence, packetData, packetBytes );
     }
 
     // ------------------------------------------------------------------------------------------------------------------

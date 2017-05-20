@@ -33,6 +33,43 @@
 
 namespace yojimbo
 {
+    class Connection
+    {
+    public:
+
+        Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() );
+
+        ~Connection();
+
+        void GeneratePacket( uint8_t * packetData, int maxPacketBytes, int & packetBytes );
+
+        void ProcessAcks( const uint16_t * acks, int numAcks );
+
+        bool ProcessPacket( uint16_t packetSequence, const uint8_t * packetData, int packetBytes );
+
+    private:
+
+        // ...
+    };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0 // old stuff
+
+namespace yojimbo
+{
     /// This magic number is used as a safety check to make sure the context accessed from Stream::GetContext is really a ConnectionContext object.
 
     const uint32_t ConnectionContextMagic = 0x11223344;
@@ -58,8 +95,6 @@ namespace yojimbo
             connectionConfig = NULL;
         }
     };
-
-#if 0 // todo
 
     /** 
         Implements packet level acks and carries messages across a connection.
@@ -172,8 +207,6 @@ namespace yojimbo
     public:
 
         virtual ~ConnectionListener() {}
-
-
 
         virtual void OnConnectionPacketGenerated( class Connection * connection, uint16_t sequence ) { (void) connection; (void) sequence; }
 
@@ -447,8 +480,8 @@ namespace yojimbo
 
         Connection & operator = ( const Connection & other );
     };
+}
 
 #endif
-}
 
 #endif // #ifndef YOJIMBO_CONNECTION

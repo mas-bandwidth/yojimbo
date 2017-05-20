@@ -38,6 +38,8 @@ struct reliable_endpoint_t;
 
 namespace yojimbo
 {
+    class Connection;
+
     /**
         The set of client states.
      */
@@ -220,6 +222,8 @@ namespace yojimbo
 
         reliable_endpoint_t * GetEndpoint() { return m_endpoint; }
 
+        Connection & GetConnection() { assert( m_connection ); return *m_connection; }
+
         virtual void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
         virtual int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
@@ -238,6 +242,7 @@ namespace yojimbo
         Allocator * m_clientAllocator;                                      ///< The client allocator. Everything allocated between connect and disconnected is allocated and freed via this allocator.
         reliable_endpoint_t * m_endpoint;                                   ///< reliable.io endpoint.
         MessageFactory * m_messageFactory;                                  ///< The client message factory. Created and destroyed on each connection attempt.
+        Connection * m_connection;                                          ///< The client connection for exchanging messages with the server.
         ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState
         int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.
         double m_time;                                                      ///< The current client time. See ClientInterface::AdvanceTime
