@@ -216,8 +216,6 @@ namespace yojimbo
         Typically configured as part of a ClientServerConfig which is passed into Client and Server constructors.
      */
 
-    // todo: do we really need to separate connection config from client server config like this? I guess it lets people use connection separately, if I care for that. i don't really
-    
     struct ConnectionConfig
     {
         int connectionPacketType;                               ///< Connection packet type (so you can override it). Only necessary to set this if you are using Connection directly. Not necessary to set when using client/server as it overrides it to CLIENT_SERVER_PACKET_CONNECTION for you automatically.
@@ -245,14 +243,13 @@ namespace yojimbo
 
     // todo: maybe just inherit from connection config? seems cleaner
 
-    struct BaseClientServerConfig
+    struct BaseClientServerConfig : public ConnectionConfig
     {
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
-        ConnectionConfig connection;                            ///< Configures connection properties and message channels between client and server. Must be identical between client and server to work properly. Only used if enableMessages is true.
-
+        
         BaseClientServerConfig()
         {
             protocolId = 0;

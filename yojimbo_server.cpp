@@ -81,9 +81,7 @@ namespace yojimbo
             m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
             m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
-            // todo: need to get connection config setup from yojimbo client/server config
-            ConnectionConfig connectionConfig;
-            m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], connectionConfig );
+            m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config );
             // todo: need to build reliable endpoint config from yojimbo config.
             reliable_config_t config;
             reliable_default_config( &config );
@@ -235,9 +233,9 @@ namespace yojimbo
                 if ( IsClientConnected( i ) )
                 {
                     // todo: we don't want to allocate this on the stack, as packet size can be larger than that now
-                    uint8_t * packetData = (uint8_t*) alloca( m_config.connection.maxPacketSize );
+                    uint8_t * packetData = (uint8_t*) alloca( m_config.maxPacketSize );
                     int packetBytes;
-                    GetClientConnection(i).GeneratePacket( packetData, m_config.connection.maxPacketSize, packetBytes );
+                    GetClientConnection(i).GeneratePacket( packetData, m_config.maxPacketSize, packetBytes );
                     reliable_endpoint_send_packet( GetClientEndpoint( i ), packetData, packetBytes );
                 }
             }

@@ -35,6 +35,8 @@
 #include <mbedtls/error.h>
 #include <mbedtls/certs.h>
 
+int matcher_dummy = 0;
+
 #if 0 // todo
 
 #include "sodium.h"
