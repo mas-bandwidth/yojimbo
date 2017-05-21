@@ -217,8 +217,11 @@ namespace yojimbo
         // todo: we don't want to allocate this on the stack, as packet size can be larger than that now
         uint8_t * packetData = (uint8_t*) alloca( m_config.maxPacketSize );
         int packetBytes;
-        GetConnection().GeneratePacket( packetData, m_config.maxPacketSize, packetBytes );
-        reliable_endpoint_send_packet( GetEndpoint(), packetData, packetBytes );
+        uint16_t packetSequence = reliable_endpoint_next_packet_sequence( GetEndpoint() );
+        if ( GetConnection().GeneratePacket( packetSequence, packetData, m_config.maxPacketSize, packetBytes ) )
+        {
+            reliable_endpoint_send_packet( GetEndpoint(), packetData, packetBytes );
+        }
     }
 
     void Client::ReceivePackets()

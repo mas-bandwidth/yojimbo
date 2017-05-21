@@ -38,6 +38,8 @@
 
 namespace yojimbo
 {
+    // todo: does connection packet even need to be exposed outside of yojimbo_connection.cpp. I don't think it does... move it there!
+
     /** 
         This packet carries messages sent across connection channels.
 
@@ -91,13 +93,19 @@ namespace yojimbo
             Unifies packet read and write, making it harder to accidentally desync one from the other.
          */
 
-        template <typename Stream> bool Serialize( Stream & stream );
+        template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
 
-        bool SerializeInternal( ReadStream & stream );                          ///< Implements serialize read by calling into ConnectionPacket::Serialize with a ReadStream.
+        /// Implements serialize read by calling into ConnectionPacket::Serialize with a ReadStream.
 
-        bool SerializeInternal( WriteStream & stream );                         ///< Implements serialize write by calling into ConnectionPacket::Serialize with a WriteStream.
+        bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
 
-        bool SerializeInternal( MeasureStream & stream );                       ///< Implements serialize measure by calling into ConnectionPacket::Serialize with a MeasureStream.
+        /// Implements serialize write by calling into ConnectionPacket::Serialize with a WriteStream.
+
+        bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+
+        /// Implements serialize measure by calling into ConnectionPacket::Serialize with a MeasureStream.
+
+        bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
 
     private:
 
@@ -120,7 +128,7 @@ namespace yojimbo
 
         void Reset();
 
-        void GeneratePacket( uint8_t * packetData, int maxPacketBytes, int & packetBytes );
+        bool GeneratePacket( uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes );
 
         void ProcessAcks( const uint16_t * acks, int numAcks );
 
@@ -129,6 +137,8 @@ namespace yojimbo
         void AdvanceTime( double time );
 
     private:
+
+        int WritePacket( Allocator & allocator, void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize );
 
         Allocator * m_allocator;                                ///< Allocator passed in to the connection constructor.
         MessageFactory * m_messageFactory;                      ///< Message factory for creating and destroying messages.

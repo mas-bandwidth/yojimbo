@@ -36,7 +36,10 @@ namespace yojimbo
 
     ConnectionPacket::~ConnectionPacket()
     {
-        // todo: shouldn't we be cleaning up channel entries here?
+        if ( messageFactory )
+        {
+            // todo: shouldn't we be cleaning up channel entries here?
+        }
     }
 
     bool ConnectionPacket::AllocateChannelData( MessageFactory & messageFactory, int numEntries )
@@ -56,72 +59,53 @@ namespace yojimbo
         return true;
     }
 
-    template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream )
+    template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
     {
-        (void) stream;
-#if 0 // todo: we don't use context like this anymore
-        ConnectionContext * context = (ConnectionContext*) stream.GetContext();
-
-        if ( !context )
-            return false;
-
-        assert( context );
-        assert( context->magic == ConnectionContextMagic );
-        assert( context->messageFactory );
-        assert( context->connectionConfig );
-
-        const int numChannels = context->connectionConfig->numChannels;
-
-        serialize_int( stream, numChannelEntries, 0, context->connectionConfig->numChannels );
-
-#if YOJIMBO_VALIDATE_MESSAGE_BUDGET
+        const int numChannels = connectionConfig.numChannels;
+        serialize_int( stream, numChannelEntries, 0, connectionConfig.numChannels );
+#if YOJIMBO_DEBUG_MESSAGE_BUDGET
         assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
-#endif // #if YOJIMBO_VALIDATE_MESSAGE_BUDGET
-
+#endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
         if ( numChannelEntries > 0 )
         {
             if ( Stream::IsReading )
             {
-                if ( !AllocateChannelData( *context->messageFactory, numChannelEntries ) )
+                if ( !AllocateChannelData( messageFactory, numChannelEntries ) )
                 {
                     debug_printf( "error: failed to allocate channel data (ConnectionPacket)\n" );
                     return false;
                 }
-
                 for ( int i = 0; i < numChannelEntries; ++i )
                 {
                     assert( channelEntry[i].messageFailedToSerialize == 0 );
                 }
             }
-
             for ( int i = 0; i < numChannelEntries; ++i )
             {
                 assert( channelEntry[i].messageFailedToSerialize == 0 );
-
-                if ( !channelEntry[i].SerializeInternal( stream, *m_messageFactory, context->connectionConfig->channel, numChannels ) )
+                if ( !channelEntry[i].SerializeInternal( stream, messageFactory, connectionConfig.channel, numChannels ) )
                 {
                     debug_printf( "error: failed to serialize channel %d\n", i );
                     return false;
                 }
             }
         }
-#endif // #if 0
         return true;
     }
 
-    bool ConnectionPacket::SerializeInternal( ReadStream & stream )
+    bool ConnectionPacket::SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
     {
-        return Serialize( stream );
+        return Serialize( stream, messageFactory, connectionConfig );
     }
 
-    bool ConnectionPacket::SerializeInternal( WriteStream & stream )
+    bool ConnectionPacket::SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
     {
-        return Serialize( stream );
+        return Serialize( stream, messageFactory, connectionConfig );
     }
 
-    bool ConnectionPacket::SerializeInternal( MeasureStream & stream )
+    bool ConnectionPacket::SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
     {
-        return Serialize( stream );
+        return Serialize( stream, messageFactory, connectionConfig );
     }
 
     // ------------------------------------------------------------------------------
@@ -171,11 +155,65 @@ namespace yojimbo
             m_channel[i]->Reset();
     }
 
-    void Connection::GeneratePacket( uint8_t * packetData, int maxPacketBytes, int & packetBytes )
+    bool Connection::GeneratePacket( uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes )
     {
-        // todo: temporary hack
-        packetBytes = maxPacketBytes / 10;
-        memset( packetData, 0, packetBytes );
+        ConnectionPacket packet;
+
+        if ( m_connectionConfig.numChannels > 0 )
+        {
+            int numChannelsWithData = 0;
+            bool channelHasData[MaxChannels];
+            memset( channelHasData, 0, sizeof( channelHasData ) );
+            ChannelPacketData channelData[MaxChannels];
+
+            int availableBits = maxPacketBytes * 8;
+
+            availableBits -= ConservativeConnectionPacketHeaderEstimate;
+
+            for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+            {
+                int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packetSequence, availableBits );
+
+                if ( packetDataBits > 0 )
+                {
+                    availableBits -= ConservativeChannelHeaderEstimate;
+
+                    availableBits -= packetDataBits;
+
+                    channelHasData[channelId] = true;
+
+                    numChannelsWithData++;
+                }
+            }
+
+            if ( numChannelsWithData > 0 )
+            {
+                if ( !packet.AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
+                {
+                    // todo: bring back connection errors
+                    //m_error = CONNECTION_ERROR_OUT_OF_MEMORY;
+                    return false;
+                }
+
+                int index = 0;
+
+                for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+                {
+                    if ( channelHasData[channelId] )
+                    {
+                        memcpy( &packet.channelEntry[index], &channelData[channelId], sizeof( ChannelPacketData ) );
+                        index++;
+                    }
+                }
+            }
+        }
+
+        // todo: need context from outer
+        void * context = NULL;
+
+        packetBytes = WritePacket( m_messageFactory->GetAllocator(), context, *m_messageFactory, m_connectionConfig, packet, packetData, maxPacketBytes );
+
+        return true;
     }
 
     void Connection::ProcessAcks( const uint16_t * acks, int numAcks )
@@ -204,7 +242,6 @@ namespace yojimbo
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
         {
             m_channel[i]->AdvanceTime( time );
-
             // todo: channel error
             /*
             ChannelError error = m_channel[i]->GetError();
@@ -216,6 +253,29 @@ namespace yojimbo
             }
             */
         }
+    }
+
+    int Connection::WritePacket( Allocator & allocator, void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
+    {
+        WriteStream stream( buffer, bufferSize, allocator );
+
+        stream.SetContext( context );
+
+        if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
+        {
+            debug_printf( "serialize connection packet failed (write packet)\n" );
+            return 0;
+        }
+
+        if ( !stream.SerializeCheck() )
+        {
+            debug_printf( "serialize check at end of connection packed failed (write packet)\n" );
+            return 0;
+        }
+
+        stream.Flush();
+
+        return stream.GetBytesProcessed();
     }
 }
 

@@ -344,9 +344,9 @@ namespace yojimbo
     {
         assert( initialized );
 
-#if YOJIMBO_VALIDATE_MESSAGE_BUDGET
+#if YOJIMBO_DEBUG_MESSAGE_BUDGET
         int startBits = stream.GetBitsProcessed();
-#endif // #if YOJIMBO_VALIDATE_MESSAGE_BUDGET
+#endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
 
         if ( numChannels > 1 )
             serialize_int( stream, channelId, 0, numChannels - 1 );
@@ -380,14 +380,16 @@ namespace yojimbo
                     }
                 }
                 break;
+
+                // todo: unreliable-ordered channel
             }
 
-#if YOJIMBO_VALIDATE_MESSAGE_BUDGET
+#if YOJIMBO_DEBUG_MESSAGE_BUDGET
             if ( channelConfig.packetBudget > 0 )
             {
                 assert( stream.GetBitsProcessed() - startBits <= channelConfig.packetBudget * 8 );
             }
-#endif // #if YOJIMBO_VALIDATE_MESSAGE_BUDGET
+#endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
         }
         else
         {
