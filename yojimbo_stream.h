@@ -50,7 +50,7 @@ namespace yojimbo
             @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
-        explicit BaseStream( Allocator & allocator ) : m_allocator( &allocator ), m_context( NULL ), m_userContext( NULL ) {}
+        explicit BaseStream( Allocator & allocator ) : m_allocator( &allocator ), m_context( NULL ) {}
 
         /**
             Set a context on the stream.
