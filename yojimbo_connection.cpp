@@ -27,6 +27,105 @@
 
 namespace yojimbo
 {
+    ConnectionPacket::ConnectionPacket()
+    {
+        messageFactory = NULL;
+        numChannelEntries = 0;
+        channelEntry = NULL;
+    }
+
+    ConnectionPacket::~ConnectionPacket()
+    {
+        // todo: shouldn't we be cleaning up channel entries here?
+    }
+
+    bool ConnectionPacket::AllocateChannelData( MessageFactory & messageFactory, int numEntries )
+    {
+        assert( numEntries > 0 );
+        assert( numEntries <= MaxChannels );
+        this->messageFactory = &messageFactory;
+        Allocator & allocator = messageFactory.GetAllocator();
+        channelEntry = (ChannelPacketData*) YOJIMBO_ALLOCATE( allocator, sizeof( ChannelPacketData ) * numEntries );
+        if ( channelEntry == NULL )
+            return false;
+        for ( int i = 0; i < numEntries; ++i )
+        {
+            channelEntry[i].Initialize();
+        }
+        numChannelEntries = numEntries;
+        return true;
+    }
+
+    template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream )
+    {
+        (void) stream;
+#if 0 // todo: we don't use context like this anymore
+        ConnectionContext * context = (ConnectionContext*) stream.GetContext();
+
+        if ( !context )
+            return false;
+
+        assert( context );
+        assert( context->magic == ConnectionContextMagic );
+        assert( context->messageFactory );
+        assert( context->connectionConfig );
+
+        const int numChannels = context->connectionConfig->numChannels;
+
+        serialize_int( stream, numChannelEntries, 0, context->connectionConfig->numChannels );
+
+#if YOJIMBO_VALIDATE_MESSAGE_BUDGET
+        assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
+#endif // #if YOJIMBO_VALIDATE_MESSAGE_BUDGET
+
+        if ( numChannelEntries > 0 )
+        {
+            if ( Stream::IsReading )
+            {
+                if ( !AllocateChannelData( *context->messageFactory, numChannelEntries ) )
+                {
+                    debug_printf( "error: failed to allocate channel data (ConnectionPacket)\n" );
+                    return false;
+                }
+
+                for ( int i = 0; i < numChannelEntries; ++i )
+                {
+                    assert( channelEntry[i].messageFailedToSerialize == 0 );
+                }
+            }
+
+            for ( int i = 0; i < numChannelEntries; ++i )
+            {
+                assert( channelEntry[i].messageFailedToSerialize == 0 );
+
+                if ( !channelEntry[i].SerializeInternal( stream, *m_messageFactory, context->connectionConfig->channel, numChannels ) )
+                {
+                    debug_printf( "error: failed to serialize channel %d\n", i );
+                    return false;
+                }
+            }
+        }
+#endif // #if 0
+        return true;
+    }
+
+    bool ConnectionPacket::SerializeInternal( ReadStream & stream )
+    {
+        return Serialize( stream );
+    }
+
+    bool ConnectionPacket::SerializeInternal( WriteStream & stream )
+    {
+        return Serialize( stream );
+    }
+
+    bool ConnectionPacket::SerializeInternal( MeasureStream & stream )
+    {
+        return Serialize( stream );
+    }
+
+    // ------------------------------------------------------------------------------
+
     Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
     {
         m_allocator = &allocator;
@@ -137,125 +236,6 @@ namespace yojimbo
 
 namespace yojimbo
 {
-    ConnectionPacket::ConnectionPacket()
-    {
-        m_messageFactory = NULL;
-        sequence = 0;
-        ack = 0;
-        ack_bits = 0;
-        numChannelEntries = 0;
-        channelEntry = NULL;
-    }
-
-    ConnectionPacket::~ConnectionPacket()
-    {
-    }
-
-    bool ConnectionPacket::AllocateChannelData( MessageFactory & messageFactory, int numEntries )
-    {
-        assert( numEntries > 0 );
-        assert( numEntries <= MaxChannels );
-
-        SetMessageFactory( messageFactory );
-
-        Allocator & allocator = messageFactory.GetAllocator();
-
-        channelEntry = (ChannelPacketData*) YOJIMBO_ALLOCATE( allocator, sizeof( ChannelPacketData ) * numEntries );
-        if ( channelEntry == NULL )
-            return false;
-
-        for ( int i = 0; i < numEntries; ++i )
-        {
-            channelEntry[i].Initialize();
-        }
-
-        numChannelEntries = numEntries;
-
-        return true;
-    }
-
-    template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream )
-    {
-        ConnectionContext * context = (ConnectionContext*) stream.GetContext();
-
-        if ( !context )
-            return false;
-
-        assert( context );
-        assert( context->magic == ConnectionContextMagic );
-        assert( context->messageFactory );
-        assert( context->connectionConfig );
-
-        // ack system
-
-        bool perfect_acks = Stream::IsWriting ? ( ack_bits == 0xFFFFFFFF ) : 0;
-
-        serialize_bool( stream, perfect_acks );
-
-        if ( !perfect_acks )
-            serialize_bits( stream, ack_bits, 32 );
-        else
-            ack_bits = 0xFFFFFFFF;
-
-        serialize_bits( stream, sequence, 16 );
-
-        serialize_ack_relative( stream, sequence, ack );
-
-        // channel entries
-
-        const int numChannels = context->connectionConfig->numChannels;
-
-        serialize_int( stream, numChannelEntries, 0, context->connectionConfig->numChannels );
-
-#if YOJIMBO_VALIDATE_MESSAGE_BUDGET
-        assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
-#endif // #if YOJIMBO_VALIDATE_MESSAGE_BUDGET
-
-        if ( numChannelEntries > 0 )
-        {
-            if ( Stream::IsReading )
-            {
-                if ( !AllocateChannelData( *context->messageFactory, numChannelEntries ) )
-                {
-                    debug_printf( "error: failed to allocate channel data (ConnectionPacket)\n" );
-                    return false;
-                }
-
-                for ( int i = 0; i < numChannelEntries; ++i )
-                {
-                    assert( channelEntry[i].messageFailedToSerialize == 0 );
-                }
-            }
-
-            for ( int i = 0; i < numChannelEntries; ++i )
-            {
-                assert( channelEntry[i].messageFailedToSerialize == 0 );
-
-                if ( !channelEntry[i].SerializeInternal( stream, *m_messageFactory, context->connectionConfig->channel, numChannels ) )
-                {
-                    debug_printf( "error: failed to serialize channel %d\n", i );
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    bool ConnectionPacket::SerializeInternal( ReadStream & stream )
-    {
-        return Serialize( stream );
-    }
-
-    bool ConnectionPacket::SerializeInternal( WriteStream & stream )
-    {
-        return Serialize( stream );
-    }
-
-    bool ConnectionPacket::SerializeInternal( MeasureStream & stream )
-    {
-        return Serialize( stream );
-    }
 
     Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : m_connectionConfig( connectionConfig )
     {
