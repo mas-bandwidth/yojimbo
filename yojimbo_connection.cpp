@@ -229,6 +229,29 @@ namespace yojimbo
             m_channel[i]->Reset();
     }
 
+    static int WritePacket( Allocator & allocator, void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
+    {
+        WriteStream stream( buffer, bufferSize, allocator );
+
+        stream.SetContext( context );
+
+        if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
+        {
+            debug_printf( "serialize connection packet failed (write packet)\n" );
+            return 0;
+        }
+
+        if ( !stream.SerializeCheck() )
+        {
+            debug_printf( "serialize check at end of connection packed failed (write packet)\n" );
+            return 0;
+        }
+
+        stream.Flush();
+
+        return stream.GetBytesProcessed();
+    }
+
     bool Connection::GeneratePacket( uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes )
     {
         ConnectionPacket packet;
@@ -327,29 +350,6 @@ namespace yojimbo
             }
             */
         }
-    }
-
-    int Connection::WritePacket( Allocator & allocator, void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
-    {
-        WriteStream stream( buffer, bufferSize, allocator );
-
-        stream.SetContext( context );
-
-        if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
-        {
-            debug_printf( "serialize connection packet failed (write packet)\n" );
-            return 0;
-        }
-
-        if ( !stream.SerializeCheck() )
-        {
-            debug_printf( "serialize check at end of connection packed failed (write packet)\n" );
-            return 0;
-        }
-
-        stream.Flush();
-
-        return stream.GetBytesProcessed();
     }
 }
 

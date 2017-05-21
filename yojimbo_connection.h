@@ -38,8 +38,6 @@
 
 namespace yojimbo
 {
-    struct ConnectionPacket;
-
     /**
         Connection class.
      */
@@ -63,8 +61,6 @@ namespace yojimbo
         void AdvanceTime( double time );
 
     private:
-
-        int WritePacket( Allocator & allocator, void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize );
 
         Allocator * m_allocator;                                ///< Allocator passed in to the connection constructor.
         MessageFactory * m_messageFactory;                      ///< Message factory for creating and destroying messages.
