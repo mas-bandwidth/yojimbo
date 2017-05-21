@@ -27,6 +27,80 @@
 
 namespace yojimbo
 {
+    /** 
+        This packet carries messages sent across connection channels.
+
+        Connection packets should be generated and sent at a steady rate like 10, 20 or 30 times per-second in both directions across a connection. 
+     */
+
+    struct ConnectionPacket
+    {
+        int numChannelEntries;                                                  ///< The number of channel entries in this packet.
+        ChannelPacketData * channelEntry;                                       ///< Per-channel message data that was included in this packet.
+        MessageFactory * messageFactory;                                        ///< The message factory is cached so we can release messages included in this packet when it is destroyed.
+
+        /**
+            Connection packet constructor.
+         */
+
+        ConnectionPacket();
+
+        /** 
+            Connection packet destructor.
+
+            Releases all references to messages included in this packet.
+
+            @see Message
+            @see MessageFactory
+            @see ChannelPacketData
+         */
+
+        ~ConnectionPacket();
+
+        /** 
+            Allocate channel data in this packet.
+
+            The allocation is performed with the allocator that is set on the message factory.
+
+            When this is used on the server, the allocator corresponds to the per-client allocator corresponding to the client that is sending this connection packet. See Server::m_clientAllocator.
+
+            This is intended to silo each client to their own set of resources on the server, so malicious clients cannot launch an attack to deplete resources shared with other clients.
+
+            @param messageFactory The message factory used to create and destroy messages.
+            @param numEntries The number of channel entries to allocate. This corresponds to the number of channels that have data to include in the connection packet.
+
+            @returns True if the allocation succeeded, false otherwise.
+         */
+
+        bool AllocateChannelData( MessageFactory & messageFactory, int numEntries );
+
+        /** 
+            The template function for serializing the connection packet.
+
+            Unifies packet read and write, making it harder to accidentally desync one from the other.
+         */
+
+        template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+
+        /// Implements serialize read by calling into ConnectionPacket::Serialize with a ReadStream.
+
+        bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+
+        /// Implements serialize write by calling into ConnectionPacket::Serialize with a WriteStream.
+
+        bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+
+        /// Implements serialize measure by calling into ConnectionPacket::Serialize with a MeasureStream.
+
+        bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+
+    private:
+
+        ConnectionPacket( const ConnectionPacket & other );
+
+        const ConnectionPacket & operator = ( const ConnectionPacket & other );
+    };
+
     ConnectionPacket::ConnectionPacket()
     {
         messageFactory = NULL;
