@@ -125,11 +125,16 @@ namespace yojimbo
         {
             for ( int i = 0; i < m_maxClients; ++i )
             {
+                m_clientConnection[i]->AdvanceTime( time );
                 reliable_endpoint_update( m_clientEndpoint[i] );
                 int numAcks;
                 const uint16_t * acks = reliable_endpoint_get_acks( m_clientEndpoint[i], &numAcks );
                 m_clientConnection[i]->ProcessAcks( acks, numAcks );
                 reliable_endpoint_clear_acks( m_clientEndpoint[i] );
+                // todo: check for connection error
+                // todo: check for reliable error
+                // todo: check for allocator error
+                // todo: check for message factory error
             }
         }
     }

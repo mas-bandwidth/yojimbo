@@ -68,11 +68,16 @@ namespace yojimbo
         m_time = time;
         if ( m_endpoint )
         {
+            m_connection->AdvanceTime( time );
             reliable_endpoint_update( m_endpoint );
             int numAcks;
             const uint16_t * acks = reliable_endpoint_get_acks( m_endpoint, &numAcks );
             m_connection->ProcessAcks( acks, numAcks );
             reliable_endpoint_clear_acks( m_endpoint );
+            // todo: check for connection error
+            // todo: check for reliable error
+            // todo: check for allocator error
+            // todo: check for message factory error
         }
     }
 

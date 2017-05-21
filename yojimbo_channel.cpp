@@ -565,17 +565,17 @@ namespace yojimbo
         ResetCounters();
     }
 
-    bool ReliableOrderedChannel::CanSendMsg() const
+    bool ReliableOrderedChannel::CanSendMessage() const
     {
         assert( m_messageSendQueue );
 
         return m_messageSendQueue->Available( m_sendMessageId );
     }
 
-    void ReliableOrderedChannel::SendMsg( Message * message )
+    void ReliableOrderedChannel::SendMessage( Message * message )
     {
         assert( message );
-        assert( CanSendMsg() );
+        assert( CanSendMessage() );
 
         if ( GetError() != CHANNEL_ERROR_NONE )
         {
@@ -583,7 +583,7 @@ namespace yojimbo
             return;
         }
 
-        if ( !CanSendMsg() )
+        if ( !CanSendMessage() )
         {
             SetError( CHANNEL_ERROR_SEND_QUEUE_FULL );
             m_messageFactory->Release( message );
@@ -628,7 +628,7 @@ namespace yojimbo
         m_sendMessageId++;
     }
 
-    Message * ReliableOrderedChannel::ReceiveMsg()
+    Message * ReliableOrderedChannel::ReceiveMessage()
     {
         if ( GetError() != CHANNEL_ERROR_NONE )
             return NULL;
@@ -1254,16 +1254,16 @@ namespace yojimbo
         ResetCounters();
     }
 
-    bool UnreliableUnorderedChannel::CanSendMsg() const
+    bool UnreliableUnorderedChannel::CanSendMessage() const
     {
         assert( m_messageSendQueue );
         return !m_messageSendQueue->IsFull();
     }
 
-    void UnreliableUnorderedChannel::SendMsg( Message * message )
+    void UnreliableUnorderedChannel::SendMessage( Message * message )
     {
         assert( message );
-        assert( CanSendMsg() );
+        assert( CanSendMessage() );
 
         if ( GetError() != CHANNEL_ERROR_NONE )
         {
@@ -1271,7 +1271,7 @@ namespace yojimbo
             return;
         }
 
-        if ( !CanSendMsg() )
+        if ( !CanSendMessage() )
         {
             SetError( CHANNEL_ERROR_SEND_QUEUE_FULL );
             m_messageFactory->Release( message );
@@ -1298,7 +1298,7 @@ namespace yojimbo
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
     }
 
-    Message * UnreliableUnorderedChannel::ReceiveMsg()
+    Message * UnreliableUnorderedChannel::ReceiveMessage()
     {
         if ( GetError() != CHANNEL_ERROR_NONE )
             return NULL;

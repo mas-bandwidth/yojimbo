@@ -29,15 +29,47 @@ namespace yojimbo
 {
     Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
     {
-        (void) allocator;
-        (void) messageFactory;
-        (void) connectionConfig;
-        // ...
+        m_allocator = &allocator;
+        m_messageFactory = &messageFactory;
+        m_connectionConfig = connectionConfig;
+        memset( m_channel, 0, sizeof( m_channel ) );
+        assert( m_connectionConfig.numChannels >= 1 );
+        assert( m_connectionConfig.numChannels <= MaxChannels );
+        for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+        {
+            switch ( m_connectionConfig.channel[channelId].type )
+            {
+                case CHANNEL_TYPE_RELIABLE_ORDERED: 
+                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelId], channelId ); 
+                    break;
+
+                case CHANNEL_TYPE_UNRELIABLE_UNORDERED: 
+                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelId], channelId ); 
+                    break;
+                // todo: unreliable ordered channel
+                default: 
+                    assert( !"unknown channel type" );
+            }
+        }
     }
 
     Connection::~Connection()
     {
-        // ...
+        assert( m_allocator );
+        Reset();
+        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
+        {
+            YOJIMBO_DELETE( *m_allocator, Channel, m_channel[i] );
+        }
+        m_allocator = NULL;
+    }
+
+    void Connection::Reset()
+    {
+        // todo
+        //m_error = CONNECTION_ERROR_NONE;
+        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
+            m_channel[i]->Reset();
     }
 
     void Connection::GeneratePacket( uint8_t * packetData, int maxPacketBytes, int & packetBytes )
@@ -49,9 +81,13 @@ namespace yojimbo
 
     void Connection::ProcessAcks( const uint16_t * acks, int numAcks )
     {
-        (void) acks;
-        (void) numAcks;
-        // ...
+        for ( int i = 0; i < numAcks; ++i )
+        {
+            for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+            {
+                m_channel[channelId]->ProcessAck( acks[i] );
+            }
+        }
     }
 
     bool Connection::ProcessPacket( uint16_t packetSequence, const uint8_t * packetData, int packetBytes )
@@ -59,8 +95,28 @@ namespace yojimbo
         (void) packetSequence;
         (void) packetData;
         (void) packetBytes;
-        // ...
+        // todo: deserialize packet
+        // todo: pass channel data to each channel in turn for processing
         return true;
+    }
+
+    void Connection::AdvanceTime( double time )
+    {
+        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
+        {
+            m_channel[i]->AdvanceTime( time );
+
+            // todo: channel error
+            /*
+            ChannelError error = m_channel[i]->GetError();
+
+            if ( error != CHANNEL_ERROR_NONE )
+            {
+                m_error = CONNECTION_ERROR_CHANNEL;
+                return;
+            }
+            */
+        }
     }
 }
 
@@ -93,15 +149,6 @@ namespace yojimbo
 
     ConnectionPacket::~ConnectionPacket()
     {
-        if ( m_messageFactory )
-        {
-            for ( int i = 0; i < numChannelEntries; ++i )
-            {
-                channelEntry[i].Free( *m_messageFactory );
-            }
-
-            YOJIMBO_FREE( m_messageFactory->GetAllocator(), channelEntry );
-        }
     }
 
     bool ConnectionPacket::AllocateChannelData( MessageFactory & messageFactory, int numEntries )

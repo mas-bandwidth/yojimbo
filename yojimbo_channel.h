@@ -28,6 +28,11 @@
 #include "yojimbo_message.h"
 #include "yojimbo_allocator.h"
 
+// windows =p
+#ifdef SendMessage
+#undef SendMessage
+#endif
+
 /** @file */
 
 namespace yojimbo
@@ -44,11 +49,8 @@ namespace yojimbo
     struct ChannelPacketData
     {
         uint32_t channelId : 16;                                        ///< The id of the channel this data belongs to in [0,numChannels-1].
-        
         uint32_t initialized : 1;                                       ///< 1 if this channel packet data was properly initialized, 0 otherwise. This is a safety measure to make sure ChannelPacketData::Initialize gets called.
-        
         uint32_t blockMessage : 1;                                      ///< 1 if this channel data contains data for a block (eg. a fragment of that block), 0 if this channel data contains messages.
-        
         uint32_t messageFailedToSerialize : 1;                          ///< Set to 1 if a message for this channel fails to serialized. Used to set CHANNEL_ERROR_FAILED_TO_SERIALIZE on the Channel object.
 
         /// Data sent when a channel is sending regular messages.
@@ -223,7 +225,7 @@ namespace yojimbo
             Returns true if a message can be sent over this channel.
          */            
 
-        virtual bool CanSendMsg() const = 0;
+        virtual bool CanSendMessage() const = 0;
 
         /**
             Queue a message to be sent across this channel.
@@ -231,7 +233,7 @@ namespace yojimbo
             @param message The message to be sent.
          */
 
-        virtual void SendMsg( Message * message ) = 0;
+        virtual void SendMessage( Message * message ) = 0;
 
         /** 
             Pops the next message off the receive queue if one is available.
@@ -239,7 +241,7 @@ namespace yojimbo
             @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns the message object returned by this function and is responsible for releasing it via Message::Release.
          */
 
-        virtual Message * ReceiveMsg() = 0;
+        virtual Message * ReceiveMessage() = 0;
 
         /**
             Advance channel time.
@@ -405,11 +407,11 @@ namespace yojimbo
 
         void Reset();
 
-        bool CanSendMsg() const;
+        bool CanSendMessage() const;
 
-        void SendMsg( Message * message );
+        void SendMessage( Message * message );
 
-        Message * ReceiveMsg();
+        Message * ReceiveMessage();
 
         void AdvanceTime( double time );
 
@@ -782,11 +784,11 @@ namespace yojimbo
 
         void Reset();
 
-        bool CanSendMsg() const;
+        bool CanSendMessage() const;
 
-        void SendMsg( Message * message );
+        void SendMessage( Message * message );
 
-        Message * ReceiveMsg();
+        Message * ReceiveMessage();
 
         void AdvanceTime( double time );
 

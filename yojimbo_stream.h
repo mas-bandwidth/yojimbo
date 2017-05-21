@@ -84,31 +84,6 @@ namespace yojimbo
         }
 
         /**
-            Set a user context on the stream.
-
-            This is designed for users of the library to be able to set their own context on the stream, without interfering with the context used for connection packets.
-
-            @see Client::SetUserContext
-            @see Server::SetUserContext
-         */
-
-        void SetUserContext( void * context )
-        {
-            m_userContext = context;
-        }
-
-        /**
-            Get the user context pointer set on the stream.
-
-            @returns The user context pointer. May be NULL.
-         */
-
-        void * GetUserContext() const
-        {
-            return m_userContext;
-        }
-
-        /**
             Get the allocator set on the stream.
 
             You can use this allocator to dynamically allocate memory while reading and writing packets.
@@ -125,7 +100,6 @@ namespace yojimbo
 
         Allocator * m_allocator;                            ///< The allocator passed into the constructor.
         void * m_context;                                   ///< The context pointer set on the stream. May be NULL.
-        void * m_userContext;                               ///< The user context pointer set on the stream. May be NULL.        
     };
 
     /**
