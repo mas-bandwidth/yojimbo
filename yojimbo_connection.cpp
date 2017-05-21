@@ -223,7 +223,7 @@ namespace yojimbo
 
     void Connection::Reset()
     {
-        // todo
+        // todo: bring back connection errors
         //m_error = CONNECTION_ERROR_NONE;
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
             m_channel[i]->Reset();

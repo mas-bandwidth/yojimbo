@@ -100,8 +100,6 @@
 #define YOJIMBO_PLATFORM YOJIMBO_PLATFORM_UNIX
 #endif
 
-#define YOJIMBO_SOCKETS                             1
-
 #if !defined( YOJIMBO_SECURE_MODE )
 #define YOJIMBO_SECURE_MODE                         0               ///< IMPORTANT: This should be set to 1 in your retail build!
 #endif // #if !defined( YOJIMBO_SECURE_MODE )
@@ -126,23 +124,24 @@
 namespace yojimbo
 {
     const int MaxClients = 64;                                      ///< The maximum number of clients supported by this library. You can increase this if you want, but this library is designed around patterns that work best for [2,64] player games. If your game has less than 64 clients, reducing this will save memory.
-    const int MaxChannels = 64;                                     ///< The maximum number of message channels supported by this library. If you need less than 64 channels per-packet, reducing this saves memory.
-    const int KeyBytes = 32;                                        ///< Size of encryption key for dedicated client/server in bytes. Do not change.
 
-    // todo: these need to be reconsidered in light of simpler stuff. also, maybe don't belong here. they're not really "configuration". they aren't meant to be modified!
-    const int ConservativeMessageHeaderEstimate = 32;               ///< Conservative message header estimate used when checking that message data fits within the message budget. See YOJIMBO_DEBUG_MESSAGE_BUDGET
-    const int ConservativeFragmentHeaderEstimate = 64;              ///< Conservative fragment header estimate used when checking that message data fits within the message budget. See YOJIMBO_DEBUG_MESSAGE_BUDGET
-    const int ConservativeChannelHeaderEstimate = 32;               ///< Conservative channel header estimate used when checking that message data fits within the message budget. See YOJIMBO_DEBUG_MESSAGE_BUDGET
-    const int ConservativeConnectionPacketHeaderEstimate = 128;     ///< Conservative packet header estimate used when checking that message data fits within the message budget. See YOJIMBO_DEBUG_MESSAGE_BUDGET
+    const int MaxChannels = 64;                                     ///< The maximum number of message channels supported by this library. If you need less than 64 channels per-packet, reducing this will save memory.
+
+    const int KeyBytes = 32;                                        ///< Size of encryption key for dedicated client/server in bytes. Must be equal to key size for libsodium encryption primitive. Do not change.
+
     const uint32_t SerializeCheckValue = 0x12345678;                ///< The value written to the stream for serialize checks. See WriteStream::SerializeCheck and ReadStream::SerializeCheck.
 
-    /// Channel type. Determines the reliability and ordering guarantees for a channel.
+    const int ConservativeMessageHeaderEstimate = 32;           // todo: bits? bytes?
+    const int ConservativeFragmentHeaderEstimate = 64;
+    const int ConservativeChannelHeaderEstimate = 32;
+    const int ConservativeConnectionPacketHeaderEstimate = 6;
+
+    /// Determines the reliability and ordering guarantees for a channel.
 
     enum ChannelType
     {
         CHANNEL_TYPE_RELIABLE_ORDERED,                              ///< Messages are received reliably and in the same order they were sent. 
         CHANNEL_TYPE_UNRELIABLE_UNORDERED                           ///< Messages are sent unreliably. Messages may arrive out of order, or not at all.
-
         // todo: add UNRELIABLE_ORDERED, it's a trivial change...
     };
 
@@ -241,10 +240,10 @@ namespace yojimbo
         Please make sure that the message configuration is identical between client and server or it will not work.
      */
 
-    // todo: maybe just inherit from connection config? seems cleaner
-
     struct BaseClientServerConfig : public ConnectionConfig
     {
+        // todo: reliable.io config needed to create endpoints should go here
+
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)

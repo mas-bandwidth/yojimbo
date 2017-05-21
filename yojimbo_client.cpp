@@ -75,9 +75,6 @@ namespace yojimbo
             m_connection->ProcessAcks( acks, numAcks );
             reliable_endpoint_clear_acks( m_endpoint );
             // todo: check for connection error
-            // todo: check for reliable error
-            // todo: check for allocator error
-            // todo: check for message factory error
         }
     }
 

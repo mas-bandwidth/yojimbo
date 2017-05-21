@@ -37,11 +37,6 @@
     #undef SetPort
     #endif // #ifdef SetPort
 
-    #if YOJIMBO_SOCKETS
-    #include <iphlpapi.h>
-    #pragma comment( lib, "IPHLPAPI.lib" )
-    #endif // #if YOJIMBO_SOCKETS
-
 #elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
 
     #include <netdb.h>
