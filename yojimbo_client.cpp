@@ -69,12 +69,12 @@ namespace yojimbo
         if ( m_endpoint )
         {
             m_connection->AdvanceTime( time );
+            // todo: check for connection error
             reliable_endpoint_update( m_endpoint );
             int numAcks;
             const uint16_t * acks = reliable_endpoint_get_acks( m_endpoint, &numAcks );
             m_connection->ProcessAcks( acks, numAcks );
             reliable_endpoint_clear_acks( m_endpoint );
-            // todo: check for connection error
         }
     }
 
