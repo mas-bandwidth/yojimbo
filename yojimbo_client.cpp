@@ -218,7 +218,7 @@ namespace yojimbo
         uint8_t * packetData = (uint8_t*) alloca( m_config.maxPacketSize );
         int packetBytes;
         uint16_t packetSequence = reliable_endpoint_next_packet_sequence( GetEndpoint() );
-        if ( GetConnection().GeneratePacket( packetSequence, packetData, m_config.maxPacketSize, packetBytes ) )
+        if ( GetConnection().GeneratePacket( GetContext(), packetSequence, packetData, m_config.maxPacketSize, packetBytes ) )
         {
             reliable_endpoint_send_packet( GetEndpoint(), packetData, packetBytes );
         }
@@ -288,7 +288,7 @@ namespace yojimbo
 
     int Client::ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
-        return (int) GetConnection().ProcessPacket( packetSequence, packetData, packetBytes );
+        return (int) GetConnection().ProcessPacket( GetContext(), packetSequence, packetData, packetBytes );
     }
 
     // ------------------------------------------------------------------------------------------------------------------

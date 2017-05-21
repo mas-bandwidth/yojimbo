@@ -206,6 +206,8 @@ namespace yojimbo
 
     protected:
 
+        void * GetContext() { return m_context; }
+
         MessageFactory & GetClientMessageFactory( int clientIndex );
 
         reliable_endpoint_t * GetClientEndpoint( int clientIndex );

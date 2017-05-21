@@ -210,6 +210,8 @@ namespace yojimbo
 
     protected:
 
+        void * GetContext() { return m_context; }
+
         void CreateInternal();
 
         void DestroyInternal();

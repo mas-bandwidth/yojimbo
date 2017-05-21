@@ -252,8 +252,10 @@ namespace yojimbo
         return stream.GetBytesProcessed();
     }
 
-    bool Connection::GeneratePacket( uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes )
+    bool Connection::GeneratePacket( void * context, uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes )
     {
+        (void) context;
+
         ConnectionPacket packet;
 
         if ( m_connectionConfig.numChannels > 0 )
@@ -305,11 +307,19 @@ namespace yojimbo
             }
         }
 
-        // todo: need context from outer
-        void * context = NULL;
-
         packetBytes = WritePacket( m_messageFactory->GetAllocator(), context, *m_messageFactory, m_connectionConfig, packet, packetData, maxPacketBytes );
 
+        return true;
+    }
+
+    bool Connection::ProcessPacket( void * context, uint16_t packetSequence, const uint8_t * packetData, int packetBytes )
+    {
+        (void) context;
+        (void) packetSequence;
+        (void) packetData;
+        (void) packetBytes;
+        // todo: deserialize packet
+        // todo: pass channel data to each channel in turn for processing
         return true;
     }
 
@@ -322,16 +332,6 @@ namespace yojimbo
                 m_channel[channelId]->ProcessAck( acks[i] );
             }
         }
-    }
-
-    bool Connection::ProcessPacket( uint16_t packetSequence, const uint8_t * packetData, int packetBytes )
-    {
-        (void) packetSequence;
-        (void) packetData;
-        (void) packetBytes;
-        // todo: deserialize packet
-        // todo: pass channel data to each channel in turn for processing
-        return true;
     }
 
     void Connection::AdvanceTime( double time )

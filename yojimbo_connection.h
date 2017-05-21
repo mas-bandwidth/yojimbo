@@ -52,13 +52,16 @@ namespace yojimbo
 
         void Reset();
 
-        bool GeneratePacket( uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes );
+        bool GeneratePacket( void * context, uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes );
+
+        bool ProcessPacket( void * context, uint16_t packetSequence, const uint8_t * packetData, int packetBytes );
 
         void ProcessAcks( const uint16_t * acks, int numAcks );
 
-        bool ProcessPacket( uint16_t packetSequence, const uint8_t * packetData, int packetBytes );
-
         void AdvanceTime( double time );
+
+        // todo: GetErrorLevel
+        // make sure that connection handles all error checking, because it's common across all client/server impls, this is a way to standardize error checking.
 
     private:
 
