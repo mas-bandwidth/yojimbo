@@ -36,10 +36,16 @@ namespace yojimbo
         m_latency = 0.0f;
         m_jitter = 0.0f;
         m_packetLoss = 0.0f;
-        m_duplicate = 0.0f;
+        m_duplicates = 0.0f;
         m_active = false;
         m_numPacketEntries = numPackets;
         m_packetEntries = (PacketEntry*) YOJIMBO_ALLOCATE( allocator, sizeof( PacketEntry ) * numPackets );
+        if ( !m_packetEntries )
+        {
+            // todo: this should print out
+            debug_printf( "error: not enough memory to allocate network simulator\n" );
+        }
+        assert( m_packetEntries );
         memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
     }
 
@@ -72,9 +78,9 @@ namespace yojimbo
         UpdateActive();
     }
 
-    void NetworkSimulator::SetDuplicate( float percent )
+    void NetworkSimulator::SetDuplicates( float percent )
     {
-        m_duplicate = percent;
+        m_duplicates = percent;
         UpdateActive();
     }
 
@@ -86,7 +92,7 @@ namespace yojimbo
     void NetworkSimulator::UpdateActive()
     {
         bool previous = m_active;
-        m_active = m_latency != 0.0f || m_jitter != 0.0f || m_packetLoss != 0.0f || m_duplicate != 0.0f;
+        m_active = m_latency != 0.0f || m_jitter != 0.0f || m_packetLoss != 0.0f || m_duplicates != 0.0f;
         if ( previous && !m_active )
         {
             DiscardPackets();
@@ -126,7 +132,7 @@ namespace yojimbo
 
         m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
 
-        if ( random_float( 0.0f, 100.0f ) <= m_duplicate )
+        if ( random_float( 0.0f, 100.0f ) <= m_duplicates )
         {
             uint8_t * duplicatePacketData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
 

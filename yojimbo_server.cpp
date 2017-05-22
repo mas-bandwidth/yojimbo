@@ -24,6 +24,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_server.h"
+#include "yojimbo_simulator.h"
 #include "netcode.h"
 #include "reliable.h"
 
@@ -50,6 +51,7 @@ namespace yojimbo
             m_clientConnection[i] = NULL;
             m_clientEndpoint[i] = NULL;
         }
+        m_networkSimulator = NULL;
     }
 
     BaseServer::~BaseServer()
@@ -74,6 +76,10 @@ namespace yojimbo
         assert( !m_globalAllocator );
         m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
         m_globalAllocator = m_adapter->CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
+        if ( m_config.networkSimulator )
+        {
+            m_networkSimulator = YOJIMBO_NEW( *m_globalAllocator, NetworkSimulator, *m_globalAllocator, m_config.maxSimulatorPackets );
+        }
         for ( int i = 0; i < m_maxClients; ++i )
         {
             assert( !m_clientMemory[i] );
@@ -99,6 +105,7 @@ namespace yojimbo
         {
             assert( m_globalMemory );
             assert( m_globalAllocator );
+            YOJIMBO_DELETE( *m_globalAllocator, NetworkSimulator, m_networkSimulator );
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 assert( m_clientMemory[i] );

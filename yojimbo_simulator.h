@@ -106,7 +106,7 @@ namespace yojimbo
             @param percent The percentage chance of a packet duplicate being sent. 0% = no duplicate packets. 100% = all packets have a duplicate sent.
          */
 
-        void SetDuplicate( float percent );
+        void SetDuplicates( float percent );
 
         /**
             Is the network simulator active?
@@ -187,7 +187,7 @@ namespace yojimbo
         float m_latency;                                ///< Latency in milliseconds
         float m_jitter;                                 ///< Jitter in milliseconds +/-
         float m_packetLoss;                             ///< Packet loss percentage.
-        float m_duplicate;                              ///< Duplicate packet percentage
+        float m_duplicates;                             ///< Duplicate packet percentage
         bool m_active;                                  ///< True if network simulator is active, eg. if any of the network settings above are enabled.
 
         /// A packet buffered in the network simulator.

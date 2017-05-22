@@ -38,6 +38,7 @@ struct reliable_endpoint_t;
 namespace yojimbo
 {
     class Connection;
+    class NetworkSimulator;
 
     /**
         Server interface
@@ -238,6 +239,7 @@ namespace yojimbo
         MessageFactory * m_clientMessageFactory[MaxClients];        ///< Array of per-client message factories. This silos message allocations per-client slot.
         Connection * m_clientConnection[MaxClients];                ///< Array of per-client connection classes. This is how messages are exchanged with clients.
         reliable_endpoint_t * m_clientEndpoint[MaxClients];         ///< Array of per-client reliable.io endpoints.
+        NetworkSimulator * m_networkSimulator;                      ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional. 
     };
 
     /**
