@@ -25,7 +25,6 @@
 #define SERVER 1
 #define CLIENT 1
 #define MATCHER 1
-#define LOGGING 1
 
 #include "shared.h"
 #include <signal.h>

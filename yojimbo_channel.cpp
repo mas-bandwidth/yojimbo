@@ -30,6 +30,7 @@ namespace yojimbo
 {
     void ChannelPacketData::Initialize()
     {
+        // todo: uniformly rename channelId to channelIndex
         channelId = 0;
         blockMessage = 0;
         messageFailedToSerialize = 0;

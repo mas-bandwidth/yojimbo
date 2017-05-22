@@ -61,10 +61,7 @@ namespace yojimbo
         
         @see BlockMessage
         @see MessageFactory
-        @see ClientServerConfig
         @see Connection
-        @see ConnectionConfig
-        @see ChannelConfig
      */
 
     class Message : public Serializable
@@ -88,7 +85,7 @@ namespace yojimbo
 
             When messages are sent over a reliable-ordered channel, the message id starts at 0 and increases with each message sent over that channel.
 
-            When messages are sent over an unreliable-unordered channel, the message id is set to the sequence number of the packet they are included in.
+            When messages are sent over an unreliable-unordered channel, the message id is set to the sequence number of the packet it was delivered in.
 
             @param id The message id.
          */
