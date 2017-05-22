@@ -248,6 +248,8 @@ namespace yojimbo
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
+        bool networkSimulator;                                  ///< If true then a network simulator is created for simulating latency, jitter, packet loss and duplicates.
+        int maxSimulatorPackets;                                ///< Maximum number of packets that can be stored in the network simulator. Additional packets are dropped.
         
         BaseClientServerConfig()
         {
@@ -255,6 +257,8 @@ namespace yojimbo
             clientMemory = 2 * 1024 * 1024;
             serverGlobalMemory = 2 * 1024 * 1024;
             serverPerClientMemory = 2 * 1024 * 1024;
+            networkSimulator = true;
+            maxSimulatorPackets = 4 * 1024;
         }
     };
 

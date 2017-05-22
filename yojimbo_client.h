@@ -39,6 +39,7 @@ struct reliable_endpoint_t;
 namespace yojimbo
 {
     class Connection;
+    class NetworkSimulator;
 
     /**
         The set of client states.
@@ -245,6 +246,7 @@ namespace yojimbo
         reliable_endpoint_t * m_endpoint;                                   ///< reliable.io endpoint.
         MessageFactory * m_messageFactory;                                  ///< The client message factory. Created and destroyed on each connection attempt.
         Connection * m_connection;                                          ///< The client connection for exchanging messages with the server.
+        NetworkSimulator * m_networkSimulator;                              ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional. 
         ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState
         int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.
         double m_time;                                                      ///< The current client time. See ClientInterface::AdvanceTime

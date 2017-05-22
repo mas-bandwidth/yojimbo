@@ -25,6 +25,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_client.h"
 #include "yojimbo_connection.h"
+#include "yojimbo_simulator.h"
 #include "netcode.h"
 #include "reliable.h"
 #include <stdint.h>
@@ -47,6 +48,7 @@ namespace yojimbo
         m_endpoint = NULL;
         m_connection = NULL;
         m_messageFactory = NULL;
+        m_networkSimulator = NULL;
         m_clientState = CLIENT_STATE_DISCONNECTED;
         m_clientIndex = -1;
     }
@@ -99,6 +101,10 @@ namespace yojimbo
         m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
         m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
         m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, m_config );
+        if ( m_config.networkSimulator )
+        {
+            m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets );
+        }
         // todo: need to build reliable endpoint config from yojimbo config.
         reliable_config_t config;
         reliable_default_config( &config );
@@ -116,6 +122,7 @@ namespace yojimbo
             reliable_endpoint_destroy( m_endpoint ); 
             m_endpoint = NULL;
         }
+        YOJIMBO_DELETE( *m_clientAllocator, NetworkSimulator, m_networkSimulator );
         YOJIMBO_DELETE( *m_clientAllocator, Connection, m_connection );
         YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
         YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );

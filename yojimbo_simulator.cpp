@@ -37,10 +37,10 @@ namespace yojimbo
         m_jitter = 0.0f;
         m_packetLoss = 0.0f;
         m_duplicate = 0.0f;
+        m_active = false;
         m_numPacketEntries = numPackets;
         m_packetEntries = (PacketEntry*) YOJIMBO_ALLOCATE( allocator, sizeof( PacketEntry ) * numPackets );
         memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
-        UpdateActive();
     }
 
     NetworkSimulator::~NetworkSimulator()
@@ -85,7 +85,12 @@ namespace yojimbo
 
     void NetworkSimulator::UpdateActive()
     {
+        bool previous = m_active;
         m_active = m_latency != 0.0f || m_jitter != 0.0f || m_packetLoss != 0.0f || m_duplicate != 0.0f;
+        if ( previous && !m_active )
+        {
+            DiscardPackets();
+        }
     }
 
     void NetworkSimulator::SendPacket( const Address & to, uint8_t * packetData, int packetBytes )
@@ -140,6 +145,9 @@ namespace yojimbo
 
     int NetworkSimulator::ReceivePackets( int maxPackets, uint8_t * packetData[], int packetBytes[], Address to[] )
     {
+        if ( !IsActive() )
+            return 0;
+
         int numPackets = 0;
 
         for ( int i = 0; i < min( m_numPacketEntries, maxPackets ); ++i )
