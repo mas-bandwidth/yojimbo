@@ -889,16 +889,14 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
 
 #endif
 
-void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, Connection & sender, Connection & receiver, uint16_t & senderSequence, uint16_t & receiverSequence, float deltaTime = 0.1f )
+void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, Connection & sender, Connection & receiver, uint16_t & senderSequence, uint16_t & receiverSequence, float deltaTime = 0.1f, int packetLossPercent = 90 )
 {
     uint8_t * packetData = (uint8_t*) alloca( connectionConfig.maxPacketSize );
-
-    const int PacketLossPercent = 90;
 
     int packetBytes;
     if ( sender.GeneratePacket( NULL, senderSequence, packetData, connectionConfig.maxPacketSize, packetBytes ) )
     {
-        if ( random_int( 0, 100 ) >= PacketLossPercent )
+        if ( random_int( 0, 100 ) >= packetLossPercent )
         {
             receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes );
             sender.ProcessAcks( &senderSequence, 1 );
@@ -907,7 +905,7 @@ void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, C
 
     if ( receiver.GeneratePacket( NULL, receiverSequence, packetData, connectionConfig.maxPacketSize, packetBytes ) )
     {
-        if ( random_int( 0, 100 ) >= PacketLossPercent )
+        if ( random_int( 0, 100 ) >= packetLossPercent )
         {
             sender.ProcessPacket( NULL, receiverSequence, packetData, packetBytes );
             receiver.ProcessAcks( &receiverSequence, 1 );
@@ -1032,7 +1030,6 @@ void test_connection_reliable_ordered_blocks()
         while ( true )
         {
             Message * message = receiver.ReceiveMessage( 0 );
-
             if ( !message )
                 break;
 
@@ -1126,7 +1123,6 @@ void test_connection_reliable_ordered_messages_and_blocks()
         while ( true )
         {
             Message * message = receiver.ReceiveMessage( 0 );
-
             if ( !message )
                 break;
 
@@ -1248,7 +1244,6 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
             while ( true )
             {
                 Message * message = receiver.ReceiveMessage( channelId );
-
                 if ( !message )
                     break;
 
@@ -1315,27 +1310,16 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     }
 }
 
-#if 0
-
 void test_connection_unreliable_unordered_messages()
 {
-    TestPacketFactory packetFactory;
-
     TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
     connectionConfig.numChannels = 1;
     connectionConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
-    TestConnection sender( packetFactory, messageFactory, connectionConfig );
-    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
-
-    ConnectionContext connectionContext;
-    connectionContext.messageFactory = &messageFactory;
-    connectionContext.connectionConfig = &connectionConfig;
-
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -1344,15 +1328,6 @@ void test_connection_unreliable_unordered_messages()
     Address receiverAddress( "::1", ReceiverPort );
 
     double time = 100.0;
-   
-    TransportContext transportContext( GetDefaultAllocator(), packetFactory );
-    transportContext.connectionContext = &connectionContext;
-
-    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
-    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
-
-    senderTransport.SetContext( transportContext );
-    receiverTransport.SetContext( transportContext );
 
     const int NumIterations = 256;
 
@@ -1363,19 +1338,21 @@ void test_connection_unreliable_unordered_messages()
         TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
         check( message );
         message->sequence = j;
-        sender.SendMsg( message );
+        sender.SendMessage( 0, message );
     }
 
     int numMessagesReceived = 0;
 
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
     for ( int i = 0; i < NumIterations; ++i )
     {
-        PumpConnectionUpdate( time, sender, receiver, senderTransport, receiverTransport );
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMsg();
-
+            Message * message = receiver.ReceiveMessage( 0 );
             if ( !message )
                 break;
 
@@ -1399,24 +1376,15 @@ void test_connection_unreliable_unordered_messages()
 
 void test_connection_unreliable_unordered_blocks()
 {
-    TestPacketFactory packetFactory;
-
     TestMessageFactory messageFactory;
 
     ConnectionConfig connectionConfig;
-    connectionConfig.connectionPacketType = TEST_PACKET_CONNECTION;
     connectionConfig.numChannels = 1;
     connectionConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
-    TestConnection sender( packetFactory, messageFactory, connectionConfig );
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig );
 
-    TestConnection receiver( packetFactory, messageFactory, connectionConfig );
-
-    ConnectionContext connectionContext;
-    connectionContext.messageFactory = &messageFactory;
-    connectionContext.connectionConfig = &connectionConfig;
-
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -1426,15 +1394,6 @@ void test_connection_unreliable_unordered_blocks()
 
     double time = 100.0;
     
-    TransportContext transportContext( GetDefaultAllocator(), packetFactory );
-    transportContext.connectionContext = &connectionContext;
-
-    LocalTransport senderTransport( GetDefaultAllocator(), networkSimulator, senderAddress, ProtocolId, time );
-    LocalTransport receiverTransport( GetDefaultAllocator(), networkSimulator, receiverAddress, ProtocolId, time );
-
-    senderTransport.SetContext( transportContext );
-    receiverTransport.SetContext( transportContext );
-
     const int NumIterations = 256;
 
     const int NumMessagesSent = 8;
@@ -1449,19 +1408,21 @@ void test_connection_unreliable_unordered_blocks()
         for ( int k = 0; k < blockSize; ++k )
             blockData[k] = j + k;
         message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
-        sender.SendMsg( message );
+        sender.SendMessage( 0, message );
     }
 
     int numMessagesReceived = 0;
 
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
     for ( int i = 0; i < NumIterations; ++i )
     {
-        PumpConnectionUpdate( time, sender, receiver, senderTransport, receiverTransport );
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMsg();
-
+            Message * message = receiver.ReceiveMessage( 0 );
             if ( !message )
                 break;
 
@@ -1495,8 +1456,6 @@ void test_connection_unreliable_unordered_blocks()
 
     check( numMessagesReceived == NumMessagesSent );
 }
-
-#endif
 
 #if 0 // todo
 
@@ -2222,10 +2181,10 @@ int main()
         RUN_TEST( test_connection_reliable_ordered_blocks );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
-        /*
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
 
+        /*
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
