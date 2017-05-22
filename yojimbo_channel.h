@@ -37,85 +37,45 @@
 
 namespace yojimbo
 {
-    /**
-        Per-channel data inside a connection packet.
-
-        @see ConnectionPacket
-        @see Connection::GeneratePacket
-        @see Channel::GeneratePacketData
-        @see Channel::ProcessPacketData
-     */
-
     struct ChannelPacketData
     {
-        uint32_t channelId : 16;                                        ///< The id of the channel this data belongs to in [0,numChannels-1].
-        uint32_t initialized : 1;                                       ///< 1 if this channel packet data was properly initialized, 0 otherwise. This is a safety measure to make sure ChannelPacketData::Initialize gets called.
-        uint32_t blockMessage : 1;                                      ///< 1 if this channel data contains data for a block (eg. a fragment of that block), 0 if this channel data contains messages.
-        uint32_t messageFailedToSerialize : 1;                          ///< Set to 1 if a message for this channel fails to serialized. Used to set CHANNEL_ERROR_FAILED_TO_SERIALIZE on the Channel object.
-
-        /// Data sent when a channel is sending regular messages.
+        uint32_t channelId : 16;
+        uint32_t initialized : 1;
+        uint32_t blockMessage : 1;
+        uint32_t messageFailedToSerialize : 1;
 
         struct MessageData
         {
-            int numMessages;                                            ///< The number of messages included in the packet for this channel.
-            Message ** messages;                                        ///< Array of message pointers (dynamically allocated). The messages in this array have references added, so they must be released when the packet containing this channel data is destroyed.
+            int numMessages;
+            Message ** messages;
         };
-
-        /// Data sent when a channel is sending a block message. @see BlockMessage.
 
         struct BlockData
         {
-            BlockMessage * message;                                     ///< The message the block is attached to. The message is serialized and included as well as the block data which is split up into fragments.
-            uint8_t * fragmentData;                                     ///< Pointer to the fragment data being sent in this packet. Blocks are split up into fragments of size ChannelConfig::fragmentSize.
-            uint64_t messageId : 16;                                    ///< The message id that this block is attached to. Used for ordering. Message id increases with each packet sent across a channel.
-            uint64_t fragmentId : 16;                                   ///< The id of the fragment being sent in [0,numFragments-1].
-            uint64_t fragmentSize : 16;                                 ///< The size of the fragment. Typically this is ChannelConfig::fragmentSize, except for the last fragment, which may be smaller.
-            uint64_t numFragments : 16;                                 ///< The number of fragments this block is split up into. Lets the receiver know when all fragments have been received.
-            int messageType;                                            ///< The message type. Used to create the corresponding message object on the receiver side once all fragments are received.
+            BlockMessage * message;
+            uint8_t * fragmentData;
+            uint64_t messageId : 16;
+            uint64_t fragmentId : 16;
+            uint64_t fragmentSize : 16;
+            uint64_t numFragments : 16;
+            int messageType;
         };
 
         union
         {
-            MessageData message;                                        ///< Data for sending messages.
-            BlockData block;                                            ///< Data for sending a block fragment.
+            MessageData message;
+            BlockData block;
         };
-
-        /**
-            Initialize the channel packet data to default values.
-         */
 
         void Initialize();
 
-        /**
-            Release messages stored in channel packet data and free allocations.
-
-            @param messageFactory The message factory used to release messages in this packet data.
-         */
-
         void Free( MessageFactory & messageFactory );
-
-        /** 
-            Templated serialize function for the channel packet data.
-
-            Unifies packet read and write, making it harder to accidentally desync.
-
-            @param stream The stream used for serialization.
-            @param messageFactory The message factory used to create message objects on serialize read.
-            @param channelConfigs Array of channel configs, indexed by channel id in [0,numChannels-1].
-            @param numChannels The number of channels configured on the connection.
-         */
 
         template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
-        /// Implements serialize read by a calling into ChannelPacketData::Serialize with a ReadStream.
-
         bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
-        /// Implements serialize write by a calling into ChannelPacketData::Serialize with a WriteStream.
-
         bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
-
-        /// Implements serialize measure by a calling into ChannelPacketData::Serialize with a MeasureStream.
 
         bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
     };

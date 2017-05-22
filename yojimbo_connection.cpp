@@ -33,19 +33,91 @@ namespace yojimbo
         ChannelPacketData * channelEntry;
         MessageFactory * messageFactory;
 
-        ConnectionPacket();
+        ConnectionPacket()
+        {
+            messageFactory = NULL;
+            numChannelEntries = 0;
+            channelEntry = NULL;
+        }
 
-        ~ConnectionPacket();
+        ~ConnectionPacket()
+        {
+            if ( messageFactory )
+            {
+                for ( int i = 0; i < numChannelEntries; ++i )
+                {
+                    channelEntry[i].Free( *messageFactory );
+                }
+                YOJIMBO_FREE( messageFactory->GetAllocator(), channelEntry );
+                messageFactory = NULL;
+            }        
+        }
 
-        bool AllocateChannelData( MessageFactory & messageFactory, int numEntries );
+        bool AllocateChannelData( MessageFactory & messageFactory, int numEntries )
+        {
+            assert( numEntries > 0 );
+            assert( numEntries <= MaxChannels );
+            this->messageFactory = &messageFactory;
+            Allocator & allocator = messageFactory.GetAllocator();
+            channelEntry = (ChannelPacketData*) YOJIMBO_ALLOCATE( allocator, sizeof( ChannelPacketData ) * numEntries );
+            if ( channelEntry == NULL )
+                return false;
+            for ( int i = 0; i < numEntries; ++i )
+            {
+                channelEntry[i].Initialize();
+            }
+            numChannelEntries = numEntries;
+            return true;
+        }
 
-        template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+        template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+        {
+            const int numChannels = connectionConfig.numChannels;
+            serialize_int( stream, numChannelEntries, 0, connectionConfig.numChannels );
+#if YOJIMBO_DEBUG_MESSAGE_BUDGET
+            assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
+#endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
+            if ( numChannelEntries > 0 )
+            {
+                if ( Stream::IsReading )
+                {
+                    if ( !AllocateChannelData( messageFactory, numChannelEntries ) )
+                    {
+                        debug_printf( "error: failed to allocate channel data (ConnectionPacket)\n" );
+                        return false;
+                    }
+                    for ( int i = 0; i < numChannelEntries; ++i )
+                    {
+                        assert( channelEntry[i].messageFailedToSerialize == 0 );
+                    }
+                }
+                for ( int i = 0; i < numChannelEntries; ++i )
+                {
+                    assert( channelEntry[i].messageFailedToSerialize == 0 );
+                    if ( !channelEntry[i].SerializeInternal( stream, messageFactory, connectionConfig.channel, numChannels ) )
+                    {
+                        debug_printf( "error: failed to serialize channel %d\n", i );
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
 
-        bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+        bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+        {
+            return Serialize( stream, messageFactory, connectionConfig );
+        }
 
-        bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+        bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+        {
+            return Serialize( stream, messageFactory, connectionConfig );            
+        }
 
-        bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
+        bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+        {
+            return Serialize( stream, messageFactory, connectionConfig );            
+        }
 
     private:
 
@@ -53,87 +125,6 @@ namespace yojimbo
 
         const ConnectionPacket & operator = ( const ConnectionPacket & other );
     };
-
-    ConnectionPacket::ConnectionPacket()
-    {
-        messageFactory = NULL;
-        numChannelEntries = 0;
-        channelEntry = NULL;
-    }
-
-    ConnectionPacket::~ConnectionPacket()
-    {
-        if ( messageFactory )
-        {
-            // todo: shouldn't we be cleaning up channel entries here?
-        }
-    }
-
-    bool ConnectionPacket::AllocateChannelData( MessageFactory & messageFactory, int numEntries )
-    {
-        assert( numEntries > 0 );
-        assert( numEntries <= MaxChannels );
-        this->messageFactory = &messageFactory;
-        Allocator & allocator = messageFactory.GetAllocator();
-        channelEntry = (ChannelPacketData*) YOJIMBO_ALLOCATE( allocator, sizeof( ChannelPacketData ) * numEntries );
-        if ( channelEntry == NULL )
-            return false;
-        for ( int i = 0; i < numEntries; ++i )
-        {
-            channelEntry[i].Initialize();
-        }
-        numChannelEntries = numEntries;
-        return true;
-    }
-
-    template <typename Stream> bool ConnectionPacket::Serialize( Stream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
-    {
-        const int numChannels = connectionConfig.numChannels;
-        serialize_int( stream, numChannelEntries, 0, connectionConfig.numChannels );
-#if YOJIMBO_DEBUG_MESSAGE_BUDGET
-        assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
-#endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
-        if ( numChannelEntries > 0 )
-        {
-            if ( Stream::IsReading )
-            {
-                if ( !AllocateChannelData( messageFactory, numChannelEntries ) )
-                {
-                    debug_printf( "error: failed to allocate channel data (ConnectionPacket)\n" );
-                    return false;
-                }
-                for ( int i = 0; i < numChannelEntries; ++i )
-                {
-                    assert( channelEntry[i].messageFailedToSerialize == 0 );
-                }
-            }
-            for ( int i = 0; i < numChannelEntries; ++i )
-            {
-                assert( channelEntry[i].messageFailedToSerialize == 0 );
-                if ( !channelEntry[i].SerializeInternal( stream, messageFactory, connectionConfig.channel, numChannels ) )
-                {
-                    debug_printf( "error: failed to serialize channel %d\n", i );
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    bool ConnectionPacket::SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
-    {
-        return Serialize( stream, messageFactory, connectionConfig );
-    }
-
-    bool ConnectionPacket::SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
-    {
-        return Serialize( stream, messageFactory, connectionConfig );
-    }
-
-    bool ConnectionPacket::SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
-    {
-        return Serialize( stream, messageFactory, connectionConfig );
-    }
 
     // ------------------------------------------------------------------------------
 
@@ -338,306 +329,3 @@ namespace yojimbo
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0 // old stuff
-
-namespace yojimbo
-{
-
-    Connection::Connection( Allocator & allocator, PacketFactory & packetFactory, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : m_connectionConfig( connectionConfig )
-    {
-        assert( ( 65536 % connectionConfig.slidingWindowSize ) == 0 );
-
-        m_allocator = &allocator;
-
-        m_packetFactory = &packetFactory;
-
-        m_messageFactory = &messageFactory;
-
-        m_listener = NULL;
-        
-        m_error = CONNECTION_ERROR_NONE;
-
-        m_clientIndex = 0;
-
-        memset( m_channel, 0, sizeof( m_channel ) );
-
-        assert( m_connectionConfig.numChannels >= 1 );
-        assert( m_connectionConfig.numChannels <= MaxChannels );
-
-        for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
-        {
-            switch ( m_connectionConfig.channel[channelId].type )
-            {
-                case CHANNEL_TYPE_RELIABLE_ORDERED: 
-                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelId], channelId ); 
-                    break;
-
-                case CHANNEL_TYPE_UNRELIABLE_UNORDERED: 
-                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelId], channelId ); 
-                    break;
-
-                default: 
-                    assert( !"unknown channel type" );
-            }
-
-            m_channel[channelId]->SetListener( this );
-        }
-
-        m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, *m_allocator, m_connectionConfig.slidingWindowSize );
-        
-        m_receivedPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, *m_allocator, m_connectionConfig.slidingWindowSize );
-
-        Reset();
-    }
-
-    Connection::~Connection()
-    {
-        Reset();
-
-        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
-            YOJIMBO_DELETE( *m_allocator, Channel, m_channel[i] );
-
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionSentPacketData>, m_sentPackets );
-        YOJIMBO_DELETE( *m_allocator, SequenceBuffer<ConnectionReceivedPacketData>, m_receivedPackets );
-    }
-
-    void Connection::Reset()
-    {
-        m_error = CONNECTION_ERROR_NONE;
-
-        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
-            m_channel[i]->Reset();
-
-        m_sentPackets->Reset();
-        m_receivedPackets->Reset();
-
-        memset( m_counters, 0, sizeof( m_counters ) );
-    }
-
-    bool Connection::CanSendMsg( int channelId ) const
-    {
-        assert( channelId >= 0 );
-        assert( channelId < m_connectionConfig.numChannels );
-        return m_channel[channelId]->CanSendMsg();
-    }
-
-    void Connection::SendMsg( Message * message, int channelId )
-    {
-        assert( channelId >= 0 );
-        assert( channelId < m_connectionConfig.numChannels );
-        return m_channel[channelId]->SendMsg( message );
-    }
-
-    Message * Connection::ReceiveMsg( int channelId )
-    {
-        assert( channelId >= 0 );
-        assert( channelId < m_connectionConfig.numChannels );
-        return m_channel[channelId]->ReceiveMsg();
-    }
-
-    ConnectionPacket * Connection::GeneratePacket()
-    {
-        if ( m_error != CONNECTION_ERROR_NONE )
-            return NULL;
-
-        ConnectionPacket * packet = (ConnectionPacket*) m_packetFactory->Create( m_connectionConfig.connectionPacketType );
-
-        if ( !packet )
-            return NULL;
-
-        packet->sequence = m_sentPackets->GetSequence();
-
-        GenerateAckBits( *m_receivedPackets, packet->ack, packet->ack_bits );
-
-        InsertAckPacketEntry( packet->sequence );
-
-        if ( m_connectionConfig.numChannels > 0 )
-        {
-            int numChannelsWithData = 0;
-            bool channelHasData[MaxChannels];
-            memset( channelHasData, 0, sizeof( channelHasData ) );
-            ChannelPacketData channelData[MaxChannels];
-
-            int availableBits = m_connectionConfig.maxPacketSize * 8;
-
-            availableBits -= ConservativeConnectionPacketHeaderEstimate;
-
-            for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
-            {
-                int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packet->sequence, availableBits );
-
-                if ( packetDataBits > 0 )
-                {
-                    availableBits -= ConservativeChannelHeaderEstimate;
-
-                    availableBits -= packetDataBits;
-
-                    channelHasData[channelId] = true;
-
-                    numChannelsWithData++;
-                }
-            }
-
-            if ( numChannelsWithData > 0 )
-            {
-                if ( !packet->AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
-                {
-                    m_error = CONNECTION_ERROR_OUT_OF_MEMORY;
-                    return NULL;
-                }
-
-                int index = 0;
-
-                for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
-                {
-                    if ( channelHasData[channelId] )
-                    {
-                        memcpy( &packet->channelEntry[index], &channelData[channelId], sizeof( ChannelPacketData ) );
-                        index++;
-                    }
-                }
-            }
-        }
-
-        m_counters[CONNECTION_COUNTER_PACKETS_GENERATED]++;
-
-        if ( m_listener )
-            m_listener->OnConnectionPacketGenerated( this, packet->sequence );
-
-        return packet;
-    }
-
-    bool Connection::ProcessPacket( ConnectionPacket * packet )
-    {
-        if ( m_error != CONNECTION_ERROR_NONE )
-            return false;
-
-        assert( packet );
-        assert( packet->GetType() == m_connectionConfig.connectionPacketType );
-
-        if ( !m_receivedPackets->Insert( packet->sequence ) )
-        {
-            m_counters[CONNECTION_COUNTER_PACKETS_STALE]++;
-            return false;
-        }
-
-        m_counters[CONNECTION_COUNTER_PACKETS_PROCESSED]++;
-
-        if ( m_listener )
-            m_listener->OnConnectionPacketReceived( this, packet->sequence );
-
-        ProcessAcks( packet->ack, packet->ack_bits );
-
-        for ( int i = 0; i < packet->numChannelEntries; ++i )
-        {
-            const int channelId = packet->channelEntry[i].channelId;
-
-            assert( channelId >= 0 );
-            assert( channelId <= m_connectionConfig.numChannels );
-
-            m_channel[channelId]->ProcessPacketData( packet->channelEntry[i], packet->sequence );
-        }
-
-        return true;
-    }
-
-    void Connection::AdvanceTime( double time )
-    {
-        for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
-        {
-            m_channel[i]->AdvanceTime( time );
-
-            ChannelError error = m_channel[i]->GetError();
-
-            if ( error != CHANNEL_ERROR_NONE )
-            {
-                m_error = CONNECTION_ERROR_CHANNEL;
-                return;
-            }
-        }
-    }
-    
-    uint64_t Connection::GetCounter( int index ) const
-    {
-        assert( index >= 0 );
-        assert( index < CONNECTION_COUNTER_NUM_COUNTERS );
-        return m_counters[index];
-    }
-
-    ConnectionError Connection::GetError() const
-    {
-        return m_error;
-    }
-
-    void Connection::InsertAckPacketEntry( uint16_t sequence )
-    {
-        ConnectionSentPacketData * entry = m_sentPackets->Insert( sequence );
-        
-        assert( entry );
-
-        if ( entry )
-        {
-            entry->acked = 0;
-        }
-    }
-
-    void Connection::ProcessAcks( uint16_t ack, uint32_t ack_bits )
-    {
-        for ( int i = 0; i < 32; ++i )
-        {
-            if ( ack_bits & 1 )
-            {                    
-                const uint16_t sequence = ack - i;
-                ConnectionSentPacketData * packetData = m_sentPackets->Find( sequence );
-                if ( packetData && !packetData->acked )
-                {
-                    PacketAcked( sequence );
-                    packetData->acked = 1;
-                }
-            }
-            ack_bits >>= 1;
-        }
-    }
-
-    void Connection::PacketAcked( uint16_t sequence )
-    {
-        OnPacketAcked( sequence );
-
-        for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
-            m_channel[channelId]->ProcessAck( sequence );
-
-        m_counters[CONNECTION_COUNTER_PACKETS_ACKED]++;
-    }
-
-    void Connection::OnPacketAcked( uint16_t sequence )
-    {
-        if ( m_listener )
-        {
-            m_listener->OnConnectionPacketAcked( this, sequence );
-        }
-    }
-
-    void Connection::OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock )
-    {
-        if ( m_listener )
-        {
-            m_listener->OnConnectionFragmentReceived( this, channel->GetChannelId(), messageId, fragmentId, fragmentBytes, numFragmentsReceived, numFragmentsInBlock );
-        }
-    }
-}
-
-#endif

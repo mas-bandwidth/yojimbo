@@ -1430,6 +1430,6 @@ namespace yojimbo
 
     void UnreliableUnorderedChannel::ProcessAck( uint16_t ack )
     {
-        (void)ack;
+        (void) ack;
     }
 }
