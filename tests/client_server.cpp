@@ -52,8 +52,8 @@ int ClientServerMain()
 
     ClientServerConfig config;
 
-    uint8_t privateKey[NETCODE_KEY_BYTES];
-    memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
 
     Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, time );
 

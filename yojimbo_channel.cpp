@@ -433,7 +433,7 @@ namespace yojimbo
 
         m_listener = NULL;
 
-        m_error = CHANNEL_ERROR_NONE;
+        m_errorLevel = CHANNEL_ERROR_NONE;
 
         m_time = 0.0;
 
@@ -457,19 +457,18 @@ namespace yojimbo
         return m_channelId;
     }
 
-    void Channel::SetError( ChannelError error )
+    void Channel::SetErrorLevel( ChannelErrorLevel errorLevel )
     {
-        if ( error != m_error && error != CHANNEL_ERROR_NONE )
+        if ( errorLevel != m_errorLevel && errorLevel != CHANNEL_ERROR_NONE )
         {
-            debug_printf( "channel error: %s\n", GetChannelErrorString( error ) );
+            debug_printf( "channel error: %s\n", GetChannelErrorString( errorLevel ) );
         }
-
-        m_error = error;
+        m_errorLevel = errorLevel;
     }
 
-    ChannelError Channel::GetError() const
+    ChannelErrorLevel Channel::GetErrorLevel() const
     {
-        return m_error;
+        return m_errorLevel;
     }
 
     // ------------------------------------------------------------------------------------
@@ -522,7 +521,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::Reset()
     {
-        SetError( CHANNEL_ERROR_NONE );
+        SetErrorLevel( CHANNEL_ERROR_NONE );
 
         m_time = 0.0;
 
@@ -579,7 +578,7 @@ namespace yojimbo
         assert( message );
         assert( CanSendMessage() );
 
-        if ( GetError() != CHANNEL_ERROR_NONE )
+        if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
             m_messageFactory->Release( message );
             return;
@@ -587,7 +586,7 @@ namespace yojimbo
 
         if ( !CanSendMessage() )
         {
-            SetError( CHANNEL_ERROR_SEND_QUEUE_FULL );
+            SetErrorLevel( CHANNEL_ERROR_SEND_QUEUE_FULL );
             m_messageFactory->Release( message );
             return;
         }
@@ -597,7 +596,7 @@ namespace yojimbo
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
             assert( !"tried to send a block message, but blocks are disabled. see config.disableBlocks!" );
-            SetError( CHANNEL_ERROR_BLOCKS_DISABLED );
+            SetErrorLevel( CHANNEL_ERROR_BLOCKS_DISABLED );
             m_messageFactory->Release( message );
             return;
         }
@@ -632,7 +631,7 @@ namespace yojimbo
 
     Message * ReliableOrderedChannel::ReceiveMessage()
     {
-        if ( GetError() != CHANNEL_ERROR_NONE )
+        if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
             return NULL;
 
         MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Find( m_receiveMessageId );
@@ -846,7 +845,7 @@ namespace yojimbo
 
             if ( sequence_greater_than( messageId, maxMessageId ) )
             {
-                SetError( CHANNEL_ERROR_DESYNC );
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
 
@@ -863,12 +862,12 @@ namespace yojimbo
 
     void ReliableOrderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
-        if ( m_error != CHANNEL_ERROR_NONE )
+        if ( m_errorLevel != CHANNEL_ERROR_NONE )
             return;
         
         if ( packetData.messageFailedToSerialize )
         {
-            SetError( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+            SetErrorLevel( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
             return;
         }
 
@@ -1134,13 +1133,13 @@ namespace yojimbo
 
             if ( fragmentId >= m_receiveBlock->numFragments )
             {
-                SetError( CHANNEL_ERROR_DESYNC );
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
 
             if ( numFragments != m_receiveBlock->numFragments )
             {
-                SetError( CHANNEL_ERROR_DESYNC );
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
 
@@ -1190,7 +1189,7 @@ namespace yojimbo
 
                     if ( !blockData )
                     {
-                        SetError( CHANNEL_ERROR_OUT_OF_MEMORY );
+                        SetErrorLevel( CHANNEL_ERROR_OUT_OF_MEMORY );
                         return;
                     }
 
@@ -1206,7 +1205,7 @@ namespace yojimbo
 
                     if ( !entry )
                     {
-                        SetError( CHANNEL_ERROR_DESYNC );
+                        SetErrorLevel( CHANNEL_ERROR_DESYNC );
                         return;
                     }
 
@@ -1242,7 +1241,7 @@ namespace yojimbo
 
     void UnreliableUnorderedChannel::Reset()
     {
-        SetError( CHANNEL_ERROR_NONE );
+        SetErrorLevel( CHANNEL_ERROR_NONE );
 
         for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )
             m_messageFactory->Release( (*m_messageSendQueue)[i] );
@@ -1267,7 +1266,7 @@ namespace yojimbo
         assert( message );
         assert( CanSendMessage() );
 
-        if ( GetError() != CHANNEL_ERROR_NONE )
+        if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
             m_messageFactory->Release( message );
             return;
@@ -1275,7 +1274,7 @@ namespace yojimbo
 
         if ( !CanSendMessage() )
         {
-            SetError( CHANNEL_ERROR_SEND_QUEUE_FULL );
+            SetErrorLevel( CHANNEL_ERROR_SEND_QUEUE_FULL );
             m_messageFactory->Release( message );
             return;
         }
@@ -1284,7 +1283,7 @@ namespace yojimbo
 
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
-            SetError( CHANNEL_ERROR_BLOCKS_DISABLED );
+            SetErrorLevel( CHANNEL_ERROR_BLOCKS_DISABLED );
             m_messageFactory->Release( message );
             return;
         }
@@ -1302,7 +1301,7 @@ namespace yojimbo
 
     Message * UnreliableUnorderedChannel::ReceiveMessage()
     {
-        if ( GetError() != CHANNEL_ERROR_NONE )
+        if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
             return NULL;
 
         if ( m_messageReceiveQueue->IsEmpty() )
@@ -1402,12 +1401,12 @@ namespace yojimbo
 
     void UnreliableUnorderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
-        if ( m_error != CHANNEL_ERROR_NONE )
+        if ( m_errorLevel != CHANNEL_ERROR_NONE )
             return;
         
         if ( packetData.messageFailedToSerialize )
         {
-            SetError( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+            SetErrorLevel( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
             return;
         }
 

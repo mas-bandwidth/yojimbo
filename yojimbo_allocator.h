@@ -69,7 +69,7 @@ namespace yojimbo
 
     /// Allocator error level.
 
-    enum AllocatorError
+    enum AllocatorErrorLevel
     {
         ALLOCATOR_ERROR_NONE = 0,                                                   ///< No error. All is well.
         ALLOCATOR_ERROR_FAILED_TO_ALLOCATE                                          ///<  Tried to make an allocation but failed because the allocator was out of memory.
@@ -134,7 +134,7 @@ namespace yojimbo
             @returns A block of memory of the requested size, or NULL if the allocation could not be performed. If NULL is returned, the error level is set to ALLOCATION_ERROR_FAILED_TO_ALLOCATE.
 
             @see Allocator::Free
-            @see Allocator::GetError
+            @see Allocator::GetErrorLevel
          */
 
         virtual void * Allocate( size_t size, const char * file, int line ) = 0;
@@ -149,7 +149,7 @@ namespace yojimbo
             @param line The line number in the source code file that is performing the free.
 
             @see Allocator::Allocate
-            @see Allocator::GetError
+            @see Allocator::GetErrorLevel
          */
 
         virtual void Free( void * p, const char * file, int line ) = 0;
@@ -162,13 +162,13 @@ namespace yojimbo
             @returns The allocator error level.
          */
 
-        AllocatorError GetError() const { return m_error; }
+        AllocatorErrorLevel GetErrorLevel() const { return m_errorLevel; }
 
         /**
             Clear the allocator error level back to default.
          */
 
-        void ClearError() { m_error = ALLOCATOR_ERROR_NONE; }
+        void ClearError() { m_errorLevel = ALLOCATOR_ERROR_NONE; }
 
     protected:
 
@@ -180,7 +180,7 @@ namespace yojimbo
             @param error The allocator error level to set.
          */
 
-        void SetError( AllocatorError error ) { m_error = error; }
+        void SetErrorLevel( AllocatorErrorLevel errorLevel ) { m_errorLevel = errorLevel; }
 
         /**
             Call this function to track an allocation made by your derived allocator class.
@@ -207,7 +207,7 @@ namespace yojimbo
 
         void TrackFree( void * p, const char * file, int line );
 
-        AllocatorError m_error;                                                 ///< The allocator error level.
+        AllocatorErrorLevel m_errorLevel;                                       ///< The allocator error level.
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         std::map<void*,AllocatorEntry> m_alloc_map;                             ///< Debug only data structure used to find and report memory leaks.

@@ -69,7 +69,12 @@ namespace yojimbo
         if ( m_endpoint )
         {
             m_connection->AdvanceTime( time );
-            // todo: check for connection error
+            if ( m_connection->GetErrorLevel() != CONNECTION_ERROR_NONE )
+            {
+                debug_printf( "connection error. disconnecting client\n" );
+                Disconnect();
+                return;
+            }
             reliable_endpoint_update( m_endpoint );
             int numAcks;
             const uint16_t * acks = reliable_endpoint_get_acks( m_endpoint, &numAcks );

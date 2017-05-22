@@ -126,7 +126,12 @@ namespace yojimbo
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 m_clientConnection[i]->AdvanceTime( time );
-                // todo: check for connection error
+                if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
+                {
+                    debug_printf( "connection error for client %d. disconnecting client\n", i );
+                    DisconnectClient( i );
+                    continue;
+                }
                 reliable_endpoint_update( m_clientEndpoint[i] );
                 int numAcks;
                 const uint16_t * acks = reliable_endpoint_get_acks( m_clientEndpoint[i], &numAcks );

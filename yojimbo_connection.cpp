@@ -133,6 +133,7 @@ namespace yojimbo
         m_allocator = &allocator;
         m_messageFactory = &messageFactory;
         m_connectionConfig = connectionConfig;
+        m_errorLevel = CONNECTION_ERROR_NONE;
         memset( m_channel, 0, sizeof( m_channel ) );
         assert( m_connectionConfig.numChannels >= 1 );
         assert( m_connectionConfig.numChannels <= MaxChannels );
@@ -167,8 +168,7 @@ namespace yojimbo
 
     void Connection::Reset()
     {
-        // todo: bring back connection errors
-        //m_error = CONNECTION_ERROR_NONE;
+        m_errorLevel = CONNECTION_ERROR_NONE;
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
             m_channel[i]->Reset();
     }
@@ -233,8 +233,7 @@ namespace yojimbo
             {
                 if ( !packet.AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
                 {
-                    // todo: bring back connection errors
-                    //m_error = CONNECTION_ERROR_OUT_OF_MEMORY;
+                    m_errorLevel = CONNECTION_ERROR_ALLOCATOR;
                     return false;
                 }
 
@@ -316,16 +315,21 @@ namespace yojimbo
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
         {
             m_channel[i]->AdvanceTime( time );
-            // todo: channel error
-            /*
-            ChannelError error = m_channel[i]->GetError();
-
-            if ( error != CHANNEL_ERROR_NONE )
+            if ( m_channel[i]->GetErrorLevel() != CHANNEL_ERROR_NONE )
             {
-                m_error = CONNECTION_ERROR_CHANNEL;
+                m_errorLevel = CONNECTION_ERROR_CHANNEL;
                 return;
             }
-            */
+        }
+        if ( m_allocator->GetErrorLevel() != ALLOCATOR_ERROR_NONE )
+        {
+            m_errorLevel = CONNECTION_ERROR_ALLOCATOR;
+            return;
+        }
+        if ( m_messageFactory->GetErrorLevel() != MESSAGE_FACTORY_ERROR_NONE )
+        {
+            m_errorLevel = CONNECTION_ERROR_MESSAGE_FACTORY;
+            return;
         }
     }
 }

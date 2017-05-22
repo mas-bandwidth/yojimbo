@@ -37,7 +37,7 @@ namespace yojimbo
 {
     Allocator::Allocator() 
     {
-        SetError( ALLOCATOR_ERROR_NONE );
+        SetErrorLevel( ALLOCATOR_ERROR_NONE );
     }
 
     Allocator::~Allocator()
@@ -100,7 +100,7 @@ namespace yojimbo
 
         if ( !p )
         {
-            SetError( ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            SetErrorLevel( ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
             return NULL;
         }
 
@@ -139,7 +139,7 @@ namespace yojimbo
     {
         assert( size > 0 );
 
-        m_error = ALLOCATOR_ERROR_NONE;
+        SetErrorLevel( ALLOCATOR_ERROR_NONE );
 
         const int AlignBytes = 8;
 
@@ -164,7 +164,7 @@ namespace yojimbo
 
         if ( !p )
         {
-            SetError( ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            SetErrorLevel( ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
             return NULL;
         }
 

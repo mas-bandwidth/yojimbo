@@ -38,6 +38,16 @@
 
 namespace yojimbo
 {
+    /// Connection error level.
+
+    enum ConnectionErrorLevel
+    {
+        CONNECTION_ERROR_NONE = 0,                              ///< No error. All is well.
+        CONNECTION_ERROR_CHANNEL,                               ///< A channel is in an error state.
+        CONNECTION_ERROR_ALLOCATOR,                             ///< The allocator is an error state.
+        CONNECTION_ERROR_MESSAGE_FACTORY                        ///< The message factory is in an error state.
+    };
+
     /**
         Connection class.
      */
@@ -60,8 +70,7 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
-        // todo: GetErrorLevel
-        // make sure that connection handles all error checking, because it's common across all client/server impls, this is a way to standardize error checking.
+        ConnectionErrorLevel GetErrorLevel() { return m_errorLevel; }
 
     private:
 
@@ -69,6 +78,7 @@ namespace yojimbo
         MessageFactory * m_messageFactory;                      ///< Message factory for creating and destroying messages.
         ConnectionConfig m_connectionConfig;                    ///< Connection configuration.
         Channel * m_channel[MaxChannels];                       ///< Array of connection channels. Array size corresponds to m_connectionConfig.numChannels
+        ConnectionErrorLevel m_errorLevel;                      ///< The connection error level.
     };
 }
 

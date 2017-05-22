@@ -72,8 +72,8 @@ int ClientMain( int argc, char * argv[] )
         }
     }
 
-    uint8_t privateKey[NETCODE_KEY_BYTES];
-    memset( privateKey, 0, sizeof( NETCODE_KEY_BYTES ) );
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
 

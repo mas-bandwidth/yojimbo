@@ -118,7 +118,7 @@ namespace yojimbo
     };
 
     /**
-        Channel error codes.
+        Channel error level.
 
         If the channel gets into an error state, it sets an error state on the corresponding connection. See yojimbo::CONNECTION_ERROR_CHANNEL.
 
@@ -129,7 +129,7 @@ namespace yojimbo
         @see Connection
      */
 
-    enum ChannelError
+    enum ChannelErrorLevel
     {
         CHANNEL_ERROR_NONE = 0,                                 ///< No error. All is well.
         CHANNEL_ERROR_DESYNC,                                   ///< This channel has desynced. This happens when something super-weird happens. Typically a message has a desync in its serialize read and write.
@@ -141,7 +141,7 @@ namespace yojimbo
 
     /// Helper function to convert a channel error to a user friendly string.
 
-    inline const char * GetChannelErrorString( ChannelError error )
+    inline const char * GetChannelErrorString( ChannelErrorLevel error )
     {
         switch ( error )
         {
@@ -267,10 +267,10 @@ namespace yojimbo
         /**
             Get the channel error level.
 
-            @returns The channel error. 
+            @returns The channel error level.
          */
 
-        ChannelError GetError() const;
+        ChannelErrorLevel GetErrorLevel() const;
 
         /** 
             Gets the channel id.
@@ -300,14 +300,14 @@ namespace yojimbo
     protected:
 
         /**
-            Set the channel error state.
+            Set the channel error level.
 
             All errors go through this function to make debug logging easier. 
             
             @see yojimbo::debug_printf
          */
         
-        void SetError( ChannelError error );
+        void SetErrorLevel( ChannelErrorLevel errorLevel );
 
     protected:
 
@@ -319,7 +319,7 @@ namespace yojimbo
 
         double m_time;                                                                  ///< The current time.
         
-        ChannelError m_error;                                                           ///< The channel error level.
+        ChannelErrorLevel m_errorLevel;                                                 ///< The channel error level.
 
         ChannelListener * m_listener;                                                   ///< Channel listener for callbacks. Optional.
 

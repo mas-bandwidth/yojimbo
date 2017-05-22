@@ -384,7 +384,7 @@ namespace yojimbo
         Message factory error level.
      */
 
-    enum MessageFactoryError
+    enum MessageFactoryErrorLevel
     {
         MESSAGE_FACTORY_ERROR_NONE,                                             ///< No error. All is well.
         MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE,                       ///< Failed to allocate a message. Typically this means we ran out of memory on the allocator backing the message factory.
@@ -412,7 +412,7 @@ namespace yojimbo
 
         int m_numTypes;                                                         ///< The number of message types.
         
-        int m_error;                                                            ///< The message factory error level.
+        MessageFactoryErrorLevel m_errorLevel;                                  ///< The message factory error level.
 
     public:
 
@@ -429,7 +429,7 @@ namespace yojimbo
         {
             m_allocator = &allocator;
             m_numTypes = numTypes;
-            m_error = MESSAGE_FACTORY_ERROR_NONE;
+            m_errorLevel = MESSAGE_FACTORY_ERROR_NONE;
         }
 
         /**
@@ -484,7 +484,7 @@ namespace yojimbo
 
             if ( !message )
             {
-                m_error = MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE;
+                m_errorLevel = MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE;
                 return NULL;
             }
 
@@ -573,18 +573,18 @@ namespace yojimbo
             When used with a client or server, an error level on a message factory other than MESSAGE_FACTORY_ERROR_NONE triggers a client disconnect.
          */
 
-        int GetError() const
+        MessageFactoryErrorLevel GetErrorLevel() const
         {
-            return m_error;
+            return m_errorLevel;
         }
 
         /**
             Clear the error level back to no error.
          */
 
-        void ClearError()
+        void ClearErrorLevel()
         {
-            m_error = MESSAGE_FACTORY_ERROR_NONE;
+            m_errorLevel = MESSAGE_FACTORY_ERROR_NONE;
         }
 
     protected:

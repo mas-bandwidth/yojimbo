@@ -168,8 +168,6 @@ void test_base64()
 
     check( strcmp( input, decoded ) == 0 );
 
-    const int KeyBytes = 32;
-
     uint8_t key[KeyBytes];
     random_bytes( key, KeyBytes );
 
@@ -821,15 +819,15 @@ void test_allocator_tlsf()
         
         if ( !blockData[i] )
         {
-            check( allocator.GetError() == ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
             allocator.ClearError();
-            check( allocator.GetError() == ALLOCATOR_ERROR_NONE );
+            check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_NONE );
             stopIndex = i;
             break;
         }
         
         check( blockData[i] );
-        check( allocator.GetError() == ALLOCATOR_ERROR_NONE );
+        check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_NONE );
         
         memset( blockData[i], i + 10, BlockSize );
     }
