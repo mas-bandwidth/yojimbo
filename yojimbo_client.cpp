@@ -306,6 +306,16 @@ namespace yojimbo
             {
                 SetClientState( CLIENT_STATE_CONNECTED );
             }
+            NetworkSimulator * networkSimulator = GetNetworkSimulator();
+            if ( networkSimulator )
+            {
+                networkSimulator->AdvanceTime( time );
+                if ( networkSimulator->IsActive() )
+                {
+                    // todo: receive all packets from simulator, then send them to network
+                    //netcode_client_send_packet( m_client, packetData, packetBytes );
+                }
+            }        
         }
     }
 

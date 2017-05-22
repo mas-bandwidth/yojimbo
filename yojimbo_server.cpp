@@ -128,7 +128,7 @@ namespace yojimbo
     void BaseServer::AdvanceTime( double time )
     {
         m_time = time;
-        if ( !IsRunning() )
+        if ( IsRunning() )
         {
             for ( int i = 0; i < m_maxClients; ++i )
             {
@@ -145,6 +145,16 @@ namespace yojimbo
                 m_clientConnection[i]->ProcessAcks( acks, numAcks );
                 reliable_endpoint_clear_acks( m_clientEndpoint[i] );
             }
+            NetworkSimulator * networkSimulator = GetNetworkSimulator();
+            if ( networkSimulator )
+            {
+                networkSimulator->AdvanceTime( time );
+                if ( networkSimulator->IsActive() )
+                {
+                    // todo: receive all packets from simulator, then send them to network
+                    //netcode_server_send_packet( m_server, clientIndex, packetData, packetBytes );
+                }
+            }        
         }
     }
 
