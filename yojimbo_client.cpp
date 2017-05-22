@@ -376,6 +376,11 @@ namespace yojimbo
         }
     }
 
+    int Client::GetClientIndex() const
+    {
+        return m_client ? netcode_client_index( m_client ) : -1;
+    }
+
     void Client::CreateClient( const Address & address )
     {
         DestroyClient();

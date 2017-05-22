@@ -1436,6 +1436,8 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
 
     for ( int i = 0; i < numServers; ++i )
         server[i]->AdvanceTime( time );
+
+    platform_sleep( 0.0f );
 }
 
 void SendClientToServerMessages( Client & client, int numMessagesToSend, int channelIndex = 0 )
@@ -1580,52 +1582,42 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
     }
 }
 
-#if 0
-
 void test_client_server_messages()
 {
-    GenerateKey( private_key );
-
     const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
     double time = 100.0;
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+    ClientServerConfig config;
+    config.maxPacketSize = 256;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1024;
+    config.channel[0].fragmentSize = 200;
 
-    ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    clientServerConfig.connectionConfig.channel[0].maxBlockSize = 1024;
-    clientServerConfig.connectionConfig.channel[0].fragmentSize = 200;
+    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+    Server server( GetDefaultAllocator(), private_key, Address( "::1", ServerPort ), config, adapter, time );
 
-    server.SetServerAddress( serverAddress );
-    
-    server.Start();
+    server.Start( MaxClients );
 
-    for ( int iteration = 0; iteration < 2; ++iteration )
+    // todo: set network conditions on client and server
+
+    for ( int iteration = 0; iteration < 10/*2*/; ++iteration )
     {
-        clientTransport.Reset();
-        serverTransport.Reset();
+        printf( "iteration = %d\n", iteration );
 
-        ConnectClient( client, clientId, serverAddress );
+        client.InsecureConnect( private_key, clientId, serverAddress );
 
         while ( true )
         {
             Client * clients[] = { &client };
             Server * servers[] = { &server };
-            Transport * transports[] = { &clientTransport, &serverTransport };
-
-            PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+            
+            PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
             if ( client.ConnectionFailed() )
             {
@@ -1637,8 +1629,11 @@ void test_client_server_messages()
                 break;
         }
 
-        check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
-        check( client.GetClientIndex() == 0 && server.IsClientConnected(0) );
+        check( !client.IsConnecting() );
+        check( client.IsConnected() );
+        check( server.GetNumConnectedClients() == 1 );
+        check( client.GetClientIndex() == 0 );
+        check( server.IsClientConnected(0) );
 
         const int NumMessagesSent = 64;
 
@@ -1655,9 +1650,8 @@ void test_client_server_messages()
         {
             Client * clients[] = { &client };
             Server * servers[] = { &server };
-            Transport * transports[] = { &clientTransport, &serverTransport };
 
-            PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+            PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
             ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
 
@@ -1666,6 +1660,9 @@ void test_client_server_messages()
             if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
                 break;
         }
+
+        printf( "numMessagesReceivedFromClient = %d\n", numMessagesReceivedFromClient );
+        printf( "numMessagesReceivedFromServer = %d\n", numMessagesReceivedFromServer );
 
         check( numMessagesReceivedFromClient == NumMessagesSent );
         check( numMessagesReceivedFromServer == NumMessagesSent );
@@ -1676,19 +1673,23 @@ void test_client_server_messages()
         {
             Client * clients[] = { &client };
             Server * servers[] = { &server };
-            Transport * transports[] = { &clientTransport, &serverTransport };
 
-            PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+            PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
             if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
                 break;
         }
 
         check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+
+        // todo: hack fix. per-client data not getting cleared properly on disconnect
+        server.Start( MaxClients );
     }
 
     server.Stop();
 }
+
+#if 0 // todo
 
 void test_client_server_start_stop_restart()
 {
@@ -2112,6 +2113,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        /*
         {
             printf( "[netcode.io]\n\n" );
 
@@ -2150,9 +2152,10 @@ int main()
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
+        */
 
-        /*
         RUN_TEST( test_client_server_messages );
+        /*
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );

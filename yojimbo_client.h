@@ -340,6 +340,8 @@ namespace yojimbo
 
         void AdvanceTime( double time );
 
+        int GetClientIndex() const;
+
     private:
 
 #if !YOJIMBO_SECURE_MODE
