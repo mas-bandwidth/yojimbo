@@ -1492,13 +1492,11 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
     }
 }
 
-#if 0 // todo
-
 void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFromServer )
 {
     while ( true )
     {
-        Message * message = client.ReceiveMsg();
+        Message * message = client.ReceiveMessage( 0 );
 
         if ( !message )
             break;
@@ -1510,38 +1508,31 @@ void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFr
             case TEST_MESSAGE:
             {
                 TestMessage * testMessage = (TestMessage*) message;
-
+                check( !message->IsBlockMessage() );
                 check( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
-
                 ++numMessagesReceivedFromServer;
             }
             break;
 
             case TEST_BLOCK_MESSAGE:
             {
+                check( message->IsBlockMessage() );
                 TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-
                 check( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
-
                 const int blockSize = blockMessage->GetBlockSize();
-
                 check( blockSize == 1 + ( ( numMessagesReceivedFromServer * 901 ) % 1001 ) );
-    
                 const uint8_t * blockData = blockMessage->GetBlockData();
-
                 check( blockData );
-
                 for ( int j = 0; j < blockSize; ++j )
                 {
                     check( blockData[j] == uint8_t( numMessagesReceivedFromServer + j ) );
                 }
-
                 ++numMessagesReceivedFromServer;
             }
             break;
         }
 
-        client.ReleaseMsg( message );
+        client.ReleaseMessage( message );
     }
 }
 
@@ -1549,7 +1540,7 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
 {
     while ( true )
     {
-        Message * message = server.ReceiveMsg( clientIndex );
+        Message * message = server.ReceiveMessage( clientIndex, 0 );
 
         if ( !message )
             break;
@@ -1560,41 +1551,36 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
         {
             case TEST_MESSAGE:
             {
+                check( !message->IsBlockMessage() );
                 TestMessage * testMessage = (TestMessage*) message;
-
                 check( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
-
                 ++numMessagesReceivedFromClient;
             }
             break;
 
             case TEST_BLOCK_MESSAGE:
             {
+                check( message->IsBlockMessage() );
                 TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-
                 check( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
-
                 const int blockSize = blockMessage->GetBlockSize();
-
                 check( blockSize == 1 + ( ( numMessagesReceivedFromClient * 901 ) % 1001 ) );
-    
                 const uint8_t * blockData = blockMessage->GetBlockData();
-
                 check( blockData );
-
                 for ( int j = 0; j < blockSize; ++j )
                 {
                     check( blockData[j] == uint8_t( numMessagesReceivedFromClient + j ) );
                 }
-
                 ++numMessagesReceivedFromClient;
             }
             break;
         }
 
-        server.ReleaseMsg( clientIndex, message );
+        server.ReleaseMessage( clientIndex, message );
     }
 }
+
+#if 0
 
 void test_client_server_messages()
 {
