@@ -338,7 +338,15 @@ namespace yojimbo
     void Server::TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
         (void) packetSequence;
-        netcode_server_send_packet( m_server, clientIndex, packetData, packetBytes );
+        NetworkSimulator * networkSimulator = GetNetworkSimulator();
+        if ( networkSimulator && networkSimulator->IsActive() )
+        {
+            networkSimulator->SendPacket( clientIndex, packetData, packetBytes );
+        }
+        else
+        {
+            netcode_server_send_packet( m_server, clientIndex, packetData, packetBytes );
+        }
     }
 
     int Server::ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )

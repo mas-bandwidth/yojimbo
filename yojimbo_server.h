@@ -219,6 +219,8 @@ namespace yojimbo
 
         MessageFactory & GetClientMessageFactory( int clientIndex );
 
+        NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
+
         reliable_endpoint_t * GetClientEndpoint( int clientIndex );
 
         Connection & GetClientConnection( int clientIndex );
