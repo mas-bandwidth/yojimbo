@@ -46,8 +46,6 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientServerMain()
 {
-    printf( "started server on port %d\n", ServerPort );
-
     double time = 100.0;
 
     ClientServerConfig config;
@@ -55,9 +53,16 @@ int ClientServerMain()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
+    printf( "starting server on port %d\n", ServerPort );
+
     Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, time );
 
     server.Start( MaxClients );
+
+    if ( !server.IsRunning() )
+        return 1;
+
+    printf( "started server\n" );
 
     uint64_t clientId = 0;
     random_bytes( (uint8_t*) &clientId, 8 );
@@ -80,15 +85,12 @@ int ClientServerMain()
 
         server.ReceivePackets();
         client.ReceivePackets();
-
-        if ( client.IsDisconnected() )
-            break;
      
         time += deltaTime;
 
         client.AdvanceTime( time );
 
-        if ( client.ConnectionFailed() )
+        if ( client.IsDisconnected() )
             break;
 
         time += deltaTime;

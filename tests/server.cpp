@@ -71,6 +71,9 @@ int ServerMain()
 
         server.AdvanceTime( time );
 
+        if ( !server.IsRunning() )
+            break;
+
         platform_sleep( deltaTime );
     }
 

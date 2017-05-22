@@ -203,7 +203,11 @@ namespace yojimbo
         char addressString[MaxAddressLength];
         m_address.ToString( addressString, MaxAddressLength );
         m_server = netcode_server_create( addressString, m_config.protocolId, m_privateKey, GetTime() );
-        assert( m_server );
+        if ( !m_server )
+        {
+            Stop();
+            return;
+        }
         netcode_server_start( m_server, maxClients );
     }
 

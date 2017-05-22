@@ -167,6 +167,11 @@ namespace yojimbo
         CreateInternal();
         m_clientId = clientId;
         CreateClient( m_address );
+        if ( !m_client )
+        {
+            Disconnect();
+            return;
+        }
         uint8_t connectToken[NETCODE_CONNECT_TOKEN_BYTES];
         if ( !GenerateInsecureConnectToken( connectToken, privateKey, clientId, serverAddresses, numServerAddresses ) )
         {
