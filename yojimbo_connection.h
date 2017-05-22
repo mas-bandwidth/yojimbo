@@ -68,6 +68,8 @@ namespace yojimbo
 
         Message * ReceiveMessage( int channelIndex );
 
+        void ReleaseMessage( Message * message );
+
         bool GeneratePacket( void * context, uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes );
 
         bool ProcessPacket( void * context, uint16_t packetSequence, const uint8_t * packetData, int packetBytes );

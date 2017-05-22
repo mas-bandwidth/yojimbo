@@ -180,6 +180,56 @@ namespace yojimbo
         return client->ProcessPacketFunction( packetSequence, packetData, packetBytes );
     }
 
+    Message * BaseClient::CreateMessage( int type )
+    {
+        assert( m_messageFactory );
+        return m_messageFactory->Create( type );
+    }
+
+    uint8_t * BaseClient::AllocateBlock( int bytes )
+    {
+        return (uint8_t*) YOJIMBO_ALLOCATE( *m_clientAllocator, bytes );
+    }
+
+    void BaseClient::AttachBlockToMessage( Message * message, uint8_t * block, int bytes )
+    {
+        assert( message );
+        assert( block );
+        assert( bytes > 0 );
+        assert( message->IsBlockMessage() );
+        BlockMessage * blockMessage = (BlockMessage*) message;
+        blockMessage->AttachBlock( *m_clientAllocator, block, bytes );
+    }
+
+    void BaseClient::FreeBlock( uint8_t * block )
+    {
+        YOJIMBO_FREE( *m_clientAllocator, block );
+    }
+
+    bool BaseClient::CanSendMessage( int channelIndex ) const
+    {
+        assert( m_connection );
+        return m_connection->CanSendMessage( channelIndex );
+    }
+
+    void BaseClient::SendMessage( int channelIndex, Message * message )
+    {
+        assert( m_connection );
+        m_connection->SendMessage( channelIndex, message );
+    }
+
+    Message * BaseClient::ReceiveMessage( int channelIndex )
+    {
+        assert( m_connection );
+        return m_connection->ReceiveMessage( channelIndex );
+    }
+
+    void BaseClient::ReleaseMessage( Message * message )
+    {
+        assert( m_connection );
+        m_connection->ReleaseMessage( message );
+    }
+
     // ------------------------------------------------------------------------------------------------------------------
 
     Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseClient( allocator, config, adapter, time )

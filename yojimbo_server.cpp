@@ -185,6 +185,73 @@ namespace yojimbo
         }
     }
 
+    Message * BaseServer::CreateMessage( int clientIndex, int type )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_clientMessageFactory[clientIndex] );
+        return m_clientMessageFactory[clientIndex]->Create( type );
+    }
+
+    uint8_t * BaseServer::AllocateBlock( int clientIndex, int bytes )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_clientAllocator[clientIndex] );
+        return (uint8_t*) YOJIMBO_ALLOCATE( *m_clientAllocator[clientIndex], bytes );
+    }
+
+    void BaseServer::AttachBlockToMessage( int clientIndex, Message * message, uint8_t * block, int bytes )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( message );
+        assert( block );
+        assert( bytes > 0 );
+        assert( message->IsBlockMessage() );
+        BlockMessage * blockMessage = (BlockMessage*) message;
+        blockMessage->AttachBlock( *m_clientAllocator[clientIndex], block, bytes );
+    }
+
+    void BaseServer::FreeBlock( int clientIndex, uint8_t * block )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        YOJIMBO_FREE( *m_clientAllocator[clientIndex], block );
+    }
+
+    bool BaseServer::CanSendMessage( int clientIndex, int channelIndex ) const
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_clientConnection[clientIndex] );
+        return m_clientConnection[clientIndex]->CanSendMessage( channelIndex );
+    }
+
+    void BaseServer::SendMessage( int clientIndex, int channelIndex, Message * message )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_clientConnection[clientIndex] );
+        return m_clientConnection[clientIndex]->SendMessage( channelIndex, message );
+    }
+
+    Message * BaseServer::ReceiveMessage( int clientIndex, int channelIndex )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_clientConnection[clientIndex] );
+        return m_clientConnection[clientIndex]->ReceiveMessage( channelIndex );
+    }
+
+    void BaseServer::ReleaseMessage( int clientIndex, Message * message )
+    {
+        assert( clientIndex >= 0 );
+        assert( clientIndex < m_maxClients );
+        assert( m_clientConnection[clientIndex] );
+        m_clientConnection[clientIndex]->ReleaseMessage( message );
+    }
+
     MessageFactory & BaseServer::GetClientMessageFactory( int clientIndex ) 
     { 
         assert( IsRunning() ); 

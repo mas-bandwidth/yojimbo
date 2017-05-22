@@ -166,6 +166,24 @@ namespace yojimbo
          */
 
         virtual double GetTime() const = 0;
+
+        // todo: document these methods
+
+        virtual Message * CreateMessage( int type ) = 0;
+
+        virtual uint8_t * AllocateBlock( int bytes ) = 0;
+
+        virtual void AttachBlockToMessage( Message * message, uint8_t * block, int bytes ) = 0;
+
+        virtual void FreeBlock( uint8_t * block ) = 0;
+
+        virtual bool CanSendMessage( int channelIndex ) const = 0;
+
+        virtual void SendMessage( int channelIndex, Message * message ) = 0;
+
+        virtual Message * ReceiveMessage( int channelIndex ) = 0;
+
+        virtual void ReleaseMessage( Message * message ) = 0;
     };
 
     /**
@@ -216,6 +234,22 @@ namespace yojimbo
         void SetPacketLoss( float percent );
 
         void SetDuplicates( float percent );
+
+        Message * CreateMessage( int type );
+
+        uint8_t * AllocateBlock( int bytes );
+
+        void AttachBlockToMessage( Message * message, uint8_t * block, int bytes );
+
+        void FreeBlock( uint8_t * block );
+
+        bool CanSendMessage( int channelIndex ) const;
+
+        void SendMessage( int channelIndex, Message * message );
+
+        Message * ReceiveMessage( int channelIndex );
+
+        void ReleaseMessage( Message * message );
 
     protected:
 

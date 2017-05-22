@@ -194,6 +194,12 @@ namespace yojimbo
         return m_channel[channelIndex]->ReceiveMessage();
     }
 
+    void Connection::ReleaseMessage( Message * message )
+    {
+        assert( message );
+        m_messageFactory->Release( message );
+    }
+
     static int WritePacket( void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
     {
         WriteStream stream( buffer, bufferSize, messageFactory.GetAllocator() );

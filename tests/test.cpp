@@ -847,48 +847,6 @@ void test_allocator_tlsf()
     free( memory );
 }
 
-#if 0 // todo
-
-void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, Transport ** transport, int numTransports, float deltaTime = 0.1f )
-{
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->SendPackets();
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->SendPackets();
-
-    for ( int i = 0; i < numTransports; ++i )
-        transport[i]->WritePackets();
-
-    for ( int i = 0; i < numTransports; ++i )
-        transport[i]->ReadPackets();
-
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->ReceivePackets();
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->ReceivePackets();
-
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->CheckForTimeOut();
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->CheckForTimeOut();
-
-    time += deltaTime;
-
-    for ( int i = 0; i < numClients; ++i )
-        client[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numServers; ++i )
-        server[i]->AdvanceTime( time );
-
-    for ( int i = 0; i < numTransports; ++i )
-        transport[i]->AdvanceTime( time );
-}
-
-#endif
-
 void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, Connection & sender, Connection & receiver, uint16_t & senderSequence, uint16_t & receiverSequence, float deltaTime = 0.1f, int packetLossPercent = 90 )
 {
     uint8_t * packetData = (uint8_t*) alloca( connectionConfig.maxPacketSize );
@@ -1457,31 +1415,52 @@ void test_connection_unreliable_unordered_blocks()
     check( numMessagesReceived == NumMessagesSent );
 }
 
-#if 0 // todo
+void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, float deltaTime = 0.1f )
+{
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->SendPackets();
 
-void SendClientToServerMessages( Client & client, int numMessagesToSend )
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->SendPackets();
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->ReceivePackets();
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->ReceivePackets();
+
+    time += deltaTime;
+
+    for ( int i = 0; i < numClients; ++i )
+        client[i]->AdvanceTime( time );
+
+    for ( int i = 0; i < numServers; ++i )
+        server[i]->AdvanceTime( time );
+}
+
+void SendClientToServerMessages( Client & client, int numMessagesToSend, int channelIndex = 0 )
 {
     for ( int i = 0; i < numMessagesToSend; ++i )
     {
         if ( rand() % 10 )
         {
-            TestMessage * message = (TestMessage*) client.CreateMsg( TEST_MESSAGE );
+            TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
             check( message );
             message->sequence = i;
-            client.SendMsg( message );
+            client.SendMessage( channelIndex, message );
         }
         else
         {
-            TestBlockMessage * message = (TestBlockMessage*) client.CreateMsg( TEST_BLOCK_MESSAGE );
+            TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            Allocator & allocator = client.GetClientAllocator();
-            uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, blockSize );
+            uint8_t * blockData = client.AllocateBlock( blockSize );
+            check( blockData );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->AttachBlock( allocator, blockData, blockSize );
-            client.SendMsg( message );
+            client.AttachBlockToMessage( message, blockData, blockSize );
+            client.SendMessage( channelIndex, message );
         }
     }
 }
@@ -1492,26 +1471,28 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
     {
         if ( rand() % 2 )
         {
-            TestMessage * message = (TestMessage*) server.CreateMsg( clientIndex, TEST_MESSAGE );
+            TestMessage * message = (TestMessage*) server.CreateMessage( clientIndex, TEST_MESSAGE );
             check( message );
             message->sequence = i;
-            server.SendMsg( clientIndex, message );
+            server.SendMessage( clientIndex, 0, message );
         }
         else
         {
-            TestBlockMessage * message = (TestBlockMessage*) server.CreateMsg( clientIndex, TEST_BLOCK_MESSAGE );
+            TestBlockMessage * message = (TestBlockMessage*) server.CreateMessage( clientIndex, TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 1001 );
-            Allocator & allocator = server.GetClientAllocator( clientIndex );
-            uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, blockSize );
+            uint8_t * blockData = server.AllocateBlock( clientIndex, blockSize );
+            check( blockData );
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
-            message->AttachBlock( allocator, blockData, blockSize );
-            server.SendMsg( clientIndex, message );
+            server.AttachBlockToMessage( clientIndex, message, blockData, blockSize );
+            server.SendMessage( clientIndex, 0, message );
         }
     }
 }
+
+#if 0 // todo
 
 void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFromServer )
 {
