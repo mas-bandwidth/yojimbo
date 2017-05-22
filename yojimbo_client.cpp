@@ -83,6 +83,11 @@ namespace yojimbo
             m_connection->ProcessAcks( acks, numAcks );
             reliable_endpoint_clear_acks( m_endpoint );
         }
+        NetworkSimulator * networkSimulator = GetNetworkSimulator();
+        if ( networkSimulator )
+        {
+            networkSimulator->AdvanceTime( time );
+        }        
     }
 
     void BaseClient::SetLatency( float milliseconds )
@@ -307,15 +312,17 @@ namespace yojimbo
                 SetClientState( CLIENT_STATE_CONNECTED );
             }
             NetworkSimulator * networkSimulator = GetNetworkSimulator();
-            if ( networkSimulator )
+            if ( networkSimulator && networkSimulator->IsActive() )
             {
-                networkSimulator->AdvanceTime( time );
-                if ( networkSimulator->IsActive() )
+                uint8_t ** packetData = (uint8_t**) alloca( sizeof( uint8_t*) * m_config.maxSimulatorPackets );
+                int * packetBytes = (int*) alloca( sizeof(int) * m_config.maxSimulatorPackets );
+                int numPackets = networkSimulator->ReceivePackets( m_config.maxSimulatorPackets, packetData, packetBytes, NULL );
+                for ( int i = 0; i < numPackets; ++i )
                 {
-                    // todo: receive all packets from simulator, then send them to network
-                    //netcode_client_send_packet( m_client, packetData, packetBytes );
+                    netcode_client_send_packet( m_client, (uint8_t*) packetData[i], packetBytes[i] );
+                    YOJIMBO_FREE( networkSimulator->GetAllocator(), packetData[i] );
                 }
-            }        
+            }
         }
     }
 

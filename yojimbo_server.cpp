@@ -149,11 +149,6 @@ namespace yojimbo
             if ( networkSimulator )
             {
                 networkSimulator->AdvanceTime( time );
-                if ( networkSimulator->IsActive() )
-                {
-                    // todo: receive all packets from simulator, then send them to network
-                    //netcode_server_send_packet( m_server, clientIndex, packetData, packetBytes );
-                }
             }        
         }
     }
@@ -333,6 +328,19 @@ namespace yojimbo
             netcode_server_update( m_server, time );
         }
         BaseServer::AdvanceTime( time );
+        NetworkSimulator * networkSimulator = GetNetworkSimulator();
+        if ( networkSimulator && networkSimulator->IsActive() )
+        {
+            uint8_t ** packetData = (uint8_t**) alloca( sizeof( uint8_t*) * m_config.maxSimulatorPackets );
+            int * packetBytes = (int*) alloca( sizeof(int) * m_config.maxSimulatorPackets );
+            int * to = (int*) alloca( sizeof(int) * m_config.maxSimulatorPackets );
+            int numPackets = networkSimulator->ReceivePackets( m_config.maxSimulatorPackets, packetData, packetBytes, to );
+            for ( int i = 0; i < numPackets; ++i )
+            {
+                netcode_server_send_packet( m_server, to[i], (uint8_t*) packetData[i], packetBytes[i] );
+                YOJIMBO_FREE( networkSimulator->GetAllocator(), packetData[i] );
+            }
+        }
     }
 
     bool Server::IsClientConnected( int clientIndex ) const
