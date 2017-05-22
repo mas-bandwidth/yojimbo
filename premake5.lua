@@ -252,7 +252,7 @@ if not os.is "windows" then
         trigger     = "loc",
         description = "Count lines of code",
         execute = function ()
-            os.execute "wc -l *.h *.cpp netcode.io/c/*.c netcode.io/c/*.h reliable.io/*.c reliable.io/*.h"
+            os.execute "wc -l *.h *.cpp tests/*.h tests/*.cpp netcode.io/c/*.c netcode.io/c/*.h reliable.io/*.c reliable.io/*.h"
         end
     }
 

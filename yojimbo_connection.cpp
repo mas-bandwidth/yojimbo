@@ -173,6 +173,27 @@ namespace yojimbo
             m_channel[i]->Reset();
     }
 
+    bool Connection::CanSendMessage( int channelIndex ) const
+    {
+        assert( channelIndex >= 0 );
+        assert( channelIndex < m_connectionConfig.numChannels );
+        return m_channel[channelIndex]->CanSendMessage();
+    }
+
+    void Connection::SendMessage( int channelIndex, Message * message )
+    {
+        assert( channelIndex >= 0 );
+        assert( channelIndex < m_connectionConfig.numChannels );
+        return m_channel[channelIndex]->SendMessage( message );
+    }
+
+    Message * Connection::ReceiveMessage( int channelIndex )
+    {
+        assert( channelIndex >= 0 );
+        assert( channelIndex < m_connectionConfig.numChannels );
+        return m_channel[channelIndex]->ReceiveMessage();
+    }
+
     static int WritePacket( void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
     {
         WriteStream stream( buffer, bufferSize, messageFactory.GetAllocator() );

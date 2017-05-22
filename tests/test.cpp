@@ -890,56 +890,29 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
 
 #endif
 
-void PumpConnectionUpdate( double & time, Connection & sender, Connection & receiver, float deltaTime = 0.1f )
+void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, Connection & sender, Connection & receiver, uint16_t & senderSequence, uint16_t & receiverSequence, float deltaTime = 0.1f )
 {
-    (void) time;
-    (void) sender;
-    (void) receiver;
-    (void) deltaTime;
+    uint8_t * packetData = (uint8_t*) alloca( connectionConfig.maxPacketSize );
 
-#if 0 // todo
+    const int PacketLossPercent = 90;
 
-    Packet * senderPacket = sender.GeneratePacket();
-    Packet * receiverPacket = receiver.GeneratePacket();
-
-    check( senderPacket );
-    check( receiverPacket );
-
-    senderTransport.SendPacket( receiverTransport.GetAddress(), senderPacket, 0, false );
-    receiverTransport.SendPacket( senderTransport.GetAddress(), receiverPacket, 0, false );
-
-    senderTransport.WritePackets();
-    receiverTransport.WritePackets();
-
-    senderTransport.ReadPackets();
-    receiverTransport.ReadPackets();
-
-    while ( true )
+    int packetBytes;
+    if ( sender.GeneratePacket( NULL, senderSequence, packetData, connectionConfig.maxPacketSize, packetBytes ) )
     {
-        Address from;
-        Packet * packet = senderTransport.ReceivePacket( from, NULL );
-        if ( !packet )
-            break;
-
-        if ( from == receiverTransport.GetAddress() && packet->GetType() == TEST_PACKET_CONNECTION )
-            sender.ProcessPacket( (ConnectionPacket*) packet );
-
-        packet->Destroy();
+        if ( random_int( 0, 100 ) >= PacketLossPercent )
+        {
+            receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes );
+            sender.ProcessAcks( &senderSequence, 1 );
+        }
     }
 
-    while ( true )
+    if ( receiver.GeneratePacket( NULL, receiverSequence, packetData, connectionConfig.maxPacketSize, packetBytes ) )
     {
-        Address from;
-        Packet * packet = receiverTransport.ReceivePacket( from, NULL );
-        if ( !packet )
-            break;
-
-        if ( from == senderTransport.GetAddress() && packet->GetType() == TEST_PACKET_CONNECTION )
+        if ( random_int( 0, 100 ) >= PacketLossPercent )
         {
-            receiver.ProcessPacket( (ConnectionPacket*) packet );
+            sender.ProcessPacket( NULL, receiverSequence, packetData, packetBytes );
+            receiver.ProcessAcks( &receiverSequence, 1 );
         }
-
-        packet->Destroy();
     }
 
     time += deltaTime;
@@ -947,10 +920,8 @@ void PumpConnectionUpdate( double & time, Connection & sender, Connection & rece
     sender.AdvanceTime( time );
     receiver.AdvanceTime( time );
 
-    senderTransport.AdvanceTime( time );
-    receiverTransport.AdvanceTime( time );
-
-#endif
+    senderSequence++;
+    receiverSequence++;
 }
 
 void test_connection_reliable_ordered_messages()
@@ -964,16 +935,13 @@ void test_connection_reliable_ordered_messages()
 
     const int NumMessagesSent = 64;
 
-    // todo
-    /*
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
         TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
         check( message );
         message->sequence = i;
-        sender.SendMessage( message );
+        sender.SendMessage( 0, message );
     }
-    */
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -987,16 +955,16 @@ void test_connection_reliable_ordered_messages()
 
     const int NumIterations = 1000;
 
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
     for ( int i = 0; i < NumIterations; ++i )
     {
-        PumpConnectionUpdate( time, sender, receiver );
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence );
 
-        // todo
-        /*
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage();
-
+            Message * message = receiver.ReceiveMessage( 0 );
             if ( !message )
                 break;
 
@@ -1011,14 +979,12 @@ void test_connection_reliable_ordered_messages()
 
             messageFactory.Release( message );
         }
-        */
 
         if ( numMessagesReceived == NumMessagesSent )
             break;
     }
 
-    // todo
-    //check( numMessagesReceived == NumMessagesSent );
+    check( numMessagesReceived == NumMessagesSent );
 }
 
 #if 0 // todo

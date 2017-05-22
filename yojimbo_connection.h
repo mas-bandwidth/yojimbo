@@ -62,6 +62,12 @@ namespace yojimbo
 
         void Reset();
 
+        bool CanSendMessage( int channelIndex ) const;
+
+        void SendMessage( int channelIndex, Message * message );
+
+        Message * ReceiveMessage( int channelIndex );
+
         bool GeneratePacket( void * context, uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes );
 
         bool ProcessPacket( void * context, uint16_t packetSequence, const uint8_t * packetData, int packetBytes );
