@@ -164,7 +164,10 @@ namespace yojimbo
             {
                 packetData[numPackets] = m_packetEntries[i].packetData;
                 packetBytes[numPackets] = m_packetEntries[i].packetBytes;
-                to[numPackets] = m_packetEntries[i].to;
+                if ( to )
+                {
+                    to[numPackets] = m_packetEntries[i].to;
+                }
                 m_packetEntries[i].packetData = NULL;
                 numPackets++;
             }
