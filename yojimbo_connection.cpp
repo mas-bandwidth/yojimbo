@@ -27,70 +27,23 @@
 
 namespace yojimbo
 {
-    /** 
-        This packet carries messages sent across connection channels.
-
-        Connection packets should be generated and sent at a steady rate like 10, 20 or 30 times per-second in both directions across a connection. 
-     */
-
     struct ConnectionPacket
     {
-        int numChannelEntries;                                                  ///< The number of channel entries in this packet.
-        ChannelPacketData * channelEntry;                                       ///< Per-channel message data that was included in this packet.
-        MessageFactory * messageFactory;                                        ///< The message factory is cached so we can release messages included in this packet when it is destroyed.
-
-        /**
-            Connection packet constructor.
-         */
+        int numChannelEntries;
+        ChannelPacketData * channelEntry;
+        MessageFactory * messageFactory;
 
         ConnectionPacket();
 
-        /** 
-            Connection packet destructor.
-
-            Releases all references to messages included in this packet.
-
-            @see Message
-            @see MessageFactory
-            @see ChannelPacketData
-         */
-
         ~ConnectionPacket();
-
-        /** 
-            Allocate channel data in this packet.
-
-            The allocation is performed with the allocator that is set on the message factory.
-
-            When this is used on the server, the allocator corresponds to the per-client allocator corresponding to the client that is sending this connection packet. See Server::m_clientAllocator.
-
-            This is intended to silo each client to their own set of resources on the server, so malicious clients cannot launch an attack to deplete resources shared with other clients.
-
-            @param messageFactory The message factory used to create and destroy messages.
-            @param numEntries The number of channel entries to allocate. This corresponds to the number of channels that have data to include in the connection packet.
-
-            @returns True if the allocation succeeded, false otherwise.
-         */
 
         bool AllocateChannelData( MessageFactory & messageFactory, int numEntries );
 
-        /** 
-            The template function for serializing the connection packet.
-
-            Unifies packet read and write, making it harder to accidentally desync one from the other.
-         */
-
         template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
-
-        /// Implements serialize read by calling into ConnectionPacket::Serialize with a ReadStream.
 
         bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
 
-        /// Implements serialize write by calling into ConnectionPacket::Serialize with a WriteStream.
-
         bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
-
-        /// Implements serialize measure by calling into ConnectionPacket::Serialize with a MeasureStream.
 
         bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig );
 
@@ -229,9 +182,9 @@ namespace yojimbo
             m_channel[i]->Reset();
     }
 
-    static int WritePacket( Allocator & allocator, void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
+    static int WritePacket( void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
     {
-        WriteStream stream( buffer, bufferSize, allocator );
+        WriteStream stream( buffer, bufferSize, messageFactory.GetAllocator() );
 
         stream.SetContext( context );
 
@@ -241,11 +194,13 @@ namespace yojimbo
             return 0;
         }
 
+#if YOJIMBO_SERIALIZE_CHECKS
         if ( !stream.SerializeCheck() )
         {
             debug_printf( "serialize check at end of connection packed failed (write packet)\n" );
             return 0;
         }
+#endif // #if YOJIMBO_SERIALIZE_CHECKS
 
         stream.Flush();
 
@@ -254,8 +209,6 @@ namespace yojimbo
 
     bool Connection::GeneratePacket( void * context, uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes )
     {
-        (void) context;
-
         ConnectionPacket packet;
 
         if ( m_connectionConfig.numChannels > 0 )
@@ -307,19 +260,52 @@ namespace yojimbo
             }
         }
 
-        packetBytes = WritePacket( m_messageFactory->GetAllocator(), context, *m_messageFactory, m_connectionConfig, packet, packetData, maxPacketBytes );
+        packetBytes = WritePacket( context, *m_messageFactory, m_connectionConfig, packet, packetData, maxPacketBytes );
+
+        return true;
+    }
+
+    static bool ReadPacket( void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, const uint8_t * buffer, int bufferSize )
+    {
+        assert( buffer );
+        assert( bufferSize > 0 );
+
+        ReadStream stream( buffer, bufferSize, messageFactory.GetAllocator() );
+
+        stream.SetContext( context );
+
+        if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
+        {
+            debug_printf( "serialize connection packet failed (read packet)\n" );
+            return false;
+        }
+
+#if YOJIMBO_SERIALIZE_CHECKS
+        if ( !stream.SerializeCheck() )
+        {
+            debug_printf( "serialize check failed at end of connection packet (read packet)\n" );
+            return false;
+        }
+#endif // #if YOJIMBO_SERIALIZE_CHECKS
 
         return true;
     }
 
     bool Connection::ProcessPacket( void * context, uint16_t packetSequence, const uint8_t * packetData, int packetBytes )
     {
-        (void) context;
-        (void) packetSequence;
-        (void) packetData;
-        (void) packetBytes;
-        // todo: deserialize packet
-        // todo: pass channel data to each channel in turn for processing
+        ConnectionPacket packet;
+        if ( !ReadPacket( context, *m_messageFactory, m_connectionConfig, packet, packetData, packetBytes ) )
+        {
+            // todo: probably want to set a fatal error here
+            return false;            
+        }
+        for ( int i = 0; i < packet.numChannelEntries; ++i )
+        {
+            const int channelId = packet.channelEntry[i].channelId;
+            assert( channelId >= 0 );
+            assert( channelId <= m_connectionConfig.numChannels );
+            m_channel[channelId]->ProcessPacketData( packet.channelEntry[i], packetSequence );
+        }
         return true;
     }
 
