@@ -85,6 +85,38 @@ namespace yojimbo
         }
     }
 
+    void BaseClient::SetLatency( float milliseconds )
+    {
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->SetLatency( milliseconds );
+        }
+    }
+
+    void BaseClient::SetJitter( float milliseconds )
+    {
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->SetJitter( milliseconds );
+        }
+    }
+
+    void BaseClient::SetPacketLoss( float percent )
+    {
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->SetPacketLoss( percent );
+        }
+    }
+
+    void BaseClient::SetDuplicates( float percent )
+    {
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->SetDuplicates( percent );
+        }
+    }
+
     void BaseClient::SetClientState( ClientState clientState )
     {
         m_clientState = clientState;

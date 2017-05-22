@@ -99,10 +99,9 @@ namespace yojimbo
         }
     }
 
-    void NetworkSimulator::SendPacket( const Address & to, uint8_t * packetData, int packetBytes )
+    void NetworkSimulator::SendPacket( int to, uint8_t * packetData, int packetBytes )
     {
         assert( m_allocator );
-        assert( to.IsValid() );
         assert( packetData );
         assert( packetBytes > 0 );
 
@@ -149,7 +148,7 @@ namespace yojimbo
         }
     }
 
-    int NetworkSimulator::ReceivePackets( int maxPackets, uint8_t * packetData[], int packetBytes[], Address to[] )
+    int NetworkSimulator::ReceivePackets( int maxPackets, uint8_t * packetData[], int packetBytes[], int to[] )
     {
         if ( !IsActive() )
             return 0;

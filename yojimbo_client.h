@@ -209,6 +209,14 @@ namespace yojimbo
 
         double GetTime() const { return m_time; }
 
+        void SetLatency( float milliseconds );
+
+        void SetJitter( float milliseconds );
+
+        void SetPacketLoss( float percent );
+
+        void SetDuplicates( float percent );
+
     protected:
 
         void * GetContext() { return m_context; }
@@ -222,6 +230,8 @@ namespace yojimbo
         Allocator & GetClientAllocator() { assert( m_clientAllocator ); return *m_clientAllocator; }
 
         MessageFactory & GetMessageFactory() { assert( m_messageFactory ); return *m_messageFactory; }
+
+        NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
 
         reliable_endpoint_t * GetEndpoint() { return m_endpoint; }
 

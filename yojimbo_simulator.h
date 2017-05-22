@@ -27,7 +27,6 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_common.h"
-#include "yojimbo_address.h"
 #include "yojimbo_allocator.h"
 
 /** @file */
@@ -123,12 +122,12 @@ namespace yojimbo
 
             IMPORTANT: Ownership of the packet data pointer is *not* transferred to the network simulator. It makes a copy of the data instead.
 
-            @param to The address the packet is sent to.
+            @param to The slot index the packet should be sent to.
             @param packetData The packet data.
             @param packetBytes The packet size (bytes).
          */
         
-        void SendPacket( const Address & to, uint8_t * packetData, int packetBytes );
+        void SendPacket( int to, uint8_t * packetData, int packetBytes );
 
         /**
             Receive packets sent to any address.
@@ -138,12 +137,12 @@ namespace yojimbo
             @param maxPackets The maximum number of packets to receive.
             @param packetData Array of packet data pointers to be filled [out].
             @param packetBytes Array of packet sizes to be filled [out].
-            @param to Array of to addresses to be filled [out].
+            @param to Array of to indices to be filled [out].
 
             @returns The number of packets received.
          */
 
-        int ReceivePackets( int maxPackets, uint8_t * packetData[], int packetBytes[], Address to[] );
+        int ReceivePackets( int maxPackets, uint8_t * packetData[], int packetBytes[], int to[] );
 
         /**
             Discard all packets in the network simulator.
@@ -201,10 +200,10 @@ namespace yojimbo
                 packetBytes = 0;
             }
 
-            Address to;                                 ///< Address the packet should be sent to.
+            int to;                                     ///< To index this packet should be sent to (for server -> client packets).
             double deliveryTime;                        ///< Delivery time for this packet (seconds).
             uint8_t * packetData;                       ///< Packet data (owns this pointer).
-            int packetBytes;                             ///< Size of packet in bytes.
+            int packetBytes;                            ///< Size of packet in bytes.
         };
 
         double m_time;                                  ///< Current time from last call to advance time.

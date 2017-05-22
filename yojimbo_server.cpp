@@ -148,6 +148,38 @@ namespace yojimbo
         }
     }
 
+    void BaseServer::SetLatency( float milliseconds )
+    {
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->SetLatency( milliseconds );
+        }
+    }
+
+    void BaseServer::SetJitter( float milliseconds )
+    {
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->SetJitter( milliseconds );
+        }
+    }
+
+    void BaseServer::SetPacketLoss( float percent )
+    {
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->SetPacketLoss( percent );
+        }
+    }
+
+    void BaseServer::SetDuplicates( float percent )
+    {
+        if ( m_networkSimulator )
+        {
+            m_networkSimulator->SetDuplicates( percent );
+        }
+    }
+
     MessageFactory & BaseServer::GetClientMessageFactory( int clientIndex ) 
     { 
         assert( IsRunning() ); 

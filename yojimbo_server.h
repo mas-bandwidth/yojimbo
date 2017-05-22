@@ -205,6 +205,14 @@ namespace yojimbo
 
         double GetTime() const { return m_time; }
 
+        void SetLatency( float milliseconds );
+
+        void SetJitter( float milliseconds );
+
+        void SetPacketLoss( float percent );
+
+        void SetDuplicates( float percent );
+
     protected:
 
         void * GetContext() { return m_context; }
