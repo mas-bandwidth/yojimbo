@@ -57,7 +57,7 @@ int ClientMain( int argc, char * argv[] )
 
     ClientServerConfig config;
 
-    Client client( GetDefaultAllocator(), Address("0.0.0.0:40000"), config, adapter, time );
+    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 
     Address serverAddress( "127.0.0.1", ServerPort );
 
