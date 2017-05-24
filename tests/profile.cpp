@@ -22,11 +22,6 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define SERVER 1
-#define CLIENT 1
-#define MATCHER 1
-#define QUIET 1
-
 #include "shared.h"
 #include <signal.h>
 

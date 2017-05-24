@@ -22,15 +22,11 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define SERVER 1
-#define CLIENT 1
-#define MATCHER 1
-
 #include "shared.h"
+#include "netcode.h"
 #include <signal.h>
 
-// todo
-//static const int MaxBlockSize = 25 * 1024;
+static const int MaxBlockSize = 25 * 1024;
 
 static volatile int quit = 0;
 
@@ -41,77 +37,42 @@ void interrupt_handler( int /*dummy*/ )
 
 int SoakMain()
 {
-#if 0
-
     srand( (unsigned int) time( NULL ) );
 
-    LocalMatcher matcher;
+    ClientServerConfig config;
 
-    uint64_t clientId = 1;
-
-    uint8_t connectTokenData[ConnectTokenBytes];
-    uint8_t connectTokenNonce[NonceBytes];
-
-    uint8_t clientToServerKey[KeyBytes];
-    uint8_t serverToClientKey[KeyBytes];
-
-    int numServerAddresses;
-    Address serverAddresses[MaxServersPerConnect];
-
-    memset( connectTokenNonce, 0, NonceBytes );
-
-    uint64_t connectTokenExpireTimestamp;
-
-    if ( !matcher.RequestMatch( clientId, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp, numServerAddresses, serverAddresses ) )
-    {
-        printf( "error: request match failed\n" );
-        return 1;
-    }
-
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
 
     double time = 0.0;
 
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+    Address serverAddress( "127.0.0.1", ServerPort );
 
-    clientTransport.SetNetworkConditions( 250, 250, 10, 50 );
-    serverTransport.SetNetworkConditions( 250, 250, 10, 50 );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 1100;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channel[0].packetBudget = 256;
-    clientServerConfig.connectionConfig.channel[0].maxMessagesPerPacket = 256;
+    server.Start( 1 );
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
+    uint64_t clientId = 0;
+    random_bytes( (uint8_t*) &clientId, 8 );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 
-    server.SetServerAddress( serverAddress );
-
-    server.Start();
-    
-    client.Connect( clientId, serverAddress, connectTokenData, connectTokenNonce, clientToServerKey, serverToClientKey, connectTokenExpireTimestamp );
+    client.InsecureConnect( privateKey, clientId, serverAddress );
 
     uint64_t numMessagesSentToServer = 0;
-    uint64_t numMessagesReceivedFromClient = 0;
+//    uint64_t numMessagesSentToClient = 0;
+//    uint64_t numMessagesReceivedFromClient = 0;
+    //uint64_t numMessagesReceivedFromServer = 0;
 
     signal( SIGINT, interrupt_handler );
+
+    bool clientConnected = false;
+    bool serverConnected = false;
 
     while ( !quit )
     {
         client.SendPackets();
         server.SendPackets();
-
-        clientTransport.WritePackets();
-        serverTransport.WritePackets();
-
-        clientTransport.ReadPackets();
-        serverTransport.ReadPackets();
 
         client.ReceivePackets();
         server.ReceivePackets();
@@ -126,127 +87,209 @@ int SoakMain()
 
         if ( client.IsConnected() )
         {
+            clientConnected = true;
+
             const int messagesToSend = random_int( 0, 64 );
 
             for ( int i = 0; i < messagesToSend; ++i )
             {
-                if ( !client.CanSendMsg() )
+                if ( !client.CanSendMessage( 0 ) )
                     break;
 
-                if ( rand() % 100 )
+                if ( rand() % 25 )
                 {
-                    TestMessage * message = (TestMessage*) client.CreateMsg( TEST_MESSAGE );
-                    
+                    TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
                     if ( message )
                     {
                         message->sequence = (uint16_t) numMessagesSentToServer;
-                        
-                        client.SendMsg( message );
-
+                        client.SendMessage( 0, message );
                         numMessagesSentToServer++;
                     }
                 }
                 else
                 {
-                    TestBlockMessage * blockMessage = (TestBlockMessage*) client.CreateMsg( TEST_BLOCK_MESSAGE );
-
+                    TestBlockMessage * blockMessage = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
                     if ( blockMessage )
                     {
                         blockMessage->sequence = (uint16_t) numMessagesSentToServer;
-
                         const int blockSize = 1 + ( int( numMessagesSentToServer ) * 33 ) % MaxBlockSize;
-
-                        Allocator & messageAllocator = client.GetClientAllocator();
-
-                        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageAllocator, blockSize );
-
+                        uint8_t * blockData = client.AllocateBlock( blockSize );
                         if ( blockData )
                         {
                             for ( int j = 0; j < blockSize; ++j )
                                 blockData[j] = uint8_t( numMessagesSentToServer + j );
-
-                            blockMessage->AttachBlock( messageAllocator, blockData, blockSize );
-
-                            client.SendMsg( blockMessage );
-
+                            client.AttachBlockToMessage( blockMessage, blockData, blockSize );
+                            client.SendMessage( 0, blockMessage );
                             numMessagesSentToServer++;
+                        }
+                        else
+                        {
+                            client.ReleaseMessage( blockMessage );
                         }
                     }
                 }
             }
-        
+
             const int clientIndex = client.GetClientIndex();
 
+            if ( server.IsClientConnected( clientIndex ) )
+            {
+                serverConnected = true;
+
+                /*
+                const int messagesToSend = random_int( 0, 64 );
+
+                for ( int i = 0; i < messagesToSend; ++i )
+                {
+                    if ( !server.CanSendMessage( clientIndex, 0 ) )
+                        break;
+
+                    if ( rand() % 25 )
+                    {
+                        TestMessage * message = (TestMessage*) server.CreateMessage( clientIndex, TEST_MESSAGE );
+                        if ( message )
+                        {
+                            message->sequence = (uint16_t) numMessagesSentToClient;
+                            server.SendMessage( clientIndex, 0, message );
+                            numMessagesSentToClient++;
+                        }
+                    }
+                    else
+                    {
+                        TestBlockMessage * blockMessage = (TestBlockMessage*) server.CreateMessage( clientIndex, TEST_BLOCK_MESSAGE );
+                        if ( blockMessage )
+                        {
+                            blockMessage->sequence = (uint16_t) numMessagesSentToClient;
+                            const int blockSize = 1 + ( int( numMessagesSentToClient ) * 33 ) % MaxBlockSize;
+                            uint8_t * blockData = server.AllocateBlock( clientIndex, blockSize );
+                            if ( blockData )
+                            {
+                                for ( int j = 0; j < blockSize; ++j )
+                                    blockData[j] = uint8_t( numMessagesSentToClient + j );
+                                server.AttachBlockToMessage( clientIndex, blockMessage, blockData, blockSize );
+                                server.SendMessage( clientIndex, 0, blockMessage );
+                                numMessagesSentToClient++;
+                            }
+                            else
+                            {
+                                server.ReleaseMessage( clientIndex, blockMessage );
+                            }
+                        }
+                    }
+                }
+
+                while ( true )
+                {
+                    Message * message = server.ReceiveMessage( clientIndex, 0 );
+                    if ( !message )
+                        break;
+
+                    assert( message->GetId() == (uint16_t) numMessagesReceivedFromClient );
+
+                    switch ( message->GetType() )
+                    {
+                        case TEST_MESSAGE:
+                        {
+                            TestMessage * testMessage = (TestMessage*) message;
+                            assert( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+                            printf( "server received message %d\n", testMessage->sequence );
+                            server.ReleaseMessage( clientIndex, message );
+                            numMessagesReceivedFromClient++;
+                        }
+                        break;
+
+                        case TEST_BLOCK_MESSAGE:
+                        {
+                            TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+                            assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+                            const int blockSize = blockMessage->GetBlockSize();
+                            const int expectedBlockSize = 1 + ( int( numMessagesReceivedFromClient ) * 33 ) % MaxBlockSize;
+                            if ( blockSize  != expectedBlockSize )
+                            {
+                                printf( "error: block size mismatch. expected %d, got %d\n", expectedBlockSize, blockSize );
+                                return 1;
+                            }
+                            const uint8_t * blockData = blockMessage->GetBlockData();
+                            assert( blockData );
+                            for ( int i = 0; i < blockSize; ++i )
+                            {
+                                if ( blockData[i] != uint8_t( numMessagesReceivedFromClient + i ) )
+                                {
+                                    printf( "error: block data mismatch. expected %d, but blockData[%d] = %d\n", uint8_t( numMessagesReceivedFromClient + i ), i, blockData[i] );
+                                    return 1;
+                                }
+                            }
+                            printf( "server received message %d\n", uint16_t( numMessagesReceivedFromClient ) );
+                            server.ReleaseMessage( clientIndex, message );
+                            numMessagesReceivedFromClient++;
+                        }
+                        break;
+                    }
+                }
+                */
+            }
+
+            /*
             while ( true )
             {
-                Message * message = server.ReceiveMsg( clientIndex );
+                Message * message = client.ReceiveMessage( 0 );
 
                 if ( !message )
                     break;
 
-                assert( message->GetId() == (uint16_t) numMessagesReceivedFromClient );
+                assert( message->GetId() == (uint16_t) numMessagesReceivedFromServer );
 
                 switch ( message->GetType() )
                 {
                     case TEST_MESSAGE:
                     {
                         TestMessage * testMessage = (TestMessage*) message;
-
-                        assert( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
-
-                        printf( "received message %d\n", testMessage->sequence );
-
-                        server.ReleaseMsg( clientIndex, message );
-
-                        numMessagesReceivedFromClient++;
+                        assert( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
+                        printf( "client received message %d\n", testMessage->sequence );
+                        client.ReleaseMessage( message );
+                        numMessagesReceivedFromServer++;
                     }
                     break;
 
                     case TEST_BLOCK_MESSAGE:
                     {
                         TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-
-                        assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
-
+                        assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
                         const int blockSize = blockMessage->GetBlockSize();
-
-                        const int expectedBlockSize = 1 + ( int( numMessagesReceivedFromClient ) * 33 ) % MaxBlockSize;
-
+                        const int expectedBlockSize = 1 + ( int( numMessagesReceivedFromServer ) * 33 ) % MaxBlockSize;
                         if ( blockSize  != expectedBlockSize )
                         {
                             printf( "error: block size mismatch. expected %d, got %d\n", expectedBlockSize, blockSize );
                             return 1;
                         }
-
                         const uint8_t * blockData = blockMessage->GetBlockData();
-
                         assert( blockData );
-
                         for ( int i = 0; i < blockSize; ++i )
                         {
-                            if ( blockData[i] != uint8_t( numMessagesReceivedFromClient + i ) )
+                            if ( blockData[i] != uint8_t( numMessagesReceivedFromServer + i ) )
                             {
-                                printf( "error: block data mismatch. expected %d, but blockData[%d] = %d\n", uint8_t( numMessagesReceivedFromClient + i ), i, blockData[i] );
+                                printf( "error: block data mismatch. expected %d, but blockData[%d] = %d\n", uint8_t( numMessagesReceivedFromServer + i ), i, blockData[i] );
                                 return 1;
                             }
                         }
-
-                        printf( "received block %d\n", uint16_t( numMessagesReceivedFromClient ) );
-
-                        server.ReleaseMsg( clientIndex, message );
-
-                        numMessagesReceivedFromClient++;
+                        printf( "client received message %d\n", uint16_t( numMessagesReceivedFromServer ) );
+                        client.ReleaseMessage( message );
+                        numMessagesReceivedFromServer++;
                     }
                     break;
                 }
             }
+            */
+
+            if ( clientConnected && !client.IsConnected() )
+                break;
+
+            if ( serverConnected && server.GetNumConnectedClients() == 0 )
+                break;
         }
 
         client.AdvanceTime( time );
         server.AdvanceTime( time );
-
-        clientTransport.AdvanceTime( time );
-        serverTransport.AdvanceTime( time );
     }
 
     if ( quit )
@@ -258,22 +301,20 @@ int SoakMain()
     
     server.Stop();
 
-#endif
-
     return 0;
 }
 
 int main()
 {
-    printf( "\nsoak\n\n" );
+    printf( "\nsoak\n" );
 
-// todo
-//    verbose_logging = true;
     if ( !InitializeYojimbo() )
     {
         printf( "error: failed to initialize Yojimbo!\n" );
         return 1;
     }
+
+    netcode_log_level( NETCODE_LOG_LEVEL_INFO );
 
     srand( (unsigned int) time( NULL ) );
 
@@ -281,7 +322,7 @@ int main()
 
     ShutdownYojimbo();
 
-//    printf( "\n" );
+    printf( "\n" );
 
     return result;
 }

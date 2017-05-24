@@ -351,7 +351,6 @@ namespace yojimbo
             const int state = netcode_client_state( m_client );
             if ( state <= NETCODE_CLIENT_STATE_DISCONNECTED )
             {
-                printf( "client disconnect (2)\n" );
                 Disconnect();
                 return;
             }
@@ -411,7 +410,8 @@ namespace yojimbo
 
     void Client::StateChangeCallbackFunction( int previous, int current )
     {
-        debug_printf( "client state change %d -> %d\n", previous, current );
+        // todo: we don't really need this anymore
+        //debug_printf( "client state change %d -> %d\n", previous, current );
         if ( previous > NETCODE_CLIENT_STATE_DISCONNECTED && current <= NETCODE_CLIENT_STATE_DISCONNECTED )
         {
          //   printf( "client disconnected\n" );

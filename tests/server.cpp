@@ -27,8 +27,6 @@
 #include <signal.h>
 #include <time.h>
 
-#define SERVER 1
-
 #include "shared.h"
 
 using namespace yojimbo;

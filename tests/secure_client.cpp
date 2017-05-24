@@ -22,8 +22,6 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define CLIENT 1
-
 #include "shared.h"
 #include <signal.h>
 #include <stdlib.h>

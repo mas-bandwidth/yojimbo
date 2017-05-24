@@ -460,6 +460,8 @@ namespace yojimbo
 
     void Channel::SetErrorLevel( ChannelErrorLevel errorLevel )
     {
+        // todo
+        printf( "Channel::SetErrorLevel %d\n", errorLevel );
         if ( errorLevel != m_errorLevel && errorLevel != CHANNEL_ERROR_NONE )
         {
             debug_printf( "channel error: %s\n", GetChannelErrorString( errorLevel ) );
@@ -522,6 +524,9 @@ namespace yojimbo
 
     void ReliableOrderedChannel::Reset()
     {
+        // todo
+        printf( "ReliableOrderedChannel::Reset\n" );
+
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
         m_time = 0.0;
@@ -846,6 +851,8 @@ namespace yojimbo
 
             if ( sequence_greater_than( messageId, maxMessageId ) )
             {
+                // todo
+                printf( "%d vs. %d\n", messageId, maxMessageId );
                 SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
@@ -1242,6 +1249,9 @@ namespace yojimbo
 
     void UnreliableUnorderedChannel::Reset()
     {
+        // todo
+        printf( "UnreliableUnorderedChannel::Reset\n" );
+
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
         for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )

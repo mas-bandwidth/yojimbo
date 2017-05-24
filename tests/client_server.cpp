@@ -30,9 +30,6 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define CLIENT 1
-#define SERVER 1
-
 #include "shared.h"
 
 using namespace yojimbo;

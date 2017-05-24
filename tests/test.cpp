@@ -29,9 +29,6 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#define SERVER 1
-#define CLIENT 1
-
 #include "shared.h"
 
 #define SOAK 0

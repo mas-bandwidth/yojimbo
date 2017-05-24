@@ -133,17 +133,21 @@ namespace yojimbo
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 m_clientConnection[i]->AdvanceTime( time );
-                if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
+//                if ( IsClientConnected(i) )
                 {
-                    debug_printf( "connection error for client %d. disconnecting client\n", i );
-                    DisconnectClient( i );
-                    continue;
+                    if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
+                    {
+                        printf( "error level[%d] = %d\n", i, m_clientConnection[i]->GetErrorLevel() );
+                        printf( "connection error for client %d. disconnecting client\n", i );
+                        DisconnectClient( i );
+                        continue;
+                    }
+                    reliable_endpoint_update( m_clientEndpoint[i] );
+                    int numAcks;
+                    const uint16_t * acks = reliable_endpoint_get_acks( m_clientEndpoint[i], &numAcks );
+                    m_clientConnection[i]->ProcessAcks( acks, numAcks );
+                    reliable_endpoint_clear_acks( m_clientEndpoint[i] );
                 }
-                reliable_endpoint_update( m_clientEndpoint[i] );
-                int numAcks;
-                const uint16_t * acks = reliable_endpoint_get_acks( m_clientEndpoint[i], &numAcks );
-                m_clientConnection[i]->ProcessAcks( acks, numAcks );
-                reliable_endpoint_clear_acks( m_clientEndpoint[i] );
             }
             NetworkSimulator * networkSimulator = GetNetworkSimulator();
             if ( networkSimulator )
@@ -336,6 +340,8 @@ namespace yojimbo
 
     void Server::DisconnectClient( int clientIndex )
     {
+        // todo
+        printf( "Server::DisconnectClient\n" );
         assert( m_server );
         netcode_server_disconnect_client( m_server, clientIndex );
     }
@@ -370,6 +376,8 @@ namespace yojimbo
 
     void Server::ReceivePackets()
     {
+        // todo
+        printf( "\nServer::ReceivePackets\n" );
         if ( m_server )
         {
             const int maxClients = GetMaxClients();
@@ -387,6 +395,7 @@ namespace yojimbo
                 }
             }
         }
+        printf( "Server::ReceivePackets (end)\n\n" );
     }
 
     void Server::AdvanceTime( double time )
@@ -437,14 +446,18 @@ namespace yojimbo
 
     int Server::ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
+        // todo
+        printf( "Server::ProcessPacketFunction | clientIndex = %d\n", clientIndex );
         return (int) GetClientConnection(clientIndex).ProcessPacket( GetContext(), packetSequence, packetData, packetBytes );
     }
 
     void Server::ConnectDisconnectCallbackFunction( int clientIndex, int connected )
     {
+        printf( "Server::ConnectDisconnectCallbackFunction | clientIndex = %d, connected = %d\n", clientIndex, connected );
         if ( connected == 0 )
         {
-//            printf( "reset client %d\n", clientIndex );
+            // todo
+            printf( "reset client %d\n", clientIndex );
             reliable_endpoint_reset( GetClientEndpoint( clientIndex ) );
             GetClientConnection( clientIndex ).Reset();
         }

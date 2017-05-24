@@ -170,7 +170,9 @@ namespace yojimbo
     {
         m_errorLevel = CONNECTION_ERROR_NONE;
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
+        {
             m_channel[i]->Reset();
+        }
     }
 
     bool Connection::CanSendMessage( int channelIndex ) const
@@ -310,7 +312,11 @@ namespace yojimbo
 
     bool Connection::ProcessPacket( void * context, uint16_t packetSequence, const uint8_t * packetData, int packetBytes )
     {
+        if ( m_errorLevel != CONNECTION_ERROR_NONE )
+            return false;
+
         ConnectionPacket packet;
+
         if ( !ReadPacket( context, *m_messageFactory, m_connectionConfig, packet, packetData, packetBytes ) )
         {
             // todo: probably want to set a fatal error here
@@ -322,7 +328,10 @@ namespace yojimbo
             assert( channelId >= 0 );
             assert( channelId <= m_connectionConfig.numChannels );
             m_channel[channelId]->ProcessPacketData( packet.channelEntry[i], packetSequence );
+            if ( m_channel[channelId]->GetErrorLevel() != CHANNEL_ERROR_NONE )
+                return false;
         }
+
         return true;
     }
 
@@ -342,8 +351,11 @@ namespace yojimbo
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
         {
             m_channel[i]->AdvanceTime( time );
+
             if ( m_channel[i]->GetErrorLevel() != CHANNEL_ERROR_NONE )
             {
+                // todo
+                printf( "channel %d is in error state\n", i );
                 m_errorLevel = CONNECTION_ERROR_CHANNEL;
                 return;
             }
