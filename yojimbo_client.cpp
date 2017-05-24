@@ -87,7 +87,7 @@ namespace yojimbo
         if ( networkSimulator )
         {
             networkSimulator->AdvanceTime( time );
-        }        
+        }
     }
 
     void BaseClient::SetLatency( float milliseconds )
@@ -349,6 +349,13 @@ namespace yojimbo
         {
             netcode_client_update( m_client, time );
             const int state = netcode_client_state( m_client );
+            if ( state <= NETCODE_CLIENT_STATE_DISCONNECTED )
+            {
+                printf( "client disconnect (2)\n" );
+                Disconnect();
+                return;
+            }
+
             if ( state < NETCODE_CLIENT_STATE_DISCONNECTED )
             {
                 SetClientState( CLIENT_STATE_ERROR );
@@ -387,6 +394,10 @@ namespace yojimbo
         char addressString[MaxAddressLength];
         address.ToString( addressString, MaxAddressLength );
         m_client = netcode_client_create( addressString, GetTime() );
+        if ( m_client )
+        {
+            netcode_client_state_change_callback( m_client, this, StaticStateChangeCallbackFunction );
+        }
     }
 
     void Client::DestroyClient()
@@ -396,6 +407,22 @@ namespace yojimbo
             netcode_client_destroy( m_client );
             m_client = NULL;
         }
+    }
+
+    void Client::StateChangeCallbackFunction( int previous, int current )
+    {
+        debug_printf( "client state change %d -> %d\n", previous, current );
+        if ( previous > NETCODE_CLIENT_STATE_DISCONNECTED && current <= NETCODE_CLIENT_STATE_DISCONNECTED )
+        {
+         //   printf( "client disconnected\n" );
+            //Disconnect();
+        }
+    }
+
+    void Client::StaticStateChangeCallbackFunction( void * context, int previous, int current )
+    {
+        Client * client = (Client*) context;
+        client->StateChangeCallbackFunction( previous, current );
     }
 
     void Client::TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes )

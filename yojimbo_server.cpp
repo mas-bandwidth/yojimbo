@@ -319,6 +319,7 @@ namespace yojimbo
             Stop();
             return;
         }
+        netcode_server_connect_disconnect_callback( m_server, this, StaticConnectDisconnectCallbackFunction );
         netcode_server_start( m_server, maxClients );
     }
 
@@ -437,6 +438,22 @@ namespace yojimbo
     int Server::ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
         return (int) GetClientConnection(clientIndex).ProcessPacket( GetContext(), packetSequence, packetData, packetBytes );
+    }
+
+    void Server::ConnectDisconnectCallbackFunction( int clientIndex, int connected )
+    {
+        if ( connected == 0 )
+        {
+//            printf( "reset client %d\n", clientIndex );
+            reliable_endpoint_reset( GetClientEndpoint( clientIndex ) );
+            GetClientConnection( clientIndex ).Reset();
+        }
+    }
+
+    void Server::StaticConnectDisconnectCallbackFunction( void * context, int clientIndex, int connected )
+    {
+        Server * server = (Server*) context;
+        server->ConnectDisconnectCallbackFunction( clientIndex, connected );
     }
 
     // -----------------------------------------------------------------------------------------------------

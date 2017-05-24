@@ -105,6 +105,8 @@ uint16_t * reliable_endpoint_get_acks( struct reliable_endpoint_t * endpoint, in
 
 void reliable_endpoint_clear_acks( struct reliable_endpoint_t * endpoint );
 
+void reliable_endpoint_reset( struct reliable_endpoint_t * endpoint );
+
 void reliable_endpoint_update( struct reliable_endpoint_t * endpoint );
 
 void reliable_endpoint_destroy( struct reliable_endpoint_t * endpoint );

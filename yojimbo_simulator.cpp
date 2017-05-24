@@ -107,7 +107,6 @@ namespace yojimbo
 
         if ( random_float( 0.0f, 100.0f ) <= m_packetLoss )
         {
-            YOJIMBO_FREE( *m_allocator, packetData );
             return;
         }
 
@@ -125,25 +124,20 @@ namespace yojimbo
             delay += random_float( -m_jitter, +m_jitter ) / 1000.0;
 
         packetEntry.to = to;
-        packetEntry.packetData = packetData;
+        packetEntry.packetData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
+        memcpy( packetEntry.packetData, packetData, packetBytes );
         packetEntry.packetBytes = packetBytes;
         packetEntry.deliveryTime = m_time + delay;
-
         m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
 
         if ( random_float( 0.0f, 100.0f ) <= m_duplicates )
         {
-            uint8_t * duplicatePacketData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
-
-            memcpy( duplicatePacketData, packetData, packetBytes );
-
             PacketEntry & nextPacketEntry = m_packetEntries[m_currentIndex];
-
             nextPacketEntry.to = to;
-            nextPacketEntry.packetData = duplicatePacketData;
+            nextPacketEntry.packetData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
+            memcpy( nextPacketEntry.packetData, packetData, packetBytes );
             nextPacketEntry.packetBytes = packetBytes;
             nextPacketEntry.deliveryTime = m_time + delay + random_float( 0, +1.0 );
-
             m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
         }
     }

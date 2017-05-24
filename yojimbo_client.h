@@ -352,7 +352,9 @@ namespace yojimbo
 
         void DestroyClient();
 
-    private:
+        void StateChangeCallbackFunction( int previous, int current );
+
+        static void StaticStateChangeCallbackFunction( void * context, int previous, int current );
 
         void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 

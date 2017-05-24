@@ -322,6 +322,10 @@ namespace yojimbo
 
         int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
+        void ConnectDisconnectCallbackFunction( int clientIndex, int connected );
+
+        static void StaticConnectDisconnectCallbackFunction( void * context, int clientIndex, int connected );
+
         ClientServerConfig m_config;
         netcode_server_t * m_server;
         Address m_address;

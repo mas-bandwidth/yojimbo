@@ -465,6 +465,8 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
     endpoint->received_packets = reliable_sequence_buffer_create( config->received_packets_buffer_size, sizeof( struct reliable_received_packet_data_t ) );
     endpoint->fragment_reassembly = reliable_sequence_buffer_create( config->fragment_reassembly_buffer_size, sizeof( struct reliable_fragment_reassembly_data_t ) );
 
+    memset( endpoint->acks, 0, config->ack_buffer_size * sizeof( uint16_t ) );
+
     return endpoint;
 }
 
@@ -1036,6 +1038,31 @@ void reliable_endpoint_clear_acks( struct reliable_endpoint_t * endpoint )
 {
     assert( endpoint );
     endpoint->num_acks = 0;
+}
+
+void reliable_endpoint_reset( struct reliable_endpoint_t * endpoint )
+{
+    assert( endpoint );
+
+    endpoint->num_acks = 0;
+    endpoint->sequence = 0;
+
+    memset( endpoint->acks, 0, endpoint->config.ack_buffer_size * sizeof( uint16_t ) );
+
+    int i;
+    for ( i = 0; i < endpoint->config.fragment_reassembly_buffer_size; ++i )
+    {
+        struct reliable_fragment_reassembly_data_t * reassembly_data = reliable_sequence_buffer_at_index( endpoint->fragment_reassembly, i );
+        if ( reassembly_data && reassembly_data->packet_data )
+        {
+            free( reassembly_data->packet_data );
+            reassembly_data->packet_data = NULL;
+        }
+    }
+
+    reliable_sequence_buffer_reset( endpoint->sent_packets );
+    reliable_sequence_buffer_reset( endpoint->received_packets );
+    reliable_sequence_buffer_reset( endpoint->fragment_reassembly );
 }
 
 void reliable_endpoint_update( struct reliable_endpoint_t * endpoint )
