@@ -1194,15 +1194,15 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     {
         PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence );
 
-        for ( int channelId = 0; channelId < NumChannels; ++channelId )
+        for ( int channelIndex = 0; channelIndex < NumChannels; ++channelIndex )
         {
             while ( true )
             {
-                Message * message = receiver.ReceiveMessage( channelId );
+                Message * message = receiver.ReceiveMessage( channelIndex );
                 if ( !message )
                     break;
 
-                check( message->GetId() == (int) numMessagesReceived[channelId] );
+                check( message->GetId() == (int) numMessagesReceived[channelIndex] );
 
                 switch ( message->GetType() )
                 {
@@ -1210,9 +1210,9 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                     {
                         TestMessage * testMessage = (TestMessage*) message;
 
-                        check( testMessage->sequence == uint16_t( numMessagesReceived[channelId] ) );
+                        check( testMessage->sequence == uint16_t( numMessagesReceived[channelIndex] ) );
 
-                        ++numMessagesReceived[channelId];
+                        ++numMessagesReceived[channelIndex];
                     }
                     break;
 
@@ -1220,11 +1220,11 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                     {
                         TestBlockMessage * blockMessage = (TestBlockMessage*) message;
 
-                        check( blockMessage->sequence == uint16_t( numMessagesReceived[channelId] ) );
+                        check( blockMessage->sequence == uint16_t( numMessagesReceived[channelIndex] ) );
 
                         const int blockSize = blockMessage->GetBlockSize();
 
-                        check( blockSize == 1 + ( ( numMessagesReceived[channelId] * 901 ) % 3333 ) );
+                        check( blockSize == 1 + ( ( numMessagesReceived[channelIndex] * 901 ) % 3333 ) );
             
                         const uint8_t * blockData = blockMessage->GetBlockData();
 
@@ -1232,10 +1232,10 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
                         for ( int j = 0; j < blockSize; ++j )
                         {
-                            check( blockData[j] == uint8_t( numMessagesReceived[channelId] + j ) );
+                            check( blockData[j] == uint8_t( numMessagesReceived[channelIndex] + j ) );
                         }
 
-                        ++numMessagesReceived[channelId];
+                        ++numMessagesReceived[channelIndex];
                     }
                     break;
                 }
@@ -1246,9 +1246,9 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
         bool receivedAllMessages = true;
 
-        for ( int channelId = 0; channelId < NumChannels; ++channelId )
+        for ( int channelIndex = 0; channelIndex < NumChannels; ++channelIndex )
         {
-            if ( numMessagesReceived[channelId] != NumMessagesSent )
+            if ( numMessagesReceived[channelIndex] != NumMessagesSent )
             {
                 receivedAllMessages = false;
                 break;
@@ -1259,9 +1259,9 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
             break;
     }
 
-    for ( int channelId = 0; channelId < NumChannels; ++channelId )
+    for ( int channelIndex = 0; channelIndex < NumChannels; ++channelIndex )
     {
-        check( numMessagesReceived[channelId] == NumMessagesSent );
+        check( numMessagesReceived[channelIndex] == NumMessagesSent );
     }
 }
 

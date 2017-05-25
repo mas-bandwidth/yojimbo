@@ -30,8 +30,7 @@ namespace yojimbo
 {
     void ChannelPacketData::Initialize()
     {
-        // todo: uniformly rename channelId to channelIndex
-        channelId = 0;
+        channelIndex = 0;
         blockMessage = 0;
         messageFailedToSerialize = 0;
         message.numMessages = 0;
@@ -350,11 +349,11 @@ namespace yojimbo
 #endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
 
         if ( numChannels > 1 )
-            serialize_int( stream, channelId, 0, numChannels - 1 );
+            serialize_int( stream, channelIndex, 0, numChannels - 1 );
         else
-            channelId = 0;
+            channelIndex = 0;
 
-        const ChannelConfig & channelConfig = channelConfigs[channelId];
+        const ChannelConfig & channelConfig = channelConfigs[channelIndex];
 
         serialize_bool( stream, blockMessage );
 
@@ -421,12 +420,12 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------------
 
-    Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) : m_config( config )
+    Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex ) : m_config( config )
     {
-        assert( channelId >= 0 );
-        assert( channelId < MaxChannels );
+        assert( channelIndex >= 0 );
+        assert( channelIndex < MaxChannels );
 
-        m_channelId = channelId;
+        m_channelIndex = channelIndex;
 
         m_allocator = &allocator;
 
@@ -453,9 +452,9 @@ namespace yojimbo
         memset( m_counters, 0, sizeof( m_counters ) ); 
     }
 
-    int Channel::GetChannelId() const 
+    int Channel::GetChannelIndex() const 
     { 
-        return m_channelId;
+        return m_channelIndex;
     }
 
     void Channel::SetErrorLevel( ChannelErrorLevel errorLevel )
@@ -474,7 +473,7 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------------
 
-    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) : Channel( allocator, messageFactory, config, channelId )
+    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex ) : Channel( allocator, messageFactory, config, channelIndex )
     {
         assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
 
@@ -790,7 +789,7 @@ namespace yojimbo
 
         packetData.Initialize();
 
-        packetData.channelId = GetChannelId();
+        packetData.channelIndex = GetChannelIndex();
         
         packetData.message.numMessages = numMessageIds;
         
@@ -1052,7 +1051,7 @@ namespace yojimbo
     {
         packetData.Initialize();
 
-        packetData.channelId = GetChannelId();
+        packetData.channelIndex = GetChannelIndex();
 
         packetData.blockMessage = 1;
 
@@ -1223,7 +1222,7 @@ namespace yojimbo
 
     // ------------------------------------------------
 
-    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId ) : Channel( allocator, messageFactory, config, channelId )
+    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex ) : Channel( allocator, messageFactory, config, channelIndex )
     {
         assert( config.type == CHANNEL_TYPE_UNRELIABLE_UNORDERED );
 
@@ -1388,7 +1387,7 @@ namespace yojimbo
 
         packetData.Initialize();
 
-        packetData.channelId = GetChannelId();
+        packetData.channelIndex = GetChannelIndex();
 
         packetData.message.numMessages = numMessages;
 

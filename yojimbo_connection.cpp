@@ -137,16 +137,16 @@ namespace yojimbo
         memset( m_channel, 0, sizeof( m_channel ) );
         assert( m_connectionConfig.numChannels >= 1 );
         assert( m_connectionConfig.numChannels <= MaxChannels );
-        for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+        for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
         {
-            switch ( m_connectionConfig.channel[channelId].type )
+            switch ( m_connectionConfig.channel[channelIndex].type )
             {
                 case CHANNEL_TYPE_RELIABLE_ORDERED: 
-                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelId], channelId ); 
+                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex ); 
                     break;
 
                 case CHANNEL_TYPE_UNRELIABLE_UNORDERED: 
-                    m_channel[channelId] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelId], channelId ); 
+                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex ); 
                     break;
                 // todo: unreliable ordered channel
                 default: 
@@ -242,9 +242,9 @@ namespace yojimbo
 
             availableBits -= ConservativeConnectionPacketHeaderEstimate;
 
-            for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+            for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
             {
-                int packetDataBits = m_channel[channelId]->GetPacketData( channelData[channelId], packetSequence, availableBits );
+                int packetDataBits = m_channel[channelIndex]->GetPacketData( channelData[channelIndex], packetSequence, availableBits );
 
                 if ( packetDataBits > 0 )
                 {
@@ -252,7 +252,7 @@ namespace yojimbo
 
                     availableBits -= packetDataBits;
 
-                    channelHasData[channelId] = true;
+                    channelHasData[channelIndex] = true;
 
                     numChannelsWithData++;
                 }
@@ -268,11 +268,11 @@ namespace yojimbo
 
                 int index = 0;
 
-                for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+                for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
                 {
-                    if ( channelHasData[channelId] )
+                    if ( channelHasData[channelIndex] )
                     {
-                        memcpy( &packet.channelEntry[index], &channelData[channelId], sizeof( ChannelPacketData ) );
+                        memcpy( &packet.channelEntry[index], &channelData[channelIndex], sizeof( ChannelPacketData ) );
                         index++;
                     }
                 }
@@ -324,11 +324,11 @@ namespace yojimbo
         }
         for ( int i = 0; i < packet.numChannelEntries; ++i )
         {
-            const int channelId = packet.channelEntry[i].channelId;
-            assert( channelId >= 0 );
-            assert( channelId <= m_connectionConfig.numChannels );
-            m_channel[channelId]->ProcessPacketData( packet.channelEntry[i], packetSequence );
-            if ( m_channel[channelId]->GetErrorLevel() != CHANNEL_ERROR_NONE )
+            const int channelIndex = packet.channelEntry[i].channelIndex;
+            assert( channelIndex >= 0 );
+            assert( channelIndex <= m_connectionConfig.numChannels );
+            m_channel[channelIndex]->ProcessPacketData( packet.channelEntry[i], packetSequence );
+            if ( m_channel[channelIndex]->GetErrorLevel() != CHANNEL_ERROR_NONE )
                 return false;
         }
 
@@ -339,9 +339,9 @@ namespace yojimbo
     {
         for ( int i = 0; i < numAcks; ++i )
         {
-            for ( int channelId = 0; channelId < m_connectionConfig.numChannels; ++channelId )
+            for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
             {
-                m_channel[channelId]->ProcessAck( acks[i] );
+                m_channel[channelIndex]->ProcessAck( acks[i] );
             }
         }
     }

@@ -39,7 +39,7 @@ namespace yojimbo
 {
     struct ChannelPacketData
     {
-        uint32_t channelId : 16;
+        uint32_t channelIndex : 16;
         uint32_t initialized : 1;
         uint32_t blockMessage : 1;
         uint32_t messageFailedToSerialize : 1;
@@ -167,7 +167,7 @@ namespace yojimbo
             Channel constructor.
          */
 
-        Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+        Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex );
 
         /**
             Channel destructor.
@@ -273,12 +273,12 @@ namespace yojimbo
         ChannelErrorLevel GetErrorLevel() const;
 
         /** 
-            Gets the channel id.
+            Gets the channel index.
 
-            @returns The channel id in [0,numChannels-1].
+            @returns The channel index in [0,numChannels-1].
          */
 
-        int GetChannelId() const;
+        int GetChannelIndex() const;
 
         /**
             Get a counter value.
@@ -315,7 +315,7 @@ namespace yojimbo
 
         Allocator * m_allocator;                                                        ///< Allocator for allocations matching life cycle of this channel.
 
-        int m_channelId;                                                                ///< The channel id in [0,numChannels-1].
+        int m_channelIndex;                                                             ///< The channel index in [0,numChannels-1].
 
         double m_time;                                                                  ///< The current time.
         
@@ -350,10 +350,10 @@ namespace yojimbo
             @param allocator The allocator to use.
             @param messageFactory Message factory for creating and destroying messages.
             @param config The configuration for this channel.
-            @param channelId The channel id in [0,numChannels-1].
+            @param channelIndex The channel index in [0,numChannels-1].
          */
 
-        ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+        ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex );
 
         /**
             Reliable ordered channel destructor.
@@ -729,10 +729,10 @@ namespace yojimbo
             @param allocator The allocator to use.
             @param messageFactory Message factory for creating and destroying messages.
             @param config The configuration for this channel.
-            @param channelId The channel id in [0,numChannels-1].
+            @param channelIndex The channel index in [0,numChannels-1].
          */
 
-        UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelId );
+        UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex );
 
         /**
             Unreliable unordered channel destructor.
