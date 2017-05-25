@@ -619,7 +619,7 @@ namespace yojimbo
             assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
         }
 
-        MeasureStream measureStream( GetDefaultAllocator() );
+        MeasureStream measureStream( m_messageFactory->GetAllocator() );
 
         message->SerializeInternal( measureStream );
 
@@ -1355,7 +1355,7 @@ namespace yojimbo
 
             assert( message );
 
-            MeasureStream measureStream( GetDefaultAllocator() );
+            MeasureStream measureStream( m_messageFactory->GetAllocator() );
 
             message->SerializeInternal( measureStream );
 
