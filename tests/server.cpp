@@ -72,7 +72,7 @@ int ServerMain()
         if ( !server.IsRunning() )
             break;
 
-        platform_sleep( deltaTime );
+        yojimbo_sleep( deltaTime );
     }
 
     server.Stop();

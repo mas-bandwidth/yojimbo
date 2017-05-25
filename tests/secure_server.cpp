@@ -22,17 +22,14 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "shared.h"
+#include "yojimbo.h"
+#include "netcode.h"
 #include <signal.h>
+#include <time.h>
 
-/*
-uint8_t private_key[KeyBytes] = { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea, 
-                                  0x9a, 0x65, 0x62, 0xf6, 0x6f, 0x2b, 0x30, 0xe4, 
-                                  0x43, 0x71, 0xd6, 0x2c, 0xd1, 0x99, 0x27, 0x26,
-                                  0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1 };
-*/
+#include "shared.h"
 
-#if 0 // TODO
+using namespace yojimbo;
 
 static volatile int quit = 0;
 
@@ -43,27 +40,20 @@ void interrupt_handler( int /*dummy*/ )
 
 int ServerMain()
 {
-    printf( "started secure server on port %d\n", ServerPort );
-
-    Address serverBindAddress( "0.0.0.0", ServerPort );
-
-    Address serverPublicAddress( "127.0.0.1", ServerPort );
+    printf( "started server on port %d\n", ServerPort );
 
     double time = 100.0;
 
-    NetworkTransport serverTransport( GetDefaultAllocator(), serverBindAddress, ProtocolId, time );
+    ClientServerConfig config;
 
-    if ( serverTransport.GetError() != SOCKET_ERROR_NONE )
-    {
-        printf( "error: failed to initialize server socket\n" );
-        return 1;
-    }
-    
-    GameServer server( GetDefaultAllocator(), serverTransport, ClientServerConfig(), time );
+    uint8_t privateKey[KeyBytes] = { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea, 
+                                     0x9a, 0x65, 0x62, 0xf6, 0x6f, 0x2b, 0x30, 0xe4, 
+                                     0x43, 0x71, 0xd6, 0x2c, 0xd1, 0x99, 0x27, 0x26,
+                                     0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1 };
 
-    server.SetServerAddress( serverPublicAddress );
+    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, time );
 
-    server.Start();
+    server.Start( MaxClients );
 
     const double deltaTime = 0.1;
 
@@ -73,24 +63,17 @@ int ServerMain()
     {
         server.SendPackets();
 
-        serverTransport.WritePackets();
-
-        serverTransport.ReadPackets();
-
         server.ReceivePackets();
-
-        server.CheckForTimeOut();
 
         time += deltaTime;
 
         server.AdvanceTime( time );
 
-        serverTransport.AdvanceTime( time );
+        if ( !server.IsRunning() )
+            break;
 
-        platform_sleep( deltaTime );
+        yojimbo_sleep( deltaTime );
     }
-
-    printf( "\nserver stopped\n" );
 
     server.Stop();
 
@@ -107,6 +90,8 @@ int main()
         return 1;
     }
 
+    netcode_log_level( NETCODE_LOG_LEVEL_INFO );
+
     srand( (unsigned int) time( NULL ) );
 
     int result = ServerMain();
@@ -116,14 +101,4 @@ int main()
     printf( "\n" );
 
     return result;
-}
-
-#endif
-
-int main( int argc, char * argv[] )
-{
-    (void)argc;
-    (void)argv;
-    printf( "\nsecure server\n\n" );
-    return 0;
 }

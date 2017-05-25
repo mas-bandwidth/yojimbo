@@ -6,6 +6,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_channel.h"
+#include "yojimbo_platform.h"
 #include "yojimbo_allocator.h"
 
 namespace yojimbo
@@ -697,13 +698,13 @@ namespace yojimbo
         numMessageIds = 0;
 
         if ( m_config.packetBudget > 0 )
-            availableBits = min( m_config.packetBudget * 8, availableBits );
+            availableBits = yojimbo_min( m_config.packetBudget * 8, availableBits );
 
         const int giveUpBits = 4 * 8;
 
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
-        const int messageLimit = min( m_config.sendQueueSize, m_config.receiveQueueSize );
+        const int messageLimit = yojimbo_min( m_config.sendQueueSize, m_config.receiveQueueSize );
 
         uint16_t previousMessageId = 0;
 
@@ -1324,7 +1325,7 @@ namespace yojimbo
             return 0;
 
         if ( m_config.packetBudget > 0 )
-            availableBits = min( m_config.packetBudget * 8, availableBits );
+            availableBits = yojimbo_min( m_config.packetBudget * 8, availableBits );
 
         const int giveUpBits = 4 * 8;
 

@@ -4,8 +4,8 @@
     Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 */
 
-#ifndef YOJIMBO_COMMON_H
-#define YOJIMBO_COMMON_H
+#ifndef YOJIMBO_UTILITY_H
+#define YOJIMBO_UTILITY_H
 
 #include "yojimbo_config.h"
 #include "yojimbo_allocator.h"
@@ -66,89 +66,6 @@ namespace yojimbo
         float diff = b - a;
         float r = random * diff;
         return a + r;
-    }
-
-    #ifndef min
-
-    /**
-        Template function to get the minimum of two values.
-
-        @param a The first value.
-        @param b The second value.
-
-        @returns The minimum of a and b.
-     */
-
-    template <typename T> const T & min( const T & a, const T & b )
-    {
-        return ( a < b ) ? a : b;
-    }
-
-    #endif // #ifndef min
-
-    #ifndef max
-
-    /**
-        Template function to get the maximum of two values.
-
-        @param a The first value.
-        @param b The second value.
-
-        @returns The maximum of a and b.
-     */
-
-    template <typename T> const T & max( const T & a, const T & b )
-    {
-        return ( a > b ) ? a : b;
-    }
-
-    #endif // #ifndef max
-
-    /**
-        Template function to clamp a value.
-
-        @param value The value to be clamped.
-        @param a The minimum value.
-        @param b The minimum value.
-
-        @returns The clamped value in [a,b].
-     */
-
-    template <typename T> T clamp( const T & value, const T & a, const T & b )
-    {
-        if ( value < a )
-            return a;
-        else if ( value > b )
-            return b;
-        else
-            return value;
-    }
-
-    /**
-        Swaps two values.
-
-        @param a First value.
-        @param b Second value.
-     */
-
-    template <typename T> void swap( T & a, T & b )
-    {
-        T tmp = a;
-        a = b;
-        b = tmp;
-    };
-
-    /**
-        Get the absolute value.
-
-        @param value The input value.
-
-        @returns The absolute value.
-     */
-
-    template <typename T> T abs( const T & value )
-    {
-        return ( value < 0 ) ? -value : value;
     }
 
     /**
@@ -1085,4 +1002,4 @@ namespace yojimbo
     };
 }
 
-#endif // #ifndef YOJIMBO_COMMON_H
+#endif // #ifndef YOJIMBO_UTILITY_H

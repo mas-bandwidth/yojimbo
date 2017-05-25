@@ -8,9 +8,9 @@
 #define YOJIMBO_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_common.h"
 #include "yojimbo_message.h"
 #include "yojimbo_matcher.h"
+#include "yojimbo_utility.h"
 #include "yojimbo_platform.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_client.h"

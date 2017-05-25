@@ -5,7 +5,7 @@
 */
 
 #include "yojimbo_config.h"
-#include "yojimbo_common.h"
+#include "yojimbo_utility.h"
 #ifdef _MSC_VER
 #include <malloc.h>
 #endif // #ifdef _MSC_VER

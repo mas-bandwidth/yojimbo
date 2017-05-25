@@ -94,7 +94,7 @@ int ClientServerMain()
 
         server.AdvanceTime( time );
 
-        platform_sleep( deltaTime );
+        yojimbo_sleep( deltaTime );
     }
 
     client.Disconnect();

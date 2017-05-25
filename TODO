@@ -1,57 +1,44 @@
 DONE    
 
+    Support for different client/server implementations
+
+    Client/server implementation built on top of reliable.io and netcode.io
+
+    Packet fragmentation and re-assembly support from reliable.io
+
+    Better implementation of connect tokens via netcode.io
+
 TODO
 
-    Tear down yojimbo so I can rebuild it on top of netcode.io and reliable.io
+    Port across secure_server to new API.
 
-    What parts definitely go? 
+    Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
 
-        - Transport classes. 
+    Make sure the golang web server implementation doesn't leak memory (for example, it needs to be updated with the close wrapper).
 
-        - Socket classes etc. 
+    Bring across the C++ matcher implementation again, and upgrade it to use the new connect tokens from netcode.io
 
-        - Connection class w. ack system.
+    Port across secure_client to new API.
 
-        - Packet class. Packet factory.
+    Bring across packet loss, latency, jitter estimates from reliable.io
 
-        - Connect token, challenge token etc.
+    Congestion adoidance in reliable.io (if reasonably possible given that user is in control of packet sizes...)
 
-        - Client/server packet types and negotiation sequence.
+    Unreliable, ordered channel in yojimbo. Simply keep track of the most recently received message id, and discard any messages older than that.
 
-        - Encryption manager.
+    Extend soak test to have unreliable, unordered channel, and to make sure it exercises packet fragmentation and reassembly codepath.
 
-        - Dependency on rapidjson.
+    Extend yojimbo to have detailed logging support, eg. log levels (none, error, info, debug), as well as different modules that can have logging enabled/disabled.
 
-        - Network simulator. netcode.io provides the transport, and the simulator support internally as required.
+    Extend netcode.io so it can have an overriden logging callback function.
 
-        - Replay protection. Provided by netcode.io.
+    Extend reliable.io so it can have an overriden assert callback function.
 
-        - Packet processor.
+    Extend netcode.io so the user can set a custom allocator to use for client and server allocations.
 
-        - Code for CRC32. We don't need it.
+    Extend reliable.io so the user can set a custom allocator to use for endpoints.
 
-    What stays? 
+    Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
 
-        - Client/server (although refactored heavily!) ----> ClientInterface/ServerInterface, BaseClient/BaseServer, Client/Server.
+    Extend netcode.io and reliable.io to minimize packet copying, eg. assume packet is prefixed with available padding in front for headers.
 
-        - Message class. Message factory.
-
-        - Stream classes, bitpacker, serialize functions etc.
-
-        - Channel concept, reliable/unreliable channel types.
-
-        - Address class, for convenience only.
-
-    What is added?
-
-        - Support for different client/server implementations
-
-        - Packet fragmentation and re-assembly from reliable.io
-
-        - Packet loss, latency, jitter estimates from reliable.io
-
-        - Congestion adoidance notification (if possible...)
-
-        - Better implementation of connect tokens via netcode.io
-
-        - Support for unreliable ordered channel type

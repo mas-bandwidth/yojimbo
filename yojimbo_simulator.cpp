@@ -6,6 +6,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_simulator.h"
+#include "yojimbo_platform.h"
 
 namespace yojimbo
 {
@@ -131,7 +132,7 @@ namespace yojimbo
 
         int numPackets = 0;
 
-        for ( int i = 0; i < min( m_numPacketEntries, maxPackets ); ++i )
+        for ( int i = 0; i < yojimbo_min( m_numPacketEntries, maxPackets ); ++i )
         {
             if ( !m_packetEntries[i].packetData )
                 continue;

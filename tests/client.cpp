@@ -95,7 +95,7 @@ int ClientMain( int argc, char * argv[] )
         if ( client.ConnectionFailed() )
             break;
 
-        platform_sleep( deltaTime );    
+        yojimbo_sleep( deltaTime );    
     }
 
     client.Disconnect();

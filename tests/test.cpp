@@ -1434,7 +1434,7 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
     for ( int i = 0; i < numServers; ++i )
         server[i]->AdvanceTime( time );
 
-    platform_sleep( 0.0f );
+    yojimbo_sleep( 0.0f );
 }
 
 void SendClientToServerMessages( Client & client, int numMessagesToSend, int channelIndex = 0 )

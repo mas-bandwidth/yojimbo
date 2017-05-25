@@ -47,15 +47,19 @@ This release will extend the internal UDP-based network protocol to support:
 
 Completed, but moved immediately on to documentation and finalizing the API. Expect a new 0.4.0 release shortly.
 
-## 0.4.0 - Document and finalize API (current)
+## 0.4.0 - Document and finalize API
 
 Document the API with doxygen. Review and finalize all APIs where possible. Security audit and check.
 
-In progress. Estimate, aprox. 75% complete as of 12/26/2016.
+## 0.5.0 - Refactor (current)
 
-## 0.5.0 - Snapshots
+Rebuild yojimbo on top of netcode.io and reliable.io
 
-Add support for sending large messages across the unreliable-unordered channel, as required for a snapshot based system with delta encoding as used by first person shooters.
+Add support for packet fragmentation and re-assembly.
+
+Add support for packet loss and round trip time estimates.
+
+Estimate: 75% complete
 
 ## 0.6.0 - Matchmaker
 

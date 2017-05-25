@@ -8,7 +8,7 @@
 #define YOJIMBO_SIMULATOR_H
 
 #include "yojimbo_config.h"
-#include "yojimbo_common.h"
+#include "yojimbo_utility.h"
 #include "yojimbo_allocator.h"
 
 /** @file */

@@ -18,33 +18,30 @@
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 
-namespace yojimbo
+void yojimbo_sleep( double time )
 {
-    void platform_sleep( double time )
+    usleep( (int) ( time * 1000000 ) );
+}
+
+double yojimbo_time()
+{
+    static uint64_t start = 0;
+
+    static mach_timebase_info_data_t timebase_info;
+
+    if ( start == 0 )
     {
-        usleep( (int) ( time * 1000000 ) );
+        mach_timebase_info( &timebase_info );
+        start = mach_absolute_time();
+        return 0.0;
     }
 
-    double platform_time()
-    {
-        static uint64_t start = 0;
+    uint64_t current = mach_absolute_time();
 
-        static mach_timebase_info_data_t timebase_info;
+    if ( current < start )
+        current = start;
 
-        if ( start == 0 )
-        {
-            mach_timebase_info( &timebase_info );
-            start = mach_absolute_time();
-            return 0.0;
-        }
-
-        uint64_t current = mach_absolute_time();
-
-        if ( current < start )
-            current = start;
-
-        return ( double( current - start ) * double( timebase_info.numer ) / double( timebase_info.denom ) ) / 1000000000.0;
-    }
+    return ( double( current - start ) * double( timebase_info.numer ) / double( timebase_info.denom ) ) / 1000000000.0;
 }
 
 #elif __linux
@@ -56,32 +53,29 @@ namespace yojimbo
 #include <unistd.h>
 #include <time.h>
 
-namespace yojimbo
+void yojimbo_sleep( double time )
 {
-    void platform_sleep( double time )
+    usleep( (int) ( time * 1000000 ) );
+}
+
+double yojimbo_time()
+{
+    static double start = -1;
+
+    if ( start == -1 )
     {
-        usleep( (int) ( time * 1000000 ) );
-    }
-
-    double platform_time()
-    {
-        static double start = -1;
-
-        if ( start == -1 )
-        {
-            timespec ts;
-            clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
-            start = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
-            return 0.0;
-        }
-
         timespec ts;
         clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
-        double current = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
-        if ( current < start )
-            current = start;
-        return current - start;
+        start = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
+        return 0.0;
     }
+
+    timespec ts;
+    clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+    double current = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
+    if ( current < start )
+        current = start;
+    return current - start;
 }
 
 #elif defined(_WIN32)
@@ -93,32 +87,29 @@ namespace yojimbo
 #define NOMINMAX
 #include <windows.h>
 
-namespace yojimbo
+void yojimbo_sleep( double time )
 {
-    void platform_sleep( double time )
-    {
-        const int milliseconds = time * 1000;
-        Sleep( milliseconds );
-    }
+    const int milliseconds = time * 1000;
+    Sleep( milliseconds );
+}
 
-    static bool timer_initialized = false;
-    static LARGE_INTEGER timer_frequency;
-    static LARGE_INTEGER timer_start;
+static bool timer_initialized = false;
+static LARGE_INTEGER timer_frequency;
+static LARGE_INTEGER timer_start;
 
-    double platform_time()
+double yojimbo_time()
+{
+    if ( !timer_initialized )
     {
-        if ( !timer_initialized )
-        {
-            QueryPerformanceFrequency( &timer_frequency );
-            QueryPerformanceCounter( &timer_start );
-            timer_initialized = true;
-        }
-        LARGE_INTEGER now;
-        QueryPerformanceCounter( &now );
-        if ( now.QuadPart < timer_start.QuadPart )
-            now.QuadPart = timer_start.QuadPart;
-        return double( now.QuadPart - timer_start.QuadPart ) / double( timer_frequency.QuadPart );
+        QueryPerformanceFrequency( &timer_frequency );
+        QueryPerformanceCounter( &timer_start );
+        timer_initialized = true;
     }
+    LARGE_INTEGER now;
+    QueryPerformanceCounter( &now );
+    if ( now.QuadPart < timer_start.QuadPart )
+        now.QuadPart = timer_start.QuadPart;
+    return double( now.QuadPart - timer_start.QuadPart ) / double( timer_frequency.QuadPart );
 }
 
 #else
