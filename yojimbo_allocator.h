@@ -260,9 +260,6 @@ namespace yojimbo
 
         void Free( void * p, const char * file, int line );
 
-        // todo: hack
-        const char * GetType() const { return "DefaultAllocator"; }
-
     private:
 
         DefaultAllocator( const DefaultAllocator & other );

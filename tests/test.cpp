@@ -2078,50 +2078,43 @@ void test_client_server_message_exhaust_stream_allocator()
     server.Stop();
 }
 
-#if 0
 void test_client_server_message_receive_queue_full()
 {
-    GenerateKey( private_key );
-
     const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
     double time = 100.0;
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
-
-    ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    clientServerConfig.connectionConfig.channel[0].fragmentSize = 200;
-    clientServerConfig.connectionConfig.channel[0].sendQueueSize = 1024;
-    clientServerConfig.connectionConfig.channel[0].receiveQueueSize = 16;         // note: tiny receive queue
-
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
-
-    server.SetServerAddress( serverAddress );
+    ClientServerConfig config;
+    config.maxPacketSize = 256;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1024;
+    config.channel[0].fragmentSize = 200;
+    config.channel[0].sendQueueSize = 1024;
+    config.channel[0].receiveQueueSize = 16;         // note: tiny receive queue
     
-    server.Start();
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
 
-    ConnectClient( client, clientId, serverAddress );
+    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
 
-    while ( true )
+    server.Start( MaxClients );
+
+    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    const int NumIterations = 10000;
+
+    for ( int i = 0; i < NumIterations; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
-
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
         {
@@ -2133,7 +2126,11 @@ void test_client_server_message_receive_queue_full()
             break;
     }
 
-    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+    check( client.GetClientIndex() == 0 );
+    check( server.IsClientConnected(0) );
 
     const int NumMessagesSent = 64;
 
@@ -2144,15 +2141,12 @@ void test_client_server_message_receive_queue_full()
     int numMessagesReceivedFromClient = 0;
     int numMessagesReceivedFromServer = 0;
 
-    const int NumIterations = 10000;
-
     for ( int i = 0; i < NumIterations; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
-
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
 
@@ -2169,8 +2163,6 @@ void test_client_server_message_receive_queue_full()
 
     server.Stop();
 }
-
-#endif
 
 #define RUN_TEST( test_function )                                           \
     do                                                                      \
@@ -2245,11 +2237,7 @@ int main()
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
-        /*
         RUN_TEST( test_client_server_message_receive_queue_full );
-        */
-
-        // todo: probably want a new test that picks up send queue full, but not receiving messages works without flooding message recv queue
 
 #if SOAK
         if ( quit )
