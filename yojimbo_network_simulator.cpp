@@ -23,6 +23,7 @@
 */
 
 #include "yojimbo_config.h"
+#include "yojimbo_platform.h"
 #include "yojimbo_network_simulator.h"
 
 namespace yojimbo
@@ -198,7 +199,7 @@ namespace yojimbo
     {
         int numPackets = 0;
 
-        for ( int i = 0; i < min( maxPackets, m_numPendingReceivePackets ); ++i )
+        for ( int i = 0; i < yojimbo_min( maxPackets, m_numPendingReceivePackets ); ++i )
         {
             if ( !m_pendingReceivePackets[i].packetData )
                 continue;
@@ -220,7 +221,7 @@ namespace yojimbo
     {
         int numPackets = 0;
 
-        for ( int i = 0; i < min( maxPackets, m_numPendingReceivePackets ); ++i )
+        for ( int i = 0; i < yojimbo_min( maxPackets, m_numPendingReceivePackets ); ++i )
         {
             if ( !m_pendingReceivePackets[i].packetData )
                 continue;

@@ -348,7 +348,7 @@ int ProfileMain()
         for ( int i = 0; i < MaxClients; ++i )
             clientData[i].transport->AdvanceTime( time );
 
-        platform_sleep( 0.1 );
+        yojimbo_sleep( 0.1 );
     }
 
     if ( quit )

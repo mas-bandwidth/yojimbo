@@ -87,7 +87,7 @@ int ServerMain()
 
         serverTransport.AdvanceTime( time );
 
-        platform_sleep( deltaTime );
+        yojimbo_sleep( deltaTime );
     }
 
     printf( "\nserver stopped\n" );
