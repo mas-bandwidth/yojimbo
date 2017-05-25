@@ -1577,8 +1577,6 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
     }
 }
 
-// todo: this is not working yet under packet loss
-/*
 void test_client_server_messages()
 {
     const uint64_t clientId = 1;
@@ -1597,7 +1595,10 @@ void test_client_server_messages()
 
     Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
 
-    Server server( GetDefaultAllocator(), private_key, Address( "::1", ServerPort ), config, adapter, time );
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
 
     server.Start( MaxClients );
 
@@ -1611,15 +1612,11 @@ void test_client_server_messages()
     server.SetPacketLoss( 25 );
     server.SetDuplicates( 25 );
     
-    for ( int iteration = 0; iteration < 10; ++iteration )
+    for ( int iteration = 0; iteration < 2; ++iteration )
     {
-        printf( "iteration %d\n", iteration );
+        client.InsecureConnect( privateKey, clientId, serverAddress );
 
-        client.InsecureConnect( private_key, clientId, serverAddress );
-
-        printf( "a\n" );
-
-        const int NumIterations = 100000;
+        const int NumIterations = 10000;
 
         for ( int i = 0; i < NumIterations; ++i )
         {
@@ -1653,8 +1650,6 @@ void test_client_server_messages()
         int numMessagesReceivedFromClient = 0;
         int numMessagesReceivedFromServer = 0;
 
-        printf( "b\n" );
-
         for ( int i = 0; i < NumIterations; ++i )
         {
             Client * clients[] = { &client };
@@ -1666,8 +1661,6 @@ void test_client_server_messages()
 
             ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
 
-//            printf( "%d|%d\n", numMessagesReceivedFromClient, numMessagesReceivedFromServer );
-
             if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
                 break;
         }
@@ -1676,8 +1669,6 @@ void test_client_server_messages()
         check( numMessagesReceivedFromServer == NumMessagesSent );
 
         client.Disconnect();
-
-        printf( "c\n" );
 
         for ( int i = 0; i < NumIterations; ++i )
         {
@@ -1695,7 +1686,6 @@ void test_client_server_messages()
 
     server.Stop();
 }
-*/
 
 #if 0 // todo
 
@@ -2160,8 +2150,7 @@ int main()
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
 
-        // todo: something is wrong with client/server messages under packet loss
-        //RUN_TEST( test_client_server_messages );
+        RUN_TEST( test_client_server_messages );
         /*
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );

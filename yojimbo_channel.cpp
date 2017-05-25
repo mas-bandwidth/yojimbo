@@ -460,8 +460,6 @@ namespace yojimbo
 
     void Channel::SetErrorLevel( ChannelErrorLevel errorLevel )
     {
-        // todo
-        printf( "Channel::SetErrorLevel %d\n", errorLevel );
         if ( errorLevel != m_errorLevel && errorLevel != CHANNEL_ERROR_NONE )
         {
             debug_printf( "channel error: %s\n", GetChannelErrorString( errorLevel ) );
@@ -524,9 +522,6 @@ namespace yojimbo
 
     void ReliableOrderedChannel::Reset()
     {
-        // todo
-        printf( "ReliableOrderedChannel::Reset\n" );
-
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
         m_time = 0.0;
@@ -1249,9 +1244,6 @@ namespace yojimbo
 
     void UnreliableUnorderedChannel::Reset()
     {
-        // todo
-        printf( "UnreliableUnorderedChannel::Reset\n" );
-
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
         for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )

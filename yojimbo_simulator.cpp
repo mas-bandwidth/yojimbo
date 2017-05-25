@@ -175,12 +175,21 @@ namespace yojimbo
         for ( int i = 0; i < m_numPacketEntries; ++i )
         {
             PacketEntry & packetEntry = m_packetEntries[i];
-
             if ( !packetEntry.packetData )
                 continue;
-
             YOJIMBO_FREE( *m_allocator, packetEntry.packetData );
+            packetEntry = PacketEntry();
+        }
+    }
 
+    void NetworkSimulator::DiscardClientPackets( int clientIndex )
+    {
+        for ( int i = 0; i < m_numPacketEntries; ++i )
+        {
+            PacketEntry & packetEntry = m_packetEntries[i];
+            if ( !packetEntry.packetData || packetEntry.to != clientIndex )
+                continue;
+            YOJIMBO_FREE( *m_allocator, packetEntry.packetData );
             packetEntry = PacketEntry();
         }
     }

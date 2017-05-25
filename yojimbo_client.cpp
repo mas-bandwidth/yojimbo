@@ -138,6 +138,7 @@ namespace yojimbo
         m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
         m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
         m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, m_config );
+        assert( m_connection );
         if ( m_config.networkSimulator )
         {
             m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets );

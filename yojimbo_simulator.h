@@ -153,6 +153,14 @@ namespace yojimbo
         void DiscardPackets();
 
         /**
+            Discard packets sent to a particular client index.
+
+            This is called when a client disconnects from the server.
+         */
+
+        void DiscardClientPackets( int clientIndex );
+
+        /**
             Advance network simulator time.
 
             You must pump this regularly otherwise the network simulator won't work.

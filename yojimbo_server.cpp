@@ -137,8 +137,7 @@ namespace yojimbo
                 {
                     if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
                     {
-                        printf( "error level[%d] = %d\n", i, m_clientConnection[i]->GetErrorLevel() );
-                        printf( "connection error for client %d. disconnecting client\n", i );
+                        debug_printf( "client %d connection is in error state. disconnecting client\n", i );
                         DisconnectClient( i );
                         continue;
                     }
@@ -340,8 +339,6 @@ namespace yojimbo
 
     void Server::DisconnectClient( int clientIndex )
     {
-        // todo
-        printf( "Server::DisconnectClient\n" );
         assert( m_server );
         netcode_server_disconnect_client( m_server, clientIndex );
     }
@@ -376,8 +373,6 @@ namespace yojimbo
 
     void Server::ReceivePackets()
     {
-        // todo
-        printf( "\nServer::ReceivePackets\n" );
         if ( m_server )
         {
             const int maxClients = GetMaxClients();
@@ -395,7 +390,6 @@ namespace yojimbo
                 }
             }
         }
-        printf( "Server::ReceivePackets (end)\n\n" );
     }
 
     void Server::AdvanceTime( double time )
@@ -446,20 +440,20 @@ namespace yojimbo
 
     int Server::ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
-        // todo
-        printf( "Server::ProcessPacketFunction | clientIndex = %d\n", clientIndex );
         return (int) GetClientConnection(clientIndex).ProcessPacket( GetContext(), packetSequence, packetData, packetBytes );
     }
 
     void Server::ConnectDisconnectCallbackFunction( int clientIndex, int connected )
     {
-        printf( "Server::ConnectDisconnectCallbackFunction | clientIndex = %d, connected = %d\n", clientIndex, connected );
         if ( connected == 0 )
         {
-            // todo
-            printf( "reset client %d\n", clientIndex );
             reliable_endpoint_reset( GetClientEndpoint( clientIndex ) );
             GetClientConnection( clientIndex ).Reset();
+            NetworkSimulator * networkSimulator = GetNetworkSimulator();
+            if ( networkSimulator && networkSimulator->IsActive() )
+            {
+                networkSimulator->DiscardClientPackets( clientIndex );
+            }
         }
     }
 

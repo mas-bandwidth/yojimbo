@@ -114,7 +114,7 @@
 
 #endif // #ifndef NDEBUG
 
-#define YOJIMBO_DEBUG_SPAM                          1               // todo: would be much nicer to have advanced logging with log levels, as per-netcode.io
+#define YOJIMBO_DEBUG_SPAM                          0               // todo: would be much nicer to have advanced logging with log levels, as per-netcode.io
 
 #include <stdint.h>
 #include <stdlib.h>

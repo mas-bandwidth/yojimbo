@@ -354,8 +354,6 @@ namespace yojimbo
 
             if ( m_channel[i]->GetErrorLevel() != CHANNEL_ERROR_NONE )
             {
-                // todo
-                printf( "channel %d is in error state\n", i );
                 m_errorLevel = CONNECTION_ERROR_CHANNEL;
                 return;
             }
