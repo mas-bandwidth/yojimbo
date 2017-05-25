@@ -586,6 +586,7 @@ namespace yojimbo
 
         if ( !CanSendMessage() )
         {
+            // Increase your send queue size!
             SetErrorLevel( CHANNEL_ERROR_SEND_QUEUE_FULL );
             m_messageFactory->Release( message );
             return;
@@ -595,7 +596,7 @@ namespace yojimbo
 
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
-            assert( !"tried to send a block message, but blocks are disabled. see config.disableBlocks!" );
+            // You tried to send a block message, but block messages are disabled for this channel.
             SetErrorLevel( CHANNEL_ERROR_BLOCKS_DISABLED );
             m_messageFactory->Release( message );
             return;
@@ -845,8 +846,7 @@ namespace yojimbo
 
             if ( sequence_greater_than( messageId, maxMessageId ) )
             {
-                // todo
-                printf( "%d vs. %d\n", messageId, maxMessageId );
+                // You forget to dequeue messages on the receiver side
                 SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
@@ -855,6 +855,13 @@ namespace yojimbo
                 continue;
 
             MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+
+            if ( !entry )
+            {
+                // For some reason we can't insert the message in the receive queue
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                return;
+            }
 
             entry->message = message;
 
@@ -869,6 +876,7 @@ namespace yojimbo
         
         if ( packetData.messageFailedToSerialize )
         {
+            // A message failed to serialize read for some reason, eg. mismatched read/write.
             SetErrorLevel( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
             return;
         }
@@ -1135,12 +1143,14 @@ namespace yojimbo
 
             if ( fragmentId >= m_receiveBlock->numFragments )
             {
+                // The fragment id is out of range.
                 SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
 
             if ( numFragments != m_receiveBlock->numFragments )
             {
+                // The number of fragments is out of range.
                 SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
@@ -1165,7 +1175,12 @@ namespace yojimbo
                 {
                     m_receiveBlock->blockSize = ( m_receiveBlock->numFragments - 1 ) * m_config.fragmentSize + fragmentBytes;
 
-                    assert( m_receiveBlock->blockSize <= (uint32_t) m_config.maxBlockSize );
+                    if ( m_receiveBlock->blockSize > (uint32_t) m_config.maxBlockSize )
+                    {
+                        // The block size is outside range
+                        SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                        return;
+                    }
                 }
 
                 m_receiveBlock->numReceivedFragments++;
@@ -1191,6 +1206,7 @@ namespace yojimbo
 
                     if ( !blockData )
                     {
+                        // Not enough memory to allocate block data
                         SetErrorLevel( CHANNEL_ERROR_OUT_OF_MEMORY );
                         return;
                     }
@@ -1203,10 +1219,9 @@ namespace yojimbo
 
                     MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
 
-                    assert( entry );
-
                     if ( !entry )
                     {
+                        // For some reason can't insert the message in the receive queue
                         SetErrorLevel( CHANNEL_ERROR_DESYNC );
                         return;
                     }

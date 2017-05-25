@@ -1628,10 +1628,7 @@ void test_client_server_messages()
             PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
             if ( client.ConnectionFailed() )
-            {
-                printf( "error: client connect failed!\n" );
-                exit( 1 );
-            }
+                break;
 
             if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
                 break;
@@ -1886,10 +1883,7 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
-        {
-            printf( "error: client connect failed!\n" );
-            exit( 1 );
-        }
+            break;
 
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
@@ -1962,10 +1956,7 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
-        {
-            printf( "error: client connect failed!\n" );
-            exit( 1 );
-        }
+            break;
 
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
@@ -2039,10 +2030,7 @@ void test_client_server_message_exhaust_stream_allocator()
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
-        {
-            printf( "error: client connect failed!\n" );
-            exit( 1 );
-        }
+            break;
 
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
@@ -2078,7 +2066,7 @@ void test_client_server_message_exhaust_stream_allocator()
     server.Stop();
 }
 
-void test_client_server_message_receive_queue_full()
+void test_client_server_message_receive_queue_overflow()
 {
     const uint64_t clientId = 1;
 
@@ -2094,7 +2082,7 @@ void test_client_server_message_receive_queue_full()
     config.channel[0].maxBlockSize = 1024;
     config.channel[0].fragmentSize = 200;
     config.channel[0].sendQueueSize = 1024;
-    config.channel[0].receiveQueueSize = 16;         // note: tiny receive queue
+    config.channel[0].receiveQueueSize = 256;
     
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -2107,9 +2095,7 @@ void test_client_server_message_receive_queue_full()
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
 
-    const int NumIterations = 10000;
-
-    for ( int i = 0; i < NumIterations; ++i )
+    while ( true )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
@@ -2117,10 +2103,7 @@ void test_client_server_message_receive_queue_full()
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
-        {
-            printf( "error: client connect failed!\n" );
-            exit( 1 );
-        }
+            break;
 
         if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
@@ -2132,32 +2115,22 @@ void test_client_server_message_receive_queue_full()
     check( client.GetClientIndex() == 0 );
     check( server.IsClientConnected(0) );
 
-    const int NumMessagesSent = 64;
+    // send a lot of messages, but don't dequeue them, this tests that the receive queue is able to handle overflow
+    // eg. the receiver should detect an error and disconnect the client, because the message is out of bounds.
+
+    const int NumMessagesSent = config.channel[0].sendQueueSize;
 
     SendClientToServerMessages( client, NumMessagesSent );
 
-    SendServerToClientMessages( server, client.GetClientIndex(), NumMessagesSent );
-
-    int numMessagesReceivedFromClient = 0;
-    int numMessagesReceivedFromServer = 0;
-
-    for ( int i = 0; i < NumIterations; ++i )
+    for ( int i = 0; i < 1024 * 4; ++i )
     {
         Client * clients[] = { &client };
-        Server * servers[] = { &server };
-        
+        Server * servers[] = { &server };        
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
-
-        ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
-
-        ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
-
-        if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
-            break;
     }
 
-    check( numMessagesReceivedFromClient == NumMessagesSent );
-    check( numMessagesReceivedFromServer == NumMessagesSent );
+    check( !client.IsConnected() );
+    check( server.GetNumConnectedClients() == 0 );
 
     client.Disconnect();
 
@@ -2237,8 +2210,8 @@ int main()
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
-        RUN_TEST( test_client_server_message_receive_queue_full );
-
+        RUN_TEST( test_client_server_message_receive_queue_overflow );
+        
 #if SOAK
         if ( quit )
             break;
