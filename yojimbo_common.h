@@ -142,14 +142,14 @@ namespace yojimbo
         @param a First value.
         @param b Second value.
      */
-
+#if __cplusplus < 201103L
     template <typename T> void swap( T & a, T & b )
     {
         T tmp = a;
         a = b;
         b = tmp;
     };
-
+#endif
     /**
         Get the absolute value.
 
