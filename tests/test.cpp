@@ -31,7 +31,7 @@
 
 #include "shared.h"
 
-#define SOAK 0
+#define SOAK 1
 
 #if SOAK
 #include <signal.h>
@@ -1612,7 +1612,8 @@ void test_client_server_messages()
     server.SetPacketLoss( 25 );
     server.SetDuplicates( 25 );
     
-    for ( int iteration = 0; iteration < 2; ++iteration )
+    // todo: test
+    for ( int iteration = 0; iteration < 20; ++iteration )
     {
         client.InsecureConnect( privateKey, clientId, serverAddress );
 

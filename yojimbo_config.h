@@ -134,7 +134,7 @@ namespace yojimbo
     const int ConservativeMessageHeaderEstimate = 32;           // todo: bits? bytes?
     const int ConservativeFragmentHeaderEstimate = 64;
     const int ConservativeChannelHeaderEstimate = 32;
-    const int ConservativeConnectionPacketHeaderEstimate = 6;
+    const int ConservativeConnectionPacketHeaderEstimate = 12;      // todo: actually break this down into component parts, eg. header, serialize check at start, serialize check at end?
 
     /// Determines the reliability and ordering guarantees for a channel.
 
