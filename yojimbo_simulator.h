@@ -203,6 +203,7 @@ namespace yojimbo
         {
             PacketEntry()
             {
+                to = 0;
                 deliveryTime = 0.0;
                 packetData = NULL;
                 packetBytes = 0;

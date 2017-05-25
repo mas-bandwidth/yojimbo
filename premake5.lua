@@ -67,10 +67,6 @@ project "soak"
     files { "tests/soak.cpp", "tests/shared.h" }
     links { "yojimbo" }
 
-project "profile"
-    files { "tests/profile.cpp", "tests/shared.h" }
-    links { "yojimbo" }
-
 if not os.is "windows" then
 
     -- MacOSX and Linux.
@@ -210,18 +206,6 @@ if not os.is "windows" then
 
     newaction
     {
-        trigger     = "profile",
-        description = "Build and run profile testbed",
-        execute = function ()
-            os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 profile" == 0 then
-                os.execute "./bin/profile"
-            end
-        end
-    }
-
-    newaction
-    {
         trigger     = "cppcheck",
         description = "Run cppcheck over the source code and write to cppcheck.txt",
         execute = function ()
@@ -264,6 +248,7 @@ if not os.is "windows" then
             _ACTION = "clean"
             premake.action.call( "clean" )
             files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker tests tlsf windows"
+            -- todo: need to update this so it works with netcode.io and reliable.io sub-projects
             os.execute( "rm -rf *.zip *.tar.gz" );
             os.execute( "rm -rf docker/libyojimbo" );
             os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )

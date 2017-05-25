@@ -128,11 +128,10 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------
 
-    Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+    Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : m_connectionConfig( connectionConfig )
     {
         m_allocator = &allocator;
         m_messageFactory = &messageFactory;
-        m_connectionConfig = connectionConfig;
         m_errorLevel = CONNECTION_ERROR_NONE;
         memset( m_channel, 0, sizeof( m_channel ) );
         assert( m_connectionConfig.numChannels >= 1 );

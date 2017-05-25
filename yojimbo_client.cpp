@@ -36,11 +36,10 @@ namespace yojimbo
 {
     // ------------------------------------------------------------------------------------------------------------------
 
-    BaseClient::BaseClient( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time )
+    BaseClient::BaseClient( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time ) : m_config( config )
     {
         m_allocator = &allocator;
         m_adapter = &adapter;
-        m_config = config;
         m_time = time;
         m_context = NULL;
         m_clientMemory = NULL;
@@ -233,10 +232,9 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------------------------------------------
 
-    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseClient( allocator, config, adapter, time )
+    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseClient( allocator, config, adapter, time ), m_config( config ), m_address( address )
     {
-        m_config = config;
-        m_address = address;
+        m_clientId = 0;
         m_client = NULL;
     }
 

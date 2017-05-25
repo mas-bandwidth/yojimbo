@@ -39,6 +39,8 @@ int SoakMain()
 {
     srand( (unsigned int) time( NULL ) );
 
+    // todo: set the MTU packet size low (1k), but the max packet size say 4-8k, and send some large unreliable blocks. this will test packet fragmentation and reassembly.
+
     ClientServerConfig config;
 
     uint8_t privateKey[KeyBytes];
