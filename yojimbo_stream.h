@@ -131,7 +131,7 @@ namespace yojimbo
             @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
-        WriteStream( uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_writer( buffer, bytes ) {}
+        WriteStream( Allocator & allocator, uint8_t * buffer, int bytes ) : BaseStream( allocator ), m_writer( buffer, bytes ) {}
 
         /**
             Serialize an integer (write).
@@ -313,7 +313,7 @@ namespace yojimbo
             @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
-        ReadStream( const uint8_t * buffer, int bytes, Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_reader( buffer, bytes ) {}
+        ReadStream( Allocator & allocator, const uint8_t * buffer, int bytes ) : BaseStream( allocator ), m_reader( buffer, bytes ) {}
 
         /**
             Serialize an integer (read).
@@ -481,7 +481,7 @@ namespace yojimbo
             @param allocator The allocator to use for stream allocations. This lets you dynamically allocate memory as you read and write packets.
          */
 
-        explicit MeasureStream( Allocator & allocator = GetDefaultAllocator() ) : BaseStream( allocator ), m_bitsWritten(0) {}
+        explicit MeasureStream( Allocator & allocator ) : BaseStream( allocator ), m_bitsWritten(0) {}
 
         /**
             Serialize an integer (measure).

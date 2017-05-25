@@ -619,7 +619,7 @@ namespace yojimbo
             assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
         }
 
-        MeasureStream measureStream;
+        MeasureStream measureStream( GetDefaultAllocator() );
 
         message->SerializeInternal( measureStream );
 
@@ -757,7 +757,7 @@ namespace yojimbo
                 }
                 else
                 {
-                    MeasureStream stream;
+                    MeasureStream stream( GetDefaultAllocator() );
                     serialize_sequence_relative_internal( stream, previousMessageId, messageId );
                     messageBits += stream.GetBitsProcessed();
                 }
@@ -1355,7 +1355,7 @@ namespace yojimbo
 
             assert( message );
 
-            MeasureStream measureStream;
+            MeasureStream measureStream( GetDefaultAllocator() );
 
             message->SerializeInternal( measureStream );
 
@@ -1416,15 +1416,11 @@ namespace yojimbo
         for ( int i = 0; i < (int) packetData.message.numMessages; ++i )
         {
             Message * message = packetData.message.messages[i];
-
             assert( message );  
-
             message->SetId( packetSequence );
-
             if ( !m_messageReceiveQueue->IsFull() )
             {
                 m_messageFactory->AddRef( message );
-
                 m_messageReceiveQueue->Push( message );
             }
         }

@@ -353,7 +353,7 @@ void test_stream()
     context.min = -10;
     context.max = +10;
 
-    WriteStream writeStream( buffer, BufferSize );
+    WriteStream writeStream( GetDefaultAllocator(), buffer, BufferSize );
 
     TestObject writeObject;
     writeObject.Init();
@@ -366,7 +366,7 @@ void test_stream()
     memset( buffer + bytesWritten, 0, BufferSize - bytesWritten );
 
     TestObject readObject;
-    ReadStream readStream( buffer, bytesWritten );
+    ReadStream readStream( GetDefaultAllocator(), buffer, bytesWritten );
     readStream.SetContext( &context );
     readObject.Serialize( readStream );
 
@@ -878,7 +878,7 @@ void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, C
 
 void test_connection_reliable_ordered_messages()
 {
-    TestMessageFactory messageFactory;
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
  
@@ -941,7 +941,7 @@ void test_connection_reliable_ordered_messages()
 
 void test_connection_reliable_ordered_blocks()
 {
-    TestMessageFactory messageFactory;
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
     
@@ -1023,7 +1023,7 @@ void test_connection_reliable_ordered_blocks()
 
 void test_connection_reliable_ordered_messages_and_blocks()
 {
-    TestMessageFactory messageFactory;
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
     
@@ -1133,7 +1133,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 {
     const int NumChannels = 2;
 
-    TestMessageFactory messageFactory;
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
     connectionConfig.numChannels = NumChannels;
@@ -1267,7 +1267,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 
 void test_connection_unreliable_unordered_messages()
 {
-    TestMessageFactory messageFactory;
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
     connectionConfig.numChannels = 1;
@@ -1331,7 +1331,7 @@ void test_connection_unreliable_unordered_messages()
 
 void test_connection_unreliable_unordered_blocks()
 {
-    TestMessageFactory messageFactory;
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
     connectionConfig.numChannels = 1;
@@ -1433,6 +1433,8 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
 
     for ( int i = 0; i < numServers; ++i )
         server[i]->AdvanceTime( time );
+
+    platform_sleep( 0.0f );
 }
 
 void SendClientToServerMessages( Client & client, int numMessagesToSend, int channelIndex = 0 )
@@ -1797,7 +1799,6 @@ void test_client_server_start_stop_restart()
         for ( int clientIndex = 0; clientIndex < numClients[iteration]; ++clientIndex )
         {
             SendClientToServerMessages( *clients[clientIndex], NumMessagesSent );
-
             SendServerToClientMessages( server, clientIndex, NumMessagesSent );
         }
 
@@ -1848,50 +1849,41 @@ void test_client_server_start_stop_restart()
     }
 }
 
-#if 0 // todo
-
 void test_client_server_message_failed_to_serialize_reliable_ordered()
 {
-    GenerateKey( private_key );
-
     const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-    
     double time = 100.0;
-
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
-
-    clientTransport.SetNetworkConditions( 250, 250, 5, 10 );
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
-
-    ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    clientServerConfig.connectionConfig.channel[0].maxBlockSize = 1024;
-    clientServerConfig.connectionConfig.channel[0].fragmentSize = 200;
-
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
-
-    server.SetServerAddress( serverAddress );
     
-    server.Start();
+    ClientServerConfig config;
+    config.maxPacketSize = 256;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1024;
+    config.channel[0].fragmentSize = 200;
 
-    ConnectClient( client, clientId, serverAddress );
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
 
-    while ( true )
+    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
+
+    server.Start( MaxClients );
+
+    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    const int NumIterations = 10000;
+
+    for ( int i = 0; i < NumIterations; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
-
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1903,21 +1895,24 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
             break;
     }
 
-    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+    check( client.GetClientIndex() == 0 );
+    check( server.IsClientConnected(0) );
 
     // send a message from client to server that fails to serialize on read, this should disconnect the client from the server
 
-    Message * message = client.CreateMsg( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
+    Message * message = client.CreateMessage( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
     check( message );
-    client.SendMsg( message );
+    client.SendMessage( 0, message );
 
     for ( int i = 0; i < 256; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
-
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
@@ -1932,43 +1927,39 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
 
 void test_client_server_message_failed_to_serialize_unreliable_unordered()
 {
-    GenerateKey( private_key );
-
     const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-    
     double time = 100.0;
-
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
-
-    ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    clientServerConfig.connectionConfig.channel[0].maxBlockSize = 1024;
-    clientServerConfig.connectionConfig.channel[0].fragmentSize = 200;
-
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
-
-    server.SetServerAddress( serverAddress );
     
-    server.Start();
+    ClientServerConfig config;
+    config.maxPacketSize = 256;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[0].maxBlockSize = 1024;
+    config.channel[0].fragmentSize = 200;
 
-    ConnectClient( client, clientId, serverAddress );
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
 
-    while ( true )
+    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
+
+    server.Start( MaxClients );
+
+    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    const int NumIterations = 10000;
+
+    for ( int i = 0; i < NumIterations; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
-
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
         {
@@ -1980,27 +1971,31 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
             break;
     }
 
-    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+    check( client.GetClientIndex() == 0 );
+    check( server.IsClientConnected(0) );
 
     // send a message from client to server that fails to serialize on read, this should disconnect the client from the server
-
-    Message * message = client.CreateMsg( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
-    check( message );
-    client.SendMsg( message );
 
     for ( int i = 0; i < 256; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
+        
+        Message * message = client.CreateMessage( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
+        check( message );
+        client.SendMessage( 0, message );
 
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
     }
 
-    check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+    check( !client.IsConnected() );
+    check( server.GetNumConnectedClients() == 0 );
 
     client.Disconnect();
 
@@ -2009,43 +2004,39 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
 
 void test_client_server_message_exhaust_stream_allocator()
 {
-    GenerateKey( private_key );
-
     const uint64_t clientId = 1;
 
     Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-
     double time = 100.0;
     
-    LocalTransport clientTransport( GetDefaultAllocator(), networkSimulator, clientAddress, ProtocolId, time );
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+    ClientServerConfig config;
+    config.maxPacketSize = 256;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1024;
+    config.channel[0].fragmentSize = 200;
 
-    ClientServerConfig clientServerConfig;
-    clientServerConfig.connectionConfig.maxPacketSize = 256;
-    clientServerConfig.connectionConfig.numChannels = 1;
-    clientServerConfig.connectionConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    clientServerConfig.connectionConfig.channel[0].maxBlockSize = 1024;
-    clientServerConfig.connectionConfig.channel[0].fragmentSize = 200;
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
 
-    GameClient client( GetDefaultAllocator(), clientTransport, clientServerConfig, time );
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
 
-    server.SetServerAddress( serverAddress );
-    
-    server.Start();
+    server.Start( MaxClients );
 
-    ConnectClient( client, clientId, serverAddress );
+    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
 
-    while ( true )
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    const int NumIterations = 10000;
+
+    for ( int i = 0; i < NumIterations; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
-
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
         {
@@ -2057,21 +2048,24 @@ void test_client_server_message_exhaust_stream_allocator()
             break;
     }
 
-    check( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 );
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+    check( client.GetClientIndex() == 0 );
+    check( server.IsClientConnected(0) );
 
     // send a message from client to server that exhausts the stream allocator on read, this should disconnect the client from the server
 
-    Message * message = client.CreateMsg( TEST_EXHAUST_STREAM_ALLOCATOR_ON_READ_MESSAGE );
+    Message * message = client.CreateMessage( TEST_EXHAUST_STREAM_ALLOCATOR_ON_READ_MESSAGE );
     check( message );
-    client.SendMsg( message );
+    client.SendMessage( 0, message );
 
     for ( int i = 0; i < 256; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        Transport * transports[] = { &clientTransport, &serverTransport };
-
-        PumpClientServerUpdate( time, clients, 1, servers, 1, transports, 2 );
+        
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
             break;
@@ -2084,6 +2078,7 @@ void test_client_server_message_exhaust_stream_allocator()
     server.Stop();
 }
 
+#if 0
 void test_client_server_message_receive_queue_full()
 {
     GenerateKey( private_key );
@@ -2247,12 +2242,14 @@ int main()
 
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
-        /*
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
+        /*
         RUN_TEST( test_client_server_message_receive_queue_full );
         */
+
+        // todo: probably want a new test that picks up send queue full, but not receiving messages works without flooding message recv queue
 
 #if SOAK
         if ( quit )

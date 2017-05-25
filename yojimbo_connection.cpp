@@ -204,7 +204,7 @@ namespace yojimbo
 
     static int WritePacket( void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
     {
-        WriteStream stream( buffer, bufferSize, messageFactory.GetAllocator() );
+        WriteStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
 
         stream.SetContext( context );
 
@@ -289,7 +289,7 @@ namespace yojimbo
         assert( buffer );
         assert( bufferSize > 0 );
 
-        ReadStream stream( buffer, bufferSize, messageFactory.GetAllocator() );
+        ReadStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
 
         stream.SetContext( context );
 

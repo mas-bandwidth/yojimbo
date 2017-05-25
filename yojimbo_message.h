@@ -626,8 +626,8 @@ namespace yojimbo
     class factory_class : public base_factory_class                                                                                     \
     {                                                                                                                                   \
     public:                                                                                                                             \
-        factory_class( yojimbo::Allocator & allocator = yojimbo::GetDefaultAllocator(), int numMessageTypes = num_message_types )       \
-         : base_factory_class( allocator, numMessageTypes ) {}                                                                          \
+        factory_class( yojimbo::Allocator & allocator )                                                                                 \
+         : base_factory_class( allocator, num_message_types ) {}                                                                        \
         yojimbo::Message * CreateMessage( int type )                                                                                    \
         {                                                                                                                               \
             yojimbo::Message * message = base_factory_class::CreateMessage( type );                                                     \

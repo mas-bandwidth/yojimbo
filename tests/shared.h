@@ -154,7 +154,7 @@ public:
 
     MessageFactory * CreateMessageFactory( Allocator & allocator )
     {
-        return YOJIMBO_NEW( allocator, TestMessageFactory );
+        return YOJIMBO_NEW( allocator, TestMessageFactory, allocator );
     }
 };
 
