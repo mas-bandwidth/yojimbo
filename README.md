@@ -27,6 +27,7 @@ You can support Glenn's work writing articles and open source code via [Patreon]
 **libyojimbo** is generously sponsored by:
 
 * **Gold Sponsors**
+    * [Remedy Entertainment](http://http://www.remedygames.com/)
     * [Cloud Imperium Games](https://cloudimperiumgames.com)
     
 * **Silver Sponsors**
