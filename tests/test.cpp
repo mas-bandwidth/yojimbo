@@ -31,7 +31,7 @@
 
 #include "shared.h"
 
-#define SOAK 1
+#define SOAK 0
 
 #if SOAK
 #include <signal.h>
@@ -1611,9 +1611,8 @@ void test_client_server_messages()
     server.SetJitter( 100 );
     server.SetPacketLoss( 25 );
     server.SetDuplicates( 25 );
-    
-    // todo: test
-    for ( int iteration = 0; iteration < 20; ++iteration )
+
+    for ( int iteration = 0; iteration < 2; ++iteration )
     {
         client.InsecureConnect( privateKey, clientId, serverAddress );
 
@@ -1688,30 +1687,83 @@ void test_client_server_messages()
     server.Stop();
 }
 
-#if 0 // todo
+void CreateClients( int numClients, Client ** clients, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time )
+{
+    for ( int i = 0; i < numClients; ++i )
+    {
+        clients[i] = YOJIMBO_NEW( GetDefaultAllocator(), Client, GetDefaultAllocator(), address, config, adapter, time );
+        clients[i]->SetLatency( 250 );
+        clients[i]->SetJitter( 100 );
+        clients[i]->SetPacketLoss( 25 );
+        clients[i]->SetDuplicates( 25 );
+    }
+}
+
+void ConnectClients( int numClients, Client ** clients, const uint8_t privateKey[], const Address & serverAddress )
+{
+    for ( int i = 0; i < numClients; ++i )
+    {
+        clients[i]->InsecureConnect( privateKey, i + 1, serverAddress );
+    }
+}
+
+void DestroyClients( int numClients, Client ** clients )
+{
+    for ( int i = 0; i < numClients; ++i )
+    {
+        clients[i]->Disconnect();
+
+        YOJIMBO_DELETE( GetDefaultAllocator(), Client, clients[i] );
+    }
+}
+
+bool AllClientsConnected( int numClients, Server & server, Client ** clients )
+{
+    if ( server.GetNumConnectedClients() != numClients )
+        return false;
+
+    for ( int i = 0; i < numClients; ++i )
+    {
+        if ( !clients[i]->IsConnected() )
+            return false;
+    }
+
+    return true;    
+}
+
+bool AnyClientDisconnected( int numClients, Client ** clients )
+{
+    for ( int i = 0; i < numClients; ++i )
+    {
+        if ( clients[i]->IsDisconnected() )
+            return true;
+    }
+
+    return false;
+}
 
 void test_client_server_start_stop_restart()
 {
-    GenerateKey( private_key );
-
-    ClientServerConfig clientServerConfig;
-    clientServerConfig.enableMessages = false;
-
+    Address clientAddress( "::1", ClientPort );
     Address serverAddress( "::1", ServerPort );
 
-    NetworkSimulator networkSimulator( GetDefaultAllocator() );
-    
     double time = 100.0;
+    
+    ClientServerConfig config;
 
-    LocalTransport serverTransport( GetDefaultAllocator(), networkSimulator, serverAddress, ProtocolId, time );
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
 
-    serverTransport.SetNetworkConditions( 250, 250, 5, 10 );
+    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
 
-    GameServer server( GetDefaultAllocator(), serverTransport, clientServerConfig, time );
+    server.Start( MaxClients );
 
-    server.SetServerAddress( serverAddress );
+    server.SetLatency( 250 );
+    server.SetJitter( 100 );
+    server.SetPacketLoss( 25 );
+    server.SetDuplicates( 25 );
 
-    int numClients[] = { 2, 5, 1 };
+    int numClients[] = { 3, 5, 1 };
 
     const int NumIterations = sizeof( numClients ) / sizeof( int );
 
@@ -1719,23 +1771,17 @@ void test_client_server_start_stop_restart()
     {
         server.Start( numClients[iteration] );
 
-        LocalTransport * clientTransports[MaxClients];
-        CreateClientTransports( numClients[iteration], clientTransports, networkSimulator, time );
+        Client * clients[MaxClients];
 
-        GameClient * clients[MaxClients];
-        CreateClients( numClients[iteration], clients, clientTransports, clientServerConfig, time );
+        CreateClients( numClients[iteration], clients, Address("::"), config, adapter, time );
 
-        ConnectClients( numClients[iteration], clients, serverAddress );
+        ConnectClients( numClients[iteration], clients, privateKey, serverAddress );
 
         while ( true )
         {
             Server * servers[] = { &server };
-            Transport * transports[MaxClients+1];
-            transports[0] = &serverTransport;
-            for ( int i = 0; i < numClients[iteration]; ++i )
-                transports[1+i] = clientTransports[i];
 
-            PumpClientServerUpdate( time, (Client**) clients, numClients[iteration], servers, 1, transports, 1 + numClients[iteration] );
+            PumpClientServerUpdate( time, (Client**) clients, numClients[iteration], servers, 1 );
 
             if ( AnyClientDisconnected( numClients[iteration], clients ) )
                 break;
@@ -1746,15 +1792,63 @@ void test_client_server_start_stop_restart()
 
         check( AllClientsConnected( numClients[iteration], server, clients ) );
 
+        const int NumMessagesSent = 64;
+
+        for ( int clientIndex = 0; clientIndex < numClients[iteration]; ++clientIndex )
+        {
+            SendClientToServerMessages( *clients[clientIndex], NumMessagesSent );
+
+            SendServerToClientMessages( server, clientIndex, NumMessagesSent );
+        }
+
+        int numMessagesReceivedFromClient[MaxClients];
+        int numMessagesReceivedFromServer[MaxClients];
+
+        memset( numMessagesReceivedFromClient, 0, sizeof( numMessagesReceivedFromClient ) );
+        memset( numMessagesReceivedFromServer, 0, sizeof( numMessagesReceivedFromServer ) );
+
+        const int NumIterations = 1000;
+
+        for ( int i = 0; i < NumIterations; ++i )
+        {
+            Server * servers[] = { &server };
+
+            PumpClientServerUpdate( time, clients, numClients[iteration], servers, 1 );
+
+            bool allMessagesReceived = true;
+
+            for ( int j = 0; j < numClients[iteration]; ++j )
+            {
+                ProcessServerToClientMessages( *clients[j], numMessagesReceivedFromServer[j] );
+
+                if ( numMessagesReceivedFromServer[j] != NumMessagesSent )
+                    allMessagesReceived = false;
+
+                int clientIndex = clients[j]->GetClientIndex();
+
+                ProcessClientToServerMessages( server, clientIndex, numMessagesReceivedFromClient[clientIndex] );
+
+                if ( numMessagesReceivedFromClient[clientIndex] != NumMessagesSent )
+                    allMessagesReceived = false;
+            }
+
+            if ( allMessagesReceived )
+                break;
+        }
+
+        for ( int clientIndex = 0; clientIndex < numClients[iteration]; ++clientIndex )
+        {
+            check( numMessagesReceivedFromClient[clientIndex] == NumMessagesSent );
+            check( numMessagesReceivedFromServer[clientIndex] == NumMessagesSent );
+        }
+
         DestroyClients( numClients[iteration], clients );
 
-        DestroyTransports( numClients[iteration], clientTransports );
-
         server.Stop();
-
-        serverTransport.Reset();
     }
 }
+
+#if 0 // todo
 
 void test_client_server_message_failed_to_serialize_reliable_ordered()
 {
@@ -2152,8 +2246,8 @@ int main()
         RUN_TEST( test_connection_unreliable_unordered_blocks );
 
         RUN_TEST( test_client_server_messages );
-        /*
         RUN_TEST( test_client_server_start_stop_restart );
+        /*
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );

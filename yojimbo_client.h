@@ -314,6 +314,7 @@ namespace yojimbo
             The client constructor.
 
             @param allocator The allocator for all memory used by the client.
+            @param address The address the client should bind to.
             @param config The client/server configuration.
             @param time The current time in seconds. See ClientInterface::AdvanceTime
          */
