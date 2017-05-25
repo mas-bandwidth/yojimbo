@@ -60,9 +60,9 @@ int SoakMain()
     client.InsecureConnect( privateKey, clientId, serverAddress );
 
     uint64_t numMessagesSentToServer = 0;
-//    uint64_t numMessagesSentToClient = 0;
-//    uint64_t numMessagesReceivedFromClient = 0;
-    //uint64_t numMessagesReceivedFromServer = 0;
+    uint64_t numMessagesSentToClient = 0;
+    uint64_t numMessagesReceivedFromClient = 0;
+    uint64_t numMessagesReceivedFromServer = 0;
 
     signal( SIGINT, interrupt_handler );
 
@@ -136,7 +136,6 @@ int SoakMain()
             {
                 serverConnected = true;
 
-                /*
                 const int messagesToSend = random_int( 0, 64 );
 
                 for ( int i = 0; i < messagesToSend; ++i )
@@ -226,10 +225,8 @@ int SoakMain()
                         break;
                     }
                 }
-                */
             }
 
-            /*
             while ( true )
             {
                 Message * message = client.ReceiveMessage( 0 );
@@ -279,7 +276,6 @@ int SoakMain()
                     break;
                 }
             }
-            */
 
             if ( clientConnected && !client.IsConnected() )
                 break;
