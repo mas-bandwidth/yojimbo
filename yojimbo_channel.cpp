@@ -418,6 +418,7 @@ namespace yojimbo
 
         m_errorLevel = CHANNEL_ERROR_NONE;
 
+        // todo: probably should pass time into ctor
         m_time = 0.0;
 
         ResetCounters();
@@ -505,8 +506,6 @@ namespace yojimbo
     void ReliableOrderedChannel::Reset()
     {
         SetErrorLevel( CHANNEL_ERROR_NONE );
-
-        m_time = 0.0;
 
         m_sendMessageId = 0;
         m_receiveMessageId = 0;
@@ -771,9 +770,7 @@ namespace yojimbo
         assert( messageIds );
 
         packetData.Initialize();
-
         packetData.channelIndex = GetChannelIndex();
-        
         packetData.message.numMessages = numMessageIds;
         
         if ( numMessageIds == 0 )
@@ -797,9 +794,7 @@ namespace yojimbo
     void ReliableOrderedChannel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
         SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
-        
         assert( sentPacket );
-
         if ( sentPacket )
         {
             sentPacket->acked = 0;
@@ -852,9 +847,9 @@ namespace yojimbo
 
             entry->message = message;
 
+            m_messageFactory->AddRef( message );
             // todo
             printf( "AddRef %p (ProcessPacketMessages) | %d -> %d\n", message, message->GetRefCount() - 1, message->GetRefCount() );
-            m_messageFactory->AddRef( message );
         }
     }
 
@@ -1072,9 +1067,9 @@ namespace yojimbo
 
             packetData.block.message = (BlockMessage*) entry->message;
 
+            m_messageFactory->AddRef( packetData.block.message );
             // todo
             printf( "AddRef %p (GetFragmentPacketData) | %d -> %d\n", entry->message, entry->message->GetRefCount() - 1, entry->message->GetRefCount() );
-            m_messageFactory->AddRef( packetData.block.message );
 
             fragmentBits += entry->measuredBits + messageTypeBits;
         }
@@ -1182,9 +1177,9 @@ namespace yojimbo
 
                     m_receiveBlock->blockMessage = blockMessage;
 
+                    m_messageFactory->AddRef( m_receiveBlock->blockMessage );
                     // todo
                     printf( "AddRef %p (ProcessPacketFragment) | %d -> %d\n", blockMessage, blockMessage->GetRefCount() - 1, blockMessage->GetRefCount() );
-                    m_messageFactory->AddRef( m_receiveBlock->blockMessage );
                 }
 
                 if ( m_receiveBlock->numReceivedFragments == m_receiveBlock->numFragments )
@@ -1394,13 +1389,9 @@ namespace yojimbo
         Allocator & allocator = m_messageFactory->GetAllocator();
 
         packetData.Initialize();
-
         packetData.channelIndex = GetChannelIndex();
-
         packetData.message.numMessages = numMessages;
-
         packetData.message.messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
-
         for ( int i = 0; i < numMessages; ++i )
         {
             packetData.message.messages[i] = messages[i];

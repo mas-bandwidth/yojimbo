@@ -15,6 +15,7 @@ namespace yojimbo
         assert( numPackets > 0 );
         m_allocator = &allocator;
         m_currentIndex = 0;
+        // todo: should probably pass time into ctor
         m_time = 0.0;
         m_latency = 0.0f;
         m_jitter = 0.0f;

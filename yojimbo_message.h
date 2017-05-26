@@ -180,7 +180,7 @@ namespace yojimbo
             This way we don't have to pass messages by value (more efficient) and messages get cleaned up when they are delivered and no packets refer to them.
          */
 
-        void AddRef() { assert( m_refCount > 0 ); m_refCount++; }
+        void AddRef() { assert( m_refCount > 0 ); printf( ">>> %p: %d -> %d\n", this, m_refCount, m_refCount + 1 ); m_refCount++; }
 
         /**
             Remove a reference from the message.
@@ -188,7 +188,7 @@ namespace yojimbo
             Message are deleted when the number of references reach zero. Messages have reference count of 1 after creation.
          */
 
-        void Release() { assert( m_refCount > 0 ); m_refCount--; }
+        void Release() { assert( m_refCount > 0 ); printf( ">>> %p: %d -> %d\n", this, m_refCount, m_refCount - 1 ); m_refCount--; }
 
         /**
             Message destructor.
