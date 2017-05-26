@@ -176,8 +176,7 @@ namespace yojimbo
             receiveQueueSize = 1024;
             sentPacketBufferSize = 1024;
             maxMessagesPerPacket = 64;
-            packetBudget = 1100;
-            maxBlockSize = 256 * 1024;
+            packetBudget = 1100;            // todo: do we really want this, if the MTU fragment is @ 1024 by default. need to increase that...
             fragmentSize = 1024;
             messageResendTime = 0.1f;
             fragmentResendTime = 0.25f;

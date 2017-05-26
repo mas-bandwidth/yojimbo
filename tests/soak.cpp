@@ -26,7 +26,8 @@
 #include "netcode.h"
 #include <signal.h>
 
-static const int MaxBlockSize = 25 * 1024;
+static const int MaxSnapshotSize = 8 * 1024;
+static const int MaxBlockSize = 64 * 1024;
 
 static volatile int quit = 0;
 
@@ -43,12 +44,15 @@ int SoakMain()
     srand( (unsigned int) time( NULL ) );
 
     ClientServerConfig config;
-    config.maxPacketSize = 1024;
+    config.maxPacketSize = 16 * 1024;
+    config.clientMemory = 10 * 1024 * 1024;
+    config.serverGlobalMemory = 10 * 1024 * 1024;
+    config.serverPerClientMemory = 10 * 1024 * 1024;
     config.numChannels = 2;
     config.channel[UNRELIABLE_CHANNEL].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    config.channel[UNRELIABLE_CHANNEL].maxBlockSize = 8 * 1024;
+    config.channel[UNRELIABLE_CHANNEL].maxBlockSize = MaxSnapshotSize;
     config.channel[RELIABLE_CHANNEL].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    config.channel[RELIABLE_CHANNEL].maxBlockSize = 256 * 1024;
+    config.channel[RELIABLE_CHANNEL].maxBlockSize = MaxBlockSize;
     config.channel[RELIABLE_CHANNEL].fragmentSize = 1024;
 
     uint8_t privateKey[KeyBytes];
@@ -103,7 +107,7 @@ int SoakMain()
 
             for ( int i = 0; i < messagesToSend; ++i )
             {
-                if ( !client.CanSendMessage( 0 ) )
+                if ( !client.CanSendMessage( RELIABLE_CHANNEL ) )
                     break;
 
                 if ( rand() % 25 )
@@ -112,7 +116,7 @@ int SoakMain()
                     if ( message )
                     {
                         message->sequence = (uint16_t) numMessagesSentToServer;
-                        client.SendMessage( 0, message );
+                        client.SendMessage( RELIABLE_CHANNEL, message );
                         numMessagesSentToServer++;
                     }
                 }
@@ -129,7 +133,7 @@ int SoakMain()
                             for ( int j = 0; j < blockSize; ++j )
                                 blockData[j] = uint8_t( numMessagesSentToServer + j );
                             client.AttachBlockToMessage( blockMessage, blockData, blockSize );
-                            client.SendMessage( 0, blockMessage );
+                            client.SendMessage( RELIABLE_CHANNEL, blockMessage );
                             numMessagesSentToServer++;
                         }
                         else

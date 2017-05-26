@@ -124,9 +124,10 @@ namespace yojimbo
         {
             m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets );
         }
-        // todo: need to build reliable endpoint config from yojimbo config.
+        // todo: fully setup endpoint config from client/server config
         reliable_config_t config;
         reliable_default_config( &config );
+        strcpy( config.name, "client endpoint" );
         config.context = (void*) this;
         config.transmit_packet_function = BaseClient::StaticTransmitPacketFunction;
         config.process_packet_function = BaseClient::StaticProcessPacketFunction;

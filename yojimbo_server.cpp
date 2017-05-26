@@ -69,9 +69,10 @@ namespace yojimbo
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
             m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
             m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config, m_time );
-            // todo: need to build reliable endpoint config from yojimbo config.
+            // todo: fully setup endpoint config from client/server config
             reliable_config_t config;
             reliable_default_config( &config );
+            sprintf( config.name, "server endpoint" );
             config.context = (void*) this;
             config.index = i;
             config.transmit_packet_function = BaseServer::StaticTransmitPacketFunction;
@@ -114,20 +115,18 @@ namespace yojimbo
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 m_clientConnection[i]->AdvanceTime( time );
-//                if ( IsClientConnected(i) )
+                if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
                 {
-                    if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
-                    {
-                        debug_printf( "client %d connection is in error state. disconnecting client\n", i );
-                        DisconnectClient( i );
-                        continue;
-                    }
-                    reliable_endpoint_update( m_clientEndpoint[i] );
-                    int numAcks;
-                    const uint16_t * acks = reliable_endpoint_get_acks( m_clientEndpoint[i], &numAcks );
-                    m_clientConnection[i]->ProcessAcks( acks, numAcks );
-                    reliable_endpoint_clear_acks( m_clientEndpoint[i] );
+                    // todo
+                    printf( "client %d connection is in error state (%d). disconnecting client\n", i, m_clientConnection[i]->GetErrorLevel() );
+                    DisconnectClient( i );
+                    continue;
                 }
+                reliable_endpoint_update( m_clientEndpoint[i] );
+                int numAcks;
+                const uint16_t * acks = reliable_endpoint_get_acks( m_clientEndpoint[i], &numAcks );
+                m_clientConnection[i]->ProcessAcks( acks, numAcks );
+                reliable_endpoint_clear_acks( m_clientEndpoint[i] );
             }
             NetworkSimulator * networkSimulator = GetNetworkSimulator();
             if ( networkSimulator )

@@ -12,11 +12,19 @@ DONE
 
     Tracked down (rare) message leak in receive queue overflow.
 
-TODO
-
     Extend soak test to have unreliable, unordered channel, and to make sure it exercises packet fragmentation and reassembly codepath.
 
-    -------------
+TODO
+
+    Extend yojimbo to have detailed logging support, eg. log levels (none, error, info, debug), as well as different modules that can have logging enabled/disabled.
+
+    This is becoming critically important because if something is configured incorrectly, yojimbo just errors out silently right now.
+
+    It's hard to test and debug things, and I wrote all this code!
+
+    This is a bad experience for now users, especially when setting up client/server configuration.
+
+    ------------
 
     Test compilation on windows.
 
@@ -36,8 +44,6 @@ TODO
 
     Add unreliable, ordered channel in yojimbo. Simply keep track of the most recently received message id, and discard any messages older than that.
 
-    Extend yojimbo to have detailed logging support, eg. log levels (none, error, info, debug), as well as different modules that can have logging enabled/disabled.
-
     Extend netcode.io so it can have an overriden logging callback function.
 
     Extend reliable.io so it can have an overriden assert callback function.
@@ -53,4 +59,3 @@ TODO
     Profile yojimbo and look for any hot spots.
 
     Pass over doxygen documentation again.
-    

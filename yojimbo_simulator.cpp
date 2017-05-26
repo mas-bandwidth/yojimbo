@@ -27,7 +27,7 @@ namespace yojimbo
         if ( !m_packetEntries )
         {
             // todo: this should print out
-            debug_printf( "error: not enough memory to allocate network simulator\n" );
+            printf( "error: not enough memory to allocate network simulator\n" );
         }
         assert( m_packetEntries );
         memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );

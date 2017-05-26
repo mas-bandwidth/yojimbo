@@ -243,6 +243,8 @@ namespace yojimbo
             {
                 if ( !packet.AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
                 {
+                    // todo
+                    printf( "failed to allocate channel data\n" );
                     m_errorLevel = CONNECTION_ERROR_ALLOCATOR;
                     return false;
                 }
@@ -336,17 +338,23 @@ namespace yojimbo
 
             if ( m_channel[i]->GetErrorLevel() != CHANNEL_ERROR_NONE )
             {
+                // todo
+                printf( "channel error\n" );
                 m_errorLevel = CONNECTION_ERROR_CHANNEL;
                 return;
             }
         }
         if ( m_allocator->GetErrorLevel() != ALLOCATOR_ERROR_NONE )
         {
+            // todo
+            printf( "allocator error\n" );
             m_errorLevel = CONNECTION_ERROR_ALLOCATOR;
             return;
         }
         if ( m_messageFactory->GetErrorLevel() != MESSAGE_FACTORY_ERROR_NONE )
         {
+            // todo
+            printf( "message factory error\n" );
             m_errorLevel = CONNECTION_ERROR_MESSAGE_FACTORY;
             return;
         }
