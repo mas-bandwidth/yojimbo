@@ -1186,6 +1186,13 @@ namespace yojimbo
                 {
                     // finished receiving block
 
+                    if ( m_messageReceiveQueue->GetAtIndex( m_messageReceiveQueue->GetIndex( messageId ) ) )
+                    {
+                        // Did you forget to dequeue messages on the receiver?
+                        SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                        return;
+                    }
+
                     blockMessage = m_receiveBlock->blockMessage;
 
                     assert( blockMessage );
