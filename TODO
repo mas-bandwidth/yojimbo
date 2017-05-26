@@ -12,7 +12,11 @@ DONE
 
 TODO
 
-    Track down memory leaks in receive queue overflow.
+    Track down message leaks in receive queue overflow.
+
+        ^--- Only clue is that this weirdness requires block messages to repro. It's a logic error or memory trash somewhere?!
+
+        ^--- Yeah. There is definitely a memory trash that is happening as a result of block messages. Stuff doesn't make sense.
 
     Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
 

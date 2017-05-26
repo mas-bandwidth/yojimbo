@@ -777,10 +777,8 @@ namespace yojimbo
         ~SequenceBuffer()
         {
             assert( m_allocator );
-
             YOJIMBO_FREE( *m_allocator, m_entries );
             YOJIMBO_FREE( *m_allocator, m_entry_sequence );
-
             m_allocator = NULL;
         }
 

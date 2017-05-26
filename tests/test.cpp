@@ -1430,6 +1430,10 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
 {
     for ( int i = 0; i < numMessagesToSend; ++i )
     {
+        if ( !client.CanSendMessage( channelIndex ) )
+            break;
+
+/*
         if ( rand() % 10 )
         {
             TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
@@ -1438,6 +1442,7 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
             client.SendMessage( channelIndex, message );
         }
         else
+    */
         {
             TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
@@ -1453,16 +1458,19 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
     }
 }
 
-void SendServerToClientMessages( Server & server, int clientIndex, int numMessagesToSend )
+void SendServerToClientMessages( Server & server, int clientIndex, int numMessagesToSend, int channelIndex = 0 )
 {
     for ( int i = 0; i < numMessagesToSend; ++i )
     {
+        if ( !server.CanSendMessage( clientIndex, channelIndex ) )
+            break;
+
         if ( rand() % 2 )
         {
             TestMessage * message = (TestMessage*) server.CreateMessage( clientIndex, TEST_MESSAGE );
             check( message );
             message->sequence = i;
-            server.SendMessage( clientIndex, 0, message );
+            server.SendMessage( clientIndex, channelIndex, message );
         }
         else
         {
@@ -1475,7 +1483,7 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
             server.AttachBlockToMessage( clientIndex, message, blockData, blockSize );
-            server.SendMessage( clientIndex, 0, message );
+            server.SendMessage( clientIndex, channelIndex, message );
         }
     }
 }
@@ -2107,14 +2115,16 @@ void test_client_server_message_receive_queue_overflow()
     // send a lot of messages, but don't dequeue them, this tests that the receive queue is able to handle overflow
     // eg. the receiver should detect an error and disconnect the client, because the message is out of bounds.
 
-    const int NumMessagesSent = config.channel[0].sendQueueSize;
+    const int NumMessagesSent = yojimbo_max( config.channel[0].sendQueueSize, 1024 );
 
     SendClientToServerMessages( client, NumMessagesSent );
 
-    for ( int i = 0; i < NumMessagesSent * 8; ++i )
+    //for ( int i = 0; i < NumMessagesSent * 8; ++i )
+    while ( client.IsConnected() )
     {
         Client * clients[] = { &client };
-        Server * servers[] = { &server };        
+        Server * servers[] = { &server };  
+
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
     }
 

@@ -505,6 +505,8 @@ namespace yojimbo
 
     void ReliableOrderedChannel::Reset()
     {
+        printf( "ReliableOrderedChannel::Reset\n" );
+
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
         m_sendMessageId = 0;
@@ -545,18 +547,20 @@ namespace yojimbo
         }
 
         ResetCounters();
+
+        printf( "ReliableOrderedChannel::Reset (end)\n" );
     }
 
     bool ReliableOrderedChannel::CanSendMessage() const
     {
         assert( m_messageSendQueue );
-
         return m_messageSendQueue->Available( m_sendMessageId );
     }
 
     void ReliableOrderedChannel::SendMessage( Message * message )
     {
         assert( message );
+        
         assert( CanSendMessage() );
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
@@ -827,7 +831,7 @@ namespace yojimbo
 
             if ( sequence_greater_than( messageId, maxMessageId ) )
             {
-                // Did you forgot to dequeue messages on the receiver?
+                // Did you forget to dequeue messages on the receiver?
                 SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
@@ -1206,18 +1210,10 @@ namespace yojimbo
                     blockMessage->SetId( messageId );
 
                     MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
-
-                    if ( !entry )
-                    {
-                        // For some reason can't insert the message in the receive queue
-                        SetErrorLevel( CHANNEL_ERROR_DESYNC );
-                        return;
-                    }
-
+                    assert( entry );
+                    entry->message = blockMessage;
                     m_receiveBlock->active = false;
                     m_receiveBlock->blockMessage = NULL;
-
-                    entry->message = blockMessage;
                 }
             }
         }

@@ -151,11 +151,14 @@ namespace yojimbo
 
     void Connection::Reset()
     {
+        // todo
+        printf( "Connection::Reset\n" );
         m_errorLevel = CONNECTION_ERROR_NONE;
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
         {
             m_channel[i]->Reset();
         }
+        printf( "Connection::Reset (end)\n" );
     }
 
     bool Connection::CanSendMessage( int channelIndex ) const
