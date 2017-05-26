@@ -411,24 +411,16 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------------
 
-    Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex ) : m_config( config )
+    Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) : m_config( config )
     {
         assert( channelIndex >= 0 );
         assert( channelIndex < MaxChannels );
-
         m_channelIndex = channelIndex;
-
         m_allocator = &allocator;
-
         m_messageFactory = &messageFactory;
-
         m_listener = NULL;
-
         m_errorLevel = CHANNEL_ERROR_NONE;
-
-        // todo: probably should pass time into ctor
-        m_time = 0.0;
-
+        m_time = time;
         ResetCounters();
     }
 
@@ -465,7 +457,7 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------------
 
-    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex ) : Channel( allocator, messageFactory, config, channelIndex )
+    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) : Channel( allocator, messageFactory, config, channelIndex, time )
     {
         assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
 
@@ -1225,7 +1217,7 @@ namespace yojimbo
 
     // ------------------------------------------------
 
-    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex ) : Channel( allocator, messageFactory, config, channelIndex )
+    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) : Channel( allocator, messageFactory, config, channelIndex, time )
     {
         assert( config.type == CHANNEL_TYPE_UNRELIABLE_UNORDERED );
 

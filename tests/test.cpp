@@ -869,10 +869,12 @@ void test_connection_reliable_ordered_messages()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
+    double time = 100.0;
+
     ConnectionConfig connectionConfig;
  
-    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig );
-    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
     const int NumMessagesSent = 64;
 
@@ -889,8 +891,6 @@ void test_connection_reliable_ordered_messages()
 
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
-
-    double time = 100.0;
 
     int numMessagesReceived = 0;
 
@@ -932,10 +932,12 @@ void test_connection_reliable_ordered_blocks()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
+    double time = 100.0;
+
     ConnectionConfig connectionConfig;
     
-    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig );
-    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
     const int NumMessagesSent = 32;
 
@@ -957,8 +959,6 @@ void test_connection_reliable_ordered_blocks()
 
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
-
-    double time = 100.0;
 
     int numMessagesReceived = 0;
 
@@ -1014,11 +1014,13 @@ void test_connection_reliable_ordered_messages_and_blocks()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
+    double time = 100.0;
+    
     ConnectionConfig connectionConfig;
     
-    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
-    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
     const int NumMessagesSent = 32;
 
@@ -1051,8 +1053,6 @@ void test_connection_reliable_ordered_messages_and_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    double time = 100.0;
-    
     int numMessagesReceived = 0;
 
     uint16_t senderSequence = 0;
@@ -1122,6 +1122,8 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 {
     const int NumChannels = 2;
 
+    double time = 100.0;
+    
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
@@ -1131,9 +1133,9 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     connectionConfig.channel[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     connectionConfig.channel[1].maxMessagesPerPacket = 8;
 
-    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
-    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
     const int NumMessagesSent = 32;
 
@@ -1169,8 +1171,6 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    double time = 100.0;
-    
     const int NumIterations = 10000;
 
     int numMessagesReceived[NumChannels];
@@ -1258,20 +1258,20 @@ void test_connection_unreliable_unordered_messages()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
+    double time = 100.0;
+
     ConnectionConfig connectionConfig;
     connectionConfig.numChannels = 1;
     connectionConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
-    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig );
-    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
 
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
-
-    double time = 100.0;
 
     const int NumIterations = 256;
 
@@ -1322,13 +1322,15 @@ void test_connection_unreliable_unordered_blocks()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
+    double time = 100.0;
+    
     ConnectionConfig connectionConfig;
     connectionConfig.numChannels = 1;
     connectionConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
-    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
-    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
     const int SenderPort = 10000;
     const int ReceiverPort = 10001;
@@ -1336,8 +1338,6 @@ void test_connection_unreliable_unordered_blocks()
     Address senderAddress( "::1", SenderPort );
     Address receiverAddress( "::1", ReceiverPort );
 
-    double time = 100.0;
-    
     const int NumIterations = 256;
 
     const int NumMessagesSent = 8;

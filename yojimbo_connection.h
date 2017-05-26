@@ -38,7 +38,7 @@ namespace yojimbo
     {
     public:
 
-        Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig = ConnectionConfig() );
+        Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, double time );
 
         ~Connection();
 

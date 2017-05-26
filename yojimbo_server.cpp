@@ -68,7 +68,7 @@ namespace yojimbo
             m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
             m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
-            m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config );
+            m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config, m_time );
             // todo: need to build reliable endpoint config from yojimbo config.
             reliable_config_t config;
             reliable_default_config( &config );

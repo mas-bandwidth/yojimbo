@@ -110,7 +110,7 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------
 
-    Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig ) : m_connectionConfig( connectionConfig )
+    Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, double time ) : m_connectionConfig( connectionConfig )
     {
         m_allocator = &allocator;
         m_messageFactory = &messageFactory;
@@ -123,11 +123,11 @@ namespace yojimbo
             switch ( m_connectionConfig.channel[channelIndex].type )
             {
                 case CHANNEL_TYPE_RELIABLE_ORDERED: 
-                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex ); 
+                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex, time ); 
                     break;
 
                 case CHANNEL_TYPE_UNRELIABLE_UNORDERED: 
-                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex ); 
+                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex, time ); 
                     break;
                 // todo: unreliable ordered channel
                 default: 

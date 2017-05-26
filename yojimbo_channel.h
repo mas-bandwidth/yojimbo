@@ -149,7 +149,7 @@ namespace yojimbo
             Channel constructor.
          */
 
-        Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex );
+        Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time );
 
         /**
             Channel destructor.
@@ -335,7 +335,7 @@ namespace yojimbo
             @param channelIndex The channel index in [0,numChannels-1].
          */
 
-        ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex );
+        ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time );
 
         /**
             Reliable ordered channel destructor.
@@ -714,7 +714,7 @@ namespace yojimbo
             @param channelIndex The channel index in [0,numChannels-1].
          */
 
-        UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex );
+        UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time );
 
         /**
             Unreliable unordered channel destructor.
