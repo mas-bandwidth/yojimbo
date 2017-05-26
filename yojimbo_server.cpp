@@ -174,7 +174,7 @@ namespace yojimbo
         assert( clientIndex >= 0 );
         assert( clientIndex < m_maxClients );
         assert( m_clientMessageFactory[clientIndex] );
-        return m_clientMessageFactory[clientIndex]->Create( type );
+        return m_clientMessageFactory[clientIndex]->CreateMessage( type );
     }
 
     uint8_t * BaseServer::AllocateBlock( int clientIndex, int bytes )

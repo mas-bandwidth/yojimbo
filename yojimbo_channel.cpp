@@ -34,7 +34,7 @@ namespace yojimbo
                 {
                     if ( message.messages[i] )
                     {
-                        messageFactory.Release( message.messages[i] );
+                        messageFactory.ReleaseMessage( message.messages[i] );
                     }
                 }
 
@@ -45,7 +45,7 @@ namespace yojimbo
         {
             if ( block.message )
             {
-                messageFactory.Release( block.message );
+                messageFactory.ReleaseMessage( block.message );
                 block.message = NULL;
             }
 
@@ -115,7 +115,9 @@ namespace yojimbo
 
                 if ( Stream::IsReading )
                 {
-                    messages[i] = messageFactory.Create( messageTypes[i] );
+                    messages[i] = messageFactory.CreateMessage( messageTypes[i] );
+
+                    printf( "create message %p\n", messages[i] );
 
                     if ( !messages[i] )
                     {
@@ -217,7 +219,7 @@ namespace yojimbo
 
                 if ( Stream::IsReading )
                 {
-                    messages[i] = messageFactory.Create( messageTypes[i] );
+                    messages[i] = messageFactory.CreateMessage( messageTypes[i] );
 
                     if ( !messages[i] )
                     {
@@ -289,7 +291,9 @@ namespace yojimbo
 
             if ( Stream::IsReading )
             {
-                Message * msg = messageFactory.Create( block.messageType );
+                Message * msg = messageFactory.CreateMessage( block.messageType );
+
+                printf( "create block message %p\n", msg );
 
                 if ( !msg )
                 {
@@ -505,8 +509,6 @@ namespace yojimbo
 
     void ReliableOrderedChannel::Reset()
     {
-        printf( "ReliableOrderedChannel::Reset\n" );
-
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
         m_sendMessageId = 0;
@@ -517,14 +519,14 @@ namespace yojimbo
         {
             MessageSendQueueEntry * entry = m_messageSendQueue->GetAtIndex( i );
             if ( entry && entry->message )
-                m_messageFactory->Release( entry->message );
+                m_messageFactory->ReleaseMessage( entry->message );
         }
 
         for ( int i = 0; i < m_messageReceiveQueue->GetSize(); ++i )
         {
             MessageReceiveQueueEntry * entry = m_messageReceiveQueue->GetAtIndex( i );
             if ( entry && entry->message )
-                m_messageFactory->Release( entry->message );
+                m_messageFactory->ReleaseMessage( entry->message );
         }
 
         m_sentPackets->Reset();
@@ -541,14 +543,12 @@ namespace yojimbo
             m_receiveBlock->Reset();
             if ( m_receiveBlock->blockMessage )
             {
-                m_messageFactory->Release( m_receiveBlock->blockMessage );
+                m_messageFactory->ReleaseMessage( m_receiveBlock->blockMessage );
                 m_receiveBlock->blockMessage = NULL;
             }
         }
 
         ResetCounters();
-
-        printf( "ReliableOrderedChannel::Reset (end)\n" );
     }
 
     bool ReliableOrderedChannel::CanSendMessage() const
@@ -565,7 +565,7 @@ namespace yojimbo
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
-            m_messageFactory->Release( message );
+            m_messageFactory->ReleaseMessage( message );
             return;
         }
 
@@ -573,7 +573,7 @@ namespace yojimbo
         {
             // Increase your send queue size!
             SetErrorLevel( CHANNEL_ERROR_SEND_QUEUE_FULL );
-            m_messageFactory->Release( message );
+            m_messageFactory->ReleaseMessage( message );
             return;
         }
 
@@ -583,7 +583,7 @@ namespace yojimbo
         {
             // You tried to send a block message, but block messages are disabled for this channel.
             SetErrorLevel( CHANNEL_ERROR_BLOCKS_DISABLED );
-            m_messageFactory->Release( message );
+            m_messageFactory->ReleaseMessage( message );
             return;
         }
 
@@ -789,7 +789,7 @@ namespace yojimbo
             assert( entry->message );
             assert( entry->message->GetRefCount() > 0 );
             packetData.message.messages[i] = entry->message;
-            m_messageFactory->AddRef( packetData.message.messages[i] );
+            m_messageFactory->AcquireMessage( packetData.message.messages[i] );
             // todo
             printf( "AddRef %p (GetMessagePacketData) | %d -> %d\n", packetData.message.messages[i], packetData.message.messages[i]->GetRefCount() - 1, packetData.message.messages[i]->GetRefCount() );
         }
@@ -851,7 +851,7 @@ namespace yojimbo
 
             entry->message = message;
 
-            m_messageFactory->AddRef( message );
+            m_messageFactory->AcquireMessage( message );
             // todo
             printf( "AddRef %p (ProcessPacketMessages) | %d -> %d\n", message, message->GetRefCount() - 1, message->GetRefCount() );
         }
@@ -901,7 +901,7 @@ namespace yojimbo
                 assert( sendQueueEntry->message );
                 assert( sendQueueEntry->message->GetId() == messageId );
 
-                m_messageFactory->Release( sendQueueEntry->message );
+                m_messageFactory->ReleaseMessage( sendQueueEntry->message );
 
                 m_messageSendQueue->Remove( messageId );
 
@@ -928,7 +928,7 @@ namespace yojimbo
 
                     assert( sendQueueEntry );
 
-                    m_messageFactory->Release( sendQueueEntry->message );
+                    m_messageFactory->ReleaseMessage( sendQueueEntry->message );
 
                     m_messageSendQueue->Remove( messageId );
 
@@ -1071,7 +1071,7 @@ namespace yojimbo
 
             packetData.block.message = (BlockMessage*) entry->message;
 
-            m_messageFactory->AddRef( packetData.block.message );
+            m_messageFactory->AcquireMessage( packetData.block.message );
             // todo
             printf( "AddRef %p (GetFragmentPacketData) | %d -> %d\n", entry->message, entry->message->GetRefCount() - 1, entry->message->GetRefCount() );
 
@@ -1181,7 +1181,7 @@ namespace yojimbo
 
                     m_receiveBlock->blockMessage = blockMessage;
 
-                    m_messageFactory->AddRef( m_receiveBlock->blockMessage );
+                    m_messageFactory->AcquireMessage( m_receiveBlock->blockMessage );
                     // todo
                     printf( "AddRef %p (ProcessPacketFragment) | %d -> %d\n", blockMessage, blockMessage->GetRefCount() - 1, blockMessage->GetRefCount() );
                 }
@@ -1245,10 +1245,10 @@ namespace yojimbo
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
         for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )
-            m_messageFactory->Release( (*m_messageSendQueue)[i] );
+            m_messageFactory->ReleaseMessage( (*m_messageSendQueue)[i] );
 
         for ( int i = 0; i < m_messageReceiveQueue->GetNumEntries(); ++i )
-            m_messageFactory->Release( (*m_messageReceiveQueue)[i] );
+            m_messageFactory->ReleaseMessage( (*m_messageReceiveQueue)[i] );
 
         m_messageSendQueue->Clear();
         m_messageReceiveQueue->Clear();
@@ -1269,14 +1269,14 @@ namespace yojimbo
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
-            m_messageFactory->Release( message );
+            m_messageFactory->ReleaseMessage( message );
             return;
         }
 
         if ( !CanSendMessage() )
         {
             SetErrorLevel( CHANNEL_ERROR_SEND_QUEUE_FULL );
-            m_messageFactory->Release( message );
+            m_messageFactory->ReleaseMessage( message );
             return;
         }
 
@@ -1285,7 +1285,7 @@ namespace yojimbo
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
             SetErrorLevel( CHANNEL_ERROR_BLOCKS_DISABLED );
-            m_messageFactory->Release( message );
+            m_messageFactory->ReleaseMessage( message );
             return;
         }
 
@@ -1368,7 +1368,7 @@ namespace yojimbo
 
             if ( usedBits + messageBits > availableBits )
             {
-                m_messageFactory->Release( message );
+                m_messageFactory->ReleaseMessage( message );
                 continue;
             }
 
@@ -1414,7 +1414,7 @@ namespace yojimbo
             message->SetId( packetSequence );
             if ( !m_messageReceiveQueue->IsFull() )
             {
-                m_messageFactory->AddRef( message );
+                m_messageFactory->AcquireMessage( message );
                 m_messageReceiveQueue->Push( message );
             }
         }

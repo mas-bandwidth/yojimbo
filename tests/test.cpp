@@ -878,7 +878,7 @@ void test_connection_reliable_ordered_messages()
 
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
-        TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+        TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
         check( message );
         message->sequence = i;
         sender.SendMessage( 0, message );
@@ -918,7 +918,7 @@ void test_connection_reliable_ordered_messages()
 
             ++numMessagesReceived;
 
-            messageFactory.Release( message );
+            messageFactory.ReleaseMessage( message );
         }
 
         if ( numMessagesReceived == NumMessagesSent )
@@ -941,7 +941,7 @@ void test_connection_reliable_ordered_blocks()
 
     for ( int i = 0; i < NumMessagesSent; ++i )
     {
-        TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+        TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
         check( message );
         message->sequence = i;
         const int blockSize = 1 + ( ( i * 901 ) % 3333 );
@@ -1000,7 +1000,7 @@ void test_connection_reliable_ordered_blocks()
 
             ++numMessagesReceived;
 
-            messageFactory.Release( message );
+            messageFactory.ReleaseMessage( message );
         }
 
         if ( numMessagesReceived == NumMessagesSent )
@@ -1026,14 +1026,14 @@ void test_connection_reliable_ordered_messages_and_blocks()
     {
         if ( rand() % 2 )
         {
-            TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+            TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
             check( message );
             message->sequence = i;
             sender.SendMessage( 0, message );
         }
         else
         {
-            TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+            TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
             const int blockSize = 1 + ( ( i * 901 ) % 3333 );
@@ -1108,7 +1108,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
                 break;
             }
 
-            messageFactory.Release( message );
+            messageFactory.ReleaseMessage( message );
         }
 
         if ( numMessagesReceived == NumMessagesSent )
@@ -1143,14 +1143,14 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
         {
             if ( rand() % 2 )
             {
-                TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+                TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
                 check( message );
                 message->sequence = i;
                 sender.SendMessage( channelIndex, message );
             }
             else
             {
-                TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+                TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
                 check( message );
                 message->sequence = i;
                 const int blockSize = 1 + ( ( i * 901 ) % 3333 );
@@ -1229,7 +1229,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                     break;
                 }
 
-                messageFactory.Release( message );
+                messageFactory.ReleaseMessage( message );
             }
         }
 
@@ -1279,7 +1279,7 @@ void test_connection_unreliable_unordered_messages()
 
     for ( int j = 0; j < NumMessagesSent; ++j )
     {
-        TestMessage * message = (TestMessage*) messageFactory.Create( TEST_MESSAGE );
+        TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
         check( message );
         message->sequence = j;
         sender.SendMessage( 0, message );
@@ -1308,7 +1308,7 @@ void test_connection_unreliable_unordered_messages()
 
             ++numMessagesReceived;
 
-            messageFactory.Release( message );
+            messageFactory.ReleaseMessage( message );
         }
 
         if ( numMessagesReceived == NumMessagesSent )
@@ -1344,7 +1344,7 @@ void test_connection_unreliable_unordered_blocks()
 
     for ( int j = 0; j < NumMessagesSent; ++j )
     {
-        TestBlockMessage * message = (TestBlockMessage*) messageFactory.Create( TEST_BLOCK_MESSAGE );
+        TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
         check( message );
         message->sequence = j;
         const int blockSize = 1 + ( j * 7 );
@@ -1391,7 +1391,7 @@ void test_connection_unreliable_unordered_blocks()
 
             ++numMessagesReceived;
 
-            messageFactory.Release( message );
+            messageFactory.ReleaseMessage( message );
         }
 
         if ( numMessagesReceived == NumMessagesSent )
@@ -1433,7 +1433,6 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
         if ( !client.CanSendMessage( channelIndex ) )
             break;
 
-        /*
         if ( rand() % 10 )
         {
             TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
@@ -1442,7 +1441,6 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
             client.SendMessage( channelIndex, message );
         }
         else
-        */
         {
             TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
@@ -2121,8 +2119,6 @@ void test_client_server_message_receive_queue_overflow()
 
     for ( int i = 0; i < NumMessagesSent * 8; ++i )
     {
-        printf( "iteration %d\n", i );
-
         Client * clients[] = { &client };
         Server * servers[] = { &server };  
 

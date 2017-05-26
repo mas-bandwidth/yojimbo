@@ -165,7 +165,7 @@ namespace yojimbo
     Message * BaseClient::CreateMessage( int type )
     {
         assert( m_messageFactory );
-        return m_messageFactory->Create( type );
+        return m_messageFactory->CreateMessage( type );
     }
 
     uint8_t * BaseClient::AllocateBlock( int bytes )

@@ -180,7 +180,7 @@ namespace yojimbo
             This way we don't have to pass messages by value (more efficient) and messages get cleaned up when they are delivered and no packets refer to them.
          */
 
-        void AddRef() { assert( m_refCount > 0 ); printf( ">>> %p: %d -> %d\n", this, m_refCount, m_refCount + 1 ); m_refCount++; }
+        void Acquire() { assert( m_refCount > 0 ); m_refCount++; }
 
         /**
             Remove a reference from the message.
@@ -188,7 +188,7 @@ namespace yojimbo
             Message are deleted when the number of references reach zero. Messages have reference count of 1 after creation.
          */
 
-        void Release() { assert( m_refCount > 0 ); printf( ">>> %p: %d -> %d\n", this, m_refCount, m_refCount - 1 ); m_refCount--; }
+        void Release() { assert( m_refCount > 0 ); m_refCount--; }
 
         /**
             Message destructor.
@@ -240,7 +240,7 @@ namespace yojimbo
 
             Don't call this directly, use a message factory instead.
 
-            @see MessageFactory::Create
+            @see MessageFactory::CreateMessage
          */
 
         explicit BlockMessage() : Message( 1 ), m_allocator(NULL), m_blockData(NULL), m_blockSize(0) {}
@@ -451,15 +451,15 @@ namespace yojimbo
             @returns The allocated message, or NULL if the message could not be allocated. If the message allocation fails, the message factory error level is set to MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE.
 
             @see MessageFactory::AddRef
-            @see MessageFactory::Release
+            @see MessageFactory::ReleaseMessage
          */
 
-        Message * Create( int type )
+        Message * CreateMessage( int type )
         {
             assert( type >= 0 );
             assert( type < m_numTypes );
 
-            Message * message = CreateMessage( type );
+            Message * message = CreateMessageInternal( type );
             if ( !message )
             {
                 m_errorLevel = MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE;
@@ -485,11 +485,11 @@ namespace yojimbo
             @see MessageFactory::Release
          */   
 
-        void AddRef( Message * message )
+        void AcquireMessage( Message * message )
         {
             assert( message );
             if ( message )
-                message->AddRef();
+                message->Acquire();
         }
 
         /**
@@ -501,7 +501,7 @@ namespace yojimbo
             @see MessageFactory::AddRef
          */
 
-        void Release( Message * message )
+        void ReleaseMessage( Message * message )
         {
             assert( message );
             if ( !message )
@@ -577,7 +577,7 @@ namespace yojimbo
             @returns The message created. Its reference count is 1.
          */
 
-        virtual Message * CreateMessage( int type ) { (void) type; return NULL; }
+        virtual Message * CreateMessageInternal( int type ) { (void) type; return NULL; }
 
         /**
             Set the message type of a message.
@@ -598,24 +598,20 @@ namespace yojimbo
     This is a helper macro to make declaring your own message factory class easier.
 
     @param factory_class The name of the message factory class to generate.
-    @param base_factory_class The name of the message factory class to derive from. If you don't have a custom base class, pass in MessageFactory.
     @param num_message_types The number of message types for this factory.
 
     See tests/shared.h for an example of usage.
  */
 
-#define YOJIMBO_MESSAGE_FACTORY_START( factory_class, base_factory_class, num_message_types )                                           \
+#define YOJIMBO_MESSAGE_FACTORY_START( factory_class, num_message_types )                                                               \
                                                                                                                                         \
-    class factory_class : public base_factory_class                                                                                     \
+    class factory_class : public MessageFactory                                                                                         \
     {                                                                                                                                   \
     public:                                                                                                                             \
-        factory_class( yojimbo::Allocator & allocator )                                                                                 \
-         : base_factory_class( allocator, num_message_types ) {}                                                                        \
-        yojimbo::Message * CreateMessage( int type )                                                                                    \
+        factory_class( yojimbo::Allocator & allocator ) : MessageFactory( allocator, num_message_types ) {}                             \
+        yojimbo::Message * CreateMessageInternal( int type )                                                                            \
         {                                                                                                                               \
-            yojimbo::Message * message = base_factory_class::CreateMessage( type );                                                     \
-            if ( message )                                                                                                              \
-                return message;                                                                                                         \
+            Message * message;                                                                                                          \
             yojimbo::Allocator & allocator = GetAllocator();                                                                            \
             (void) allocator;                                                                                                           \
             switch ( type )                                                                                                             \

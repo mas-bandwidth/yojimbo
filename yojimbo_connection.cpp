@@ -185,7 +185,7 @@ namespace yojimbo
     void Connection::ReleaseMessage( Message * message )
     {
         assert( message );
-        m_messageFactory->Release( message );
+        m_messageFactory->ReleaseMessage( message );
     }
 
     static int WritePacket( void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
