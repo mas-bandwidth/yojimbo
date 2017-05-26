@@ -431,7 +431,7 @@ namespace yojimbo
         return m_counters[index];
     }
 
-    void Channel::ResetCounters() 
+    void Channel::ResetCounters()
     { 
         memset( m_counters, 0, sizeof( m_counters ) ); 
     }
