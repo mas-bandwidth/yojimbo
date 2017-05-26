@@ -16,7 +16,36 @@ TODO
 
         ^--- Only clue is that this weirdness requires block messages to repro. It's a logic error or memory trash somewhere?!
 
-        ^--- Yeah. There is definitely a memory trash that is happening as a result of block messages. Stuff doesn't make sense.
+        ^--- Yeah. There is definitely a memory trash that is happening as a result of block messages. Stuff doesn't make sense.`
+
+    There is the following weird behavior:
+
+        1. With a mix of blocks and non-blocks, it leaks messages
+
+        2. With blocks only (even if blocks have block size only 10, it hangs!)
+
+    What the fuck?!
+
+    OK. The hang is just the logical continuation of the thing where it doesn't exit out
+
+    This is to be expected, because block messages are processed only one at a time, therefore they cannot have the problem of the receive queue overflowing.
+
+    So #2 is not a bug, as designed.
+
+    So why do we get message leaks when there is a combination of messages and blocks?
+
+    Need to think about this. This is the clue. There is definitely something going on here.
+
+    The question I think is, is it leaking a block message or a regular message? This could help determine what is going on.
+
+
+
+
+
+
+
+
+    ----------------
 
     Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
 

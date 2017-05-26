@@ -1433,7 +1433,7 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
         if ( !client.CanSendMessage( channelIndex ) )
             break;
 
-/*
+        /*
         if ( rand() % 10 )
         {
             TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
@@ -1442,12 +1442,12 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
             client.SendMessage( channelIndex, message );
         }
         else
-    */
+        */
         {
             TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
-            const int blockSize = 1 + ( ( i * 901 ) % 1001 );
+            const int blockSize = 10; //1 + ( ( i * 901 ) % 1001 );
             uint8_t * blockData = client.AllocateBlock( blockSize );
             check( blockData );
             for ( int j = 0; j < blockSize; ++j )
@@ -2119,9 +2119,10 @@ void test_client_server_message_receive_queue_overflow()
 
     SendClientToServerMessages( client, NumMessagesSent );
 
-    //for ( int i = 0; i < NumMessagesSent * 8; ++i )
-    while ( client.IsConnected() )
+    for ( int i = 0; i < NumMessagesSent * 8; ++i )
     {
+        printf( "iteration %d\n", i );
+
         Client * clients[] = { &client };
         Server * servers[] = { &server };  
 
