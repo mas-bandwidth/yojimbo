@@ -31,17 +31,6 @@
 
 #include "shared.h"
 
-#define SOAK 0
-
-#if SOAK
-#include <signal.h>
-static volatile int quit = 0;
-void interrupt_handler( int /*dummy*/ )
-{
-    quit = 1;
-}
-#endif // #if SOAK
-
 using namespace yojimbo;
 
 static void CheckHandler( const char * condition, 
@@ -2081,8 +2070,8 @@ void test_client_server_message_receive_queue_overflow()
     config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[0].maxBlockSize = 1024;
     config.channel[0].fragmentSize = 200;
-    config.channel[0].sendQueueSize = 1024;
-    config.channel[0].receiveQueueSize = 256;
+    config.channel[0].sendQueueSize = 8;//1024;
+    config.channel[0].receiveQueueSize = 4;//256;
     
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -2122,7 +2111,7 @@ void test_client_server_message_receive_queue_overflow()
 
     SendClientToServerMessages( client, NumMessagesSent );
 
-    for ( int i = 0; i < 1024 * 4; ++i )
+    for ( int i = 0; i < NumMessagesSent * 4; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };        
@@ -2154,6 +2143,17 @@ void test_client_server_message_receive_queue_overflow()
 extern "C" void netcode_test();
 extern "C" void reliable_test();
 
+#define SOAK 1
+
+#if SOAK
+#include <signal.h>
+static volatile int quit = 0;
+void interrupt_handler( int /*dummy*/ )
+{
+    quit = 1;
+}
+#endif // #if SOAK
+
 int main()
 {
     srand( time( NULL ) );
@@ -2166,6 +2166,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        /*
         {
             printf( "[netcode.io]\n\n" );
 
@@ -2210,6 +2211,7 @@ int main()
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
+        */
         RUN_TEST( test_client_server_message_receive_queue_overflow );
         
 #if SOAK

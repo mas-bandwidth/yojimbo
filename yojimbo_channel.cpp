@@ -538,7 +538,6 @@ namespace yojimbo
         if ( m_receiveBlock )
         {
             m_receiveBlock->Reset();
-
             if ( m_receiveBlock->blockMessage )
             {
                 m_messageFactory->Release( m_receiveBlock->blockMessage );
@@ -786,8 +785,12 @@ namespace yojimbo
         {
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
             assert( entry );
+            assert( entry->message );
+            assert( entry->message->GetRefCount() > 0 );
             packetData.message.messages[i] = entry->message;
             m_messageFactory->AddRef( packetData.message.messages[i] );
+            // todo
+            printf( "AddRef %p (GetMessagePacketData) | %d -> %d\n", packetData.message.messages[i], packetData.message.messages[i]->GetRefCount() - 1, packetData.message.messages[i]->GetRefCount() );
         }
     }
 
@@ -829,7 +832,7 @@ namespace yojimbo
 
             if ( sequence_greater_than( messageId, maxMessageId ) )
             {
-                // You forget to dequeue messages on the receiver side
+                // Did you forgot to dequeue messages on the receiver?
                 SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
@@ -837,8 +840,9 @@ namespace yojimbo
             if ( m_messageReceiveQueue->Find( messageId ) )
                 continue;
 
-            MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
+            assert( !m_messageReceiveQueue->GetAtIndex( m_messageReceiveQueue->GetIndex( messageId ) ) );
 
+            MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
             if ( !entry )
             {
                 // For some reason we can't insert the message in the receive queue
@@ -848,6 +852,8 @@ namespace yojimbo
 
             entry->message = message;
 
+            // todo
+            printf( "AddRef %p (ProcessPacketMessages) | %d -> %d\n", message, message->GetRefCount() - 1, message->GetRefCount() );
             m_messageFactory->AddRef( message );
         }
     }
@@ -1066,6 +1072,8 @@ namespace yojimbo
 
             packetData.block.message = (BlockMessage*) entry->message;
 
+            // todo
+            printf( "AddRef %p (GetFragmentPacketData) | %d -> %d\n", entry->message, entry->message->GetRefCount() - 1, entry->message->GetRefCount() );
             m_messageFactory->AddRef( packetData.block.message );
 
             fragmentBits += entry->measuredBits + messageTypeBits;
@@ -1174,6 +1182,8 @@ namespace yojimbo
 
                     m_receiveBlock->blockMessage = blockMessage;
 
+                    // todo
+                    printf( "AddRef %p (ProcessPacketFragment) | %d -> %d\n", blockMessage, blockMessage->GetRefCount() - 1, blockMessage->GetRefCount() );
                     m_messageFactory->AddRef( m_receiveBlock->blockMessage );
                 }
 

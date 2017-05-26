@@ -8,9 +8,11 @@ DONE
 
     Better implementation of connect tokens via netcode.io
 
+    Port across secure_server to new API.
+
 TODO
 
-    Port across secure_server to new API.
+    Track down memory leaks in receive queue overflow.
 
     Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
 

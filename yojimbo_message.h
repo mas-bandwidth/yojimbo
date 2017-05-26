@@ -180,7 +180,7 @@ namespace yojimbo
             This way we don't have to pass messages by value (more efficient) and messages get cleaned up when they are delivered and no packets refer to them.
          */
 
-        void AddRef() { m_refCount++; }
+        void AddRef() { assert( m_refCount > 0 ); m_refCount++; }
 
         /**
             Remove a reference from the message.
@@ -460,7 +460,6 @@ namespace yojimbo
             assert( type < m_numTypes );
 
             Message * message = CreateMessage( type );
-
             if ( !message )
             {
                 m_errorLevel = MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE;
@@ -471,6 +470,8 @@ namespace yojimbo
             allocated_messages[message] = 1;
             assert( allocated_messages.find( message ) != allocated_messages.end() );
             #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
+
+            printf( "create message %p\n", message );
 
             return message;
         }
@@ -487,10 +488,8 @@ namespace yojimbo
         void AddRef( Message * message )
         {
             assert( message );
-            if ( !message )
-                return;
-
-            message->AddRef();
+            if ( message )
+                message->AddRef();
         }
 
         /**
@@ -518,6 +517,8 @@ namespace yojimbo
                 #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
             
                 assert( m_allocator );
+
+                printf( "destroy message %p\n", message );
 
                 YOJIMBO_DELETE( *m_allocator, Message, message );
             }

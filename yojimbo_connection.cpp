@@ -26,12 +26,14 @@ namespace yojimbo
         {
             if ( messageFactory )
             {
+                printf( "~ConnectionPacket\n" );
                 for ( int i = 0; i < numChannelEntries; ++i )
                 {
                     channelEntry[i].Free( *messageFactory );
                 }
                 YOJIMBO_FREE( messageFactory->GetAllocator(), channelEntry );
                 messageFactory = NULL;
+                printf( "~ConnectionPacket (end)\n" );
             }        
         }
 
@@ -303,6 +305,7 @@ namespace yojimbo
             // todo: probably want to set a fatal error here
             return false;            
         }
+
         for ( int i = 0; i < packet.numChannelEntries; ++i )
         {
             const int channelIndex = packet.channelEntry[i].channelIndex;
