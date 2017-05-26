@@ -2150,7 +2150,7 @@ void test_client_server_message_receive_queue_overflow()
 extern "C" void netcode_test();
 extern "C" void reliable_test();
 
-#define SOAK 1
+#define SOAK 0
 
 #if SOAK
 #include <signal.h>
