@@ -35,13 +35,21 @@ void interrupt_handler( int /*dummy*/ )
     quit = 1;
 }
 
+static const int UNRELIABLE_CHANNEL = 0;
+static const int RELIABLE_CHANNEL = 1;
+
 int SoakMain()
 {
     srand( (unsigned int) time( NULL ) );
 
-    // todo: set the MTU packet size low (1k), but the max packet size say 4-8k, and send some large unreliable blocks. this will test packet fragmentation and reassembly.
-
     ClientServerConfig config;
+    config.maxPacketSize = 1024;
+    config.numChannels = 2;
+    config.channel[UNRELIABLE_CHANNEL].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[UNRELIABLE_CHANNEL].maxBlockSize = 8 * 1024;
+    config.channel[RELIABLE_CHANNEL].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[RELIABLE_CHANNEL].maxBlockSize = 256 * 1024;
+    config.channel[RELIABLE_CHANNEL].fragmentSize = 1024;
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -142,7 +150,7 @@ int SoakMain()
 
                 for ( int i = 0; i < messagesToSend; ++i )
                 {
-                    if ( !server.CanSendMessage( clientIndex, 0 ) )
+                    if ( !server.CanSendMessage( clientIndex, RELIABLE_CHANNEL ) )
                         break;
 
                     if ( rand() % 25 )
@@ -151,7 +159,7 @@ int SoakMain()
                         if ( message )
                         {
                             message->sequence = (uint16_t) numMessagesSentToClient;
-                            server.SendMessage( clientIndex, 0, message );
+                            server.SendMessage( clientIndex, RELIABLE_CHANNEL, message );
                             numMessagesSentToClient++;
                         }
                     }
@@ -168,7 +176,7 @@ int SoakMain()
                                 for ( int j = 0; j < blockSize; ++j )
                                     blockData[j] = uint8_t( numMessagesSentToClient + j );
                                 server.AttachBlockToMessage( clientIndex, blockMessage, blockData, blockSize );
-                                server.SendMessage( clientIndex, 0, blockMessage );
+                                server.SendMessage( clientIndex, RELIABLE_CHANNEL, blockMessage );
                                 numMessagesSentToClient++;
                             }
                             else
@@ -181,7 +189,7 @@ int SoakMain()
 
                 while ( true )
                 {
-                    Message * message = server.ReceiveMessage( clientIndex, 0 );
+                    Message * message = server.ReceiveMessage( clientIndex, RELIABLE_CHANNEL );
                     if ( !message )
                         break;
 
@@ -231,7 +239,7 @@ int SoakMain()
 
             while ( true )
             {
-                Message * message = client.ReceiveMessage( 0 );
+                Message * message = client.ReceiveMessage( RELIABLE_CHANNEL );
 
                 if ( !message )
                     break;

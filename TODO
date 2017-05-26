@@ -14,6 +14,10 @@ DONE
 
 TODO
 
+    Extend soak test to have unreliable, unordered channel, and to make sure it exercises packet fragmentation and reassembly codepath.
+
+    -------------
+
     Test compilation on windows.
 
     Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
@@ -24,13 +28,13 @@ TODO
 
     Port across secure_client to new API.
 
-    Bring across packet loss, latency, jitter estimates from reliable.io
+    Implement packet loss, latency, jitter estimates from reliable.io
 
-    Congestion adoidance in reliable.io (if reasonably possible given that user is in control of packet sizes...)
+    Integrate QoS settings above with yojimbo client/server and connection.
 
-    Unreliable, ordered channel in yojimbo. Simply keep track of the most recently received message id, and discard any messages older than that.
+    Implement congestion adoidance in reliable.io (if reasonably possible given that user is in control of packet sizes...)
 
-    Extend soak test to have unreliable, unordered channel, and to make sure it exercises packet fragmentation and reassembly codepath.
+    Add unreliable, ordered channel in yojimbo. Simply keep track of the most recently received message id, and discard any messages older than that.
 
     Extend yojimbo to have detailed logging support, eg. log levels (none, error, info, debug), as well as different modules that can have logging enabled/disabled.
 
@@ -47,3 +51,6 @@ TODO
     Extend netcode.io and reliable.io to minimize packet copying, eg. assume packet is prefixed with available padding in front for headers.
 
     Profile yojimbo and look for any hot spots.
+
+    Pass over doxygen documentation again.
+    
