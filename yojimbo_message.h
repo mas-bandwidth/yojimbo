@@ -516,8 +516,6 @@ namespace yojimbo
             
                 assert( m_allocator );
 
-                printf( "destroy message %p\n", message );
-
                 YOJIMBO_DELETE( *m_allocator, Message, message );
             }
         }

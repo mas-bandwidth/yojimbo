@@ -1445,7 +1445,7 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
             TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
             message->sequence = i;
-            const int blockSize = 10; //1 + ( ( i * 901 ) % 1001 );
+            const int blockSize = 1 + ( ( i * 901 ) % 1001 );
             uint8_t * blockData = client.AllocateBlock( blockSize );
             check( blockData );
             for ( int j = 0; j < blockSize; ++j )
@@ -2173,7 +2173,6 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
-        /*
         {
             printf( "[netcode.io]\n\n" );
 
@@ -2218,7 +2217,6 @@ int main()
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
-        */
         RUN_TEST( test_client_server_message_receive_queue_overflow );
         
 #if SOAK
@@ -2233,7 +2231,7 @@ int main()
 
 #if SOAK
     if ( quit )					  
-        printf( "\ntest stopped\n" );
+        printf( "\n" );
     else
 #else // #if SOAK
         printf( "\n*** ALL TESTS PASS ***\n\n" );
