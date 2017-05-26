@@ -36,7 +36,11 @@ TODO
 
     Need to think about this. This is the clue. There is definitely something going on here.
 
-    The question I think is, is it leaking a block message or a regular message? This could help determine what is going on.
+    The question I think is, is it leaking a block message or a regular message? This could help determine what is going?
+
+    Yes. It's the block message that is leaking! This is a big clue. Why would a block message leak?
+
+    Actually, it doesn't seem to be only block message. What is the pattern? Is it the last message? First received? Something like this? Hmmmm
 
 
 

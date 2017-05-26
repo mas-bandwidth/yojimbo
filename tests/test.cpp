@@ -2113,11 +2113,11 @@ void test_client_server_message_receive_queue_overflow()
     // send a lot of messages, but don't dequeue them, this tests that the receive queue is able to handle overflow
     // eg. the receiver should detect an error and disconnect the client, because the message is out of bounds.
 
-    const int NumMessagesSent = yojimbo_max( config.channel[0].sendQueueSize, 1024 );
+    const int NumMessagesSent = config.channel[0].sendQueueSize;
 
     SendClientToServerMessages( client, NumMessagesSent );
 
-    for ( int i = 0; i < NumMessagesSent * 8; ++i )
+    for ( int i = 0; i < NumMessagesSent * 4; ++i )
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };  

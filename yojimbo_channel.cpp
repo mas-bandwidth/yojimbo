@@ -34,6 +34,7 @@ namespace yojimbo
                 {
                     if ( message.messages[i] )
                     {
+                        printf( "release %p (Message)\n", message.messages[i] );
                         messageFactory.ReleaseMessage( message.messages[i] );
                     }
                 }
@@ -45,6 +46,7 @@ namespace yojimbo
         {
             if ( block.message )
             {
+                printf( "release %p (BlockMessage)\n", block.message );
                 messageFactory.ReleaseMessage( block.message );
                 block.message = NULL;
             }
@@ -117,7 +119,7 @@ namespace yojimbo
                 {
                     messages[i] = messageFactory.CreateMessage( messageTypes[i] );
 
-                    printf( "create message %p\n", messages[i] );
+                    printf( "create message %p (SerializeOrderedMessages)\n", messages[i] );
 
                     if ( !messages[i] )
                     {
@@ -221,6 +223,8 @@ namespace yojimbo
                 {
                     messages[i] = messageFactory.CreateMessage( messageTypes[i] );
 
+                    printf( "create message %p (SerializeUnorderedMessages)\n", messages[i] );
+
                     if ( !messages[i] )
                     {
                         debug_printf( "error: failed to create message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
@@ -291,23 +295,23 @@ namespace yojimbo
 
             if ( Stream::IsReading )
             {
-                Message * msg = messageFactory.CreateMessage( block.messageType );
+                Message * message = messageFactory.CreateMessage( block.messageType );
 
-                printf( "create block message %p\n", msg );
+                printf( "create message %p (SerializeBlockFragment)\n", message );
 
-                if ( !msg )
+                if ( !message )
                 {
                     debug_printf( "error: failed to create block message type %d (SerializeBlockFragment)\n", block.messageType );
                     return false;
                 }
 
-                if ( !msg->IsBlockMessage() )
+                if ( !message->IsBlockMessage() )
                 {
                     debug_printf( "error: received block fragment attached to non-block message (SerializeBlockFragment)\n" );
                     return false;
                 }
 
-                block.message = (BlockMessage*) msg;
+                block.message = (BlockMessage*) message;
             }
 
             assert( block.message );
@@ -791,7 +795,7 @@ namespace yojimbo
             packetData.message.messages[i] = entry->message;
             m_messageFactory->AcquireMessage( packetData.message.messages[i] );
             // todo
-            printf( "AddRef %p (GetMessagePacketData) | %d -> %d\n", packetData.message.messages[i], packetData.message.messages[i]->GetRefCount() - 1, packetData.message.messages[i]->GetRefCount() );
+            printf( "AcquireMessage %p (GetMessagePacketData) | %d -> %d\n", packetData.message.messages[i], packetData.message.messages[i]->GetRefCount() - 1, packetData.message.messages[i]->GetRefCount() );
         }
     }
 
@@ -853,7 +857,7 @@ namespace yojimbo
 
             m_messageFactory->AcquireMessage( message );
             // todo
-            printf( "AddRef %p (ProcessPacketMessages) | %d -> %d\n", message, message->GetRefCount() - 1, message->GetRefCount() );
+            printf( "AcquireMessage %p (ProcessPacketMessages) | %d -> %d\n", message, message->GetRefCount() - 1, message->GetRefCount() );
         }
     }
 
@@ -1073,7 +1077,7 @@ namespace yojimbo
 
             m_messageFactory->AcquireMessage( packetData.block.message );
             // todo
-            printf( "AddRef %p (GetFragmentPacketData) | %d -> %d\n", entry->message, entry->message->GetRefCount() - 1, entry->message->GetRefCount() );
+            printf( "AcquireMessage %p (GetFragmentPacketData) | %d -> %d\n", entry->message, entry->message->GetRefCount() - 1, entry->message->GetRefCount() );
 
             fragmentBits += entry->measuredBits + messageTypeBits;
         }
@@ -1183,7 +1187,7 @@ namespace yojimbo
 
                     m_messageFactory->AcquireMessage( m_receiveBlock->blockMessage );
                     // todo
-                    printf( "AddRef %p (ProcessPacketFragment) | %d -> %d\n", blockMessage, blockMessage->GetRefCount() - 1, blockMessage->GetRefCount() );
+                    printf( "AcquireMessage %p (ProcessPacketFragment) | %d -> %d\n", blockMessage, blockMessage->GetRefCount() - 1, blockMessage->GetRefCount() );
                 }
 
                 if ( m_receiveBlock->numReceivedFragments == m_receiveBlock->numFragments )

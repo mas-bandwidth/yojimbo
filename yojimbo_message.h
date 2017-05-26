@@ -471,8 +471,6 @@ namespace yojimbo
             assert( allocated_messages.find( message ) != allocated_messages.end() );
             #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
-            printf( "create message %p\n", message );
-
             return message;
         }
 
