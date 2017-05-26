@@ -26,6 +26,10 @@ TODO
 
     ------------
 
+    Should have the same test for the unreliable, unordered channel, eg. send messages but don't dequeue them. Make sure it handles overflow properly.
+
+    ------------
+
     Test compilation on windows.
 
     Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.

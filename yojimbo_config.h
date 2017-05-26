@@ -176,7 +176,7 @@ namespace yojimbo
             receiveQueueSize = 1024;
             sentPacketBufferSize = 1024;
             maxMessagesPerPacket = 64;
-            packetBudget = 1100;            // todo: do we really want this, if the MTU fragment is @ 1024 by default. need to increase that...
+            packetBudget = 1100;
             fragmentSize = 1024;
             messageResendTime = 0.1f;
             fragmentResendTime = 0.25f;
@@ -198,18 +198,16 @@ namespace yojimbo
 
     struct ConnectionConfig
     {
-        int connectionPacketType;                               ///< Connection packet type (so you can override it). Only necessary to set this if you are using Connection directly. Not necessary to set when using client/server as it overrides it to CLIENT_SERVER_PACKET_CONNECTION for you automatically.
-        int slidingWindowSize;                                  ///< The size of the sliding window used for packet acks (# of packets in history). Depending on your packet send rate, you should make sure this buffer is large enough to cover at least a few seconds worth of packets.
-        int maxPacketSize;                                      ///< The maximum size of packets generated to transmit messages between client and server (bytes).
         int numChannels;                                        ///< Number of message channels in [1,MaxChannels]. Each message channel must have a corresponding configuration below.
+        int maxPacketSize;                                      ///< The maximum size of packets generated to transmit messages between client and server (bytes).
+        int slidingWindowSize;                                  ///< The size of the sliding window used for packet acks (# of packets in history). Depending on your packet send rate, you should make sure this buffer is large enough to cover at least a few seconds worth of packets.
         ChannelConfig channel[MaxChannels];                     ///< Per-channel configuration. See ChannelConfig for details.
 
         ConnectionConfig()
         {
-            connectionPacketType = 0;
+            numChannels = 1;
             maxPacketSize = 8 * 1024;
             slidingWindowSize = 1024;
-            numChannels = 1;
         }
     };
 
@@ -223,7 +221,7 @@ namespace yojimbo
 
     struct BaseClientServerConfig : public ConnectionConfig
     {
-        // todo: reliable.io config needed to create endpoints should go here
+        // todo: config needed to create reliable.io endpoints should go here
 
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
@@ -235,9 +233,9 @@ namespace yojimbo
         BaseClientServerConfig()
         {
             protocolId = 0;
-            clientMemory = 2 * 1024 * 1024;
-            serverGlobalMemory = 2 * 1024 * 1024;
-            serverPerClientMemory = 2 * 1024 * 1024;
+            clientMemory = 10 * 1024 * 1024;
+            serverGlobalMemory = 10 * 1024 * 1024;
+            serverPerClientMemory = 10 * 1024 * 1024;
             networkSimulator = true;
             maxSimulatorPackets = 4 * 1024;
         }
@@ -245,7 +243,7 @@ namespace yojimbo
 
     struct ClientServerConfig : public BaseClientServerConfig
     {
-        // todo: netcode.io specific config should go here
+        // todo: config needed to create netcode.io client/server should go here
     };
 }
 

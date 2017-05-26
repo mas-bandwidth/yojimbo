@@ -26,8 +26,9 @@
 #include "netcode.h"
 #include <signal.h>
 
-static const int MaxSnapshotSize = 8 * 1024;
-static const int MaxBlockSize = 64 * 1024;
+const int MaxPacketSize = 16 * 1024;
+const int MaxSnapshotSize = 8 * 1024;
+const int MaxBlockSize = 64 * 1024;
 
 static volatile int quit = 0;
 
@@ -36,24 +37,30 @@ void interrupt_handler( int /*dummy*/ )
     quit = 1;
 }
 
-static const int UNRELIABLE_CHANNEL = 0;
-static const int RELIABLE_CHANNEL = 1;
+static const int UNRELIABLE_UNORDERED_CHANNEL = 0;
+static const int RELIABLE_ORDERED_CHANNEL = 1;
 
 int SoakMain()
 {
     srand( (unsigned int) time( NULL ) );
 
     ClientServerConfig config;
-    config.maxPacketSize = 16 * 1024;
+    config.maxPacketSize = MaxPacketSize;
     config.clientMemory = 10 * 1024 * 1024;
     config.serverGlobalMemory = 10 * 1024 * 1024;
     config.serverPerClientMemory = 10 * 1024 * 1024;
     config.numChannels = 2;
-    config.channel[UNRELIABLE_CHANNEL].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    config.channel[UNRELIABLE_CHANNEL].maxBlockSize = MaxSnapshotSize;
-    config.channel[RELIABLE_CHANNEL].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    config.channel[RELIABLE_CHANNEL].maxBlockSize = MaxBlockSize;
-    config.channel[RELIABLE_CHANNEL].fragmentSize = 1024;
+    config.channel[UNRELIABLE_UNORDERED_CHANNEL].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[UNRELIABLE_UNORDERED_CHANNEL].maxBlockSize = MaxSnapshotSize;
+    config.channel[RELIABLE_ORDERED_CHANNEL].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[RELIABLE_ORDERED_CHANNEL].maxBlockSize = MaxBlockSize;
+    config.channel[RELIABLE_ORDERED_CHANNEL].fragmentSize = 1024;
+
+    // todo: channel budget for unreliable-unordered channel is a nebulous concept =p
+
+    // todo: need to verify both reliable and unreliable messages get through
+
+    // todo: clean up code to send and receive messages. this code is too cut & paste. it's unreliable and hard to maintain
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -107,7 +114,7 @@ int SoakMain()
 
             for ( int i = 0; i < messagesToSend; ++i )
             {
-                if ( !client.CanSendMessage( RELIABLE_CHANNEL ) )
+                if ( !client.CanSendMessage( RELIABLE_ORDERED_CHANNEL ) )
                     break;
 
                 if ( rand() % 25 )
@@ -116,7 +123,7 @@ int SoakMain()
                     if ( message )
                     {
                         message->sequence = (uint16_t) numMessagesSentToServer;
-                        client.SendMessage( RELIABLE_CHANNEL, message );
+                        client.SendMessage( RELIABLE_ORDERED_CHANNEL, message );
                         numMessagesSentToServer++;
                     }
                 }
@@ -133,7 +140,7 @@ int SoakMain()
                             for ( int j = 0; j < blockSize; ++j )
                                 blockData[j] = uint8_t( numMessagesSentToServer + j );
                             client.AttachBlockToMessage( blockMessage, blockData, blockSize );
-                            client.SendMessage( RELIABLE_CHANNEL, blockMessage );
+                            client.SendMessage( RELIABLE_ORDERED_CHANNEL, blockMessage );
                             numMessagesSentToServer++;
                         }
                         else
@@ -154,7 +161,7 @@ int SoakMain()
 
                 for ( int i = 0; i < messagesToSend; ++i )
                 {
-                    if ( !server.CanSendMessage( clientIndex, RELIABLE_CHANNEL ) )
+                    if ( !server.CanSendMessage( clientIndex, RELIABLE_ORDERED_CHANNEL ) )
                         break;
 
                     if ( rand() % 25 )
@@ -163,7 +170,7 @@ int SoakMain()
                         if ( message )
                         {
                             message->sequence = (uint16_t) numMessagesSentToClient;
-                            server.SendMessage( clientIndex, RELIABLE_CHANNEL, message );
+                            server.SendMessage( clientIndex, RELIABLE_ORDERED_CHANNEL, message );
                             numMessagesSentToClient++;
                         }
                     }
@@ -180,7 +187,7 @@ int SoakMain()
                                 for ( int j = 0; j < blockSize; ++j )
                                     blockData[j] = uint8_t( numMessagesSentToClient + j );
                                 server.AttachBlockToMessage( clientIndex, blockMessage, blockData, blockSize );
-                                server.SendMessage( clientIndex, RELIABLE_CHANNEL, blockMessage );
+                                server.SendMessage( clientIndex, RELIABLE_ORDERED_CHANNEL, blockMessage );
                                 numMessagesSentToClient++;
                             }
                             else
@@ -193,7 +200,7 @@ int SoakMain()
 
                 while ( true )
                 {
-                    Message * message = server.ReceiveMessage( clientIndex, RELIABLE_CHANNEL );
+                    Message * message = server.ReceiveMessage( clientIndex, RELIABLE_ORDERED_CHANNEL );
                     if ( !message )
                         break;
 
@@ -243,7 +250,7 @@ int SoakMain()
 
             while ( true )
             {
-                Message * message = client.ReceiveMessage( RELIABLE_CHANNEL );
+                Message * message = client.ReceiveMessage( RELIABLE_ORDERED_CHANNEL );
 
                 if ( !message )
                     break;
