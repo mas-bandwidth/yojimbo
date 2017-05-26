@@ -104,7 +104,7 @@ namespace yojimbo
             @returns The reference count on the message.
          */
 
-        int GetRefCount() { return m_refCount; }
+        int GetRefCount() const { return m_refCount; }
 
         /**
             Is this a block message?

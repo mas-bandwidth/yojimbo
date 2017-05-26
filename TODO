@@ -14,6 +14,8 @@ DONE
 
 TODO
 
+    Test compilation on windows.
+
     Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
 
     Make sure the golang web server implementation doesn't leak memory (for example, it needs to be updated with the close wrapper).
@@ -44,3 +46,4 @@ TODO
 
     Extend netcode.io and reliable.io to minimize packet copying, eg. assume packet is prefixed with available padding in front for headers.
 
+    Profile yojimbo and look for any hot spots.

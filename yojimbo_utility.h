@@ -915,6 +915,23 @@ namespace yojimbo
         }
 
         /**
+            Get the entry at the specified index (const version).
+    
+            Use this to iterate across entries in the sequence buffer.
+
+            @param index The entry index in [0,GetSize()-1].
+
+            @returns The entry if it exists. NULL if no entry is in the buffer at the specified index.
+         */
+
+        const T * GetAtIndex( int index ) const
+        {
+            assert( index >= 0 );
+            assert( index < m_size );
+            return m_entry_sequence[index] != 0xFFFFFFFF ? &m_entries[index] : NULL;
+        }
+
+        /**
             Get the most recent sequence number added to the buffer.
 
             This sequence number can wrap around, so if you are at 65535 and add an entry for sequence 0, then 0 becomes the new "most recent" sequence number.
