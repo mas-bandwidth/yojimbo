@@ -36,11 +36,11 @@ DONE
 
     Removed secure build, no longer required (unified secure/insecure connect codepaths).
 
-TODO
-
     Extend netcode.io so it can have an overridden assert function
 
     Extend reliable.io so it can have an overriden assert function
+
+TODO
 
     ------------
 
