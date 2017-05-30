@@ -14,19 +14,35 @@ DONE
 
     Extend soak test to have unreliable, unordered channel, and to make sure it exercises packet fragmentation and reassembly codepath.
 
+    Extend yojimbo to have detailed logging support, eg. log levels (none, error, info, debug)
+
 TODO
 
-    Extend yojimbo to have detailed logging support, eg. log levels (none, error, info, debug), as well as different modules that can have logging enabled/disabled.
-
-    This is becoming critically important because if something is configured incorrectly, yojimbo just errors out silently right now.
-
-    It's hard to test and debug things, and I wrote all this code!
-
-    This is a bad experience for now users, especially when setting up client/server configuration.
+    Test compilation on windows.
 
     ------------
 
-    Test compilation on windows.
+    Extend yojimbo so it can have an overridden printf function
+
+    Extend netcode.io so it can have an overridden printf function
+
+    Extend reliable.io so it can have an overriden printf function
+
+    ------------
+
+    Extend yojimbo so it can have an overridden assert function
+
+    Extend netcode.io so it can have an overridden assert function
+
+    Extend reliable.io so it can have an overriden assert function
+
+    ------------
+
+    Extend netcode.io so the user can set a custom allocator to use for client and server allocations.
+
+    Extend reliable.io so the user can set a custom allocator to use for endpoints.
+
+    Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
 
     ------------
 
@@ -49,18 +65,6 @@ TODO
     ------------
 
     Add unreliable, ordered channel in yojimbo. Simply keep track of the most recently received message id, and discard any messages older than that.
-
-    ------------
-
-    Extend netcode.io so it can have an overriden logging callback function.
-
-    Extend reliable.io so it can have an overriden assert callback function.
-
-    Extend netcode.io so the user can set a custom allocator to use for client and server allocations.
-
-    Extend reliable.io so the user can set a custom allocator to use for endpoints.
-
-    Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
 
     ------------
 
