@@ -16,9 +16,9 @@ DONE
 
     Extend yojimbo to have detailed logging support, eg. log levels (none, error, info, debug)
 
-TODO
+    Fixed compilation on windows.
 
-    Test compilation on windows.
+TODO
 
     ------------
 
