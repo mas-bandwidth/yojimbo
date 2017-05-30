@@ -12,7 +12,7 @@ namespace yojimbo
 {
     NetworkSimulator::NetworkSimulator( Allocator & allocator, int numPackets, double time )
     {
-        assert( numPackets > 0 );
+        yojimbo_assert( numPackets > 0 );
         m_allocator = &allocator;
         m_currentIndex = 0;
         m_time = time;
@@ -23,15 +23,15 @@ namespace yojimbo
         m_active = false;
         m_numPacketEntries = numPackets;
         m_packetEntries = (PacketEntry*) YOJIMBO_ALLOCATE( allocator, sizeof( PacketEntry ) * numPackets );
-        assert( m_packetEntries );
+        yojimbo_assert( m_packetEntries );
         memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
     }
 
     NetworkSimulator::~NetworkSimulator()
     {
-        assert( m_allocator );
-        assert( m_packetEntries );
-        assert( m_numPacketEntries > 0 );
+        yojimbo_assert( m_allocator );
+        yojimbo_assert( m_packetEntries );
+        yojimbo_assert( m_numPacketEntries > 0 );
         DiscardPackets();
         YOJIMBO_FREE( *m_allocator, m_packetEntries );
         m_numPacketEntries = 0;
@@ -79,9 +79,9 @@ namespace yojimbo
 
     void NetworkSimulator::SendPacket( int to, uint8_t * packetData, int packetBytes )
     {
-        assert( m_allocator );
-        assert( packetData );
-        assert( packetBytes > 0 );
+        yojimbo_assert( m_allocator );
+        yojimbo_assert( packetData );
+        yojimbo_assert( packetBytes > 0 );
 
         if ( random_float( 0.0f, 100.0f ) <= m_packetLoss )
         {

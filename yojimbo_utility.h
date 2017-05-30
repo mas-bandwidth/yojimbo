@@ -8,12 +8,12 @@
 #define YOJIMBO_UTILITY_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_platform.h"
 #include "yojimbo_allocator.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <assert.h>
 #include <memory.h>
     
 /** @file */
@@ -41,10 +41,10 @@ namespace yojimbo
 
     inline int random_int( int a, int b )
     {
-        assert( a < b );
+        yojimbo_assert( a < b );
         int result = a + rand() % ( b - a + 1 );
-        assert( result >= a );
-        assert( result <= b );
+        yojimbo_assert( result >= a );
+        yojimbo_assert( result <= b );
         return result;
     }
 
@@ -61,7 +61,7 @@ namespace yojimbo
 
     inline float random_float( float a, float b )
     {
-        assert( a < b );
+        yojimbo_assert( a < b );
         float random = ( (float) rand() ) / (float) RAND_MAX;
         float diff = b - a;
         float r = random * diff;
@@ -446,11 +446,11 @@ namespace yojimbo
 
         BitArray( Allocator & allocator, int size )
         {
-            assert( size > 0 );
+            yojimbo_assert( size > 0 );
             m_allocator = &allocator;
             m_size = size;
             m_bytes = 8 * ( ( size / 64 ) + ( ( size % 64 ) ? 1 : 0 ) );
-            assert( m_bytes > 0 );
+            yojimbo_assert( m_bytes > 0 );
             m_data = (uint64_t*) YOJIMBO_ALLOCATE( allocator, m_bytes );
             Clear();
         }
@@ -461,8 +461,8 @@ namespace yojimbo
 
         ~BitArray()
         {
-            assert( m_data );
-            assert( m_allocator );
+            yojimbo_assert( m_data );
+            yojimbo_assert( m_allocator );
             YOJIMBO_FREE( *m_allocator, m_data );
             m_allocator = NULL;
         }
@@ -473,7 +473,7 @@ namespace yojimbo
 
         void Clear()
         {
-            assert( m_data );
+            yojimbo_assert( m_data );
             memset( m_data, 0, m_bytes );
         }
 
@@ -485,12 +485,12 @@ namespace yojimbo
 
         void SetBit( int index )
         {
-            assert( index >= 0 );
-            assert( index < m_size );
+            yojimbo_assert( index >= 0 );
+            yojimbo_assert( index < m_size );
             const int data_index = index >> 6;
             const int bit_index = index & ( (1<<6) - 1 );
-            assert( bit_index >= 0 );
-            assert( bit_index < 64 );
+            yojimbo_assert( bit_index >= 0 );
+            yojimbo_assert( bit_index < 64 );
             m_data[data_index] |= uint64_t(1) << bit_index;
         }
 
@@ -502,8 +502,8 @@ namespace yojimbo
 
         void ClearBit( int index )
         {
-            assert( index >= 0 );
-            assert( index < m_size );
+            yojimbo_assert( index >= 0 );
+            yojimbo_assert( index < m_size );
             const int data_index = index >> 6;
             const int bit_index = index & ( (1<<6) - 1 );
             m_data[data_index] &= ~( uint64_t(1) << bit_index );
@@ -519,12 +519,12 @@ namespace yojimbo
 
         uint64_t GetBit( int index ) const
         {
-            assert( index >= 0 );
-            assert( index < m_size );
+            yojimbo_assert( index >= 0 );
+            yojimbo_assert( index < m_size );
             const int data_index = index >> 6;
             const int bit_index = index & ( (1<<6) - 1 );
-            assert( bit_index >= 0 );
-            assert( bit_index < 64 );
+            yojimbo_assert( bit_index >= 0 );
+            yojimbo_assert( bit_index < 64 );
             return ( m_data[data_index] >> bit_index ) & 1;
         }
 
@@ -569,7 +569,7 @@ namespace yojimbo
 
         Queue( Allocator & allocator, int size )
         {
-            assert( size > 0 );
+            yojimbo_assert( size > 0 );
             m_arraySize = size;
             m_startIndex = 0;
             m_numEntries = 0;
@@ -584,7 +584,7 @@ namespace yojimbo
 
         ~Queue()
         {
-            assert( m_allocator );
+            yojimbo_assert( m_allocator );
             
             YOJIMBO_FREE( *m_allocator, m_entries );
 
@@ -615,7 +615,7 @@ namespace yojimbo
 
         T Pop()
         {
-            assert( !IsEmpty() );
+            yojimbo_assert( !IsEmpty() );
             const T & entry = m_entries[m_startIndex];
             m_startIndex = ( m_startIndex + 1 ) % m_arraySize;
             m_numEntries--;
@@ -632,7 +632,7 @@ namespace yojimbo
 
         void Push( const T & value )
         {
-            assert( !IsFull() );
+            yojimbo_assert( !IsFull() );
             const int index = ( m_startIndex + m_numEntries ) % m_arraySize;
             m_entries[index] = value;
             m_numEntries++;
@@ -648,9 +648,9 @@ namespace yojimbo
 
         T & operator [] ( int index )
         {
-            assert( !IsEmpty() );
-            assert( index >= 0 );
-            assert( index < m_numEntries );
+            yojimbo_assert( !IsEmpty() );
+            yojimbo_assert( index >= 0 );
+            yojimbo_assert( index < m_numEntries );
             return m_entries[ ( m_startIndex + index ) % m_arraySize ];
         }
 
@@ -664,9 +664,9 @@ namespace yojimbo
 
         const T & operator [] ( int index ) const
         {
-            assert( !IsEmpty() );
-            assert( index >= 0 );
-            assert( index < m_numEntries );
+            yojimbo_assert( !IsEmpty() );
+            yojimbo_assert( index >= 0 );
+            yojimbo_assert( index < m_numEntries );
             return m_entries[ ( m_startIndex + index ) % m_arraySize ];
         }
 
@@ -751,7 +751,7 @@ namespace yojimbo
 
         SequenceBuffer( Allocator & allocator, int size )
         {
-            assert( size > 0 );
+            yojimbo_assert( size > 0 );
             m_size = size;
             m_sequence = 0;
             m_allocator = &allocator;
@@ -766,7 +766,7 @@ namespace yojimbo
 
         ~SequenceBuffer()
         {
-            assert( m_allocator );
+            yojimbo_assert( m_allocator );
             YOJIMBO_FREE( *m_allocator, m_entries );
             YOJIMBO_FREE( *m_allocator, m_entry_sequence );
             m_allocator = NULL;
@@ -899,8 +899,8 @@ namespace yojimbo
 
         T * GetAtIndex( int index )
         {
-            assert( index >= 0 );
-            assert( index < m_size );
+            yojimbo_assert( index >= 0 );
+            yojimbo_assert( index < m_size );
             return m_entry_sequence[index] != 0xFFFFFFFF ? &m_entries[index] : NULL;
         }
 
@@ -916,8 +916,8 @@ namespace yojimbo
 
         const T * GetAtIndex( int index ) const
         {
-            assert( index >= 0 );
-            assert( index < m_size );
+            yojimbo_assert( index >= 0 );
+            yojimbo_assert( index < m_size );
             return m_entry_sequence[index] != 0xFFFFFFFF ? &m_entries[index] : NULL;
         }
 
@@ -980,7 +980,7 @@ namespace yojimbo
         {
             if ( finish_sequence < start_sequence ) 
                 finish_sequence += 65535;
-            assert( finish_sequence >= start_sequence );
+            yojimbo_assert( finish_sequence >= start_sequence );
             if ( finish_sequence - start_sequence < m_size )
             {
                 for ( int sequence = start_sequence; sequence <= finish_sequence; ++sequence )

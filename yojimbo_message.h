@@ -180,7 +180,7 @@ namespace yojimbo
             This way we don't have to pass messages by value (more efficient) and messages get cleaned up when they are delivered and no packets refer to them.
          */
 
-        void Acquire() { assert( m_refCount > 0 ); m_refCount++; }
+        void Acquire() { yojimbo_assert( m_refCount > 0 ); m_refCount++; }
 
         /**
             Remove a reference from the message.
@@ -188,7 +188,7 @@ namespace yojimbo
             Message are deleted when the number of references reach zero. Messages have reference count of 1 after creation.
          */
 
-        void Release() { assert( m_refCount > 0 ); m_refCount--; }
+        void Release() { yojimbo_assert( m_refCount > 0 ); m_refCount--; }
 
         /**
             Message destructor.
@@ -200,7 +200,7 @@ namespace yojimbo
 
         virtual ~Message()
         {
-            assert( m_refCount == 0 );
+            yojimbo_assert( m_refCount == 0 );
         }
 
     private:
@@ -253,9 +253,9 @@ namespace yojimbo
 
         void AttachBlock( Allocator & allocator, uint8_t * blockData, int blockSize )
         {
-            assert( blockData );
-            assert( blockSize > 0 );
-            assert( !m_blockData );
+            yojimbo_assert( blockData );
+            yojimbo_assert( blockSize > 0 );
+            yojimbo_assert( !m_blockData );
 
             m_allocator = &allocator;
             m_blockData = blockData;
@@ -419,7 +419,7 @@ namespace yojimbo
 
         virtual ~MessageFactory()
         {
-            assert( m_allocator );
+            yojimbo_assert( m_allocator );
 
             m_allocator = NULL;
 
@@ -456,8 +456,8 @@ namespace yojimbo
 
         Message * CreateMessage( int type )
         {
-            assert( type >= 0 );
-            assert( type < m_numTypes );
+            yojimbo_assert( type >= 0 );
+            yojimbo_assert( type < m_numTypes );
 
             Message * message = CreateMessageInternal( type );
             if ( !message )
@@ -468,7 +468,7 @@ namespace yojimbo
 
             #if YOJIMBO_DEBUG_MESSAGE_LEAKS
             allocated_messages[message] = 1;
-            assert( allocated_messages.find( message ) != allocated_messages.end() );
+            yojimbo_assert( allocated_messages.find( message ) != allocated_messages.end() );
             #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 
             return message;
@@ -485,7 +485,7 @@ namespace yojimbo
 
         void AcquireMessage( Message * message )
         {
-            assert( message );
+            yojimbo_assert( message );
             if ( message )
                 message->Acquire();
         }
@@ -501,7 +501,7 @@ namespace yojimbo
 
         void ReleaseMessage( Message * message )
         {
-            assert( message );
+            yojimbo_assert( message );
             if ( !message )
                 return;
 
@@ -510,11 +510,11 @@ namespace yojimbo
             if ( message->GetRefCount() == 0 )
             {
                 #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-                assert( allocated_messages.find( message ) != allocated_messages.end() );
+                yojimbo_assert( allocated_messages.find( message ) != allocated_messages.end() );
                 allocated_messages.erase( message );
                 #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
             
-                assert( m_allocator );
+                yojimbo_assert( m_allocator );
 
                 YOJIMBO_DELETE( *m_allocator, Message, message );
             }
@@ -539,7 +539,7 @@ namespace yojimbo
 
         Allocator & GetAllocator()
         {
-            assert( m_allocator );
+            yojimbo_assert( m_allocator );
             return *m_allocator;
         }
 

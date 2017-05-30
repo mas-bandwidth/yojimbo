@@ -5,6 +5,7 @@
 */
 
 #include "yojimbo_config.h"
+#include "yojimbo_platform.h"
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
@@ -109,7 +110,7 @@ namespace yojimbo
         // 1. if the first character is '[' then it's probably an ipv6 in form "[addr6]:portnum"
         // 2. otherwise try to parse as raw IPv6 address, parse using inet_pton
 
-        assert( address_in );
+        yojimbo_assert( address_in );
 
         char buffer[MaxAddressLength];
         char * address = buffer;
@@ -189,13 +190,13 @@ namespace yojimbo
 
     const uint8_t * Address::GetAddress4() const
     {
-        assert( m_type == ADDRESS_IPV4 );
+        yojimbo_assert( m_type == ADDRESS_IPV4 );
         return m_address.ipv4;
     }
 
     const uint16_t * Address::GetAddress6() const
     {
-        assert( m_type == ADDRESS_IPV6 );
+        yojimbo_assert( m_type == ADDRESS_IPV6 );
         return m_address.ipv6;
     }
 
@@ -216,7 +217,7 @@ namespace yojimbo
 
     const char * Address::ToString( char buffer[], int bufferSize ) const
     {
-        assert( bufferSize >= MaxAddressLength );
+        yojimbo_assert( bufferSize >= MaxAddressLength );
 
         if ( m_type == ADDRESS_IPV4 )
         {

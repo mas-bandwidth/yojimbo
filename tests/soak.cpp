@@ -203,14 +203,14 @@ int SoakMain()
                     if ( !message )
                         break;
 
-                    assert( message->GetId() == (uint16_t) numMessagesReceivedFromClient );
+                    yojimbo_assert( message->GetId() == (uint16_t) numMessagesReceivedFromClient );
 
                     switch ( message->GetType() )
                     {
                         case TEST_MESSAGE:
                         {
                             TestMessage * testMessage = (TestMessage*) message;
-                            assert( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+                            yojimbo_assert( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
                             printf( "server received message %d\n", testMessage->sequence );
                             server.ReleaseMessage( clientIndex, message );
                             numMessagesReceivedFromClient++;
@@ -220,7 +220,7 @@ int SoakMain()
                         case TEST_BLOCK_MESSAGE:
                         {
                             TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-                            assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
+                            yojimbo_assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
                             const int blockSize = blockMessage->GetBlockSize();
                             const int expectedBlockSize = 1 + ( int( numMessagesReceivedFromClient ) * 33 ) % MaxBlockSize;
                             if ( blockSize  != expectedBlockSize )
@@ -229,7 +229,7 @@ int SoakMain()
                                 return 1;
                             }
                             const uint8_t * blockData = blockMessage->GetBlockData();
-                            assert( blockData );
+                            yojimbo_assert( blockData );
                             for ( int i = 0; i < blockSize; ++i )
                             {
                                 if ( blockData[i] != uint8_t( numMessagesReceivedFromClient + i ) )
@@ -254,14 +254,14 @@ int SoakMain()
                 if ( !message )
                     break;
 
-                assert( message->GetId() == (uint16_t) numMessagesReceivedFromServer );
+                yojimbo_assert( message->GetId() == (uint16_t) numMessagesReceivedFromServer );
 
                 switch ( message->GetType() )
                 {
                     case TEST_MESSAGE:
                     {
                         TestMessage * testMessage = (TestMessage*) message;
-                        assert( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
+                        yojimbo_assert( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
                         printf( "client received message %d\n", testMessage->sequence );
                         client.ReleaseMessage( message );
                         numMessagesReceivedFromServer++;
@@ -271,7 +271,7 @@ int SoakMain()
                     case TEST_BLOCK_MESSAGE:
                     {
                         TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-                        assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
+                        yojimbo_assert( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
                         const int blockSize = blockMessage->GetBlockSize();
                         const int expectedBlockSize = 1 + ( int( numMessagesReceivedFromServer ) * 33 ) % MaxBlockSize;
                         if ( blockSize  != expectedBlockSize )
@@ -280,7 +280,7 @@ int SoakMain()
                             return 1;
                         }
                         const uint8_t * blockData = blockMessage->GetBlockData();
-                        assert( blockData );
+                        yojimbo_assert( blockData );
                         for ( int i = 0; i < blockSize; ++i )
                         {
                             if ( blockData[i] != uint8_t( numMessagesReceivedFromServer + i ) )

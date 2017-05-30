@@ -9,7 +9,6 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_utility.h"
-#include <assert.h>
 #include <string.h>
 
 /** @file */
@@ -43,8 +42,8 @@ namespace yojimbo
 
         BitWriter( void * data, int bytes ) : m_data( (uint32_t*) data ), m_numWords( bytes / 4 )
         {
-            assert( data );
-            assert( ( bytes % 4 ) == 0 );
+            yojimbo_assert( data );
+            yojimbo_assert( ( bytes % 4 ) == 0 );
             m_numBits = m_numWords * 32;
             m_bitsWritten = 0;
             m_wordIndex = 0;
@@ -69,10 +68,10 @@ namespace yojimbo
 
         void WriteBits( uint32_t value, int bits )
         {
-            assert( bits > 0 );
-            assert( bits <= 32 );
-            assert( m_bitsWritten + bits <= m_numBits );
-            assert( uint64_t( value ) <= ( ( 1ULL << bits ) - 1 ) );
+            yojimbo_assert( bits > 0 );
+            yojimbo_assert( bits <= 32 );
+            yojimbo_assert( m_bitsWritten + bits <= m_numBits );
+            yojimbo_assert( uint64_t( value ) <= ( ( 1ULL << bits ) - 1 ) );
 
             m_scratch |= uint64_t( value ) << m_scratchBits;
 
@@ -80,7 +79,7 @@ namespace yojimbo
 
             if ( m_scratchBits >= 32 )
             {
-                assert( m_wordIndex < m_numWords );
+                yojimbo_assert( m_wordIndex < m_numWords );
                 m_data[m_wordIndex] = host_to_network( uint32_t( m_scratch & 0xFFFFFFFF ) );
                 m_scratch >>= 32;
                 m_scratchBits -= 32;
@@ -108,7 +107,7 @@ namespace yojimbo
             {
                 uint32_t zero = 0;
                 WriteBits( zero, 8 - remainderBits );
-                assert( ( m_bitsWritten % 8 ) == 0 );
+                yojimbo_assert( ( m_bitsWritten % 8 ) == 0 );
             }
         }
 
@@ -127,9 +126,9 @@ namespace yojimbo
 
         void WriteBytes( const uint8_t * data, int bytes )
         {
-            assert( GetAlignBits() == 0 );
-            assert( m_bitsWritten + bytes * 8 <= m_numBits );
-            assert( ( m_bitsWritten % 32 ) == 0 || ( m_bitsWritten % 32 ) == 8 || ( m_bitsWritten % 32 ) == 16 || ( m_bitsWritten % 32 ) == 24 );
+            yojimbo_assert( GetAlignBits() == 0 );
+            yojimbo_assert( m_bitsWritten + bytes * 8 <= m_numBits );
+            yojimbo_assert( ( m_bitsWritten % 32 ) == 0 || ( m_bitsWritten % 32 ) == 8 || ( m_bitsWritten % 32 ) == 16 || ( m_bitsWritten % 32 ) == 24 );
 
             int headBytes = ( 4 - ( m_bitsWritten % 32 ) / 8 ) % 4;
             if ( headBytes > bytes )
@@ -141,29 +140,29 @@ namespace yojimbo
 
             FlushBits();
 
-            assert( GetAlignBits() == 0 );
+            yojimbo_assert( GetAlignBits() == 0 );
 
             int numWords = ( bytes - headBytes ) / 4;
             if ( numWords > 0 )
             {
-                assert( ( m_bitsWritten % 32 ) == 0 );
+                yojimbo_assert( ( m_bitsWritten % 32 ) == 0 );
                 memcpy( &m_data[m_wordIndex], data + headBytes, numWords * 4 );
                 m_bitsWritten += numWords * 32;
                 m_wordIndex += numWords;
                 m_scratch = 0;
             }
 
-            assert( GetAlignBits() == 0 );
+            yojimbo_assert( GetAlignBits() == 0 );
 
             int tailStart = headBytes + numWords * 4;
             int tailBytes = bytes - tailStart;
-            assert( tailBytes >= 0 && tailBytes < 4 );
+            yojimbo_assert( tailBytes >= 0 && tailBytes < 4 );
             for ( int i = 0; i < tailBytes; ++i )
                 WriteBits( data[tailStart+i], 8 );
 
-            assert( GetAlignBits() == 0 );
+            yojimbo_assert( GetAlignBits() == 0 );
 
-            assert( headBytes + numWords * 4 + tailBytes == bytes );
+            yojimbo_assert( headBytes + numWords * 4 + tailBytes == bytes );
         }
 
         /**
@@ -178,8 +177,8 @@ namespace yojimbo
         {
             if ( m_scratchBits != 0 )
             {
-                assert( m_scratchBits <= 32 );
-                assert( m_wordIndex < m_numWords );
+                yojimbo_assert( m_scratchBits <= 32 );
+                yojimbo_assert( m_wordIndex < m_numWords );
                 m_data[m_wordIndex] = host_to_network( uint32_t( m_scratch & 0xFFFFFFFF ) );
                 m_scratch >>= 32;
                 m_scratchBits = 0;
@@ -292,7 +291,7 @@ namespace yojimbo
         BitReader( const void * data, int bytes ) : m_data( (const uint32_t*) data ), m_numBytes( bytes )
 #endif // #ifndef NDEBUG
         {
-            assert( data );
+            yojimbo_assert( data );
             m_numBits = m_numBytes * 8;
             m_bitsRead = 0;
             m_scratch = 0;
@@ -330,23 +329,23 @@ namespace yojimbo
 
         uint32_t ReadBits( int bits )
         {
-            assert( bits > 0 );
-            assert( bits <= 32 );
-            assert( m_bitsRead + bits <= m_numBits );
+            yojimbo_assert( bits > 0 );
+            yojimbo_assert( bits <= 32 );
+            yojimbo_assert( m_bitsRead + bits <= m_numBits );
 
             m_bitsRead += bits;
 
-            assert( m_scratchBits >= 0 && m_scratchBits <= 64 );
+            yojimbo_assert( m_scratchBits >= 0 && m_scratchBits <= 64 );
 
             if ( m_scratchBits < bits )
             {
-                assert( m_wordIndex < m_numWords );
+                yojimbo_assert( m_wordIndex < m_numWords );
                 m_scratch |= uint64_t( network_to_host( m_data[m_wordIndex] ) ) << m_scratchBits;
                 m_scratchBits += 32;
                 m_wordIndex++;
             }
 
-            assert( m_scratchBits >= bits );
+            yojimbo_assert( m_scratchBits >= bits );
 
             const uint32_t output = m_scratch & ( (uint64_t(1)<<bits) - 1 );
 
@@ -376,7 +375,7 @@ namespace yojimbo
             if ( remainderBits != 0 )
             {
                 uint32_t value = ReadBits( 8 - remainderBits );
-                assert( m_bitsRead % 8 == 0 );
+                yojimbo_assert( m_bitsRead % 8 == 0 );
                 if ( value != 0 )
                     return false;
             }
@@ -391,9 +390,9 @@ namespace yojimbo
 
         void ReadBytes( uint8_t * data, int bytes )
         {
-            assert( GetAlignBits() == 0 );
-            assert( m_bitsRead + bytes * 8 <= m_numBits );
-            assert( ( m_bitsRead % 32 ) == 0 || ( m_bitsRead % 32 ) == 8 || ( m_bitsRead % 32 ) == 16 || ( m_bitsRead % 32 ) == 24 );
+            yojimbo_assert( GetAlignBits() == 0 );
+            yojimbo_assert( m_bitsRead + bytes * 8 <= m_numBits );
+            yojimbo_assert( ( m_bitsRead % 32 ) == 0 || ( m_bitsRead % 32 ) == 8 || ( m_bitsRead % 32 ) == 16 || ( m_bitsRead % 32 ) == 24 );
 
             int headBytes = ( 4 - ( m_bitsRead % 32 ) / 8 ) % 4;
             if ( headBytes > bytes )
@@ -403,29 +402,29 @@ namespace yojimbo
             if ( headBytes == bytes )
                 return;
 
-            assert( GetAlignBits() == 0 );
+            yojimbo_assert( GetAlignBits() == 0 );
 
             int numWords = ( bytes - headBytes ) / 4;
             if ( numWords > 0 )
             {
-                assert( ( m_bitsRead % 32 ) == 0 );
+                yojimbo_assert( ( m_bitsRead % 32 ) == 0 );
                 memcpy( data + headBytes, &m_data[m_wordIndex], numWords * 4 );
                 m_bitsRead += numWords * 32;
                 m_wordIndex += numWords;
                 m_scratchBits = 0;
             }
 
-            assert( GetAlignBits() == 0 );
+            yojimbo_assert( GetAlignBits() == 0 );
 
             int tailStart = headBytes + numWords * 4;
             int tailBytes = bytes - tailStart;
-            assert( tailBytes >= 0 && tailBytes < 4 );
+            yojimbo_assert( tailBytes >= 0 && tailBytes < 4 );
             for ( int i = 0; i < tailBytes; ++i )
                 data[tailStart+i] = (uint8_t) ReadBits( 8 );
 
-            assert( GetAlignBits() == 0 );
+            yojimbo_assert( GetAlignBits() == 0 );
 
-            assert( headBytes + numWords * 4 + tailBytes == bytes );
+            yojimbo_assert( headBytes + numWords * 4 + tailBytes == bytes );
         }
 
         /**

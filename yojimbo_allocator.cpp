@@ -7,7 +7,6 @@
 #include "yojimbo_config.h"
 #include "yojimbo_allocator.h"
 #include "yojimbo_platform.h"
-#include <assert.h>
 #include <stdlib.h>
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
@@ -55,7 +54,7 @@ namespace yojimbo
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
-        assert( m_alloc_map.find( p ) == m_alloc_map.end() );
+        yojimbo_assert( m_alloc_map.find( p ) == m_alloc_map.end() );
 
         AllocatorEntry entry;
         entry.size = size;
@@ -79,7 +78,7 @@ namespace yojimbo
         (void) file;
         (void) line;
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        assert( m_alloc_map.find( p ) != m_alloc_map.end() );
+        yojimbo_assert( m_alloc_map.find( p ) != m_alloc_map.end() );
         m_alloc_map.erase( p );
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
@@ -115,21 +114,21 @@ namespace yojimbo
 
     static void * AlignPointerUp( void * memory, int align )
     {
-        assert( ( align & ( align - 1 ) ) == 0 );
+        yojimbo_assert( ( align & ( align - 1 ) ) == 0 );
         uintptr_t p = (uintptr_t) memory;
         return (void*) ( ( p + ( align - 1 ) ) & ~( align - 1 ) );
     }
 
     static void * AlignPointerDown( void * memory, int align )
     {
-        assert( ( align & ( align - 1 ) ) == 0 );
+        yojimbo_assert( ( align & ( align - 1 ) ) == 0 );
         uintptr_t p = (uintptr_t) memory;
         return (void*) ( p - ( p & ( align - 1 ) ) );
     }
 
     TLSF_Allocator::TLSF_Allocator( void * memory, size_t size ) 
     {
-        assert( size > 0 );
+        yojimbo_assert( size > 0 );
 
         SetErrorLevel( ALLOCATOR_ERROR_NONE );
 
@@ -138,7 +137,7 @@ namespace yojimbo
         uint8_t * aligned_memory_start = (uint8_t*) AlignPointerUp( memory, AlignBytes );
         uint8_t * aligned_memory_finish = (uint8_t*) AlignPointerDown( ( (uint8_t*) memory ) + size, AlignBytes );
 
-        assert( aligned_memory_start < aligned_memory_finish );
+        yojimbo_assert( aligned_memory_start < aligned_memory_finish );
         
         size_t aligned_memory_size = aligned_memory_finish - aligned_memory_start;
 

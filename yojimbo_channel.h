@@ -134,7 +134,7 @@ namespace yojimbo
             case CHANNEL_ERROR_BLOCKS_DISABLED:         return "blocks disabled";
             case CHANNEL_ERROR_FAILED_TO_SERIALIZE:     return "failed to serialize";
             default:
-                assert( false );
+                yojimbo_assert( false );
                 return "(unknown)";
         }
     }
@@ -581,9 +581,9 @@ namespace yojimbo
                 ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
                 blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-                assert( ackedFragment );
-                assert( fragmentSendTime );
-                assert( blockData );
+                yojimbo_assert( ackedFragment );
+                yojimbo_assert( fragmentSendTime );
+                yojimbo_assert( blockData );
                 Reset();
             }
 
@@ -636,7 +636,7 @@ namespace yojimbo
                 m_allocator = &allocator;
                 receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-                assert( receivedFragment && blockData );
+                yojimbo_assert( receivedFragment && blockData );
                 blockMessage = NULL;
                 Reset();
             }

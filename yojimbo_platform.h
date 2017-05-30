@@ -113,8 +113,21 @@ double yojimbo_time();
 
 void yojimbo_log_level( int level );
 
-void yojimbo_set_printf_function( int (*function)( const char *, ... ) );
-
 void yojimbo_printf( int level, const char * format, ... );
+
+extern void (*yojimbo_assert_function)( const char *, const char *, const char * file, int line );
+
+#define yojimbo_assert( condition )                                                         \
+do                                                                                          \
+{                                                                                           \
+    if ( !(condition) )                                                                     \
+    {                                                                                       \
+        yojimbo_assert_function( #condition, __FUNCTION__, __FILE__, __LINE__ );            \
+    }                                                                                       \
+} while(0)
+
+void yojimbo_set_printf_function( int (*function)( const char * /*format*/, ... ) );
+
+void yojimbo_set_assert_function( void (*function)( const char * /*condition*/, const char * /*function*/, const char * /*file*/, int /*line*/ ) );
 
 #endif // #ifndef YOJIMBO_PLATFORM_H

@@ -159,7 +159,7 @@ namespace yojimbo
             @returns The allocator that packet data is allocated with.
          */
 
-        Allocator & GetAllocator() { assert( m_allocator ); return *m_allocator; }
+        Allocator & GetAllocator() { yojimbo_assert( m_allocator ); return *m_allocator; }
 
     protected:
 

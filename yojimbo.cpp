@@ -6,7 +6,6 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo.h"
-#include <assert.h>
 
 #ifdef _MSC_VER
 #define SODIUM_STATIC
@@ -24,7 +23,7 @@ namespace yojimbo
 {
     Allocator & GetDefaultAllocator()
     {
-        assert( g_defaultAllocator );
+        yojimbo_assert( g_defaultAllocator );
         return *g_defaultAllocator;
     }
 }
@@ -56,7 +55,7 @@ void ShutdownYojimbo()
 
     netcode_term();
 
-    assert( g_defaultAllocator );
+    yojimbo_assert( g_defaultAllocator );
     delete g_defaultAllocator;
     g_defaultAllocator = NULL;
 }

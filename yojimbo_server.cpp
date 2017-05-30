@@ -38,13 +38,13 @@ namespace yojimbo
     BaseServer::~BaseServer()
     {
         // IMPORTANT: Please stop the server before destroying it!
-        assert( !IsRunning () );
+        yojimbo_assert( !IsRunning () );
         m_allocator = NULL;
     }
 
     void BaseServer::SetContext( void * context )
     {
-        assert( !IsRunning() );
+        yojimbo_assert( !IsRunning() );
         m_context = context;
     }
 
@@ -53,8 +53,8 @@ namespace yojimbo
         Stop();
         m_running = true;
         m_maxClients = maxClients;
-        assert( !m_globalMemory );
-        assert( !m_globalAllocator );
+        yojimbo_assert( !m_globalMemory );
+        yojimbo_assert( !m_globalAllocator );
         m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
         m_globalAllocator = m_adapter->CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
         if ( m_config.networkSimulator )
@@ -63,8 +63,8 @@ namespace yojimbo
         }
         for ( int i = 0; i < m_maxClients; ++i )
         {
-            assert( !m_clientMemory[i] );
-            assert( !m_clientAllocator[i] );
+            yojimbo_assert( !m_clientMemory[i] );
+            yojimbo_assert( !m_clientAllocator[i] );
             m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
             m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
@@ -85,15 +85,15 @@ namespace yojimbo
     {
         if ( IsRunning() )
         {
-            assert( m_globalMemory );
-            assert( m_globalAllocator );
+            yojimbo_assert( m_globalMemory );
+            yojimbo_assert( m_globalAllocator );
             YOJIMBO_DELETE( *m_globalAllocator, NetworkSimulator, m_networkSimulator );
             for ( int i = 0; i < m_maxClients; ++i )
             {
-                assert( m_clientMemory[i] );
-                assert( m_clientAllocator[i] );
-                assert( m_clientMessageFactory[i] );
-                assert( m_clientEndpoint[i] );
+                yojimbo_assert( m_clientMemory[i] );
+                yojimbo_assert( m_clientAllocator[i] );
+                yojimbo_assert( m_clientMessageFactory[i] );
+                yojimbo_assert( m_clientEndpoint[i] );
                 reliable_endpoint_destroy( m_clientEndpoint[i] ); m_clientEndpoint[i] = NULL;
                 YOJIMBO_DELETE( *m_clientAllocator[i], Connection, m_clientConnection[i] );
                 YOJIMBO_DELETE( *m_clientAllocator[i], MessageFactory, m_clientMessageFactory[i] );
@@ -169,93 +169,93 @@ namespace yojimbo
 
     Message * BaseServer::CreateMessage( int clientIndex, int type )
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-        assert( m_clientMessageFactory[clientIndex] );
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( m_clientMessageFactory[clientIndex] );
         return m_clientMessageFactory[clientIndex]->CreateMessage( type );
     }
 
     uint8_t * BaseServer::AllocateBlock( int clientIndex, int bytes )
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-        assert( m_clientAllocator[clientIndex] );
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( m_clientAllocator[clientIndex] );
         return (uint8_t*) YOJIMBO_ALLOCATE( *m_clientAllocator[clientIndex], bytes );
     }
 
     void BaseServer::AttachBlockToMessage( int clientIndex, Message * message, uint8_t * block, int bytes )
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-        assert( message );
-        assert( block );
-        assert( bytes > 0 );
-        assert( message->IsBlockMessage() );
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( message );
+        yojimbo_assert( block );
+        yojimbo_assert( bytes > 0 );
+        yojimbo_assert( message->IsBlockMessage() );
         BlockMessage * blockMessage = (BlockMessage*) message;
         blockMessage->AttachBlock( *m_clientAllocator[clientIndex], block, bytes );
     }
 
     void BaseServer::FreeBlock( int clientIndex, uint8_t * block )
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
         YOJIMBO_FREE( *m_clientAllocator[clientIndex], block );
     }
 
     bool BaseServer::CanSendMessage( int clientIndex, int channelIndex ) const
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-        assert( m_clientConnection[clientIndex] );
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( m_clientConnection[clientIndex] );
         return m_clientConnection[clientIndex]->CanSendMessage( channelIndex );
     }
 
     void BaseServer::SendMessage( int clientIndex, int channelIndex, Message * message )
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-        assert( m_clientConnection[clientIndex] );
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( m_clientConnection[clientIndex] );
         return m_clientConnection[clientIndex]->SendMessage( channelIndex, message );
     }
 
     Message * BaseServer::ReceiveMessage( int clientIndex, int channelIndex )
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-        assert( m_clientConnection[clientIndex] );
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( m_clientConnection[clientIndex] );
         return m_clientConnection[clientIndex]->ReceiveMessage( channelIndex );
     }
 
     void BaseServer::ReleaseMessage( int clientIndex, Message * message )
     {
-        assert( clientIndex >= 0 );
-        assert( clientIndex < m_maxClients );
-        assert( m_clientConnection[clientIndex] );
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( m_clientConnection[clientIndex] );
         m_clientConnection[clientIndex]->ReleaseMessage( message );
     }
 
     MessageFactory & BaseServer::GetClientMessageFactory( int clientIndex ) 
     { 
-        assert( IsRunning() ); 
-        assert( clientIndex >= 0 ); 
-        assert( clientIndex < m_maxClients );
+        yojimbo_assert( IsRunning() ); 
+        yojimbo_assert( clientIndex >= 0 ); 
+        yojimbo_assert( clientIndex < m_maxClients );
         return *m_clientMessageFactory[clientIndex];
     }
 
     reliable_endpoint_t * BaseServer::GetClientEndpoint( int clientIndex )
     {
-        assert( IsRunning() ); 
-        assert( clientIndex >= 0 ); 
-        assert( clientIndex < m_maxClients );
+        yojimbo_assert( IsRunning() ); 
+        yojimbo_assert( clientIndex >= 0 ); 
+        yojimbo_assert( clientIndex < m_maxClients );
         return m_clientEndpoint[clientIndex];
     }
 
     Connection & BaseServer::GetClientConnection( int clientIndex )
     {
-        assert( IsRunning() ); 
-        assert( clientIndex >= 0 ); 
-        assert( clientIndex < m_maxClients );
-        assert( m_clientConnection[clientIndex] );
+        yojimbo_assert( IsRunning() ); 
+        yojimbo_assert( clientIndex >= 0 ); 
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( m_clientConnection[clientIndex] );
         return *m_clientConnection[clientIndex];
     }
 
@@ -275,7 +275,7 @@ namespace yojimbo
 
     Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseServer( allocator, config, adapter, time )
     {
-        assert( KeyBytes == NETCODE_KEY_BYTES );
+        yojimbo_assert( KeyBytes == NETCODE_KEY_BYTES );
         memcpy( m_privateKey, privateKey, NETCODE_KEY_BYTES );
         m_address = address;
         m_config = config;
@@ -285,7 +285,7 @@ namespace yojimbo
     Server::~Server()
     {
         // IMPORTANT: Please stop the server before destroying it!
-        assert( !m_server );
+        yojimbo_assert( !m_server );
     }
 
     void Server::Start( int maxClients )
@@ -318,13 +318,13 @@ namespace yojimbo
 
     void Server::DisconnectClient( int clientIndex )
     {
-        assert( m_server );
+        yojimbo_assert( m_server );
         netcode_server_disconnect_client( m_server, clientIndex );
     }
 
     void Server::DisconnectAllClients()
     {
-        assert( m_server );
+        yojimbo_assert( m_server );
         netcode_server_disconnect_all_clients( m_server );
     }
 

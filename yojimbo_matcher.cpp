@@ -90,7 +90,7 @@ namespace yojimbo
 
     void Matcher::RequestMatch( uint64_t protocolId, uint64_t clientId )
     {
-        assert( m_initialized );
+        yojimbo_assert( m_initialized );
 
         uint32_t flags;
         char buf[4*1024];

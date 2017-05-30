@@ -11,7 +11,6 @@
 #endif // #ifdef _MSC_VER
 #include <stdint.h>
 #include <stdio.h>
-#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <mbedtls/base64.h>
@@ -90,9 +89,9 @@ namespace yojimbo
 
     int base64_encode_string( const char * input, char * output, int output_size )
     {
-        assert( input );
-        assert( output );
-        assert( output_size > 0 );
+        yojimbo_assert( input );
+        yojimbo_assert( output );
+        yojimbo_assert( output_size > 0 );
 
         size_t output_length = 0;
 
@@ -105,9 +104,9 @@ namespace yojimbo
 
     int base64_decode_string( const char * input, char * output, int output_size )
     {
-        assert( input );
-        assert( output );
-        assert( output_size > 0 );
+        yojimbo_assert( input );
+        yojimbo_assert( output );
+        yojimbo_assert( output_size > 0 );
 
         size_t output_length = 0;
 
@@ -124,9 +123,9 @@ namespace yojimbo
 
     int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size )
     {
-        assert( input );
-        assert( output );
-        assert( output_size > 0 );
+        yojimbo_assert( input );
+        yojimbo_assert( output );
+        yojimbo_assert( output_size > 0 );
 
         size_t output_length = 0;
 
@@ -137,9 +136,9 @@ namespace yojimbo
 
     int base64_decode_data( const char * input, uint8_t * output, int output_size )
     {
-        assert( input );
-        assert( output );
-        assert( output_size > 0 );
+        yojimbo_assert( input );
+        yojimbo_assert( output );
+        yojimbo_assert( output_size > 0 );
 
         size_t output_length = 0;
 

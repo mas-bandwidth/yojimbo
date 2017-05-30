@@ -37,7 +37,7 @@ namespace yojimbo
     BaseClient::~BaseClient()
     {
         // IMPORTANT: Please disconnect the client before destroying it
-        assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
+        yojimbo_assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
         m_allocator = NULL;
     }
 
@@ -110,16 +110,16 @@ namespace yojimbo
 
     void BaseClient::CreateInternal()
     {
-        assert( m_allocator );
-        assert( m_adapter );
-        assert( m_clientMemory == NULL );
-        assert( m_clientAllocator == NULL );
-        assert( m_messageFactory == NULL );
+        yojimbo_assert( m_allocator );
+        yojimbo_assert( m_adapter );
+        yojimbo_assert( m_clientMemory == NULL );
+        yojimbo_assert( m_clientAllocator == NULL );
+        yojimbo_assert( m_messageFactory == NULL );
         m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
         m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
         m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
         m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, m_config, m_time );
-        assert( m_connection );
+        yojimbo_assert( m_connection );
         if ( m_config.networkSimulator )
         {
             m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets, m_time );
@@ -136,7 +136,7 @@ namespace yojimbo
 
     void BaseClient::DestroyInternal()
     {
-        assert( m_allocator );
+        yojimbo_assert( m_allocator );
         if ( m_endpoint )
         {
             reliable_endpoint_destroy( m_endpoint ); 
@@ -165,7 +165,7 @@ namespace yojimbo
 
     Message * BaseClient::CreateMessage( int type )
     {
-        assert( m_messageFactory );
+        yojimbo_assert( m_messageFactory );
         return m_messageFactory->CreateMessage( type );
     }
 
@@ -176,10 +176,10 @@ namespace yojimbo
 
     void BaseClient::AttachBlockToMessage( Message * message, uint8_t * block, int bytes )
     {
-        assert( message );
-        assert( block );
-        assert( bytes > 0 );
-        assert( message->IsBlockMessage() );
+        yojimbo_assert( message );
+        yojimbo_assert( block );
+        yojimbo_assert( bytes > 0 );
+        yojimbo_assert( message->IsBlockMessage() );
         BlockMessage * blockMessage = (BlockMessage*) message;
         blockMessage->AttachBlock( *m_clientAllocator, block, bytes );
     }
@@ -191,25 +191,25 @@ namespace yojimbo
 
     bool BaseClient::CanSendMessage( int channelIndex ) const
     {
-        assert( m_connection );
+        yojimbo_assert( m_connection );
         return m_connection->CanSendMessage( channelIndex );
     }
 
     void BaseClient::SendMessage( int channelIndex, Message * message )
     {
-        assert( m_connection );
+        yojimbo_assert( m_connection );
         m_connection->SendMessage( channelIndex, message );
     }
 
     Message * BaseClient::ReceiveMessage( int channelIndex )
     {
-        assert( m_connection );
+        yojimbo_assert( m_connection );
         return m_connection->ReceiveMessage( channelIndex );
     }
 
     void BaseClient::ReleaseMessage( Message * message )
     {
-        assert( m_connection );
+        yojimbo_assert( m_connection );
         m_connection->ReleaseMessage( message );
     }
 
@@ -224,7 +224,7 @@ namespace yojimbo
     Client::~Client()
     {
         // IMPORTANT: Please disconnect the client before destroying it
-        assert( m_client == NULL );
+        yojimbo_assert( m_client == NULL );
     }
 
     void Client::InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address )
@@ -234,9 +234,9 @@ namespace yojimbo
 
     void Client::InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses )
     {
-        assert( serverAddresses );
-        assert( numServerAddresses > 0 );
-        assert( numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
+        yojimbo_assert( serverAddresses );
+        yojimbo_assert( numServerAddresses > 0 );
+        yojimbo_assert( numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
         Disconnect();
         CreateInternal();
         m_clientId = clientId;
@@ -271,7 +271,7 @@ namespace yojimbo
 
     void Client::Connect( uint64_t clientId, uint8_t * connectToken )
     {
-        assert( connectToken );
+        yojimbo_assert( connectToken );
         Disconnect();
         CreateInternal();
         m_clientId = clientId;
@@ -292,7 +292,7 @@ namespace yojimbo
     {
         if ( !IsConnected() )
             return;
-        assert( m_client );
+        yojimbo_assert( m_client );
         // todo: we don't want to allocate this on the stack, as packet size can be larger than that now
         uint8_t * packetData = (uint8_t*) alloca( m_config.maxPacketSize );
         int packetBytes;
@@ -307,7 +307,7 @@ namespace yojimbo
     {
         if ( !IsConnected() )
             return;
-        assert( m_client );
+        yojimbo_assert( m_client );
         while ( true )
         {
             int packetBytes;

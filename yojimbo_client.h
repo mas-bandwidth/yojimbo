@@ -7,7 +7,6 @@
 #ifndef YOJIMBO_CLIENT_H
 #define YOJIMBO_CLIENT_H
 
-#include <assert.h>
 #include "yojimbo_config.h"
 #include "yojimbo_adapter.h"
 #include "yojimbo_address.h"
@@ -189,7 +188,7 @@ namespace yojimbo
 
         ~BaseClient();
 
-        void SetContext( void * context ) { assert( IsDisconnected() ); m_context = context; }
+        void SetContext( void * context ) { yojimbo_assert( IsDisconnected() ); m_context = context; }
 
         void Disconnect();
 
@@ -243,15 +242,15 @@ namespace yojimbo
 
         void SetClientState( ClientState clientState );
 
-        Allocator & GetClientAllocator() { assert( m_clientAllocator ); return *m_clientAllocator; }
+        Allocator & GetClientAllocator() { yojimbo_assert( m_clientAllocator ); return *m_clientAllocator; }
 
-        MessageFactory & GetMessageFactory() { assert( m_messageFactory ); return *m_messageFactory; }
+        MessageFactory & GetMessageFactory() { yojimbo_assert( m_messageFactory ); return *m_messageFactory; }
 
         NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
 
         reliable_endpoint_t * GetEndpoint() { return m_endpoint; }
 
-        Connection & GetConnection() { assert( m_connection ); return *m_connection; }
+        Connection & GetConnection() { yojimbo_assert( m_connection ); return *m_connection; }
 
         virtual void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 

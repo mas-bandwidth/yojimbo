@@ -7,9 +7,9 @@
 #ifndef YOJIMBO_ADAPTER_H
 #define YOJIMBO_ADAPTER_H
 
-#include <assert.h>
 #include "yojimbo_config.h"
 #include "yojimbo_message.h"
+#include "yojimbo_platform.h"
 #include "yojimbo_allocator.h"
 
 /** @file */
@@ -34,7 +34,7 @@ namespace yojimbo
         virtual MessageFactory * CreateMessageFactory( Allocator & allocator )
         {
             (void) allocator;
-            assert( false );
+            yojimbo_assert( false );
             return NULL;
         }
     };

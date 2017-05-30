@@ -7,8 +7,8 @@
 #ifndef YOJIMBO_ALLOCATOR_H
 #define YOJIMBO_ALLOCATOR_H
 
+#include "yojimbo_platform.h"
 #include <stdint.h>
-#include <assert.h>
 #include <new>
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 #include <map>
@@ -67,7 +67,7 @@ namespace yojimbo
             case ALLOCATOR_ERROR_NONE:                  return "none";
             case ALLOCATOR_ERROR_OUT_OF_MEMORY:         return "out of memory";
             default:
-                assert( false );
+                yojimbo_assert( false );
                 return "(unknown)";
         }
     }

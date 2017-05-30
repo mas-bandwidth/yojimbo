@@ -22,7 +22,7 @@ namespace yojimbo
 
     void ChannelPacketData::Free( MessageFactory & messageFactory )
     {
-        assert( initialized );
+        yojimbo_assert( initialized );
 
         Allocator & allocator = messageFactory.GetAllocator();
 
@@ -76,11 +76,11 @@ namespace yojimbo
 
             if ( Stream::IsWriting )
             {
-                assert( messages );
+                yojimbo_assert( messages );
 
                 for ( int i = 0; i < numMessages; ++i )
                 {
-                    assert( messages[i] );
+                    yojimbo_assert( messages[i] );
                     messageTypes[i] = messages[i]->GetType();
                     messageIds[i] = messages[i]->GetId();
                 }
@@ -126,7 +126,7 @@ namespace yojimbo
                     messages[i]->SetId( messageIds[i] );
                 }
 
-                assert( messages[i] );
+                yojimbo_assert( messages[i] );
 
                 if ( !messages[i]->SerializeInternal( stream ) )
                 {
@@ -186,11 +186,11 @@ namespace yojimbo
 
             if ( Stream::IsWriting )
             {
-                assert( messages );
+                yojimbo_assert( messages );
 
                 for ( int i = 0; i < numMessages; ++i )
                 {
-                    assert( messages[i] );
+                    yojimbo_assert( messages[i] );
                     messageTypes[i] = messages[i]->GetType();
                 }
             }
@@ -226,7 +226,7 @@ namespace yojimbo
                     }
                 }
 
-                assert( messages[i] );
+                yojimbo_assert( messages[i] );
 
                 if ( !messages[i]->SerializeInternal( stream ) )
                 {
@@ -315,7 +315,7 @@ namespace yojimbo
                 block.message = (BlockMessage*) message;
             }
 
-            assert( block.message );
+            yojimbo_assert( block.message );
 
             if ( !block.message->SerializeInternal( stream ) )
             {
@@ -334,7 +334,7 @@ namespace yojimbo
 
     template <typename Stream> bool ChannelPacketData::Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
     {
-        assert( initialized );
+        yojimbo_assert( initialized );
 
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET
         int startBits = stream.GetBitsProcessed();
@@ -379,7 +379,7 @@ namespace yojimbo
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET
             if ( channelConfig.packetBudget > 0 )
             {
-                assert( stream.GetBitsProcessed() - startBits <= channelConfig.packetBudget * 8 );
+                yojimbo_assert( stream.GetBitsProcessed() - startBits <= channelConfig.packetBudget * 8 );
             }
 #endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
         }
@@ -414,8 +414,8 @@ namespace yojimbo
 
     Channel::Channel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) : m_config( config )
     {
-        assert( channelIndex >= 0 );
-        assert( channelIndex < MaxChannels );
+        yojimbo_assert( channelIndex >= 0 );
+        yojimbo_assert( channelIndex < MaxChannels );
         m_channelIndex = channelIndex;
         m_allocator = &allocator;
         m_messageFactory = &messageFactory;
@@ -427,8 +427,8 @@ namespace yojimbo
 
     uint64_t Channel::GetCounter( int index ) const
     {
-        assert( index >= 0 );
-        assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
+        yojimbo_assert( index >= 0 );
+        yojimbo_assert( index < CHANNEL_COUNTER_NUM_COUNTERS );
         return m_counters[index];
     }
 
@@ -460,11 +460,11 @@ namespace yojimbo
 
     ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) : Channel( allocator, messageFactory, config, channelIndex, time )
     {
-        assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
+        yojimbo_assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
 
-        assert( ( 65536 % config.sendQueueSize ) == 0 );
-        assert( ( 65536 % config.receiveQueueSize ) == 0 );
-        assert( ( 65536 % config.sentPacketBufferSize ) == 0 );
+        yojimbo_assert( ( 65536 % config.sendQueueSize ) == 0 );
+        yojimbo_assert( ( 65536 % config.receiveQueueSize ) == 0 );
+        yojimbo_assert( ( 65536 % config.sentPacketBufferSize ) == 0 );
 
         m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<SentPacketEntry>, *m_allocator, m_config.sentPacketBufferSize );
         
@@ -550,15 +550,15 @@ namespace yojimbo
 
     bool ReliableOrderedChannel::CanSendMessage() const
     {
-        assert( m_messageSendQueue );
+        yojimbo_assert( m_messageSendQueue );
         return m_messageSendQueue->Available( m_sendMessageId );
     }
 
     void ReliableOrderedChannel::SendMessage( Message * message )
     {
-        assert( message );
+        yojimbo_assert( message );
         
-        assert( CanSendMessage() );
+        yojimbo_assert( CanSendMessage() );
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
@@ -574,7 +574,7 @@ namespace yojimbo
             return;
         }
 
-        assert( !( message->IsBlockMessage() && m_config.disableBlocks ) );
+        yojimbo_assert( !( message->IsBlockMessage() && m_config.disableBlocks ) );
 
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
@@ -588,7 +588,7 @@ namespace yojimbo
 
         MessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
 
-        assert( entry );
+        yojimbo_assert( entry );
 
         entry->block = message->IsBlockMessage();
         entry->message = message;
@@ -597,8 +597,8 @@ namespace yojimbo
 
         if ( message->IsBlockMessage() )
         {
-            assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
-            assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
+            yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
+            yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
         }
 
         MeasureStream measureStream( m_messageFactory->GetAllocator() );
@@ -623,8 +623,8 @@ namespace yojimbo
 
         Message * message = entry->message;
 
-        assert( message );
-        assert( message->GetId() == m_receiveMessageId );
+        yojimbo_assert( message );
+        yojimbo_assert( message->GetId() == m_receiveMessageId );
 
         m_messageReceiveQueue->Remove( m_receiveMessageId );
 
@@ -692,7 +692,7 @@ namespace yojimbo
 
     int ReliableOrderedChannel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits )
     {
-        assert( HasMessagesToSend() );
+        yojimbo_assert( HasMessagesToSend() );
 
         numMessageIds = 0;
 
@@ -768,7 +768,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
     {
-        assert( messageIds );
+        yojimbo_assert( messageIds );
 
         packetData.Initialize();
         packetData.channelIndex = GetChannelIndex();
@@ -782,9 +782,9 @@ namespace yojimbo
         for ( int i = 0; i < numMessageIds; ++i )
         {
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageIds[i] );
-            assert( entry );
-            assert( entry->message );
-            assert( entry->message->GetRefCount() > 0 );
+            yojimbo_assert( entry );
+            yojimbo_assert( entry->message );
+            yojimbo_assert( entry->message->GetRefCount() > 0 );
             packetData.message.messages[i] = entry->message;
             m_messageFactory->AcquireMessage( packetData.message.messages[i] );
         }
@@ -793,7 +793,7 @@ namespace yojimbo
     void ReliableOrderedChannel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
         SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
-        assert( sentPacket );
+        yojimbo_assert( sentPacket );
         if ( sentPacket )
         {
             sentPacket->acked = 0;
@@ -817,7 +817,7 @@ namespace yojimbo
         {
             Message * message = messages[i];
 
-            assert( message );  
+            yojimbo_assert( message );  
 
             const uint16_t messageId = message->GetId();
 
@@ -834,7 +834,7 @@ namespace yojimbo
             if ( m_messageReceiveQueue->Find( messageId ) )
                 continue;
 
-            assert( !m_messageReceiveQueue->GetAtIndex( m_messageReceiveQueue->GetIndex( messageId ) ) );
+            yojimbo_assert( !m_messageReceiveQueue->GetAtIndex( m_messageReceiveQueue->GetIndex( messageId ) ) );
 
             MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
             if ( !entry )
@@ -881,7 +881,7 @@ namespace yojimbo
         if ( !sentPacketEntry )
             return;
 
-        assert( !sentPacketEntry->acked );
+        yojimbo_assert( !sentPacketEntry->acked );
 
         for ( int i = 0; i < (int) sentPacketEntry->numMessageIds; ++i )
         {
@@ -891,8 +891,8 @@ namespace yojimbo
             
             if ( sendQueueEntry )
             {
-                assert( sendQueueEntry->message );
-                assert( sendQueueEntry->message->GetId() == messageId );
+                yojimbo_assert( sendQueueEntry->message );
+                yojimbo_assert( sendQueueEntry->message->GetId() == messageId );
 
                 m_messageFactory->ReleaseMessage( sendQueueEntry->message );
 
@@ -919,7 +919,7 @@ namespace yojimbo
 
                     MessageSendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
 
-                    assert( sendQueueEntry );
+                    yojimbo_assert( sendQueueEntry );
 
                     m_messageFactory->ReleaseMessage( sendQueueEntry->message );
 
@@ -947,12 +947,12 @@ namespace yojimbo
             ++m_oldestUnackedMessageId;
         }
 
-        assert( !sequence_greater_than( m_oldestUnackedMessageId, stopMessageId ) );
+        yojimbo_assert( !sequence_greater_than( m_oldestUnackedMessageId, stopMessageId ) );
     }
 
     bool ReliableOrderedChannel::SendingBlockMessage()
     {
-        assert( HasMessagesToSend() );
+        yojimbo_assert( HasMessagesToSend() );
 
         MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
 
@@ -963,12 +963,12 @@ namespace yojimbo
     {
         MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
 
-        assert( entry );
-        assert( entry->block );
+        yojimbo_assert( entry );
+        yojimbo_assert( entry->block );
 
         BlockMessage * blockMessage = (BlockMessage*) entry->message;
 
-        assert( blockMessage );
+        yojimbo_assert( blockMessage );
 
         messageId = blockMessage->GetId();
 
@@ -986,8 +986,8 @@ namespace yojimbo
 
             const int MaxFragmentsPerBlock = m_config.GetMaxFragmentsPerBlock();
 
-            assert( m_sendBlock->numFragments > 0 );
-            assert( m_sendBlock->numFragments <= MaxFragmentsPerBlock );
+            yojimbo_assert( m_sendBlock->numFragments > 0 );
+            yojimbo_assert( m_sendBlock->numFragments <= MaxFragmentsPerBlock );
 
             m_sendBlock->ackedFragment->Clear();
 
@@ -1059,8 +1059,8 @@ namespace yojimbo
         {
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( packetData.block.messageId );
 
-            assert( entry );
-            assert( entry->message );
+            yojimbo_assert( entry );
+            yojimbo_assert( entry->message );
 
             packetData.block.message = (BlockMessage*) entry->message;
 
@@ -1080,7 +1080,7 @@ namespace yojimbo
     {
         SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
         
-        assert( sentPacket );
+        yojimbo_assert( sentPacket );
 
         if ( sentPacket )
         {
@@ -1096,7 +1096,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )
     {  
-        assert( !m_config.disableBlocks );
+        yojimbo_assert( !m_config.disableBlocks );
 
         if ( fragmentData )
         {
@@ -1109,8 +1109,8 @@ namespace yojimbo
 
             if ( !m_receiveBlock->active )
             {
-                assert( numFragments >= 0 );
-                assert( numFragments <= m_config.GetMaxFragmentsPerBlock() );
+                yojimbo_assert( numFragments >= 0 );
+                yojimbo_assert( numFragments <= m_config.GetMaxFragmentsPerBlock() );
 
                 m_receiveBlock->active = true;
                 m_receiveBlock->numFragments = numFragments;
@@ -1188,7 +1188,7 @@ namespace yojimbo
 
                     blockMessage = m_receiveBlock->blockMessage;
 
-                    assert( blockMessage );
+                    yojimbo_assert( blockMessage );
 
                     uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( m_messageFactory->GetAllocator(), m_receiveBlock->blockSize );
 
@@ -1206,7 +1206,7 @@ namespace yojimbo
                     blockMessage->SetId( messageId );
 
                     MessageReceiveQueueEntry * entry = m_messageReceiveQueue->Insert( messageId );
-                    assert( entry );
+                    yojimbo_assert( entry );
                     entry->message = blockMessage;
                     m_receiveBlock->active = false;
                     m_receiveBlock->blockMessage = NULL;
@@ -1219,7 +1219,7 @@ namespace yojimbo
 
     UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) : Channel( allocator, messageFactory, config, channelIndex, time )
     {
-        assert( config.type == CHANNEL_TYPE_UNRELIABLE_UNORDERED );
+        yojimbo_assert( config.type == CHANNEL_TYPE_UNRELIABLE_UNORDERED );
 
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.sendQueueSize );
         
@@ -1254,14 +1254,14 @@ namespace yojimbo
 
     bool UnreliableUnorderedChannel::CanSendMessage() const
     {
-        assert( m_messageSendQueue );
+        yojimbo_assert( m_messageSendQueue );
         return !m_messageSendQueue->IsFull();
     }
 
     void UnreliableUnorderedChannel::SendMessage( Message * message )
     {
-        assert( message );
-        assert( CanSendMessage() );
+        yojimbo_assert( message );
+        yojimbo_assert( CanSendMessage() );
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
@@ -1276,7 +1276,7 @@ namespace yojimbo
             return;
         }
 
-        assert( !( message->IsBlockMessage() && m_config.disableBlocks ) );
+        yojimbo_assert( !( message->IsBlockMessage() && m_config.disableBlocks ) );
 
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
@@ -1287,8 +1287,8 @@ namespace yojimbo
 
         if ( message->IsBlockMessage() )
         {
-            assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
-            assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
+            yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
+            yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
         }
 
         m_messageSendQueue->Push( message );
@@ -1347,7 +1347,7 @@ namespace yojimbo
 
             Message * message = m_messageSendQueue->Pop();
 
-            assert( message );
+            yojimbo_assert( message );
 
             MeasureStream measureStream( m_messageFactory->GetAllocator() );
 
@@ -1370,7 +1370,7 @@ namespace yojimbo
 
             usedBits += messageBits;
 
-            assert( usedBits <= availableBits );
+            yojimbo_assert( usedBits <= availableBits );
 
             messages[numMessages++] = message;
         }
@@ -1406,7 +1406,7 @@ namespace yojimbo
         for ( int i = 0; i < (int) packetData.message.numMessages; ++i )
         {
             Message * message = packetData.message.messages[i];
-            assert( message );  
+            yojimbo_assert( message );  
             message->SetId( packetSequence );
             if ( !m_messageReceiveQueue->IsFull() )
             {

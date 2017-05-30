@@ -22,9 +22,9 @@ DONE
 
     Extend netcode.io so it can have an overridden printf function
 
-TODO
-
     Extend reliable.io so it can have an overriden printf function
+
+TODO
 
     ------------
 
@@ -33,6 +33,10 @@ TODO
     Extend netcode.io so it can have an overridden assert function
 
     Extend reliable.io so it can have an overriden assert function
+
+    ------------
+
+    Test under windows again.
 
     ------------
 

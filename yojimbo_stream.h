@@ -128,9 +128,9 @@ namespace yojimbo
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {
-            assert( min < max );
-            assert( value >= min );
-            assert( value <= max );
+            yojimbo_assert( min < max );
+            yojimbo_assert( value >= min );
+            yojimbo_assert( value <= max );
             const int bits = bits_required( min, max );
             uint32_t unsigned_value = value - min;
             m_writer.WriteBits( unsigned_value, bits );
@@ -148,8 +148,8 @@ namespace yojimbo
 
         bool SerializeBits( uint32_t value, int bits )
         {
-            assert( bits > 0 );
-            assert( bits <= 32 );
+            yojimbo_assert( bits > 0 );
+            yojimbo_assert( bits <= 32 );
             m_writer.WriteBits( value, bits );
             return true;
         }
@@ -165,8 +165,8 @@ namespace yojimbo
 
         bool SerializeBytes( const uint8_t * data, int bytes )
         {
-            assert( data );
-            assert( bytes >= 0 );
+            yojimbo_assert( data );
+            yojimbo_assert( bytes >= 0 );
             SerializeAlign();
             m_writer.WriteBytes( data, bytes );
             return true;
@@ -310,7 +310,7 @@ namespace yojimbo
 
         bool SerializeInteger( int32_t & value, int32_t min, int32_t max )
         {
-            assert( min < max );
+            yojimbo_assert( min < max );
             const int bits = bits_required( min, max );
             if ( m_reader.WouldReadPastEnd( bits ) )
                 return false;
@@ -330,8 +330,8 @@ namespace yojimbo
 
         bool SerializeBits( uint32_t & value, int bits )
         {
-            assert( bits > 0 );
-            assert( bits <= 32 );
+            yojimbo_assert( bits > 0 );
+            yojimbo_assert( bits <= 32 );
             if ( m_reader.WouldReadPastEnd( bits ) )
                 return false;
             uint32_t read_value = m_reader.ReadBits( bits );
@@ -479,9 +479,9 @@ namespace yojimbo
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {   
             (void) value;
-            assert( min < max );
-            assert( value >= min );
-            assert( value <= max );
+            yojimbo_assert( min < max );
+            yojimbo_assert( value >= min );
+            yojimbo_assert( value <= max );
             const int bits = bits_required( min, max );
             m_bitsWritten += bits;
             return true;
@@ -499,8 +499,8 @@ namespace yojimbo
         bool SerializeBits( uint32_t value, int bits )
         {
             (void) value;
-            assert( bits > 0 );
-            assert( bits <= 32 );
+            yojimbo_assert( bits > 0 );
+            yojimbo_assert( bits <= 32 );
             m_bitsWritten += bits;
             return true;
         }
