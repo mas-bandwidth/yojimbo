@@ -13,12 +13,20 @@
 #include <stdio.h>
 
 static int log_level = 0;
+static int (*printf_function)( const char *, ... ) = printf;
 
 void yojimbo_log_level( int level )
 {
     log_level = level;
     netcode_log_level( level );
     reliable_log_level( level );
+}
+
+void yojimbo_set_printf_function( int (*function)( const char *, ... ) )
+{
+    assert( function );
+    printf_function = function;
+    // todo: set printf function for reliable.io and netcode.io
 }
 
 #if YOJIMBO_ENABLE_LOGGING
@@ -29,7 +37,9 @@ void yojimbo_printf( int level, const char * format, ... )
         return;
     va_list args;
     va_start( args, format );
-    vprintf( format, args );
+    char buffer[4*1024];
+    vsprintf( buffer, format, args );
+    printf_function( "%s", buffer );
     va_end( args );
 }
 
