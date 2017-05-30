@@ -26,7 +26,8 @@ void yojimbo_set_printf_function( int (*function)( const char *, ... ) )
 {
     assert( function );
     printf_function = function;
-    // todo: set printf function for reliable.io and netcode.io
+    netcode_set_printf_function( function );
+    reliable_set_printf_function( function );
 }
 
 #if YOJIMBO_ENABLE_LOGGING

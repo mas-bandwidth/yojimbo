@@ -18,13 +18,11 @@ DONE
 
     Fixed compilation on windows.
 
-TODO
-
-    ------------
-
     Extend yojimbo so it can have an overridden printf function
 
     Extend netcode.io so it can have an overridden printf function
+
+TODO
 
     Extend reliable.io so it can have an overriden printf function
 
