@@ -1,16 +1,16 @@
 [![Travis Build Status](https://travis-ci.org/networkprotocol/libyojimbo.svg?branch=master)](https://travis-ci.org/networkprotocol/libyojimbo) [![Coverity Scan Build Status](https://scan.coverity.com/projects/11339/badge.svg)](https://scan.coverity.com/projects/11339)
 
-# libyojimbo
+# yojimbo
 
-**libyojimbo** is an easy-to-use library for creating secure client/server network protocols over UDP.
+**yojimbo** is an easy-to-use library for creating secure client/server network protocols over UDP.
 
 It is designed around the networking requirements of competitive realtime multiplayer games such as first person shooters and action games. As such it provides the absolute fastest, most time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
 ## Status
 
-**libyojimbo** is currently in pre-release for early feedback. Right now it provides support for: cryptographically secure authentication, client/server connection management, encryption for packets sent over UDP, reliable-ordered messages and data blocks, plus a serialization framework for extending the protocol with custom messages and packet types.
+**yojimbo** is currently in pre-release for early feedback. Right now it provides support for: cryptographically secure authentication, client/server connection management, encryption for packets sent over UDP, reliable-ordered messages and data blocks, plus a serialization framework for extending the protocol with custom messages and packet types.
 
-Work over the past few months has been focused on documenting and finalizing the API. This work is nearly complete and a new release is imminent. After the documentation push, new features coming soon include packet fragmentation and reassembly and extending the matcher to support dynamically registered server instances.
+Work over the past few months has been focused on documenting and finalizing the API. This work is nearly complete and a new release is imminent.
 
 For more details please refer to the [roadmap](https://github.com/networkprotocol/libyojimbo/blob/master/ROADMAP.md).
 
@@ -24,7 +24,7 @@ You can support Glenn's work writing articles and open source code via [Patreon]
 
 ## Sponsors
 
-**libyojimbo** is generously sponsored by:
+**yojimbo** is generously sponsored by:
 
 * **Gold Sponsors**
     * [Remedy Entertainment](http://www.remedygames.com/)
