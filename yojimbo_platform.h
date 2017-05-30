@@ -117,6 +117,7 @@ void yojimbo_printf( int level, const char * format, ... );
 
 extern void (*yojimbo_assert_function)( const char *, const char *, const char * file, int line );
 
+#ifndef NDEBUG
 #define yojimbo_assert( condition )                                                         \
 do                                                                                          \
 {                                                                                           \
@@ -125,6 +126,9 @@ do                                                                              
         yojimbo_assert_function( #condition, __FUNCTION__, __FILE__, __LINE__ );            \
     }                                                                                       \
 } while(0)
+#else
+#define yojimbo_assert( ignore ) ((void)0)
+#endif
 
 void yojimbo_set_printf_function( int (*function)( const char * /*format*/, ... ) );
 

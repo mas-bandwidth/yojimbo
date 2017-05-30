@@ -26,9 +26,21 @@ DONE
 
     Extend yojimbo so it can have an overridden assert function
 
+    Important git submodule tips:
+
+        1. On clone, you must call "git submodule update --recursive" to get the netcode.io and reliable.io submodules. They will initially be empty.
+
+        2. To update the submodules to their respective head revisions: "git submodule update --remote --merge"
+
+        3. Editing the submodules in place doesn't seem to work, unless you created that submodule in your local repository (MacOS in my case).
+
+    Did another pass on Windows. Fixed submodule issues, yojimbo_assert macro works properly in release build. Removed secure build, no longer required (unified secure/insecure connect codepaths).
+
 TODO
 
     ------------
+
+    Move back to windows...
 
     Extend netcode.io so it can have an overridden assert function
 
