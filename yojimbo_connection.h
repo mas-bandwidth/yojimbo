@@ -27,7 +27,8 @@ namespace yojimbo
         CONNECTION_ERROR_NONE = 0,                              ///< No error. All is well.
         CONNECTION_ERROR_CHANNEL,                               ///< A channel is in an error state.
         CONNECTION_ERROR_ALLOCATOR,                             ///< The allocator is an error state.
-        CONNECTION_ERROR_MESSAGE_FACTORY                        ///< The message factory is in an error state.
+        CONNECTION_ERROR_MESSAGE_FACTORY,                       ///< The message factory is in an error state.
+        CONNECTION_ERROR_READ_PACKET_FAILED,                    ///< Failed to read packet. Received an invalid packet?     
     };
 
     /**

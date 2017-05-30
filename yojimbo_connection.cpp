@@ -191,14 +191,14 @@ namespace yojimbo
 
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "serialize connection packet failed (write packet)\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (write packet)\n" );
             return 0;
         }
 
 #if YOJIMBO_SERIALIZE_CHECKS
         if ( !stream.SerializeCheck() )
         {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "serialize check at end of connection packed failed (write packet)\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize check at end of connection packed failed (write packet)\n" );
             return 0;
         }
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
@@ -276,14 +276,14 @@ namespace yojimbo
 
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "serialize connection packet failed (read packet)\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (read packet)\n" );
             return false;
         }
 
 #if YOJIMBO_SERIALIZE_CHECKS
         if ( !stream.SerializeCheck() )
         {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "serialize check failed at end of connection packet (read packet)\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize check failed at end of connection packet (read packet)\n" );
             return false;
         }
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
@@ -300,7 +300,8 @@ namespace yojimbo
 
         if ( !ReadPacket( context, *m_messageFactory, m_connectionConfig, packet, packetData, packetBytes ) )
         {
-            // todo: probably want to set a fatal error here
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to read packet\n" );
+            m_errorLevel = CONNECTION_ERROR_READ_PACKET_FAILED;
             return false;            
         }
 
