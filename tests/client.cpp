@@ -33,8 +33,6 @@
 
 using namespace yojimbo;
 
-#if !YOJIMBO_SECURE_MODE
-
 static volatile int quit = 0;
 
 void interrupt_handler( int /*dummy*/ )
@@ -122,13 +120,3 @@ int main( int argc, char * argv[] )
 
     return result;
 }
-
-#else // #if !YOJIMBO_SECURE_MODE
-
-int main()
-{
-    printf( "\nYojimbo is in secure mode. Insecure client is disabled. See YOJIMBO_SECURE_MODE\n\n" );
-    return 0;
-}
-
-#endif // #if !YOJIMBO_SECURE_MODE

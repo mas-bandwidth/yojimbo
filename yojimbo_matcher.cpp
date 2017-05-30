@@ -117,11 +117,7 @@ namespace yojimbo
             goto cleanup;
         }
 
-#if YOJIMBO_SECURE_MODE
-        mbedtls_ssl_conf_authmode( &m_internal->conf, MBEDTLS_SSL_VERIFY_REQUIRED );
-#else // #if YOJIMBO_SECURE_MODE
         mbedtls_ssl_conf_authmode( &m_internal->conf, MBEDTLS_SSL_VERIFY_OPTIONAL );
-#endif // #if YOJMIBO_SECURE_MODE
         mbedtls_ssl_conf_ca_chain( &m_internal->conf, &m_internal->cacert, NULL );
         mbedtls_ssl_conf_rng( &m_internal->conf, mbedtls_ctr_drbg_random, &m_internal->ctr_drbg );
 
@@ -153,12 +149,10 @@ namespace yojimbo
 
         if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
         {
-#if YOJIMBO_SECURE_MODE
             // IMPORTANT: In secure mode you must use a valid certificate, not a self signed one!
             debug_printf( "mbedtls_ssl_get_verify_result failed - flags = %x\n", flags );
             m_matchStatus = MATCH_FAILED;
             goto cleanup;
-#endif // #if YOJIMBO_SECURE_MODE
         }
 
         sprintf( request, "GET /match/%" PRIu64 "/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );

@@ -227,8 +227,6 @@ namespace yojimbo
         assert( m_client == NULL );
     }
 
-#if !YOJIMBO_SECURE_MODE
-
     void Client::InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address )
     {
         InsecureConnect( privateKey, clientId, &address, 1 );
@@ -270,8 +268,6 @@ namespace yojimbo
         }
         return netcode_generate_connect_token( numServerAddresses, serverAddressStringPointers, timeout, clientId, m_config.protocolId, 0, (uint8_t*)privateKey, connectToken ) == NETCODE_OK;
     }
-
-#endif // #if !YOJIMBO_SECURE_MODE
 
     void Client::Connect( uint64_t clientId, uint8_t * connectToken )
     {

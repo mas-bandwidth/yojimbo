@@ -305,13 +305,9 @@ namespace yojimbo
 
         ~Client();
 
-#if !YOJIMBO_SECURE_MODE
-
         void InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address );
 
         void InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
-
-#endif // #ifndef YOJIMBO_SECURE_MODE
 
         void Connect( uint64_t clientId, uint8_t * connectToken );
 
@@ -327,9 +323,7 @@ namespace yojimbo
 
     private:
 
-#if !YOJIMBO_SECURE_MODE
         bool GenerateInsecureConnectToken( uint8_t * connectToken, const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses, int timeout = 45 );
-#endif // #if !YOJIMBO_SECURE_MODE
 
         void CreateClient( const Address & address );
 

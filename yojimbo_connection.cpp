@@ -35,12 +35,12 @@ namespace yojimbo
             }        
         }
 
-        bool AllocateChannelData( MessageFactory & messageFactory, int numEntries )
+        bool AllocateChannelData( MessageFactory & _messageFactory, int numEntries )
         {
             assert( numEntries > 0 );
             assert( numEntries <= MaxChannels );
-            this->messageFactory = &messageFactory;
-            Allocator & allocator = messageFactory.GetAllocator();
+            messageFactory = &_messageFactory;
+            Allocator & allocator = messageFactory->GetAllocator();
             channelEntry = (ChannelPacketData*) YOJIMBO_ALLOCATE( allocator, sizeof( ChannelPacketData ) * numEntries );
             if ( channelEntry == NULL )
                 return false;
@@ -86,19 +86,19 @@ namespace yojimbo
             return true;
         }
 
-        bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+        bool SerializeInternal( ReadStream & stream, MessageFactory & _messageFactory, const ConnectionConfig & connectionConfig )
         {
-            return Serialize( stream, messageFactory, connectionConfig );
+            return Serialize( stream, _messageFactory, connectionConfig );
         }
 
-        bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+        bool SerializeInternal( WriteStream & stream, MessageFactory & _messageFactory, const ConnectionConfig & connectionConfig )
         {
-            return Serialize( stream, messageFactory, connectionConfig );            
+            return Serialize( stream, _messageFactory, connectionConfig );            
         }
 
-        bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig )
+        bool SerializeInternal( MeasureStream & stream, MessageFactory & _messageFactory, const ConnectionConfig & connectionConfig )
         {
-            return Serialize( stream, messageFactory, connectionConfig );            
+            return Serialize( stream, _messageFactory, connectionConfig );            
         }
 
     private:

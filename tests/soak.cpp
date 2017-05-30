@@ -107,46 +107,48 @@ int SoakMain()
         {
             clientConnected = true;
 
-            const int messagesToSend = random_int( 0, 64 );
+			{
+				const int messagesToSend = random_int( 0, 64 );
 
-            for ( int i = 0; i < messagesToSend; ++i )
-            {
-                if ( !client.CanSendMessage( RELIABLE_ORDERED_CHANNEL ) )
-                    break;
+				for ( int i = 0; i < messagesToSend; ++i )
+				{
+					if ( !client.CanSendMessage( RELIABLE_ORDERED_CHANNEL ) )
+						break;
 
-                if ( rand() % 25 )
-                {
-                    TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
-                    if ( message )
-                    {
-                        message->sequence = (uint16_t) numMessagesSentToServer;
-                        client.SendMessage( RELIABLE_ORDERED_CHANNEL, message );
-                        numMessagesSentToServer++;
-                    }
-                }
-                else
-                {
-                    TestBlockMessage * blockMessage = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
-                    if ( blockMessage )
-                    {
-                        blockMessage->sequence = (uint16_t) numMessagesSentToServer;
-                        const int blockSize = 1 + ( int( numMessagesSentToServer ) * 33 ) % MaxBlockSize;
-                        uint8_t * blockData = client.AllocateBlock( blockSize );
-                        if ( blockData )
-                        {
-                            for ( int j = 0; j < blockSize; ++j )
-                                blockData[j] = uint8_t( numMessagesSentToServer + j );
-                            client.AttachBlockToMessage( blockMessage, blockData, blockSize );
-                            client.SendMessage( RELIABLE_ORDERED_CHANNEL, blockMessage );
-                            numMessagesSentToServer++;
-                        }
-                        else
-                        {
-                            client.ReleaseMessage( blockMessage );
-                        }
-                    }
-                }
-            }
+					if ( rand() % 25 )
+					{
+						TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
+						if ( message )
+						{
+							message->sequence = (uint16_t) numMessagesSentToServer;
+							client.SendMessage( RELIABLE_ORDERED_CHANNEL, message );
+							numMessagesSentToServer++;
+						}
+					}
+					else
+					{
+						TestBlockMessage * blockMessage = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
+						if ( blockMessage )
+						{
+							blockMessage->sequence = (uint16_t) numMessagesSentToServer;
+							const int blockSize = 1 + ( int( numMessagesSentToServer ) * 33 ) % MaxBlockSize;
+							uint8_t * blockData = client.AllocateBlock( blockSize );
+							if ( blockData )
+							{
+								for ( int j = 0; j < blockSize; ++j )
+									blockData[j] = uint8_t( numMessagesSentToServer + j );
+								client.AttachBlockToMessage( blockMessage, blockData, blockSize );
+								client.SendMessage( RELIABLE_ORDERED_CHANNEL, blockMessage );
+								numMessagesSentToServer++;
+							}
+							else
+							{
+								client.ReleaseMessage( blockMessage );
+							}
+						}
+					}
+				}
+			}
 
             const int clientIndex = client.GetClientIndex();
 

@@ -1681,11 +1681,11 @@ void test_client_server_messages()
     server.Stop();
 }
 
-void CreateClients( int numClients, Client ** clients, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time )
+void CreateClients( int numClients, Client ** clients, const Address & address, const ClientServerConfig & config, Adapter & _adapter, double time )
 {
     for ( int i = 0; i < numClients; ++i )
     {
-        clients[i] = YOJIMBO_NEW( GetDefaultAllocator(), Client, GetDefaultAllocator(), address, config, adapter, time );
+        clients[i] = YOJIMBO_NEW( GetDefaultAllocator(), Client, GetDefaultAllocator(), address, config, _adapter, time );
         clients[i]->SetLatency( 250 );
         clients[i]->SetJitter( 100 );
         clients[i]->SetPacketLoss( 25 );
@@ -1800,9 +1800,9 @@ void test_client_server_start_stop_restart()
         memset( numMessagesReceivedFromClient, 0, sizeof( numMessagesReceivedFromClient ) );
         memset( numMessagesReceivedFromServer, 0, sizeof( numMessagesReceivedFromServer ) );
 
-        const int NumIterations = 1000;
+		const int NumInternalIterations = 10000;
 
-        for ( int i = 0; i < NumIterations; ++i )
+        for ( int i = 0; i < NumInternalIterations; ++i )
         {
             Server * servers[] = { &server };
 

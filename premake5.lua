@@ -13,7 +13,7 @@ solution "Yojimbo"
     kind "ConsoleApp"
     language "C++"
     platforms { "x64" }
-    configurations { "Debug", "Release", "Secure" }
+    configurations { "Debug", "Release" }
     if os.is "windows" then
         includedirs { ".", "./windows", "netcode.io/c", "reliable.io" }
         libdirs { "./windows" }
@@ -29,10 +29,6 @@ solution "Yojimbo"
     configuration "Release"
         optimize "Speed"
         defines { "NDEBUG" }
-        links { release_libs }
-    configuration "Secure"
-        optimize "Speed"
-        defines { "YOJIMBO_SECURE_MODE=1", "NDEBUG" }
         links { release_libs }
         
 project "test"
