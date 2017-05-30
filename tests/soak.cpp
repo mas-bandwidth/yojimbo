@@ -55,8 +55,6 @@ int SoakMain()
     config.channel[RELIABLE_ORDERED_CHANNEL].maxBlockSize = MaxBlockSize;
     config.channel[RELIABLE_ORDERED_CHANNEL].fragmentSize = 1024;
 
-    // todo: channel budget for unreliable-unordered channel is a nebulous concept =p
-
     // todo: need to verify both reliable and unreliable messages get through
 
     // todo: clean up code to send and receive messages. this code is too cut & paste. it's unreliable and hard to maintain
