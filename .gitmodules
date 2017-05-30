@@ -1,0 +1,6 @@
+[submodule "netcode.io"]
+	path = netcode.io
+	url = https://github.com/networkprotocol/netcode.io
+[submodule "reliable.io"]
+	path = reliable.io
+	url = https://github.com/networkprotocol/reliable.io
