@@ -27,8 +27,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include <time.h>
-
+#include <time.h>			 
+#include <signal.h>
 #include "shared.h"
 
 using namespace yojimbo;
