@@ -43,11 +43,9 @@ void yojimbo_set_printf_function( int (*function)( const char *, ... ) )
 
 void yojimbo_set_assert_function( void (*function)( const char *, const char *, const char * file, int line ) )
 {
-    yojimbo_assert( function );
     yojimbo_assert_function = function;
-    // todo
-    //netcode_set_printf_function( function );
-    //reliable_set_printf_function( function );
+    netcode_set_assert_function( function );
+    reliable_set_assert_function( function );
 }
 
 #if YOJIMBO_ENABLE_LOGGING
