@@ -804,7 +804,7 @@ void test_allocator_tlsf()
         
         if ( !blockData[i] )
         {
-            check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_OUT_OF_MEMORY );
             allocator.ClearError();
             check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_NONE );
             stopIndex = i;

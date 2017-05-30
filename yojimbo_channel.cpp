@@ -119,8 +119,7 @@ namespace yojimbo
 
                     if ( !messages[i] )
                     {
-                        // todo
-                        printf( "error: failed to create message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
+                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to create message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
                         return false;
                     }
 
@@ -131,8 +130,7 @@ namespace yojimbo
 
                 if ( !messages[i]->SerializeInternal( stream ) )
                 {
-                    // todo
-                    printf( "error: failed to serialize message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
                     return false;
                 }
             }
@@ -155,8 +153,7 @@ namespace yojimbo
             blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, blockSize );
             if ( !blockData )
             {
-                // todo
-                printf( "error: failed to allocate message block (SerializeMessageBlock)\n" );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate message block (SerializeMessageBlock)\n" );
                 return false;
             }
             blockMessage->AttachBlock( allocator, blockData, blockSize );
@@ -224,8 +221,7 @@ namespace yojimbo
 
                     if ( !messages[i] )
                     {
-                        // todo
-                        printf( "error: failed to create message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
+                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to create message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
                         return false;
                     }
                 }
@@ -234,8 +230,7 @@ namespace yojimbo
 
                 if ( !messages[i]->SerializeInternal( stream ) )
                 {
-                    // todo
-                    printf( "error: failed to serialize message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
                     return false;
                 }
 
@@ -244,8 +239,7 @@ namespace yojimbo
                     BlockMessage * blockMessage = (BlockMessage*) messages[i];
                     if ( !SerializeMessageBlock( stream, messageFactory, blockMessage, maxBlockSize ) )
                     {
-                        // todo
-                        printf( "error: failed to serialize message block (SerializeUnorderedMessages)\n" );
+                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message block (SerializeUnorderedMessages)\n" );
                         return false;
                     }
                 }
@@ -289,8 +283,7 @@ namespace yojimbo
 
             if ( !block.fragmentData )
             {
-                // todo
-                printf( "error: failed to serialize block fragment (SerializeBlockFragment)\n" );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize block fragment (SerializeBlockFragment)\n" );
                 return false;
             }
         }
@@ -309,15 +302,13 @@ namespace yojimbo
 
                 if ( !message )
                 {
-                    // todo
-                    printf( "error: failed to create block message type %d (SerializeBlockFragment)\n", block.messageType );
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to create block message type %d (SerializeBlockFragment)\n", block.messageType );
                     return false;
                 }
 
                 if ( !message->IsBlockMessage() )
                 {
-                    // todo
-                    printf( "error: received block fragment attached to non-block message (SerializeBlockFragment)\n" );
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: received block fragment attached to non-block message (SerializeBlockFragment)\n" );
                     return false;
                 }
 
@@ -328,8 +319,7 @@ namespace yojimbo
 
             if ( !block.message->SerializeInternal( stream ) )
             {
-                // todo
-                printf( "error: failed to serialize block message of type %d (SerializeBlockFragment)\n", block.messageType );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize block message of type %d (SerializeBlockFragment)\n", block.messageType );
                 return false;
             }
         }
@@ -456,8 +446,7 @@ namespace yojimbo
     {
         if ( errorLevel != m_errorLevel && errorLevel != CHANNEL_ERROR_NONE )
         {
-            // todo
-            printf( "channel error: %s\n", GetChannelErrorString( errorLevel ) );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "channel went into error state: %s\n", GetChannelErrorString( errorLevel ) );
         }
         m_errorLevel = errorLevel;
     }

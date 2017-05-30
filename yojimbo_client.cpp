@@ -54,7 +54,7 @@ namespace yojimbo
             m_connection->AdvanceTime( time );
             if ( m_connection->GetErrorLevel() != CONNECTION_ERROR_NONE )
             {
-                debug_printf( "connection error. disconnecting client\n" );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "connection error. disconnecting client\n" );
                 Disconnect();
                 return;
             }
@@ -122,7 +122,7 @@ namespace yojimbo
         assert( m_connection );
         if ( m_config.networkSimulator )
         {
-            m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets );
+            m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets, m_time );
         }
         // todo: fully setup endpoint config from client/server config
         reliable_config_t config;
@@ -251,7 +251,7 @@ namespace yojimbo
         uint8_t connectToken[NETCODE_CONNECT_TOKEN_BYTES];
         if ( !GenerateInsecureConnectToken( connectToken, privateKey, clientId, serverAddresses, numServerAddresses ) )
         {
-            printf( "failed to generate insecure connect token\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to generate insecure connect token\n" );
             SetClientState( CLIENT_STATE_ERROR );
             return;
         }
@@ -392,13 +392,8 @@ namespace yojimbo
 
     void Client::StateChangeCallbackFunction( int previous, int current )
     {
-        // todo: we don't really need this anymore
-        //debug_printf( "client state change %d -> %d\n", previous, current );
-        if ( previous > NETCODE_CLIENT_STATE_DISCONNECTED && current <= NETCODE_CLIENT_STATE_DISCONNECTED )
-        {
-         //   printf( "client disconnected\n" );
-            //Disconnect();
-        }
+        (void) previous;
+        (void) current;
     }
 
     void Client::StaticStateChangeCallbackFunction( void * context, int previous, int current )

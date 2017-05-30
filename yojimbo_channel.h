@@ -285,8 +285,6 @@ namespace yojimbo
             Set the channel error level.
 
             All errors go through this function to make debug logging easier. 
-            
-            @see yojimbo::debug_printf
          */
         
         void SetErrorLevel( ChannelErrorLevel errorLevel );
@@ -583,7 +581,9 @@ namespace yojimbo
                 ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
                 blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-                assert( ackedFragment && blockData && fragmentSendTime );
+                assert( ackedFragment );
+                assert( fragmentSendTime );
+                assert( blockData );
                 Reset();
             }
 

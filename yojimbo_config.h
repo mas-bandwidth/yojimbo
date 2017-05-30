@@ -96,7 +96,7 @@
 
 #endif // #ifndef NDEBUG
 
-#define YOJIMBO_DEBUG_SPAM                          0               // todo: would be much nicer to have advanced logging with log levels, as per-netcode.io
+#define YOJIMBO_ENABLE_LOGGING                      1
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -177,6 +177,7 @@ namespace yojimbo
             sentPacketBufferSize = 1024;
             maxMessagesPerPacket = 64;
             packetBudget = 1100;
+            maxBlockSize = 256 * 1024;
             fragmentSize = 1024;
             messageResendTime = 0.1f;
             fragmentResendTime = 0.25f;

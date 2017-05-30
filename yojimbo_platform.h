@@ -104,4 +104,15 @@ void yojimbo_sleep( double time );
 
 double yojimbo_time();
 
+// todo: document these functions once finished with them
+
+#define YOJIMBO_LOG_LEVEL_NONE      0
+#define YOJIMBO_LOG_LEVEL_ERROR     1
+#define YOJIMBO_LOG_LEVEL_INFO      2
+#define YOJIMBO_LOG_LEVEL_DEBUG     3
+
+void yojimbo_log_level( int level );
+
+void yojimbo_printf( int level, const char * format, ... );
+
 #endif // #ifndef YOJIMBO_PLATFORM_H

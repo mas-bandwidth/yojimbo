@@ -10,13 +10,12 @@
 
 namespace yojimbo
 {
-    NetworkSimulator::NetworkSimulator( Allocator & allocator, int numPackets )
+    NetworkSimulator::NetworkSimulator( Allocator & allocator, int numPackets, double time )
     {
         assert( numPackets > 0 );
         m_allocator = &allocator;
         m_currentIndex = 0;
-        // todo: should probably pass time into ctor
-        m_time = 0.0;
+        m_time = time;
         m_latency = 0.0f;
         m_jitter = 0.0f;
         m_packetLoss = 0.0f;
@@ -24,11 +23,6 @@ namespace yojimbo
         m_active = false;
         m_numPacketEntries = numPackets;
         m_packetEntries = (PacketEntry*) YOJIMBO_ALLOCATE( allocator, sizeof( PacketEntry ) * numPackets );
-        if ( !m_packetEntries )
-        {
-            // todo: this should print out
-            printf( "error: not enough memory to allocate network simulator\n" );
-        }
         assert( m_packetEntries );
         memset( m_packetEntries, 0, sizeof( PacketEntry ) * numPackets );
     }

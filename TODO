@@ -26,11 +26,9 @@ TODO
 
     ------------
 
-    Should have the same test for the unreliable, unordered channel, eg. send messages but don't dequeue them. Make sure it handles overflow properly.
+    Test compilation on windows.
 
     ------------
-
-    Test compilation on windows.
 
     Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
 
@@ -40,13 +38,19 @@ TODO
 
     Port across secure_client to new API.
 
+    ------------
+
     Implement packet loss, latency, jitter estimates from reliable.io
 
     Integrate QoS settings above with yojimbo client/server and connection.
 
     Implement congestion adoidance in reliable.io (if reasonably possible given that user is in control of packet sizes...)
 
+    ------------
+
     Add unreliable, ordered channel in yojimbo. Simply keep track of the most recently received message id, and discard any messages older than that.
+
+    ------------
 
     Extend netcode.io so it can have an overriden logging callback function.
 
@@ -58,8 +62,16 @@ TODO
 
     Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
 
+    ------------
+
     Extend netcode.io and reliable.io to minimize packet copying, eg. assume packet is prefixed with available padding in front for headers.
 
     Profile yojimbo and look for any hot spots.
 
     Pass over doxygen documentation again.
+
+    ------------
+
+    *** Feature complete for 0.6 release ***
+
+    ------------

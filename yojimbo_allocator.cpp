@@ -6,6 +6,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_allocator.h"
+#include "yojimbo_platform.h"
 #include <assert.h>
 #include <stdlib.h>
 
@@ -39,6 +40,15 @@ namespace yojimbo
             exit(1);
         }
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+    }
+
+    void Allocator::SetErrorLevel( AllocatorErrorLevel errorLevel ) 
+    {
+        if ( m_errorLevel == ALLOCATOR_ERROR_NONE && errorLevel != ALLOCATOR_ERROR_NONE )
+        {
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "allocator went into error state: %s\n", GetAllocatorErrorString( errorLevel ) );
+        }
+        m_errorLevel = errorLevel;
     }
 
     void Allocator::TrackAlloc( void * p, size_t size, const char * file, int line )
@@ -82,7 +92,7 @@ namespace yojimbo
 
         if ( !p )
         {
-            SetErrorLevel( ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            SetErrorLevel( ALLOCATOR_ERROR_OUT_OF_MEMORY );
             return NULL;
         }
 
@@ -146,7 +156,7 @@ namespace yojimbo
 
         if ( !p )
         {
-            SetErrorLevel( ALLOCATOR_ERROR_FAILED_TO_ALLOCATE );
+            SetErrorLevel( ALLOCATOR_ERROR_OUT_OF_MEMORY );
             return NULL;
         }
 

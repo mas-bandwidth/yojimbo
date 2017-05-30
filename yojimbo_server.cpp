@@ -59,7 +59,7 @@ namespace yojimbo
         m_globalAllocator = m_adapter->CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
         if ( m_config.networkSimulator )
         {
-            m_networkSimulator = YOJIMBO_NEW( *m_globalAllocator, NetworkSimulator, *m_globalAllocator, m_config.maxSimulatorPackets );
+            m_networkSimulator = YOJIMBO_NEW( *m_globalAllocator, NetworkSimulator, *m_globalAllocator, m_config.maxSimulatorPackets, m_time );
         }
         for ( int i = 0; i < m_maxClients; ++i )
         {
@@ -117,8 +117,7 @@ namespace yojimbo
                 m_clientConnection[i]->AdvanceTime( time );
                 if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
                 {
-                    // todo
-                    printf( "client %d connection is in error state (%d). disconnecting client\n", i, m_clientConnection[i]->GetErrorLevel() );
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "client %d connection is in error state. disconnecting client\n", m_clientConnection[i]->GetErrorLevel() );
                     DisconnectClient( i );
                     continue;
                 }

@@ -6,7 +6,42 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_platform.h"
+#include "netcode.h"
+#include "reliable.h"
 #include <assert.h>
+#include <stdarg.h>
+#include <stdio.h>
+
+static int log_level = 0;
+
+void yojimbo_log_level( int level )
+{
+    log_level = level;
+    netcode_log_level( level );
+    reliable_log_level( level );
+}
+
+#if YOJIMBO_ENABLE_LOGGING
+
+void yojimbo_printf( int level, const char * format, ... ) 
+{
+    if ( level > log_level )
+        return;
+    va_list args;
+    va_start( args, format );
+    vprintf( format, args );
+    va_end( args );
+}
+
+#else // #if YOJIMBO_ENABLE_LOGGING
+
+void yojimbo_printf( int level, const char * format, ... ) 
+{
+    (void) level;
+    (void) format;
+}
+
+#endif // #if YOJIMBO_ENABLE_LOGGING
 
 #if __APPLE__
 

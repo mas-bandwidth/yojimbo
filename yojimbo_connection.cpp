@@ -65,7 +65,7 @@ namespace yojimbo
                 {
                     if ( !AllocateChannelData( messageFactory, numChannelEntries ) )
                     {
-                        debug_printf( "error: failed to allocate channel data (ConnectionPacket)\n" );
+                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate channel data (ConnectionPacket)\n" );
                         return false;
                     }
                     for ( int i = 0; i < numChannelEntries; ++i )
@@ -78,7 +78,7 @@ namespace yojimbo
                     assert( channelEntry[i].messageFailedToSerialize == 0 );
                     if ( !channelEntry[i].SerializeInternal( stream, messageFactory, connectionConfig.channel, numChannels ) )
                     {
-                        debug_printf( "error: failed to serialize channel %d\n", i );
+                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize channel %d\n", i );
                         return false;
                     }
                 }
@@ -191,14 +191,14 @@ namespace yojimbo
 
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
-            debug_printf( "serialize connection packet failed (write packet)\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "serialize connection packet failed (write packet)\n" );
             return 0;
         }
 
 #if YOJIMBO_SERIALIZE_CHECKS
         if ( !stream.SerializeCheck() )
         {
-            debug_printf( "serialize check at end of connection packed failed (write packet)\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "serialize check at end of connection packed failed (write packet)\n" );
             return 0;
         }
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
@@ -243,9 +243,7 @@ namespace yojimbo
             {
                 if ( !packet.AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
                 {
-                    // todo
-                    printf( "failed to allocate channel data\n" );
-                    m_errorLevel = CONNECTION_ERROR_ALLOCATOR;
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate channel data\n" );
                     return false;
                 }
 
@@ -278,14 +276,14 @@ namespace yojimbo
 
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
-            debug_printf( "serialize connection packet failed (read packet)\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "serialize connection packet failed (read packet)\n" );
             return false;
         }
 
 #if YOJIMBO_SERIALIZE_CHECKS
         if ( !stream.SerializeCheck() )
         {
-            debug_printf( "serialize check failed at end of connection packet (read packet)\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "serialize check failed at end of connection packet (read packet)\n" );
             return false;
         }
 #endif // #if YOJIMBO_SERIALIZE_CHECKS
@@ -338,23 +336,17 @@ namespace yojimbo
 
             if ( m_channel[i]->GetErrorLevel() != CHANNEL_ERROR_NONE )
             {
-                // todo
-                printf( "channel error\n" );
                 m_errorLevel = CONNECTION_ERROR_CHANNEL;
                 return;
             }
         }
         if ( m_allocator->GetErrorLevel() != ALLOCATOR_ERROR_NONE )
         {
-            // todo
-            printf( "allocator error\n" );
             m_errorLevel = CONNECTION_ERROR_ALLOCATOR;
             return;
         }
         if ( m_messageFactory->GetErrorLevel() != MESSAGE_FACTORY_ERROR_NONE )
         {
-            // todo
-            printf( "message factory error\n" );
             m_errorLevel = CONNECTION_ERROR_MESSAGE_FACTORY;
             return;
         }

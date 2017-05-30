@@ -8,6 +8,7 @@
 #define YOJIMBO_ALLOCATOR_H
 
 #include <stdint.h>
+#include <assert.h>
 #include <new>
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 #include <map>
@@ -53,9 +54,23 @@ namespace yojimbo
 
     enum AllocatorErrorLevel
     {
-        ALLOCATOR_ERROR_NONE = 0,                                                   ///< No error. All is well.
-        ALLOCATOR_ERROR_FAILED_TO_ALLOCATE                                          ///<  Tried to make an allocation but failed because the allocator was out of memory.
+        ALLOCATOR_ERROR_NONE = 0,                               ///< No error. All is well.
+        ALLOCATOR_ERROR_OUT_OF_MEMORY                           ///< The allocator is out of memory!
     };
+
+    /// Helper function to convert an allocator error to a user friendly string.
+
+    inline const char * GetAllocatorErrorString( AllocatorErrorLevel error )
+    {
+        switch ( error )
+        {
+            case ALLOCATOR_ERROR_NONE:                  return "none";
+            case ALLOCATOR_ERROR_OUT_OF_MEMORY:         return "out of memory";
+            default:
+                assert( false );
+                return "(unknown)";
+        }
+    }
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
@@ -162,7 +177,7 @@ namespace yojimbo
             @param error The allocator error level to set.
          */
 
-        void SetErrorLevel( AllocatorErrorLevel errorLevel ) { m_errorLevel = errorLevel; }
+        void SetErrorLevel( AllocatorErrorLevel errorLevel );
 
         /**
             Call this function to track an allocation made by your derived allocator class.

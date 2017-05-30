@@ -39,9 +39,10 @@ namespace yojimbo
 
             @param allocator The allocator to use.
             @param numPackets The maximum number of packets that can be stored in the simulator at any time.
+            @param time The initial time value in seconds.
          */
 
-        NetworkSimulator( Allocator & allocator, int numPackets = 4096 );
+        NetworkSimulator( Allocator & allocator, int numPackets, double time );
 
         /**
             Network simulator destructor.

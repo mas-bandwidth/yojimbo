@@ -426,16 +426,6 @@ namespace yojimbo
     void print_bytes( const char * label, const uint8_t * data, int data_bytes );
 
     /**
-        Debug printf used for spammy logs. 
-
-        Off by default. You can enable these logs by setting \#define YOJIMBO_DEBUG_SPAM 1 in yojimbo_config.h
-
-        This is very useful for debugging things, like breakages in the client/server connection protocol, weird bugs and so on. My last resort!
-     */
-
-    void debug_printf( const char * format, ... );
-
-    /**
         A simple bit array class.
 
         You can create a bit array with a number of bits, set, clear and test if each bit is set.

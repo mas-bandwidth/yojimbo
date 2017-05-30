@@ -147,23 +147,4 @@ namespace yojimbo
 
         return ( result == 0 ) ? (int) output_length : -1;
     }
-
-#if YOJIMBO_DEBUG_SPAM
-
-    void debug_printf( const char * format, ... ) 
-    {
-        va_list args;
-        va_start( args, format );
-        vprintf( format, args );
-        va_end( args );
-    }
-
-#else // #if YOJIMBO_DEBUG_SPAM
-
-    void debug_printf( const char * format, ... ) 
-    {
-        (void)format;
-    }
-
-#endif // #if YOJIMBO_DEBUG_SPAM
 }

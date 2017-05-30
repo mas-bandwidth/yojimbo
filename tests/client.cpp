@@ -23,7 +23,6 @@
 */
 
 #include "yojimbo.h"
-#include "netcode.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -111,7 +110,7 @@ int main( int argc, char * argv[] )
         return 1;
     }
 
-    netcode_log_level( NETCODE_LOG_LEVEL_INFO );
+    yojimbo_log_level( YOJIMBO_LOG_LEVEL_INFO );
 
     srand( (unsigned int) time( NULL ) );
 

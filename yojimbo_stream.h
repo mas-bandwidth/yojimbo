@@ -10,6 +10,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_bitpack.h"
 #include "yojimbo_allocator.h"
+#include "yojimbo_platform.h"
 #ifndef NDEBUG
 #include <stdio.h>
 #endif // #ifndef NDEBUG
@@ -402,7 +403,7 @@ namespace yojimbo
                 return false;
             if ( value != SerializeCheckValue )
             {
-                debug_printf( "serialize check failed: expected %x, got %x\n", SerializeCheckValue, value );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "serialize check failed: expected %x, got %x\n", SerializeCheckValue, value );
             }
             return value == SerializeCheckValue;
 #else // #if YOJIMBO_SERIALIZE_CHECKS
