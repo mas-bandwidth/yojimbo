@@ -850,11 +850,7 @@ namespace yojimbo
     void ReliableOrderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
         if ( m_errorLevel != CHANNEL_ERROR_NONE )
-        {
-            // todo
-            //printf( "channel can't process packet data. error level is set\n" );
             return;
-        }
         
         if ( packetData.messageFailedToSerialize )
         {
