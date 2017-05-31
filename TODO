@@ -44,16 +44,6 @@ TODO
 
     ------------
 
-    Extend netcode.io so the user can set a custom allocator to use for client.
-
-    Extend netcode.io so the user can set a custom allocator to use for server.
-
-    Extend reliable.io so the user can set a custom allocator to use for endpoints.
-
-    Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
-
-    ------------
-
     Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
 
     Make sure the golang web server implementation doesn't leak memory (for example, it needs to be updated with the close wrapper).
@@ -61,6 +51,16 @@ TODO
     Bring across the C++ matcher implementation again, and upgrade it to use the new connect tokens from netcode.io
 
     Port across secure_client to new API.
+
+    ------------
+
+    Extend netcode.io so the user can set a custom allocator to use for client.
+
+    Extend netcode.io so the user can set a custom allocator to use for server.
+
+    Extend reliable.io so the user can set a custom allocator to use for endpoints.
+
+    Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
 
     ------------
 

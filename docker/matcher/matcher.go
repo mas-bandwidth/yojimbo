@@ -16,6 +16,7 @@ import (
     "encoding/base64"
     "encoding/binary"
     "github.com/gorilla/mux"
+    "github.com/gorilla/context"
 )
 
 const Port = 8080
@@ -143,7 +144,7 @@ func main() {
     result := int( C.sodium_init() )
     if result != 0 { panic( "failed to initialize sodium" ) }
     fmt.Printf( "\nstarted matchmaker on port %d\n\n", Port )
-    r := mux.NewRouter()
-    r.HandleFunc( "/match/{protocolId:[0-9]+}/{clientId:[0-9]+}", MatchHandler )
-    log.Fatal( http.ListenAndServeTLS( ":" + strconv.Itoa(Port), "server.pem", "server.key", r ) )
+    router := mux.NewRouter()
+    router.HandleFunc( "/match/{protocolId:[0-9]+}/{clientId:[0-9]+}", MatchHandler )
+    log.Fatal( http.ListenAndServeTLS( ":" + strconv.Itoa(Port), "server.pem", "server.key", context.ClearHandler( router ) ) )
 }
