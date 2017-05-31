@@ -417,7 +417,6 @@ namespace yojimbo
         m_channelIndex = channelIndex;
         m_allocator = &allocator;
         m_messageFactory = &messageFactory;
-        m_listener = NULL;
         m_errorLevel = CHANNEL_ERROR_NONE;
         m_time = time;
         ResetCounters();
@@ -851,7 +850,11 @@ namespace yojimbo
     void ReliableOrderedChannel::ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence )
     {
         if ( m_errorLevel != CHANNEL_ERROR_NONE )
+        {
+            // todo
+            //printf( "channel can't process packet data. error level is set\n" );
             return;
+        }
         
         if ( packetData.messageFailedToSerialize )
         {
@@ -874,8 +877,10 @@ namespace yojimbo
 
     void ReliableOrderedChannel::ProcessAck( uint16_t ack )
     {
-        SentPacketEntry * sentPacketEntry = m_sentPackets->Find( ack );
+        // todo
+        // printf( "%p: process ack %d\n", this, ack );
 
+        SentPacketEntry * sentPacketEntry = m_sentPackets->Find( ack );
         if ( !sentPacketEntry )
             return;
 
@@ -884,18 +889,13 @@ namespace yojimbo
         for ( int i = 0; i < (int) sentPacketEntry->numMessageIds; ++i )
         {
             const uint16_t messageId = sentPacketEntry->messageIds[i];
-
             MessageSendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
-            
             if ( sendQueueEntry )
             {
                 yojimbo_assert( sendQueueEntry->message );
                 yojimbo_assert( sendQueueEntry->message->GetId() == messageId );
-
                 m_messageFactory->ReleaseMessage( sendQueueEntry->message );
-
                 m_messageSendQueue->Remove( messageId );
-
                 UpdateOldestUnackedMessageId();
             }
         }
@@ -905,24 +905,20 @@ namespace yojimbo
             const int messageId = sentPacketEntry->blockMessageId;
             const int fragmentId = sentPacketEntry->blockFragmentId;
 
+            // todo
+            //printf( "%p: process ack for block message: ack = %d, messageId = %d, fragmentId = %d\n", this, ack, messageId, fragmentId );
+
             if ( !m_sendBlock->ackedFragment->GetBit( fragmentId ) )
             {
                 m_sendBlock->ackedFragment->SetBit( fragmentId );
-
                 m_sendBlock->numAckedFragments++;
-
                 if ( m_sendBlock->numAckedFragments == m_sendBlock->numFragments )
                 {
                     m_sendBlock->active = false;
-
                     MessageSendQueueEntry * sendQueueEntry = m_messageSendQueue->Find( messageId );
-
                     yojimbo_assert( sendQueueEntry );
-
                     m_messageFactory->ReleaseMessage( sendQueueEntry->message );
-
                     m_messageSendQueue->Remove( messageId );
-
                     UpdateOldestUnackedMessageId();
                 }
             }
@@ -935,13 +931,10 @@ namespace yojimbo
 
         while ( true )
         {
-            if ( m_oldestUnackedMessageId == stopMessageId )
+            if ( m_oldestUnackedMessageId == stopMessageId || m_messageSendQueue->Find( m_oldestUnackedMessageId ) )
+            {
                 break;
-
-            MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
-            if ( entry )
-                break;
-           
+            }
             ++m_oldestUnackedMessageId;
         }
 
@@ -975,6 +968,9 @@ namespace yojimbo
         if ( !m_sendBlock->active )
         {
             // start sending this block
+
+            // todo
+            //printf( "%p: start sending block: messageId = %d\n", this, messageId );
 
             m_sendBlock->active = true;
             m_sendBlock->blockSize = blockSize;
@@ -1031,6 +1027,9 @@ namespace yojimbo
             m_sendBlock->fragmentSendTime[fragmentId] = m_time;
         }
 
+        // todo
+        //printf( "%p: send block fragment: messageId = %d, fragmentId = %d\n", this, messageId, fragmentId );
+
         return fragmentData;
     }
 
@@ -1076,10 +1075,10 @@ namespace yojimbo
 
     void ReliableOrderedChannel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
     {
+        // todo
+        //printf( "%p: add fragment packet entry: messageId = %d, fragmentId = %d, sequence = %d\n", this, messageId, fragmentId, sequence );
         SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
-        
         yojimbo_assert( sentPacket );
-
         if ( sentPacket )
         {
             sentPacket->numMessageIds = 0;
@@ -1101,12 +1100,19 @@ namespace yojimbo
             const uint16_t expectedMessageId = m_messageReceiveQueue->GetSequence();
 
             if ( messageId != expectedMessageId )
+            {
+                // todo
+                //printf( "%p: wrong block message id: expected %d, got %d\n", this, expectedMessageId, messageId );
                 return;
+            }
 
             // start receiving a new block
 
             if ( !m_receiveBlock->active )
             {
+                // todo
+                // printf( "%p: start receiving new block: messageId = %d\n", this, messageId );
+
                 yojimbo_assert( numFragments >= 0 );
                 yojimbo_assert( numFragments <= m_config.GetMaxFragmentsPerBlock() );
 
@@ -1138,9 +1144,9 @@ namespace yojimbo
 
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )
             {
-                if ( m_listener )
-                    m_listener->OnChannelFragmentReceived( this, messageId, fragmentId, fragmentBytes, m_receiveBlock->numReceivedFragments + 1, m_receiveBlock->numFragments );
-                
+                // todo
+                // printf( "%p: received fragment: messageId = %d, fragmentId = %d\n", this, messageId, fragmentId );
+
                 m_receiveBlock->receivedFragment->SetBit( fragmentId );
 
                 memcpy( m_receiveBlock->blockData + fragmentId * m_config.fragmentSize, fragmentData, fragmentBytes );
@@ -1175,6 +1181,9 @@ namespace yojimbo
 
                 if ( m_receiveBlock->numReceivedFragments == m_receiveBlock->numFragments )
                 {
+                    // todo
+                    // printf( "%p: finished receiving block: messageId = %d, fragmentId = %d\n", this, messageId, fragmentId );
+
                     // finished receiving block
 
                     if ( m_messageReceiveQueue->GetAtIndex( m_messageReceiveQueue->GetIndex( messageId ) ) )
@@ -1348,28 +1357,28 @@ namespace yojimbo
             yojimbo_assert( message );
 
             MeasureStream measureStream( m_messageFactory->GetAllocator() );
-
+            
             message->SerializeInternal( measureStream );
-
+            
             if ( message->IsBlockMessage() )
             {
                 BlockMessage * blockMessage = (BlockMessage*) message;
-                
                 SerializeMessageBlock( measureStream, *m_messageFactory, blockMessage, m_config.maxBlockSize );
             }
 
             const int messageBits = messageTypeBits + measureStream.GetBitsProcessed();
-
+            
             if ( usedBits + messageBits > availableBits )
             {
+                // todo: log something here?
                 m_messageFactory->ReleaseMessage( message );
                 continue;
             }
 
             usedBits += messageBits;
-
+            
             yojimbo_assert( usedBits <= availableBits );
-
+            
             messages[numMessages++] = message;
         }
 

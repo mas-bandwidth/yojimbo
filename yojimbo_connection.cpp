@@ -217,23 +217,17 @@ namespace yojimbo
             bool channelHasData[MaxChannels];
             memset( channelHasData, 0, sizeof( channelHasData ) );
             ChannelPacketData channelData[MaxChannels];
-
-            int availableBits = maxPacketBytes * 8;
-
-            availableBits -= ConservativeConnectionPacketHeaderEstimate;
-
+            
+            int availableBits = maxPacketBytes * 8 - ConservativeConnectionPacketHeaderEstimate;
+            
             for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
             {
                 int packetDataBits = m_channel[channelIndex]->GetPacketData( channelData[channelIndex], packetSequence, availableBits );
-
                 if ( packetDataBits > 0 )
                 {
                     availableBits -= ConservativeChannelHeaderEstimate;
-
                     availableBits -= packetDataBits;
-
                     channelHasData[channelIndex] = true;
-
                     numChannelsWithData++;
                 }
             }
@@ -293,7 +287,11 @@ namespace yojimbo
     bool Connection::ProcessPacket( void * context, uint16_t packetSequence, const uint8_t * packetData, int packetBytes )
     {
         if ( m_errorLevel != CONNECTION_ERROR_NONE )
+        {
+            // todo
+            //printf( "process packet failed: connection error level\n" );
             return false;
+        }
 
         ConnectionPacket packet;
 
@@ -311,7 +309,11 @@ namespace yojimbo
             yojimbo_assert( channelIndex <= m_connectionConfig.numChannels );
             m_channel[channelIndex]->ProcessPacketData( packet.channelEntry[i], packetSequence );
             if ( m_channel[channelIndex]->GetErrorLevel() != CHANNEL_ERROR_NONE )
+            {
+                // todo
+                //printf( "process packet failed: channel error level\n" );
                 return false;
+            }
         }
 
         return true;

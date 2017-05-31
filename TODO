@@ -42,13 +42,9 @@ DONE
 
     Update matcher.go so it uses netcode.io golang implementation to generate connect token data
 
+    Fixed bug in reliable.io introduced by renaming 'sequence' to 'ack_sequence' to fix Visual C++ complaining about it.
+
 TODO
-
-    Still debugging issues with block messages in client/server test.
-
-    Seems to work now with messages only, but when block messages are added to the mix, it fails. Why?
-
-    The mystery now is that it only ever fails server -> client, but works the other way. What is causing this? It has to be something server specific?
 
     ------------
 
@@ -73,10 +69,6 @@ TODO
     Integrate QoS settings above with yojimbo client/server and connection.
 
     Implement congestion adoidance in reliable.io (if reasonably possible given that user is in control of packet sizes...)
-
-    ------------
-
-    Add unreliable, ordered channel in yojimbo. Simply keep track of the most recently received message id, and discard any messages older than that.
 
     ------------
 

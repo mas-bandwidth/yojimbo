@@ -41,3 +41,11 @@ WOULD BE NICE
     Really need to make the matcher HTTPS request asynchronous, can't have it blocking the main thread like it does now!
 
     ------------------
+
+    What if yojimbo was simplified, just to have two channels, reliable-ordered, and unreliable-unordered.
+
+    Why should the user need to configure separate channels? It's not really necessary in my opinion.
+
+    Think about this, because it's a big change. It does simplify the library and its configuration, but on the other hand, it reduces flexibility.
+
+    ------------------

@@ -132,6 +132,7 @@ namespace yojimbo
         config.transmit_packet_function = BaseClient::StaticTransmitPacketFunction;
         config.process_packet_function = BaseClient::StaticProcessPacketFunction;
         m_endpoint = reliable_endpoint_create( &config );
+        reliable_endpoint_reset( m_endpoint );
     }
 
     void BaseClient::DestroyInternal()

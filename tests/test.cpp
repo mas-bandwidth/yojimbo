@@ -1433,7 +1433,6 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
         if ( !client.CanSendMessage( channelIndex ) )
             break;
 
-        /*
         if ( rand() % 10 )
         {
             TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
@@ -1442,7 +1441,6 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
             client.SendMessage( channelIndex, message );
         }
         else
-        */
         {
             TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
@@ -1465,8 +1463,7 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
         if ( !server.CanSendMessage( clientIndex, channelIndex ) )
             break;
 
-        /*
-        if ( rand() % 2 )
+        if ( rand() % 10 )
         {
             TestMessage * message = (TestMessage*) server.CreateMessage( clientIndex, TEST_MESSAGE );
             check( message );
@@ -1474,7 +1471,6 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
             server.SendMessage( clientIndex, channelIndex, message );
         }
         else
-        */
         {
             TestBlockMessage * message = (TestBlockMessage*) server.CreateMessage( clientIndex, TEST_BLOCK_MESSAGE );
             check( message );
@@ -1506,7 +1502,6 @@ void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFr
             case TEST_MESSAGE:
             {
                 TestMessage * testMessage = (TestMessage*) message;
-                //printf( "client received message %d\n", testMessage->sequence );
                 check( !message->IsBlockMessage() );
                 check( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
                 ++numMessagesReceivedFromServer;
@@ -1517,7 +1512,6 @@ void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFr
             {
                 check( message->IsBlockMessage() );
                 TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-                //printf( "client received block message %d\n", blockMessage->sequence );
                 check( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
                 const int blockSize = blockMessage->GetBlockSize();
                 check( blockSize == 1 + ( ( numMessagesReceivedFromServer * 901 ) % 1001 ) );
@@ -1553,7 +1547,6 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
             {
                 check( !message->IsBlockMessage() );
                 TestMessage * testMessage = (TestMessage*) message;
-                //printf( "server received message %d\n", testMessage->sequence );
                 check( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
                 ++numMessagesReceivedFromClient;
             }
@@ -1563,7 +1556,6 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
             {
                 check( message->IsBlockMessage() );
                 TestBlockMessage * blockMessage = (TestBlockMessage*) message;
-                //printf( "server received block message %d\n", blockMessage->sequence );
                 check( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
                 const int blockSize = blockMessage->GetBlockSize();
                 check( blockSize == 1 + ( ( numMessagesReceivedFromClient * 901 ) % 1001 ) );
@@ -1592,6 +1584,10 @@ void test_client_server_messages()
     double time = 100.0;
     
     ClientServerConfig config;
+    config.channel[0].sendQueueSize = 32;
+    config.channel[0].maxMessagesPerPacket = 8;
+    config.channel[0].maxBlockSize = 1024;
+    config.channel[0].fragmentSize = 200;
 
     Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
 
@@ -1612,10 +1608,8 @@ void test_client_server_messages()
     server.SetPacketLoss( 25 );
     server.SetDuplicates( 25 );
 
-    for ( int iteration = 0; iteration < 20; ++iteration )
+    for ( int iteration = 0; iteration < 2; ++iteration )
     {
-        printf( "iteration %d\n", iteration );
-
         client.InsecureConnect( privateKey, clientId, serverAddress );
 
         const int NumIterations = 10000;
@@ -1640,7 +1634,7 @@ void test_client_server_messages()
         check( client.GetClientIndex() == 0 );
         check( server.IsClientConnected(0) );
 
-        const int NumMessagesSent = 64;
+        const int NumMessagesSent = config.channel[0].sendQueueSize;
 
         SendClientToServerMessages( client, NumMessagesSent );
 
@@ -1659,22 +1653,17 @@ void test_client_server_messages()
 
             PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
-            //ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
-
             ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
 
-//            if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
-//                break;
+            ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
 
-            if ( numMessagesReceivedFromClient == NumMessagesSent )
+            if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
                 break;
         }
 
-        printf( "%d\n", numMessagesReceivedFromServer );
-
         check( client.IsConnected() );
         check( server.IsClientConnected( client.GetClientIndex() ) );
-        //check( numMessagesReceivedFromClient == NumMessagesSent );
+        check( numMessagesReceivedFromClient == NumMessagesSent );
         check( numMessagesReceivedFromServer == NumMessagesSent );
 
         client.Disconnect();
@@ -1759,6 +1748,10 @@ void test_client_server_start_stop_restart()
     double time = 100.0;
     
     ClientServerConfig config;
+    config.channel[0].sendQueueSize = 32;
+    config.channel[0].maxMessagesPerPacket = 8;
+    config.channel[0].maxBlockSize = 1024;
+    config.channel[0].fragmentSize = 200;
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -1801,7 +1794,7 @@ void test_client_server_start_stop_restart()
 
         check( AllClientsConnected( numClients[iteration], server, clients ) );
 
-        const int NumMessagesSent = 64;
+        const int NumMessagesSent = config.channel[0].sendQueueSize;
 
         for ( int clientIndex = 0; clientIndex < numClients[iteration]; ++clientIndex )
         {
@@ -2165,7 +2158,9 @@ void test_client_server_message_receive_queue_overflow()
 extern "C" void netcode_test();
 extern "C" void reliable_test();
 
+#ifndef SOAK
 #define SOAK 0
+#endif
 
 #if SOAK
 #include <signal.h>
@@ -2188,7 +2183,6 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
-        /*
         {
             printf( "[netcode.io]\n\n" );
 
@@ -2227,16 +2221,13 @@ int main()
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
-        */
 
         RUN_TEST( test_client_server_messages );
-        /*
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
-        */
         
 #if SOAK
         if ( quit )

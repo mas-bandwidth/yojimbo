@@ -62,30 +62,6 @@ namespace yojimbo
         bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
     };
 
-    /// Implement this interface to receive callbacks for channel events.
-
-    class ChannelListener
-    {
-    public:
-
-        virtual ~ChannelListener() {}
-
-        /**
-            Override this method to get a callback when a block fragment is received.
-
-            @param channel The channel the block is being sent over.
-            @param messageId The message id the block is attached to.
-            @param fragmentId The fragment id that is being processed. Fragment ids are in the range [0,numFragments-1].
-            @param fragmentBytes The size of the fragment in bytes.
-            @param numFragmentsReceived The number of fragments received for this block so far (including this one).
-            @param numFragmentsInBlock The total number of fragments in this block. The block receive completes when all fragments are received.
-
-            @see BlockMessage::AttachBlock
-         */
-
-        virtual void OnChannelFragmentReceived( class Channel * channel, uint16_t messageId, uint16_t fragmentId, int fragmentBytes, int numFragmentsReceived, int numFragmentsInBlock ) { (void) channel; (void) messageId; (void) fragmentId; (void) fragmentBytes; (void) numFragmentsReceived; (void) numFragmentsInBlock; }
-    };
-
     /**
         Channel counters provide insight into the number of times an action was performed by a channel.
 
@@ -236,16 +212,6 @@ namespace yojimbo
 
     public:
 
-        /** 
-            Set the channel listener.
-
-            The typical usage is to set the connection as the channel listener, so it gets callbacks from channels it owns.
-
-            @see Connection
-         */
-
-        void SetListener( ChannelListener * listener ) { m_listener = listener; }
-
         /**
             Get the channel error level.
 
@@ -300,8 +266,6 @@ namespace yojimbo
         double m_time;                                                                  ///< The current time.
         
         ChannelErrorLevel m_errorLevel;                                                 ///< The channel error level.
-
-        ChannelListener * m_listener;                                                   ///< Channel listener for callbacks. Optional.
 
         MessageFactory * m_messageFactory;                                              ///< Message factory for creating and destroying messages.
 
