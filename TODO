@@ -44,11 +44,9 @@ TODO
 
     ------------
 
-    Test under windows again.
+    Extend netcode.io so the user can set a custom allocator to use for client.
 
-    ------------
-
-    Extend netcode.io so the user can set a custom allocator to use for client and server allocations.
+    Extend netcode.io so the user can set a custom allocator to use for server.
 
     Extend reliable.io so the user can set a custom allocator to use for endpoints.
 
@@ -78,9 +76,19 @@ TODO
 
     ------------
 
-    Extend netcode.io and reliable.io to minimize packet copying, eg. assume packet is prefixed with available padding in front for headers.
+    Add ability to back-channel connect client and server (at the base client level).
 
-    Profile yojimbo and look for any hot spots.
+    This should allow the ability to pump in client -> server packets for a connected slot, and server -> client packets.
+
+    This will enable local loopback packet exchange between a client and server, and should work to a standard interface that is the same across all client/server implementations.
+
+    eg. this should be implemented in the base client / base server.
+
+    ------------
+
+    Pass over all // todo and fix
+
+    ------------
 
     Pass over doxygen documentation again.
 
