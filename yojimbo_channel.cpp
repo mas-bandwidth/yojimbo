@@ -372,8 +372,6 @@ namespace yojimbo
                     }
                 }
                 break;
-
-                // todo: unreliable-ordered channel
             }
 
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET

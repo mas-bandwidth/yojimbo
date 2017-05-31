@@ -2,6 +2,16 @@ WOULD BE NICE
 
     ------------------
 
+    It's possible to send a message that is too large to be transmitted in the reliable-ordered channel.
+
+    This currently stalls out the channel and presents no error to the user.
+
+    Instead of this, it would be good to detect this error and disconnect the client.
+
+    This should be done on both server and client. eg. a new channel error type that feeds into connection error.
+
+    ------------------
+
     Definitely need more usage documentation and samples showing how to do stuff.
 
     It's not immediately obvious how to use libyojimbo from the samples. Or, what exactly libyojimbo does or even what it's for?

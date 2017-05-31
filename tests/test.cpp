@@ -1433,6 +1433,7 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
         if ( !client.CanSendMessage( channelIndex ) )
             break;
 
+        /*
         if ( rand() % 10 )
         {
             TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
@@ -1441,6 +1442,7 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
             client.SendMessage( channelIndex, message );
         }
         else
+        */
         {
             TestBlockMessage * message = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
             check( message );
@@ -1463,6 +1465,7 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
         if ( !server.CanSendMessage( clientIndex, channelIndex ) )
             break;
 
+        /*
         if ( rand() % 2 )
         {
             TestMessage * message = (TestMessage*) server.CreateMessage( clientIndex, TEST_MESSAGE );
@@ -1471,6 +1474,7 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
             server.SendMessage( clientIndex, channelIndex, message );
         }
         else
+        */
         {
             TestBlockMessage * message = (TestBlockMessage*) server.CreateMessage( clientIndex, TEST_BLOCK_MESSAGE );
             check( message );
@@ -1502,6 +1506,7 @@ void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFr
             case TEST_MESSAGE:
             {
                 TestMessage * testMessage = (TestMessage*) message;
+                //printf( "client received message %d\n", testMessage->sequence );
                 check( !message->IsBlockMessage() );
                 check( testMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
                 ++numMessagesReceivedFromServer;
@@ -1512,6 +1517,7 @@ void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFr
             {
                 check( message->IsBlockMessage() );
                 TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+                //printf( "client received block message %d\n", blockMessage->sequence );
                 check( blockMessage->sequence == uint16_t( numMessagesReceivedFromServer ) );
                 const int blockSize = blockMessage->GetBlockSize();
                 check( blockSize == 1 + ( ( numMessagesReceivedFromServer * 901 ) % 1001 ) );
@@ -1547,6 +1553,7 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
             {
                 check( !message->IsBlockMessage() );
                 TestMessage * testMessage = (TestMessage*) message;
+                //printf( "server received message %d\n", testMessage->sequence );
                 check( testMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
                 ++numMessagesReceivedFromClient;
             }
@@ -1556,6 +1563,7 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
             {
                 check( message->IsBlockMessage() );
                 TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+                //printf( "server received block message %d\n", blockMessage->sequence );
                 check( blockMessage->sequence == uint16_t( numMessagesReceivedFromClient ) );
                 const int blockSize = blockMessage->GetBlockSize();
                 check( blockSize == 1 + ( ( numMessagesReceivedFromClient * 901 ) % 1001 ) );
@@ -1584,11 +1592,6 @@ void test_client_server_messages()
     double time = 100.0;
     
     ClientServerConfig config;
-    config.maxPacketSize = 256;
-    config.numChannels = 1;
-    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    config.channel[0].maxBlockSize = 1024;
-    config.channel[0].fragmentSize = 200;
 
     Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
 
@@ -1656,20 +1659,22 @@ void test_client_server_messages()
 
             PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
+            //ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
+
             ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
 
-            ProcessClientToServerMessages( server, client.GetClientIndex(), numMessagesReceivedFromClient );
+//            if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
+//                break;
 
-            if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
+            if ( numMessagesReceivedFromClient == NumMessagesSent )
                 break;
         }
 
+        printf( "%d\n", numMessagesReceivedFromServer );
+
         check( client.IsConnected() );
         check( server.IsClientConnected( client.GetClientIndex() ) );
-
-        printf( "%d/%d\n", numMessagesReceivedFromClient, numMessagesReceivedFromServer );
-
-        check( numMessagesReceivedFromClient == NumMessagesSent );
+        //check( numMessagesReceivedFromClient == NumMessagesSent );
         check( numMessagesReceivedFromServer == NumMessagesSent );
 
         client.Disconnect();
@@ -1861,7 +1866,7 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     double time = 100.0;
     
     ClientServerConfig config;
-    config.maxPacketSize = 256;
+    config.maxPacketSize = 1100;
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[0].maxBlockSize = 1024;
@@ -1934,7 +1939,7 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     double time = 100.0;
     
     ClientServerConfig config;
-    config.maxPacketSize = 256;
+    config.maxPacketSize = 1100;
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
     config.channel[0].maxBlockSize = 1024;
@@ -2008,7 +2013,7 @@ void test_client_server_message_exhaust_stream_allocator()
     double time = 100.0;
     
     ClientServerConfig config;
-    config.maxPacketSize = 256;
+    config.maxPacketSize = 1100;
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[0].maxBlockSize = 1024;
@@ -2081,13 +2086,13 @@ void test_client_server_message_receive_queue_overflow()
     double time = 100.0;
     
     ClientServerConfig config;
-    config.maxPacketSize = 256;
+    config.maxPacketSize = 1100;
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[0].maxBlockSize = 1024;
     config.channel[0].fragmentSize = 200;
-    config.channel[0].sendQueueSize = 16;//1024;
-    config.channel[0].receiveQueueSize = 4;//256;
+    config.channel[0].sendQueueSize = 1024;
+    config.channel[0].receiveQueueSize = 256;
     
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -2224,7 +2229,6 @@ int main()
         RUN_TEST( test_connection_unreliable_unordered_blocks );
         */
 
-        yojimbo_log_level( YOJIMBO_LOG_LEVEL_INFO );
         RUN_TEST( test_client_server_messages );
         /*
         RUN_TEST( test_client_server_start_stop_restart );

@@ -129,7 +129,6 @@ namespace yojimbo
                 case CHANNEL_TYPE_UNRELIABLE_UNORDERED: 
                     m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex, time ); 
                     break;
-                // todo: unreliable ordered channel
                 default: 
                     yojimbo_assert( !"unknown channel type" );
             }

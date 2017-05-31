@@ -117,7 +117,6 @@ namespace yojimbo
     {
         CHANNEL_TYPE_RELIABLE_ORDERED,                              ///< Messages are received reliably and in the same order they were sent. 
         CHANNEL_TYPE_UNRELIABLE_UNORDERED                           ///< Messages are sent unreliably. Messages may arrive out of order, or not at all.
-        // todo: add UNRELIABLE_ORDERED, it's a trivial change...
     };
 
     /** 
@@ -167,7 +166,7 @@ namespace yojimbo
             disableBlocks = false;
             sendQueueSize = 1024;
             receiveQueueSize = 1024;
-            sentPacketBufferSize = 1024;
+            sentPacketBufferSize = 1024;                            // todo: rename this. it's not clear what it does
             maxMessagesPerPacket = 64;
             packetBudget = 1100;
             maxBlockSize = 256 * 1024;
