@@ -42,6 +42,8 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientMain( int argc, char * argv[] )
 {   
+    printf( "\nconnecting client (secure)\n" );
+
     uint64_t clientId = 0;
     random_bytes( (uint8_t*) &clientId, 8 );
     printf( "client id is %.16" PRIx64 "\n", clientId );
@@ -64,7 +66,7 @@ int ClientMain( int argc, char * argv[] )
         return 1;
     }
 
-/*
+    /*
     matcher.GetMatchResponse( matchResponse );
 
     if ( matchResponse.numServerAddresses == 0 )
@@ -77,8 +79,6 @@ int ClientMain( int argc, char * argv[] )
     printf( "received match response\n" );
 
     /*
-    printf( "\nconnecting client\n" );
-
     double time = 100.0;
 
     ClientServerConfig config;

@@ -93,17 +93,17 @@ namespace yojimbo
         MatchStatus GetMatchStatus();
 
         /**
-            Get match response data.
+            Get connect token.
 
             This can only be called if the match status is MATCH_READY.
 
-            @param matchResponse The match response data to fill [out].
+            @param connectToken The connect token data to fill [out].
 
             @see Matcher::RequestMatch
             @see Matcher::GetMatchStatus
          */
 
-        void GetMatchResponse( uint8_t * matchResponse );
+        void GetConnectToken( uint8_t * connectToken );
 
     private:
 
@@ -111,7 +111,7 @@ namespace yojimbo
         bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
         MatchStatus m_matchStatus;                              ///< The current match status.
         struct MatcherInternal * m_internal;                    ///< Internals are in here to avoid spilling details of mbedtls library outside of yojimbo_matcher.cpp
-        uint8_t m_matchResponse[ConnectTokenBytes];             ///< The match response data from the last call to Matcher::RequestMatch once the match status is MATCH_READY.
+        uint8_t m_connectToken[ConnectTokenBytes];              ///< The connect token data from the last call to Matcher::RequestMatch once the match status is MATCH_READY.
     };
 }
 

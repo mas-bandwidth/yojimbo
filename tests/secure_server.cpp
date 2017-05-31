@@ -39,7 +39,7 @@ void interrupt_handler( int /*dummy*/ )
 
 int ServerMain()
 {
-    printf( "started server on port %d\n", ServerPort );
+    printf( "started server on port %d (secure)\n", ServerPort );
 
     double time = 100.0;
 

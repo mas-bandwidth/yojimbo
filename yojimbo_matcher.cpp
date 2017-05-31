@@ -80,6 +80,8 @@ namespace yojimbo
 
         m_initialized = true;
 
+        memset( m_connectToken, 0, sizeof( m_connectToken ) );
+
         return true;
     }
 
@@ -87,7 +89,6 @@ namespace yojimbo
     {
         yojimbo_assert( m_initialized );
 
-        char buf[4*1024];       // todo: define this as 2X token size
         char request[1024];
         int bytesRead = 0;
 
@@ -167,11 +168,13 @@ namespace yojimbo
             }
         }
 
-        memset( buf, 0, sizeof( buf ) );
+        char buffer[2*ConnectTokenBytes];
+
+        memset( buffer, 0, sizeof( buffer ) );
 
         do
         {
-            result = mbedtls_ssl_read( &m_internal->ssl, (uint8_t*) ( buf + bytesRead ), sizeof( buf ) - bytesRead - 1 );
+            result = mbedtls_ssl_read( &m_internal->ssl, (uint8_t*) ( buffer + bytesRead ), sizeof( buffer ) - bytesRead - 1 );
 
             if ( result == MBEDTLS_ERR_SSL_WANT_READ || result == MBEDTLS_ERR_SSL_WANT_WRITE )
                 continue;
@@ -185,6 +188,8 @@ namespace yojimbo
             bytesRead += result;
         }
         while( 1 );
+
+        yojimbo_assert( bytesRead <= (int) sizeof( buffer ) );
 
         printf( "bytes read = %d\n", bytesRead );
 
@@ -213,12 +218,13 @@ namespace yojimbo
         return m_matchStatus;
     }
 
-    void Matcher::GetMatchResponse( uint8_t * matchResponse )
+    void Matcher::GetConnectToken( uint8_t * connectToken )
     {
+        yojimbo_assert( connectToken );
         yojimbo_assert( m_matchStatus == MATCH_READY );
         if ( m_matchStatus == MATCH_READY )
         {
-            memcpy( matchResponse, m_matchResponse, NETCODE_CONNECT_TOKEN_BYTES );
+            memcpy( connectToken, m_connectToken, ConnectTokenBytes );
         }
     }
 }
