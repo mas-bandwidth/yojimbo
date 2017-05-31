@@ -404,9 +404,9 @@ namespace yojimbo
     /**
         Base 64 decode a block of data.
 
-        @param input The base 64 string to decode. Must be a null terminated string.
+        @param input The base 64 data to decode. Must be a null terminated string.
         @param output The output data. Will *not* be null terminated.
-        @param output_size The size of the output buffer. Must be large enough to store the decoded data.
+        @param output_size The size of the output buffer.
 
         @returns The number of bytes of decoded data. -1 if the base64 decode failed.
      */

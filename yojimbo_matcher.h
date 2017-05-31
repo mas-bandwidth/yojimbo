@@ -24,7 +24,7 @@ namespace yojimbo
     {
         MATCH_IDLE,                                                         ///< The matcher is idle.
         MATCH_BUSY,                                                         ///< The matcher is busy requesting a match.
-        MATCH_READY,                                                        ///< The matcher is finished requesting a match. The match response is ready to read with Matcher::GetMatchResponse.
+        MATCH_READY,                                                        ///< The matcher is finished requesting a match. The match response is ready to read with Matcher::GetConnectToken.
         MATCH_FAILED                                                        ///< The matcher failed to find a match.
     };
 
@@ -75,7 +75,7 @@ namespace yojimbo
             @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64 bit number.
 
             @see Matcher::GetMatchStatus
-            @see Matcher::GetMatchResponse
+            @see Matcher::GetConnectToken
          */
 
         void RequestMatch( uint64_t protocolId, uint64_t clientId );

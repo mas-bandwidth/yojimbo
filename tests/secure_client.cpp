@@ -42,6 +42,9 @@ void interrupt_handler( int /*dummy*/ )
 
 int ClientMain( int argc, char * argv[] )
 {   
+    (void) argc;
+    (void) argv;
+
     printf( "\nconnecting client (secure)\n" );
 
     uint64_t clientId = 0;
@@ -66,19 +69,10 @@ int ClientMain( int argc, char * argv[] )
         return 1;
     }
 
-    /*
-    matcher.GetMatchResponse( matchResponse );
+    uint8_t connectToken[ConnectTokenBytes];
+    matcher.GetConnectToken( connectToken );
+    printf( "received connect token from matcher\n" );
 
-    if ( matchResponse.numServerAddresses == 0 )
-    {
-        printf( "error: could not find a match\n" );
-        return 1;
-    }
-    */
-
-    printf( "received match response\n" );
-
-    /*
     double time = 100.0;
 
     ClientServerConfig config;
@@ -98,10 +92,7 @@ int ClientMain( int argc, char * argv[] )
         }
     }
 
-    uint8_t privateKey[KeyBytes];
-    memset( privateKey, 0, KeyBytes );
-
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    client.Connect( clientId, connectToken );
 
     const double deltaTime = 0.1;
 
@@ -127,8 +118,7 @@ int ClientMain( int argc, char * argv[] )
     }
 
     client.Disconnect();
-    */
-
+    
     return 0;
 }
 

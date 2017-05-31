@@ -6,6 +6,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_matcher.h"
+#include "yojimbo_utility.h"
 #include <mbedtls/config.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/net.h>
@@ -89,6 +90,7 @@ namespace yojimbo
     {
         yojimbo_assert( m_initialized );
 
+        char * data;
         char request[1024];
         int bytesRead = 0;
 
@@ -191,22 +193,23 @@ namespace yojimbo
 
         yojimbo_assert( bytesRead <= (int) sizeof( buffer ) );
 
-        printf( "bytes read = %d\n", bytesRead );
+        data = strstr( (const char*)buffer, "\r\n\r\n" );
 
-        // todo: grab the base64 and decode it
-        /*
-        json = strstr( (const char*)buf, "\r\n\r\n" );
+        while ( *data == 13 || *data == 10 )
+            ++data;
 
-        if ( json && ParseMatchResponse( json, m_matchResponse ) )
+        yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "================================================\n%s\n================================================\n", data );
+
+        result = base64_decode_data( data, m_connectToken, sizeof( m_connectToken ) );
+        if ( result == ConnectTokenBytes )
         {
             m_matchStatus = MATCH_READY;
         }
         else
         {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "failed to parse match response json:\n%s\n", json );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "failed to decode connect token base64\n" );
             m_matchStatus = MATCH_FAILED;
         }
-        */
 
     cleanup:
 
