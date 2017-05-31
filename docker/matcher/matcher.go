@@ -1,8 +1,10 @@
 package main
 
 import (
+    "io"
     "fmt"
     "log"
+    "net"
     "strconv"
     "net/http"
     "sync/atomic"
@@ -13,7 +15,10 @@ import (
 )
 
 const Port = 8080
-const ServerAddress = "127.0.0.1:40000"
+const ServerAddress = "127.0.0.1"
+const ServerPort = 40000
+const ConnectTokenExpiry = 45
+const TimeoutSeconds = 5
 
 var MatchNonce = uint64(0)
 
@@ -22,27 +27,28 @@ var PrivateKey = [] byte { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea,
                            0x43, 0x71, 0xd6, 0x2c, 0xd1, 0x99, 0x27, 0x26,
                            0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1 };
 
-func Base64EncodeString( s string ) string {
-    stringAsBytes := []byte( s )
-    stringAsBytes = append( stringAsBytes, 0 )
-    return base64.StdEncoding.EncodeToString( stringAsBytes )
-}
-
 func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     vars := mux.Vars( r )
-    atomic.AddUint64( &MatchNonce, 1 )
-    /*
     clientId, _ := strconv.ParseUint( vars["clientId"], 10, 64 )
     protocolId, _ := strconv.ParseUint( vars["protocolId"], 10, 64 )
-    serverAddresses := []string { Base64EncodeString( ServerAddress ) }
-    connectToken := GenerateConnectToken( protocolId, clientId, serverAddresses[:] )
-    matchResponse, ok := GenerateMatchResponse( connectToken, atomic.AddUint64( &MatchNonce, 1 ) )
-    w.Header().Set( "Content-Type", "application/json" )
-    if ( ok ) { 
-        fmt.Printf( "matched client %.16x to %s\n", clientId, ServerAddress )
-        json.NewEncoder(w).Encode( matchResponse ); 
+    atomic.AddUint64( &MatchNonce, 1 )
+    servers := make( []net.UDPAddr, 1 )
+    servers[0] = net.UDPAddr{ IP: net.ParseIP( ServerAddress ), Port: ServerPort }
+    userData, _ := netcode.RandomBytes( netcode.USER_DATA_BYTES )
+    connectToken := netcode.NewConnectToken()
+    if err := connectToken.Generate( clientId, servers, netcode.VERSION_INFO, protocolId, ConnectTokenExpiry, TimeoutSeconds, MatchNonce, userData, PrivateKey ); err != nil { 
+        panic( err ) 
     }
-    */
+    connectTokenData, err := connectToken.Write();
+    if ( err != nil ) {
+        panic( err )
+    }
+    connectTokenString := base64.StdEncoding.EncodeToString( connectTokenData )
+    fmt.Printf( "matched client %.16x to %s\n", clientId, ServerAddress )
+    w.Header().Set( "Content-Type", "application/text" )
+    if _, err := io.WriteString( w, connectTokenString ); err != nil {
+        panic( err )
+    }
 }
 
 func main() {
