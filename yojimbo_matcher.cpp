@@ -6,7 +6,6 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_matcher.h"
-
 #include <mbedtls/config.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/net.h>
@@ -16,12 +15,8 @@
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/error.h>
 #include <mbedtls/certs.h>
-
-int matcher_dummy = 0;
-
-#if 0 // todo
-
-#include "sodium.h"
+#include <inttypes.h>
+#include "netcode.h"
 
 #define SERVER_PORT "8080"
 #define SERVER_NAME "localhost"
@@ -40,6 +35,7 @@ namespace yojimbo
 
     Matcher::Matcher( Allocator & allocator )
     {
+        yojimbo_assert( ConnectTokenBytes == NETCODE_CONNECT_TOKEN_BYTES );
         m_allocator = &allocator;
         m_initialized = false;
         m_matchStatus = MATCH_IDLE;
@@ -54,7 +50,6 @@ namespace yojimbo
         mbedtls_ssl_config_free( &m_internal->conf );
         mbedtls_ctr_drbg_free( &m_internal->ctr_drbg );
         mbedtls_entropy_free( &m_internal->entropy );
-
         YOJIMBO_DELETE( *m_allocator, MatcherInternal, m_internal );
     }
 
@@ -73,13 +68,13 @@ namespace yojimbo
 
         if ( ( result = mbedtls_ctr_drbg_seed( &m_internal->ctr_drbg, mbedtls_entropy_func, &m_internal->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
         {
-            debug_printf( "mbedtls_ctr_drbg_seed failed - error code = %d\n", result );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ctr_drbg_seed failed (%d)\n", result );
             return false;
         }
 
         if ( mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len ) < 0 )
         {
-            debug_printf( "mbedtls_x509_crt_parse failed - error code = %d\n", result );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_x509_crt_parse failed (%d)\n", result );
             return false;
         }
 
@@ -92,17 +87,15 @@ namespace yojimbo
     {
         yojimbo_assert( m_initialized );
 
-        uint32_t flags;
-        char buf[4*1024];
+        char buf[4*1024];       // todo: define this as 2X token size
         char request[1024];
         int bytesRead = 0;
-        const char * json;
 
         int result;
 
         if ( ( result = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
-            debug_printf( "mbedtls_net_connect failed - error code = %d\n", result );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_net_connect failed (%d)\n", result );
             m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
@@ -112,7 +105,7 @@ namespace yojimbo
                         MBEDTLS_SSL_TRANSPORT_STREAM,
                         MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
         {
-            debug_printf( "mbedtls_net_connect failed - error code = %d\n", result );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_net_connect failed (%d)\n", result );
             m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
@@ -123,14 +116,14 @@ namespace yojimbo
 
         if ( ( result = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
         {
-            debug_printf( "mbedtls_ssl_setup failed - error code = %d\n", result );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_setup failed (%d)\n", result );
             m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
 
         if ( ( result = mbedtls_ssl_set_hostname( &m_internal->ssl, "yojimbo" ) ) != 0 )
         {
-            debug_printf( "mbedtls_ssl_set_hostname failed - error code = %d\n", result );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_set_hostname failed (%d)\n", result );
             m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
@@ -141,12 +134,15 @@ namespace yojimbo
         {
             if ( result != MBEDTLS_ERR_SSL_WANT_READ && result != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
-                debug_printf( "mbedtls_ssl_handshake failed - error code = %d\n", result );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_handshake failed (%d)\n", result );
                 m_matchStatus = MATCH_FAILED;
                 goto cleanup;
             }
         }
 
+        // todo: you want to turn this on for release
+        /*
+        uint32_t flags;
         if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
         {
             // IMPORTANT: In secure mode you must use a valid certificate, not a self signed one!
@@ -154,17 +150,18 @@ namespace yojimbo
             m_matchStatus = MATCH_FAILED;
             goto cleanup;
         }
+        */
 
         sprintf( request, "GET /match/%" PRIu64 "/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
 
-        debug_printf( "match request:\n" );
-        debug_printf( "%s\n", request );
+        yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "match request:\n" );
+        yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "%s\n", request );
 
         while ( ( result = mbedtls_ssl_write( &m_internal->ssl, (uint8_t*) request, strlen( request ) ) ) <= 0 )
         {
             if ( result != MBEDTLS_ERR_SSL_WANT_READ && result != MBEDTLS_ERR_SSL_WANT_WRITE )
             {
-                debug_printf( "mbedtls_ssl_write failed - error code = %d\n", result );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_write failed (%d)\n", result );
                 m_matchStatus = MATCH_FAILED;
                 goto cleanup;
             }
@@ -189,6 +186,10 @@ namespace yojimbo
         }
         while( 1 );
 
+        printf( "bytes read = %d\n", bytesRead );
+
+        // todo: grab the base64 and decode it
+        /*
         json = strstr( (const char*)buf, "\r\n\r\n" );
 
         if ( json && ParseMatchResponse( json, m_matchResponse ) )
@@ -197,9 +198,10 @@ namespace yojimbo
         }
         else
         {
-            debug_printf( "failed to parse match response json:\n%s\n", json );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "failed to parse match response json:\n%s\n", json );
             m_matchStatus = MATCH_FAILED;
         }
+        */
 
     cleanup:
 
@@ -211,97 +213,12 @@ namespace yojimbo
         return m_matchStatus;
     }
 
-    void Matcher::GetMatchResponse( MatchResponse & matchResponse )
+    void Matcher::GetMatchResponse( uint8_t * matchResponse )
     {
-        matchResponse = ( m_matchStatus == MATCH_READY ) ? m_matchResponse : MatchResponse();
-    }
-
-    static bool exists_and_is_string( Document & doc, const char * key )
-    {
-        return doc.HasMember( key ) && doc[key].IsString();
-    }
-
-    static bool exists_and_is_array( Document & doc, const char * key )
-    {
-        return doc.HasMember( key ) && doc[key].IsArray();
-    }
-
-    bool Matcher::ParseMatchResponse( const char * json, MatchResponse & matchResponse )
-    {
-        Document doc;
-        doc.Parse( json );
-        if ( doc.HasParseError() )
-            return false;
-
-        if ( !exists_and_is_string( doc, "connectTokenData" ) )
-            return false;
-
-        if ( !exists_and_is_string( doc, "connectTokenNonce" ) )
-            return false;
-
-        if ( !exists_and_is_array( doc, "serverAddresses" ) )
-            return false;
-
-        if ( !exists_and_is_string( doc, "clientToServerKey" ) )
-            return false;
-
-        if ( !exists_and_is_string( doc, "serverToClientKey" ) )
-            return false;
-
-        const char * encryptedConnectTokenBase64 = doc["connectTokenData"].GetString();
-
-        int encryptedLength = base64_decode_data( encryptedConnectTokenBase64, matchResponse.connectTokenData, ConnectTokenBytes );
-
-        if ( encryptedLength != ConnectTokenBytes )
-            return false;        
-
-        uint64_t connectTokenNonce = atoll( doc["connectTokenNonce"].GetString() );
-
-        memcpy( &matchResponse.connectTokenNonce, &connectTokenNonce, 8 );
-
-        uint64_t connectTokenExpireTimestamp = atoll( doc["connectTokenExpireTimestamp"].GetString() );
-
-        memcpy( &matchResponse.connectTokenExpireTimestamp, &connectTokenExpireTimestamp, 8 );
-
-        matchResponse.numServerAddresses = 0;
-
-        const Value & serverAddresses = doc["serverAddresses"];
-
-        if ( !serverAddresses.IsArray() )
-            return false;
-
-        for ( SizeType i = 0; i < serverAddresses.Size(); ++i )
+        yojimbo_assert( m_matchStatus == MATCH_READY );
+        if ( m_matchStatus == MATCH_READY )
         {
-            if ( i >= MaxServersPerConnect )
-                return false;
-
-            if ( !serverAddresses[i].IsString() )
-                return false;
-
-            char serverAddress[MaxAddressLength];
-
-            base64_decode_string( serverAddresses[i].GetString(), serverAddress, sizeof( serverAddress ) );
-
-            matchResponse.serverAddresses[i] = Address( serverAddress );
-
-            if ( !matchResponse.serverAddresses[i].IsValid() )
-                return false;
-
-            matchResponse.numServerAddresses++;
+            memcpy( matchResponse, m_matchResponse, NETCODE_CONNECT_TOKEN_BYTES );
         }
-
-        const char * clientToServerKeyBase64 = doc["clientToServerKey"].GetString();
-
-        const char * serverToClientKeyBase64 = doc["serverToClientKey"].GetString();
-
-        if ( base64_decode_data( clientToServerKeyBase64, matchResponse.clientToServerKey, KeyBytes ) != KeyBytes )
-            return false;
-
-        if ( base64_decode_data( serverToClientKeyBase64, matchResponse.serverToClientKey, KeyBytes ) != KeyBytes )
-            return false;
-
-        return true;
     }
 }
-
-#endif
