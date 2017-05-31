@@ -1609,8 +1609,10 @@ void test_client_server_messages()
     server.SetPacketLoss( 25 );
     server.SetDuplicates( 25 );
 
-    for ( int iteration = 0; iteration < 2; ++iteration )
+    for ( int iteration = 0; iteration < 20; ++iteration )
     {
+        printf( "iteration %d\n", iteration );
+
         client.InsecureConnect( privateKey, clientId, serverAddress );
 
         const int NumIterations = 10000;
@@ -1646,6 +1648,9 @@ void test_client_server_messages()
 
         for ( int i = 0; i < NumIterations; ++i )
         {
+            if ( !client.IsConnected() )
+                break;
+
             Client * clients[] = { &client };
             Server * servers[] = { &server };
 
@@ -1658,6 +1663,11 @@ void test_client_server_messages()
             if ( numMessagesReceivedFromClient == NumMessagesSent && numMessagesReceivedFromServer == NumMessagesSent )
                 break;
         }
+
+        check( client.IsConnected() );
+        check( server.IsClientConnected( client.GetClientIndex() ) );
+
+        printf( "%d/%d\n", numMessagesReceivedFromClient, numMessagesReceivedFromServer );
 
         check( numMessagesReceivedFromClient == NumMessagesSent );
         check( numMessagesReceivedFromServer == NumMessagesSent );
@@ -2173,6 +2183,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        /*
         {
             printf( "[netcode.io]\n\n" );
 
@@ -2211,13 +2222,17 @@ int main()
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
+        */
 
+        yojimbo_log_level( YOJIMBO_LOG_LEVEL_INFO );
         RUN_TEST( test_client_server_messages );
+        /*
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
+        */
         
 #if SOAK
         if ( quit )

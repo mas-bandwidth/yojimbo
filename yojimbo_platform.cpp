@@ -19,7 +19,6 @@ static void default_assert_handler( const char * condition, const char * functio
     #elif defined( _MSC_VER )
     __debugbreak();
     #endif
-    exit( 1 );
 }
 
 static int log_level = 0;

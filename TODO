@@ -40,13 +40,15 @@ DONE
 
     Extend reliable.io so it can have an overriden assert function
 
+    Update matcher.go so it uses netcode.io golang implementation to generate connect token data
+
 TODO
 
+    There is an error in unit tests that comes and goes, where messages don't get received from server -> client.
+
+    It is reproducing now, but last time this happened, I recompiled and it went away. I'm not sure why. Uninitialized memory?
+    
     ------------
-
-    Bring across golang web server implementation, but so that it uses the golang netcode.io library in Docker, vs. coding it manually.
-
-    Make sure the golang web server implementation doesn't leak memory (for example, it needs to be updated with the close wrapper).
 
     Bring across the C++ matcher implementation again, and upgrade it to use the new connect tokens from netcode.io
 
