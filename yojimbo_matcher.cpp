@@ -17,6 +17,7 @@
 #include <mbedtls/error.h>
 #include <mbedtls/certs.h>
 #include <inttypes.h>
+#include <string.h>
 #include "netcode.h"
 
 #define SERVER_PORT "8080"
@@ -90,7 +91,7 @@ namespace yojimbo
     {
         yojimbo_assert( m_initialized );
 
-        char * data;
+        const char * data;
         char request[1024];
         int bytesRead = 0;
 
