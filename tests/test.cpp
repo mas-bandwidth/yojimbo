@@ -1578,8 +1578,8 @@ void test_client_server_messages()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
     
@@ -1589,12 +1589,12 @@ void test_client_server_messages()
     config.channel[0].maxBlockSize = 1024;
     config.channel[0].fragmentSize = 200;
 
-    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     server.Start( MaxClients );
 
@@ -1742,8 +1742,8 @@ bool AnyClientDisconnected( int numClients, Client ** clients )
 
 void test_client_server_start_stop_restart()
 {
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
+    Address clientAddress( "0.0.0.0", 0 );
+    Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
     
@@ -1756,7 +1756,7 @@ void test_client_server_start_stop_restart()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     server.Start( MaxClients );
 
@@ -1775,7 +1775,7 @@ void test_client_server_start_stop_restart()
 
         Client * clients[MaxClients];
 
-        CreateClients( numClients[iteration], clients, Address("::"), config, adapter, time );
+        CreateClients( numClients[iteration], clients, clientAddress, config, adapter, time );
 
         ConnectClients( numClients[iteration], clients, privateKey, serverAddress );
 
@@ -1853,8 +1853,8 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
     
@@ -1868,11 +1868,11 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     server.Start( MaxClients );
 
-    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
 
@@ -1926,8 +1926,8 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
     
@@ -1941,11 +1941,11 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     server.Start( MaxClients );
 
-    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
 
@@ -2000,8 +2000,8 @@ void test_client_server_message_exhaust_stream_allocator()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
     
@@ -2015,11 +2015,11 @@ void test_client_server_message_exhaust_stream_allocator()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     server.Start( MaxClients );
 
-    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
 
@@ -2073,8 +2073,8 @@ void test_client_server_message_receive_queue_overflow()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "::1", ClientPort );
-    Address serverAddress( "::1", ServerPort );
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
     
@@ -2090,11 +2090,11 @@ void test_client_server_message_receive_queue_overflow()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "::1", ServerPort ), config, adapter, time );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     server.Start( MaxClients );
 
-    Client client( GetDefaultAllocator(), Address("::"), config, adapter, time );
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
 
