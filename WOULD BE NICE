@@ -20,7 +20,7 @@ WOULD BE NICE
 
     ------------------
 
-    Would be nice if each packet factory or message factory had an easy to access hash (uint64_t) that could be use to quickly test if two factories are compatible.
+    Would be nice if each message factory had an easy to access hash (uint64_t) that could be use to quickly test if two factories are compatible.
 
     This hash could also input into a protocol id hash now that it's 64 bit as well.
 
@@ -30,7 +30,7 @@ WOULD BE NICE
 
     ------------------
 
-    Add tests that simulate each of the server-side client error conditions, eg. allocator, packet factory, message factory, connection, and then verify that after these errors happen, that client slot is cleared and a client can connect to it again, otherwise, possibility that I have error codes not getting cleared by accident on client disconnect.
+    Add tests that simulate each of the server-side client error conditions, eg. allocator, message factory, connection, and then verify that after these errors happen, that client slot is cleared and a client can connect to it again, otherwise, possibility that I have error codes not getting cleared by accident on client disconnect.
 
     ------------------
 
