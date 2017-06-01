@@ -20,13 +20,13 @@ Features implemented for this release:
 
 ## 0.2.0 - Docker integration
 
-This release extended libyojimbo to support a web backend for clients who need to securely connect to dedicated servers with 'connect tokens'. The connect token and packet encryption feature has already been implemented in 0.1.0, but it is necessary to setup a backend matchmaker and dedicated server infrastructure to show how this would be used in production. 
+This release extended yojimbo to support a web backend for clients who need to securely connect to dedicated servers with 'connect tokens'. The connect token and packet encryption feature has already been implemented in 0.1.0, but it is necessary to setup a backend matchmaker and dedicated server infrastructure to show how this would be used in production. 
 
-Docker is being used in this release as an example, not to tie libyojimbo to any particular architecture (Docker is not required to use libyojimbo) but because it is a really convenient way to distribute and run a web application across Mac, Windows and Linux. This lets me share example web backends and trust that they'll work on different platforms.
+Docker is being used in this release as an example, not to tie yojimbo to any particular architecture (Docker is not required to use yojimbo) but because it is a really convenient way to distribute and run a web application across Mac, Windows and Linux. This lets me share example web backends and trust that they'll work on different platforms.
 
 This release added support for: 
 
-1. Running a libyojimbo server inside a container "premake5 docker"
+1. Running a yojimbo server inside a container "premake5 docker"
 2. A simple matcher web service in golang: "premake5 matcher"
 3. An example showing how to connect a client to the server via the matcher: "premake5 connect"
 4. A way to run a secure server: "premake5 secure_server"
@@ -77,7 +77,7 @@ I may even setup a swarm of fake clients as well for stress test behavior, this 
 
 Yojimbo is released on github for feedback and collaboration. Release early and release often!
 
-Please let me know if there are any features missing from the libyojimbo roadmap that would benefit your team.
+Please let me know if there are any features missing from the yojimbo roadmap that would benefit your team.
 
 cheers
 
