@@ -42,6 +42,7 @@ namespace yojimbo
         m_initialized = false;
         m_matchStatus = MATCH_IDLE;
         m_internal = YOJIMBO_NEW( allocator, MatcherInternal );
+        memset( m_connectToken, 0, sizeof( m_connectToken ) );
     }
 
     Matcher::~Matcher()

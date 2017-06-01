@@ -107,6 +107,10 @@ namespace yojimbo
 
     private:
 
+        Matcher( const Matcher & matcher );
+
+        const Matcher & operator = ( const Matcher & other );
+
         Allocator * m_allocator;                                ///< The allocator passed into the constructor.
         bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
         MatchStatus m_matchStatus;                              ///< The current match status.
