@@ -139,6 +139,8 @@ What just happened?
 
 4. The server and client exchange signed and encrypted packets over UDP.
 
+These steps ensure that clients can only connect to secure tokens if they go through the matcher first. This means that only clients authenticated with your web backend can connect to your dedicated servers, which is typically what you want!
+
 ## Documentation and Support
 
 **yojimbo** now has reference documentation built from code comments with [doxygen](http://www.stack.nl/~dimitri/doxygen/).
