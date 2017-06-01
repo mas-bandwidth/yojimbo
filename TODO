@@ -52,6 +52,8 @@ DONE
 
 TODO
 
+    Make a yojimbo 0.5 release.
+
     ------------
 
     Extend netcode.io so the user can set a custom allocator to use for client.
