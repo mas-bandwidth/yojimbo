@@ -12,8 +12,8 @@ It's designed around the networking requirements of competitive real-time multip
 
 Right now it provides support for: 
 
-* Cryptographically secure authentication
-* Client/server connection management
+* Cryptographically secure authentication via [netcode.io connect tokens](https://github.com/networkprotocol/netcode.io/blob/master/STANDARD.md)
+* Client/server connection management and timeouts
 * Encryption for packets sent over UDP
 * Reliable-ordered messages and data blocks
 * Packet fragmentation and reassembly
