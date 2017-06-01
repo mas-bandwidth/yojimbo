@@ -2,15 +2,15 @@
 
 # yojimbo
 
-**yojimbo** is a library for creating secure client/server network protocols over UDP.
+**yojimbo** is a library for client/server games that host dedicated servers in private or public clouds.
 
 It is designed around the networking requirements of competitive realtime multiplayer games such as first person shooters. As such it provides the absolute fastest, most time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
 ## Status
 
-**yojimbo** is currently in pre-release for early feedback. Right now it provides support for: cryptographically secure authentication, client/server connection management, encryption for packets sent over UDP, reliable-ordered messages and data blocks, plus a serialization framework for extending the protocol with custom messages and packet types.
+**yojimbo** is currently in pre-release for early feedback. Right now it provides support for: cryptographically secure authentication, client/server connection management, encryption for packets sent over UDP, reliable-ordered messages and data blocks, packet fragmentation and reassembly, plus a serialization framework for extending the protocol with custom message types.
 
-Work over the past few months has been focused on documenting and finalizing the API. This work is nearly complete and a new release is imminent.
+Work over the past month has been focused on rebuilding the library on top of [netcode.io](http://netcode.io) and [reliable.io](https://github.com/networkprotocol/reliable.io). This work is sponsored by [Remedy Entertainment](http://www.remedygames.com/).
 
 For more details please refer to the [roadmap](https://github.com/networkprotocol/yojimbo/blob/master/ROADMAP.md).
 
