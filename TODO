@@ -54,11 +54,9 @@ DONE
 
     Extend netcode.io so the user can set a custom allocator to use for server.
 
-TODO
-
-    ------------
-
     Extend reliable.io so the user can set a custom allocator to use for endpoints.
+
+TODO
 
     Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
 
