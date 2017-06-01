@@ -64,11 +64,11 @@ TODO
 
     ------------
 
-    Implement packet loss, latency, jitter estimates from reliable.io
+    Implement packet loss, latency, jitter estimates in reliable.io
 
     Integrate QoS settings above with yojimbo client/server and connection.
 
-    Implement congestion adoidance in reliable.io (if reasonably possible given that user is in control of packet sizes...)
+    Implement congestion avoidance in reliable.io (if reasonably possible given that user is in control of packet sizes...)
 
     ------------
 
