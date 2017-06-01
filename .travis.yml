@@ -35,7 +35,6 @@ script:
   - ./premake5 gmake
   - make clean && make all config=debug_x64 && ./bin/test
   - make clean && make all config=release_x64 && ./bin/test
-  - make clean && make all config=secure_x64 && ./bin/test
 
 env:
   global:
