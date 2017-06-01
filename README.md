@@ -14,7 +14,7 @@ Right now it provides support for:
 
 * Cryptographically secure authentication via [connect tokens](https://github.com/networkprotocol/netcode.io/blob/master/STANDARD.md)
 * Client/server connection management and timeouts
-* Encryption for packets sent over UDP
+* Signed and encrypted packets sent over UDP
 * Reliable-ordered messages and data blocks
 * Packet fragmentation and reassembly
 * A serialization framework for extending the protocol with custom message types
