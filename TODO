@@ -44,11 +44,13 @@ DONE
 
     Fixed bug in reliable.io introduced by renaming 'sequence' to 'ack_sequence' to fix Visual C++ complaining about it.
 
-TODO
-
     Bring across the C++ matcher implementation again, and upgrade it to use the new connect tokens from netcode.io
 
     Port across secure_client to new API.
+
+    Verified new matcher works with secure client and server.
+
+TODO
 
     ------------
 

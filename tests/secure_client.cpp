@@ -76,6 +76,7 @@ int ClientMain( int argc, char * argv[] )
     double time = 100.0;
 
     ClientServerConfig config;
+    config.protocolId = ProtocolId;
 
     Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 

@@ -44,7 +44,7 @@ func MatchHandler( w http.ResponseWriter, r * http.Request ) {
         panic( err )
     }
     connectTokenString := base64.StdEncoding.EncodeToString( connectTokenData )
-    fmt.Printf( "matched client %.16x to %s:%d\n", clientId, ServerAddress, ServerPort )
+    fmt.Printf( "matched client %.16x to %s:%d [%.16x]\n", clientId, ServerAddress, ServerPort, protocolId )
     w.Header().Set( "Content-Type", "application/text" )
     if _, err := io.WriteString( w, connectTokenString ); err != nil {
         panic( err )
