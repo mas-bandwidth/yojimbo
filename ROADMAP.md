@@ -51,7 +51,11 @@ Completed, but moved immediately on to documentation and finalizing the API. Exp
 
 Document the API with doxygen. Review and finalize all APIs where possible. Security audit and check.
 
-## 0.5.0 - Refactor (current)
+## 0.5.0 - Bugfixes
+
+This release incorporates all bugfixes since 0.4.0
+
+## 0.6.0 - Refactor (current)
 
 Rebuild yojimbo on top of netcode.io and reliable.io
 
@@ -61,7 +65,7 @@ Add support for packet loss and round trip time estimates.
 
 Estimate: 75% complete
 
-## 0.6.0 - Matchmaker
+## 0.7.0 - Matchmaker
 
 Extend matcher.go to support multiple dedicated servers reporting to it via HTTPS.
 
