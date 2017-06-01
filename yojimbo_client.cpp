@@ -328,18 +328,14 @@ namespace yojimbo
         {
             netcode_client_update( m_client, time );
             const int state = netcode_client_state( m_client );
-            if ( state <= NETCODE_CLIENT_STATE_DISCONNECTED )
-            {
-                Disconnect();
-                return;
-            }
-
             if ( state < NETCODE_CLIENT_STATE_DISCONNECTED )
             {
+                Disconnect();
                 SetClientState( CLIENT_STATE_ERROR );
             }
             else if ( state == NETCODE_CLIENT_STATE_DISCONNECTED )
             {
+                Disconnect();
                 SetClientState( CLIENT_STATE_DISCONNECTED );
             }
             else

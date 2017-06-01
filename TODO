@@ -92,6 +92,10 @@ TODO
 
     ------------
 
+    Add some way to get at acks from the adapter.
+
+    ------------
+
     Pass over all // todo and fix
 
     ------------
