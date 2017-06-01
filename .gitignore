@@ -32,5 +32,6 @@ Release
 Secure
 .vs
 cov-int
-Docker/libyojimbo
+docker/yojimbo
+valgrind/yojimbo
 docs

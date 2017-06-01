@@ -64,12 +64,6 @@ TODO
 
     ------------
 
-    Add define to replace all allocators with default (so everything goes through malloc).
-
-    Setup a valgrind to check for memory leaks and trashes inside docker with the soak test.
-
-    ------------
-
     Implement packet loss, latency, jitter estimates from reliable.io
 
     Integrate QoS settings above with yojimbo client/server and connection.

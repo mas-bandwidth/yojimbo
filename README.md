@@ -12,7 +12,7 @@ It is designed around the networking requirements of competitive realtime multip
 
 Work over the past few months has been focused on documenting and finalizing the API. This work is nearly complete and a new release is imminent.
 
-For more details please refer to the [roadmap](https://github.com/networkprotocol/libyojimbo/blob/master/ROADMAP.md).
+For more details please refer to the [roadmap](https://github.com/networkprotocol/yojimbo/blob/master/ROADMAP.md).
 
 ## Author
 

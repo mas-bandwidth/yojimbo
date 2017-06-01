@@ -48,7 +48,7 @@ before_install:
 addons:
   coverity_scan:
     project:
-      name: "networkprotocol/libyojimbo"
+      name: "networkprotocol/yojimbo"
       description: "Build submitted via Travis CI"
     notification_email: glenn.fiedler@gmail.com
     build_command_prepend: "./premake5 gmake; make clean"

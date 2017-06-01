@@ -1,5 +1,5 @@
 
-libyojimbo_version = "0.5.0"
+yojimbo_version = "0.5.0"
 
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
@@ -148,9 +148,18 @@ if not os.is "windows" then
 		description = "Build and run a yojimbo server inside a docker container",
 		execute = function ()
             os.execute "docker run --rm --privileged alpine hwclock -s" -- workaround for clock getting out of sync on macos. see https://docs.docker.com/docker-for-mac/troubleshoot/#issues
-            os.execute "rm -rf docker/libyojimbo && mkdir -p docker/libyojimbo && mkdir -p docker/libyojimbo/tests && cp *.h docker/libyojimbo && cp *.cpp docker/libyojimbo && cp premake5.lua docker/libyojimbo && cp tests/* docker/libyojimbo/tests && cp -R reliable.io docker/libyojimbo && cp -R netcode.io docker/libyojimbo && cp -R tlsf docker/libyojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf libyojimbo && docker run -ti -p 40000:40000/udp networkprotocol:yojimbo-server"
+            os.execute "rm -rf docker/yojimbo && mkdir -p docker/yojimbo && mkdir -p docker/yojimbo/tests && cp *.h docker/yojimbo && cp *.cpp docker/yojimbo && cp premake5.lua docker/yojimbo && cp tests/* docker/yojimbo/tests && cp -R reliable.io docker/yojimbo && cp -R netcode.io docker/yojimbo && cp -R tlsf docker/yojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf yojimbo && docker run -ti -p 40000:40000/udp networkprotocol:yojimbo-server"
 		end
 	}
+
+    newaction
+    {
+        trigger     = "valgrind",
+        description = "Run valgrind over tests inside docker",
+        execute = function ()
+            os.execute "rm -rf valgrind/yojimbo && mkdir -p valgrind/yojimbo && mkdir -p valgrind/yojimbo/tests && cp *.h valgrind/yojimbo && cp *.cpp valgrind/yojimbo && cp premake5.lua valgrind/yojimbo && cp tests/* valgrind/yojimbo/tests && cp -R reliable.io valgrind/yojimbo && cp -R netcode.io valgrind/yojimbo && cp -R tlsf valgrind/yojimbo && cd valgrind && docker build -t \"networkprotocol:yojimbo-valgrind\" . && rm -rf netcode.io && docker run -ti networkprotocol:yojimbo-valgrind"
+        end
+    }
 
     newaction
     {
@@ -246,16 +255,16 @@ if not os.is "windows" then
             files_to_zip = "README.md BUILDING.md CHANGES.md ROADMAP.md *.cpp *.h premake5.lua docker tests tlsf windows"
             -- todo: need to update this so it works with netcode.io and reliable.io sub-projects
             os.execute( "rm -rf *.zip *.tar.gz" );
-            os.execute( "rm -rf docker/libyojimbo" );
-            os.execute( "zip -9r libyojimbo-" .. libyojimbo_version .. ".zip " .. files_to_zip )
-            os.execute( "unzip libyojimbo-" .. libyojimbo_version .. ".zip -d libyojimbo-" .. libyojimbo_version );
-            os.execute( "tar -zcvf libyojimbo-" .. libyojimbo_version .. ".tar.gz libyojimbo-" .. libyojimbo_version );
-            os.execute( "rm -rf libyojimbo-" .. libyojimbo_version );
+            os.execute( "rm -rf docker/yojimbo" );
+            os.execute( "zip -9r yojimbo-" .. yojimbo_version .. ".zip " .. files_to_zip )
+            os.execute( "unzip yojimbo-" .. yojimbo_version .. ".zip -d yojimbo-" .. yojimbo_version );
+            os.execute( "tar -zcvf yojimbo-" .. yojimbo_version .. ".tar.gz yojimbo-" .. yojimbo_version );
+            os.execute( "rm -rf yojimbo-" .. yojimbo_version );
             os.execute( "mkdir -p release" );
-            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".zip release" );
-            os.execute( "mv libyojimbo-" .. libyojimbo_version .. ".tar.gz release" );
+            os.execute( "mv yojimbo-" .. yojimbo_version .. ".zip release" );
+            os.execute( "mv yojimbo-" .. yojimbo_version .. ".tar.gz release" );
             os.execute( "echo" );
-            os.execute( "echo \"*** SUCCESSFULLY CREATED RELEASE - libyojimbo-" .. libyojimbo_version .. " *** \"" );
+            os.execute( "echo \"*** SUCCESSFULLY CREATED RELEASE - yojimbo-" .. yojimbo_version .. " *** \"" );
             os.execute( "echo" );
         end
     }
@@ -372,7 +381,8 @@ newaction
             "Release",
             "release",
             "cov-int",
-            "docker/libyojimbo",
+            "docker/yojimbo",
+            "valgrind/yojimbo",
             "docs",
             "xml"
         }
