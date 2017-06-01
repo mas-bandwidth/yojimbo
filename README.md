@@ -8,9 +8,18 @@ It is designed around the networking requirements of competitive real-time multi
 
 ## Status
 
-**yojimbo** is currently in pre-release for early feedback. Right now it provides support for: cryptographically secure authentication, client/server connection management, encryption for packets sent over UDP, reliable-ordered messages and data blocks, packet fragmentation and reassembly, plus a serialization framework for extending the protocol with custom message types.
+**yojimbo** is currently in pre-release for early feedback. 
 
-Work over the past month has been focused on rebuilding the library on top of [netcode.io](http://netcode.io) and [reliable.io](https://github.com/networkprotocol/reliable.io). This work is sponsored by [Remedy Entertainment](http://www.remedygames.com/).
+Right now it provides support for: 
+
+* Cryptographically secure authentication
+* Client/server connection management
+* Encryption for packets sent over UDP
+* Reliable-ordered messages and data blocks
+* Packet fragmentation and reassembly
+* A serialization framework for extending the protocol with custom message types
+
+Work over the past month has been focused on rebuilding the library on top of [netcode.io](http://netcode.io) and [reliable.io](https://github.com/networkprotocol/reliable.io)
 
 For more details please refer to the [roadmap](https://github.com/networkprotocol/yojimbo/blob/master/ROADMAP.md).
 
