@@ -19,7 +19,7 @@ namespace yojimbo
 {
     Allocator::Allocator() 
     {
-        SetErrorLevel( ALLOCATOR_ERROR_NONE );
+        m_errorLevel = ALLOCATOR_ERROR_NONE;
     }
 
     Allocator::~Allocator()
