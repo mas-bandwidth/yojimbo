@@ -2,7 +2,7 @@
 
 # yojimbo
 
-**yojimbo** is a library for real-time client/server games that host dedicated servers in private or public clouds.
+**yojimbo** is a library for client/server games that host dedicated servers in private or public clouds.
 
 It is designed around the networking requirements of competitive real-time multiplayer games such as first person shooters. As such it provides the absolute fastest, most time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
