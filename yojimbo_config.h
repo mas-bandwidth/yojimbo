@@ -33,7 +33,7 @@
 
 #define YOJIMBO_MAJOR_VERSION 0
 #define YOJIMBO_MINOR_VERSION 5
-#define YOJIMBO_PATCH_VERSION 0
+#define YOJIMBO_PATCH_VERSION 1
 
 // Endianness detection from rapidjson
 #if !defined(YOJIMBO_LITTLE_ENDIAN) && !defined(YOJIMBO_BIG_ENDIAN)
