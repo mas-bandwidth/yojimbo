@@ -50,13 +50,13 @@ DONE
 
     Verified new matcher works with secure client and server.
 
-TODO
-
-    ------------
-
     Extend netcode.io so the user can set a custom allocator to use for client.
 
     Extend netcode.io so the user can set a custom allocator to use for server.
+
+TODO
+
+    ------------
 
     Extend reliable.io so the user can set a custom allocator to use for endpoints.
 
