@@ -256,8 +256,6 @@ namespace yojimbo
 
         virtual int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
-    private:
-
         static void StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
         
         static int StaticProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
@@ -265,6 +263,8 @@ namespace yojimbo
         static void * StaticAllocateFunction( void * context, uint64_t bytes );
         
         static void StaticFreeFunction( void * context, void * pointer );
+
+    private:
 
         BaseClientServerConfig m_config;                                    ///< The base client/server configuration.
         Allocator * m_allocator;                                            ///< The allocator passed to the client on creation.

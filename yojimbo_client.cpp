@@ -385,7 +385,7 @@ namespace yojimbo
         DestroyClient();
         char addressString[MaxAddressLength];
         address.ToString( addressString, MaxAddressLength );
-        m_client = netcode_client_create( addressString, GetTime() );
+        m_client = netcode_client_create_with_allocator( addressString, GetTime(), &GetClientAllocator(), StaticAllocateFunction, StaticFreeFunction );
         if ( m_client )
         {
             netcode_client_state_change_callback( m_client, this, StaticStateChangeCallbackFunction );
