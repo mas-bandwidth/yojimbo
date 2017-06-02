@@ -262,6 +262,10 @@ namespace yojimbo
         
         static int StaticProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
+        static void * StaticAllocateFunction( void * context, uint64_t bytes );
+        
+        static void StaticFreeFunction( void * context, void * pointer );
+
         BaseClientServerConfig m_config;                                    ///< The base client/server configuration.
         Allocator * m_allocator;                                            ///< The allocator passed to the client on creation.
         Adapter * m_adapter;                                                ///< The adapter specifies the allocator to use, and the message factory class.

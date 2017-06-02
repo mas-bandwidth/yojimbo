@@ -131,6 +131,9 @@ namespace yojimbo
         config.context = (void*) this;
         config.transmit_packet_function = BaseClient::StaticTransmitPacketFunction;
         config.process_packet_function = BaseClient::StaticProcessPacketFunction;
+        config.allocator_context = m_clientAllocator;
+        config.allocate_function = BaseClient::StaticAllocateFunction;
+        config.free_function = BaseClient::StaticFreeFunction;
         m_endpoint = reliable_endpoint_create( &config );
         reliable_endpoint_reset( m_endpoint );
     }
@@ -162,6 +165,21 @@ namespace yojimbo
         (void) index;
         BaseClient * client = (BaseClient*) context;
         return client->ProcessPacketFunction( packetSequence, packetData, packetBytes );
+    }
+
+    void * BaseClient::StaticAllocateFunction( void * context, uint64_t bytes )
+    {
+        yojimbo_assert( context );
+        Allocator * allocator = (Allocator*) context;
+        return YOJIMBO_ALLOCATE( *allocator, bytes );
+    }
+    
+    void BaseClient::StaticFreeFunction( void * context, void * pointer )
+    {
+        yojimbo_assert( context );
+        yojimbo_assert( pointer );
+        Allocator * allocator = (Allocator*) context;
+        YOJIMBO_FREE( *allocator, pointer );
     }
 
     Message * BaseClient::CreateMessage( int type )
