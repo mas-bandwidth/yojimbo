@@ -56,9 +56,9 @@ DONE
 
     Extend reliable.io so the user can set a custom allocator to use for endpoints.
 
-TODO
-
     Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
+
+TODO
 
     ------------
 
@@ -81,10 +81,6 @@ TODO
     ------------
 
     Rethink and fix up configuration of channels. It still feels too complex.
-
-    ------------
-
-    Add some way to get at acks from the adapter.
 
     ------------
 

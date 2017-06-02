@@ -233,6 +233,8 @@ namespace yojimbo
 
         void * GetContext() { return m_context; }
 
+        Allocator & GetGlobalAllocator() { yojimbo_assert( m_globalAllocator ); return *m_globalAllocator; }
+
         MessageFactory & GetClientMessageFactory( int clientIndex );
 
         NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
@@ -245,11 +247,15 @@ namespace yojimbo
 
         virtual int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
-    private:
-
         static void StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
         
         static int StaticProcessPacketFunction( void * context,int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+
+        static void * StaticAllocateFunction( void * context, uint64_t bytes );
+        
+        static void StaticFreeFunction( void * context, void * pointer );
+
+    private:
 
         BaseClientServerConfig m_config;                            ///< Base client/server config.
         Allocator * m_allocator;                                    ///< Allocator passed in to constructor.

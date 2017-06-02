@@ -57,6 +57,7 @@ namespace yojimbo
         yojimbo_assert( !m_globalAllocator );
         m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
         m_globalAllocator = m_adapter->CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
+        yojimbo_assert( m_globalAllocator );
         if ( m_config.networkSimulator )
         {
             m_networkSimulator = YOJIMBO_NEW( *m_globalAllocator, NetworkSimulator, *m_globalAllocator, m_config.maxSimulatorPackets, m_time );
@@ -67,8 +68,11 @@ namespace yojimbo
             yojimbo_assert( !m_clientAllocator[i] );
             m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
+            yojimbo_assert( m_clientAllocator[i] );
             m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
+            yojimbo_assert( m_clientMessageFactory[i] );
             m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config, m_time );
+            yojimbo_assert( m_clientConnection[i] );
             // todo: fully setup endpoint config from client/server config
             reliable_config_t config;
             reliable_default_config( &config );
@@ -77,6 +81,9 @@ namespace yojimbo
             config.index = i;
             config.transmit_packet_function = BaseServer::StaticTransmitPacketFunction;
             config.process_packet_function = BaseServer::StaticProcessPacketFunction;
+            config.allocator_context = &GetGlobalAllocator();
+            config.allocate_function = BaseServer::StaticAllocateFunction;
+            config.free_function = BaseServer::StaticFreeFunction;
             m_clientEndpoint[i] = reliable_endpoint_create( &config );
             reliable_endpoint_reset( m_clientEndpoint[i] );
         }
@@ -272,6 +279,21 @@ namespace yojimbo
         return server->ProcessPacketFunction( index, packetSequence, packetData, packetBytes );
     }
 
+    void * BaseServer::StaticAllocateFunction( void * context, uint64_t bytes )
+    {
+        yojimbo_assert( context );
+        Allocator * allocator = (Allocator*) context;
+        return YOJIMBO_ALLOCATE( *allocator, bytes );
+    }
+    
+    void BaseServer::StaticFreeFunction( void * context, void * pointer )
+    {
+        yojimbo_assert( context );
+        yojimbo_assert( pointer );
+        Allocator * allocator = (Allocator*) context;
+        YOJIMBO_FREE( *allocator, pointer );
+    }
+
     // -----------------------------------------------------------------------------------------------------
 
     Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseServer( allocator, config, adapter, time )
@@ -296,7 +318,7 @@ namespace yojimbo
         BaseServer::Start( maxClients );
         char addressString[MaxAddressLength];
         m_address.ToString( addressString, MaxAddressLength );
-        m_server = netcode_server_create( addressString, m_config.protocolId, m_privateKey, GetTime() );
+        m_server = netcode_server_create_with_allocator( addressString, m_config.protocolId, m_privateKey, GetTime(), &GetGlobalAllocator(), StaticAllocateFunction, StaticFreeFunction );
         if ( !m_server )
         {
             Stop();
