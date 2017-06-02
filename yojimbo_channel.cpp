@@ -1366,7 +1366,6 @@ namespace yojimbo
             
             if ( usedBits + messageBits > availableBits )
             {
-                // todo: log something here?
                 m_messageFactory->ReleaseMessage( message );
                 continue;
             }
