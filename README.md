@@ -2,9 +2,9 @@
 
 # yojimbo
 
-**yojimbo** is a C++ network library for client/server games that host dedicated servers.
+**yojimbo** is a network library for real-time client/server games that host dedicated servers.
 
-It's designed around the networking requirements of competitive real-time multiplayer games such as first person shooters. As such it provides a time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
+It's designed around the networking requirements of competitive multiplayer games such as first person shooters. As such it provides a time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
 ## Status
 
