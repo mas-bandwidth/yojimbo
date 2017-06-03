@@ -6,7 +6,11 @@
 
 It's designed around the networking requirements of competitive multiplayer games such as first person shooters. As such it provides a time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
-Yojimbo a C++ library built on top of [netcode.io](http://netcode.io) and [reliable.io](https://github.com/networkprotocol/reliable.io). If you would like to use features of yojimbo in languages other than C++, using these libraries directly is probably your best option.
+## Foundation
+
+Yojimbo is built on top of [netcode.io](http://netcode.io) and [reliable.io](https://github.com/networkprotocol/reliable.io)
+
+If you would like to use features of yojimbo in languages other than C++, using these directly libraries is your best option.
 
 ## Status
 
