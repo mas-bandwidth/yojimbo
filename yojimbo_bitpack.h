@@ -300,7 +300,7 @@ namespace yojimbo
         }
 
         /**
-            Would the bit reader would read past the end of the buffer if it read this many bits?
+            Would the bit reader read past the end of the buffer if it read this many bits?
 
             @param bits The number of bits that would be read.
 
@@ -452,7 +452,7 @@ namespace yojimbo
         /**
             How many bits are still available to read?
 
-            For example, if the buffer size is 4, we have 32 bits available to read, if we have already written 10 bytes then 22 are still available.
+            For example, if the buffer size is 4, we have 32 bits available to read, if we have already read 10 bytes then 22 are still available.
 
             @returns The number of bits available to read.
          */
