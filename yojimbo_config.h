@@ -167,8 +167,8 @@ namespace yojimbo
             sendQueueSize = 1024;
             receiveQueueSize = 1024;
             sentPacketBufferSize = 1024;                            // todo: rename this. it's not clear what it does
-            maxMessagesPerPacket = 64;
-            packetBudget = 1100;
+            maxMessagesPerPacket = 256;
+            packetBudget = -1;
             maxBlockSize = 256 * 1024;
             fragmentSize = 1024;
             messageResendTime = 0.1f;
