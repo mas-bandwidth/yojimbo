@@ -279,7 +279,7 @@ namespace yojimbo
     bool Client::GenerateInsecureConnectToken( uint8_t * connectToken, const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses, int timeout )
     {
         char serverAddressStrings[NETCODE_MAX_SERVERS_PER_CONNECT][MaxAddressLength];
-        char * serverAddressStringPointers[NETCODE_MAX_SERVERS_PER_CONNECT];
+        const char * serverAddressStringPointers[NETCODE_MAX_SERVERS_PER_CONNECT];
         for ( int i = 0; i < numServerAddresses; ++i ) 
         {
             serverAddresses[i].ToString( serverAddressStrings[i], MaxAddressLength );

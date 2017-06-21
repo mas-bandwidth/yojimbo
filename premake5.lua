@@ -37,6 +37,7 @@ project "test"
 
 project "yojimbo"
     kind "StaticLib"
+    defines { "NETCODE_ENABLE_TESTS=1", "RELIABLE_ENABLE_TESTS=1" }
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp", "tlsf/tlsf.h", "tlsf/tlsf.c", "netcode.io/c/netcode.c", "netcode.io/c/netcode.h", "reliable.io/reliable.c", "reliable.io/reliable.h" }
 
 project "client"

@@ -30,8 +30,8 @@ RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.1.5.tar.gz && \
 
 ADD yojimbo /app/yojimbo
 
-RUN cd yojimbo && find . -exec touch {} \; && premake5 gmake && make -j32 test server config=release_x64 && ./bin/test && cp /app/yojimbo/bin/server /app && rm -rf yojimbo
+RUN cd yojimbo && find . -exec touch {} \; && premake5 gmake && make -j32 test server config=release_x64 && ./bin/test && cp /app/yojimbo/bin/* /app && rm -rf yojimbo
 
-ENTRYPOINT ./server
+ENTRYPOINT ./test && ./server
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
