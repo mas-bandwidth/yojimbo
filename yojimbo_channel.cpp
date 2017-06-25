@@ -55,7 +55,11 @@ namespace yojimbo
         initialized = 0;
     }
 
-    template <typename Stream> bool SerializeOrderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** & messages, int maxMessagesPerPacket )
+    template <typename Stream> bool SerializeOrderedMessages( Stream & stream, 
+                                                              MessageFactory & messageFactory, 
+                                                              int & numMessages, 
+                                                              Message ** & messages, 
+                                                              int maxMessagesPerPacket )
     {
         const int maxMessageType = messageFactory.GetNumTypes() - 1;
 
@@ -168,7 +172,12 @@ namespace yojimbo
         return true;
     }
 
-    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, MessageFactory & messageFactory, int & numMessages, Message ** & messages, int maxMessagesPerPacket, int maxBlockSize )
+    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, 
+                                                                MessageFactory & messageFactory, 
+                                                                int & numMessages, 
+                                                                Message ** & messages, 
+                                                                int maxMessagesPerPacket, 
+                                                                int maxBlockSize )
     {
         const int maxMessageType = messageFactory.GetNumTypes() - 1;
 
@@ -249,7 +258,10 @@ namespace yojimbo
         return true;
     }
 
-    template <typename Stream> bool SerializeBlockFragment( Stream & stream, MessageFactory & messageFactory, ChannelPacketData::BlockData & block, const ChannelConfig & channelConfig )
+    template <typename Stream> bool SerializeBlockFragment( Stream & stream, 
+                                                            MessageFactory & messageFactory, 
+                                                            ChannelPacketData::BlockData & block, 
+                                                            const ChannelConfig & channelConfig )
     {
         const int maxMessageType = messageFactory.GetNumTypes() - 1;
 
@@ -332,7 +344,10 @@ namespace yojimbo
         return true;
     }
 
-    template <typename Stream> bool ChannelPacketData::Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels )
+    template <typename Stream> bool ChannelPacketData::Serialize( Stream & stream, 
+                                                                  MessageFactory & messageFactory, 
+                                                                  const ChannelConfig * channelConfigs, 
+                                                                  int numChannels )
     {
         yojimbo_assert( initialized );
 
@@ -365,7 +380,12 @@ namespace yojimbo
 
                 case CHANNEL_TYPE_UNRELIABLE_UNORDERED:
                 {
-                    if ( !SerializeUnorderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket, channelConfig.maxBlockSize ) )
+                    if ( !SerializeUnorderedMessages( stream, 
+                                                      messageFactory, 
+                                                      message.numMessages, 
+                                                      message.messages, 
+                                                      channelConfig.maxMessagesPerPacket, 
+                                                      channelConfig.maxBlockSize ) )
                     {
                         messageFailedToSerialize = 1;
                         return true;
@@ -455,7 +475,8 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------------
 
-    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) : Channel( allocator, messageFactory, config, channelIndex, time )
+    ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) 
+        : Channel( allocator, messageFactory, config, channelIndex, time )
     {
         yojimbo_assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
 
@@ -575,7 +596,7 @@ namespace yojimbo
 
         if ( message->IsBlockMessage() && m_config.disableBlocks )
         {
-            // You tried to send a block message, but block messages are disabled for this channel.
+            // You tried to send a block message, but block messages are disabled for this channel!
             SetErrorLevel( CHANNEL_ERROR_BLOCKS_DISABLED );
             m_messageFactory->ReleaseMessage( message );
             return;
@@ -863,7 +884,13 @@ namespace yojimbo
 
         if ( packetData.blockMessage )
         {
-            ProcessPacketFragment( packetData.block.messageType, packetData.block.messageId, packetData.block.numFragments, packetData.block.fragmentId, packetData.block.fragmentData, packetData.block.fragmentSize, packetData.block.message );
+            ProcessPacketFragment( packetData.block.messageType, 
+                                   packetData.block.messageId, 
+                                   packetData.block.numFragments, 
+                                   packetData.block.fragmentId, 
+                                   packetData.block.fragmentData, 
+                                   packetData.block.fragmentSize, 
+                                   packetData.block.message );
         }
         else
         {
@@ -873,9 +900,6 @@ namespace yojimbo
 
     void ReliableOrderedChannel::ProcessAck( uint16_t ack )
     {
-        // todo
-        // printf( "%p: process ack %d\n", this, ack );
-
         SentPacketEntry * sentPacketEntry = m_sentPackets->Find( ack );
         if ( !sentPacketEntry )
             return;
@@ -900,9 +924,6 @@ namespace yojimbo
         {        
             const int messageId = sentPacketEntry->blockMessageId;
             const int fragmentId = sentPacketEntry->blockFragmentId;
-
-            // todo
-            //printf( "%p: process ack for block message: ack = %d, messageId = %d, fragmentId = %d\n", this, ack, messageId, fragmentId );
 
             if ( !m_sendBlock->ackedFragment->GetBit( fragmentId ) )
             {
@@ -965,9 +986,6 @@ namespace yojimbo
         {
             // start sending this block
 
-            // todo
-            //printf( "%p: start sending block: messageId = %d\n", this, messageId );
-
             m_sendBlock->active = true;
             m_sendBlock->blockSize = blockSize;
             m_sendBlock->blockMessageId = messageId;
@@ -1023,13 +1041,16 @@ namespace yojimbo
             m_sendBlock->fragmentSendTime[fragmentId] = m_time;
         }
 
-        // todo
-        //printf( "%p: send block fragment: messageId = %d, fragmentId = %d\n", this, messageId, fragmentId );
-
         return fragmentData;
     }
 
-    int ReliableOrderedChannel::GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType )
+    int ReliableOrderedChannel::GetFragmentPacketData( ChannelPacketData & packetData, 
+                                                       uint16_t messageId, 
+                                                       uint16_t fragmentId, 
+                                                       uint8_t * fragmentData, 
+                                                       int fragmentSize, 
+                                                       int numFragments, 
+                                                       int messageType )
     {
         packetData.Initialize();
 
@@ -1071,8 +1092,6 @@ namespace yojimbo
 
     void ReliableOrderedChannel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
     {
-        // todo
-        //printf( "%p: add fragment packet entry: messageId = %d, fragmentId = %d, sequence = %d\n", this, messageId, fragmentId, sequence );
         SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
         yojimbo_assert( sentPacket );
         if ( sentPacket )
@@ -1087,28 +1106,26 @@ namespace yojimbo
         }
     }
 
-    void ReliableOrderedChannel::ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage )
+    void ReliableOrderedChannel::ProcessPacketFragment( int messageType, 
+                                                        uint16_t messageId, 
+                                                        int numFragments, 
+                                                        uint16_t fragmentId, 
+                                                        const uint8_t * fragmentData, 
+                                                        int fragmentBytes, 
+                                                        BlockMessage * blockMessage )
     {  
         yojimbo_assert( !m_config.disableBlocks );
 
         if ( fragmentData )
         {
             const uint16_t expectedMessageId = m_messageReceiveQueue->GetSequence();
-
             if ( messageId != expectedMessageId )
-            {
-                // todo
-                //printf( "%p: wrong block message id: expected %d, got %d\n", this, expectedMessageId, messageId );
                 return;
-            }
 
             // start receiving a new block
 
             if ( !m_receiveBlock->active )
             {
-                // todo
-                // printf( "%p: start receiving new block: messageId = %d\n", this, messageId );
-
                 yojimbo_assert( numFragments >= 0 );
                 yojimbo_assert( numFragments <= m_config.GetMaxFragmentsPerBlock() );
 
@@ -1140,9 +1157,6 @@ namespace yojimbo
 
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )
             {
-                // todo
-                // printf( "%p: received fragment: messageId = %d, fragmentId = %d\n", this, messageId, fragmentId );
-
                 m_receiveBlock->receivedFragment->SetBit( fragmentId );
 
                 memcpy( m_receiveBlock->blockData + fragmentId * m_config.fragmentSize, fragmentData, fragmentBytes );
@@ -1177,9 +1191,6 @@ namespace yojimbo
 
                 if ( m_receiveBlock->numReceivedFragments == m_receiveBlock->numFragments )
                 {
-                    // todo
-                    // printf( "%p: finished receiving block: messageId = %d, fragmentId = %d\n", this, messageId, fragmentId );
-
                     // finished receiving block
 
                     if ( m_messageReceiveQueue->GetAtIndex( m_messageReceiveQueue->GetIndex( messageId ) ) )
@@ -1220,7 +1231,16 @@ namespace yojimbo
 
     // ------------------------------------------------
 
-    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int channelIndex, double time ) : Channel( allocator, messageFactory, config, channelIndex, time )
+    UnreliableUnorderedChannel::UnreliableUnorderedChannel( Allocator & allocator, 
+                                                            MessageFactory & messageFactory, 
+                                                            const ChannelConfig & config, 
+                                                            int channelIndex, 
+                                                            double time ) 
+        : Channel( allocator, 
+                   messageFactory, 
+                   config, 
+                   channelIndex, 
+                   time )
     {
         yojimbo_assert( config.type == CHANNEL_TYPE_UNRELIABLE_UNORDERED );
 

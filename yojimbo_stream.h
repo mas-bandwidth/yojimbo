@@ -587,7 +587,7 @@ namespace yojimbo
 
     private:
 
-        int m_bitsWritten;                                  ///< Counter for the number of bits written.
+        int m_bitsWritten;              ///< Counts the number of bits written.
     };
 }
 

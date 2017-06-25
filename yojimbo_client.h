@@ -326,7 +326,12 @@ namespace yojimbo
 
     private:
 
-        bool GenerateInsecureConnectToken( uint8_t * connectToken, const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses, int timeout = 45 );
+        bool GenerateInsecureConnectToken( uint8_t * connectToken, 
+                                           const uint8_t privateKey[], 
+                                           uint64_t clientId, 
+                                           const Address serverAddresses[], 
+                                           int numServerAddresses, 
+                                           int timeout = 45 );
 
         void CreateClient( const Address & address );
 

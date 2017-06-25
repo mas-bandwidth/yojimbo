@@ -238,7 +238,7 @@ namespace yojimbo
     /**
         Template to convert an integer value from local byte order to network byte order.
 
-        IMPORTANT: Yojimbo defines network byte order to be little endian, because most machines running yojimbo are little endian, this creates the least amount of work.
+        IMPORTANT: Because most machines running yojimbo are little endian, yojimbo defines network byte order to be little endian.
 
         @param value The input value in local byte order. Supported integer types: uint64_t, uint32_t, uint16_t.
 
@@ -259,7 +259,7 @@ namespace yojimbo
     /**
         Template to convert an integer value from network byte order to local byte order.
 
-        IMPORTANT: Yojimbo defines network byte order to be little endian, because most machines running yojimbo are little endian, this creates the least amount of work.
+        IMPORTANT: Because most machines running yojimbo are little endian, yojimbo defines network byte order to be little endian.
 
         @param value The input value in network byte order. Supported integer types: uint64_t, uint32_t, uint16_t.
 
@@ -995,11 +995,11 @@ namespace yojimbo
 
     private:
 
-        Allocator * m_allocator;                                            ///< The allocator passed in to the constructor.
-        int m_size;                                                         ///< The size of the sequence buffer.
-        uint16_t m_sequence;                                                ///< The most recent sequence number added to the buffer.
-        uint32_t * m_entry_sequence;                                        ///< Array of sequence numbers corresponding to each sequence buffer entry for fast lookup. Set to 0xFFFFFFFF if no entry exists at that index.
-        T * m_entries;                                                      ///< The sequence buffer entries. This is where the data is stored per-entry. Separate from the sequence numbers for fast lookup (hot/cold split) when the data per-sequence number is relatively large.
+        Allocator * m_allocator;                   ///< The allocator passed in to the constructor.
+        int m_size;                                ///< The size of the sequence buffer.
+        uint16_t m_sequence;                       ///< The most recent sequence number added to the buffer.
+        uint32_t * m_entry_sequence;               ///< Array of sequence numbers corresponding to each sequence buffer entry for fast lookup. Set to 0xFFFFFFFF if no entry exists at that index.
+        T * m_entries;                             ///< The sequence buffer entries. This is where the data is stored per-entry. Separate from the sequence numbers for fast lookup (hot/cold split) when the data per-sequence number is relatively large.
         
         SequenceBuffer( const SequenceBuffer<T> & other );
 

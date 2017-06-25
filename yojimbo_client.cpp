@@ -16,8 +16,6 @@
 
 namespace yojimbo
 {
-    // ------------------------------------------------------------------------------------------------------------------
-
     BaseClient::BaseClient( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time ) : m_config( config )
     {
         m_allocator = &allocator;
@@ -234,7 +232,8 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------------------------------------------
 
-    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseClient( allocator, config, adapter, time ), m_config( config ), m_address( address )
+    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) 
+        : BaseClient( allocator, config, adapter, time ), m_config( config ), m_address( address )
     {
         m_clientId = 0;
         m_client = NULL;
@@ -276,7 +275,12 @@ namespace yojimbo
         SetClientState( CLIENT_STATE_CONNECTING );
     }
 
-    bool Client::GenerateInsecureConnectToken( uint8_t * connectToken, const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses, int timeout )
+    bool Client::GenerateInsecureConnectToken( uint8_t * connectToken, 
+                                               const uint8_t privateKey[], 
+                                               uint64_t clientId, 
+                                               const Address serverAddresses[], 
+                                               int numServerAddresses, 
+                                               int timeout )
     {
         char serverAddressStrings[NETCODE_MAX_SERVERS_PER_CONNECT][MaxAddressLength];
         const char * serverAddressStringPointers[NETCODE_MAX_SERVERS_PER_CONNECT];
@@ -285,7 +289,14 @@ namespace yojimbo
             serverAddresses[i].ToString( serverAddressStrings[i], MaxAddressLength );
             serverAddressStringPointers[i] = serverAddressStrings[i];
         }
-        return netcode_generate_connect_token( numServerAddresses, serverAddressStringPointers, timeout, clientId, m_config.protocolId, 0, (uint8_t*)privateKey, connectToken ) == NETCODE_OK;
+        return netcode_generate_connect_token( numServerAddresses, 
+                                               serverAddressStringPointers, 
+                                               timeout, 
+                                               clientId, 
+                                               m_config.protocolId, 
+                                               0, 
+                                               (uint8_t*)privateKey, 
+                                               connectToken ) == NETCODE_OK;
     }
 
     void Client::Connect( uint64_t clientId, uint8_t * connectToken )
@@ -431,6 +442,4 @@ namespace yojimbo
     {
         return (int) GetConnection().ProcessPacket( GetContext(), packetSequence, packetData, packetBytes );
     }
-
-    // ------------------------------------------------------------------------------------------------------------------
 }

@@ -291,8 +291,6 @@ namespace yojimbo
 
         bool IsGlobalUnicast() const;
 
-        // -----------------------------------
-
         bool operator ==( const Address & other ) const;
 
         bool operator !=( const Address & other ) const;

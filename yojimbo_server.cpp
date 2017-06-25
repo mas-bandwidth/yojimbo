@@ -296,7 +296,8 @@ namespace yojimbo
 
     // -----------------------------------------------------------------------------------------------------
 
-    Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) : BaseServer( allocator, config, adapter, time )
+    Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) 
+        : BaseServer( allocator, config, adapter, time )
     {
         yojimbo_assert( KeyBytes == NETCODE_KEY_BYTES );
         memcpy( m_privateKey, privateKey, NETCODE_KEY_BYTES );
@@ -315,16 +316,26 @@ namespace yojimbo
     {
         if ( IsRunning() )
             Stop();
+        
         BaseServer::Start( maxClients );
+        
         char addressString[MaxAddressLength];
         m_address.ToString( addressString, MaxAddressLength );
-        m_server = netcode_server_create_with_allocator( addressString, m_config.protocolId, m_privateKey, GetTime(), &GetGlobalAllocator(), StaticAllocateFunction, StaticFreeFunction );
+        m_server = netcode_server_create_with_allocator( addressString, 
+                                                         m_config.protocolId, 
+                                                         m_privateKey, 
+                                                         GetTime(), 
+                                                         &GetGlobalAllocator(), 
+                                                         StaticAllocateFunction, 
+                                                         StaticFreeFunction );
         if ( !m_server )
         {
             Stop();
             return;
         }
+
         netcode_server_connect_disconnect_callback( m_server, this, StaticConnectDisconnectCallbackFunction );
+        
         netcode_server_start( m_server, maxClients );
     }
 

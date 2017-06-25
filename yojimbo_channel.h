@@ -459,7 +459,13 @@ namespace yojimbo
             @returns An estimate of the number of bits required to serialize the block message and fragment data (upper bound).
          */
 
-        int GetFragmentPacketData( ChannelPacketData & packetData, uint16_t messageId, uint16_t fragmentId, uint8_t * fragmentData, int fragmentSize, int numFragments, int messageType );
+        int GetFragmentPacketData( ChannelPacketData & packetData, 
+                                   uint16_t messageId, 
+                                   uint16_t fragmentId, 
+                                   uint8_t * fragmentData, 
+                                   int fragmentSize, 
+                                   int numFragments, 
+                                   int messageType );
 
         /**
             Adds a packet entry for the fragment.
@@ -487,7 +493,13 @@ namespace yojimbo
             @param blockMessage Pointer to the block message. Passed this in only with the first fragment (0), pass NULL for all other fragments.
          */
 
-        void ProcessPacketFragment( int messageType, uint16_t messageId, int numFragments, uint16_t fragmentId, const uint8_t * fragmentData, int fragmentBytes, BlockMessage * blockMessage );
+        void ProcessPacketFragment( int messageType, 
+                                    uint16_t messageId, 
+                                    int numFragments, 
+                                    uint16_t fragmentId, 
+                                    const uint8_t * fragmentData, 
+                                    int fragmentBytes, 
+                                    BlockMessage * blockMessage );
 
     protected:
 

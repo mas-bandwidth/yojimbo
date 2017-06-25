@@ -110,7 +110,8 @@ namespace yojimbo
 
     // ------------------------------------------------------------------------------
 
-    Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, double time ) : m_connectionConfig( connectionConfig )
+    Connection::Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, double time ) 
+        : m_connectionConfig( connectionConfig )
     {
         m_allocator = &allocator;
         m_messageFactory = &messageFactory;
@@ -123,12 +124,29 @@ namespace yojimbo
             switch ( m_connectionConfig.channel[channelIndex].type )
             {
                 case CHANNEL_TYPE_RELIABLE_ORDERED: 
-                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, ReliableOrderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex, time ); 
-                    break;
+                {
+                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, 
+                                                           ReliableOrderedChannel, 
+                                                           *m_allocator, 
+                                                           messageFactory, 
+                                                           m_connectionConfig.channel[channelIndex],
+                                                           channelIndex, 
+                                                           time ); 
+                }
+                break;
 
                 case CHANNEL_TYPE_UNRELIABLE_UNORDERED: 
-                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, UnreliableUnorderedChannel, *m_allocator, messageFactory, m_connectionConfig.channel[channelIndex], channelIndex, time ); 
-                    break;
+                {
+                    m_channel[channelIndex] = YOJIMBO_NEW( *m_allocator, 
+                                                           UnreliableUnorderedChannel, 
+                                                           *m_allocator, 
+                                                           messageFactory, 
+                                                           m_connectionConfig.channel[channelIndex], 
+                                                           channelIndex, 
+                                                           time ); 
+                }
+                break;
+
                 default: 
                     yojimbo_assert( !"unknown channel type" );
             }
@@ -182,7 +200,12 @@ namespace yojimbo
         m_messageFactory->ReleaseMessage( message );
     }
 
-    static int WritePacket( void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, uint8_t * buffer, int bufferSize )
+    static int WritePacket( void * context, 
+                            MessageFactory & messageFactory, 
+                            const ConnectionConfig & connectionConfig, 
+                            ConnectionPacket & packet, 
+                            uint8_t * buffer, 
+                            int bufferSize )
     {
         WriteStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
 
@@ -258,7 +281,12 @@ namespace yojimbo
         return true;
     }
 
-    static bool ReadPacket( void * context, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, ConnectionPacket & packet, const uint8_t * buffer, int bufferSize )
+    static bool ReadPacket( void * context, 
+                            MessageFactory & messageFactory, 
+                            const ConnectionConfig & connectionConfig, 
+                            ConnectionPacket & packet, 
+                            const uint8_t * buffer, 
+                            int bufferSize )
     {
         yojimbo_assert( buffer );
         yojimbo_assert( bufferSize > 0 );
