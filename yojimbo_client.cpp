@@ -367,6 +367,10 @@ namespace yojimbo
                 Disconnect();
                 SetClientState( CLIENT_STATE_DISCONNECTED );
             }
+			else if ( state == NETCODE_CLIENT_STATE_SENDING_CONNECTION_REQUEST )
+			{
+				SetClientState( CLIENT_STATE_CONNECTING );
+			}
             else
             {
                 SetClientState( CLIENT_STATE_CONNECTED );
