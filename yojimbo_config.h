@@ -17,8 +17,7 @@
 #define YOJIMBO_MINOR_VERSION 5
 #define YOJIMBO_PATCH_VERSION 0
 
-// Endianness detection from rapidjson
-#if !defined(YOJIMBO_LITTLE_ENDIAN) && !defined(YOJIMBO_BIG_ENDIAN)
+#if !defined (YOJIMBO_LITTLE_ENDIAN ) && !defined( YOJIMBO_BIG_ENDIAN )
 
   #ifdef __BYTE_ORDER__
     #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -65,6 +64,14 @@
   #endif
 #endif
 
+#ifndef YOJIMBO_LITTLE_ENDIAN
+#define YOJIMBO_LITTLE_ENDIAN 0
+#endif
+
+#ifndef YOJIMBO_BIG_ENDIAN
+#define YOJIMBO_BIG_ENDIAN 0
+#endif
+
 #ifdef _MSC_VER
 #pragma warning( disable : 4127 )
 #pragma warning( disable : 4244 )
@@ -89,6 +96,12 @@
 #define YOJIMBO_DEBUG_MEMORY_LEAKS                  1
 #define YOJIMBO_DEBUG_MESSAGE_LEAKS                 1
 #define YOJIMBO_DEBUG_MESSAGE_BUDGET                1
+
+#else // #ifndef NDEBUG
+
+#define YOJIMBO_DEBUG_MEMORY_LEAKS                  0
+#define YOJIMBO_DEBUG_MESSAGE_LEAKS                 0
+#define YOJIMBO_DEBUG_MESSAGE_BUDGET                0
 
 #endif // #ifndef NDEBUG
 

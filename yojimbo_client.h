@@ -234,6 +234,8 @@ namespace yojimbo
 
     protected:
 
+		uint8_t * GetPacketBuffer() { return m_packetBuffer; }
+
         void * GetContext() { return m_context; }
 
         void CreateInternal();
@@ -275,6 +277,7 @@ namespace yojimbo
         ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState
         int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.
         double m_time;                                                      ///< The current client time. See ClientInterface::AdvanceTime
+		uint8_t * m_packetBuffer;											///< Buffer used to read and write packets.
 
     private:
 
