@@ -33,6 +33,7 @@ namespace yojimbo
             m_clientEndpoint[i] = NULL;
         }
         m_networkSimulator = NULL;
+        m_packetBuffer = NULL;
     }
 
     BaseServer::~BaseServer()
@@ -87,12 +88,14 @@ namespace yojimbo
             m_clientEndpoint[i] = reliable_endpoint_create( &config );
             reliable_endpoint_reset( m_clientEndpoint[i] );
         }
+        m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( *m_globalAllocator, m_config.maxPacketSize );
     }
 
     void BaseServer::Stop()
     {
         if ( IsRunning() )
         {
+            YOJIMBO_FREE( *m_globalAllocator, m_packetBuffer );
             yojimbo_assert( m_globalMemory );
             yojimbo_assert( m_globalAllocator );
             YOJIMBO_DELETE( *m_globalAllocator, NetworkSimulator, m_networkSimulator );
@@ -113,6 +116,7 @@ namespace yojimbo
         }
         m_running = false;
         m_maxClients = 0;
+        m_packetBuffer = NULL;
     }
 
     void BaseServer::AdvanceTime( double time )
@@ -371,8 +375,7 @@ namespace yojimbo
             {
                 if ( IsClientConnected( i ) )
                 {
-                    // todo: we don't want to allocate this on the stack, as packet size can be larger than that now
-                    uint8_t * packetData = (uint8_t*) alloca( m_config.maxPacketSize );
+                    uint8_t * packetData = GetPacketBuffer();
                     int packetBytes;
                     uint16_t packetSequence = reliable_endpoint_next_packet_sequence( GetClientEndpoint(i) );
                     if ( GetClientConnection(i).GeneratePacket( GetContext(), packetSequence, packetData, m_config.maxPacketSize, packetBytes ) )

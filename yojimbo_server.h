@@ -231,6 +231,8 @@ namespace yojimbo
 
     protected:
 
+        uint8_t * GetPacketBuffer() { return m_packetBuffer; }
+
         void * GetContext() { return m_context; }
 
         Allocator & GetGlobalAllocator() { yojimbo_assert( m_globalAllocator ); return *m_globalAllocator; }
@@ -272,6 +274,7 @@ namespace yojimbo
         Connection * m_clientConnection[MaxClients];                ///< Array of per-client connection classes. This is how messages are exchanged with clients.
         reliable_endpoint_t * m_clientEndpoint[MaxClients];         ///< Array of per-client reliable.io endpoints.
         NetworkSimulator * m_networkSimulator;                      ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional. 
+        uint8_t * m_packetBuffer;                                   ///< Buffer used when writing packets.
     };
 
     /**
