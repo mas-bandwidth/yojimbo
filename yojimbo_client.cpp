@@ -30,12 +30,14 @@ namespace yojimbo
         m_networkSimulator = NULL;
         m_clientState = CLIENT_STATE_DISCONNECTED;
         m_clientIndex = -1;
+		m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( allocator, config.maxPacketSize );
     }
 
     BaseClient::~BaseClient()
     {
         // IMPORTANT: Please disconnect the client before destroying it
         yojimbo_assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
+		YOJIMBO_FREE( *m_allocator, m_packetBuffer );
         m_allocator = NULL;
     }
 
@@ -323,8 +325,7 @@ namespace yojimbo
         if ( !IsConnected() )
             return;
         yojimbo_assert( m_client );
-        // todo: we don't want to allocate this on the stack, as packet size can be larger than that now
-        uint8_t * packetData = (uint8_t*) alloca( m_config.maxPacketSize );
+        uint8_t * packetData = GetPacketBuffer();
         int packetBytes;
         uint16_t packetSequence = reliable_endpoint_next_packet_sequence( GetEndpoint() );
         if ( GetConnection().GeneratePacket( GetContext(), packetSequence, packetData, m_config.maxPacketSize, packetBytes ) )
