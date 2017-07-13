@@ -12,8 +12,6 @@
 
 namespace yojimbo
 {
-    // -----------------------------------------------------------------------------------------------------
-
     BaseServer::BaseServer( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time ) : m_config( config )
     {
         m_allocator = &allocator;
@@ -478,6 +476,4 @@ namespace yojimbo
         Server * server = (Server*) context;
         server->ConnectDisconnectCallbackFunction( clientIndex, connected );
     }
-
-    // -----------------------------------------------------------------------------------------------------
 }
