@@ -2,7 +2,7 @@
 
 ## 0.1.0 - Initial release
 
-The goal of this release was to take the source code written for [Building a Game Network Protocol](http://gafferongames.com/building-a-game-network-protocol/) and harden it so that it is unit tested, secure and ready to be used as a library.
+The goal of this release was to take the source code written for [Building a Game Network Protocol](http://gafferongames.com/building-a-game-network-protocol/) and harden it so it is unit tested, secure and ready to be used as a library.
 
 Features implemented for this release:
 
