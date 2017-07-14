@@ -62,15 +62,19 @@ DONE
 
     Pass over all // todo and fix
 
-TODO
-
     Consolidate all source code into yojimbo.h and yojimbo.cpp
 
-    Make it easier to integrate the library with projects, eg. just drop in the files.
+TODO
 
-    Unfortunately, netcode.io and reliable.io also need to be dropped in, but that's fine.
+    Add some way to easily disable mbedtls usage. Some clients will not want this dependency, especially during development, or if they have their own HTTP client.
 
-    To get away from this, create lib + DLL, ge. something that would work well with people who want to integrate with Unity, UE4...
+    ------------
+
+    Convert across to multithreaded DLL by default on Windows. Works better with Unreal engine this way.
+
+    ------------
+
+    Explore how I can make it easier to ship libs and DLLs on windows platform without dependencies (eg. prebuilt, so it can be dropped in for say windows platform with UE4)
 
     ------------
 
@@ -89,14 +93,6 @@ TODO
     This will enable local loopback packet exchange between a client and server, and should work to a standard interface that is the same across all client/server implementations.
 
     eg. this should be implemented in the base client / base server.
-
-    ------------
-
-    Convert across to multithreaded DLL by default. Works better with Unreal engine this way.
-
-    ------------
-
-    Explore how I can make it easier to ship libs and DLLs on windows platform without dependencies (eg. prebuilt, so it can be dropped in for say windows platform with UE4)
 
     ------------
 
