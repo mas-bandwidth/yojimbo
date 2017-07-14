@@ -66,15 +66,15 @@ DONE
 
 TODO
 
-    Add some way to easily disable mbedtls usage. Some clients will not want this dependency, especially during development, or if they have their own HTTP client.
-
-    ------------
+    Get everything working on windows, including only using release MT libraries for sodium, mbedtls etc.
 
     Convert across to multithreaded DLL by default on Windows. Works better with Unreal engine this way.
 
     ------------
 
-    Explore how I can make it easier to ship libs and DLLs on windows platform without dependencies (eg. prebuilt, so it can be dropped in for say windows platform with UE4)
+    Add some way to easily disable mbedtls usage. Some clients will not want this dependency, especially during development, or if they have their own HTTP client.
+
+    ------------
 
     *** Feature complete for 0.6 release ***
 
@@ -107,4 +107,4 @@ TODO
     *** Feature complete for 0.6 release ***
 
     ------------
-    
+
