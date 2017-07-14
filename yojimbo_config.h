@@ -119,10 +119,10 @@ namespace yojimbo
     const int KeyBytes = 32;                                        ///< Size of encryption key for dedicated client/server in bytes. Must be equal to key size for libsodium encryption primitive. Do not change.
     const int ConnectTokenBytes = 2048;                             ///< Size of the encrypted connect token data return from the matchmaker. Must equal size of NETCODE_CONNECT_TOKEN_BYTE (2048).
     const uint32_t SerializeCheckValue = 0x12345678;                ///< The value written to the stream for serialize checks. See WriteStream::SerializeCheck and ReadStream::SerializeCheck.
-    const int ConservativeMessageHeaderEstimate = 32;   // todo: bits? bytes? be specific!
-    const int ConservativeFragmentHeaderEstimate = 64;
-    const int ConservativeChannelHeaderEstimate = 32;
-    const int ConservativeConnectionPacketHeaderEstimate = 12;      // todo: actually break this down into component parts, eg. header, serialize check at start, serialize check at end?
+    const int ConservativeMessageHeaderBits = 32;                   ///< Conservative number of bits per-message header.
+    const int ConservativeFragmentHeaderBits = 64;                  ///< Conservative number of bits per-fragment header.
+    const int ConservativeChannelHeaderBits = 32;                   ///< Conservative number of bits per-channel header.
+    const int ConservativePacketHeaderBits = 16;                    ///< Conservative number of bits per-packet header.
 
     /// Determines the reliability and ordering guarantees for a channel.
 

@@ -57,7 +57,7 @@ namespace yojimbo
             const int numChannels = connectionConfig.numChannels;
             serialize_int( stream, numChannelEntries, 0, connectionConfig.numChannels );
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET
-            yojimbo_assert( stream.GetBitsProcessed() <= ConservativeConnectionPacketHeaderEstimate );
+            yojimbo_assert( stream.GetBitsProcessed() <= ConservativePacketHeaderBits );
 #endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
             if ( numChannelEntries > 0 )
             {
@@ -241,14 +241,14 @@ namespace yojimbo
             memset( channelHasData, 0, sizeof( channelHasData ) );
             ChannelPacketData channelData[MaxChannels];
             
-            int availableBits = maxPacketBytes * 8 - ConservativeConnectionPacketHeaderEstimate;
+            int availableBits = maxPacketBytes * 8 - ConservativePacketHeaderBits;
             
             for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
             {
                 int packetDataBits = m_channel[channelIndex]->GetPacketData( channelData[channelIndex], packetSequence, availableBits );
                 if ( packetDataBits > 0 )
                 {
-                    availableBits -= ConservativeChannelHeaderEstimate;
+                    availableBits -= ConservativeChannelHeaderBits;
                     availableBits -= packetDataBits;
                     channelHasData[channelIndex] = true;
                     numChannelsWithData++;

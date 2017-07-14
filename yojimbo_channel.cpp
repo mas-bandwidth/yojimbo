@@ -725,7 +725,7 @@ namespace yojimbo
 
         uint16_t previousMessageId = 0;
 
-        int usedBits = ConservativeMessageHeaderEstimate;
+        int usedBits = ConservativeMessageHeaderBits;
 
         int giveUpCounter = 0;
 
@@ -1067,7 +1067,7 @@ namespace yojimbo
 
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
-        int fragmentBits = ConservativeFragmentHeaderEstimate + fragmentSize;
+        int fragmentBits = ConservativeFragmentHeaderBits + fragmentSize * 8;
 
         if ( fragmentId == 0 )
         {
@@ -1351,7 +1351,7 @@ namespace yojimbo
 
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
-        int usedBits = ConservativeMessageHeaderEstimate;
+        int usedBits = ConservativeMessageHeaderBits;
 
         int numMessages = 0;
 
