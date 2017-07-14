@@ -1,15 +1,7 @@
 
 yojimbo_version = "0.6.0"
 
--- todo: we don't really need debug/release versions of these libs.
-
-if os.is "windows" then
-    debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
-    release_libs = { "sodium-release", "mbedtls-release", "mbedx509-release", "mbedcrypto-release" }
-else
-    debug_libs = { "sodium", "mbedtls", "mbedx509", "mbedcrypto" }
-    release_libs = debug_libs
-end
+libs = { "sodium", "mbedtls", "mbedx509", "mbedcrypto" }
 
 solution "Yojimbo"
     kind "ConsoleApp"
@@ -24,14 +16,14 @@ solution "Yojimbo"
         targetdir "bin/"  
     end
     rtti "Off"
-    flags { "ExtraWarnings", "StaticRuntime", "FloatFast", "EnableSSE2" }
+    flags { "ExtraWarnings", "FloatFast", "EnableSSE2" }
     configuration "Debug"
         symbols "On"
-        links { debug_libs }
+        links { libs }
     configuration "Release"
         optimize "Speed"
         defines { "NDEBUG" }
-        links { release_libs }
+        links { libs }
         
 project "test"
     files { "test.cpp" }
