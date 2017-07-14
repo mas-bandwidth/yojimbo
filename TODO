@@ -58,15 +58,23 @@ DONE
 
     Integrate custom allocators for netcode.io and reliable.io with client and server allocators in yojimbo.
 
+    Add reliable.io parameters to client server config.
+
 TODO
+
+    Add netcode.io parameters to client server config.
+
+    ------------
+
+    Pass over all // todo and fix
 
     ------------
 
     Implement packet loss, latency, jitter estimates in reliable.io
 
-    Integrate QoS settings above with yojimbo client/server and connection.
+    Integrate QoS settings above with yojimbo client/server and connection
 
-    Implement congestion avoidance in reliable.io (if reasonably possible given that user is in control of packet sizes...)
+    Test these between a real client and server running on my linode
 
     ------------
 
@@ -80,7 +88,11 @@ TODO
 
     ------------
 
-    Pass over all // todo and fix
+    Convert across to multithreaded DLL by default. Works better with Unreal engine this way.
+
+    ------------
+
+    Explore how I can make it easier to ship libs and DLLs on windows platform without dependencies (eg. prebuilt, so it can be dropped in for say windows platform with UE4)
 
     ------------
 
