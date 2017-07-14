@@ -278,7 +278,7 @@ namespace yojimbo
     };
 
     /**
-        Dedicated server implementation.
+        Server implementation.
      */
 
     class Server : public BaseServer
