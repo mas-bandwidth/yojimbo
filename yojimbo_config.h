@@ -164,9 +164,9 @@ namespace yojimbo
     {
         ChannelType type;                                           ///< Channel type: reliable-ordered or unreliable-unordered.
         bool disableBlocks;                                         ///< Disables blocks being sent across this channel.
-        int sendQueueSize;                                          ///< Number of messages in the send queue for this channel.
-        int receiveQueueSize;                                       ///< Number of messages in the receive queue for this channel.
         int sentPacketBufferSize;                                   ///< Maps packet level acks to individual messages & fragments. Please consider your packet send rate and make sure you have at least a few seconds worth of entries in this buffer.
+        int messageSendQueueSize;                                   ///< Number of messages in the send queue for this channel.
+        int messageReceiveQueueSize;                                ///< Number of messages in the receive queue for this channel.
         int maxMessagesPerPacket;                                   ///< Maximum number of messages to include in each packet. Will write up to this many messages, provided the messages fit into the channel packet budget and the number of bytes remaining in the packet.
         int packetBudget;                                           ///< Maximum amount of message data to write to the packet for this channel (bytes). Specifying -1 means the channel can use up to the rest of the bytes remaining in the packet.
         int maxBlockSize;                                           ///< The size of the largest block that can be sent across this channel (bytes).
@@ -177,9 +177,9 @@ namespace yojimbo
         ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )
         {
             disableBlocks = false;
-            sendQueueSize = 1024;
-            receiveQueueSize = 1024;
             sentPacketBufferSize = 1024;
+            messageSendQueueSize = 1024;
+            messageReceiveQueueSize = 1024;
             maxMessagesPerPacket = 256;
             packetBudget = -1;
             maxBlockSize = 256 * 1024;
@@ -228,6 +228,16 @@ namespace yojimbo
     struct BaseClientServerConfig : public ConnectionConfig
     {
         // todo: config needed to create reliable.io endpoints should go here
+
+        /*
+        int fragment_above;
+        int max_fragments;
+        int fragment_size;
+        int ack_buffer_size;
+        int sent_packets_buffer_size;           // already have this
+        int received_packets_buffer_size;
+        int fragment_reassembly_buffer_size;
+        */
 
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)

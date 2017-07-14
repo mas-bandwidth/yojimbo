@@ -480,13 +480,13 @@ namespace yojimbo
     {
         yojimbo_assert( config.type == CHANNEL_TYPE_RELIABLE_ORDERED );
 
-        yojimbo_assert( ( 65536 % config.sendQueueSize ) == 0 );
-        yojimbo_assert( ( 65536 % config.receiveQueueSize ) == 0 );
         yojimbo_assert( ( 65536 % config.sentPacketBufferSize ) == 0 );
+        yojimbo_assert( ( 65536 % config.messageSendQueueSize ) == 0 );
+        yojimbo_assert( ( 65536 % config.messageReceiveQueueSize ) == 0 );
 
         m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<SentPacketEntry>, *m_allocator, m_config.sentPacketBufferSize );
-        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.sendQueueSize );
-        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.receiveQueueSize );
+        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
+        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
         m_sentPacketMessageIds = (uint16_t*) YOJIMBO_ALLOCATE( *m_allocator, sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.sentPacketBufferSize );
 
         if ( !config.disableBlocks )
@@ -701,7 +701,7 @@ namespace yojimbo
 
         const int giveUpBits = 4 * 8;
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
-        const int messageLimit = yojimbo_min( m_config.sendQueueSize, m_config.receiveQueueSize );
+        const int messageLimit = yojimbo_min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize );
         uint16_t previousMessageId = 0;
         int usedBits = ConservativeMessageHeaderBits;
         int giveUpCounter = 0;
@@ -711,7 +711,7 @@ namespace yojimbo
             if ( availableBits - usedBits < giveUpBits )
                 break;
 
-            if ( giveUpCounter > m_config.sendQueueSize )
+            if ( giveUpCounter > m_config.messageSendQueueSize )
                 break;
 
             uint16_t messageId = m_oldestUnackedMessageId + i;
@@ -801,7 +801,7 @@ namespace yojimbo
     void ReliableOrderedChannel::ProcessPacketMessages( int numMessages, Message ** messages )
     {
         const uint16_t minMessageId = m_receiveMessageId;
-        const uint16_t maxMessageId = m_receiveMessageId + m_config.receiveQueueSize - 1;
+        const uint16_t maxMessageId = m_receiveMessageId + m_config.messageReceiveQueueSize - 1;
 
         for ( int i = 0; i < (int) numMessages; ++i )
         {
@@ -1213,18 +1213,14 @@ namespace yojimbo
                    time )
     {
         yojimbo_assert( config.type == CHANNEL_TYPE_UNRELIABLE_UNORDERED );
-
-        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.sendQueueSize );
-        
-        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.receiveQueueSize );
-
+        m_messageSendQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.messageSendQueueSize );
+        m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.messageReceiveQueueSize );
         Reset();
     }
 
     UnreliableUnorderedChannel::~UnreliableUnorderedChannel()
     {
         Reset();
-
         YOJIMBO_DELETE( *m_allocator, Queue<Message*>, m_messageSendQueue );
         YOJIMBO_DELETE( *m_allocator, Queue<Message*>, m_messageReceiveQueue );
     }

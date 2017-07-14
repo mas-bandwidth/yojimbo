@@ -1584,7 +1584,7 @@ void test_client_server_messages()
     double time = 100.0;
     
     ClientServerConfig config;
-    config.channel[0].sendQueueSize = 32;
+    config.channel[0].messageSendQueueSize = 32;
     config.channel[0].maxMessagesPerPacket = 8;
     config.channel[0].maxBlockSize = 1024;
     config.channel[0].fragmentSize = 200;
@@ -1634,7 +1634,7 @@ void test_client_server_messages()
         check( client.GetClientIndex() == 0 );
         check( server.IsClientConnected(0) );
 
-        const int NumMessagesSent = config.channel[0].sendQueueSize;
+        const int NumMessagesSent = config.channel[0].messageSendQueueSize;
 
         SendClientToServerMessages( client, NumMessagesSent );
 
@@ -1748,7 +1748,7 @@ void test_client_server_start_stop_restart()
     double time = 100.0;
     
     ClientServerConfig config;
-    config.channel[0].sendQueueSize = 32;
+    config.channel[0].messageSendQueueSize = 32;
     config.channel[0].maxMessagesPerPacket = 8;
     config.channel[0].maxBlockSize = 1024;
     config.channel[0].fragmentSize = 200;
@@ -1794,7 +1794,7 @@ void test_client_server_start_stop_restart()
 
         check( AllClientsConnected( numClients[iteration], server, clients ) );
 
-        const int NumMessagesSent = config.channel[0].sendQueueSize;
+        const int NumMessagesSent = config.channel[0].messageSendQueueSize;
 
         for ( int clientIndex = 0; clientIndex < numClients[iteration]; ++clientIndex )
         {
@@ -2084,8 +2084,8 @@ void test_client_server_message_receive_queue_overflow()
     config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[0].maxBlockSize = 1024;
     config.channel[0].fragmentSize = 200;
-    config.channel[0].sendQueueSize = 1024;
-    config.channel[0].receiveQueueSize = 256;
+    config.channel[0].messageSendQueueSize = 1024;
+    config.channel[0].messageReceiveQueueSize = 256;
     
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -2121,7 +2121,7 @@ void test_client_server_message_receive_queue_overflow()
     // send a lot of messages, but don't dequeue them, this tests that the receive queue is able to handle overflow
     // eg. the receiver should detect an error and disconnect the client, because the message is out of bounds.
 
-    const int NumMessagesSent = config.channel[0].sendQueueSize;
+    const int NumMessagesSent = config.channel[0].messageSendQueueSize;
 
     SendClientToServerMessages( client, NumMessagesSent );
 
