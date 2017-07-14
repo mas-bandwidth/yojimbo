@@ -412,8 +412,6 @@ void yojimbo_set_assert_function( void (*function)( const char * /*condition*/, 
 #include <map>
 #endif // YOJIMBO_DEBUG_MEMORY_LEAKS
 
-/** @file */
-
 typedef void* tlsf_t;
 
 namespace yojimbo
@@ -691,8 +689,6 @@ namespace yojimbo
 #include <stdarg.h>
 #include <memory.h>
     
-/** @file */
-
 namespace yojimbo
 {
     /**
@@ -5166,11 +5162,8 @@ namespace yojimbo
 
         /**
             Set the context for reading and writing packets.
-
             This is optional. It lets you pass in a pointer to some structure that you want to have available when reading and writing packets via Stream::GetContext.
-
             Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
-
             If you do use a context, make sure the same context data is set on client and server, and include a checksum of the context data in the protocol id.
          */
 
@@ -5196,9 +5189,7 @@ namespace yojimbo
 
         /**
             Advance client time.
-
             Call this at the end of each frame to advance the client time forward. 
-
             IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
          */
 
@@ -5206,9 +5197,7 @@ namespace yojimbo
 
         /**
             Is the client connecting to a server?
-
             This is true while the client is negotiation connection with a server.
-
             @returns true if the client is currently connecting to, but is not yet connected to a server.
          */
 
@@ -5216,9 +5205,7 @@ namespace yojimbo
 
         /**
             Is the client connected to a server?
-
             This is true once a client successfully finishes connection negotiatio, and connects to a server. It is false while connecting to a server.
-
             @returns true if the client is connected to a server.
          */
 
@@ -5226,9 +5213,7 @@ namespace yojimbo
 
         /**
             Is the client in a disconnected state?
-
             A disconnected state corresponds to the client being in the disconnected, or in an error state. Both are logically "disconnected".
-
             @returns true if the client is disconnected.
          */
 
@@ -5236,9 +5221,7 @@ namespace yojimbo
 
         /**
             Is the client in an error state?
-
             When the client disconnects because of an error, it enters into this error state.
-
             @returns true if the client is in an error state.
          */
 
@@ -5252,9 +5235,7 @@ namespace yojimbo
 
         /**
             Get the client index.
-
             The client index is the slot number that the client is occupying on the server. 
-
             @returns The client index in [0,maxClients-1], where maxClients is the number of client slots allocated on the server in Server::Start.
          */
 
@@ -5262,7 +5243,6 @@ namespace yojimbo
 
         /**
             Get the current client time.
-
             @see Client::AdvanceTime
          */
 
@@ -5270,7 +5250,6 @@ namespace yojimbo
 
         /**
             Create a message of the specified type.
-
             @param type The type of the message to create. The message types corresponds to the message factory created by the adaptor set on this client.
          */
 
@@ -5278,11 +5257,8 @@ namespace yojimbo
 
         /**
             Helper function to allocate a data block.
-
             This is typically used to create blocks of data to attach to block messages. See BlockMessage for details.
-
             @param bytes The number of bytes to allocate.
-
             @returns The pointer to the data block. This must be attached to a message via Client::AttachBlockToMessage, or freed via Client::FreeBlock.
          */
 
@@ -5290,7 +5266,6 @@ namespace yojimbo
 
         /**
             Attach data block to message.
-
             @param message The message to attach the block to. This message must be derived from BlockMessage.
             @param block Pointer to the block of data to attach. Must be created via Client::AllocateBlock.
             @param bytes Length of the block of data in bytes.
@@ -5300,7 +5275,6 @@ namespace yojimbo
 
         /**
             Free a block of memory.
-
             @param block The block of memory created by Client::AllocateBlock.
          */
 
@@ -5308,9 +5282,7 @@ namespace yojimbo
 
         /**
             Can we send a message on a channel?
-
             @param channelIndex The channel index in range [0,numChannels-1].
-
             @returns True if a message can be sent over the channel, false otherwise.
          */
 
@@ -5318,9 +5290,7 @@ namespace yojimbo
 
         /**
             Send a message on a channel.
-
             @param channelIndex The channel index in range [0,numChannels-1].
-
             @param message The message to send.
          */
 
@@ -5328,9 +5298,7 @@ namespace yojimbo
 
         /**
             Receive a message from a channel.
-
             @param channelIndex The channel index in range [0,numChannels-1].
-    
             @returns The message received, or NULL if no message is available. Make sure to release this message by calling Client::ReleaseMessage.
          */
 
@@ -5338,9 +5306,7 @@ namespace yojimbo
 
         /**
             Release a message.
-
             Call this for messages received by Client::ReceiveMessage.
-
             @param message The message to release.
          */
 
@@ -5357,7 +5323,6 @@ namespace yojimbo
 
         /**
             Base client constructor.
-
             @param allocator The allocator for all memory used by the client.
             @param config The base client/server configuration.
             @param time The current time in seconds. See ClientInterface::AdvanceTime
@@ -5480,7 +5445,6 @@ namespace yojimbo
 
         /**
             The client constructor.
-
             @param allocator The allocator for all memory used by the client.
             @param address The address the client should bind to.
             @param config The client/server configuration.
