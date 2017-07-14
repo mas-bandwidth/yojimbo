@@ -1,5 +1,5 @@
 
-yojimbo_version = "0.5.0"
+yojimbo_version = "0.6.0"
 
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
