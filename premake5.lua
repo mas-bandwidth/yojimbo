@@ -1,7 +1,7 @@
 
 yojimbo_version = "0.6.0"
 
--- todo: don't really need debug/release versions of these libs.
+-- todo: we don't really need debug/release versions of these libs.
 
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
