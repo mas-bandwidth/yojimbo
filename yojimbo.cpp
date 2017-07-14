@@ -1640,6 +1640,8 @@ namespace yojimbo
         ResetCounters();
     }
 
+#undef SendMessage
+
     bool ReliableOrderedChannel::CanSendMessage() const
     {
         yojimbo_assert( m_messageSendQueue );
