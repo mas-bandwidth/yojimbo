@@ -316,8 +316,7 @@ namespace yojimbo
     {
         if ( m_errorLevel != CONNECTION_ERROR_NONE )
         {
-            // todo
-            //printf( "process packet failed: connection error level\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "failed to read packet because connection is in error state\n" );
             return false;
         }
 
@@ -338,8 +337,7 @@ namespace yojimbo
             m_channel[channelIndex]->ProcessPacketData( packet.channelEntry[i], packetSequence );
             if ( m_channel[channelIndex]->GetErrorLevel() != CHANNEL_ERROR_NONE )
             {
-                // todo
-                //printf( "process packet failed: channel error level\n" );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "failed to read packet because channel %d is in error state\n", channelIndex );
                 return false;
             }
         }
