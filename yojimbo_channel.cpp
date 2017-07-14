@@ -485,17 +485,13 @@ namespace yojimbo
         yojimbo_assert( ( 65536 % config.sentPacketBufferSize ) == 0 );
 
         m_sentPackets = YOJIMBO_NEW( *m_allocator, SequenceBuffer<SentPacketEntry>, *m_allocator, m_config.sentPacketBufferSize );
-        
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.sendQueueSize );
-        
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.receiveQueueSize );
-        
         m_sentPacketMessageIds = (uint16_t*) YOJIMBO_ALLOCATE( *m_allocator, sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.sentPacketBufferSize );
 
         if ( !config.disableBlocks )
         {
-            m_sendBlock = YOJIMBO_NEW( *m_allocator, SendBlockData, *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
-            
+            m_sendBlock = YOJIMBO_NEW( *m_allocator, SendBlockData, *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() ); 
             m_receiveBlock = YOJIMBO_NEW( *m_allocator, ReceiveBlockData, *m_allocator, m_config.maxBlockSize, m_config.GetMaxFragmentsPerBlock() );
         }
         else
@@ -620,13 +616,9 @@ namespace yojimbo
         }
 
         MeasureStream measureStream( m_messageFactory->GetAllocator() );
-
         message->SerializeInternal( measureStream );
-
         entry->measuredBits = measureStream.GetBitsProcessed();
-
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
-
         m_sendMessageId++;
     }
 
@@ -640,14 +632,10 @@ namespace yojimbo
             return NULL;
 
         Message * message = entry->message;
-
         yojimbo_assert( message );
         yojimbo_assert( message->GetId() == m_receiveMessageId );
-
         m_messageReceiveQueue->Remove( m_receiveMessageId );
-
         m_counters[CHANNEL_COUNTER_MESSAGES_RECEIVED]++;
-
         m_receiveMessageId++;
 
         return message;
@@ -676,26 +664,20 @@ namespace yojimbo
             if ( fragmentData )
             {
                 const int fragmentBits = GetFragmentPacketData( packetData, messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
-
                 AddFragmentPacketEntry( messageId, fragmentId, packetSequence );
-
                 return fragmentBits;
             }
         }
         else
         {
             int numMessageIds = 0;
-
             uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
-            
             const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits );
 
             if ( numMessageIds > 0 )
             {
                 GetMessagePacketData( packetData, messageIds, numMessageIds );
-
                 AddMessagePacketEntry( messageIds, numMessageIds, packetSequence );
-
                 return messageBits;
             }
         }
@@ -718,15 +700,10 @@ namespace yojimbo
             availableBits = yojimbo_min( m_config.packetBudget * 8, availableBits );
 
         const int giveUpBits = 4 * 8;
-
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
-
         const int messageLimit = yojimbo_min( m_config.sendQueueSize, m_config.receiveQueueSize );
-
         uint16_t previousMessageId = 0;
-
         int usedBits = ConservativeMessageHeaderBits;
-
         int giveUpCounter = 0;
 
         for ( int i = 0; i < messageLimit; ++i )
@@ -738,9 +715,7 @@ namespace yojimbo
                 break;
 
             uint16_t messageId = m_oldestUnackedMessageId + i;
-
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( messageId );
-
             if ( !entry )
                 continue;
 
@@ -769,12 +744,9 @@ namespace yojimbo
                 }
 
                 usedBits += messageBits;
-
                 messageIds[numMessageIds++] = messageId;
-                
-                entry->timeLastSent = m_time;
-
                 previousMessageId = messageId;
+                entry->timeLastSent = m_time;
             }
 
             if ( numMessageIds == m_config.maxMessagesPerPacket )
@@ -1183,9 +1155,7 @@ namespace yojimbo
                 if ( fragmentId == 0 )
                 {
                     // save block message (sent with fragment 0)
-
                     m_receiveBlock->blockMessage = blockMessage;
-
                     m_messageFactory->AcquireMessage( m_receiveBlock->blockMessage );
                 }
 
@@ -1352,9 +1322,7 @@ namespace yojimbo
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
         int usedBits = ConservativeMessageHeaderBits;
-
         int numMessages = 0;
-
         Message ** messages = (Message**) alloca( sizeof( Message* ) * m_config.maxMessagesPerPacket );
 
         while ( true )
@@ -1373,7 +1341,7 @@ namespace yojimbo
             yojimbo_assert( message );
 
             MeasureStream measureStream( m_messageFactory->GetAllocator() );
-            
+    
             message->SerializeInternal( measureStream );
             
             if ( message->IsBlockMessage() )
@@ -1390,10 +1358,10 @@ namespace yojimbo
                 continue;
             }
 
-            usedBits += messageBits;
-            
+            usedBits += messageBits;        
+
             yojimbo_assert( usedBits <= availableBits );
-            
+
             messages[numMessages++] = message;
         }
 
