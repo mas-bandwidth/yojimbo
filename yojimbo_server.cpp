@@ -12,7 +12,7 @@
 
 namespace yojimbo
 {
-    BaseServer::BaseServer( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time ) : m_config( config )
+    BaseServer::BaseServer( Allocator & allocator, const ClientServerConfig & config, Adapter & adapter, double time ) : m_config( config )
     {
         m_allocator = &allocator;
         m_adapter = &adapter;

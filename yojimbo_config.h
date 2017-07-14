@@ -224,7 +224,7 @@ namespace yojimbo
         Please make sure that the message configuration is identical between client and server or it will not work.
      */
 
-    struct BaseClientServerConfig : public ConnectionConfig
+    struct ClientServerConfig : public ConnectionConfig
     {
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
@@ -239,7 +239,7 @@ namespace yojimbo
         int ackedPacketsBufferSize;                             ///< Number of packet entries in the acked packet buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
         int receivedPacketsBufferSize;                          ///< Number of packet entries in the received packet sequence buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
 
-        BaseClientServerConfig()
+        ClientServerConfig()
         {
             protocolId = 0;
             clientMemory = 10 * 1024 * 1024;
@@ -254,11 +254,6 @@ namespace yojimbo
             ackedPacketsBufferSize = 256;
             receivedPacketsBufferSize = 256;
         }
-    };
-
-    struct ClientServerConfig : public BaseClientServerConfig
-    {
-        // todo: config needed to create netcode.io client/server should go here
     };
 }
 

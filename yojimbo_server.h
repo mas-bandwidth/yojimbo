@@ -187,7 +187,7 @@ namespace yojimbo
     {
     public:
 
-        BaseServer( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time );
+        BaseServer( Allocator & allocator, const ClientServerConfig & config, Adapter & adapter, double time );
 
         ~BaseServer();
 
@@ -259,7 +259,7 @@ namespace yojimbo
 
     private:
 
-        BaseClientServerConfig m_config;                            ///< Base client/server config.
+        ClientServerConfig m_config;                                ///< Base client/server config.
         Allocator * m_allocator;                                    ///< Allocator passed in to constructor.
         Adapter * m_adapter;                                        ///< The adapter specifies the allocator to use, and the message factory class.
         void * m_context;                                           ///< Optional serialization context.

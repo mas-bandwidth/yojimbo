@@ -244,7 +244,7 @@ namespace yojimbo
             @param allocator The adapter to the game program. Specifies allocators, message factory to use etc.
          */
 
-        explicit BaseClient( Allocator & allocator, const BaseClientServerConfig & config, Adapter & adapter, double time );
+        explicit BaseClient( Allocator & allocator, const ClientServerConfig & config, Adapter & adapter, double time );
 
         ~BaseClient();
 
@@ -328,7 +328,7 @@ namespace yojimbo
 
     private:
 
-        BaseClientServerConfig m_config;                                    ///< The base client/server configuration.
+        ClientServerConfig m_config;                                        ///< The client/server configuration.
         Allocator * m_allocator;                                            ///< The allocator passed to the client on creation.
         Adapter * m_adapter;                                                ///< The adapter specifies the allocator to use, and the message factory class.
         void * m_context;                                                   ///< Context lets the user pass information to packet serialize functions.
