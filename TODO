@@ -76,6 +76,10 @@ TODO
 
     Explore how I can make it easier to ship libs and DLLs on windows platform without dependencies (eg. prebuilt, so it can be dropped in for say windows platform with UE4)
 
+    *** Feature complete for 0.6 release ***
+
+    ========================================================
+
     ------------
 
     Implement packet loss, latency, jitter estimates in reliable.io
@@ -103,3 +107,4 @@ TODO
     *** Feature complete for 0.6 release ***
 
     ------------
+    
