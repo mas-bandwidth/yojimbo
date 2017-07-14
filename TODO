@@ -60,9 +60,19 @@ DONE
 
     Add reliable.io parameters to client server config.
 
+    Pass over all // todo and fix
+
 TODO
 
-    Pass over all // todo and fix
+    ------------
+
+    Consolidate all source code into yojimbo.h and yojimbo.cpp
+
+    Make it easier to integrate the library with projects, eg. just drop in the files.
+
+    Unfortunately, netcode.io and reliable.io also need to be dropped in, but that's fine.
+
+    To get away from this, create lib + DLL, ge. something that would work well with people who want to integrate with Unity, UE4...
 
     ------------
 

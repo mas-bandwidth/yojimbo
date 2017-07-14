@@ -1,7 +1,5 @@
 /*
-    Yojimbo Network Library.
-    
-    Copyright © 2016, The Network Protocol Company, Inc.
+    Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 */
 
 #ifndef YOJIMBO_CLIENT_H
@@ -157,7 +155,7 @@ namespace yojimbo
         virtual Message * CreateMessage( int type ) = 0;
 
         /**
-            Helper function to allocate a data block with the client allocator.
+            Helper function to allocate a data block.
 
             This is typically used to create blocks of data to attach to block messages. See BlockMessage for details.
 

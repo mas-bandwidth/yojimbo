@@ -1,7 +1,5 @@
 /*
-    Yojimbo Network Library.
-    
-    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
+    Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 */
 
 #ifndef YOJIMBO_SERVER_H
@@ -34,11 +32,8 @@ namespace yojimbo
 
         /**
             Set the context for reading and writing packets.
-
             This is optional. It lets you pass in a pointer to some structure that you want to have available when reading and writing packets via Stream::GetContext.
-
             Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
-
             If you do use a context, make sure the same context data is set on client and server, and include a checksum of the context data in the protocol id.
          */
 
@@ -46,11 +41,8 @@ namespace yojimbo
 
         /**
             Start the server and allocate client slots.
-            
             Each client that connects to this server occupies one of the client slots allocated by this function.
-
             @param maxClients The number of client slots to allocate. Must be in range [1,MaxClients]
-
             @see Server::Stop
          */
 
@@ -58,11 +50,8 @@ namespace yojimbo
 
         /**
             Stop the server and free client slots.
-        
             Any clients that are connected at the time you call stop will be disconnected.
-            
             When the server is stopped, clients cannot connect to the server.
-
             @see Server::Start.
          */
 
@@ -70,9 +59,7 @@ namespace yojimbo
 
         /**
             Disconnect the client at the specified client index.
-            
             @param clientIndex The index of the client to disconnect in range [0,maxClients-1], where maxClients is the number of client slots allocated in Server::Start.
-
             @see Server::IsClientConnected
          */
 
@@ -80,7 +67,6 @@ namespace yojimbo
 
         /**
             Disconnect all clients from the server.
-            
             Client slots remain allocated as per the last call to Server::Start, they are simply made available for new clients to connect.
          */
 
@@ -88,7 +74,6 @@ namespace yojimbo
 
         /**
             Send packets to connected clients.
-         
             This function drives the sending of packets that transmit messages to clients.
          */
 
@@ -96,7 +81,6 @@ namespace yojimbo
 
         /**
             Receive packets from connected clients.
-
             This function drives the procesing of messages included in packets received from connected clients.
          */
 
@@ -104,9 +88,7 @@ namespace yojimbo
 
         /**
             Advance server time.
-
             Call this at the end of each frame to advance the server time forward. 
-
             IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
          */
 
@@ -114,11 +96,8 @@ namespace yojimbo
 
         /**
             Is the server running?
-
             The server is running after you have called Server::Start. It is not running before the first server start, and after you call Server::Stop.
-
             Clients can only connect to the server while it is running.
-
             @returns true if the server is currently running.
          */
 
@@ -126,9 +105,7 @@ namespace yojimbo
 
         /**
             Get the maximum number of clients that can connect to the server.
-
             Corresponds to the maxClients parameter passed into the last call to Server::Start.
-
             @returns The maximum number of clients that can connect to the server. In other words, the number of client slots.
          */
 
@@ -136,9 +113,7 @@ namespace yojimbo
 
         /**
             Is a client connected to a client slot?
-
             @param clientIndex the index of the client slot in [0,maxClients-1], where maxClients corresponds to the value passed into the last call to Server::Start.
-
             @returns True if the client is connected.
          */
 
@@ -146,7 +121,6 @@ namespace yojimbo
 
         /** 
             Get the number of clients that are currently connected to the server.
-
             @returns the number of connected clients.
          */
 
@@ -154,33 +128,86 @@ namespace yojimbo
 
         /**
             Gets the current server time.
-
             @see Server::AdvanceTime
          */
 
         virtual double GetTime() const = 0;
 
-        // todo: document these methods
+        /**
+            Create a message of the specified type for a specific client.
+            @param clientIndex The index of the client this message belongs to. Determines which client heap is used to allocate the message.
+            @param type The type of the message to create. The message types corresponds to the message factory created by the adaptor set on the server.
+         */
 
         virtual Message * CreateMessage( int clientIndex, int type ) = 0;
 
+        /**
+            Helper function to allocate a data block.
+            This is typically used to create blocks of data to attach to block messages. See BlockMessage for details.
+            @param clientIndex The index of the client this message belongs to. Determines which client heap is used to allocate the data.
+            @param bytes The number of bytes to allocate.
+            @returns The pointer to the data block. This must be attached to a message via Client::AttachBlockToMessage, or freed via Client::FreeBlock.
+         */
+
         virtual uint8_t * AllocateBlock( int clientIndex, int bytes ) = 0;
+
+        /**
+            Attach data block to message.
+            @param clientIndex The index of the client this block belongs to.
+            @param message The message to attach the block to. This message must be derived from BlockMessage.
+            @param block Pointer to the block of data to attach. Must be created via Client::AllocateBlock.
+            @param bytes Length of the block of data in bytes.
+         */
 
         virtual void AttachBlockToMessage( int clientIndex, Message * message, uint8_t * block, int bytes ) = 0;
 
+        /**
+            Free a block of memory.
+            @param clientIndex The index of the client this block belongs to.
+            @param block The block of memory created by Client::AllocateBlock.
+         */
+
         virtual void FreeBlock( int clientIndex, uint8_t * block ) = 0;
+
+        /**
+            Can we send a message to a particular client on a channel?
+            @param clientIndex The index of the client to send a message to.
+            @param channelIndex The channel index in range [0,numChannels-1].
+            @returns True if a message can be sent over the channel, false otherwise.
+         */
 
         virtual bool CanSendMessage( int clientIndex, int channelIndex ) const = 0;
 
+        /**
+            Send a message to a client over a channel.
+            @param clientIndex The index of the client to send a message to.
+            @param channelIndex The channel index in range [0,numChannels-1].
+            @param message The message to send.
+         */
+
         virtual void SendMessage( int clientIndex, int channelIndex, Message * message ) = 0;
 
+        /**
+            Receive a message from a client over a channel.
+            @param clientIndex The index of the client to receive messages from.
+            @param channelIndex The channel index in range [0,numChannels-1].
+            @returns The message received, or NULL if no message is available. Make sure to release this message by calling Server::ReleaseMessage.
+         */
+
         virtual Message * ReceiveMessage( int clientIndex, int channelIndex ) = 0;
+
+        /**
+            Release a message.
+            Call this for messages received by Server::ReceiveMessage.
+            @param clientIndex The index of the client that the message belongs to.
+            @param message The message to release.
+         */
 
         virtual void ReleaseMessage( int clientIndex, Message * message ) = 0;
     };
 
     /**
-        Functionality common across all server implementations.
+        Common functionality across all server implementations.
      */
 
     class BaseServer : public ServerInterface

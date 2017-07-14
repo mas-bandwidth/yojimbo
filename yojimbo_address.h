@@ -1,7 +1,5 @@
 /*
-    Yojimbo Network Library.
-    
-    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
+    Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 */
 
 #ifndef YOJIMBO_ADDRESS_H
