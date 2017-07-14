@@ -1,6 +1,8 @@
 
 yojimbo_version = "0.6.0"
 
+-- todo: don't really need debug/release versions of these libs.
+
 if os.is "windows" then
     debug_libs = { "sodium-debug", "mbedtls-debug", "mbedx509-debug", "mbedcrypto-debug" }
     release_libs = { "sodium-release", "mbedtls-release", "mbedx509-release", "mbedcrypto-release" }
@@ -32,36 +34,36 @@ solution "Yojimbo"
         links { release_libs }
         
 project "test"
-    files { "tests/test.cpp" }
+    files { "test.cpp" }
     links { "yojimbo" }
 
 project "yojimbo"
     kind "StaticLib"
     defines { "NETCODE_ENABLE_TESTS=1", "RELIABLE_ENABLE_TESTS=1" }
-    files { "yojimbo.h", "yojimbo.cpp", "yojimbo_*.h", "yojimbo_*.cpp", "tlsf/tlsf.h", "tlsf/tlsf.c", "netcode.io/c/netcode.c", "netcode.io/c/netcode.h", "reliable.io/reliable.c", "reliable.io/reliable.h" }
+    files { "yojimbo.h", "yojimbo.cpp", "tlsf/tlsf.h", "tlsf/tlsf.c", "netcode.io/c/netcode.c", "netcode.io/c/netcode.h", "reliable.io/reliable.c", "reliable.io/reliable.h" }
 
 project "client"
-    files { "tests/client.cpp", "tests/shared.h" }
+    files { "client.cpp", "shared.h" }
     links { "yojimbo" }
 
 project "server"
-    files { "tests/server.cpp", "tests/shared.h" }
+    files { "server.cpp", "shared.h" }
     links { "yojimbo" }
 
 project "secure_client"
-    files { "tests/secure_client.cpp", "tests/shared.h" }
+    files { "secure_client.cpp", "shared.h" }
     links { "yojimbo" }
 
 project "secure_server"
-    files { "tests/secure_server.cpp", "tests/shared.h" }
+    files { "secure_server.cpp", "shared.h" }
     links { "yojimbo" }
 
 project "client_server"
-    files { "tests/client_server.cpp", "tests/shared.h" }
+    files { "client_server.cpp", "shared.h" }
     links { "yojimbo" }
 
 project "soak"
-    files { "tests/soak.cpp", "tests/shared.h" }
+    files { "soak.cpp", "shared.h" }
     links { "yojimbo" }
 
 if not os.is "windows" then
@@ -149,7 +151,7 @@ if not os.is "windows" then
 		description = "Build and run a yojimbo server inside a docker container",
 		execute = function ()
             os.execute "docker run --rm --privileged alpine hwclock -s" -- workaround for clock getting out of sync on macos. see https://docs.docker.com/docker-for-mac/troubleshoot/#issues
-            os.execute "rm -rf docker/yojimbo && mkdir -p docker/yojimbo && mkdir -p docker/yojimbo/tests && cp *.h docker/yojimbo && cp *.cpp docker/yojimbo && cp premake5.lua docker/yojimbo && cp tests/* docker/yojimbo/tests && cp -R reliable.io docker/yojimbo && cp -R netcode.io docker/yojimbo && cp -R tlsf docker/yojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf yojimbo && docker run -ti -p 40000:40000/udp networkprotocol:yojimbo-server"
+            os.execute "rm -rf docker/yojimbo && mkdir -p docker/yojimbo && mkdir -p docker/yojimbo/tests && cp *.h docker/yojimbo && cp *.cpp docker/yojimbo && cp premake5.lua docker/yojimbo && cp -R reliable.io docker/yojimbo && cp -R netcode.io docker/yojimbo && cp -R tlsf docker/yojimbo && cd docker && docker build -t \"networkprotocol:yojimbo-server\" . && rm -rf yojimbo && docker run -ti -p 40000:40000/udp networkprotocol:yojimbo-server"
 		end
 	}
 
@@ -158,7 +160,7 @@ if not os.is "windows" then
         trigger     = "valgrind",
         description = "Run valgrind over tests inside docker",
         execute = function ()
-            os.execute "rm -rf valgrind/yojimbo && mkdir -p valgrind/yojimbo && mkdir -p valgrind/yojimbo/tests && cp *.h valgrind/yojimbo && cp *.cpp valgrind/yojimbo && cp premake5.lua valgrind/yojimbo && cp tests/* valgrind/yojimbo/tests && cp -R reliable.io valgrind/yojimbo && cp -R netcode.io valgrind/yojimbo && cp -R tlsf valgrind/yojimbo && cd valgrind && docker build -t \"networkprotocol:yojimbo-valgrind\" . && rm -rf netcode.io && docker run -ti networkprotocol:yojimbo-valgrind"
+            os.execute "rm -rf valgrind/yojimbo && mkdir -p valgrind/yojimbo && mkdir -p valgrind/yojimbo/tests && cp *.h valgrind/yojimbo && cp *.cpp valgrind/yojimbo && cp premake5.lua valgrind/yojimbo && cp -R reliable.io valgrind/yojimbo && cp -R netcode.io valgrind/yojimbo && cp -R tlsf valgrind/yojimbo && cd valgrind && docker build -t \"networkprotocol:yojimbo-valgrind\" . && rm -rf netcode.io && docker run -ti networkprotocol:yojimbo-valgrind"
         end
     }
 
@@ -242,7 +244,7 @@ if not os.is "windows" then
         trigger     = "loc",
         description = "Count lines of code",
         execute = function ()
-            os.execute "wc -l *.h *.cpp tests/*.h tests/*.cpp netcode.io/c/*.c netcode.io/c/*.h reliable.io/*.c reliable.io/*.h"
+            os.execute "wc -l *.h *.cpp netcode.io/c/*.c netcode.io/c/*.h reliable.io/*.c reliable.io/*.h"
         end
     }
 
