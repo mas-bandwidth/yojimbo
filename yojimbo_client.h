@@ -148,21 +148,81 @@ namespace yojimbo
 
         virtual double GetTime() const = 0;
 
-        // todo: document these methods
+        /**
+            Create a message of the specified type.
+
+            @param type The type of the message to create. The message types corresponds to the message factory created by the adaptor set on this client.
+         */
 
         virtual Message * CreateMessage( int type ) = 0;
 
+        /**
+            Helper function to allocate a data block with the client allocator.
+
+            This is typically used to create blocks of data to attach to block messages. See BlockMessage for details.
+
+            @param bytes The number of bytes to allocate.
+
+            @returns The pointer to the data block. This must be attached to a message via Client::AttachBlockToMessage, or freed via Client::FreeBlock.
+         */
+
         virtual uint8_t * AllocateBlock( int bytes ) = 0;
+
+        /**
+            Attach data block to message.
+
+            @param message The message to attach the block to. This message must be derived from BlockMessage.
+            @param block Pointer to the block of data to attach. Must be created via Client::AllocateBlock.
+            @param bytes Length of the block of data in bytes.
+         */
 
         virtual void AttachBlockToMessage( Message * message, uint8_t * block, int bytes ) = 0;
 
+        /**
+            Free a block of memory.
+
+            @param block The block of memory created by Client::AllocateBlock.
+         */
+
         virtual void FreeBlock( uint8_t * block ) = 0;
+
+        /**
+            Can we send a message on a channel?
+
+            @param channelIndex The channel index in range [0,numChannels-1].
+
+            @returns True if a message can be sent over the channel, false otherwise.
+         */
 
         virtual bool CanSendMessage( int channelIndex ) const = 0;
 
+        /**
+            Send a message on a channel.
+
+            @param channelIndex The channel index in range [0,numChannels-1].
+
+            @param message The message to send.
+         */
+
         virtual void SendMessage( int channelIndex, Message * message ) = 0;
 
+        /**
+            Receive a message from a channel.
+
+            @param channelIndex The channel index in range [0,numChannels-1].
+    
+            @returns The message received, or NULL if no message is available. Make sure to release this message by calling Client::ReleaseMessage.
+         */
+
         virtual Message * ReceiveMessage( int channelIndex ) = 0;
+
+        /**
+            Release a message.
+
+            Call this for messages received by Client::ReceiveMessage.
+
+            @param message The message to release.
+         */
 
         virtual void ReleaseMessage( Message * message ) = 0;
     };
