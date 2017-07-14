@@ -61,7 +61,7 @@ int ClientMain( int argc, char * argv[] )
 
     printf( "requesting match from https://localhost:8080\n" );
 
-    matcher.RequestMatch( ProtocolId, clientId );
+    matcher.RequestMatch( ProtocolId, clientId, false );
 
     if ( matcher.GetMatchStatus() == MATCH_FAILED )
     {

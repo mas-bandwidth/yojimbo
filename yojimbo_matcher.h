@@ -78,7 +78,7 @@ namespace yojimbo
             @see Matcher::GetConnectToken
          */
 
-        void RequestMatch( uint64_t protocolId, uint64_t clientId );
+        void RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate );
 
         /**
             Get the current match status.
