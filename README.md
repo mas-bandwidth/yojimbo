@@ -4,7 +4,9 @@
 
 **yojimbo** is a network library for client/server games with dedicated servers.
 
-It's designed around the networking requirements of competitive multiplayer games such as first person shooters. As such it provides a time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
+It's designed around the networking requirements of competitive multiplayer games like first person shooters. 
+
+As such it provides a time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
 ## Status
 
@@ -27,7 +29,7 @@ For more details please refer to the [roadmap](https://github.com/networkprotoco
 
 The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with over 15 years experience in the game industry.
 
-Glenn is currently writing an article series about the development of this library called [Building a Game Network Protocol](http://gafferongames.com/category/building-a-game-network-protocol/).
+Glenn is currently writing an article series about the development of this library called [Building a Game Network Protocol](https://gafferongames.com/categories/building-a-game-network-protocol).
 
 You can support Glenn's work writing articles and open source code via [Patreon](http://www.patreon.com/gafferongames).
 
