@@ -287,7 +287,7 @@ namespace yojimbo
                 block.fragmentId = 0;
         }
 
-        serialize_int( stream, block.fragmentSize, 1, channelConfig.fragmentSize );
+        serialize_int( stream, block.fragmentSize, 1, channelConfig.blockFragmentSize );
 
         if ( Stream::IsReading )
         {
@@ -961,7 +961,7 @@ namespace yojimbo
             m_sendBlock->active = true;
             m_sendBlock->blockSize = blockSize;
             m_sendBlock->blockMessageId = messageId;
-            m_sendBlock->numFragments = (int) ceil( blockSize / float( m_config.fragmentSize ) );
+            m_sendBlock->numFragments = (int) ceil( blockSize / float( m_config.blockFragmentSize ) );
             m_sendBlock->numAckedFragments = 0;
 
             const int MaxFragmentsPerBlock = m_config.GetMaxFragmentsPerBlock();
@@ -983,7 +983,7 @@ namespace yojimbo
 
         for ( int i = 0; i < m_sendBlock->numFragments; ++i )
         {
-            if ( !m_sendBlock->ackedFragment->GetBit( i ) && m_sendBlock->fragmentSendTime[i] + m_config.fragmentResendTime < m_time )
+            if ( !m_sendBlock->ackedFragment->GetBit( i ) && m_sendBlock->fragmentSendTime[i] + m_config.blockFragmentResendTime < m_time )
             {
                 fragmentId = uint16_t( i );
                 break;
@@ -997,9 +997,9 @@ namespace yojimbo
 
         messageType = blockMessage->GetType();
 
-        fragmentBytes = m_config.fragmentSize;
+        fragmentBytes = m_config.blockFragmentSize;
         
-        const int fragmentRemainder = blockSize % m_config.fragmentSize;
+        const int fragmentRemainder = blockSize % m_config.blockFragmentSize;
 
         if ( fragmentRemainder && fragmentId == m_sendBlock->numFragments - 1 )
             fragmentBytes = fragmentRemainder;
@@ -1008,7 +1008,7 @@ namespace yojimbo
 
         if ( fragmentData )
         {
-            memcpy( fragmentData, blockMessage->GetBlockData() + fragmentId * m_config.fragmentSize, fragmentBytes );
+            memcpy( fragmentData, blockMessage->GetBlockData() + fragmentId * m_config.blockFragmentSize, fragmentBytes );
 
             m_sendBlock->fragmentSendTime[fragmentId] = m_time;
         }
@@ -1131,7 +1131,7 @@ namespace yojimbo
             {
                 m_receiveBlock->receivedFragment->SetBit( fragmentId );
 
-                memcpy( m_receiveBlock->blockData + fragmentId * m_config.fragmentSize, fragmentData, fragmentBytes );
+                memcpy( m_receiveBlock->blockData + fragmentId * m_config.blockFragmentSize, fragmentData, fragmentBytes );
 
                 if ( fragmentId == 0 )
                 {
@@ -1140,7 +1140,7 @@ namespace yojimbo
 
                 if ( fragmentId == m_receiveBlock->numFragments - 1 )
                 {
-                    m_receiveBlock->blockSize = ( m_receiveBlock->numFragments - 1 ) * m_config.fragmentSize + fragmentBytes;
+                    m_receiveBlock->blockSize = ( m_receiveBlock->numFragments - 1 ) * m_config.blockFragmentSize + fragmentBytes;
 
                     if ( m_receiveBlock->blockSize > (uint32_t) m_config.maxBlockSize )
                     {

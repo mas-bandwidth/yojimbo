@@ -145,7 +145,7 @@ namespace yojimbo
             }
         }
 
-        // todo: you want to turn this on for release
+        // todo: we need a way to turn this on for release builds. you want this check there, but not during development.
         /*
         uint32_t flags;
         if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )

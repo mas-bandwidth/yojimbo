@@ -53,11 +53,7 @@ int SoakMain()
     config.channel[UNRELIABLE_UNORDERED_CHANNEL].maxBlockSize = MaxSnapshotSize;
     config.channel[RELIABLE_ORDERED_CHANNEL].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[RELIABLE_ORDERED_CHANNEL].maxBlockSize = MaxBlockSize;
-    config.channel[RELIABLE_ORDERED_CHANNEL].fragmentSize = 1024;
-
-    // todo: need to verify both reliable and unreliable messages get through
-
-    // todo: clean up code to send and receive messages. this code is too cut & paste. it's unreliable and hard to maintain
+    config.channel[RELIABLE_ORDERED_CHANNEL].blockFragmentSize = 1024;
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );

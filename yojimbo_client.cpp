@@ -124,17 +124,23 @@ namespace yojimbo
         {
             m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets, m_time );
         }
-        // todo: fully setup endpoint config from client/server config
-        reliable_config_t config;
-        reliable_default_config( &config );
-        strcpy( config.name, "client endpoint" );
-        config.context = (void*) this;
-        config.transmit_packet_function = BaseClient::StaticTransmitPacketFunction;
-        config.process_packet_function = BaseClient::StaticProcessPacketFunction;
-        config.allocator_context = m_clientAllocator;
-        config.allocate_function = BaseClient::StaticAllocateFunction;
-        config.free_function = BaseClient::StaticFreeFunction;
-        m_endpoint = reliable_endpoint_create( &config );
+        reliable_config_t reliable_config;
+        reliable_default_config( &reliable_config );
+        strcpy( reliable_config.name, "client endpoint" );
+        reliable_config.context = (void*) this;
+        reliable_config.max_packet_size = m_config.maxPacketSize;
+        reliable_config.fragment_above = m_config.fragmentPacketsAbove;
+        reliable_config.max_fragments = m_config.maxPacketFragments;
+        reliable_config.fragment_size = m_config.packetFragmentSize; 
+        reliable_config.ack_buffer_size = m_config.ackedPacketsBufferSize;
+        reliable_config.received_packets_buffer_size = m_config.receivedPacketsBufferSize;
+        reliable_config.fragment_reassembly_buffer_size = m_config.packetReassemblyBufferSize;
+        reliable_config.transmit_packet_function = BaseClient::StaticTransmitPacketFunction;
+        reliable_config.process_packet_function = BaseClient::StaticProcessPacketFunction;
+        reliable_config.allocator_context = m_clientAllocator;
+        reliable_config.allocate_function = BaseClient::StaticAllocateFunction;
+        reliable_config.free_function = BaseClient::StaticFreeFunction;
+        m_endpoint = reliable_endpoint_create( &reliable_config );
         reliable_endpoint_reset( m_endpoint );
     }
 

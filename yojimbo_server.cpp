@@ -65,25 +65,35 @@ namespace yojimbo
         {
             yojimbo_assert( !m_clientMemory[i] );
             yojimbo_assert( !m_clientAllocator[i] );
+            
             m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
             yojimbo_assert( m_clientAllocator[i] );
+            
             m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
             yojimbo_assert( m_clientMessageFactory[i] );
+            
             m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config, m_time );
             yojimbo_assert( m_clientConnection[i] );
-            // todo: fully setup endpoint config from client/server config
-            reliable_config_t config;
-            reliable_default_config( &config );
-            sprintf( config.name, "server endpoint" );
-            config.context = (void*) this;
-            config.index = i;
-            config.transmit_packet_function = BaseServer::StaticTransmitPacketFunction;
-            config.process_packet_function = BaseServer::StaticProcessPacketFunction;
-            config.allocator_context = &GetGlobalAllocator();
-            config.allocate_function = BaseServer::StaticAllocateFunction;
-            config.free_function = BaseServer::StaticFreeFunction;
-            m_clientEndpoint[i] = reliable_endpoint_create( &config );
+
+            reliable_config_t reliable_config;
+            reliable_default_config( &reliable_config );
+            strcpy( reliable_config.name, "server endpoint" );
+            reliable_config.context = (void*) this;
+            reliable_config.index = i;
+            reliable_config.max_packet_size = m_config.maxPacketSize;
+            reliable_config.fragment_above = m_config.fragmentPacketsAbove;
+            reliable_config.max_fragments = m_config.maxPacketFragments;
+            reliable_config.fragment_size = m_config.packetFragmentSize; 
+            reliable_config.ack_buffer_size = m_config.ackedPacketsBufferSize;
+            reliable_config.received_packets_buffer_size = m_config.receivedPacketsBufferSize;
+            reliable_config.fragment_reassembly_buffer_size = m_config.packetReassemblyBufferSize;
+            reliable_config.transmit_packet_function = BaseServer::StaticTransmitPacketFunction;
+            reliable_config.process_packet_function = BaseServer::StaticProcessPacketFunction;
+            reliable_config.allocator_context = &GetGlobalAllocator();
+            reliable_config.allocate_function = BaseServer::StaticAllocateFunction;
+            reliable_config.free_function = BaseServer::StaticFreeFunction;
+            m_clientEndpoint[i] = reliable_endpoint_create( &reliable_config );
             reliable_endpoint_reset( m_clientEndpoint[i] );
         }
         m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( *m_globalAllocator, m_config.maxPacketSize );

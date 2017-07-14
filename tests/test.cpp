@@ -1587,7 +1587,7 @@ void test_client_server_messages()
     config.channel[0].messageSendQueueSize = 32;
     config.channel[0].maxMessagesPerPacket = 8;
     config.channel[0].maxBlockSize = 1024;
-    config.channel[0].fragmentSize = 200;
+    config.channel[0].blockFragmentSize = 200;
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -1751,7 +1751,7 @@ void test_client_server_start_stop_restart()
     config.channel[0].messageSendQueueSize = 32;
     config.channel[0].maxMessagesPerPacket = 8;
     config.channel[0].maxBlockSize = 1024;
-    config.channel[0].fragmentSize = 200;
+    config.channel[0].blockFragmentSize = 200;
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -1863,7 +1863,7 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[0].maxBlockSize = 1024;
-    config.channel[0].fragmentSize = 200;
+    config.channel[0].blockFragmentSize = 200;
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -1936,7 +1936,7 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
     config.channel[0].maxBlockSize = 1024;
-    config.channel[0].fragmentSize = 200;
+    config.channel[0].blockFragmentSize = 200;
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -2010,7 +2010,7 @@ void test_client_server_message_exhaust_stream_allocator()
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[0].maxBlockSize = 1024;
-    config.channel[0].fragmentSize = 200;
+    config.channel[0].blockFragmentSize = 200;
 
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
@@ -2083,7 +2083,7 @@ void test_client_server_message_receive_queue_overflow()
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[0].maxBlockSize = 1024;
-    config.channel[0].fragmentSize = 200;
+    config.channel[0].blockFragmentSize = 200;
     config.channel[0].messageSendQueueSize = 1024;
     config.channel[0].messageReceiveQueueSize = 256;
     

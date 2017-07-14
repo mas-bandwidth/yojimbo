@@ -109,6 +109,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 /// The library namespace.
 
@@ -164,15 +165,15 @@ namespace yojimbo
     {
         ChannelType type;                                           ///< Channel type: reliable-ordered or unreliable-unordered.
         bool disableBlocks;                                         ///< Disables blocks being sent across this channel.
-        int sentPacketBufferSize;                                   ///< Maps packet level acks to individual messages & fragments. Please consider your packet send rate and make sure you have at least a few seconds worth of entries in this buffer.
+        int sentPacketBufferSize;                                   ///< Number of packet entries in the sent packet sequence buffer. Please consider your packet send rate and make sure you have at least a few seconds worth of entries in this buffer.
         int messageSendQueueSize;                                   ///< Number of messages in the send queue for this channel.
         int messageReceiveQueueSize;                                ///< Number of messages in the receive queue for this channel.
         int maxMessagesPerPacket;                                   ///< Maximum number of messages to include in each packet. Will write up to this many messages, provided the messages fit into the channel packet budget and the number of bytes remaining in the packet.
         int packetBudget;                                           ///< Maximum amount of message data to write to the packet for this channel (bytes). Specifying -1 means the channel can use up to the rest of the bytes remaining in the packet.
         int maxBlockSize;                                           ///< The size of the largest block that can be sent across this channel (bytes).
-        int fragmentSize;                                           ///< Blocks are split up into fragments of this size when sent over a reliable-ordered channel (bytes).
-        float messageResendTime;                                    ///< Minimum delay between message resends (seconds). Avoids sending the same message too frequently.
-        float fragmentResendTime;                                   ///< Minimum delay between fragment resends (seconds). Avoids sending the same fragment too frequently.
+        int blockFragmentSize;                                      ///< Blocks are split up into fragments of this size (bytes). Reliable-ordered channel only.
+        float messageResendTime;                                    ///< Minimum delay between message resends (seconds). Avoids sending the same message too frequently. Reliable-ordered channel only.
+        float blockFragmentResendTime;                              ///< Minimum delay between block fragment resends (seconds). Avoids sending the same fragment too frequently. Reliable-ordered channel only.
 
         ChannelConfig() : type ( CHANNEL_TYPE_RELIABLE_ORDERED )
         {
@@ -183,14 +184,14 @@ namespace yojimbo
             maxMessagesPerPacket = 256;
             packetBudget = -1;
             maxBlockSize = 256 * 1024;
-            fragmentSize = 1024;
+            blockFragmentSize = 1024;
             messageResendTime = 0.1f;
-            fragmentResendTime = 0.25f;
+            blockFragmentResendTime = 0.25f;
         }
 
         int GetMaxFragmentsPerBlock() const
         {
-            return maxBlockSize / fragmentSize;
+            return maxBlockSize / blockFragmentSize;
         }
     };
 
@@ -206,14 +207,12 @@ namespace yojimbo
     {
         int numChannels;                                        ///< Number of message channels in [1,MaxChannels]. Each message channel must have a corresponding configuration below.
         int maxPacketSize;                                      ///< The maximum size of packets generated to transmit messages between client and server (bytes).
-        int slidingWindowSize;                                  ///< The size of the sliding window used for packet acks (# of packets in history). Depending on your packet send rate, you should make sure this buffer is large enough to cover at least a few seconds worth of packets.
         ChannelConfig channel[MaxChannels];                     ///< Per-channel configuration. See ChannelConfig for details.
 
         ConnectionConfig()
         {
             numChannels = 1;
             maxPacketSize = 8 * 1024;
-            slidingWindowSize = 1024;
         }
     };
 
@@ -227,25 +226,19 @@ namespace yojimbo
 
     struct BaseClientServerConfig : public ConnectionConfig
     {
-        // todo: config needed to create reliable.io endpoints should go here
-
-        /*
-        int fragment_above;
-        int max_fragments;
-        int fragment_size;
-        int ack_buffer_size;
-        int sent_packets_buffer_size;           // already have this
-        int received_packets_buffer_size;
-        int fragment_reassembly_buffer_size;
-        */
-
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
         bool networkSimulator;                                  ///< If true then a network simulator is created for simulating latency, jitter, packet loss and duplicates.
         int maxSimulatorPackets;                                ///< Maximum number of packets that can be stored in the network simulator. Additional packets are dropped.
-        
+        int fragmentPacketsAbove;                               ///< Packets above this size (bytes) are split apart into fragments and reassembled on the other side.
+        int packetFragmentSize;                                 ///< Size of each packet fragment (bytes).
+        int maxPacketFragments;                                 ///< Maximum number of fragments a packet can be split up into.
+        int packetReassemblyBufferSize;                         ///< Number of packet entries in the fragmentation reassembly buffer.
+        int ackedPacketsBufferSize;                             ///< Number of packet entries in the acked packet buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
+        int receivedPacketsBufferSize;                          ///< Number of packet entries in the received packet sequence buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
+
         BaseClientServerConfig()
         {
             protocolId = 0;
@@ -254,6 +247,12 @@ namespace yojimbo
             serverPerClientMemory = 10 * 1024 * 1024;
             networkSimulator = true;
             maxSimulatorPackets = 4 * 1024;
+            fragmentPacketsAbove = 1024;
+            packetFragmentSize = 1024;
+            maxPacketFragments = (int) ceil( maxPacketSize / packetFragmentSize );
+            packetReassemblyBufferSize = 64;
+            ackedPacketsBufferSize = 256;
+            receivedPacketsBufferSize = 256;
         }
     };
 
