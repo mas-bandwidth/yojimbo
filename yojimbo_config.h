@@ -179,7 +179,7 @@ namespace yojimbo
             disableBlocks = false;
             sendQueueSize = 1024;
             receiveQueueSize = 1024;
-            sentPacketBufferSize = 1024;                            // todo: rename this. it's not clear what it does
+            sentPacketBufferSize = 1024;
             maxMessagesPerPacket = 256;
             packetBudget = -1;
             maxBlockSize = 256 * 1024;
