@@ -2,8 +2,7 @@
     Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 */
 
-#include "yojimbo_config.h"
-#include "yojimbo_platform.h"
+#include "yojimbo.h"
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
@@ -39,9 +38,6 @@
 
 #include <memory.h>
 #include <string.h>
-
-#include "yojimbo_address.h"
-
 
 namespace yojimbo
 {

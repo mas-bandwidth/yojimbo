@@ -64,8 +64,6 @@ DONE
 
 TODO
 
-    ------------
-
     Consolidate all source code into yojimbo.h and yojimbo.cpp
 
     Make it easier to integrate the library with projects, eg. just drop in the files.

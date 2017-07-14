@@ -2,10 +2,7 @@
     Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 */
 
-#include "yojimbo_config.h"
-#include "yojimbo_client.h"
-#include "yojimbo_connection.h"
-#include "yojimbo_simulator.h"
+#include "yojimbo.h"
 #include "netcode.h"
 #include "reliable.h"
 #include <stdint.h>

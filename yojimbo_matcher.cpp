@@ -2,9 +2,8 @@
     Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 */
 
-#include "yojimbo_config.h"
-#include "yojimbo_matcher.h"
-#include "yojimbo_utility.h"
+#include "yojimbo.h"
+
 #include <mbedtls/config.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/net.h>

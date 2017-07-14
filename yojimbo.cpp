@@ -2,7 +2,6 @@
     Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 */
 
-#include "yojimbo_config.h"
 #include "yojimbo.h"
 
 #ifdef _MSC_VER
