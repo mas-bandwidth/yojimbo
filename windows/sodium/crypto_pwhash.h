@@ -4,10 +4,11 @@
 #include <stddef.h>
 
 #include "crypto_pwhash_argon2i.h"
+#include "crypto_pwhash_argon2id.h"
 #include "export.h"
 
 #ifdef __cplusplus
-# if __GNUC__
+# ifdef __GNUC__
 #  pragma GCC diagnostic ignored "-Wlong-long"
 # endif
 extern "C" {
@@ -17,9 +18,29 @@ extern "C" {
 SODIUM_EXPORT
 int crypto_pwhash_alg_argon2i13(void);
 
+#define crypto_pwhash_ALG_ARGON2ID13 crypto_pwhash_argon2id_ALG_ARGON2ID13
+SODIUM_EXPORT
+int crypto_pwhash_alg_argon2id13(void);
+
 #define crypto_pwhash_ALG_DEFAULT crypto_pwhash_ALG_ARGON2I13
 SODIUM_EXPORT
 int crypto_pwhash_alg_default(void);
+
+#define crypto_pwhash_BYTES_MIN crypto_pwhash_argon2i_BYTES_MIN
+SODIUM_EXPORT
+size_t crypto_pwhash_bytes_min(void);
+
+#define crypto_pwhash_BYTES_MAX crypto_pwhash_argon2i_BYTES_MAX
+SODIUM_EXPORT
+size_t crypto_pwhash_bytes_max(void);
+
+#define crypto_pwhash_PASSWD_MIN crypto_pwhash_argon2i_PASSWD_MIN
+SODIUM_EXPORT
+size_t crypto_pwhash_passwd_min(void);
+
+#define crypto_pwhash_PASSWD_MAX crypto_pwhash_argon2i_PASSWD_MAX
+SODIUM_EXPORT
+size_t crypto_pwhash_passwd_max(void);
 
 #define crypto_pwhash_SALTBYTES crypto_pwhash_argon2i_SALTBYTES
 SODIUM_EXPORT
@@ -32,6 +53,22 @@ size_t crypto_pwhash_strbytes(void);
 #define crypto_pwhash_STRPREFIX crypto_pwhash_argon2i_STRPREFIX
 SODIUM_EXPORT
 const char *crypto_pwhash_strprefix(void);
+
+#define crypto_pwhash_OPSLIMIT_MIN crypto_pwhash_argon2i_OPSLIMIT_MIN
+SODIUM_EXPORT
+size_t crypto_pwhash_opslimit_min(void);
+
+#define crypto_pwhash_OPSLIMIT_MAX crypto_pwhash_argon2i_OPSLIMIT_MAX
+SODIUM_EXPORT
+size_t crypto_pwhash_opslimit_max(void);
+
+#define crypto_pwhash_MEMLIMIT_MIN crypto_pwhash_argon2i_MEMLIMIT_MIN
+SODIUM_EXPORT
+size_t crypto_pwhash_memlimit_min(void);
+
+#define crypto_pwhash_MEMLIMIT_MAX crypto_pwhash_argon2i_MEMLIMIT_MAX
+SODIUM_EXPORT
+size_t crypto_pwhash_memlimit_max(void);
 
 #define crypto_pwhash_OPSLIMIT_INTERACTIVE crypto_pwhash_argon2i_OPSLIMIT_INTERACTIVE
 SODIUM_EXPORT
@@ -86,4 +123,3 @@ const char *crypto_pwhash_primitive(void)
 #endif
 
 #endif
-

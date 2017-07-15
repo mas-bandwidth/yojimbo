@@ -7,7 +7,7 @@
 #include "export.h"
 
 #ifdef __cplusplus
-# if __GNUC__
+# ifdef __GNUC__
 #  pragma GCC diagnostic ignored "-Wlong-long"
 # endif
 extern "C" {
@@ -42,6 +42,7 @@ SODIUM_EXPORT
 const char *crypto_generichash_primitive(void);
 
 typedef crypto_generichash_blake2b_state crypto_generichash_state;
+
 SODIUM_EXPORT
 size_t  crypto_generichash_statebytes(void);
 
@@ -63,6 +64,9 @@ int crypto_generichash_update(crypto_generichash_state *state,
 SODIUM_EXPORT
 int crypto_generichash_final(crypto_generichash_state *state,
                              unsigned char *out, const size_t outlen);
+
+SODIUM_EXPORT
+void crypto_generichash_keygen(unsigned char k[crypto_generichash_KEYBYTES]);
 
 #ifdef __cplusplus
 }

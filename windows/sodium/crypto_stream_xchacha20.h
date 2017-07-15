@@ -1,5 +1,5 @@
-#ifndef crypto_stream_salsa2012_H
-#define crypto_stream_salsa2012_H
+#ifndef crypto_stream_xchacha20_H
+#define crypto_stream_xchacha20_H
 
 /*
  *  WARNING: This is just a stream cipher. It is NOT authenticated encryption.
@@ -10,6 +10,7 @@
  */
 
 #include <stddef.h>
+#include <stdint.h>
 #include "export.h"
 
 #ifdef __cplusplus
@@ -19,25 +20,31 @@
 extern "C" {
 #endif
 
-#define crypto_stream_salsa2012_KEYBYTES 32U
+#define crypto_stream_xchacha20_KEYBYTES 32U
 SODIUM_EXPORT
-size_t crypto_stream_salsa2012_keybytes(void);
+size_t crypto_stream_xchacha20_keybytes(void);
 
-#define crypto_stream_salsa2012_NONCEBYTES 8U
+#define crypto_stream_xchacha20_NONCEBYTES 24U
 SODIUM_EXPORT
-size_t crypto_stream_salsa2012_noncebytes(void);
+size_t crypto_stream_xchacha20_noncebytes(void);
 
 SODIUM_EXPORT
-int crypto_stream_salsa2012(unsigned char *c, unsigned long long clen,
+int crypto_stream_xchacha20(unsigned char *c, unsigned long long clen,
                             const unsigned char *n, const unsigned char *k);
 
 SODIUM_EXPORT
-int crypto_stream_salsa2012_xor(unsigned char *c, const unsigned char *m,
+int crypto_stream_xchacha20_xor(unsigned char *c, const unsigned char *m,
                                 unsigned long long mlen, const unsigned char *n,
                                 const unsigned char *k);
 
 SODIUM_EXPORT
-void crypto_stream_salsa2012_keygen(unsigned char k[crypto_stream_salsa2012_KEYBYTES]);
+int crypto_stream_xchacha20_xor_ic(unsigned char *c, const unsigned char *m,
+                                   unsigned long long mlen,
+                                   const unsigned char *n, uint64_t ic,
+                                   const unsigned char *k);
+
+SODIUM_EXPORT
+void crypto_stream_xchacha20_keygen(unsigned char k[crypto_stream_xchacha20_KEYBYTES]);
 
 #ifdef __cplusplus
 }

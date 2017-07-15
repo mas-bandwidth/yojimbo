@@ -1,17 +1,34 @@
 #ifndef crypto_pwhash_scryptsalsa208sha256_H
 #define crypto_pwhash_scryptsalsa208sha256_H
 
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "export.h"
 
 #ifdef __cplusplus
-# if __GNUC__
+# ifdef __GNUC__
 #  pragma GCC diagnostic ignored "-Wlong-long"
 # endif
 extern "C" {
 #endif
+
+#define crypto_pwhash_scryptsalsa208sha256_BYTES_MIN 16U
+SODIUM_EXPORT
+size_t crypto_pwhash_scryptsalsa208sha256_bytes_min(void);
+
+#define crypto_pwhash_scryptsalsa208sha256_BYTES_MAX SIZE_MAX
+SODIUM_EXPORT
+size_t crypto_pwhash_scryptsalsa208sha256_bytes_max(void);
+
+#define crypto_pwhash_scryptsalsa208sha256_PASSWD_MIN 0U
+SODIUM_EXPORT
+size_t crypto_pwhash_scryptsalsa208sha256_passwd_min(void);
+
+#define crypto_pwhash_scryptsalsa208sha256_PASSWD_MAX SIZE_MAX
+SODIUM_EXPORT
+size_t crypto_pwhash_scryptsalsa208sha256_passwd_max(void);
 
 #define crypto_pwhash_scryptsalsa208sha256_SALTBYTES 32U
 SODIUM_EXPORT
@@ -25,19 +42,35 @@ size_t crypto_pwhash_scryptsalsa208sha256_strbytes(void);
 SODIUM_EXPORT
 const char *crypto_pwhash_scryptsalsa208sha256_strprefix(void);
 
-#define crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE 524288ULL
+#define crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_MIN 32768U
+SODIUM_EXPORT
+size_t crypto_pwhash_scryptsalsa208sha256_opslimit_min(void);
+
+#define crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_MAX 4294967295U
+SODIUM_EXPORT
+size_t crypto_pwhash_scryptsalsa208sha256_opslimit_max(void);
+
+#define crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_MIN 16777216U
+SODIUM_EXPORT
+size_t crypto_pwhash_scryptsalsa208sha256_memlimit_min(void);
+
+#define crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_MAX ((SIZE_MAX >= 68719476736U) ? 68719476736U : SIZE_MAX)
+SODIUM_EXPORT
+size_t crypto_pwhash_scryptsalsa208sha256_memlimit_max(void);
+
+#define crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE 524288U
 SODIUM_EXPORT
 size_t crypto_pwhash_scryptsalsa208sha256_opslimit_interactive(void);
 
-#define crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE 16777216ULL
+#define crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE 16777216U
 SODIUM_EXPORT
 size_t crypto_pwhash_scryptsalsa208sha256_memlimit_interactive(void);
 
-#define crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE 33554432ULL
+#define crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE 33554432U
 SODIUM_EXPORT
 size_t crypto_pwhash_scryptsalsa208sha256_opslimit_sensitive(void);
 
-#define crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE 1073741824ULL
+#define crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE 1073741824U
 SODIUM_EXPORT
 size_t crypto_pwhash_scryptsalsa208sha256_memlimit_sensitive(void);
 

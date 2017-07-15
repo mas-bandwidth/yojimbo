@@ -15,7 +15,7 @@
 #include "export.h"
 
 #ifdef __cplusplus
-# if __GNUC__
+# ifdef __GNUC__
 #  pragma GCC diagnostic ignored "-Wlong-long"
 # endif
 extern "C" {
@@ -41,6 +41,9 @@ SODIUM_EXPORT
 int crypto_stream_xor(unsigned char *c, const unsigned char *m,
                       unsigned long long mlen, const unsigned char *n,
                       const unsigned char *k);
+
+SODIUM_EXPORT
+void crypto_stream_keygen(unsigned char k[crypto_stream_KEYBYTES]);
 
 #ifdef __cplusplus
 }

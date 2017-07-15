@@ -3,8 +3,8 @@
 
 /*
  * THREAD SAFETY: crypto_sign_keypair() is thread-safe,
- * provided that you called sodium_init() once before using any
- * other libsodium function.
+ * provided that sodium_init() was called before.
+ *
  * Other functions, including crypto_sign_seed_keypair() are always thread-safe.
  */
 
@@ -14,11 +14,16 @@
 #include "export.h"
 
 #ifdef __cplusplus
-# if __GNUC__
+# ifdef __GNUC__
 #  pragma GCC diagnostic ignored "-Wlong-long"
 # endif
 extern "C" {
 #endif
+
+typedef crypto_sign_ed25519ph_state crypto_sign_state;
+
+SODIUM_EXPORT
+size_t  crypto_sign_statebytes(void);
 
 #define crypto_sign_BYTES crypto_sign_ed25519_BYTES
 SODIUM_EXPORT
@@ -68,6 +73,23 @@ int crypto_sign_verify_detached(const unsigned char *sig,
                                 const unsigned char *m,
                                 unsigned long long mlen,
                                 const unsigned char *pk)
+            __attribute__ ((warn_unused_result));
+
+SODIUM_EXPORT
+int crypto_sign_init(crypto_sign_state *state);
+
+SODIUM_EXPORT
+int crypto_sign_update(crypto_sign_state *state,
+                       const unsigned char *m, unsigned long long mlen);
+
+SODIUM_EXPORT
+int crypto_sign_final_create(crypto_sign_state *state, unsigned char *sig,
+                             unsigned long long *siglen_p,
+                             const unsigned char *sk);
+
+SODIUM_EXPORT
+int crypto_sign_final_verify(crypto_sign_state *state, unsigned char *sig,
+                             const unsigned char *pk)
             __attribute__ ((warn_unused_result));
 
 #ifdef __cplusplus
