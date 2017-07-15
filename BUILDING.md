@@ -13,7 +13,7 @@ Once you have Visual Studio installed, go to the command line under the yojimbo 
 
 This creates Yojimbo.sln and opens it in Visual Studio for you.
 
-Now you can build the library and run individual test programs as you would for any other Visual Studio solution.
+You can now build the library and run individual test programs as you would for any other Visual Studio solution.
 
 ## Building on MacOS and Linux
 
