@@ -129,6 +129,8 @@ void test_queue()
     check( queue.GetSize() == QueueSize );
 }
 
+#if YOJIMBO_HAS_MBEDTLS
+
 void test_base64()
 {
     const int BufferSize = 256;
@@ -164,6 +166,8 @@ void test_base64()
 
     check( memcmp( key, decoded_key, KeyBytes ) == 0 );
 }
+
+#endif // #if YOJIMBO_HAS_MBEDTLS
 
 void test_bitpacker()
 {
@@ -2207,7 +2211,9 @@ int main()
 
         RUN_TEST( test_endian );
         RUN_TEST( test_queue );
-        RUN_TEST( test_base64 );
+#if YOJIMBO_HAS_MBEDTLS
+		RUN_TEST( test_base64 );
+#endif // #if YOJIMBO_HAS_MBEDTLS
         RUN_TEST( test_bitpacker );
         RUN_TEST( test_stream );
         RUN_TEST( test_address );

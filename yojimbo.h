@@ -70,6 +70,10 @@
 #define YOJIMBO_BIG_ENDIAN 0
 #endif
 
+#if !defined( YOJIMBO_WITH_MBEDTLS )
+#define YOJIMBO_WITH_MBEDTLS 1
+#endif // #if !defined( YOJIMBO_WITH_MBEDTLS )
+
 #ifdef _MSC_VER
 #pragma warning( disable : 4127 )
 #pragma warning( disable : 4244 )
@@ -991,6 +995,8 @@ namespace yojimbo
 
     uint64_t murmur_hash_64( const void * key, uint32_t length, uint64_t seed );
 
+#if YOJIMBO_WITH_MBEDTLS
+
     /**
         Base 64 encode a string.
         @param input The input string value. Must be null terminated.
@@ -1041,6 +1047,8 @@ namespace yojimbo
      */
 
     void print_bytes( const char * label, const uint8_t * data, int data_bytes );
+
+#endif // #if YOJIMBO_WITH_MBEDTLS
 
     /**
         A simple bit array class.
@@ -3965,94 +3973,6 @@ namespace yojimbo
 
 namespace yojimbo
 {
-    /**
-        Matcher status enum.
-        Designed for when the matcher will be made non-blocking. The matcher is currently blocking in Matcher::RequestMatch
-     */
-
-    enum MatchStatus
-    {
-        MATCH_IDLE,                 ///< The matcher is idle.
-        MATCH_BUSY,                 ///< The matcher is requesting a match.
-        MATCH_READY,                ///< The match response is ready to read with Matcher::GetConnectToken.
-        MATCH_FAILED                ///< The matcher failed to find a match.
-    };
-
-    /**
-        Communicates with the matcher web service over HTTPS.
-        See docker/matcher/matcher.go for details. Launch the matcher via "premake5 matcher".
-        This class will be improved in the future, most importantly to make Matcher::RequestMatch a non-blocking operation.
-     */
-
-    class Matcher
-    {
-    public:
-
-        /**
-            Matcher constructor.
-            @param allocator The allocator to use for allocations.
-         */
-
-        explicit Matcher( Allocator & allocator );
-       
-        /**
-            Matcher destructor.
-         */
-
-        ~Matcher();
-
-        /**
-            Initialize the matcher. 
-            @returns True if the matcher initialized successfully, false otherwise.
-         */
-
-        bool Initialize();
-
-        /** 
-            Request a match.
-            This is how clients get connect tokens from matcher.go. 
-            They request a match and the server replies with a set of servers to connect to, and a connect token to pass to that server.
-            IMPORTANT: This function is currently blocking. It will be made non-blocking in the near future.
-            @param protocolId The protocol id that we are using. Used to filter out servers with different protocol versions.
-            @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64 bit number.
-            @see Matcher::GetMatchStatus
-            @see Matcher::GetConnectToken
-         */
-
-        void RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate );
-
-        /**
-            Get the current match status.
-            Because Matcher::RequestMatch is currently blocking this will be MATCH_READY or MATCH_FAILED immediately after that function returns.
-            If the status is MATCH_READY you can call Matcher::GetMatchResponse to get the match response data corresponding to the last call to Matcher::RequestMatch.
-            @returns The current match status.
-         */
-
-        MatchStatus GetMatchStatus();
-
-        /**
-            Get connect token.
-            This can only be called if the match status is MATCH_READY.
-            @param connectToken The connect token data to fill [out].
-            @see Matcher::RequestMatch
-            @see Matcher::GetMatchStatus
-         */
-
-        void GetConnectToken( uint8_t * connectToken );
-
-    private:
-
-        Matcher( const Matcher & matcher );
-
-        const Matcher & operator = ( const Matcher & other );
-
-        Allocator * m_allocator;                                ///< The allocator passed into the constructor.
-        bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
-        MatchStatus m_matchStatus;                              ///< The current match status.
-        struct MatcherInternal * m_internal;                    ///< Internals are in here to avoid spilling details of mbedtls library outside of yojimbo_matcher.cpp
-        uint8_t m_connectToken[ConnectTokenBytes];              ///< The connect token data from the last call to Matcher::RequestMatch once the match status is MATCH_READY.
-    };
-
     struct ChannelPacketData
     {
         uint32_t channelIndex : 16;
@@ -5608,6 +5528,96 @@ namespace yojimbo
         netcode_client_t * m_client;                    ///< netcode.io client data.
         Address m_address;                              ///< The client address.
         uint64_t m_clientId;                            ///< The globally unique client id (set on each call to connect)
+    };
+
+    /**
+        Matcher status enum.
+        Designed for when the matcher will be made non-blocking. The matcher is currently blocking in Matcher::RequestMatch
+     */
+
+    enum MatchStatus
+    {
+        MATCH_IDLE,                 ///< The matcher is idle.
+        MATCH_BUSY,                 ///< The matcher is requesting a match.
+        MATCH_READY,                ///< The match response is ready to read with Matcher::GetConnectToken.
+        MATCH_FAILED                ///< The matcher failed to find a match.
+    };
+
+    /**
+        Communicates with the matcher web service over HTTPS.
+        See docker/matcher/matcher.go for details. Launch the matcher via "premake5 matcher".
+        This class will be improved in the future, most importantly to make Matcher::RequestMatch a non-blocking operation.
+     */
+
+    class Matcher
+    {
+    public:
+
+        /**
+            Matcher constructor.
+            @param allocator The allocator to use for allocations.
+         */
+
+        explicit Matcher( Allocator & allocator );
+       
+        /**
+            Matcher destructor.
+         */
+
+        ~Matcher();
+
+        /**
+            Initialize the matcher. 
+            @returns True if the matcher initialized successfully, false otherwise.
+         */
+
+        bool Initialize();
+
+        /** 
+            Request a match.
+            This is how clients get connect tokens from matcher.go. 
+            They request a match and the server replies with a set of servers to connect to, and a connect token to pass to that server.
+            IMPORTANT: This function is currently blocking. It will be made non-blocking in the near future.
+            @param protocolId The protocol id that we are using. Used to filter out servers with different protocol versions.
+            @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64 bit number.
+            @see Matcher::GetMatchStatus
+            @see Matcher::GetConnectToken
+         */
+
+        void RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate );
+
+        /**
+            Get the current match status.
+            Because Matcher::RequestMatch is currently blocking this will be MATCH_READY or MATCH_FAILED immediately after that function returns.
+            If the status is MATCH_READY you can call Matcher::GetMatchResponse to get the match response data corresponding to the last call to Matcher::RequestMatch.
+            @returns The current match status.
+         */
+
+        MatchStatus GetMatchStatus();
+
+        /**
+            Get connect token.
+            This can only be called if the match status is MATCH_READY.
+            @param connectToken The connect token data to fill [out].
+            @see Matcher::RequestMatch
+            @see Matcher::GetMatchStatus
+         */
+
+        void GetConnectToken( uint8_t * connectToken );
+
+    private:
+
+        Matcher( const Matcher & matcher );
+
+        const Matcher & operator = ( const Matcher & other );
+
+        Allocator * m_allocator;                                ///< The allocator passed into the constructor.
+        bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
+        MatchStatus m_matchStatus;                              ///< The current match status.
+#if YOJIMBO_HAS_MBEDTLS
+		struct MatcherInternal * m_internal;                    ///< Internals are in here to avoid spilling details of mbedtls library outside of yojimbo_matcher.cpp
+        uint8_t m_connectToken[ConnectTokenBytes];              ///< The connect token data from the last call to Matcher::RequestMatch once the match status is MATCH_READY.
+#endif // #if YOJIMBO_HAS_MBEDTLS
     };
 }
 

@@ -66,7 +66,10 @@ void ShutdownYojimbo()
 #include <stdio.h>
 #include <string.h>
 #include <stdio.h>
+
+#if YOJIMBO_HAS_MBEDTLS
 #include <mbedtls/base64.h>
+#endif // #if YOJIMBO_HAS_MBEDTLS
 
 extern "C" void netcode_random_bytes( uint8_t*, int );
 
@@ -140,6 +143,8 @@ namespace yojimbo
         printf( " (%d bytes)\n", data_bytes );
     }
 
+#if YOJIMBO_HAS_MBEDTLS
+
     int base64_encode_string( const char * input, char * output, int output_size )
     {
         yojimbo_assert( input );
@@ -199,6 +204,8 @@ namespace yojimbo
 
         return ( result == 0 ) ? (int) output_length : -1;
     }
+
+#endif // #if YOJIMBO_HAS_MBEDTLS
 }
 
 // ---------------------------------------------------------------------------------
@@ -865,6 +872,7 @@ double yojimbo_time()
 
 // ---------------------------------------------------------------------------------
 
+#if YOJIMBO_HAS_MBEDTLS
 #include <mbedtls/config.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/net.h>
@@ -874,6 +882,7 @@ double yojimbo_time()
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/error.h>
 #include <mbedtls/certs.h>
+#endif // #if YOJIMBO_HAS_MBEDTLS
 #include <inttypes.h>
 #include <string.h>
 #include "netcode.h"
@@ -885,26 +894,33 @@ namespace yojimbo
 {
     struct MatcherInternal
     {
+#if YOJIMBO_HAS_MBEDTLS
         mbedtls_net_context server_fd;
         mbedtls_entropy_context entropy;
         mbedtls_ctr_drbg_context ctr_drbg;
         mbedtls_ssl_context ssl;
         mbedtls_ssl_config conf;
         mbedtls_x509_crt cacert;
+#endif // #if YOJIMBO_HAS_MBEDTLS
     };
 
     Matcher::Matcher( Allocator & allocator )
     {
+#if YOJIMBO_HAS_MBEDTLS
         yojimbo_assert( ConnectTokenBytes == NETCODE_CONNECT_TOKEN_BYTES );
         m_allocator = &allocator;
         m_initialized = false;
         m_matchStatus = MATCH_IDLE;
         m_internal = YOJIMBO_NEW( allocator, MatcherInternal );
         memset( m_connectToken, 0, sizeof( m_connectToken ) );
+#else // #if YOJIMBO_HAS_MBEDTLS
+		(void) allocator;
+#endif // #if YOJIMBO_HAS_MBEDTLS
     }
 
     Matcher::~Matcher()
     {
+#if YOJIMBO_HAS_MBEDTLS
         mbedtls_net_free( &m_internal->server_fd );
         mbedtls_x509_crt_free( &m_internal->cacert );
         mbedtls_ssl_free( &m_internal->ssl );
@@ -912,11 +928,14 @@ namespace yojimbo
         mbedtls_ctr_drbg_free( &m_internal->ctr_drbg );
         mbedtls_entropy_free( &m_internal->entropy );
         YOJIMBO_DELETE( *m_allocator, MatcherInternal, m_internal );
+#endif // #if YOJIMBO_HAS_MBEDTLS
     }
 
     bool Matcher::Initialize()
     {
-        const char * pers = "yojimbo_client";
+#if YOJIMBO_HAS_MBEDTLS
+		
+		const char * pers = "yojimbo_client";
 
         mbedtls_net_init( &m_internal->server_fd );
         mbedtls_ssl_init( &m_internal->ssl );
@@ -939,16 +958,20 @@ namespace yojimbo
             return false;
         }
 
-        m_initialized = true;
-
         memset( m_connectToken, 0, sizeof( m_connectToken ) );
+
+#endif // // #if YOJIMBO_HAS_MBEDTLS
+
+        m_initialized = true;
 
         return true;
     }
 
     void Matcher::RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate )
     {
-        yojimbo_assert( m_initialized );
+#if YOJIMBO_HAS_MBEDTLS
+		
+		yojimbo_assert( m_initialized );
 
         const char * data;
         char request[1024];
@@ -1072,6 +1095,15 @@ namespace yojimbo
     cleanup:
 
         mbedtls_ssl_close_notify( &m_internal->ssl );
+
+#else // #if YOJIMBO_HAS_MBEDTLS
+
+	(void) protocolId;
+	(void) clientId; 
+	(void) verifyCertificate;
+	m_matchStatus = MATCH_FAILED;
+
+#endif // #if YOJIMBO_HAS_MBEDTLS
     }
 
     MatchStatus Matcher::GetMatchStatus()
@@ -1081,12 +1113,17 @@ namespace yojimbo
 
     void Matcher::GetConnectToken( uint8_t * connectToken )
     {
+#if YOJIMBO_HAS_MBEDTLS
         yojimbo_assert( connectToken );
         yojimbo_assert( m_matchStatus == MATCH_READY );
         if ( m_matchStatus == MATCH_READY )
         {
             memcpy( connectToken, m_connectToken, ConnectTokenBytes );
         }
+#else // #if YOJIMBO_HAS_MBEDTLS
+		(void) connectToken;
+		yojimbo_assert( false );
+#endif // #if YOJIMBO_HAS_MBEDTLS
     }
 }
 
