@@ -30,7 +30,7 @@ DONE
 
         1. On clone, you must call "git submodule update --recursive" to get the netcode.io and reliable.io submodules. They will initially be empty.
 
-        2. To update the submodules to their respective head revisions: "git submodule update --remote --merge"
+        2. To update the submodules to their respective head revisions: "sigit submodule update --remote --merge"
 
         3. Editing the submodules in place doesn't seem to work, unless you created that submodule in your local repository (MacOS in my case).
 
@@ -64,17 +64,17 @@ DONE
 
     Consolidate all source code into yojimbo.h and yojimbo.cpp
 
-TODO
-
     Get everything working on windows, including only using release MT libraries for sodium, mbedtls etc.
 
     Convert across to multithreaded DLL by default on Windows. Works better with Unreal engine this way.
 
-    ------------
-
     Add some way to easily disable mbedtls usage. Some clients will not want this dependency, especially during development, or if they have their own HTTP client.
 
-    ------------
+TODO
+
+    Pass in the library option to link dependent libraries into my yojimbo.lib, so it's just yojimbo.lib, not sodium.lib and mbedtls.lib etc on windows.
+
+    Test that library and source links clean into Unreal engine, eg. yojimbo.lib and yojimbo.h standalone.
 
     *** Feature complete for 0.6 release ***
 
