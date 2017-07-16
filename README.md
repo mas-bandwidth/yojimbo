@@ -20,11 +20,19 @@ Right now it provides support for:
 * Reliable-ordered messages and data blocks
 * Packet fragmentation and reassembly
 
-Work over the past few months has been focused on rebuilding the library on top of [netcode.io](http://netcode.io) and [reliable.io](https://github.com/networkprotocol/reliable.io). 
-
-This work is almost complete and a new release is imminent.
-
 For more details please refer to the [roadmap](https://github.com/networkprotocol/yojimbo/blob/master/ROADMAP.md).
+
+## Source Code
+
+You can get the latest source code by cloning it from github:
+
+      git clone https://github.com/networkprotocol/yojimbo.git
+
+After cloning, run this command to populate the netcode.io and reliable.io submodules:
+
+      git submodule update --recursive
+   
+Alternatively, you can download one of the latest [releases](https://github.com/networkprotocol/yojimbo/releases)
 
 ## Author
 
