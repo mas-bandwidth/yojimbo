@@ -5614,10 +5614,10 @@ namespace yojimbo
         Allocator * m_allocator;                                ///< The allocator passed into the constructor.
         bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
         MatchStatus m_matchStatus;                              ///< The current match status.
-#if YOJIMBO_HAS_MBEDTLS
+#if YOJIMBO_WITH_MBEDTLS
 		struct MatcherInternal * m_internal;                    ///< Internals are in here to avoid spilling details of mbedtls library outside of yojimbo_matcher.cpp
         uint8_t m_connectToken[ConnectTokenBytes];              ///< The connect token data from the last call to Matcher::RequestMatch once the match status is MATCH_READY.
-#endif // #if YOJIMBO_HAS_MBEDTLS
+#endif // #if YOJIMBO_WITH_MBEDTLS
     };
 }
 
