@@ -55,23 +55,13 @@ Document the API with doxygen. Review and finalize all APIs where possible. Secu
 
 This release incorporates all bugfixes since 0.4.0
 
-## 0.6.0 - Refactor (current)
+## 0.6.0 - netcode.io and reliable.io
 
-Rebuild yojimbo on top of netcode.io and reliable.io
+Yojimbo client/server rebuilt on top of netcode.io and reliable.io
 
-Add support for packet fragmentation and re-assembly.
+## 0.7.0 - QoS
 
-Add support for packet loss and round trip time estimates.
-
-Estimate: 75% complete
-
-## 0.7.0 - Matchmaker
-
-Extend matcher.go to support multiple dedicated servers reporting to it via HTTPS.
-
-The matcher will satisfy client requests to join matches by directing clients towards servers with empty slots, sorting servers in the order of servers with the least free slots (1) to the most free slots (maxClients) so clients tend to cluster.
-
-I may even setup a swarm of fake clients as well for stress test behavior, this could be very interesting. As a stretch goal, it would be cool to implement a web visualization showing the behavior of clients and servers in this simulated system so you can see everything that is going on.
+This release will extend the protocol to have RTT and packet loss estimates.
 
 ## Feedback
 
