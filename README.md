@@ -26,11 +26,11 @@ For more details please refer to the [roadmap](https://github.com/networkprotoco
 
 You can get the latest source code by cloning it from github:
 
-   git clone https://github.com/networkprotocol/yojimbo.git
+      git clone https://github.com/networkprotocol/yojimbo.git
 
 After cloning, run this command to populate the netcode.io and reliable.io submodules:
 
-   git submodule update --recursive
+      git submodule update --recursive
    
 Alternatively, you can download one of the latest [releases](https://github.com/networkprotocol/yojimbo/releases)
 
