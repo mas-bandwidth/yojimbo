@@ -45,8 +45,6 @@ This release will extend the internal UDP-based network protocol to support:
 3. Multiple user configurable message channels with different reliability and ordering guarantees (done)
 4. Support for channels with unreliable, unordered messages and blocks (done)
 
-Completed, but moved immediately on to documentation and finalizing the API. Expect a new 0.4.0 release shortly.
-
 ## 0.4.0 - Document and finalize API
 
 Document the API with doxygen. Review and finalize all APIs where possible. Security audit and check.
@@ -57,7 +55,9 @@ This release incorporates all bugfixes since 0.4.0
 
 ## 0.6.0 - netcode.io and reliable.io
 
-Yojimbo client/server rebuilt on top of netcode.io and reliable.io
+Adds support for packet fragmentation and reassembly.
+
+Yojimbo client and server completely rebuilt on top of netcode.io and reliable.io
 
 ## 0.7.0 - QoS
 
