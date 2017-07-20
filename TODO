@@ -14,7 +14,7 @@ TODO
 
     This will enable local loopback packet exchange between a client and server, and should work to a standard interface that is the same across all client/server implementations.
 
-    eg. this should be implemented in the base client / base server.
+    This should be implemented as a netcode.io feature, and ideally integrated such that portions are in base client/server and can be reused easily across client/server impls.
 
     ------------
 
