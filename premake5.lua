@@ -286,6 +286,15 @@ if not os.is "windows" then
         end
     }
 
+    newaction
+    {
+        trigger     = "update_submodules",
+        description = "Updates to latest code for netcode.io and reliable.io",
+        execute = function ()
+            os.execute "git submodule update --remote --merge"
+        end
+    }
+
 else
 
     -- Windows

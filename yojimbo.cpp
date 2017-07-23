@@ -2947,7 +2947,7 @@ namespace yojimbo
                 Disconnect();
                 return;
             }
-            reliable_endpoint_update( m_endpoint );
+            reliable_endpoint_update( m_endpoint, m_time );
             int numAcks;
             const uint16_t * acks = reliable_endpoint_get_acks( m_endpoint, &numAcks );
             m_connection->ProcessAcks( acks, numAcks );
@@ -3029,7 +3029,7 @@ namespace yojimbo
         reliable_config.allocator_context = m_clientAllocator;
         reliable_config.allocate_function = BaseClient::StaticAllocateFunction;
         reliable_config.free_function = BaseClient::StaticFreeFunction;
-        m_endpoint = reliable_endpoint_create( &reliable_config );
+        m_endpoint = reliable_endpoint_create( &reliable_config, m_time );
         reliable_endpoint_reset( m_endpoint );
     }
 
@@ -3429,7 +3429,7 @@ namespace yojimbo
             reliable_config.allocator_context = &GetGlobalAllocator();
             reliable_config.allocate_function = BaseServer::StaticAllocateFunction;
             reliable_config.free_function = BaseServer::StaticFreeFunction;
-            m_clientEndpoint[i] = reliable_endpoint_create( &reliable_config );
+            m_clientEndpoint[i] = reliable_endpoint_create( &reliable_config, m_time );
             reliable_endpoint_reset( m_clientEndpoint[i] );
         }
         m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( *m_globalAllocator, m_config.maxPacketSize );
@@ -3477,7 +3477,7 @@ namespace yojimbo
                     DisconnectClient( i );
                     continue;
                 }
-                reliable_endpoint_update( m_clientEndpoint[i] );
+                reliable_endpoint_update( m_clientEndpoint[i], m_time );
                 int numAcks;
                 const uint16_t * acks = reliable_endpoint_get_acks( m_clientEndpoint[i], &numAcks );
                 m_clientConnection[i]->ProcessAcks( acks, numAcks );
