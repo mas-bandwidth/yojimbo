@@ -291,7 +291,11 @@ if not os.is "windows" then
         trigger     = "update_submodules",
         description = "Updates to latest code for netcode.io and reliable.io",
         execute = function ()
+            os.execute "git pull"
             os.execute "git submodule update --remote --merge"
+            os.execute "git add *"
+            os.execute "git commit -am \"update submodules\""
+            os.execute "git push"
         end
     }
 
