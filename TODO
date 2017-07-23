@@ -1,10 +1,12 @@
+DONE
+
+    Implement packet loss, latency from reliable.io
+
 TODO
 
-    Implement packet loss, latency, jitter estimates in reliable.io
+    Client and server need some way to get statistics to return to client, eg. num packets sent, num packets received, packet loss %, rtt milliseconds.
 
-    Integrate QoS settings above with yojimbo client/server and connection
-
-    Test these between a real client and server running on my linode
+    Test these between a real client and server running on my linode, eg. print out network stats on client every few seconds.
 
     ------------
 
