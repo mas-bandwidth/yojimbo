@@ -72,9 +72,11 @@ int ClientMain( int argc, char * argv[] )
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
 
-    const double deltaTime = 0.1;
+    const double deltaTime = 0.01f;
 
-    signal( SIGINT, interrupt_handler );    
+    signal( SIGINT, interrupt_handler );
+
+    float accumulator = 0.0f;
 
     while ( !quit )
     {
@@ -92,7 +94,15 @@ int ClientMain( int argc, char * argv[] )
         if ( client.ConnectionFailed() )
             break;
 
-        yojimbo_sleep( deltaTime );    
+        yojimbo_sleep( deltaTime );
+
+        if ( client.IsConnected() && ( accumulator += deltaTime ) > 1.0f )
+        {
+            NetworkInfo info;
+            client.GetNetworkInfo( info );
+            printf( "rtt = %.1f, packet loss = %.1f%%\n", info.RTT, info.packetLoss );
+            accumulator = 0.0f;
+        }
     }
 
     client.Disconnect();

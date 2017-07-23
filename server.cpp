@@ -52,9 +52,11 @@ int ServerMain()
 
     server.Start( MaxClients );
 
-    const double deltaTime = 0.1;
+    const double deltaTime = 0.01f;
 
     signal( SIGINT, interrupt_handler );    
+
+    float accumulator = 0.0f;
 
     while ( !quit )
     {
@@ -70,6 +72,14 @@ int ServerMain()
             break;
 
         yojimbo_sleep( deltaTime );
+
+        if ( server.IsClientConnected(0) && ( accumulator += deltaTime ) > 1.0f )
+        {
+            NetworkInfo info;
+            server.GetNetworkInfo( 0, info );
+            printf( "rtt = %.1f, packet loss = %.1f%%\n", info.RTT, info.packetLoss );
+            accumulator = 0.0f;
+        }
     }
 
     server.Stop();
