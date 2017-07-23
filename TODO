@@ -14,8 +14,6 @@ DONE
 
 TODO
 
-    ------------
-
     Add ability to back-channel connect client and server (at the base client level).
 
     This should allow the ability to pump in client -> server packets for a connected slot, and server -> client packets.
