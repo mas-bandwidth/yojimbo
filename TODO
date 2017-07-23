@@ -10,15 +10,9 @@ DONE
 
     Resolved. Was rejecting packets incoming to lo0, not originating from localhost. Binding to server IP fixed it.
 
+    Simplified RTT calculation and added more smoothing.
+
 TODO
-
-    Now I have some concerns about my RTT calculation.
-
-    What I'm really doing is sort of assuming that the acks provide a good RTT estimate.
-
-    But really, an ack is not an immediate response. When packets are dropped, acks are "late" but come through anyway.
-
-    This seems to happen even when I try to filter out for example, for only the first ack etc.
 
     ------------
 
