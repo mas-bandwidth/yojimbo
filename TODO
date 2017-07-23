@@ -1,12 +1,14 @@
 DONE
 
-    Implement packet loss, latency from reliable.io
-
-TODO
+    Integrate packet loss, latency from reliable.io
 
     Client and server need some way to get statistics to return to client, eg. num packets sent, num packets received, packet loss %, rtt milliseconds.
 
+TODO
+
     Test these between a real client and server running on my linode, eg. print out network stats on client every few seconds.
+
+    Having some trouble testing connection to linode server. Firewall issues?
 
     ------------
 
