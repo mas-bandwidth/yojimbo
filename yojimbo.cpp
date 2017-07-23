@@ -3127,6 +3127,20 @@ namespace yojimbo
         m_connection->ReleaseMessage( message );
     }
 
+    void BaseClient::GetNetworkInfo( NetworkInfo & info ) const
+    {
+        memset( &info, 0, sizeof( info ) );
+        if ( m_connection )
+        {
+            const uint64_t * counters = reliable_endpoint_counters( m_endpoint );
+            info.numPacketsSent = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_SENT];
+            info.numPacketsReceived = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED];
+            info.numPacketsAcked = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED];
+            info.RTT = reliable_endpoint_rtt( m_endpoint );
+            info.packetLoss = reliable_endpoint_packet_loss( m_endpoint );
+        }
+    }
+
     // ------------------------------------------------------------------------------------------------------------------
 
     Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) 
@@ -3588,6 +3602,23 @@ namespace yojimbo
         yojimbo_assert( clientIndex < m_maxClients );
         yojimbo_assert( m_clientConnection[clientIndex] );
         m_clientConnection[clientIndex]->ReleaseMessage( message );
+    }
+
+    void BaseServer::GetNetworkInfo( int clientIndex, NetworkInfo & info ) const
+    {
+        yojimbo_assert( IsRunning() );
+        yojimbo_assert( clientIndex >= 0 ); 
+        yojimbo_assert( clientIndex < m_maxClients );
+        memset( &info, 0, sizeof( info ) );
+        if ( IsClientConnected( clientIndex ) )
+        {
+            const uint64_t * counters = reliable_endpoint_counters( m_clientEndpoint[clientIndex] );
+            info.numPacketsSent = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_SENT];
+            info.numPacketsReceived = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED];
+            info.numPacketsAcked = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED];
+            info.RTT = reliable_endpoint_rtt( m_clientEndpoint[clientIndex] );
+            info.packetLoss = reliable_endpoint_packet_loss( m_clientEndpoint[clientIndex] );
+        }
     }
 
     MessageFactory & BaseServer::GetClientMessageFactory( int clientIndex ) 
