@@ -14,14 +14,8 @@ DONE
 
 TODO
 
-    Add ability to back-channel connect client and server (at the base client level).
-
-    This should allow the ability to pump in client -> server packets for a connected slot, and server -> client packets.
-
-    This will enable local loopback packet exchange between a client and server, and should work to a standard interface that is the same across all client/server implementations.
-
-    This should be implemented as a netcode.io feature, and ideally integrated such that portions are in base client/server and can be reused easily across client/server impls.
-
+    Integrate netcode.io loopback client support and add loopback.cpp example showing usage, plus a unit test for it as well.
+    
     ------------
 
     Pass over doxygen documentation again.
