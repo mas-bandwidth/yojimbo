@@ -76,8 +76,6 @@ int ClientMain( int argc, char * argv[] )
 
     signal( SIGINT, interrupt_handler );
 
-    float accumulator = 0.0f;
-
     while ( !quit )
     {
         client.SendPackets();
@@ -95,14 +93,6 @@ int ClientMain( int argc, char * argv[] )
             break;
 
         yojimbo_sleep( deltaTime );
-
-        if ( client.IsConnected() && ( accumulator += deltaTime ) > 1.0f )
-        {
-            NetworkInfo info;
-            client.GetNetworkInfo( info );
-            printf( "rtt = %.1f, packet loss = %.1f%%\n", info.RTT, info.packetLoss );
-            accumulator = 0.0f;
-        }
     }
 
     client.Disconnect();
