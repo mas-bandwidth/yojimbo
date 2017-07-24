@@ -4819,6 +4819,8 @@ namespace yojimbo
 
     /** 
         Adapter class
+        This is used to integrate your game engine with yojimbo. 
+        It lets you specify the message factory to be used by client and server, as well as to implement various callbacks.
      */
 
     class Adapter
@@ -4834,9 +4836,20 @@ namespace yojimbo
 
         virtual MessageFactory * CreateMessageFactory( Allocator & allocator )
         {
+            // you must override this to specify the message factory to use for your client/server
             (void) allocator;
             yojimbo_assert( false );
             return NULL;
+        }
+
+        virtual void ServerSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+        {
+            // override this function to pass loopback packets from server -> client
+            (void) clientIndex;
+            (void) packetData;
+            (void) packetBytes;
+            (void) packetSequence;
+            yojimbo_assert( false );
         }
     };
 
@@ -5046,6 +5059,43 @@ namespace yojimbo
          */
 
         virtual void GetNetworkInfo( int clientIndex, NetworkInfo & info ) const = 0;
+
+        /**
+            Connect a loopback client.
+            This allows you to have local clients connected to a server, for example for integrated server or singleplayer.
+            @param clientIndex The index of the client.
+            @param clientId The unique client id.
+            @param userData User data for this client. Optional. Pass NULL if not needed.
+         */
+
+        virtual void ConnectLoopbackClient( int clientIndex, uint64_t clientId, const uint8_t * userData ) = 0;
+
+        /**
+            Disconnect a loopback client.
+            Loopback clients are not disconnected by regular Disconnect or DisconnectAllClient calls. You need to call this function instead.
+            @param clientIndex The index of the client to disconnect. Must already be a connected loopback client.
+         */
+
+        virtual void DisconnectLoopbackClient( int clientIndex ) = 0;
+
+        /**
+            Is this client a loopback client?
+            @param clientIndex The client index.
+            @returns true if the client is a connected loopback client, false otherwise.
+         */
+
+        virtual bool IsLoopbackClient( int clientIndex ) const = 0;
+
+        /**
+            Process loopback packet.
+            Use this to pass packets from a client directly to the loopback client slot on the server.
+            @param clientIndex The client index. Must be an already connected loopback client.
+            @param packetData The packet data to process.
+            @param packetBytes The number of bytes of packet data.
+            @param packetSequence The packet sequence number.
+         */
+
+        virtual void ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence ) = 0;
     };
 
     /**
@@ -5105,6 +5155,8 @@ namespace yojimbo
         uint8_t * GetPacketBuffer() { return m_packetBuffer; }
 
         void * GetContext() { return m_context; }
+
+        Adapter & GetAdapter() { yojimbo_assert( m_adapter ); return *m_adapter; }
 
         Allocator & GetGlobalAllocator() { yojimbo_assert( m_globalAllocator ); return *m_globalAllocator; }
 
@@ -5178,6 +5230,14 @@ namespace yojimbo
 
         int GetNumConnectedClients() const;
 
+        void ConnectLoopbackClient( int clientIndex, uint64_t clientId, const uint8_t * userData );
+
+        void DisconnectLoopbackClient( int clientIndex );
+
+        bool IsLoopbackClient( int clientIndex ) const;
+
+        void ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
+
     private:
 
         void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
@@ -5186,7 +5246,11 @@ namespace yojimbo
 
         void ConnectDisconnectCallbackFunction( int clientIndex, int connected );
 
+        void SendLoopbackPacketCallbackFunction( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
+
         static void StaticConnectDisconnectCallbackFunction( void * context, int clientIndex, int connected );
+
+        static void StaticSendLoopbackPacketCallbackFunction( void * context, int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
         ClientServerConfig m_config;
         netcode_server_t * m_server;

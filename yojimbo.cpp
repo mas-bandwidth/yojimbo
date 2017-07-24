@@ -3714,6 +3714,8 @@ namespace yojimbo
         }
 
         netcode_server_connect_disconnect_callback( m_server, this, StaticConnectDisconnectCallbackFunction );
+
+        netcode_server_send_loopback_packet_callback( m_server, this, StaticSendLoopbackPacketCallbackFunction );
         
         netcode_server_start( m_server, maxClients );
     }
@@ -3815,6 +3817,26 @@ namespace yojimbo
         return netcode_server_num_connected_clients( m_server );
     }
 
+    void Server::ConnectLoopbackClient( int clientIndex, uint64_t clientId, const uint8_t * userData )
+    {
+        netcode_server_connect_loopback_client( m_server, clientIndex, clientId, userData );
+    }
+
+    void Server::DisconnectLoopbackClient( int clientIndex )
+    {
+        netcode_server_disconnect_loopback_client( m_server, clientIndex );
+    }
+
+    bool Server::IsLoopbackClient( int clientIndex ) const
+    {
+        return netcode_server_client_loopback( m_server, clientIndex );
+    }
+
+    void Server::ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+    {
+        netcode_server_process_loopback_packet( m_server, clientIndex, packetData, packetBytes, packetSequence );
+    }
+
     void Server::TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
         (void) packetSequence;
@@ -3848,10 +3870,21 @@ namespace yojimbo
         }
     }
 
+    void Server::SendLoopbackPacketCallbackFunction( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+    {
+        GetAdapter().ServerSendLoopbackPacket( clientIndex, packetData, packetBytes, packetSequence );
+    }
+
     void Server::StaticConnectDisconnectCallbackFunction( void * context, int clientIndex, int connected )
     {
         Server * server = (Server*) context;
         server->ConnectDisconnectCallbackFunction( clientIndex, connected );
+    }
+
+    void Server::StaticSendLoopbackPacketCallbackFunction( void * context, int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+    {
+        Server * server = (Server*) context;
+        server->SendLoopbackPacketCallbackFunction( clientIndex, packetData, packetBytes, packetSequence );
     }
 }
 
