@@ -59,9 +59,9 @@ Adds support for packet fragmentation and reassembly.
 
 Yojimbo client and server completely rebuilt on top of netcode.io and reliable.io
 
-## 0.7.0 - QoS
+## 0.7.0 - Loopback and QoS
 
-This release will extend the protocol to have RTT and packet loss estimates.
+This release will extend the protocol to have support for loopback clients, plus RTT and packet loss estimates.
 
 ## Feedback
 
