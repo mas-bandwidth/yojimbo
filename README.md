@@ -20,7 +20,7 @@ Right now it provides support for:
 * Reliable-ordered messages and data blocks
 * Packet fragmentation and reassembly
 
-For more details please refer to the [roadmap](https://github.com/networkprotocol/yojimbo/blob/master/ROADMAP.md).
+It is almost production ready. The first production ready release is imminent.
 
 ## Source Code
 
