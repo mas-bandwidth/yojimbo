@@ -3342,6 +3342,7 @@ namespace yojimbo
         if ( m_client )
         {
             netcode_client_state_change_callback( m_client, this, StaticStateChangeCallbackFunction );
+            netcode_client_send_loopback_packet_callback( m_client, this, StaticSendLoopbackPacketCallbackFunction );
         }
     }
 
@@ -3383,6 +3384,17 @@ namespace yojimbo
     int Client::ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
         return (int) GetConnection().ProcessPacket( GetContext(), packetSequence, packetData, packetBytes );
+    }
+
+    void Client::SendLoopbackPacketCallbackFunction( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+    {
+        GetAdapter().ClientSendLoopbackPacket( clientIndex, packetData, packetBytes, packetSequence );
+    }
+
+    void Client::StaticSendLoopbackPacketCallbackFunction( void * context, int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+    {
+        Client * client = (Client*) context;
+        client->SendLoopbackPacketCallbackFunction( clientIndex, packetData, packetBytes, packetSequence );
     }
 }
 

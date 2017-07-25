@@ -4829,6 +4829,8 @@ namespace yojimbo
 
         virtual ~Adapter() {}
 
+        // todo: document this class
+
         virtual Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
         {
             return YOJIMBO_NEW( allocator, TLSF_Allocator, memory, bytes );
@@ -4836,15 +4838,22 @@ namespace yojimbo
 
         virtual MessageFactory * CreateMessageFactory( Allocator & allocator )
         {
-            // you must override this to specify the message factory to use for your client/server
             (void) allocator;
             yojimbo_assert( false );
             return NULL;
         }
 
+        virtual void ClientSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+        {
+            (void) clientIndex;
+            (void) packetData;
+            (void) packetBytes;
+            (void) packetSequence;
+            yojimbo_assert( false );
+        }
+
         virtual void ServerSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
         {
-            // override this function to pass loopback packets from server -> client
             (void) clientIndex;
             (void) packetData;
             (void) packetBytes;
@@ -5554,6 +5563,8 @@ namespace yojimbo
 
         void * GetContext() { return m_context; }
 
+        Adapter & GetAdapter() { yojimbo_assert( m_adapter ); return *m_adapter; }
+
         void CreateInternal();
 
         void DestroyInternal();
@@ -5672,6 +5683,10 @@ namespace yojimbo
         void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+
+        void SendLoopbackPacketCallbackFunction( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
+
+        static void StaticSendLoopbackPacketCallbackFunction( void * context, int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
         ClientServerConfig m_config;                    ///< Client/server configuration.
         netcode_client_t * m_client;                    ///< netcode.io client data.
