@@ -3305,6 +3305,34 @@ namespace yojimbo
         return m_client ? netcode_client_index( m_client ) : -1;
     }
 
+    void Client::ConnectLoopback( uint64_t clientId, int clientIndex, int maxClients )
+    {
+        CreateInternal();
+        m_clientId = clientId;
+        CreateClient( m_address );
+        netcode_client_connect_loopback( m_client, clientIndex, maxClients );
+        SetClientState( CLIENT_STATE_CONNECTED );
+    }
+
+    void Client::DisconnectLoopback()
+    {
+        netcode_client_disconnect_loopback( m_client );
+        BaseClient::Disconnect();
+        DestroyClient();
+        DestroyInternal();
+        m_clientId = 0;
+    }
+
+    bool Client::IsLoopback() const
+    {
+        return netcode_client_loopback( m_client ) != 0;
+    }
+
+    void Client::ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+    {
+        netcode_client_process_loopback_packet( m_client, packetData, packetBytes, packetSequence );
+    }
+
     void Client::CreateClient( const Address & address )
     {
         DestroyClient();

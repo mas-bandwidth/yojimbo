@@ -5362,6 +5362,14 @@ namespace yojimbo
         virtual int GetClientIndex() const = 0;
 
         /**
+            Get the client id.
+            The client id is a unique identifier of this client.
+            @returns The client id.
+         */
+
+        virtual uint64_t GetClientId() const = 0;
+
+        /**
             Get the current client time.
             @see Client::AdvanceTime
          */
@@ -5439,6 +5447,39 @@ namespace yojimbo
          */
 
         virtual void GetNetworkInfo( NetworkInfo & info ) const = 0;
+
+        /**
+            Connect to server over loopback.
+            This allows you to have local clients connected to a server, for example for integrated server or singleplayer.
+            @param clientId The unique client id.
+            @param clientIndex The index of the client.
+            @param maxClients The maximum number of clients supported by the server.
+         */
+
+        virtual void ConnectLoopback( uint64_t clientId, int clientIndex, int maxClients ) = 0;
+
+        /**
+            Disconnect from server over loopback.
+         */
+
+        virtual void DisconnectLoopback() = 0;
+
+        /**
+            Is this a loopback client?
+            @returns true if the client is a loopback client, false otherwise.
+         */
+
+        virtual bool IsLoopback() const = 0;
+
+        /**
+            Process loopback packet.
+            Use this to pass packets from a server directly to the loopback client.
+            @param packetData The packet data to process.
+            @param packetBytes The number of bytes of packet data.
+            @param packetSequence The packet sequence number.
+         */
+
+        virtual void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence ) = 0;
     };
 
     /**
@@ -5600,6 +5641,16 @@ namespace yojimbo
         void AdvanceTime( double time );
 
         int GetClientIndex() const;
+
+        uint64_t GetClientId() const { return m_clientId; }
+
+        void ConnectLoopback( uint64_t clientId, int clientIndex, int maxClients );
+
+        void DisconnectLoopback();
+
+        bool IsLoopback() const;
+
+        void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
     private:
 

@@ -14,13 +14,17 @@ DONE
 
     Integrate netcode.io server loopback client support.
     
-TODO
-
     Extend netcode.io to support loopback for clients. Should be very straightforward.
+
+TODO
 
     Integrate netcode.io client loopback support into yojimbo.
 
-    Add a loopback.cpp example demonstrating loopback usage.    
+    Add a loopback.cpp example demonstrating loopback usage.
+
+    ------------
+
+    Consider if loopback should support the network simulator at yojimbo level, what that would look like, then if it makes sense, implement it.
 
     ------------
 
