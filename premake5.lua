@@ -1,5 +1,5 @@
 
-yojimbo_version = "0.6.0"
+yojimbo_version = "1.0"
 
 libs = { "sodium", "mbedtls", "mbedx509", "mbedcrypto" }
 
@@ -54,6 +54,10 @@ project "client_server"
     files { "client_server.cpp", "shared.h" }
     links { "yojimbo" }
 
+project "loopback"
+    files { "loopback.cpp", "shared.h" }
+    links { "yojimbo" }
+
 project "soak"
     files { "soak.cpp", "shared.h" }
     links { "yojimbo" }
@@ -77,11 +81,23 @@ if not os.is "windows" then
     newaction
     {
         trigger     = "client_server",
-        description = "Build and run client/server testbed",     
+        description = "Build and run client/server test",     
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
             if os.execute "make -j32 client_server" == 0 then
                 os.execute "./bin/client_server"
+            end
+        end
+    }
+
+    newaction
+    {
+        trigger     = "loopback",
+        description = "Build and run loopback test",     
+        execute = function ()
+            os.execute "test ! -e Makefile && premake5 gmake"
+            if os.execute "make -j32 loopback" == 0 then
+                os.execute "./bin/loopback"
             end
         end
     }

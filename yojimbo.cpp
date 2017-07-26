@@ -3305,8 +3305,9 @@ namespace yojimbo
         return m_client ? netcode_client_index( m_client ) : -1;
     }
 
-    void Client::ConnectLoopback( uint64_t clientId, int clientIndex, int maxClients )
+    void Client::ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients )
     {
+        Disconnect();
         CreateInternal();
         m_clientId = clientId;
         CreateClient( m_address );

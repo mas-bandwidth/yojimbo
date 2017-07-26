@@ -18,19 +18,9 @@ DONE
 
     Integrate netcode.io client loopback support into yojimbo.
 
-TODO
-
     Add a loopback.cpp example demonstrating loopback usage.
 
-    ------------
-
-    Add a unit test to verify loopback functionality is working properly.
-
-    ------------
-
-    Consider if loopback should support the network simulator at yojimbo level, what that would look like, then if it makes sense, implement it.
-
-    ------------
+TODO
 
     Pass over doxygen documentation again.
 

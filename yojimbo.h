@@ -11,8 +11,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#define YOJIMBO_MAJOR_VERSION 0
-#define YOJIMBO_MINOR_VERSION 6
+#define YOJIMBO_MAJOR_VERSION 1
+#define YOJIMBO_MINOR_VERSION 0
 #define YOJIMBO_PATCH_VERSION 0
 
 #if !defined (YOJIMBO_LITTLE_ENDIAN ) && !defined( YOJIMBO_BIG_ENDIAN )
@@ -5460,12 +5460,12 @@ namespace yojimbo
         /**
             Connect to server over loopback.
             This allows you to have local clients connected to a server, for example for integrated server or singleplayer.
-            @param clientId The unique client id.
             @param clientIndex The index of the client.
+            @param clientId The unique client id.
             @param maxClients The maximum number of clients supported by the server.
          */
 
-        virtual void ConnectLoopback( uint64_t clientId, int clientIndex, int maxClients ) = 0;
+        virtual void ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients ) = 0;
 
         /**
             Disconnect from server over loopback.
@@ -5655,7 +5655,7 @@ namespace yojimbo
 
         uint64_t GetClientId() const { return m_clientId; }
 
-        void ConnectLoopback( uint64_t clientId, int clientIndex, int maxClients );
+        void ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients );
 
         void DisconnectLoopback();
 
