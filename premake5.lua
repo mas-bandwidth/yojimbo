@@ -16,14 +16,13 @@ solution "Yojimbo"
         targetdir "bin/"  
     end
     rtti "Off"
+    links { libs }
     flags { "ExtraWarnings", "FloatFast", "EnableSSE2" }
     configuration "Debug"
         symbols "On"
-        links { libs }
     configuration "Release"
         optimize "Speed"
         defines { "NDEBUG" }
-        links { libs }
         
 project "test"
     files { "test.cpp" }

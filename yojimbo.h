@@ -3937,13 +3937,13 @@ namespace yojimbo
 
 #define YOJIMBO_MESSAGE_FACTORY_START( factory_class, num_message_types )                                                               \
                                                                                                                                         \
-    class factory_class : public MessageFactory                                                                                         \
+    class factory_class : public yojimbo::MessageFactory                                                                                \
     {                                                                                                                                   \
     public:                                                                                                                             \
         factory_class( yojimbo::Allocator & allocator ) : MessageFactory( allocator, num_message_types ) {}                             \
         yojimbo::Message * CreateMessageInternal( int type )                                                                            \
         {                                                                                                                               \
-            Message * message;                                                                                                          \
+            yojimbo::Message * message;                                                                                                 \
             yojimbo::Allocator & allocator = GetAllocator();                                                                            \
             (void) allocator;                                                                                                           \
             switch ( type )                                                                                                             \
