@@ -3132,12 +3132,14 @@ namespace yojimbo
         memset( &info, 0, sizeof( info ) );
         if ( m_connection )
         {
+            yojimbo_assert( m_endpoint );
             const uint64_t * counters = reliable_endpoint_counters( m_endpoint );
             info.numPacketsSent = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_SENT];
             info.numPacketsReceived = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED];
             info.numPacketsAcked = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED];
             info.RTT = reliable_endpoint_rtt( m_endpoint );
             info.packetLoss = reliable_endpoint_packet_loss( m_endpoint );
+            reliable_endpoint_bandwidth( m_endpoint, &info.sentBandwidth, &info.receivedBandwidth, &info.ackedBandwidth );
         }
     }
 
@@ -3653,12 +3655,14 @@ namespace yojimbo
         memset( &info, 0, sizeof( info ) );
         if ( IsClientConnected( clientIndex ) )
         {
+            yojimbo_assert( m_clientEndpoint[clientIndex] );
             const uint64_t * counters = reliable_endpoint_counters( m_clientEndpoint[clientIndex] );
             info.numPacketsSent = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_SENT];
             info.numPacketsReceived = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED];
             info.numPacketsAcked = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED];
             info.RTT = reliable_endpoint_rtt( m_clientEndpoint[clientIndex] );
             info.packetLoss = reliable_endpoint_packet_loss( m_clientEndpoint[clientIndex] );
+            reliable_endpoint_bandwidth( m_clientEndpoint[clientIndex], &info.sentBandwidth, &info.receivedBandwidth, &info.ackedBandwidth );
         }
     }
 
