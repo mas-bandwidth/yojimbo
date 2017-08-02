@@ -5287,6 +5287,8 @@ namespace yojimbo
 
         void ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
+        const Address & GetAddress() const { return m_address; }
+
     private:
 
         void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
