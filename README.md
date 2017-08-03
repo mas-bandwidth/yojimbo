@@ -12,14 +12,14 @@ As such it provides a time critical networking layer over UDP, with a client/ser
 
 **yojimbo** is production ready.
 
-It provides support for: 
+It provides:
 
 * Cryptographically secure authentication via [connect tokens](https://github.com/networkprotocol/netcode.io/blob/master/STANDARD.md)
 * Client/server connection management and timeouts
 * Encrypted and signed packets sent over UDP
 * Reliable-ordered messages and data blocks
 * Packet fragmentation and reassembly
-* Packet loss, latency and bandwidth estimates
+* Estimates of packet loss, latency and bandwidth usage
 
 ## Source Code
 
