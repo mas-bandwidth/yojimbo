@@ -10,17 +10,16 @@ As such it provides a time critical networking layer over UDP, with a client/ser
 
 ## Status
 
-**yojimbo** is currently in pre-release for early feedback. 
+**yojimbo** is production ready.
 
-Right now it provides support for: 
+It provides support for: 
 
 * Cryptographically secure authentication via [connect tokens](https://github.com/networkprotocol/netcode.io/blob/master/STANDARD.md)
 * Client/server connection management and timeouts
-* Signed and encrypted packets sent over UDP
+* Encrypted and signed packets sent over UDP
 * Reliable-ordered messages and data blocks
 * Packet fragmentation and reassembly
-
-It is almost production ready. The first production ready release is imminent.
+* Packet loss, latency and bandwidth estimates
 
 ## Source Code
 
@@ -38,7 +37,7 @@ Alternatively, you can download one of the latest [releases](https://github.com/
 
 The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with over 15 years experience in the game industry.
 
-Glenn is currently writing an article series about the development of this library called [Building a Game Network Protocol](https://gafferongames.com/categories/building-a-game-network-protocol).
+Glenn is writing an article series about the development of this library called [Building a Game Network Protocol](https://gafferongames.com/categories/building-a-game-network-protocol).
 
 You can support Glenn's work writing articles and open source code via [Patreon](http://www.patreon.com/gafferongames).
 
