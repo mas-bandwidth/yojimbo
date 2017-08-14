@@ -3192,8 +3192,7 @@ namespace yojimbo
                                                const uint8_t privateKey[], 
                                                uint64_t clientId, 
                                                const Address serverAddresses[], 
-                                               int numServerAddresses, 
-                                               int timeout )
+                                               int numServerAddresses )
     {
         char serverAddressStrings[NETCODE_MAX_SERVERS_PER_CONNECT][MaxAddressLength];
         const char * serverAddressStringPointers[NETCODE_MAX_SERVERS_PER_CONNECT];
@@ -3204,7 +3203,8 @@ namespace yojimbo
         }
         return netcode_generate_connect_token( numServerAddresses, 
                                                serverAddressStringPointers, 
-                                               timeout, 
+                                               m_config.timeout,
+                                               m_config.timeout, 
                                                clientId, 
                                                m_config.protocolId, 
                                                0, 

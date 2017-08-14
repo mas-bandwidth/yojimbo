@@ -70,6 +70,10 @@
 #define YOJIMBO_BIG_ENDIAN 0
 #endif
 
+#ifndef YOJIMBO_DEFAULT_TIMEOUT
+#define YOJIMBO_DEFAULT_TIMEOUT 5
+#endif
+
 #if !defined( YOJIMBO_WITH_MBEDTLS )
 #define YOJIMBO_WITH_MBEDTLS 1
 #endif // #if !defined( YOJIMBO_WITH_MBEDTLS )
@@ -242,7 +246,7 @@ namespace yojimbo
     struct ClientServerConfig : public ConnectionConfig
     {
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
-        float timeout;                                          ///< Timeout value in seconds. Set to negative value to disable timeouts (for debugging only).
+        int timeout;                                            ///< Timeout value in seconds. Set to negative value to disable timeouts (for debugging only).
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
@@ -258,7 +262,7 @@ namespace yojimbo
         ClientServerConfig()
         {
             protocolId = 0;
-            timeout = 5.0f;
+            timeout = YOJIMBO_DEFAULT_TIMEOUT;
             clientMemory = 10 * 1024 * 1024;
             serverGlobalMemory = 10 * 1024 * 1024;
             serverPerClientMemory = 10 * 1024 * 1024;
@@ -5716,8 +5720,7 @@ namespace yojimbo
                                            const uint8_t privateKey[], 
                                            uint64_t clientId, 
                                            const Address serverAddresses[], 
-                                           int numServerAddresses, 
-                                           int timeout = 45 );
+                                           int numServerAddresses );
 
         void CreateClient( const Address & address );
 
