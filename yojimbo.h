@@ -242,6 +242,7 @@ namespace yojimbo
     struct ClientServerConfig : public ConnectionConfig
     {
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
+        float timeout;                                          ///< Timeout value in seconds. Set to negative value to disable timeouts (for debugging only).
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
@@ -257,6 +258,7 @@ namespace yojimbo
         ClientServerConfig()
         {
             protocolId = 0;
+            timeout = 5.0f;
             clientMemory = 10 * 1024 * 1024;
             serverGlobalMemory = 10 * 1024 * 1024;
             serverPerClientMemory = 10 * 1024 * 1024;
