@@ -3925,6 +3925,7 @@ namespace yojimbo
     {
         if ( connected == 0 )
         {
+            GetAdapter().OnServerClientDisconnected( clientIndex );
             reliable_endpoint_reset( GetClientEndpoint( clientIndex ) );
             GetClientConnection( clientIndex ).Reset();
             NetworkSimulator * networkSimulator = GetNetworkSimulator();
@@ -3932,6 +3933,10 @@ namespace yojimbo
             {
                 networkSimulator->DiscardClientPackets( clientIndex );
             }
+        }
+        else
+        {
+            GetAdapter().OnServerClientConnected( clientIndex );
         }
     }
 

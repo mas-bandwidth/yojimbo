@@ -4925,6 +4925,24 @@ namespace yojimbo
             (void) packetSequence;
             yojimbo_assert( false );
         }
+
+        /**
+            Override this to get a callback when a client connects on the server.
+         */
+
+        virtual void OnServerClientConnected( int clientIndex )
+        {
+            (void) clientIndex;
+        }
+
+        /**
+            Override this to get a callback when a client disconnects from the server.
+         */
+
+        virtual void OnServerClientDisconnected( int clientIndex )
+        {
+            (void) clientIndex;
+        }
     };
 
     /**
