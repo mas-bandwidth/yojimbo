@@ -9,10 +9,10 @@ solution "Yojimbo"
     platforms { "x64" }
     configurations { "Debug", "Release" }
     if os.is "windows" then
-        includedirs { ".", "./windows", "netcode.io/c", "reliable.io" }
+        includedirs { ".", "./windows", "netcode.io", "reliable.io" }
         libdirs { "./windows" }
     else
-        includedirs { ".", "/usr/local/include", "netcode.io/c", "reliable.io" }
+        includedirs { ".", "/usr/local/include", "netcode.io", "reliable.io" }
         targetdir "bin/"  
     end
     rtti "Off"
@@ -31,7 +31,7 @@ project "test"
 project "yojimbo"
     kind "StaticLib"
     defines { "NETCODE_ENABLE_TESTS=1", "RELIABLE_ENABLE_TESTS=1" }
-    files { "yojimbo.h", "yojimbo.cpp", "tlsf/tlsf.h", "tlsf/tlsf.c", "netcode.io/c/netcode.c", "netcode.io/c/netcode.h", "reliable.io/reliable.c", "reliable.io/reliable.h" }
+    files { "yojimbo.h", "yojimbo.cpp", "tlsf/tlsf.h", "tlsf/tlsf.c", "netcode.io/netcode.c", "netcode.io/netcode.h", "reliable.io/reliable.c", "reliable.io/reliable.h" }
 
 project "client"
     files { "client.cpp", "shared.h" }
