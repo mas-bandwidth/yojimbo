@@ -5334,7 +5334,7 @@ namespace yojimbo
 
         void ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
-        const Address & GetAddress() const { return m_address; }
+        const Address & GetAddress() const { return m_boundAddress; }
 
     private:
 
@@ -5352,7 +5352,8 @@ namespace yojimbo
 
         ClientServerConfig m_config;
         netcode_server_t * m_server;
-        Address m_address;
+        Address m_address;                                  // original address passed to ctor
+        Address m_boundAddress;                             // address after socket bind, eg. valid port
         uint8_t m_privateKey[KeyBytes];
     };
 
@@ -5752,6 +5753,8 @@ namespace yojimbo
 
         void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
+        const Address & GetAddress() const { return m_boundAddress; }
+
     private:
 
         bool GenerateInsecureConnectToken( uint8_t * connectToken, 
@@ -5778,7 +5781,8 @@ namespace yojimbo
 
         ClientServerConfig m_config;                    ///< Client/server configuration.
         netcode_client_t * m_client;                    ///< netcode.io client data.
-        Address m_address;                              ///< The client address.
+        Address m_address;                              ///< Original address passed to ctor.
+        Address m_boundAddress;                         ///< Address after socket bind, eg. with valid port
         uint64_t m_clientId;                            ///< The globally unique client id (set on each call to connect)
     };
 

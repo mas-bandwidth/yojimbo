@@ -3170,6 +3170,7 @@ namespace yojimbo
     {
         m_clientId = 0;
         m_client = NULL;
+        m_boundAddress = m_address;
     }
 
     Client::~Client()
@@ -3366,6 +3367,7 @@ namespace yojimbo
         {
             netcode_client_state_change_callback( m_client, this, StaticStateChangeCallbackFunction );
             netcode_client_send_loopback_packet_callback( m_client, this, StaticSendLoopbackPacketCallbackFunction );
+            m_boundAddress.SetPort( netcode_client_get_port( m_client ) );
         }
     }
 
@@ -3373,6 +3375,7 @@ namespace yojimbo
     {
         if ( m_client )
         {
+            m_boundAddress = m_address;
             netcode_client_destroy( m_client );
             m_client = NULL;
         }
@@ -3746,6 +3749,7 @@ namespace yojimbo
         yojimbo_assert( KeyBytes == NETCODE_KEY_BYTES );
         memcpy( m_privateKey, privateKey, NETCODE_KEY_BYTES );
         m_address = address;
+        m_boundAddress = address;
         m_config = config;
         m_server = NULL;
     }
@@ -3783,12 +3787,15 @@ namespace yojimbo
         netcode_server_send_loopback_packet_callback( m_server, this, StaticSendLoopbackPacketCallbackFunction );
         
         netcode_server_start( m_server, maxClients );
+
+        m_boundAddress.SetPort( netcode_server_get_port( m_server ) );
     }
 
     void Server::Stop()
     {
         if ( m_server )
         {
+            m_boundAddress = m_address;
             netcode_server_stop( m_server );
             netcode_server_destroy( m_server );
             m_server = NULL;

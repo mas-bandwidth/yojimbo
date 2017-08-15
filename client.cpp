@@ -72,6 +72,10 @@ int ClientMain( int argc, char * argv[] )
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
 
+    char addressString[256];
+    client.GetAddress().ToString( addressString, sizeof( addressString ) );
+    printf( "client address is %s\n", addressString );
+
     const double deltaTime = 0.01f;
 
     signal( SIGINT, interrupt_handler );

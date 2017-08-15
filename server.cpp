@@ -52,6 +52,10 @@ int ServerMain()
 
     server.Start( MaxClients );
 
+    char addressString[256];
+    server.GetAddress().ToString( addressString, sizeof( addressString ) );
+    printf( "server address is %s\n", addressString );
+
     const double deltaTime = 0.01f;
 
     signal( SIGINT, interrupt_handler );    

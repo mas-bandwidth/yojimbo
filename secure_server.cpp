@@ -57,6 +57,10 @@ int ServerMain()
 
     const double deltaTime = 0.1;
 
+    char addressString[256];
+    server.GetAddress().ToString( addressString, sizeof( addressString ) );
+    printf( "server address is %s\n", addressString );
+
     signal( SIGINT, interrupt_handler );    
 
     while ( !quit )
