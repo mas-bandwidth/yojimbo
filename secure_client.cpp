@@ -95,6 +95,9 @@ int ClientMain( int argc, char * argv[] )
 
     client.Connect( clientId, connectToken );
 
+    if ( client.IsDisconnected() )
+        return 1;
+
     char addressString[256];
     client.GetAddress().ToString( addressString, sizeof( addressString ) );
     printf( "client address is %s\n", addressString );

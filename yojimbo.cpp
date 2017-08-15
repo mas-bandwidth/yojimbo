@@ -1052,7 +1052,7 @@ namespace yojimbo
             if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
             {
                 // IMPORTANT: certificate verification failed!
-                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "mbedtls_ssl_get_verify_result failed - flags = %x\n", flags );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_get_verify_result failed - flags = %x\n", flags );
                 m_matchStatus = MATCH_FAILED;
                 goto cleanup;
             }
@@ -1095,6 +1095,12 @@ namespace yojimbo
         yojimbo_assert( bytesRead <= (int) sizeof( buffer ) );
 
         data = strstr( (const char*)buffer, "\r\n\r\n" );
+        if ( !data )
+        {
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: invalid http response from matcher\n" );
+            m_matchStatus = MATCH_FAILED;
+            goto cleanup;
+        }
 
         while ( *data == 13 || *data == 10 )
             ++data;
@@ -1108,7 +1114,7 @@ namespace yojimbo
         }
         else
         {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "failed to decode connect token base64\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to decode connect token base64\n" );
             m_matchStatus = MATCH_FAILED;
         }
 
@@ -3241,7 +3247,14 @@ namespace yojimbo
         m_clientId = clientId;
         CreateClient( m_address );
         netcode_client_connect( m_client, connectToken );
-        SetClientState( CLIENT_STATE_CONNECTING );
+        if ( netcode_client_state( m_client ) > NETCODE_CLIENT_STATE_DISCONNECTED )
+        {
+            SetClientState( CLIENT_STATE_CONNECTING );
+        }
+        else
+        {
+            Disconnect();
+        }
     }
 
     void Client::Disconnect()
