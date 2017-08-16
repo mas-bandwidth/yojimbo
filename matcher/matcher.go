@@ -127,7 +127,7 @@ func NewConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId 
     C.randombytes_buf(unsafe.Pointer(&connectToken.ClientToServerKey[0]), KeyBytes)
     C.randombytes_buf(unsafe.Pointer(&connectToken.ServerToClientKey[0]), KeyBytes)
     copy( connectToken.PrivateKey[:], privateKey[:] )
-    connectToken.PrivateData = NewConnectTokenPrivate( protocolId, serverAddresses, timeoutSeconds, userData, connectToken.ClientToServerKey[:], connectToken.ServerToClientKey[:] )
+    connectToken.PrivateData = NewConnectTokenPrivate( clientId, serverAddresses, timeoutSeconds, userData, connectToken.ClientToServerKey[:], connectToken.ServerToClientKey[:] )
     return connectToken
 }
 
@@ -199,7 +199,7 @@ func MatchHandler( w http.ResponseWriter, r * http.Request ) {
         log.Printf( "error: failed to write string response" )
         return
     }
-    fmt.Printf( "matched client %.16x to %s:%d [%.16x]\n", clientId, ServerAddress, ServerPort, protocolId )
+    fmt.Printf( "matched client %.16x to %s:%d\n", clientId, ServerAddress, ServerPort )
 }
 
 func main() {
