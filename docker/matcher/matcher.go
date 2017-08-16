@@ -79,14 +79,14 @@ type ConnectTokenPrivate struct {
     UserData [UserDataBytes]byte
 }
 
-func NewConnectTokenPrivate(clientId uint64, serverAddresses []net.UDPAddr, timeoutSeconds int32, userData []byte ) (*ConnectTokenPrivate) {
+func NewConnectTokenPrivate(clientId uint64, serverAddresses []net.UDPAddr, timeoutSeconds int32, userData []byte, clientToServerKey []byte, serverToClientKey []byte ) (*ConnectTokenPrivate) {
     connectTokenPrivate := &ConnectTokenPrivate{}
     connectTokenPrivate.ClientId = clientId
     connectTokenPrivate.TimeoutSeconds = timeoutSeconds
     connectTokenPrivate.ServerAddresses = serverAddresses
-    C.randombytes_buf(unsafe.Pointer(&connectTokenPrivate.ClientToServerKey[0]), KeyBytes)
-    C.randombytes_buf(unsafe.Pointer(&connectTokenPrivate.ServerToClientKey[0]), KeyBytes)
-    copy( connectTokenPrivate.UserData[:], userData[0:256] )
+    copy( connectTokenPrivate.UserData[:], userData[0:UserDataBytes] )
+    copy( connectTokenPrivate.ClientToServerKey[:], clientToServerKey[0:KeyBytes] )
+    copy( connectTokenPrivate.ServerToClientKey[:], serverToClientKey[0:KeyBytes] )
     return connectTokenPrivate
 }
 
@@ -107,6 +107,9 @@ type ConnectToken struct {
     PrivateData *ConnectTokenPrivate
     TimeoutSeconds int32
     ServerAddresses []net.UDPAddr
+    ClientToServerKey [KeyBytes]byte
+    ServerToClientKey [KeyBytes]byte
+    PrivateKey [KeyBytes]byte
 }
 
 func NewConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId uint64, expireSeconds uint64, timeoutSeconds int32, sequence uint64, userData []byte, privateKey []byte) (*ConnectToken) {
@@ -119,10 +122,29 @@ func NewConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId 
         connectToken.ExpireTimestamp = 0xFFFFFFFFFFFFFFFF
     }
     connectToken.Sequence = sequence
-    connectToken.PrivateData = NewConnectTokenPrivate( protocolId, serverAddresses, timeoutSeconds, userData )
     connectToken.TimeoutSeconds = timeoutSeconds
     connectToken.ServerAddresses = serverAddresses
+    C.randombytes_buf(unsafe.Pointer(&connectToken.ClientToServerKey[0]), KeyBytes)
+    C.randombytes_buf(unsafe.Pointer(&connectToken.ServerToClientKey[0]), KeyBytes)
+    copy( connectToken.PrivateKey[:], privateKey[:] )
+    connectToken.PrivateData = NewConnectTokenPrivate( protocolId, serverAddresses, timeoutSeconds, userData, connectToken.ClientToServerKey[:], connectToken.ServerToClientKey[:] )
     return connectToken
+}
+
+func EncryptAEAD(message []byte, additional []byte, nonce uint64, key []byte) bool {
+    nonceData := make([]byte, 12)
+    binary.LittleEndian.PutUint64(nonceData[4:], nonce)
+    encryptedLengthLongLong := (C.ulonglong(len(message)))
+    return C.crypto_aead_chacha20poly1305_ietf_encrypt(
+        (*C.uchar)(&message[0]),
+        &encryptedLengthLongLong,
+        (*C.uchar)(&message[0]),
+        (C.ulonglong)(len(message)),
+        (*C.uchar)(&additional[0]),
+        (C.ulonglong)(len(additional)),
+        (*C.uchar)(nil),
+        (*C.uchar)(&nonceData[0]),
+        (*C.uchar)(&key[0])) == 0
 }
 
 func (token *ConnectToken) Write( buffer []byte ) (bool) {
@@ -132,9 +154,17 @@ func (token *ConnectToken) Write( buffer []byte ) (bool) {
     binary.LittleEndian.PutUint64(buffer[29:], token.ExpireTimestamp)
     binary.LittleEndian.PutUint64(buffer[37:], token.Sequence)
     token.PrivateData.Write( buffer[45:] )
-    // todo: encrypt private connect token data
+    additional := make([]byte, 13+8+8)
+    copy( additional, VersionInfo[0:13] )
+    binary.LittleEndian.PutUint64(additional[13:], token.ProtocolId)
+    binary.LittleEndian.PutUint64(additional[21:], token.ExpireTimestamp)
+    if !EncryptAEAD( buffer[45:45+ConnectTokenPrivateBytes-AuthBytes], additional[:], token.Sequence, token.PrivateKey[:] ) {
+        return false
+    }
     binary.LittleEndian.PutUint32(buffer[ConnectTokenPrivateBytes+45:], (uint32)(token.TimeoutSeconds))
-    WriteAddresses( buffer[1024+49:], token.ServerAddresses )
+    offset := WriteAddresses( buffer[1024+49:], token.ServerAddresses )
+    copy( buffer[1024+49+offset:], token.ClientToServerKey[:] )
+    copy( buffer[1024+49+offset+KeyBytes:], token.ServerToClientKey[:] )
     return true
 }
 
@@ -160,7 +190,7 @@ func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     userData := make( []byte, UserDataBytes )
     connectToken := GenerateConnectToken( clientId, serverAddresses, protocolId, ConnectTokenExpiry, TimeoutSeconds, MatchNonce, userData, PrivateKey )
     if connectToken == nil {
-        panic( "failed to generate connect token" )
+        panic( "failed to generate connect token!" )
     }
     connectTokenBase64 := base64.StdEncoding.EncodeToString( connectToken )
     w.Header().Set( "Content-Type", "application/text" )
