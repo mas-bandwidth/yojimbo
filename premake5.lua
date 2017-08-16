@@ -342,7 +342,7 @@ else
         trigger     = "matcher",
         description = "Build and run the matchmaker web service inside a docker container",
         execute = function ()
-            os.execute "cd docker\\matcher && docker build -t networkprotocol:yojimbo-matcher . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
+            os.execute "cd matcher && docker build -t networkprotocol:yojimbo-matcher . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
         end
     }
 
