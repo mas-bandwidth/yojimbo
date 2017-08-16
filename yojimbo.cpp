@@ -3914,7 +3914,7 @@ namespace yojimbo
 
     bool Server::IsLoopbackClient( int clientIndex ) const
     {
-        return netcode_server_client_loopback( m_server, clientIndex );
+        return netcode_server_client_loopback( m_server, clientIndex ) != 0;
     }
 
     void Server::ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )

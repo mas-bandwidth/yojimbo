@@ -66,6 +66,7 @@ public:
 
     void ServerSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
     {
+		(void) clientIndex;
         yojimbo_assert( client );
         yojimbo_assert( clientIndex == 0 );
         client->ProcessLoopbackPacket( packetData, packetBytes, packetSequence );
