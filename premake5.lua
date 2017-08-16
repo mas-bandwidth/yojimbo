@@ -177,7 +177,7 @@ if not os.is "windows" then
         description = "Build and run the matchmaker web service inside a docker container",
         execute = function ()
             os.execute "docker run --rm --privileged alpine hwclock -s" -- workaround for clock getting out of sync on macos. see https://docs.docker.com/docker-for-mac/troubleshoot/#issues
-            os.execute "cd docker/matcher && docker build -t networkprotocol:yojimbo-matcher . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
+            os.execute "cd matcher && docker build -t networkprotocol:yojimbo-matcher . && docker run -ti -p 8080:8080 networkprotocol:yojimbo-matcher"
         end
     }
 
