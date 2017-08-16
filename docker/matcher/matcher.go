@@ -190,12 +190,14 @@ func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     userData := make( []byte, UserDataBytes )
     connectToken := GenerateConnectToken( clientId, serverAddresses, protocolId, ConnectTokenExpiry, TimeoutSeconds, MatchNonce, userData, PrivateKey )
     if connectToken == nil {
-        panic( "failed to generate connect token!" )
+        log.Printf( "error: failed to generate connect token" )
+        return
     }
     connectTokenBase64 := base64.StdEncoding.EncodeToString( connectToken )
     w.Header().Set( "Content-Type", "application/text" )
     if _, err := io.WriteString( w, connectTokenBase64 ); err != nil {
-        panic( err )
+        log.Printf( "error: failed to write string response" )
+        return
     }
     fmt.Printf( "matched client %.16x to %s:%d [%.16x]\n", clientId, ServerAddress, ServerPort, protocolId )
 }
