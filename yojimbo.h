@@ -5061,6 +5061,14 @@ namespace yojimbo
 
         virtual bool IsClientConnected( int clientIndex ) const = 0;
 
+        /**
+            Get the unique id of the client
+            @param clientIndex the index of the client slot in [0,maxClients-1], where maxClients corresponds to the value passed into the last call to Server::Start.
+            @returns The unique id of the client.
+         */
+
+        virtual uint64_t GetClientId( int clientIndex ) const = 0;
+
         /** 
             Get the number of clients that are currently connected to the server.
             @returns the number of connected clients.
@@ -5323,6 +5331,8 @@ namespace yojimbo
         void AdvanceTime( double time );
 
         bool IsClientConnected( int clientIndex ) const;
+
+        uint64_t GetClientId( int clientIndex ) const;
 
         int GetNumConnectedClients() const;
 
