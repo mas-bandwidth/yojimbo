@@ -1,5 +1,25 @@
 /*
-    Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
+    Yojimbo Client/Server Network Library.
+
+    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+           in the documentation and/or other materials provided with the distribution.
+
+        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived 
+           from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+    USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "yojimbo.h"
@@ -1032,7 +1052,7 @@ namespace yojimbo
             if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
             {
                 // IMPORTANT: certificate verification failed!
-                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "mbedtls_ssl_get_verify_result failed - flags = %x\n", flags );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_get_verify_result failed - flags = %x\n", flags );
                 m_matchStatus = MATCH_FAILED;
                 goto cleanup;
             }
@@ -1075,6 +1095,12 @@ namespace yojimbo
         yojimbo_assert( bytesRead <= (int) sizeof( buffer ) );
 
         data = strstr( (const char*)buffer, "\r\n\r\n" );
+        if ( !data )
+        {
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: invalid http response from matcher\n" );
+            m_matchStatus = MATCH_FAILED;
+            goto cleanup;
+        }
 
         while ( *data == 13 || *data == 10 )
             ++data;
@@ -1088,7 +1114,7 @@ namespace yojimbo
         }
         else
         {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "failed to decode connect token base64\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to decode connect token base64\n" );
             m_matchStatus = MATCH_FAILED;
         }
 
@@ -3150,6 +3176,7 @@ namespace yojimbo
     {
         m_clientId = 0;
         m_client = NULL;
+        m_boundAddress = m_address;
     }
 
     Client::~Client()
@@ -3192,8 +3219,7 @@ namespace yojimbo
                                                const uint8_t privateKey[], 
                                                uint64_t clientId, 
                                                const Address serverAddresses[], 
-                                               int numServerAddresses, 
-                                               int timeout )
+                                               int numServerAddresses )
     {
         char serverAddressStrings[NETCODE_MAX_SERVERS_PER_CONNECT][MaxAddressLength];
         const char * serverAddressStringPointers[NETCODE_MAX_SERVERS_PER_CONNECT];
@@ -3204,7 +3230,8 @@ namespace yojimbo
         }
         return netcode_generate_connect_token( numServerAddresses, 
                                                serverAddressStringPointers, 
-                                               timeout, 
+                                               m_config.timeout,
+                                               m_config.timeout, 
                                                clientId, 
                                                m_config.protocolId, 
                                                0, 
@@ -3220,7 +3247,14 @@ namespace yojimbo
         m_clientId = clientId;
         CreateClient( m_address );
         netcode_client_connect( m_client, connectToken );
-        SetClientState( CLIENT_STATE_CONNECTING );
+        if ( netcode_client_state( m_client ) > NETCODE_CLIENT_STATE_DISCONNECTED )
+        {
+            SetClientState( CLIENT_STATE_CONNECTING );
+        }
+        else
+        {
+            Disconnect();
+        }
     }
 
     void Client::Disconnect()
@@ -3346,6 +3380,7 @@ namespace yojimbo
         {
             netcode_client_state_change_callback( m_client, this, StaticStateChangeCallbackFunction );
             netcode_client_send_loopback_packet_callback( m_client, this, StaticSendLoopbackPacketCallbackFunction );
+            m_boundAddress.SetPort( netcode_client_get_port( m_client ) );
         }
     }
 
@@ -3353,6 +3388,7 @@ namespace yojimbo
     {
         if ( m_client )
         {
+            m_boundAddress = m_address;
             netcode_client_destroy( m_client );
             m_client = NULL;
         }
@@ -3726,6 +3762,7 @@ namespace yojimbo
         yojimbo_assert( KeyBytes == NETCODE_KEY_BYTES );
         memcpy( m_privateKey, privateKey, NETCODE_KEY_BYTES );
         m_address = address;
+        m_boundAddress = address;
         m_config = config;
         m_server = NULL;
     }
@@ -3763,12 +3800,15 @@ namespace yojimbo
         netcode_server_send_loopback_packet_callback( m_server, this, StaticSendLoopbackPacketCallbackFunction );
         
         netcode_server_start( m_server, maxClients );
+
+        m_boundAddress.SetPort( netcode_server_get_port( m_server ) );
     }
 
     void Server::Stop()
     {
         if ( m_server )
         {
+            m_boundAddress = m_address;
             netcode_server_stop( m_server );
             netcode_server_destroy( m_server );
             m_server = NULL;
@@ -3879,7 +3919,7 @@ namespace yojimbo
 
     bool Server::IsLoopbackClient( int clientIndex ) const
     {
-        return netcode_server_client_loopback( m_server, clientIndex );
+        return netcode_server_client_loopback( m_server, clientIndex ) != 0;
     }
 
     void Server::ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
@@ -3910,6 +3950,7 @@ namespace yojimbo
     {
         if ( connected == 0 )
         {
+            GetAdapter().OnServerClientDisconnected( clientIndex );
             reliable_endpoint_reset( GetClientEndpoint( clientIndex ) );
             GetClientConnection( clientIndex ).Reset();
             NetworkSimulator * networkSimulator = GetNetworkSimulator();
@@ -3917,6 +3958,10 @@ namespace yojimbo
             {
                 networkSimulator->DiscardClientPackets( clientIndex );
             }
+        }
+        else
+        {
+            GetAdapter().OnServerClientConnected( clientIndex );
         }
     }
 

@@ -1,7 +1,7 @@
 /*
-    Secure Server.
+    Yojimbo Secure Server Example.
 
-    Copyright © 2016, The Network Protocol Company, Inc.
+    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -56,6 +56,10 @@ int ServerMain()
     server.Start( MaxClients );
 
     const double deltaTime = 0.1;
+
+    char addressString[256];
+    server.GetAddress().ToString( addressString, sizeof( addressString ) );
+    printf( "server address is %s\n", addressString );
 
     signal( SIGINT, interrupt_handler );    
 

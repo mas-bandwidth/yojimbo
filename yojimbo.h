@@ -1,5 +1,25 @@
 /*
-    Yojimbo Network Library. Copyright © 2016 - 2017, The Network Protocol Company, Inc.
+    Yojimbo Client/Server Network Library.
+
+    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+        1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+           in the documentation and/or other materials provided with the distribution.
+
+        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived 
+           from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+    USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef YOJIMBO_H
@@ -68,6 +88,10 @@
 
 #ifndef YOJIMBO_BIG_ENDIAN
 #define YOJIMBO_BIG_ENDIAN 0
+#endif
+
+#ifndef YOJIMBO_DEFAULT_TIMEOUT
+#define YOJIMBO_DEFAULT_TIMEOUT 5
 #endif
 
 #if !defined( YOJIMBO_WITH_MBEDTLS )
@@ -242,6 +266,7 @@ namespace yojimbo
     struct ClientServerConfig : public ConnectionConfig
     {
         uint64_t protocolId;                                    ///< Clients can only connect to servers with the same protocol id. Use this for versioning.
+        int timeout;                                            ///< Timeout value in seconds. Set to negative value to disable timeouts (for debugging only).
         int clientMemory;                                       ///< Memory allocated inside Client for packets, messages and stream allocations (bytes)
         int serverGlobalMemory;                                 ///< Memory allocated inside Server for global connection request and challenge response packets (bytes)
         int serverPerClientMemory;                              ///< Memory allocated inside Server for packets, messages and stream allocations per-client (bytes)
@@ -257,6 +282,7 @@ namespace yojimbo
         ClientServerConfig()
         {
             protocolId = 0;
+            timeout = YOJIMBO_DEFAULT_TIMEOUT;
             clientMemory = 10 * 1024 * 1024;
             serverGlobalMemory = 10 * 1024 * 1024;
             serverPerClientMemory = 10 * 1024 * 1024;
@@ -4899,6 +4925,24 @@ namespace yojimbo
             (void) packetSequence;
             yojimbo_assert( false );
         }
+
+        /**
+            Override this to get a callback when a client connects on the server.
+         */
+
+        virtual void OnServerClientConnected( int clientIndex )
+        {
+            (void) clientIndex;
+        }
+
+        /**
+            Override this to get a callback when a client disconnects from the server.
+         */
+
+        virtual void OnServerClientDisconnected( int clientIndex )
+        {
+            (void) clientIndex;
+        }
     };
 
     /**
@@ -5300,7 +5344,7 @@ namespace yojimbo
 
         void ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
-        const Address & GetAddress() const { return m_address; }
+        const Address & GetAddress() const { return m_boundAddress; }
 
     private:
 
@@ -5318,7 +5362,8 @@ namespace yojimbo
 
         ClientServerConfig m_config;
         netcode_server_t * m_server;
-        Address m_address;
+        Address m_address;                                  // original address passed to ctor
+        Address m_boundAddress;                             // address after socket bind, eg. valid port
         uint8_t m_privateKey[KeyBytes];
     };
 
@@ -5718,14 +5763,15 @@ namespace yojimbo
 
         void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
+        const Address & GetAddress() const { return m_boundAddress; }
+
     private:
 
         bool GenerateInsecureConnectToken( uint8_t * connectToken, 
                                            const uint8_t privateKey[], 
                                            uint64_t clientId, 
                                            const Address serverAddresses[], 
-                                           int numServerAddresses, 
-                                           int timeout = 45 );
+                                           int numServerAddresses );
 
         void CreateClient( const Address & address );
 
@@ -5745,7 +5791,8 @@ namespace yojimbo
 
         ClientServerConfig m_config;                    ///< Client/server configuration.
         netcode_client_t * m_client;                    ///< netcode.io client data.
-        Address m_address;                              ///< The client address.
+        Address m_address;                              ///< Original address passed to ctor.
+        Address m_boundAddress;                         ///< Address after socket bind, eg. with valid port
         uint64_t m_clientId;                            ///< The globally unique client id (set on each call to connect)
     };
 

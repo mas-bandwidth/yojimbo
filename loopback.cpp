@@ -1,7 +1,7 @@
 /*
-    Client/Server Testbed
+    Yojimbo Loopback Example.
 
-    Copyright © 2016, The Network Protocol Company, Inc.
+    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -66,6 +66,7 @@ public:
 
     void ServerSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
     {
+		(void) clientIndex;
         yojimbo_assert( client );
         yojimbo_assert( clientIndex == 0 );
         client->ProcessLoopbackPacket( packetData, packetBytes, packetSequence );

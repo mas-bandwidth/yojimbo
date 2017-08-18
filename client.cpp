@@ -1,7 +1,7 @@
 /*
-    Insecure Client.
+    Yojimbo Client Example (insecure)
 
-    Copyright © 2016, The Network Protocol Company, Inc.
+    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -71,6 +71,10 @@ int ClientMain( int argc, char * argv[] )
     memset( privateKey, 0, KeyBytes );
 
     client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    char addressString[256];
+    client.GetAddress().ToString( addressString, sizeof( addressString ) );
+    printf( "client address is %s\n", addressString );
 
     const double deltaTime = 0.01f;
 
