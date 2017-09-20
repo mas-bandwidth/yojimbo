@@ -37,9 +37,9 @@ Alternatively, you can download one of the latest [releases](https://github.com/
 
 The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with over 15 years experience in the game industry.
 
-Glenn is writing an article series about the development of this library called [Building a Game Network Protocol](https://gafferongames.com/categories/building-a-game-network-protocol).
+Glenn has written an article series about the development of this library called [Building a Game Network Protocol](https://gafferongames.com/categories/building-a-game-network-protocol).
 
-You can support Glenn's work writing articles and open source code via [Patreon](http://www.patreon.com/gafferongames).
+This library also lead to the creation of the open source libraries: [netcode.io](https://github.com/networkprotocol/netcode.io) and [reliable.io](https://github.com/networkprotocol/reliable.io)
 
 ## Sponsors
 
