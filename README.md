@@ -6,7 +6,7 @@
 
 It's designed around the networking requirements of competitive multiplayer games like first person shooters. 
 
-As such it provides a time critical networking layer over UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
+As such it provides a time critical networking layer on top of UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
 ## Status
 
@@ -37,13 +37,13 @@ Alternatively, you can download one of the latest [releases](https://github.com/
 
 The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with over 15 years experience in the game industry.
 
-Glenn has written an article series about the development of this library called [Building a Game Network Protocol](https://gafferongames.com/categories/building-a-game-network-protocol).
+There is an article series about the development of this library: [Building a Game Network Protocol](https://gafferongames.com/categories/building-a-game-network-protocol).
 
 This library also lead to the creation of the open source libraries: [netcode.io](https://github.com/networkprotocol/netcode.io) and [reliable.io](https://github.com/networkprotocol/reliable.io)
 
 ## Sponsors
 
-**yojimbo** is generously sponsored by:
+**yojimbo** was generously sponsored by:
 
 * **Gold Sponsors**
     * [Remedy Entertainment](http://www.remedygames.com/)
