@@ -35,7 +35,9 @@ Alternatively, you can download one of the latest [releases](https://github.com/
 
 ## Author
 
-The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming.
+The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with over 15 years experience in the industry.
+
+Glenn is now focusing on his new startup [Network Next](https://networknext.com).
 
 ## Sponsors
 
