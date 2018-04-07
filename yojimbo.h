@@ -141,6 +141,7 @@
 #include <string.h>
 #include <memory.h>
 #include <math.h>
+#include <inttypes.h>
 #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 #include <map>
 #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
