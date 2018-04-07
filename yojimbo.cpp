@@ -89,7 +89,6 @@ void ShutdownYojimbo()
 
 #if YOJIMBO_WITH_MBEDTLS
 #include <mbedtls/base64.h>
-#include <mbedtls/net_sockets.h>
 #endif // #if YOJIMBO_WITH_MBEDTLS
 
 extern "C" void netcode_random_bytes( uint8_t*, int );
