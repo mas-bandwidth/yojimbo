@@ -3230,6 +3230,7 @@ namespace yojimbo
         }
         return netcode_generate_connect_token( numServerAddresses, 
                                                serverAddressStringPointers, 
+                                               serverAddressStringPointers, 
                                                m_config.timeout,
                                                m_config.timeout, 
                                                clientId, 
@@ -3375,11 +3376,19 @@ namespace yojimbo
         DestroyClient();
         char addressString[MaxAddressLength];
         address.ToString( addressString, MaxAddressLength );
-        m_client = netcode_client_create_with_allocator( addressString, GetTime(), &GetClientAllocator(), StaticAllocateFunction, StaticFreeFunction );
+
+        struct netcode_client_config_t netcodeConfig;
+        netcode_default_client_config(&netcodeConfig);
+        netcodeConfig.allocator_context             = &GetClientAllocator();
+        netcodeConfig.allocate_function             = StaticAllocateFunction;
+        netcodeConfig.free_function                 = StaticFreeFunction;
+        netcodeConfig.callback_context              = this;
+        netcodeConfig.state_change_callback         = StaticStateChangeCallbackFunction;
+        netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;
+        m_client = netcode_client_create(addressString, &netcodeConfig, GetTime());
+        
         if ( m_client )
         {
-            netcode_client_state_change_callback( m_client, this, StaticStateChangeCallbackFunction );
-            netcode_client_send_loopback_packet_callback( m_client, this, StaticSendLoopbackPacketCallbackFunction );
             m_boundAddress.SetPort( netcode_client_get_port( m_client ) );
         }
     }
@@ -3782,22 +3791,25 @@ namespace yojimbo
         
         char addressString[MaxAddressLength];
         m_address.ToString( addressString, MaxAddressLength );
-        m_server = netcode_server_create_with_allocator( addressString, 
-                                                         m_config.protocolId, 
-                                                         m_privateKey, 
-                                                         GetTime(), 
-                                                         &GetGlobalAllocator(), 
-                                                         StaticAllocateFunction, 
-                                                         StaticFreeFunction );
+        
+        struct netcode_server_config_t netcodeConfig;
+        netcode_default_server_config(&netcodeConfig);
+        netcodeConfig.protocol_id = m_config.protocolId;
+        memcpy(netcodeConfig.private_key, m_privateKey, NETCODE_KEY_BYTES);
+        netcodeConfig.allocator_context = &GetGlobalAllocator();
+        netcodeConfig.allocate_function = StaticAllocateFunction;
+        netcodeConfig.free_function     = StaticFreeFunction;
+        netcodeConfig.callback_context = this;
+        netcodeConfig.connect_disconnect_callback = StaticConnectDisconnectCallbackFunction;
+        netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;
+        
+        m_server = netcode_server_create(addressString, &netcodeConfig, GetTime());
+        
         if ( !m_server )
         {
             Stop();
             return;
         }
-
-        netcode_server_connect_disconnect_callback( m_server, this, StaticConnectDisconnectCallbackFunction );
-
-        netcode_server_send_loopback_packet_callback( m_server, this, StaticSendLoopbackPacketCallbackFunction );
         
         netcode_server_start( m_server, maxClients );
 
