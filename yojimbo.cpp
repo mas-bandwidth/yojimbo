@@ -1797,6 +1797,9 @@ namespace yojimbo
 
         if ( SendingBlockMessage() )
         {
+            if (m_config.blockFragmentSize * 8 > availableBits)
+                return 0;
+
             uint16_t messageId;
             uint16_t fragmentId;
             int fragmentBytes;
