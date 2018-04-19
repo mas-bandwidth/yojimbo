@@ -1711,7 +1711,7 @@ namespace yojimbo
         return m_messageSendQueue->Available( m_sendMessageId );
     }
 
-    void ReliableOrderedChannel::SendMessage( Message * message )
+    void ReliableOrderedChannel::SendMessage( Message * message, void *context )
     {
         yojimbo_assert( message );
         
@@ -1759,6 +1759,7 @@ namespace yojimbo
         }
 
         MeasureStream measureStream( m_messageFactory->GetAllocator() );
+		measureStream.SetContext( context );
         message->SerializeInternal( measureStream );
         entry->measuredBits = measureStream.GetBitsProcessed();
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
@@ -1789,7 +1790,7 @@ namespace yojimbo
         m_time = time;
     }
     
-    int ReliableOrderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
+    int ReliableOrderedChannel::GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
         if ( !HasMessagesToSend() )
             return 0;
@@ -1815,7 +1816,7 @@ namespace yojimbo
         {
             int numMessageIds = 0;
             uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
-            const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits );
+            const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits, context );
 
             if ( numMessageIds > 0 )
             {
@@ -1833,7 +1834,7 @@ namespace yojimbo
         return m_oldestUnackedMessageId != m_sendMessageId;
     }
 
-    int ReliableOrderedChannel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits )
+    int ReliableOrderedChannel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits, void *context )
     {
         yojimbo_assert( HasMessagesToSend() );
 
@@ -1876,6 +1877,7 @@ namespace yojimbo
                 else
                 {
                     MeasureStream stream( GetDefaultAllocator() );
+                    stream.SetContext( context );
                     serialize_sequence_relative_internal( stream, previousMessageId, messageId );
                     messageBits += stream.GetBitsProcessed();
                 }
@@ -2390,10 +2392,11 @@ namespace yojimbo
         return !m_messageSendQueue->IsFull();
     }
 
-    void UnreliableUnorderedChannel::SendMessage( Message * message )
+    void UnreliableUnorderedChannel::SendMessage( Message * message, void *context )
     {
         yojimbo_assert( message );
         yojimbo_assert( CanSendMessage() );
+		(void)context;
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
@@ -2446,7 +2449,7 @@ namespace yojimbo
         (void) time;
     }
     
-    int UnreliableUnorderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
+    int UnreliableUnorderedChannel::GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
         (void) packetSequence;
 
@@ -2480,7 +2483,7 @@ namespace yojimbo
             yojimbo_assert( message );
 
             MeasureStream measureStream( m_messageFactory->GetAllocator() );
-    
+			measureStream.SetContext( context );
             message->SerializeInternal( measureStream );
             
             if ( message->IsBlockMessage() )
@@ -2726,11 +2729,11 @@ namespace yojimbo
         return m_channel[channelIndex]->CanSendMessage();
     }
 
-    void Connection::SendMessage( int channelIndex, Message * message )
+    void Connection::SendMessage( int channelIndex, Message * message, void *context)
     {
         yojimbo_assert( channelIndex >= 0 );
         yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
-        return m_channel[channelIndex]->SendMessage( message );
+        return m_channel[channelIndex]->SendMessage( message, context );
     }
 
     Message * Connection::ReceiveMessage( int channelIndex )
@@ -2754,9 +2757,9 @@ namespace yojimbo
                             int bufferSize )
     {
         WriteStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
-
+        
         stream.SetContext( context );
-
+        
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (write packet)\n" );
@@ -2791,7 +2794,7 @@ namespace yojimbo
             
             for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
             {
-                int packetDataBits = m_channel[channelIndex]->GetPacketData( channelData[channelIndex], packetSequence, availableBits );
+                int packetDataBits = m_channel[channelIndex]->GetPacketData( context, channelData[channelIndex], packetSequence, availableBits );
                 if ( packetDataBits > 0 )
                 {
                     availableBits -= ConservativeChannelHeaderBits;
@@ -2838,9 +2841,9 @@ namespace yojimbo
         yojimbo_assert( bufferSize > 0 );
 
         ReadStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
-
+        
         stream.SetContext( context );
-
+        
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (read packet)\n" );
@@ -3138,7 +3141,7 @@ namespace yojimbo
     void BaseClient::SendMessage( int channelIndex, Message * message )
     {
         yojimbo_assert( m_connection );
-        m_connection->SendMessage( channelIndex, message );
+        m_connection->SendMessage( channelIndex, message, GetContext() );
     }
 
     Message * BaseClient::ReceiveMessage( int channelIndex )
@@ -3673,7 +3676,7 @@ namespace yojimbo
         yojimbo_assert( clientIndex >= 0 );
         yojimbo_assert( clientIndex < m_maxClients );
         yojimbo_assert( m_clientConnection[clientIndex] );
-        return m_clientConnection[clientIndex]->SendMessage( channelIndex, message );
+        return m_clientConnection[clientIndex]->SendMessage( channelIndex, message, GetContext() );
     }
 
     Message * BaseServer::ReceiveMessage( int clientIndex, int channelIndex )

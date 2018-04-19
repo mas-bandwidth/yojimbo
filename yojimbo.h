@@ -4135,7 +4135,7 @@ namespace yojimbo
             @param message The message to be sent.
          */
 
-        virtual void SendMessage( Message * message ) = 0;
+        virtual void SendMessage( Message * message, void *context) = 0;
 
         /** 
             Pops the next message off the receive queue if one is available.
@@ -4161,7 +4161,7 @@ namespace yojimbo
             @see Connection::GeneratePacket
          */
 
-        virtual int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits ) = 0;
+        virtual int GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits) = 0;
 
         /**
             Process packet data included in a connection packet.
@@ -4267,13 +4267,13 @@ namespace yojimbo
 
         bool CanSendMessage() const;
 
-        void SendMessage( Message * message );
+        void SendMessage( Message * message, void *context );
 
         Message * ReceiveMessage();
 
         void AdvanceTime( double time );
 
-        int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
+        int GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
 
         void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence );
 
@@ -4298,7 +4298,7 @@ namespace yojimbo
             @see GetMessagePacketData
          */
 
-        int GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits );
+        int GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits, void *context );
 
         /**
             Fill channel packet data with messages.
@@ -4613,13 +4613,13 @@ namespace yojimbo
 
         bool CanSendMessage() const;
 
-        void SendMessage( Message * message );
+        void SendMessage( Message * message, void *context );
 
         Message * ReceiveMessage();
 
         void AdvanceTime( double time );
 
-        int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
+        int GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
 
         void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence );
 
@@ -4664,7 +4664,7 @@ namespace yojimbo
 
         bool CanSendMessage( int channelIndex ) const;
 
-        void SendMessage( int channelIndex, Message * message );
+        void SendMessage( int channelIndex, Message * message, void *context = 0);
 
         Message * ReceiveMessage( int channelIndex );
 
