@@ -4664,7 +4664,7 @@ namespace yojimbo
 
         bool CanSendMessage( int channelIndex ) const;
 
-        void SendMessage( int channelIndex, Message * message, void *context = nullptr);
+        void SendMessage( int channelIndex, Message * message, void *context = 0);
 
         Message * ReceiveMessage( int channelIndex );
 
