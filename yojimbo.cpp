@@ -1202,7 +1202,7 @@ namespace yojimbo
                                                               Message ** & messages, 
                                                               int maxMessagesPerPacket )
     {
-        const int maxMessageType = messageFactory.GetNumTypes() - 1;
+        const int maxMessageType = messageFactory.GetNumTypes();
 
         bool hasMessages = Stream::IsWriting && numMessages != 0;
 
@@ -1320,7 +1320,7 @@ namespace yojimbo
                                                                 int maxMessagesPerPacket, 
                                                                 int maxBlockSize )
     {
-        const int maxMessageType = messageFactory.GetNumTypes() - 1;
+        const int maxMessageType = messageFactory.GetNumTypes();
 
         bool hasMessages = Stream::IsWriting && numMessages != 0;
 
@@ -1404,7 +1404,7 @@ namespace yojimbo
                                                             ChannelPacketData::BlockData & block, 
                                                             const ChannelConfig & channelConfig )
     {
-        const int maxMessageType = messageFactory.GetNumTypes() - 1;
+        const int maxMessageType = messageFactory.GetNumTypes();
 
         serialize_bits( stream, block.messageId, 16 );
 
