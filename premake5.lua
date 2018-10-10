@@ -27,6 +27,7 @@ solution "Yojimbo"
 project "test"
     files { "test.cpp" }
     links { "yojimbo" }
+    linkoptions { "-no-pie" }
 
 project "yojimbo"
     kind "StaticLib"
@@ -36,30 +37,37 @@ project "yojimbo"
 project "client"
     files { "client.cpp", "shared.h" }
     links { "yojimbo" }
+    linkoptions { "-no-pie" }
 
 project "server"
     files { "server.cpp", "shared.h" }
     links { "yojimbo" }
+    linkoptions { "-no-pie" }
 
 project "secure_client"
     files { "secure_client.cpp", "shared.h" }
     links { "yojimbo" }
+    linkoptions { "-no-pie" }
 
 project "secure_server"
     files { "secure_server.cpp", "shared.h" }
     links { "yojimbo" }
+    linkoptions { "-no-pie" }
 
 project "client_server"
     files { "client_server.cpp", "shared.h" }
     links { "yojimbo" }
+    linkoptions { "-no-pie" }
 
 project "loopback"
     files { "loopback.cpp", "shared.h" }
     links { "yojimbo" }
+    linkoptions { "-no-pie" }
 
 project "soak"
     files { "soak.cpp", "shared.h" }
     links { "yojimbo" }
+    linkoptions { "-no-pie" }
 
 if not os.is "windows" then
 
