@@ -1447,7 +1447,14 @@ namespace yojimbo
         {
             // block message
 
-            serialize_int( stream, block.messageType, 0, maxMessageType );
+            if ( maxMessageType > 0 )
+            {
+                serialize_int( stream, block.messageType, 0, maxMessageType );
+            }
+            else
+            {
+                block.messageType = 0;
+            }
 
             if ( Stream::IsReading )
             {
