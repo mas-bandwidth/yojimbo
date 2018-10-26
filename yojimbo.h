@@ -870,7 +870,11 @@ namespace yojimbo
 
     inline int bits_required( uint32_t min, uint32_t max )
     {
+#ifdef __GNUC__
+        return 32 - __builtin_clz( max - min );
+#else // #ifdef __GNUC__
         return ( min == max ) ? 0 : log2( max - min ) + 1;
+#endif // #ifdef __GNUC__
     }
 
     /**
@@ -2094,7 +2098,7 @@ namespace yojimbo
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {
-            yojimbo_assert( min <= max );
+            yojimbo_assert( min < max );
             yojimbo_assert( value >= min );
             yojimbo_assert( value <= max );
             const int bits = bits_required( min, max );
@@ -2254,7 +2258,7 @@ namespace yojimbo
 
         bool SerializeInteger( int32_t & value, int32_t min, int32_t max )
         {
-            yojimbo_assert( min <= max );
+            yojimbo_assert( min < max );
             const int bits = bits_required( min, max );
             if ( m_reader.WouldReadPastEnd( bits ) )
                 return false;
@@ -2406,7 +2410,7 @@ namespace yojimbo
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
         {   
             (void) value;
-            yojimbo_assert( min <= max );
+            yojimbo_assert( min < max );
             yojimbo_assert( value >= min );
             yojimbo_assert( value <= max );
             const int bits = bits_required( min, max );
@@ -2749,7 +2753,7 @@ namespace yojimbo
     #define serialize_int( stream, value, min, max )                    \
         do                                                              \
         {                                                               \
-            yojimbo_assert( min <= max );                                \
+            yojimbo_assert( min < max );                                \
             int32_t int32_value = 0;                                    \
             if ( Stream::IsWriting )                                    \
             {                                                           \
@@ -3338,7 +3342,7 @@ namespace yojimbo
     #define read_int( stream, value, min, max )                                             \
         do                                                                                  \
         {                                                                                   \
-            yojimbo_assert( min <= max );                                                    \
+            yojimbo_assert( min < max );                                                    \
             int32_t int32_value = 0;                                                        \
             if ( !stream.SerializeInteger( int32_value, min, max ) )                        \
             {                                                                               \
@@ -3384,7 +3388,7 @@ namespace yojimbo
     #define write_int( stream, value, min, max )                                            \
         do                                                                                  \
         {                                                                                   \
-            yojimbo_assert( min <= max );                                                    \
+            yojimbo_assert( min < max );                                                    \
             yojimbo_assert( value >= min );                                                 \
             yojimbo_assert( value <= max );                                                 \
             int32_t int32_value = (int32_t) value;                                          \
