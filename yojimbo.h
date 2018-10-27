@@ -871,7 +871,7 @@ namespace yojimbo
     inline int bits_required( uint32_t min, uint32_t max )
     {
 #ifdef __GNUC__
-        return 32 - __builtin_clz( max - min );
+        return ( min == max ) ? 0 : 32 - __builtin_clz( max - min );
 #else // #ifdef __GNUC__
         return ( min == max ) ? 0 : log2( max - min ) + 1;
 #endif // #ifdef __GNUC__

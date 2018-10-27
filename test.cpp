@@ -228,6 +228,22 @@ void test_bitpacker()
     check( reader.GetBitsRemaining() == bytesWritten * 8 - bitsWritten );
 }
 
+void test_bits_required()
+{
+    check( bits_required( 0, 0 ) == 0 );
+    check( bits_required( 0, 1 ) == 1 );
+    check( bits_required( 0, 2 ) == 2 );
+    check( bits_required( 0, 3 ) == 2 );
+    check( bits_required( 0, 4 ) == 3 );
+    check( bits_required( 0, 5 ) == 3 );
+    check( bits_required( 0, 6 ) == 3 );
+    check( bits_required( 0, 7 ) == 3 );
+    check( bits_required( 0, 8 ) == 4 );
+    check( bits_required( 0, 255 ) == 8 );
+    check( bits_required( 0, 65535 ) == 16 );
+    check( bits_required( 0, 4294967295 ) == 32 );
+}
+
 const int MaxItems = 11;
 
 struct TestData
@@ -2517,6 +2533,7 @@ int main()
 		RUN_TEST( test_base64 );
 #endif // #if YOJIMBO_WITH_MBEDTLS
         RUN_TEST( test_bitpacker );
+        RUN_TEST( test_bits_required );
         RUN_TEST( test_stream );
         RUN_TEST( test_address );
         RUN_TEST( test_bit_array );
