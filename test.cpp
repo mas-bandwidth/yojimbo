@@ -228,6 +228,22 @@ void test_bitpacker()
     check( reader.GetBitsRemaining() == bytesWritten * 8 - bitsWritten );
 }
 
+void test_bits_required()
+{
+    check( bits_required( 0, 0 ) == 0 );
+    check( bits_required( 0, 1 ) == 1 );
+    check( bits_required( 0, 2 ) == 2 );
+    check( bits_required( 0, 3 ) == 2 );
+    check( bits_required( 0, 4 ) == 3 );
+    check( bits_required( 0, 5 ) == 3 );
+    check( bits_required( 0, 6 ) == 3 );
+    check( bits_required( 0, 7 ) == 3 );
+    check( bits_required( 0, 8 ) == 4 );
+    check( bits_required( 0, 255 ) == 8 );
+    check( bits_required( 0, 65535 ) == 16 );
+    check( bits_required( 0, 4294967295 ) == 32 );
+}
+
 const int MaxItems = 11;
 
 struct TestData
@@ -2237,6 +2253,216 @@ void test_reliable_fragment_overflow_bug() {
     server.Stop();
 }
 
+// Github Issue #77
+void test_single_message_type_reliable()
+{
+	SingleTestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+ 
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    const int NumMessagesSent = 64;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        TestMessage * message = (TestMessage*) messageFactory.CreateMessage( SINGLE_TEST_MESSAGE );
+        check( message );
+        message->sequence = i;
+        sender.SendMessage( 0, message );
+    }
+
+    const int SenderPort = 10000;
+    const int ReceiverPort = 10001;
+
+    Address senderAddress( "::1", SenderPort );
+    Address receiverAddress( "::1", ReceiverPort );
+
+    int numMessagesReceived = 0;
+
+    const int NumIterations = 1000;
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence );
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage( 0 );
+            if ( !message )
+                break;
+
+            check( message->GetId() == (int) numMessagesReceived );
+            check( message->GetType() == SINGLE_TEST_MESSAGE );
+
+            TestMessage * testMessage = (TestMessage*) message;
+
+            check( testMessage->sequence == numMessagesReceived );
+
+            ++numMessagesReceived;
+
+            messageFactory.ReleaseMessage( message );
+        }
+
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
+    }
+
+    check( numMessagesReceived == NumMessagesSent );
+}
+
+void test_single_message_type_reliable_blocks()
+{
+	SingleBlockTestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    const int NumMessagesSent = 32;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( SINGLE_BLOCK_TEST_MESSAGE );
+        check( message );
+        message->sequence = i;
+        const int blockSize = 1 + ( ( i * 901 ) % 3333 );
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+        for ( int j = 0; j < blockSize; ++j )
+            blockData[j] = i + j;
+        message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+        sender.SendMessage( 0, message );
+    }
+
+    const int SenderPort = 10000;
+    const int ReceiverPort = 10001;
+
+    Address senderAddress( "::1", SenderPort );
+    Address receiverAddress( "::1", ReceiverPort );
+
+    int numMessagesReceived = 0;
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    const int NumIterations = 10000;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence );
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage( 0 );
+            if ( !message )
+                break;
+
+            check( message->GetId() == (int) numMessagesReceived );
+
+            check( message->GetType() == SINGLE_BLOCK_TEST_MESSAGE );
+
+            TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+
+            check( blockMessage->sequence == uint16_t( numMessagesReceived ) );
+
+            const int blockSize = blockMessage->GetBlockSize();
+
+            check( blockSize == 1 + ( ( numMessagesReceived * 901 ) % 3333 ) );
+
+            const uint8_t * blockData = blockMessage->GetBlockData();
+
+            check( blockData );
+
+            for ( int j = 0; j < blockSize; ++j )
+            {
+                check( blockData[j] == uint8_t( numMessagesReceived + j ) );
+            }
+
+            ++numMessagesReceived;
+
+            messageFactory.ReleaseMessage( message );
+        }
+
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
+    }
+
+    check( numMessagesReceived == NumMessagesSent );
+}
+
+void test_single_message_type_unreliable()
+{
+    SingleTestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    const int SenderPort = 10000;
+    const int ReceiverPort = 10001;
+
+    Address senderAddress( "::1", SenderPort );
+    Address receiverAddress( "::1", ReceiverPort );
+
+    const int NumIterations = 256;
+
+    const int NumMessagesSent = 16;
+
+    for ( int j = 0; j < NumMessagesSent; ++j )
+    {
+        TestMessage * message = (TestMessage*) messageFactory.CreateMessage( SINGLE_TEST_MESSAGE );
+        check( message );
+        message->sequence = j;
+        sender.SendMessage( 0, message );
+    }
+
+    int numMessagesReceived = 0;
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage( 0 );
+            if ( !message )
+                break;
+
+            check( message->GetType() == SINGLE_TEST_MESSAGE );
+
+            TestMessage * testMessage = (TestMessage*) message;
+
+            check( testMessage->sequence == uint16_t( numMessagesReceived ) );
+
+            ++numMessagesReceived;
+
+            messageFactory.ReleaseMessage( message );
+        }
+
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
+    }
+
+    check( numMessagesReceived == NumMessagesSent );
+}
+
 #define RUN_TEST( test_function )                                           \
     do                                                                      \
     {                                                                       \
@@ -2307,6 +2533,7 @@ int main()
 		RUN_TEST( test_base64 );
 #endif // #if YOJIMBO_WITH_MBEDTLS
         RUN_TEST( test_bitpacker );
+        RUN_TEST( test_bits_required );
         RUN_TEST( test_stream );
         RUN_TEST( test_address );
         RUN_TEST( test_bit_array );
@@ -2327,6 +2554,9 @@ int main()
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
         RUN_TEST( test_reliable_fragment_overflow_bug );
+        RUN_TEST( test_single_message_type_reliable );
+        RUN_TEST( test_single_message_type_reliable_blocks );
+        RUN_TEST( test_single_message_type_unreliable );
         
 #if SOAK
         if ( quit )
