@@ -4,7 +4,7 @@ Yojimbo is meant to be used in a client/server architecture. The first thing you
 
 The `Server` is the main part, used to receive and send messages. The `ClientServerConfig` allows you to configure the server: connection timeout, memory used or the different channels (reliable, unreliable). The `Adapter` allows you to get callbacks when a client connects or disconnects and is also responsible for providing Yojimbo with the `MessageFactory`. Both the `ClientServerConfig` and the `Adapter` are shared between client and server. Here is what it could look like:
 
-```
+```cpp
 // a simple test message
 enum class GameMessageType {
     TEST,
@@ -63,7 +63,7 @@ Note that the adapter will have a null `GameServer` pointer when used on the cli
 
 Let's take a look at the `TestMessage` class and briefly cover basic serialization:
 
-```
+```cpp
 class TestMessage : public yojimbo::Message {
 public:
     int m_data;
@@ -85,7 +85,7 @@ Yojimbo uses a unified serialization system for both reading from and writing to
 
 The `GameServer` will then have a `GameConnectionConfig`, a `GameAdapter` and a `Server` and initialize everything like so:
 
-```
+```cpp
 static const uint8_t DEFAULT_PRIVATE_KEY[yojimbo::KeyBytes] = { 0 };
 static const int MAX_PLAYERS = 64;
 
@@ -122,7 +122,7 @@ Also note that the `GameServer` takes an `Address`. The IP part of the address m
 
 The server will need a custom game loop, running at a fixed timestep. Game loops and whether to use fixed timestep or not is also a topic on its own, but for netcode, fixed timestep, for both server and client, is often a good idea. We chose to run the server at 60Hz. Here is what it looks like:
 
-```
+```cpp
 void GameServer::Run() {
     float fixedDt = 1.0f / 60.0f;
     while (m_running) {
@@ -139,7 +139,7 @@ void GameServer::Run() {
 
 In the `Update` method, there are 3 methods of the `Server` class that you need to call: `AdvanceTime`, `ReceivePackets` and `SendPackets`. Note that the order is very important. Using another order might add a couple frames of delay to your server's latency. Here is what it looks like:
 
-```
+```cpp
 void GameServer::Update(float dt) {
     // stop if server is not running
     if (!m_server.IsRunning()) {
@@ -162,7 +162,7 @@ void GameServer::Update(float dt) {
 
 The `ProcessMessage` function consists in looping over all the connected clients and read the messages received from each of them:
 
-```
+```cpp
 void GameServer::ProcessMessages() {
     for (int i = 0; i < MAX_PLAYERS; i++) {
         if (m_server.IsClientConnected(i)) {
@@ -195,7 +195,7 @@ void GameServer::ProcessTestMessage(int clientIndex, TestMessage* message) {
 
 Let's leave the server aside for a moment and take a look at the client. You need a `Client` and the same `ClientServerConfig` and `Adapter` as the server. In this example, the game is divided into "screens" and the screen handling the online game is called `OnlineGameScreen`. It looks like this:
 
-```
+```cpp
 OnlineGameScreen::OnlineGameScreen(const yojimbo::Address& serverAddress) :
     m_client(yojimbo::GetDefaultAllocator(), yojimbo::Address("0.0.0.0"), m_connectionConfig, m_adapter, 0.0)
 {
@@ -211,7 +211,7 @@ The client is now connecting. You can check the state of the connection in your 
 
 For testing purposes, let's also send a `TestMessage` when the player presses a key:
 
-```
+```cpp
 void OnlineGameScreen::Update(float dt) {
     // update client
     m_client.AdvanceTime(m_client.GetTime() + dt);
@@ -261,7 +261,7 @@ void OnlineGameScreen::ProcessTestMessage(TestMessage* message) {
 
 The client now sends a `TestMessage` when a key is pressed and will also log to the console when receiving one. Let's change the server so that when it receives a `TestMessage` it will log to the console and answer the same message back to the client:
 
-```
+```cpp
 void GameServer::ProcessTestMessage(int clientIndex, TestMessage* message) {
     std::cout << "Test message received from client " << clientIndex << " with data " << message->m_data << std::endl;
     TestMessage* testMessage = (TestMessage*)m_server.CreateMessage(clientIndex, (int)GameMessageType::TEST);
