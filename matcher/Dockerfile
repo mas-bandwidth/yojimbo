@@ -2,9 +2,9 @@ FROM golang
 
 RUN apt-get -y update && apt-get install -y wget make g++ dh-autoreconf pkg-config openssl
 
-RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodium-1.0.10.tar.gz && \
-    tar -zxvf libsodium-1.0.10.tar.gz && \
-    cd libsodium-1.0.10 && \
+RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.16/libsodium-1.0.16.tar.gz && \
+    tar -zxvf libsodium-*.tar.gz && \
+    cd libsodium-* && \
     ./configure && \
     make && make check && \
     make install && \

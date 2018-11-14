@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.9.18
+FROM phusion/baseimage:0.11
 
 CMD ["/sbin/my_init"]
 
@@ -6,9 +6,9 @@ WORKDIR /app
 
 RUN apt-get -y update && apt-get install -y wget make g++ dh-autoreconf pkg-config valgrind cmake
 
-RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodium-1.0.10.tar.gz && \
-    tar -zxvf libsodium-1.0.10.tar.gz && \
-    cd libsodium-1.0.10 && \
+RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.16/libsodium-1.0.16.tar.gz && \
+    tar -zxvf libsodium-*.tar.gz && \
+    cd libsodium-* && \
     ./configure && \
     make && make check && \
     make install && \
@@ -16,14 +16,14 @@ RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodiu
     rm -rf libsodium* && \
     ldconfig
 
-RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha10/premake-5.0.0-alpha10-linux.tar.gz && \ 
+RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-linux.tar.gz && \ 
     tar -zxvf premake-*.tar.gz && \
     rm premake-*.tar.gz && \
     mv premake5 /usr/local/bin
 
-RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.1.5.tar.gz && \
-    tar -zxvf mbedtls-2.1.5.tar.gz && \
-    cd mbedtls-mbedtls-2.1.5 && \
+RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.13.0.tar.gz && \
+    tar -zxvf mbedtls-*.tar.gz && \
+    cd mbedtls-mbedtls-* && \
     cmake . && \
     make && make install && \
     ldconfig
