@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.9.18
+FROM phusion/baseimage:0.11
 
 CMD ["/sbin/my_init"]
 
@@ -21,9 +21,9 @@ RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha1
     rm premake-*.tar.gz && \
     mv premake5 /usr/local/bin
 
-RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.1.5.tar.gz && \
-    tar -zxvf mbedtls-2.1.5.tar.gz && \
-    cd mbedtls-mbedtls-2.1.5 && \
+RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.13.0.tar.gz && \
+    tar -zxvf mbedtls-2.13.0.tar.gz && \
+    cd mbedtls-mbedtls-2.13.0 && \
     cmake . && \
     make && make install && \
     ldconfig
