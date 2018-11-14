@@ -10,7 +10,7 @@ RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.16/libsodiu
     tar -zxvf libsodium-*.tar.gz && \
     cd libsodium-* && \
     ./configure && \
-    make && make check && \
+    make -j32 && make check && \
     make install && \
     cd .. && \
     rm -rf libsodium* && \
@@ -25,7 +25,7 @@ RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.13.0.tar.gz && \
     tar -zxvf mbedtls-*.tar.gz && \
     cd mbedtls-mbedtls-* && \
     cmake . && \
-    make && make install && \
+    make -j32 && make install && \
     ldconfig
 
 ADD yojimbo /app/yojimbo
