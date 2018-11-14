@@ -2189,8 +2189,6 @@ void test_reliable_fragment_overflow_bug() {
     
     client.InsecureConnect(privateKey, clientId, serverAddress);
     
-    const double deltaTime = 0.1;
-    
     Client * clients[] = { &client };
     Server * servers[] = { &server };
     
