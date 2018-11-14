@@ -9,13 +9,13 @@ compiler:
   - gcc
 
 install:
-  - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha10/premake-5.0.0-alpha10-linux.tar.gz -O /tmp/premake5.tar.gz
+  - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-linux.tar.gz -O /tmp/premake5.tar.gz
   - tar -zxvf /tmp/premake5.tar.gz
-  - wget https://github.com/jedisct1/libsodium/releases/download/1.0.10/libsodium-1.0.10.tar.gz -O /tmp/libsodium.tar.gz
+  - wget https://github.com/jedisct1/libsodium/releases/download/1.0.16/libsodium-1.0.16.tar.gz -O /tmp/libsodium.tar.gz
   - pushd .
   - cd /tmp
   - tar -zxvf /tmp/libsodium.tar.gz
-  - cd libsodium-1.0.10
+  - cd libsodium-*
   - ./configure
   - make
   - sudo make install
@@ -24,7 +24,7 @@ install:
   - pushd .
   - cd /tmp
   - tar -zxvf mbedtls.tar.gz
-  - cd mbedtls-mbedtls-2.13.0
+  - cd mbedtls-mbedtls-*
   - cmake .
   - make
   - sudo make install

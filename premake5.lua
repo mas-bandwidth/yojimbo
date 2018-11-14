@@ -8,7 +8,7 @@ solution "Yojimbo"
     language "C++"
     platforms { "x64" }
     configurations { "Debug", "Release" }
-    if os.is "windows" then
+    if os.istarget "windows" then
         includedirs { ".", "./windows", "netcode.io", "reliable.io" }
         libdirs { "./windows" }
     else
@@ -17,7 +17,9 @@ solution "Yojimbo"
     end
     rtti "Off"
     links { libs }
-    flags { "ExtraWarnings", "FloatFast", "EnableSSE2" }
+    warnings "Extra"
+    floatingpoint "Fast"
+    vectorextensions "SSE2"
     configuration "Debug"
         symbols "On"
     configuration "Release"
@@ -61,7 +63,7 @@ project "soak"
     files { "soak.cpp", "shared.h" }
     links { "yojimbo" }
 
-if not os.is "windows" then
+if not os.istarget "windows" then
 
     -- MacOSX and Linux.
     
@@ -414,7 +416,7 @@ newaction
           os.rmdir( v )
         end
 
-        if not os.is "windows" then
+        if not os.istarget "windows" then
             os.execute "find . -name .DS_Store -delete"
             for i,v in ipairs( files_to_delete ) do
               os.execute( "rm -f " .. v )
