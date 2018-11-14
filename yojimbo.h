@@ -1012,16 +1012,6 @@ namespace yojimbo
         return ( n >> 1 ) ^ ( -int32_t( n & 1 ) );
     }
 
-    /**
-        Implementation of the 64 bit murmur hash.
-        @param key The input value.
-        @param length The length of the key (bytes).
-        @param seed The initial seed for the hash. Used to chain together multiple hash calls.
-        @returns A 64 bit hash of the input value.
-     */
-
-    uint64_t murmur_hash_64( const void * key, uint32_t length, uint64_t seed );
-
 #if YOJIMBO_WITH_MBEDTLS
 
     /**
