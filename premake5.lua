@@ -73,7 +73,7 @@ if not os.istarget "windows" then
         description = "Build and run all unit tests",
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 test" == 0 then
+            if os.execute "make -j32 test" then
                 os.execute "./bin/test"
             end
         end
@@ -85,7 +85,7 @@ if not os.istarget "windows" then
         description = "Build and run client/server test",     
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 client_server" == 0 then
+            if os.execute "make -j32 client_server" then
                 os.execute "./bin/client_server"
             end
         end
@@ -97,7 +97,7 @@ if not os.istarget "windows" then
         description = "Build and run loopback test",     
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 loopback" == 0 then
+            if os.execute "make -j32 loopback" then
                 os.execute "./bin/loopback"
             end
         end
@@ -120,7 +120,7 @@ if not os.istarget "windows" then
      
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 client" == 0 then
+            if os.execute "make -j32 client" then
                 if _OPTIONS["serverAddress"] then
                     os.execute( "./bin/client " .. _OPTIONS["serverAddress"] )
                 else
@@ -136,7 +136,7 @@ if not os.istarget "windows" then
         description = "Build and run server",     
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 server" == 0 then
+            if os.execute "make -j32 server" then
                 os.execute "./bin/server"
             end
         end
@@ -148,7 +148,7 @@ if not os.istarget "windows" then
         description = "Build and run secure server",     
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 secure_server" == 0 then
+            if os.execute "make -j32 secure_server" then
                 os.execute "./bin/secure_server"
             end
         end
@@ -189,7 +189,7 @@ if not os.istarget "windows" then
         description = "Build and run secure client and connect to a server via the matcher",
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 secure_client" == 0 then
+            if os.execute "make -j32 secure_client" then
                 os.execute "./bin/secure_client"
             end
         end
@@ -201,7 +201,7 @@ if not os.istarget "windows" then
         description = "Launch 64 secure client instances to stress the matcher and server",
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 secure_client" == 0 then
+            if os.execute "make -j32 secure_client" then
                 for i = 0, 63 do
                     os.execute "./bin/secure_client &"
                 end
@@ -215,7 +215,7 @@ if not os.istarget "windows" then
         description = "Build and run soak test",
         execute = function ()
             os.execute "test ! -e Makefile && premake5 gmake"
-            if os.execute "make -j32 soak" == 0 then
+            if os.execute "make -j32 soak" then
                 os.execute "./bin/soak"
             end
         end
