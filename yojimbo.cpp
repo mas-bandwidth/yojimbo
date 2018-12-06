@@ -2349,6 +2349,12 @@ namespace yojimbo
         return !m_messageSendQueue->IsFull();
     }
 
+    bool UnreliableUnorderedChannel::HasMessagesToSend() const
+    {
+        yojimbo_assert( m_messageSendQueue );
+        return !m_messageSendQueue->IsEmpty();
+    }
+
     void UnreliableUnorderedChannel::SendMessage( Message * message, void *context )
     {
         yojimbo_assert( message );
@@ -2684,6 +2690,12 @@ namespace yojimbo
         yojimbo_assert( channelIndex >= 0 );
         yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
         return m_channel[channelIndex]->CanSendMessage();
+    }
+
+    bool Connection::HasMessagesToSend( int channelIndex ) const {
+        yojimbo_assert( channelIndex >= 0 );
+        yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
+        return m_channel[channelIndex]->HasMessagesToSend();
     }
 
     void Connection::SendMessage( int channelIndex, Message * message, void *context)
@@ -3093,6 +3105,12 @@ namespace yojimbo
     {
         yojimbo_assert( m_connection );
         return m_connection->CanSendMessage( channelIndex );
+    }
+
+    bool BaseClient::HasMessagesToSend( int channelIndex ) const
+    {
+        yojimbo_assert( m_connection );
+        return m_connection->HasMessagesToSend( channelIndex );
     }
 
     void BaseClient::SendMessage( int channelIndex, Message * message )
@@ -3626,6 +3644,14 @@ namespace yojimbo
         yojimbo_assert( clientIndex < m_maxClients );
         yojimbo_assert( m_clientConnection[clientIndex] );
         return m_clientConnection[clientIndex]->CanSendMessage( channelIndex );
+    }
+
+    bool BaseServer::HasMessagesToSend( int clientIndex, int channelIndex ) const
+    {
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        yojimbo_assert( m_clientConnection[clientIndex] );
+        return m_clientConnection[clientIndex]->HasMessagesToSend( channelIndex );
     }
 
     void BaseServer::SendMessage( int clientIndex, int channelIndex, Message * message )

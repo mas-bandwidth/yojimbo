@@ -4121,6 +4121,13 @@ namespace yojimbo
         virtual bool CanSendMessage() const = 0;
 
         /**
+            Are there any messages in the send queue?
+            @returns True if there is at least one message in the send queue.            
+         */
+
+         virtual bool HasMessagesToSend() const = 0;
+
+        /**
             Queue a message to be sent across this channel.
             @param message The message to be sent.
          */
@@ -4603,6 +4610,8 @@ namespace yojimbo
 
         bool CanSendMessage() const;
 
+        bool HasMessagesToSend() const;
+
         void SendMessage( Message * message, void *context );
 
         Message * ReceiveMessage();
@@ -4653,6 +4662,8 @@ namespace yojimbo
         void Reset();
 
         bool CanSendMessage( int channelIndex ) const;
+
+        bool HasMessagesToSend( int channelIndex ) const;
 
         void SendMessage( int channelIndex, Message * message, void *context = 0);
 
@@ -5237,6 +5248,8 @@ namespace yojimbo
 
         bool CanSendMessage( int clientIndex, int channelIndex ) const;
 
+        bool HasMessagesToSend( int clientIndex, int channelIndex ) const;
+
         void SendMessage( int clientIndex, int channelIndex, Message * message );
 
         Message * ReceiveMessage( int clientIndex, int channelIndex );
@@ -5639,6 +5652,8 @@ namespace yojimbo
         void FreeBlock( uint8_t * block );
 
         bool CanSendMessage( int channelIndex ) const;
+
+        bool HasMessagesToSend( int channelIndex ) const;
 
         void SendMessage( int channelIndex, Message * message );
 
