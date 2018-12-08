@@ -4462,22 +4462,19 @@ namespace yojimbo
 
         struct SendBlockData
         {
-            SendBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
+            SendBlockData( Allocator & allocator, int maxFragmentsPerBlock )
             {
                 m_allocator = &allocator;
                 ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
-                blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
                 yojimbo_assert( ackedFragment );
                 yojimbo_assert( fragmentSendTime );
-                yojimbo_assert( blockData );
                 Reset();
             }
 
             ~SendBlockData()
             {
                 YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
-                YOJIMBO_FREE( *m_allocator, blockData );
                 YOJIMBO_FREE( *m_allocator, fragmentSendTime );
             }
 
@@ -4497,7 +4494,6 @@ namespace yojimbo
             uint16_t blockMessageId;                                                    ///< The message id the block is attached to.
             BitArray * ackedFragment;                                                   ///< Has fragment n been received?
             double * fragmentSendTime;                                                  ///< Last time fragment was sent.
-            uint8_t * blockData;                                                        ///< The block data.
 
         private:
 
