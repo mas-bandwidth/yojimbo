@@ -2965,7 +2965,7 @@ namespace yojimbo
         if ( Stream::IsWriting )
         {
             length = (int) strlen( string );
-            yojimbo_assert( length < buffer_size - 1 );
+            yojimbo_assert( length < buffer_size );
         }
         serialize_int( stream, length, 0, buffer_size - 1 );
         serialize_bytes( stream, (uint8_t*)string, length );
