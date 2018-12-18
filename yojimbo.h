@@ -2965,7 +2965,7 @@ namespace yojimbo
         if ( Stream::IsWriting )
         {
             length = (int) strlen( string );
-            yojimbo_assert( length < buffer_size - 1 );
+            yojimbo_assert( length < buffer_size );
         }
         serialize_int( stream, length, 0, buffer_size - 1 );
         serialize_bytes( stream, (uint8_t*)string, length );
@@ -4121,6 +4121,13 @@ namespace yojimbo
         virtual bool CanSendMessage() const = 0;
 
         /**
+            Are there any messages in the send queue?
+            @returns True if there is at least one message in the send queue.            
+         */
+
+         virtual bool HasMessagesToSend() const = 0;
+
+        /**
             Queue a message to be sent across this channel.
             @param message The message to be sent.
          */
@@ -4455,22 +4462,19 @@ namespace yojimbo
 
         struct SendBlockData
         {
-            SendBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
+            SendBlockData( Allocator & allocator, int maxFragmentsPerBlock )
             {
                 m_allocator = &allocator;
                 ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
-                blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
                 yojimbo_assert( ackedFragment );
                 yojimbo_assert( fragmentSendTime );
-                yojimbo_assert( blockData );
                 Reset();
             }
 
             ~SendBlockData()
             {
                 YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
-                YOJIMBO_FREE( *m_allocator, blockData );
                 YOJIMBO_FREE( *m_allocator, fragmentSendTime );
             }
 
@@ -4490,7 +4494,6 @@ namespace yojimbo
             uint16_t blockMessageId;                                                    ///< The message id the block is attached to.
             BitArray * ackedFragment;                                                   ///< Has fragment n been received?
             double * fragmentSendTime;                                                  ///< Last time fragment was sent.
-            uint8_t * blockData;                                                        ///< The block data.
 
         private:
 
@@ -4603,6 +4606,8 @@ namespace yojimbo
 
         bool CanSendMessage() const;
 
+        bool HasMessagesToSend() const;
+
         void SendMessage( Message * message, void *context );
 
         Message * ReceiveMessage();
@@ -4653,6 +4658,8 @@ namespace yojimbo
         void Reset();
 
         bool CanSendMessage( int channelIndex ) const;
+
+        bool HasMessagesToSend( int channelIndex ) const;
 
         void SendMessage( int channelIndex, Message * message, void *context = 0);
 
@@ -5237,6 +5244,8 @@ namespace yojimbo
 
         bool CanSendMessage( int clientIndex, int channelIndex ) const;
 
+        bool HasMessagesToSend( int clientIndex, int channelIndex ) const;
+
         void SendMessage( int clientIndex, int channelIndex, Message * message );
 
         Message * ReceiveMessage( int clientIndex, int channelIndex );
@@ -5639,6 +5648,8 @@ namespace yojimbo
         void FreeBlock( uint8_t * block );
 
         bool CanSendMessage( int channelIndex ) const;
+
+        bool HasMessagesToSend( int channelIndex ) const;
 
         void SendMessage( int channelIndex, Message * message );
 
