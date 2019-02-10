@@ -8,11 +8,7 @@ It's designed around the networking requirements of competitive multiplayer game
 
 As such it provides a time critical networking layer on top of UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
-## Status
-
-**yojimbo** is production ready.
-
-It provides:
+## Features
 
 * Cryptographically secure authentication via [connect tokens](https://github.com/networkprotocol/netcode.io/blob/master/STANDARD.md)
 * Client/server connection management and timeouts
@@ -35,7 +31,7 @@ Alternatively, you can download one of the latest [releases](https://github.com/
 
 ## Author
 
-The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler), a recognized expert in the field of game network programming with over 15 years experience in the industry.
+The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler).
 
 Glenn is now focusing on his new startup [Network Next](https://networknext.com).
 
