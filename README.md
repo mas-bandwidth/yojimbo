@@ -6,7 +6,7 @@
 
 It's designed around the networking requirements of competitive multiplayer games like first person shooters. 
 
-As such it provides a time critical networking layer on top of UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
+It provides a time critical networking layer on top of UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
 
 ## Features
 
