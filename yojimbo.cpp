@@ -3206,6 +3206,10 @@ namespace yojimbo
             serverAddresses[i].ToString( serverAddressStrings[i], MaxAddressLength );
             serverAddressStringPointers[i] = serverAddressStrings[i];
         }
+
+        uint8_t userData[256];
+        memset( &userData, 0, sizeof(userData) );
+
         return netcode_generate_connect_token( numServerAddresses, 
                                                serverAddressStringPointers, 
                                                serverAddressStringPointers, 
@@ -3213,8 +3217,8 @@ namespace yojimbo
                                                m_config.timeout, 
                                                clientId, 
                                                m_config.protocolId, 
-                                               0, 
-                                               (uint8_t*)privateKey, 
+                                               (uint8_t*)privateKey,
+                                               &userData[0], 
                                                connectToken ) == NETCODE_OK;
     }
 

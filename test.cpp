@@ -2161,14 +2161,13 @@ void test_client_server_message_receive_queue_overflow()
     server.Stop();
 }
 
-// Github Issue #78
-void test_reliable_fragment_overflow_bug() {
+void test_reliable_fragment_overflow_bug()
+{
     double time = 100.0;
     
     ClientServerConfig config;
     config.numChannels = 2;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    // Large enough that after this channel fills this budget, the amount of space left in the packet isn't large enough for a reliable block fragment.
     config.channel[0].packetBudget = 8000;
     config.channel[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[1].packetBudget = -1;
@@ -2212,46 +2211,38 @@ void test_reliable_fragment_overflow_bug() {
     PumpClientServerUpdate(time, clients, 1, servers, 1);
     check(!client.IsDisconnected());
     
-    // The max packet size is 8192. Fill up the packet so there's still space left, but not enough for a full reliable block fragment.
     TestBlockMessage *testBlockMessage = (TestBlockMessage *)client.CreateMessage(TEST_BLOCK_MESSAGE);
     uint8_t *blockData = client.AllocateBlock(7169);
     client.AttachBlockToMessage(testBlockMessage, blockData, 7169);
-    client.SendMessage(0, testBlockMessage); // Unreliable channel
+    client.SendMessage(0, testBlockMessage);
     
-    // Send a block message on the reliable channel. The message will be split into 1024 byte fragments. The first fragment will attempt to write beyond the end of the packet buffer and crash.
     testBlockMessage = (TestBlockMessage *)client.CreateMessage(TEST_BLOCK_MESSAGE);
     blockData = client.AllocateBlock(1024);
     client.AttachBlockToMessage(testBlockMessage, blockData, 1024);
-    client.SendMessage(1, testBlockMessage); // Reliable channel
+    client.SendMessage(1, testBlockMessage);
     
-    // Pump once to send the first message on the unreliable channel (If the bug is present, it will assert here as the second message will overflow)
     PumpClientServerUpdate(time, clients, 1, servers, 1);
     
-    // Pump again to send the second message on the reliable channel and receive the first message on the server side.
     PumpClientServerUpdate(time, clients, 1, servers, 1);
     
-    // Pump one more time to receive the second message on the server side.
     PumpClientServerUpdate(time, clients, 1, servers, 1);
     check(!client.IsDisconnected());
     
-    // Verify that we received a TestBlockMessage on both channels.
-    // Unreliable channel
     Message *message = server.ReceiveMessage(0, 0);
     check(message);
     check(message->GetType() == TEST_BLOCK_MESSAGE);
     server.ReleaseMessage(0, message);
     
-    // Reliable channel
     message = server.ReceiveMessage(0, 1);
     check(message);
     check(message->GetType() == TEST_BLOCK_MESSAGE);
     server.ReleaseMessage(0, message);
     
     client.Disconnect();
+
     server.Stop();
 }
 
-// Github Issue #77
 void test_single_message_type_reliable()
 {
 	SingleTestMessageFactory messageFactory( GetDefaultAllocator() );
