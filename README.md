@@ -6,9 +6,7 @@
 
 It's designed around the networking requirements of competitive multiplayer games like first person shooters. 
 
-It provides a time critical networking layer on top of UDP, with a client/server architecture supporting up to 64 players per-dedicated server instance.
-
-## Features
+It has the following features:
 
 * Cryptographically secure authentication via [connect tokens](https://github.com/networkprotocol/netcode.io/blob/master/STANDARD.md)
 * Client/server connection management and timeouts
@@ -16,6 +14,8 @@ It provides a time critical networking layer on top of UDP, with a client/server
 * Reliable-ordered messages and data blocks
 * Packet fragmentation and reassembly
 * Estimates of packet loss, latency and bandwidth usage
+
+yojimbo is stable and well tested having been used in AAA game projects for over 2 years now.
 
 ## Source Code
 
