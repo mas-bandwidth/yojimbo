@@ -30,7 +30,7 @@ const ConnectTokenBytes = 2048
 const ConnectTokenPrivateBytes = 1024
 const UserDataBytes = 256
 const TimeoutSeconds = 5
-const VersionInfo = "NETCODE 1.01\x00"
+const VersionInfo = "NETCODE 1.02\x00"
 
 var MatchNonce = uint64(0)
 
@@ -167,6 +167,178 @@ func (token *ConnectToken) Write( buffer []byte ) (bool) {
     copy( buffer[1024+49+offset+KeyBytes:], token.ServerToClientKey[:] )
     return true
 }
+
+/*
+void netcode_write_connect_token( struct netcode_connect_token_t * connect_token, uint8_t * buffer, int buffer_length )
+{
+    netcode_assert( connect_token );
+    netcode_assert( buffer );
+    netcode_assert( buffer_length >= NETCODE_CONNECT_TOKEN_BYTES );
+
+    uint8_t * start = buffer;
+
+    (void) start;
+    (void) buffer_length;
+
+    netcode_write_bytes( &buffer, connect_token->version_info, NETCODE_VERSION_INFO_BYTES );
+
+    netcode_write_uint64( &buffer, connect_token->protocol_id );
+
+    netcode_write_uint64( &buffer, connect_token->create_timestamp );
+
+    netcode_write_uint64( &buffer, connect_token->expire_timestamp );
+
+    netcode_write_bytes( &buffer, connect_token->nonce, NETCODE_CONNECT_TOKEN_NONCE_BYTES );
+
+    netcode_write_bytes( &buffer, connect_token->private_data, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES );
+
+    int i,j;
+
+    netcode_write_uint32( &buffer, connect_token->timeout_seconds );
+
+    netcode_write_uint32( &buffer, connect_token->num_server_addresses );
+
+    for ( i = 0; i < connect_token->num_server_addresses; ++i )
+    {
+        // todo: really just need a function to write an address. too much cut & paste here
+        if ( connect_token->server_addresses[i].type == NETCODE_ADDRESS_IPV4 )
+        {
+            netcode_write_uint8( &buffer, NETCODE_ADDRESS_IPV4 );
+            for ( j = 0; j < 4; ++j )
+            {
+                netcode_write_uint8( &buffer, connect_token->server_addresses[i].data.ipv4[j] );
+            }
+            netcode_write_uint16( &buffer, connect_token->server_addresses[i].port );
+        }
+        else if ( connect_token->server_addresses[i].type == NETCODE_ADDRESS_IPV6 )
+        {
+            netcode_write_uint8( &buffer, NETCODE_ADDRESS_IPV6 );
+            for ( j = 0; j < 8; ++j )
+            {
+                netcode_write_uint16( &buffer, connect_token->server_addresses[i].data.ipv6[j] );
+            }
+            netcode_write_uint16( &buffer, connect_token->server_addresses[i].port );
+        }
+        else
+        {
+            netcode_assert( 0 );
+        }
+    }
+
+    netcode_write_bytes( &buffer, connect_token->client_to_server_key, NETCODE_KEY_BYTES );
+
+    netcode_write_bytes( &buffer, connect_token->server_to_client_key, NETCODE_KEY_BYTES );
+
+    netcode_assert( buffer - start <= NETCODE_CONNECT_TOKEN_BYTES );
+
+    memset( buffer, 0, NETCODE_CONNECT_TOKEN_BYTES - ( buffer - start ) );
+}
+
+void netcode_write_connect_token_private( struct netcode_connect_token_private_t * connect_token, uint8_t * buffer, int buffer_length )
+{
+    (void) buffer_length;
+
+    netcode_assert( connect_token );
+    netcode_assert( connect_token->num_server_addresses > 0 );
+    netcode_assert( connect_token->num_server_addresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
+    netcode_assert( buffer );
+    netcode_assert( buffer_length >= NETCODE_CONNECT_TOKEN_PRIVATE_BYTES );
+
+    uint8_t * start = buffer;
+
+    (void) start;
+
+    netcode_write_uint64( &buffer, connect_token->client_id );
+
+    netcode_write_uint32( &buffer, connect_token->timeout_seconds );
+
+    netcode_write_uint32( &buffer, connect_token->num_server_addresses );
+
+    int i,j;
+
+    for ( i = 0; i < connect_token->num_server_addresses; ++i )
+    {
+        // todo: should really have a function to write an address
+        if ( connect_token->server_addresses[i].type == NETCODE_ADDRESS_IPV4 )
+        {
+            netcode_write_uint8( &buffer, NETCODE_ADDRESS_IPV4 );
+            for ( j = 0; j < 4; ++j )
+            {
+                netcode_write_uint8( &buffer, connect_token->server_addresses[i].data.ipv4[j] );
+            }
+            netcode_write_uint16( &buffer, connect_token->server_addresses[i].port );
+        }
+        else if ( connect_token->server_addresses[i].type == NETCODE_ADDRESS_IPV6 )
+        {
+            netcode_write_uint8( &buffer, NETCODE_ADDRESS_IPV6 );
+            for ( j = 0; j < 8; ++j )
+            {
+                netcode_write_uint16( &buffer, connect_token->server_addresses[i].data.ipv6[j] );
+            }
+            netcode_write_uint16( &buffer, connect_token->server_addresses[i].port );
+        }
+        else
+        {
+            netcode_assert( 0 );
+        }
+    }
+
+    netcode_write_bytes( &buffer, connect_token->client_to_server_key, NETCODE_KEY_BYTES );
+
+    netcode_write_bytes( &buffer, connect_token->server_to_client_key, NETCODE_KEY_BYTES );
+
+    netcode_write_bytes( &buffer, connect_token->user_data, NETCODE_USER_DATA_BYTES );
+
+    netcode_assert( buffer - start <= NETCODE_CONNECT_TOKEN_PRIVATE_BYTES - NETCODE_MAC_BYTES );
+
+    memset( buffer, 0, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES - ( buffer - start ) );
+}
+
+int netcode_encrypt_connect_token_private( uint8_t * buffer, 
+                                           int buffer_length, 
+                                           uint8_t * version_info, 
+                                           uint64_t protocol_id, 
+                                           uint64_t expire_timestamp, 
+                                           NETCODE_CONST uint8_t * nonce, 
+                                           NETCODE_CONST uint8_t * key )
+{
+    netcode_assert( buffer );
+    netcode_assert( buffer_length == NETCODE_CONNECT_TOKEN_PRIVATE_BYTES );
+    netcode_assert( key );
+
+    (void) buffer_length;
+
+    uint8_t additional_data[NETCODE_VERSION_INFO_BYTES+8+8];
+    {
+        uint8_t * p = additional_data;
+        netcode_write_bytes( &p, version_info, NETCODE_VERSION_INFO_BYTES );
+        netcode_write_uint64( &p, protocol_id );
+        netcode_write_uint64( &p, expire_timestamp );
+    }
+
+    return netcode_encrypt_aead_bignonce( buffer, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES - NETCODE_MAC_BYTES, additional_data, sizeof( additional_data ), nonce, key );
+}
+
+int netcode_encrypt_aead_bignonce( uint8_t * message, uint64_t message_length, 
+                          uint8_t * additional, uint64_t additional_length,
+                          NETCODE_CONST uint8_t * nonce,
+                          NETCODE_CONST uint8_t * key )
+{
+    unsigned long long encrypted_length;
+
+    int result = crypto_aead_xchacha20poly1305_ietf_encrypt( message, &encrypted_length,
+                                                            message, (unsigned long long) message_length,
+                                                            additional, (unsigned long long) additional_length,
+                                                            NULL, nonce, key );
+    
+    if ( result != 0 )
+        return NETCODE_ERROR;
+
+    netcode_assert( encrypted_length == message_length + NETCODE_MAC_BYTES );
+
+    return NETCODE_OK;
+}
+*/
 
 func GenerateConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId uint64, expireSeconds uint64, timeoutSeconds int32, sequence uint64, userData []byte, privateKey []byte) ([]byte) {
     connectToken := NewConnectToken( clientId, serverAddresses, protocolId, expireSeconds, timeoutSeconds, sequence, userData, privateKey )
