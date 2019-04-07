@@ -1,7 +1,7 @@
 /*
     Yojimbo Unit Tests.
 
-    Copyright © 2016 - 2017, The Network Protocol Company, Inc.
+    Copyright © 2016 - 2019, The Network Protocol Company, Inc.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -2212,12 +2212,14 @@ void test_reliable_fragment_overflow_bug()
     check(!client.IsDisconnected());
     
     TestBlockMessage *testBlockMessage = (TestBlockMessage *)client.CreateMessage(TEST_BLOCK_MESSAGE);
-    uint8_t *blockData = client.AllocateBlock(7169);
+    uint8_t * blockData = client.AllocateBlock(7169);
+    memset( blockData, 0, 7169 );
     client.AttachBlockToMessage(testBlockMessage, blockData, 7169);
     client.SendMessage(0, testBlockMessage);
     
     testBlockMessage = (TestBlockMessage *)client.CreateMessage(TEST_BLOCK_MESSAGE);
     blockData = client.AllocateBlock(1024);
+    memset( blockData, 0, 1024 );
     client.AttachBlockToMessage(testBlockMessage, blockData, 1024);
     client.SendMessage(1, testBlockMessage);
     
