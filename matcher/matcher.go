@@ -13,7 +13,6 @@ import (
     "unsafe"
     "strconv"
     "net/http"
-    "sync/atomic"
     "encoding/base64"
     "encoding/binary"
     "github.com/gorilla/mux"
@@ -31,8 +30,6 @@ const ConnectTokenPrivateBytes = 1024
 const UserDataBytes = 256
 const TimeoutSeconds = 5
 const VersionInfo = "NETCODE 1.02\x00"
-
-var MatchNonce = uint64(0)
 
 var PrivateKey = [] byte { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea, 
                            0x9a, 0x65, 0x62, 0xf6, 0x6f, 0x2b, 0x30, 0xe4, 
@@ -112,7 +109,7 @@ type ConnectToken struct {
     PrivateKey [KeyBytes]byte
 }
 
-func NewConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId uint64, expireSeconds uint64, timeoutSeconds int32, sequence uint64, userData []byte, privateKey []byte) (*ConnectToken) {
+func NewConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId uint64, expireSeconds uint64, timeoutSeconds int32, userData []byte, privateKey []byte) (*ConnectToken) {
     connectToken := &ConnectToken{}
     connectToken.ProtocolId = protocolId
     connectToken.CreateTimestamp = uint64(time.Now().Unix())
@@ -121,7 +118,6 @@ func NewConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId 
     } else {
         connectToken.ExpireTimestamp = 0xFFFFFFFFFFFFFFFF
     }
-    connectToken.Sequence = sequence
     connectToken.TimeoutSeconds = timeoutSeconds
     connectToken.ServerAddresses = serverAddresses
     C.randombytes_buf(unsafe.Pointer(&connectToken.ClientToServerKey[0]), KeyBytes)
@@ -131,11 +127,9 @@ func NewConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId 
     return connectToken
 }
 
-func EncryptAEAD(message []byte, additional []byte, nonce uint64, key []byte) bool {
-    nonceData := make([]byte, 12)
-    binary.LittleEndian.PutUint64(nonceData[4:], nonce)
+func EncryptAEAD(message []byte, additional []byte, nonce []byte, key []byte) bool {
     encryptedLengthLongLong := (C.ulonglong(len(message)))
-    return C.crypto_aead_chacha20poly1305_ietf_encrypt(
+    return C.crypto_aead_xchacha20poly1305_ietf_encrypt(
         (*C.uchar)(&message[0]),
         &encryptedLengthLongLong,
         (*C.uchar)(&message[0]),
@@ -143,7 +137,7 @@ func EncryptAEAD(message []byte, additional []byte, nonce uint64, key []byte) bo
         (*C.uchar)(&additional[0]),
         (C.ulonglong)(len(additional)),
         (*C.uchar)(nil),
-        (*C.uchar)(&nonceData[0]),
+        (*C.uchar)(&nonce[0]),
         (*C.uchar)(&key[0])) == 0
 }
 
@@ -152,196 +146,26 @@ func (token *ConnectToken) Write( buffer []byte ) (bool) {
     binary.LittleEndian.PutUint64(buffer[13:], token.ProtocolId)
     binary.LittleEndian.PutUint64(buffer[21:], token.CreateTimestamp)
     binary.LittleEndian.PutUint64(buffer[29:], token.ExpireTimestamp)
-    binary.LittleEndian.PutUint64(buffer[37:], token.Sequence)
-    token.PrivateData.Write( buffer[45:] )
+    nonce := make([]byte, 24)
+    C.randombytes_buf(unsafe.Pointer(&nonce[0]), 24)
+    copy( buffer[37:], nonce[:] )
+    token.PrivateData.Write( buffer[61:] )
     additional := make([]byte, 13+8+8)
     copy( additional, VersionInfo[0:13] )
     binary.LittleEndian.PutUint64(additional[13:], token.ProtocolId)
     binary.LittleEndian.PutUint64(additional[21:], token.ExpireTimestamp)
-    if !EncryptAEAD( buffer[45:45+ConnectTokenPrivateBytes-AuthBytes], additional[:], token.Sequence, token.PrivateKey[:] ) {
+    if !EncryptAEAD( buffer[61:61+ConnectTokenPrivateBytes-AuthBytes], additional[:], nonce[:], token.PrivateKey[:] ) {
         return false
     }
-    binary.LittleEndian.PutUint32(buffer[ConnectTokenPrivateBytes+45:], (uint32)(token.TimeoutSeconds))
-    offset := WriteAddresses( buffer[1024+49:], token.ServerAddresses )
-    copy( buffer[1024+49+offset:], token.ClientToServerKey[:] )
-    copy( buffer[1024+49+offset+KeyBytes:], token.ServerToClientKey[:] )
+    binary.LittleEndian.PutUint32(buffer[ConnectTokenPrivateBytes+61:], (uint32)(token.TimeoutSeconds))
+    offset := WriteAddresses( buffer[1024+61+4:], token.ServerAddresses )
+    copy( buffer[1024+61+4+offset:], token.ClientToServerKey[:] )
+    copy( buffer[1024+61+4+offset+KeyBytes:], token.ServerToClientKey[:] )
     return true
 }
 
-/*
-void netcode_write_connect_token( struct netcode_connect_token_t * connect_token, uint8_t * buffer, int buffer_length )
-{
-    netcode_assert( connect_token );
-    netcode_assert( buffer );
-    netcode_assert( buffer_length >= NETCODE_CONNECT_TOKEN_BYTES );
-
-    uint8_t * start = buffer;
-
-    (void) start;
-    (void) buffer_length;
-
-    netcode_write_bytes( &buffer, connect_token->version_info, NETCODE_VERSION_INFO_BYTES );
-
-    netcode_write_uint64( &buffer, connect_token->protocol_id );
-
-    netcode_write_uint64( &buffer, connect_token->create_timestamp );
-
-    netcode_write_uint64( &buffer, connect_token->expire_timestamp );
-
-    netcode_write_bytes( &buffer, connect_token->nonce, NETCODE_CONNECT_TOKEN_NONCE_BYTES );
-
-    netcode_write_bytes( &buffer, connect_token->private_data, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES );
-
-    int i,j;
-
-    netcode_write_uint32( &buffer, connect_token->timeout_seconds );
-
-    netcode_write_uint32( &buffer, connect_token->num_server_addresses );
-
-    for ( i = 0; i < connect_token->num_server_addresses; ++i )
-    {
-        // todo: really just need a function to write an address. too much cut & paste here
-        if ( connect_token->server_addresses[i].type == NETCODE_ADDRESS_IPV4 )
-        {
-            netcode_write_uint8( &buffer, NETCODE_ADDRESS_IPV4 );
-            for ( j = 0; j < 4; ++j )
-            {
-                netcode_write_uint8( &buffer, connect_token->server_addresses[i].data.ipv4[j] );
-            }
-            netcode_write_uint16( &buffer, connect_token->server_addresses[i].port );
-        }
-        else if ( connect_token->server_addresses[i].type == NETCODE_ADDRESS_IPV6 )
-        {
-            netcode_write_uint8( &buffer, NETCODE_ADDRESS_IPV6 );
-            for ( j = 0; j < 8; ++j )
-            {
-                netcode_write_uint16( &buffer, connect_token->server_addresses[i].data.ipv6[j] );
-            }
-            netcode_write_uint16( &buffer, connect_token->server_addresses[i].port );
-        }
-        else
-        {
-            netcode_assert( 0 );
-        }
-    }
-
-    netcode_write_bytes( &buffer, connect_token->client_to_server_key, NETCODE_KEY_BYTES );
-
-    netcode_write_bytes( &buffer, connect_token->server_to_client_key, NETCODE_KEY_BYTES );
-
-    netcode_assert( buffer - start <= NETCODE_CONNECT_TOKEN_BYTES );
-
-    memset( buffer, 0, NETCODE_CONNECT_TOKEN_BYTES - ( buffer - start ) );
-}
-
-void netcode_write_connect_token_private( struct netcode_connect_token_private_t * connect_token, uint8_t * buffer, int buffer_length )
-{
-    (void) buffer_length;
-
-    netcode_assert( connect_token );
-    netcode_assert( connect_token->num_server_addresses > 0 );
-    netcode_assert( connect_token->num_server_addresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
-    netcode_assert( buffer );
-    netcode_assert( buffer_length >= NETCODE_CONNECT_TOKEN_PRIVATE_BYTES );
-
-    uint8_t * start = buffer;
-
-    (void) start;
-
-    netcode_write_uint64( &buffer, connect_token->client_id );
-
-    netcode_write_uint32( &buffer, connect_token->timeout_seconds );
-
-    netcode_write_uint32( &buffer, connect_token->num_server_addresses );
-
-    int i,j;
-
-    for ( i = 0; i < connect_token->num_server_addresses; ++i )
-    {
-        // todo: should really have a function to write an address
-        if ( connect_token->server_addresses[i].type == NETCODE_ADDRESS_IPV4 )
-        {
-            netcode_write_uint8( &buffer, NETCODE_ADDRESS_IPV4 );
-            for ( j = 0; j < 4; ++j )
-            {
-                netcode_write_uint8( &buffer, connect_token->server_addresses[i].data.ipv4[j] );
-            }
-            netcode_write_uint16( &buffer, connect_token->server_addresses[i].port );
-        }
-        else if ( connect_token->server_addresses[i].type == NETCODE_ADDRESS_IPV6 )
-        {
-            netcode_write_uint8( &buffer, NETCODE_ADDRESS_IPV6 );
-            for ( j = 0; j < 8; ++j )
-            {
-                netcode_write_uint16( &buffer, connect_token->server_addresses[i].data.ipv6[j] );
-            }
-            netcode_write_uint16( &buffer, connect_token->server_addresses[i].port );
-        }
-        else
-        {
-            netcode_assert( 0 );
-        }
-    }
-
-    netcode_write_bytes( &buffer, connect_token->client_to_server_key, NETCODE_KEY_BYTES );
-
-    netcode_write_bytes( &buffer, connect_token->server_to_client_key, NETCODE_KEY_BYTES );
-
-    netcode_write_bytes( &buffer, connect_token->user_data, NETCODE_USER_DATA_BYTES );
-
-    netcode_assert( buffer - start <= NETCODE_CONNECT_TOKEN_PRIVATE_BYTES - NETCODE_MAC_BYTES );
-
-    memset( buffer, 0, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES - ( buffer - start ) );
-}
-
-int netcode_encrypt_connect_token_private( uint8_t * buffer, 
-                                           int buffer_length, 
-                                           uint8_t * version_info, 
-                                           uint64_t protocol_id, 
-                                           uint64_t expire_timestamp, 
-                                           NETCODE_CONST uint8_t * nonce, 
-                                           NETCODE_CONST uint8_t * key )
-{
-    netcode_assert( buffer );
-    netcode_assert( buffer_length == NETCODE_CONNECT_TOKEN_PRIVATE_BYTES );
-    netcode_assert( key );
-
-    (void) buffer_length;
-
-    uint8_t additional_data[NETCODE_VERSION_INFO_BYTES+8+8];
-    {
-        uint8_t * p = additional_data;
-        netcode_write_bytes( &p, version_info, NETCODE_VERSION_INFO_BYTES );
-        netcode_write_uint64( &p, protocol_id );
-        netcode_write_uint64( &p, expire_timestamp );
-    }
-
-    return netcode_encrypt_aead_bignonce( buffer, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES - NETCODE_MAC_BYTES, additional_data, sizeof( additional_data ), nonce, key );
-}
-
-int netcode_encrypt_aead_bignonce( uint8_t * message, uint64_t message_length, 
-                          uint8_t * additional, uint64_t additional_length,
-                          NETCODE_CONST uint8_t * nonce,
-                          NETCODE_CONST uint8_t * key )
-{
-    unsigned long long encrypted_length;
-
-    int result = crypto_aead_xchacha20poly1305_ietf_encrypt( message, &encrypted_length,
-                                                            message, (unsigned long long) message_length,
-                                                            additional, (unsigned long long) additional_length,
-                                                            NULL, nonce, key );
-    
-    if ( result != 0 )
-        return NETCODE_ERROR;
-
-    netcode_assert( encrypted_length == message_length + NETCODE_MAC_BYTES );
-
-    return NETCODE_OK;
-}
-*/
-
-func GenerateConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId uint64, expireSeconds uint64, timeoutSeconds int32, sequence uint64, userData []byte, privateKey []byte) ([]byte) {
-    connectToken := NewConnectToken( clientId, serverAddresses, protocolId, expireSeconds, timeoutSeconds, sequence, userData, privateKey )
+func GenerateConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protocolId uint64, expireSeconds uint64, timeoutSeconds int32, userData []byte, privateKey []byte) ([]byte) {
+    connectToken := NewConnectToken( clientId, serverAddresses, protocolId, expireSeconds, timeoutSeconds, userData, privateKey )
     if connectToken == nil {
         return nil
     }
@@ -354,13 +178,12 @@ func GenerateConnectToken(clientId uint64, serverAddresses []net.UDPAddr, protoc
 
 func MatchHandler( w http.ResponseWriter, r * http.Request ) {
     vars := mux.Vars( r )
-    atomic.AddUint64( &MatchNonce, 1 )
     clientId, _ := strconv.ParseUint( vars["clientId"], 10, 64 )
     protocolId, _ := strconv.ParseUint( vars["protocolId"], 10, 64 )
     serverAddresses := make( []net.UDPAddr, 1 )
     serverAddresses[0] = net.UDPAddr{ IP: net.ParseIP( ServerAddress ), Port: ServerPort }
     userData := make( []byte, UserDataBytes )
-    connectToken := GenerateConnectToken( clientId, serverAddresses, protocolId, ConnectTokenExpiry, TimeoutSeconds, MatchNonce, userData, PrivateKey )
+    connectToken := GenerateConnectToken( clientId, serverAddresses, protocolId, ConnectTokenExpiry, TimeoutSeconds, userData, PrivateKey )
     if connectToken == nil {
         log.Printf( "error: failed to generate connect token" )
         return
