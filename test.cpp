@@ -288,8 +288,8 @@ struct TestObject : public Serializable
         data.e = 255;
         data.f = 127;
         data.g = true;
-		data.v32 = UINT32_MAX;
-		data.v64 = UINT64_MAX;
+        data.v32 = UINT32_MAX;
+        data.v64 = UINT64_MAX;
 
         data.numItems = MaxItems / 2;
         for ( int i = 0; i < data.numItems; ++i )

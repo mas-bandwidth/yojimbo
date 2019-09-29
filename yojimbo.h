@@ -2126,8 +2126,8 @@ namespace yojimbo
             uint8_t data[5];
             const int bytes = yojimbo_put_varint( data, value );
             yojimbo_assert( bytes >= 0 );
-            SerializeAlign();
-            m_writer.WriteBytes( data, bytes );
+            for ( int i = 0; i < bytes; ++i )
+                m_writer.WriteBits( data[i], 8 );
             return true;
         }
 
@@ -2142,8 +2142,8 @@ namespace yojimbo
             uint8_t data[9];
             const int bytes = yojimbo_put_varint( data, value );
             yojimbo_assert( bytes >= 0 );
-            SerializeAlign();
-            m_writer.WriteBytes( data, bytes );
+            for ( int i = 0; i < bytes; ++i )
+                m_writer.WriteBits( data[i], 8 );
             return true;
         }
 
@@ -2315,8 +2315,6 @@ namespace yojimbo
 
         bool SerializeVarint32( uint32_t & value )
         {
-            if ( !SerializeAlign() )
-                return false;
             int i = 0;
             uint8_t data[6];
             uint32_t read_value;
@@ -2324,9 +2322,9 @@ namespace yojimbo
                 if ( m_reader.WouldReadPastEnd( 8 ) )
                     return false;
                 read_value = m_reader.ReadBits( 8 );
-                data[i++] = read_value;
+                data[ i++ ] = read_value;
             } while (i < 5 && (read_value >> 7) != 0 );
-			data[i] = 0;
+            data[i] = 0;
             yojimbo_get_varint32( data, &value );
             return true;
         }
@@ -2339,8 +2337,6 @@ namespace yojimbo
 
         bool SerializeVarint64( uint64_t & value )
         {
-            if ( !SerializeAlign() )
-                return false;
             int i = 0;
             uint8_t data[10];
             uint32_t read_value;
@@ -2348,9 +2344,9 @@ namespace yojimbo
                 if ( m_reader.WouldReadPastEnd( 8 ) )
                     return false;
                 read_value = m_reader.ReadBits( 8 );
-                data[i++] = read_value;
+                data[ i++ ] = read_value;
             } while (i < 9 && (read_value >> 7) != 0 );
-			data[i] = 0;
+            data[i] = 0;
             yojimbo_get_varint( data, &value );
             return true;
         }

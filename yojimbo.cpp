@@ -4230,7 +4230,7 @@ namespace yojimbo
     }
 
     /*
-    ** Bitmasks used by sqlite3GetVarint().  These precomputed constants
+    ** Bitmasks used by yojimbo_get_varint().  These precomputed constants
     ** are defined here rather than simply putting the constant expressions
     ** inline in order to work around bugs in the RVT compiler.
     **
@@ -4513,7 +4513,7 @@ namespace yojimbo
 
         /* We can only reach this point when reading a corrupt database
         ** file.  In that case we are not in any hurry.  Use the (relatively
-        ** slow) general-purpose sqlite3GetVarint() routine to extract the
+        ** slow) general-purpose yojimbo_get_varint() routine to extract the
         ** value. */
         {
             uint64_t v64;
