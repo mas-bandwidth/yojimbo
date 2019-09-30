@@ -4415,7 +4415,7 @@ namespace yojimbo
         ** by the getVarin32() macro */
         a = *p;
         /* a: p0 (unmasked) */
-#ifndef get_varint32
+#ifndef yojimbo_getvarint32
         if (!(a & 0x80))
         {
             /* Values between 0 and 127 */

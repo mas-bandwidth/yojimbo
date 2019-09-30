@@ -2008,10 +2008,10 @@ namespace yojimbo
     /**
         The common case is for a varint to be a single byte.  They following macros handle the common case without a procedure call, but then call the procedure for larger varints.
     */
-    #define yojimbo_getvarint32(A,B) (uint8_t)((*(A)<(uint8_t)0x80)?((B)=(uint32_t)*(A)),1:yojimbo_get_varint32((A),(uint32_t *)&(B)))
-    #define yojimbo_putvarint32(A,B) (uint8_t)(((uint32_t)(B)<(uint32_t)0x80)?(*(A)=(unsigned char)(B)),1:yojimbo_put_varint((A),(B)))
-    #define yojimbo_getvarint yojimbo_get_varint
-    #define yojimbo_putvarint yojimbo_put_varint
+    // #define yojimbo_getvarint32(A,B) (uint8_t)((*(A)<(uint8_t)0x80)?((B)=(uint32_t)*(A)),1:yojimbo_get_varint32((A),(uint32_t *)&(B)))
+    // #define yojimbo_putvarint32(A,B) (uint8_t)(((uint32_t)(B)<(uint32_t)0x80)?(*(A)=(unsigned char)(B)),1:yojimbo_put_varint((A),(B)))
+    // #define yojimbo_getvarint yojimbo_get_varint
+    // #define yojimbo_putvarint yojimbo_put_varint
 
     /** 
         Functionality common to all stream classes.
