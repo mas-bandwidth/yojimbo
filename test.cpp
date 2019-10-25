@@ -258,6 +258,8 @@ struct TestData
     uint32_t e : 8;
     uint32_t f : 8;
     bool g;
+    uint32_t v32;
+    uint64_t v64;
     int numItems;
     int items[MaxItems];
     float float_value;
@@ -286,6 +288,8 @@ struct TestObject : public Serializable
         data.e = 255;
         data.f = 127;
         data.g = true;
+        data.v32 = UINT32_MAX;
+        data.v64 = UINT64_MAX;
 
         data.numItems = MaxItems / 2;
         for ( int i = 0; i < data.numItems; ++i )
@@ -309,6 +313,9 @@ struct TestObject : public Serializable
         serialize_int( stream, data.b, context.min, context.max );
 
         serialize_int( stream, data.c, -100, 10000 );
+
+        serialize_varint32( stream, data.v32 );
+        serialize_varint64( stream, data.v64 );
 
         serialize_bits( stream, data.d, 6 );
         serialize_bits( stream, data.e, 8 );

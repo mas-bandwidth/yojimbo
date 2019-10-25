@@ -1995,6 +1995,24 @@ namespace yojimbo
         int m_wordIndex;                    ///< Index of the next word to read from memory.
     };
 
+
+    /**
+        Routines to read and write variable-length integers.
+    */
+
+    int yojimbo_put_varint(unsigned char *p, uint64_t v);
+    uint8_t yojimbo_get_varint(const unsigned char *p, uint64_t *v);
+    uint8_t yojimbo_get_varint32(const unsigned char *p, uint32_t *v);
+    int yojimbo_measure_varint(uint64_t v);
+
+    /**
+        The common case is for a varint to be a single byte.  They following macros handle the common case without a procedure call, but then call the procedure for larger varints.
+    */
+    // #define yojimbo_getvarint32(A,B) (uint8_t)((*(A)<(uint8_t)0x80)?((B)=(uint32_t)*(A)),1:yojimbo_get_varint32((A),(uint32_t *)&(B)))
+    // #define yojimbo_putvarint32(A,B) (uint8_t)(((uint32_t)(B)<(uint32_t)0x80)?(*(A)=(unsigned char)(B)),1:yojimbo_put_varint((A),(B)))
+    // #define yojimbo_getvarint yojimbo_get_varint
+    // #define yojimbo_putvarint yojimbo_put_varint
+
     /** 
         Functionality common to all stream classes.
      */
@@ -2094,6 +2112,38 @@ namespace yojimbo
             const int bits = bits_required( min, max );
             uint32_t unsigned_value = value - min;
             m_writer.WriteBits( unsigned_value, bits );
+            return true;
+        }
+
+        /**
+            Serialize an varint (write).
+            @param value The integer value.
+            @returns Always returns true. All checking is performed by debug asserts only on write.
+         */
+
+        bool SerializeVarint32( uint32_t value )
+        {
+            uint8_t data[5];
+            const int bytes = yojimbo_put_varint( data, value );
+            yojimbo_assert( bytes >= 0 );
+            for ( int i = 0; i < bytes; ++i )
+                m_writer.WriteBits( data[i], 8 );
+            return true;
+        }
+
+        /**
+            Serialize an varint64 (write).
+            @param value The integer value.
+            @returns Always returns true. All checking is performed by debug asserts only on write.
+        */
+
+        bool SerializeVarint64( uint64_t value )
+        {
+            uint8_t data[9];
+            const int bytes = yojimbo_put_varint( data, value );
+            yojimbo_assert( bytes >= 0 );
+            for ( int i = 0; i < bytes; ++i )
+                m_writer.WriteBits( data[i], 8 );
             return true;
         }
 
@@ -2258,6 +2308,50 @@ namespace yojimbo
         }
 
         /**
+            Serialize a varint32 (read).
+            @param value The integer value read is stored here.
+            @returns Returns true if the serialize succeeded and the value is in the correct range. False otherwise.
+        */
+
+        bool SerializeVarint32( uint32_t & value )
+        {
+            int i = 0;
+            uint8_t data[6];
+            uint32_t read_value;
+            do { 
+                if ( m_reader.WouldReadPastEnd( 8 ) )
+                    return false;
+                read_value = m_reader.ReadBits( 8 );
+                data[ i++ ] = read_value;
+            } while (i < 5 && (read_value >> 7) != 0 );
+            data[i] = 0;
+            yojimbo_get_varint32( data, &value );
+            return true;
+        }
+
+        /**
+            Serialize a varint64 (read).
+            @param value The integer value read is stored here.
+            @returns Returns true if the serialize succeeded and the value is in the correct range. False otherwise.
+        */
+
+        bool SerializeVarint64( uint64_t & value )
+        {
+            int i = 0;
+            uint8_t data[10];
+            uint32_t read_value;
+            do { 
+                if ( m_reader.WouldReadPastEnd( 8 ) )
+                    return false;
+                read_value = m_reader.ReadBits( 8 );
+                data[ i++ ] = read_value;
+            } while (i < 9 && (read_value >> 7) != 0 );
+            data[i] = 0;
+            yojimbo_get_varint( data, &value );
+            return true;
+        }
+
+        /**
             Serialize a number of bits (read).
             @param value The integer value read is stored here. Will be in range [0,(1<<bits)-1].
             @param bits The number of bits to read in [1,32].
@@ -2404,6 +2498,32 @@ namespace yojimbo
             yojimbo_assert( value >= min );
             yojimbo_assert( value <= max );
             const int bits = bits_required( min, max );
+            m_bitsWritten += bits;
+            return true;
+        }
+
+        /**
+            Serialize an varint32 (measure).
+            @param value The integer value to write. Not actually used or checked.
+            @returns Always returns true. All checking is performed by debug asserts only on measure.
+         */
+
+        bool SerializeVarint32( int32_t value )
+        {   
+            const int bits = yojimbo_measure_varint( value ) * 8;
+            m_bitsWritten += bits;
+            return true;
+        }
+
+        /**
+            Serialize an varint64 (measure).
+            @param value The integer value to write. Not actually used or checked.
+            @returns Always returns true. All checking is performed by debug asserts only on measure.
+        */
+
+        bool SerializeVarint64( int64_t value )
+        {   
+            const int bits = yojimbo_measure_varint( value ) * 8;
             m_bitsWritten += bits;
             return true;
         }
@@ -2763,6 +2883,61 @@ namespace yojimbo
                 {                                                       \
                     return false;                                       \
                 }                                                       \
+            }                                                           \
+        } while (0)
+
+
+    /**
+         Serialize variable integer value to the stream (read/write/measure).
+        This is a helper macro to make writing unified serialize functions easier.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The integer value to serialize.
+    */
+
+    #define serialize_varint32( stream, value )                         \
+        do                                                              \
+        {                                                               \
+            uint32_t int32_value = 0;                                   \
+            if ( Stream::IsWriting )                                    \
+            {                                                           \
+                int32_value = (uint32_t) value;                         \
+            }                                                           \
+            if ( !stream.SerializeVarint32( int32_value ) )             \
+            {                                                           \
+                return false;                                           \
+            }                                                           \
+            if ( Stream::IsReading )                                    \
+            {                                                           \
+                value = int32_value;                                    \
+            }                                                           \
+        } while (0)
+
+    /**
+         Serialize variable integer value to the stream (read/write/measure).
+        This is a helper macro to make writing unified serialize functions easier.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The 64 bit integer value to serialize.
+    */
+
+    #define serialize_varint64( stream, value )                         \
+        do                                                              \
+        {                                                               \
+            uint64_t int64_value = 0;                                   \
+            if ( Stream::IsWriting )                                    \
+            {                                                           \
+                int64_value = (uint64_t) value;                         \
+            }                                                           \
+            if ( !stream.SerializeVarint64( int64_value ) )             \
+            {                                                           \
+                return false;                                           \
+            }                                                           \
+            if ( Stream::IsReading )                                    \
+            {                                                           \
+                value = int64_value;                                    \
             }                                                           \
         } while (0)
 
