@@ -3967,13 +3967,13 @@ namespace yojimbo
             #if YOJIMBO_DEBUG_MESSAGE_LEAKS
             if ( allocated_messages.size() )
             {
-                printf( "you leaked messages!\n" );
-                printf( "%d messages leaked\n", (int) allocated_messages.size() );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "you leaked messages!\n" );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "%d messages leaked\n", (int) allocated_messages.size() );
                 typedef std::map<void*,int>::iterator itor_type;
                 for ( itor_type i = allocated_messages.begin(); i != allocated_messages.end(); ++i ) 
                 {
                     Message * message = (Message*) i->first;
-                    printf( "leaked message %p (type %d, refcount %d)\n", message, message->GetType(), message->GetRefCount() );
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "leaked message %p (type %d, refcount %d)\n", message, message->GetType(), message->GetRefCount() );
                 }
                 exit(1);
             }
