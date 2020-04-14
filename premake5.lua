@@ -295,7 +295,7 @@ if not os.istarget "windows" then
         trigger     = "docs",
         description = "Build documentation",
         execute = function ()
-            if os.get() == "macosx" then
+            if os.host() == "macosx" then
                 os.execute "doxygen doxygen.config && open docs/html/index.html"
             else
                 os.execute "doxygen doxygen.config"
