@@ -15,7 +15,7 @@ It has the following features:
 * Reliable-ordered messages and data blocks
 * Estimates of packet loss, latency and bandwidth usage
 
-yojimbo is stable and well tested having been used in AAA game projects for over 2 years now.
+yojimbo is stable and production ready.
 
 ## Source Code
 
