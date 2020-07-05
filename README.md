@@ -2,17 +2,17 @@
 
 # yojimbo
 
-**yojimbo** is a network library for client/server games with dedicated servers.
+**yojimbo** is a network library for client/server games written in C++.
 
 It's designed around the networking requirements of competitive multiplayer games like first person shooters. 
 
 It has the following features:
 
-* Cryptographically secure authentication via [connect tokens](https://github.com/networkprotocol/netcode.io/blob/master/STANDARD.md)
+* Cryptographically secure authentication via [connect tokens](https://github.com/networkprotocol/netcode/blob/master/STANDARD.md)
 * Client/server connection management and timeouts
 * Encrypted and signed packets sent over UDP
-* Reliable-ordered messages and data blocks
 * Packet fragmentation and reassembly
+* Reliable-ordered messages and data blocks
 * Estimates of packet loss, latency and bandwidth usage
 
 yojimbo is stable and well tested having been used in AAA game projects for over 2 years now.
@@ -33,7 +33,9 @@ Alternatively, you can download one of the latest [releases](https://github.com/
 
 The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler).
 
-Glenn is now focusing on his new startup [Network Next](https://networknext.com).
+Other open source libraries by the same author include: [netcode](http://netcode.io) and [reliable](https://github.com/networkprotocol/reliable)
+
+Glenn is now the founder and CEO of Network Next. Network Next is a radically new way to link networks together, it's a new internet for games, one where networks compete on performance and price to carry your game's traffic. Check it out at https://networknext.com
 
 ## Sponsors
 
