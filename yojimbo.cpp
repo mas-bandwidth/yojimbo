@@ -3022,6 +3022,7 @@ namespace yojimbo
         reliable_config.ack_buffer_size = m_config.ackedPacketsBufferSize;
         reliable_config.received_packets_buffer_size = m_config.receivedPacketsBufferSize;
         reliable_config.fragment_reassembly_buffer_size = m_config.packetReassemblyBufferSize;
+        reliable_config.rtt_smoothing_factor = m_config.rttSmoothingFactor;
         reliable_config.transmit_packet_function = BaseClient::StaticTransmitPacketFunction;
         reliable_config.process_packet_function = BaseClient::StaticProcessPacketFunction;
         reliable_config.allocator_context = m_clientAllocator;
@@ -3508,6 +3509,7 @@ namespace yojimbo
             reliable_config.ack_buffer_size = m_config.ackedPacketsBufferSize;
             reliable_config.received_packets_buffer_size = m_config.receivedPacketsBufferSize;
             reliable_config.fragment_reassembly_buffer_size = m_config.packetReassemblyBufferSize;
+            reliable_config.rtt_smoothing_factor = m_config.rttSmoothingFactor;
             reliable_config.transmit_packet_function = BaseServer::StaticTransmitPacketFunction;
             reliable_config.process_packet_function = BaseServer::StaticProcessPacketFunction;
             reliable_config.allocator_context = &GetGlobalAllocator();

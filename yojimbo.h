@@ -279,6 +279,7 @@ namespace yojimbo
         int packetReassemblyBufferSize;                         ///< Number of packet entries in the fragmentation reassembly buffer.
         int ackedPacketsBufferSize;                             ///< Number of packet entries in the acked packet buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
         int receivedPacketsBufferSize;                          ///< Number of packet entries in the received packet sequence buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
+        float rttSmoothingFactor;                               ///< Round-Trip Time (RTT) smoothing factor over time.
 
         ClientServerConfig()
         {
@@ -295,6 +296,7 @@ namespace yojimbo
             packetReassemblyBufferSize = 64;
             ackedPacketsBufferSize = 256;
             receivedPacketsBufferSize = 256;
+            rttSmoothingFactor = 0.0025f;
         }
     };
 }
