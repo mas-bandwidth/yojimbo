@@ -3888,7 +3888,7 @@ namespace yojimbo
 
         template <typename Stream> bool Serialize( Stream & stream ) { (void) stream; return true; }
 
-        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
 
     protected:
 
@@ -4152,7 +4152,7 @@ namespace yojimbo
 #define YOJIMBO_DECLARE_MESSAGE_TYPE( message_type, message_class )                                                                     \
                                                                                                                                         \
                 case message_type:                                                                                                      \
-                    message = YOJIMBO_NEW( allocator, message_class );                                                                  \
+                    message = YOJIMBO_NEW( allocator, message_class, );                                                                 \
                     if ( !message )                                                                                                     \
                         return NULL;                                                                                                    \
                     SetMessageType( message, message_type );                                                                            \
