@@ -3904,6 +3904,11 @@ namespace yojimbo
         return netcode_server_client_id( m_server, clientIndex );
     }
 
+    netcode_address_t * Server::GetClientAddress( int clientIndex ) const
+    {
+        return netcode_server_client_address( m_server, clientIndex );
+    }
+
     int Server::GetNumConnectedClients() const
     {
         return netcode_server_num_connected_clients( m_server );

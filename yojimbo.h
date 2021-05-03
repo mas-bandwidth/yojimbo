@@ -151,6 +151,7 @@
 #undef SendMessage
 #endif
 
+struct netcode_address_t;
 struct netcode_server_t;
 struct netcode_client_t;
 struct reliable_endpoint_t;
@@ -5242,6 +5243,14 @@ namespace yojimbo
 
         virtual uint64_t GetClientId( int clientIndex ) const = 0;
 
+        /**
+            Get the address of the client
+            @param clientIndex the index of the client slot in [0,maxClients-1], where maxClients corresponds to the value passed into the last call to Server::Start.
+            @returns The address of the client.
+         */
+
+        virtual netcode_address_t * GetClientAddress( int clientIndex ) const = 0;
+
         /** 
             Get the number of clients that are currently connected to the server.
             @returns the number of connected clients.
@@ -5508,6 +5517,8 @@ namespace yojimbo
         bool IsClientConnected( int clientIndex ) const;
 
         uint64_t GetClientId( int clientIndex ) const;
+
+        netcode_address_t * GetClientAddress( int clientIndex ) const;
 
         int GetNumConnectedClients() const;
 
