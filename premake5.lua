@@ -22,9 +22,10 @@ solution "Yojimbo"
     vectorextensions "SSE2"
     configuration "Debug"
         symbols "On"
+        defines { "YOJIMBO_DEBUG", "NETCODE_DEBUG", "RELIABLE_DEBUG" }
     configuration "Release"
         optimize "Speed"
-        defines { "NDEBUG" }
+        defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE" }
         
 project "test"
     files { "test.cpp" }
