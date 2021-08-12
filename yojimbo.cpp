@@ -1353,6 +1353,12 @@ namespace yojimbo
     {
         const int maxMessageType = messageFactory.GetNumTypes() - 1;
 
+        if (Stream::IsReading)
+        {
+            block.message = NULL;
+            block.fragmentData = NULL;
+        }
+
         serialize_bits( stream, block.messageId, 16 );
 
         if ( channelConfig.GetMaxFragmentsPerBlock() > 1 )
@@ -1429,11 +1435,6 @@ namespace yojimbo
                 yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize block message of type %d (SerializeBlockFragment)\n", block.messageType );
                 return false;
             }
-        }
-        else
-        {
-            if ( Stream::IsReading )
-                block.message = NULL;
         }
 
         return true;
