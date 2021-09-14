@@ -492,10 +492,15 @@ static void* align_ptr(const void* ptr, size_t align)
 static size_t adjust_request_size(size_t size, size_t align)
 {
 	size_t adjust = 0;
-	if (size && size < block_size_max)
+	if (size)
 	{
 		const size_t aligned = align_up(size, align);
-		adjust = tlsf_max(aligned, block_size_min);
+
+		/* aligned sized must not exceed block_size_max or we'll go out of bounds on sl_bitmap */
+		if (aligned < block_size_max) 
+		{
+			adjust = tlsf_max(aligned, block_size_min);
+		}
 	}
 	return adjust;
 }
@@ -585,12 +590,12 @@ static void remove_free_block(control_t* control, block_header_t* block, int fl,
 		/* If the new head is null, clear the bitmap. */
 		if (next == &control->block_null)
 		{
-			control->sl_bitmap[fl] &= ~(1 << sl);
+			control->sl_bitmap[fl] &= ~(1U << sl);
 
 			/* If the second bitmap is now empty, clear the fl bitmap. */
 			if (!control->sl_bitmap[fl])
 			{
-				control->fl_bitmap &= ~(1 << fl);
+				control->fl_bitmap &= ~(1U << fl);
 			}
 		}
 	}
@@ -613,8 +618,8 @@ static void insert_free_block(control_t* control, block_header_t* block, int fl,
 	** and second-level bitmaps appropriately.
 	*/
 	control->blocks[fl][sl] = block;
-	control->fl_bitmap |= (1 << fl);
-	control->sl_bitmap[fl] |= (1 << sl);
+	control->fl_bitmap |= (1U << fl);
+	control->sl_bitmap[fl] |= (1U << sl);
 }
 
 /* Remove a given block from the free list. */
@@ -753,7 +758,17 @@ static block_header_t* block_locate_free(control_t* control, size_t size)
 	if (size)
 	{
 		mapping_search(size, &fl, &sl);
-		block = search_suitable_block(control, &fl, &sl);
+		
+		/*
+		** mapping_search can futz with the size, so for excessively large sizes it can sometimes wind up 
+		** with indices that are off the end of the block array.
+		** So, we protect against that here, since this is the only callsite of mapping_search.
+		** Note that we don't need to check sl, since it comes from a modulo operation that guarantees it's always in range.
+		*/
+		if (fl < FL_INDEX_COUNT)
+		{
+			block = search_suitable_block(control, &fl, &sl);
+		}
 	}
 
 	if (block)
@@ -838,9 +853,9 @@ int tlsf_check(tlsf_t tlsf)
 	{
 		for (j = 0; j < SL_INDEX_COUNT; ++j)
 		{
-			const int fl_map = control->fl_bitmap & (1 << i);
+			const int fl_map = control->fl_bitmap & (1U << i);
 			const int sl_list = control->sl_bitmap[i];
-			const int sl_map = sl_list & (1 << j);
+			const int sl_map = sl_list & (1U << j);
 			const block_header_t* block = control->blocks[i][j];
 
 			/* Check that first- and second-level lists agree. */
