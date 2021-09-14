@@ -2,8 +2,9 @@
  * \file entropy.h
  *
  * \brief Entropy accumulator implementation
- *
- *  Copyright (C) 2006-2016, ARM Limited, All Rights Reserved
+ */
+/*
+ *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -17,37 +18,29 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 #ifndef MBEDTLS_ENTROPY_H
 #define MBEDTLS_ENTROPY_H
+#include "mbedtls/private_access.h"
 
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
+#include "mbedtls/build_info.h"
 
 #include <stddef.h>
 
 #if defined(MBEDTLS_SHA512_C) && !defined(MBEDTLS_ENTROPY_FORCE_SHA256)
-#include "sha512.h"
+#include "mbedtls/sha512.h"
 #define MBEDTLS_ENTROPY_SHA512_ACCUMULATOR
 #else
 #if defined(MBEDTLS_SHA256_C)
 #define MBEDTLS_ENTROPY_SHA256_ACCUMULATOR
-#include "sha256.h"
+#include "mbedtls/sha256.h"
 #endif
 #endif
 
 #if defined(MBEDTLS_THREADING_C)
-#include "threading.h"
+#include "mbedtls/threading.h"
 #endif
 
-#if defined(MBEDTLS_HAVEGE_C)
-#include "havege.h"
-#endif
 
 #define MBEDTLS_ERR_ENTROPY_SOURCE_FAILED                 -0x003C  /**< Critical entropy source failure. */
 #define MBEDTLS_ERR_ENTROPY_MAX_SOURCES                   -0x003E  /**< No more sources can be added. */
@@ -59,7 +52,7 @@
  * \name SECTION: Module settings
  *
  * The configuration options you can set for this module are in this section.
- * Either change them in config.h or define them on the compiler command line.
+ * Either change them in mbedtls_config.h or define them on the compiler command line.
  * \{
  */
 
@@ -106,39 +99,47 @@ typedef int (*mbedtls_entropy_f_source_ptr)(void *data, unsigned char *output, s
 /**
  * \brief           Entropy source state
  */
-typedef struct
+typedef struct mbedtls_entropy_source_state
 {
-    mbedtls_entropy_f_source_ptr    f_source;   /**< The entropy source callback */
-    void *          p_source;   /**< The callback data pointer */
-    size_t          size;       /**< Amount received in bytes */
-    size_t          threshold;  /**< Minimum bytes required before release */
-    int             strong;     /**< Is the source strong? */
+    mbedtls_entropy_f_source_ptr    MBEDTLS_PRIVATE(f_source);   /**< The entropy source callback */
+    void *          MBEDTLS_PRIVATE(p_source);   /**< The callback data pointer */
+    size_t          MBEDTLS_PRIVATE(size);       /**< Amount received in bytes */
+    size_t          MBEDTLS_PRIVATE(threshold);  /**< Minimum bytes required before release */
+    int             MBEDTLS_PRIVATE(strong);     /**< Is the source strong? */
 }
 mbedtls_entropy_source_state;
 
 /**
  * \brief           Entropy context structure
  */
-typedef struct
+typedef struct mbedtls_entropy_context
 {
+    int MBEDTLS_PRIVATE(accumulator_started); /* 0 after init.
+                              * 1 after the first update.
+                              * -1 after free. */
 #if defined(MBEDTLS_ENTROPY_SHA512_ACCUMULATOR)
-    mbedtls_sha512_context  accumulator;
+    mbedtls_sha512_context  MBEDTLS_PRIVATE(accumulator);
 #else
-    mbedtls_sha256_context  accumulator;
+    mbedtls_sha256_context  MBEDTLS_PRIVATE(accumulator);
 #endif
-    int             source_count;
-    mbedtls_entropy_source_state    source[MBEDTLS_ENTROPY_MAX_SOURCES];
-#if defined(MBEDTLS_HAVEGE_C)
-    mbedtls_havege_state    havege_data;
-#endif
+    int             MBEDTLS_PRIVATE(source_count); /* Number of entries used in source. */
+    mbedtls_entropy_source_state    MBEDTLS_PRIVATE(source)[MBEDTLS_ENTROPY_MAX_SOURCES];
 #if defined(MBEDTLS_THREADING_C)
-    mbedtls_threading_mutex_t mutex;    /*!< mutex                  */
+    mbedtls_threading_mutex_t MBEDTLS_PRIVATE(mutex);    /*!< mutex                  */
 #endif
 #if defined(MBEDTLS_ENTROPY_NV_SEED)
-    int initial_entropy_run;
+    int MBEDTLS_PRIVATE(initial_entropy_run);
 #endif
 }
 mbedtls_entropy_context;
+
+#if !defined(MBEDTLS_NO_PLATFORM_ENTROPY)
+/**
+ * \brief           Platform-specific entropy poll callback
+ */
+int mbedtls_platform_entropy_poll( void *data,
+                           unsigned char *output, size_t len, size_t *olen );
+#endif
 
 /**
  * \brief           Initialize the context
@@ -164,7 +165,7 @@ void mbedtls_entropy_free( mbedtls_entropy_context *ctx );
  * \param threshold Minimum required from source before entropy is released
  *                  ( with mbedtls_entropy_func() ) (in bytes)
  * \param strong    MBEDTLS_ENTROPY_SOURCE_STRONG or
- *                  MBEDTSL_ENTROPY_SOURCE_WEAK.
+ *                  MBEDTLS_ENTROPY_SOURCE_WEAK.
  *                  At least one strong source needs to be added.
  *                  Weaker sources (such as the cycle counter) can be used as
  *                  a complement.

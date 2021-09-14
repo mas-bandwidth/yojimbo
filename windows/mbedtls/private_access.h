@@ -1,9 +1,10 @@
-/**
- * \file net.h
+ /**
+ * \file private_access.h
  *
- * \brief Deprecated header file that includes mbedtls/net_sockets.h
- *
- *  Copyright (C) 2006-2016, ARM Limited, All Rights Reserved
+ * \brief Macro wrapper for struct's memebrs.
+ */
+/*
+ *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -17,15 +18,15 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
- *
- * \deprecated Superseded by mbedtls/net_sockets.h
  */
 
-#if !defined(MBEDTLS_DEPRECATED_REMOVED)
-#include "mbedtls/net_sockets.h"
-#if defined(MBEDTLS_DEPRECATED_WARNING)
-#warning "Deprecated header file: Superseded by mbedtls/net_sockets.h"
-#endif /* MBEDTLS_DEPRECATED_WARNING */
-#endif /* !MBEDTLS_DEPRECATED_REMOVED */
+#ifndef MBEDTLS_PRIVATE_ACCESS_H
+#define MBEDTLS_PRIVATE_ACCESS_H
+
+#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS
+#define MBEDTLS_PRIVATE(member) private_##member
+#else
+#define MBEDTLS_PRIVATE(member) member
+#endif
+
+#endif /* MBEDTLS_PRIVATE_ACCESS_H */
