@@ -1412,12 +1412,13 @@ namespace yojimbo
             Insert an entry in the sequence buffer.
             IMPORTANT: If another entry exists at the sequence modulo buffer size, it is overwritten.
             @param sequence The sequence number.
+            @param guaranteed_order Whether sequence is always the newest value (when sending) or can be out of order (when receiving).
             @returns The sequence buffer entry, which you must fill with your data. NULL if a sequence buffer entry could not be added for your sequence number (if the sequence number is too old for example).
          */
 
-        T * Insert( uint16_t sequence )
+        T * Insert( uint16_t sequence, bool guaranteed_order = false )
         {
-            if ( sequence_greater_than( sequence + 1, m_sequence ) )
+            if ( sequence_greater_than( sequence + 1, m_sequence ) || guaranteed_order )
             {
                 RemoveEntries( m_sequence, sequence );
                 m_sequence = sequence + 1;
