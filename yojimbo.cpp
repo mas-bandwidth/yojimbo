@@ -645,7 +645,7 @@ namespace yojimbo
             return false;
         if ( m_port != other.m_port )
             return false;
-        if ( m_type == ADDRESS_IPV4 && m_address.ipv4 == other.m_address.ipv4 )
+        if ( m_type == ADDRESS_IPV4 && memcmp( m_address.ipv4, other.m_address.ipv4, sizeof( m_address.ipv4 ) ) == 0 )
             return true;
         else if ( m_type == ADDRESS_IPV6 && memcmp( m_address.ipv6, other.m_address.ipv6, sizeof( m_address.ipv6 ) ) == 0 )
             return true;
