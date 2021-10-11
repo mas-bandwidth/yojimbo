@@ -840,7 +840,7 @@ double yojimbo_time()
 // ---------------------------------------------------------------------------------
 
 #if YOJIMBO_WITH_MBEDTLS
-#include <mbedtls/config.h>
+#include <mbedtls/build_info.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/debug.h>
@@ -848,7 +848,8 @@ double yojimbo_time()
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/error.h>
-#include <mbedtls/certs.h>
+#include <mbedtls/x509_crt.h>
+#include "certs.h"
 #endif // #if YOJIMBO_WITH_MBEDTLS
 #include <inttypes.h>
 #include <string.h>
