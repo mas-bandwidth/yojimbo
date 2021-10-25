@@ -4,14 +4,9 @@ Documentation: https://vcpkg.io
 Files
 ---------------
 
-1. ``yojimbo/vcpkg/ports/yojimbo/..`` This directory contains the core files you need to build Yojimbo with vcpkg.
+``yojimbo/vcpkg/ports/yojimbo/..`` This directory contains the files you need to build Yojimbo with vcpkg.
 
-2. ``yojimbo/vcpkg/versions/y-/yojimbo.json`` and ``vcpkg/versions/baseline.json``.
-These two files are only needed if you want to integrate yojimbo completely into vcpkg. 
-Do NOT just copy over ``baseline.json`` - patch the existing one.
-
-
-Building Yojimbo: 
+A. Building Yojimbo: 
 ---------------------
 Install and bootstrap vcpkg, change to its root directory and open a shell there.
 
@@ -30,4 +25,9 @@ just the equivalent (tested on WSL only).
 
 B. Integrate the port into your vcpkg installation (advanced)
 ----------------------------------------------------------------------------
-Please read and understand the vcpkg documentation for this.
+1. Fork vcpkg and check out your fork.
+
+2. Add the yojimbo port from this repo to the ports of your checked out port.
+
+3. In your vcpkg fork with the yojimbo port added run: vcpkg x-add-version --all
+
