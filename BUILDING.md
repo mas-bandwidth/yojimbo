@@ -23,7 +23,7 @@ Next, install libsodium and mbedtls.
 
 On MacOS X, this can be done most easily with `brew install libsodium mbedtls`. If you don't have Brew, you can install it from <http://brew.sh>.
 
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 2.x version of mbedtls as the 1.x version will not work with yojimbo.
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 3.x version of mbedtls as the 2.x & 1.x version will not work with yojimbo.
 
 Now go to the command line under the yojimbo directory and enter:
 
