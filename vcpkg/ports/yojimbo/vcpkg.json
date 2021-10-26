@@ -1,0 +1,8 @@
+{
+  "name": "yojimbo",
+  "version-semver": "1.2.0",
+  "dependencies": [
+    "libsodium",
+    "mbedtls"
+  ]
+}
