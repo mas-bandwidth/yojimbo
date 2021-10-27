@@ -14,6 +14,7 @@ Makefile
 
 # Misc
 *.txt
+!CMakeLists.txt
 *.7z
 *.zip
 *.tar.gz
