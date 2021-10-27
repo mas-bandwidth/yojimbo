@@ -1,5 +1,10 @@
 Use this package in your CMakeLists.txt:
     
-    find_package(yojimbo REQUIRED)
-    target_link_libraries(main PRIVATE yojimbo)
-
+    
+    SET(VCPKG_ROOT_DIR=/path/to/vcpkg_root)
+    
+    find_package( yojimbo   REQUIRED)
+    find_package( libsodium REQUIRED)
+    find_package( mbedtls   REQUIRED)
+    .. add your "main" target
+    target_link_libraries(main PRIVATE yojimbo::yojimbo)
