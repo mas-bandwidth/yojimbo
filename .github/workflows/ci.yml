@@ -1,0 +1,94 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  MBEDTLS_VERSION: 3.0.0
+
+jobs:
+  build_and_test:
+    name: Build & test
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        configuration: [release, debug]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@master
+      with:
+        submodules: recursive
+    - name: Setup premake
+      uses: abel0b/setup-premake@v1
+
+    ## Linux-specific build setup
+    # Try to get our previously built mbedtls from the cache
+    - name: Cache mbedtls (Linux)
+      if: runner.os == 'Linux'
+      id: cache-mbedtls
+      uses: actions/cache@v2
+      with:
+        key: ${{ runner.os }}-mbedtls-${{ env.MBEDTLS_VERSION }}
+        path: ~/mbedtls_install
+
+    # If we can't get mbedtls from cache, download it and build it from source (and then it'll be cached
+    # when this build succeeds.) This is needed because Ubuntu 20.04 (latest GH hosted runner) only supports
+    # mbedtls 2 -- we can replace all this with a `sudo apt-get install libmbedtls-dev` or something similar
+    # once GH's runners are on a newer Ubuntu with mbedtls support.
+    - name: Build mbedtls when not cached (Linux)
+      if: runner.os == 'Linux' && steps.cache-mbedtls.outputs.cache-hit != 'true'
+      run: |
+        wget -nv https://github.com/ARMmbed/mbedtls/archive/refs/tags/v${MBEDTLS_VERSION}.tar.gz -O mbedtls.tgz
+        tar zxf mbedtls.tgz
+        cd mbedtls-${MBEDTLS_VERSION}
+        make install DESTDIR=$HOME/mbedtls_install
+
+    # Install libsodium from apt and configure the compiler to look for our local mbedtls
+    - name: Setup (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install libsodium-dev
+        echo CPATH=$HOME/mbedtls_install/include >> $GITHUB_ENV
+        echo LIBRARY_PATH=$HOME/mbedtls_install/lib >> $GITHUB_ENV
+
+    ## MacOS-specific build setup
+    - name: Setup (MacOS)
+      if: runner.os == 'MacOS'
+      run: brew install libsodium mbedtls@3
+
+    ## Linux & MacOS-specific build steps
+    # Build with premake + make
+    - name: Build (gmake2)
+      if: runner.os != 'Windows'
+      run: |
+        premake5 gmake2
+        make clean
+        make all config=${{ matrix.configuration }}_x64
+
+    # Run the tests with sh syntax
+    - name: Test (gmake2)
+      if: runner.os != 'Windows'
+      run: ./bin/test
+
+    ## Windows-specific build steps
+    # Set up PATH variables to point to MSBuild from at least VS 16.1 (2019)
+    - name: Setup (vs2019)
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        vs-version: '16.1.0'
+
+    # Build with premake + msbuild
+    - name: Build (vs2019)
+      if: runner.os == 'Windows'
+      run: |
+        premake5 vs2019
+        msbuild yojimbo.sln -nologo -m -t:Clean  -p:Configuration=${{ matrix.configuration }}
+        msbuild yojimbo.sln -nologo -m -p:Configuration=${{ matrix.configuration }}
+
+    # Run the tests with Powershell syntax
+    - name: Test (vs2019)
+      if: runner.os == 'Windows'
+      run: "& ./bin/x64/${{ matrix.configuration }}/test.exe"
