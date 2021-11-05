@@ -5,7 +5,7 @@ Building yojimbo
 
 Download [premake 5](https://premake.github.io/download.html) and copy the **premake5** executable somewhere in your path. Please make sure you have at least premake5 alpha 13.
 
-You need Visual Studio to build the source code. If you don't have Visual Studio 2015 you can [download the community edition for free](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx).
+You need Visual Studio to build the source code. If you don't have Visual Studio 2019 you can [download the community edition for free](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16).
 
 Once you have Visual Studio installed, go to the command line under the yojimbo directory and type:
 
@@ -27,7 +27,7 @@ On Linux, depending on your particular distribution there may be prebuilt packag
 
 Now go to the command line under the yojimbo directory and enter:
 
-    premake5 gmake
+    premake5 gmake2
 
 This creates makefiles which you can use to build the source via:
 
