@@ -30,6 +30,7 @@
 #include <time.h>
 #include <signal.h>
 #include "shared.h"
+#include "certs.h"
 
 using namespace yojimbo;
 
@@ -53,7 +54,7 @@ int ClientMain( int argc, char * argv[] )
 
     Matcher matcher( GetDefaultAllocator() );
 
-    if ( !matcher.Initialize() )
+    if ( !matcher.Initialize((const unsigned char *)&mbedtls_test_cas_pem[0], mbedtls_test_cas_pem_len) )
     {
         printf( "error: failed to initialize matcher\n" );
         return 1;
@@ -61,7 +62,7 @@ int ClientMain( int argc, char * argv[] )
 
     printf( "requesting match from https://localhost:8080\n" );
 
-    matcher.RequestMatch( ProtocolId, clientId, false );
+    matcher.RequestMatch( "localhost", 8080, ProtocolId, clientId, false );
 
     if ( matcher.GetMatchStatus() == MATCH_FAILED )
     {

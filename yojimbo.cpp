@@ -899,7 +899,7 @@ namespace yojimbo
 #endif // #if YOJIMBO_WITH_MBEDTLS
     }
 
-    bool Matcher::Initialize()
+    bool Matcher::Initialize(const unsigned char * mbedtls_cas_pem, int mbedtls_cas_pem_len)
     {
 #if YOJIMBO_WITH_MBEDTLS
 		
@@ -920,7 +920,7 @@ namespace yojimbo
             return false;
         }
 
-        if ( mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len ) < 0 )
+        if ( mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_cas_pem, mbedtls_cas_pem_len ) < 0 )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_x509_crt_parse failed (%d)\n", result );
             return false;
@@ -935,7 +935,7 @@ namespace yojimbo
         return true;
     }
 
-    void Matcher::RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate )
+    void Matcher::RequestMatch( const char *server_cstr, int port, uint64_t protocolId, uint64_t clientId, bool verifyCertificate )
     {
 #if YOJIMBO_WITH_MBEDTLS
 		
@@ -947,7 +947,10 @@ namespace yojimbo
 
         int result;
 
-        if ( ( result = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
+        sprintf( request, "%d", port );
+
+
+        if ( ( result = mbedtls_net_connect( &m_internal->server_fd, server_cstr, request, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_net_connect failed (%d)\n", result );
             m_matchStatus = MATCH_FAILED;

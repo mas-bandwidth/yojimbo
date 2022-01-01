@@ -6037,20 +6037,22 @@ namespace yojimbo
             @returns True if the matcher initialized successfully, false otherwise.
          */
 
-        bool Initialize();
+        bool Initialize(const unsigned char * mbedtls_cas_pem, int mbedtls_cas_pem_len);
 
         /** 
             Request a match.
             This is how clients get connect tokens from matcher.go. 
             They request a match and the server replies with a set of servers to connect to, and a connect token to pass to that server.
             IMPORTANT: This function is currently blocking. It will be made non-blocking in the near future.
+            @param server_cstr the host address of the server
+            @param port Port the server is listening on
             @param protocolId The protocol id that we are using. Used to filter out servers with different protocol versions.
             @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64 bit number.
             @see Matcher::GetMatchStatus
             @see Matcher::GetConnectToken
          */
 
-        void RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate );
+        void RequestMatch( const char *server_cstr, int port,uint64_t protocolId, uint64_t clientId, bool verifyCertificate );
 
         /**
             Get the current match status.
