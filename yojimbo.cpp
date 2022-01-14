@@ -1887,7 +1887,6 @@ namespace yojimbo
     void ReliableOrderedChannel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
         SentPacketEntry & sentPacket = m_sentPackets->InsertAndIgnoreAge( sequence );
-        sentPacket.acked = 0;
         sentPacket.block = 0;
         sentPacket.timeSent = m_time;
         sentPacket.messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketBufferSize ) * m_config.maxMessagesPerPacket ];
@@ -1975,8 +1974,7 @@ namespace yojimbo
         SentPacketEntry * sentPacketEntry = m_sentPackets->Find( ack );
         if ( !sentPacketEntry )
             return;
-
-        yojimbo_assert( !sentPacketEntry->acked );
+        m_sentPackets->Remove( ack );
 
         for ( int i = 0; i < (int) sentPacketEntry->numMessageIds; ++i )
         {
@@ -2168,7 +2166,6 @@ namespace yojimbo
         sentPacket.numMessageIds = 0;
         sentPacket.messageIds = NULL;
         sentPacket.timeSent = m_time;
-        sentPacket.acked = 0;
         sentPacket.block = 1;
         sentPacket.blockMessageId = messageId;
         sentPacket.blockFragmentId = fragmentId;

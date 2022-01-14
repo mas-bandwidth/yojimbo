@@ -4648,7 +4648,6 @@ namespace yojimbo
             double timeSent;                                                            ///< The time the packet was sent. Used to estimate round trip time.
             uint16_t * messageIds;                                                      ///< Pointer to an array of message ids. Dynamically allocated because the user can configure the maximum number of messages in a packet per-channel with ChannelConfig::maxMessagesPerPacket.
             uint32_t numMessageIds : 16;                                                ///< The number of message ids in in the array.
-            uint32_t acked : 1;                                                         ///< 1 if this packet has been acked.
             uint64_t block : 1;                                                         ///< 1 if this packet contains a fragment of a block message.
             uint64_t blockMessageId : 16;                                               ///< The block message id. Valid only if "block" is 1.
             uint64_t blockFragmentId : 16;                                              ///< The block fragment id. Valid only if "block" is 1.
