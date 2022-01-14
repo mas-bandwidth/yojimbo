@@ -1886,19 +1886,15 @@ namespace yojimbo
 
     void ReliableOrderedChannel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
-        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
-        yojimbo_assert( sentPacket );
-        if ( sentPacket )
+        SentPacketEntry & sentPacket = m_sentPackets->InsertAndIgnoreAge( sequence );
+        sentPacket.acked = 0;
+        sentPacket.block = 0;
+        sentPacket.timeSent = m_time;
+        sentPacket.messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketBufferSize ) * m_config.maxMessagesPerPacket ];
+        sentPacket.numMessageIds = numMessageIds;
+        for ( int i = 0; i < numMessageIds; ++i )
         {
-            sentPacket->acked = 0;
-            sentPacket->block = 0;
-            sentPacket->timeSent = m_time;
-            sentPacket->messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketBufferSize ) * m_config.maxMessagesPerPacket ];
-            sentPacket->numMessageIds = numMessageIds;            
-            for ( int i = 0; i < numMessageIds; ++i )
-            {
-                sentPacket->messageIds[i] = messageIds[i];
-            }
+            sentPacket.messageIds[i] = messageIds[i];
         }
     }
 
@@ -2168,18 +2164,14 @@ namespace yojimbo
 
     void ReliableOrderedChannel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
     {
-        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
-        yojimbo_assert( sentPacket );
-        if ( sentPacket )
-        {
-            sentPacket->numMessageIds = 0;
-            sentPacket->messageIds = NULL;
-            sentPacket->timeSent = m_time;
-            sentPacket->acked = 0;
-            sentPacket->block = 1;
-            sentPacket->blockMessageId = messageId;
-            sentPacket->blockFragmentId = fragmentId;
-        }
+        SentPacketEntry & sentPacket = m_sentPackets->InsertAndIgnoreAge( sequence );
+        sentPacket.numMessageIds = 0;
+        sentPacket.messageIds = NULL;
+        sentPacket.timeSent = m_time;
+        sentPacket.acked = 0;
+        sentPacket.block = 1;
+        sentPacket.blockMessageId = messageId;
+        sentPacket.blockFragmentId = fragmentId;
     }
 
     void ReliableOrderedChannel::ProcessPacketFragment( int messageType, 

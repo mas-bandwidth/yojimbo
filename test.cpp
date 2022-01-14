@@ -808,6 +808,14 @@ void test_sequence_buffer()
 
     for ( int i = 0; i < Size; ++i )
         check( sequence_buffer.Find(i) == NULL );
+
+    {
+        check( sequence_buffer.Insert( 0 ) != NULL );
+        check( sequence_buffer.Insert( 32768 ) == NULL );
+        check( sequence_buffer.Find( 32768 ) == NULL );
+        sequence_buffer.InsertAndIgnoreAge( 32768 );
+        check( sequence_buffer.Find( 32768 ) != NULL );
+    }
 }
 
 void test_allocator_tlsf()
@@ -858,6 +866,43 @@ void test_allocator_tlsf()
     }
 
     free( memory );
+}
+
+void test_reliable_ordered_sequence_wraparound()
+{
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ChannelConfig channelConfig;
+    ReliableOrderedChannel channel( GetDefaultAllocator(), messageFactory, channelConfig, 0, time );
+
+    {
+        ChannelPacketData channelData;
+        channelData.Initialize();
+
+        TestMessage * firstMessage = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+        check( firstMessage );
+        firstMessage->sequence = 0;
+        channel.SendMessage( firstMessage, NULL );
+        check( channel.GetPacketData( NULL, channelData, 0, 1024 * 8 ) > 0 );
+        channel.ProcessAck( 0 );
+        channelData.Free( messageFactory );
+    }
+
+    {
+        ChannelPacketData channelData;
+        channelData.Initialize();
+
+        TestMessage * secondMessage = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+        check( secondMessage );
+        secondMessage->sequence = 32768;
+        channel.SendMessage( secondMessage, NULL );
+        check( channel.GetPacketData( NULL, channelData, 32768, 1024 * 8 ) > 0 );
+        channel.ProcessAck( 32768 );
+
+        channelData.Free( messageFactory );
+    }
 }
 
 void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, Connection & sender, Connection & receiver, uint16_t & senderSequence, uint16_t & receiverSequence, float deltaTime = 0.1f, int packetLossPercent = 90 )
@@ -2537,6 +2582,7 @@ int main()
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
         RUN_TEST( test_allocator_tlsf );
+        RUN_TEST( test_reliable_ordered_sequence_wraparound );
 
         RUN_TEST( test_connection_reliable_ordered_messages );
         RUN_TEST( test_connection_reliable_ordered_blocks );

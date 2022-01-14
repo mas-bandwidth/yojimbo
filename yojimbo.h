@@ -1419,20 +1419,32 @@ namespace yojimbo
 
         T * Insert( uint16_t sequence )
         {
+            if ( sequence_less_than( sequence, m_sequence - m_size ) )
+            {
+                return NULL;
+            }
+            return &InsertAndIgnoreAge( sequence );
+        }
+
+        /**
+            Insert an entry in the sequence buffer, but do not check if this sequence number is too old (which is helpful to allow wraparound, i.e. if the 
+            sequence numbers inserted into this buffer can be spaced far apart).
+            IMPORTANT: If another entry exists at the sequence modulo buffer size, it is overwritten.
+            @param sequence The sequence number.
+            @returns The sequence buffer entry, which you must fill with your data.
+         */
+
+        T& InsertAndIgnoreAge( uint16_t sequence )
+        {
             if ( sequence_greater_than( sequence + 1, m_sequence ) )
             {
                 RemoveEntries( m_sequence, sequence );
                 m_sequence = sequence + 1;
             }
-            else if ( sequence_less_than( sequence, m_sequence - m_size ) )
-            {
-                return NULL;
-            }
             const int index = sequence % m_size;
             m_entry_sequence[index] = sequence;
-            return &m_entries[index];
+            return m_entries[index];
         }
-
         /**
             Remove an entry from the sequence buffer.
             @param sequence The sequence number of the entry to remove.
