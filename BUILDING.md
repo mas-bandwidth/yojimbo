@@ -5,7 +5,7 @@ Building yojimbo
 
 Download [premake 5](https://premake.github.io/download.html) and copy the **premake5** executable somewhere in your path. Please make sure you have at least premake5 alpha 13.
 
-You need Visual Studio to build the source code. If you don't have Visual Studio 2015 you can [download the community edition for free](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx).
+You need Visual Studio to build the source code. If you don't have Visual Studio 2019 you can [download the community edition for free](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16).
 
 Once you have Visual Studio installed, go to the command line under the yojimbo directory and type:
 
@@ -23,11 +23,11 @@ Next, install libsodium and mbedtls.
 
 On MacOS X, this can be done most easily with `brew install libsodium mbedtls`. If you don't have Brew, you can install it from <http://brew.sh>.
 
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 2.x version of mbedtls as the 1.x version will not work with yojimbo.
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 3.x version of mbedtls as the 2.x & 1.x version will not work with yojimbo.
 
 Now go to the command line under the yojimbo directory and enter:
 
-    premake5 gmake
+    premake5 gmake2
 
 This creates makefiles which you can use to build the source via:
 
