@@ -121,6 +121,10 @@ project(Yojimbo C CXX)
 ## Install
 ############################################################
 ##
+  # the ugly hack
+  file(INSTALL ${CURRENT_PORT_DIR}/cmake/libsodiumConfig.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/share/yojimbo)
+  file(INSTALL ${CURRENT_PORT_DIR}/cmake/mbedtlsConfig.cmake   DESTINATION ${CMAKE_INSTALL_PREFIX}/share/yojimbo)
+
   #if(YOJIMBO_TESTS)
       SET(TEST_INSTALL testapp)
   #endif()
