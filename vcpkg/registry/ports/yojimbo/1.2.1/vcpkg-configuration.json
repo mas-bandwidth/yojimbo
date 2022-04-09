@@ -1,0 +1,13 @@
+{
+
+    "registries": [
+        {
+            "baseline": "default",
+            "kind": "filesystem",
+            "path": "../../../../registry",
+            "packages": [
+                "mbedtls"
+            ]
+        }
+    ]
+}

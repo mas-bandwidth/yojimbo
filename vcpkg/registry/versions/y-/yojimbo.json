@@ -1,0 +1,9 @@
+{
+    "versions": [
+        {
+            "version": "1.2.1",
+            "port-version": 0,
+            "path": "$/ports/yojimbo/1.2.1"            
+        }
+    ]
+}

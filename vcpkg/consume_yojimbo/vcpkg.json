@@ -1,0 +1,10 @@
+{
+    "name": "consume-yojimbo",
+    "version": "0.0.1",
+    "description": [
+        "Testing yojimbo integration."
+    ],
+    "dependencies": [
+        "yojimbo"
+    ]
+}

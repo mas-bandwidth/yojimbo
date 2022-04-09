@@ -1,0 +1,14 @@
+{
+    "default": {
+        
+        "mbedtls": {
+            "baseline": "2.24.0",
+            "port-version": 3
+        },
+
+        "yojimbo": {
+            "baseline": "1.2.1",
+            "port-version": 0
+        }
+    }
+}
