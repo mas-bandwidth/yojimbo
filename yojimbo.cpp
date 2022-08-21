@@ -319,7 +319,7 @@ namespace yojimbo
 
     void * TLSF_Allocator::Allocate( size_t size, const char * file, int line )
     {
-        void * p = tlsf_malloc( m_tlsf, size );
+        void * p = tlsf_memalign( m_tlsf, 16, size );
 
         if ( !p )
         {
