@@ -1,3 +1,6 @@
+# Build folder
+./build
+
 # Visual Studio
 *.db
 *.opendb
