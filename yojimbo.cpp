@@ -1808,6 +1808,7 @@ namespace yojimbo
         uint16_t previousMessageId = 0;
         int usedBits = ConservativeMessageHeaderBits;
         int giveUpCounter = 0;
+        const int maxBits = availableBits;
 
         for ( int i = 0; i < messageLimit; ++i )
         {
