@@ -195,16 +195,16 @@ namespace yojimbo
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         if ( m_alloc_map.size() )
         {
-            printf( "you leaked memory!\n\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "you leaked memory!\n\n" );
             typedef std::map<void*,AllocatorEntry>::iterator itor_type;
             for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i )
             {
                 void * p = i->first;
                 AllocatorEntry entry = i->second;
-                printf( "leaked block %p (%d bytes) - %s:%d\n", p, (int) entry.size, entry.file, entry.line );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "leaked block %p (%d bytes) - %s:%d\n", p, (int) entry.size, entry.file, entry.line );
             }
-            printf( "\n" );
-            exit(1);
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "\n" );
+            yojimbo_assert( false && "Leaks detected, see log" );
         }
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
@@ -669,7 +669,9 @@ namespace yojimbo
 
 static void default_assert_handler( const char * condition, const char * function, const char * file, int line )
 {
-    printf( "assert failed: ( %s ), function %s, file %s, line %d\n", condition, function, file, line );
+    // We use YOJIMBO_LOG_LEVEL_NONE because it's lower than YOJIMBO_LOG_LEVEL_ERROR, so even if you suppress errors (by setting
+    // yojimbo_log_level(YOJIMBO_LOG_LEVEL_NONE)), this will still be logged.
+    yojimbo_printf( YOJIMBO_LOG_LEVEL_NONE, "assert failed: ( %s ), function %s, file %s, line %d\n", condition, function, file, line );
     #if defined( __GNUC__ )
     __builtin_trap();
     #elif defined( _MSC_VER )
