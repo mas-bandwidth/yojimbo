@@ -669,6 +669,8 @@ namespace yojimbo
 
 static void default_assert_handler( const char * condition, const char * function, const char * file, int line )
 {
+    // We use YOJIMBO_LOG_LEVEL_NONE because it's lower than YOJIMBO_LOG_LEVEL_ERROR, so even if you suppress errors (by setting
+    // yojimbo_log_level(YOJIMBO_LOG_LEVEL_NONE)), this will still be logged.
     yojimbo_printf( YOJIMBO_LOG_LEVEL_NONE, "assert failed: ( %s ), function %s, file %s, line %d\n", condition, function, file, line );
     #if defined( __GNUC__ )
     __builtin_trap();
