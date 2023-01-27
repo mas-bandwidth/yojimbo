@@ -8,7 +8,7 @@ endif()
 ############################################################
   # External library paths
   if(WIN32)
-    SET(VCPKG_LIBSODIUM_BASE "${VCPKG_ROOT_DIR}/packages/libsodium_x64-windows-static" )
+    SET(VCPKG_LIBSODIUM_BASE "${VCPKG_ROOT_DIR}/installed/x64-windows")
   elseif(UNIX)
     SET(VCPKG_LIBSODIUM_BASE "${VCPKG_ROOT_DIR}/installed/x64-linux")
   else()

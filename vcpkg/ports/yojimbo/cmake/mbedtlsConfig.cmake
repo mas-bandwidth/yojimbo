@@ -12,7 +12,7 @@ endif()
   
     # External library paths
   if(WIN32)
-    SET(VCPKG_MBEDTLS_BASE   "${VCPKG_ROOT_DIR}/packages/mbedtls_x64-windows-static" )
+    SET(VCPKG_MBEDTLS_BASE   "${VCPKG_ROOT_DIR}/installed/x64-windows")
   elseif(UNIX)
     SET(VCPKG_MBEDTLS_BASE   "${VCPKG_ROOT_DIR}/installed/x64-linux")
   else()
