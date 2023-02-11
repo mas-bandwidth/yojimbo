@@ -22,7 +22,7 @@
 #ifndef MBEDTLS_CERTS_H
 #define MBEDTLS_CERTS_H
 
-#include <mbedtls/build_info.h>
+//#include <mbedtls/build_info.h>
 
 #include <stddef.h>
 

@@ -840,7 +840,7 @@ double yojimbo_time()
 // ---------------------------------------------------------------------------------
 
 #if YOJIMBO_WITH_MBEDTLS
-#include <mbedtls/build_info.h>
+//#include <mbedtls/build_info.h>
 #include <mbedtls/platform.h>
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/debug.h>
