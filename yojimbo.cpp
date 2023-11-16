@@ -1826,7 +1826,12 @@ namespace yojimbo
 
             if ( entry->block )
                 break;
-            
+		
+            if ( numMessageIds == 0 ) {
+                // Increase your ClientServerConfig's maxPacketSize and maxPacketFragments, or send smaller messages!
+                yojimbo_assert( entry->measuredBits <= availableBits );
+            }
+		
             if ( entry->timeLastSent + m_config.messageResendTime <= m_time && availableBits >= (int) entry->measuredBits )
             {                
                 int messageBits = entry->measuredBits + messageTypeBits;
