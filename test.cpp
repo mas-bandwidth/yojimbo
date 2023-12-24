@@ -129,46 +129,6 @@ void test_queue()
     check( queue.GetSize() == QueueSize );
 }
 
-#if YOJIMBO_WITH_MBEDTLS
-
-void test_base64()
-{
-    const int BufferSize = 256;
-
-    char input[BufferSize];
-    char encoded[BufferSize*2];
-    char decoded[BufferSize];
-
-    strcpy( input, "[2001:4860:4860::8888]:50000" );
-
-    const int encoded_bytes = base64_encode_string( input, encoded, sizeof( encoded ) );
- 
-    check( encoded_bytes == (int) strlen( encoded ) + 1 );
-
-    char encoded_expected[] = "WzIwMDE6NDg2MDo0ODYwOjo4ODg4XTo1MDAwMAA=";
-
-    check( strcmp( encoded, encoded_expected ) == 0 );
-
-    const int decoded_bytes = base64_decode_string( encoded, decoded, sizeof( decoded ) );
-
-    check( decoded_bytes == (int) strlen( decoded ) + 1 );
-
-    check( strcmp( input, decoded ) == 0 );
-
-    uint8_t key[KeyBytes];
-    random_bytes( key, KeyBytes );
-
-    char base64_key[KeyBytes*2];
-    base64_encode_data( key, KeyBytes, base64_key, (int) sizeof( base64_key ) );
-
-    uint8_t decoded_key[KeyBytes];
-    base64_decode_data( base64_key, decoded_key, KeyBytes );
-
-    check( memcmp( key, decoded_key, KeyBytes ) == 0 );
-}
-
-#endif // #if YOJIMBO_WITH_MBEDTLS
-
 void test_bitpacker()
 {
     const int BufferSize = 256;
@@ -2527,9 +2487,6 @@ int main()
 
         RUN_TEST( test_endian );
         RUN_TEST( test_queue );
-#if YOJIMBO_WITH_MBEDTLS
-		RUN_TEST( test_base64 );
-#endif // #if YOJIMBO_WITH_MBEDTLS
         RUN_TEST( test_bitpacker );
         RUN_TEST( test_bits_required );
         RUN_TEST( test_stream );

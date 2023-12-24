@@ -35,6 +35,16 @@
 #define YOJIMBO_MINOR_VERSION 0
 #define YOJIMBO_PATCH_VERSION 0
 
+#if !defined(YOJIMBO_DEBUG) && !defined(YOJIMBO_RELEASE)
+#if defined(NDEBUG)
+#define YOJIMBO_RELEASE
+#else
+#define YOJIMBO_DEBUG
+#endif
+#elif defined(YOJIMBO_DEBUG) && defined(YOJIMBO_RELEASE)
+#error Can only define one of debug & release
+#endif
+
 #if !defined (YOJIMBO_LITTLE_ENDIAN ) && !defined( YOJIMBO_BIG_ENDIAN )
 
   #ifdef __BYTE_ORDER__
@@ -94,10 +104,6 @@
 #define YOJIMBO_DEFAULT_TIMEOUT 5
 #endif
 
-#if !defined( YOJIMBO_WITH_MBEDTLS )
-#define YOJIMBO_WITH_MBEDTLS 1
-#endif // #if !defined( YOJIMBO_WITH_MBEDTLS )
-
 #ifdef _MSC_VER
 #pragma warning( disable : 4127 )
 #pragma warning( disable : 4244 )
@@ -117,19 +123,19 @@
 
 #define YOJIMBO_SERIALIZE_CHECKS                    1
 
-#ifndef NDEBUG
+#ifdef YOJIMBO_DEBUG
 
 #define YOJIMBO_DEBUG_MEMORY_LEAKS                  1
 #define YOJIMBO_DEBUG_MESSAGE_LEAKS                 1
 #define YOJIMBO_DEBUG_MESSAGE_BUDGET                1
 
-#else // #ifndef NDEBUG
+#else // #ifdef YOJIMBO_DEBUG
 
 #define YOJIMBO_DEBUG_MEMORY_LEAKS                  0
 #define YOJIMBO_DEBUG_MESSAGE_LEAKS                 0
 #define YOJIMBO_DEBUG_MESSAGE_BUDGET                0
 
-#endif // #ifndef NDEBUG
+#endif // #ifdef YOJIMBO_DEBUG
 
 #define YOJIMBO_ENABLE_LOGGING                      1
 
@@ -151,6 +157,7 @@
 #undef SendMessage
 #endif
 
+struct netcode_address_t;
 struct netcode_server_t;
 struct netcode_client_t;
 struct reliable_endpoint_t;
@@ -279,6 +286,7 @@ namespace yojimbo
         int packetReassemblyBufferSize;                         ///< Number of packet entries in the fragmentation reassembly buffer.
         int ackedPacketsBufferSize;                             ///< Number of packet entries in the acked packet buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
         int receivedPacketsBufferSize;                          ///< Number of packet entries in the received packet sequence buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
+        float rttSmoothingFactor;                               ///< Round-Trip Time (RTT) smoothing factor over time.
 
         ClientServerConfig()
         {
@@ -295,6 +303,7 @@ namespace yojimbo
             packetReassemblyBufferSize = 64;
             ackedPacketsBufferSize = 256;
             receivedPacketsBufferSize = 256;
+            rttSmoothingFactor = 0.0025f;
         }
     };
 }
@@ -426,7 +435,7 @@ extern void (*yojimbo_assert_function)( const char *, const char *, const char *
     @see yojimbo_set_assert_functio
  */
 
-#ifndef NDEBUG
+#ifdef YOJIMBO_DEBUG
 #define yojimbo_assert( condition )                                                         \
 do                                                                                          \
 {                                                                                           \
@@ -1011,61 +1020,6 @@ namespace yojimbo
     {
         return ( n >> 1 ) ^ ( -int32_t( n & 1 ) );
     }
-
-#if YOJIMBO_WITH_MBEDTLS
-
-    /**
-        Base 64 encode a string.
-        @param input The input string value. Must be null terminated.
-        @param output The output base64 encoded string. Will be null terminated.
-        @param output_size The size of the output buffer (bytes). Must be large enough to store the base 64 encoded string.
-        @returns The number of bytes in the base64 encoded string, including terminating null. -1 if the base64 encode failed because the output buffer was too small.
-     */
-
-    int base64_encode_string( const char * input, char * output, int output_size );
-
-    /**
-        Base 64 decode a string.
-        @param input The base64 encoded string.
-        @param output The decoded string. Guaranteed to be null terminated, even if the base64 is maliciously encoded.
-        @param output_size The size of the output buffer (bytes).
-        @returns The number of bytes in the decoded string, including terminating null. -1 if the base64 decode failed.
-     */
-
-    int base64_decode_string( const char * input, char * output, int output_size );
-
-    /**
-        Base 64 encode a block of data.
-        @param input The data to encode.
-        @param input_length The length of the input data (bytes).
-        @param output The output base64 encoded string. Will be null terminated.
-        @param output_size The size of the output buffer. Must be large enough to store the base 64 encoded string.
-        @returns The number of bytes in the base64 encoded string, including terminating null. -1 if the base64 encode failed because the output buffer was too small.
-     */
-
-    int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size );
-
-    /**
-        Base 64 decode a block of data.
-        @param input The base 64 data to decode. Must be a null terminated string.
-        @param output The output data. Will *not* be null terminated.
-        @param output_size The size of the output buffer.
-        @returns The number of bytes of decoded data. -1 if the base64 decode failed.
-     */
-
-    int base64_decode_data( const char * input, uint8_t * output, int output_size );
-
-    /**
-        Print bytes with a label. 
-        Useful for printing out packets, encryption keys, nonce etc.
-        @param label The label to print out before the bytes.
-        @param data The data to print out to stdout.
-        @param data_bytes The number of bytes of data to print.
-     */
-
-    void print_bytes( const char * label, const uint8_t * data, int data_bytes );
-
-#endif // #if YOJIMBO_WITH_MBEDTLS
 
     /**
         A simple bit array class.
@@ -1821,11 +1775,11 @@ namespace yojimbo
             @see BitWriter
          */
 
-#ifndef NDEBUG
+#ifdef YOJIMBO_DEBUG
         BitReader( const void * data, int bytes ) : m_data( (const uint32_t*) data ), m_numBytes( bytes ), m_numWords( ( bytes + 3 ) / 4)
-#else // #ifndef NDEBUG
+#else // #ifdef YOJIMBO_DEBUG
         BitReader( const void * data, int bytes ) : m_data( (const uint32_t*) data ), m_numBytes( bytes )
-#endif // #ifndef NDEBUG
+#endif // #ifdef YOJIMBO_DEBUG
         {
             yojimbo_assert( data );
             m_numBits = m_numBytes * 8;
@@ -1987,9 +1941,9 @@ namespace yojimbo
         uint64_t m_scratch;                 ///< The scratch value. New data is read in 32 bits at a top to the left of this buffer, and data is read off to the right.
         int m_numBits;                      ///< Number of bits to read in the buffer. Of course, we can't *really* know this so it's actually m_numBytes * 8.
         int m_numBytes;                     ///< Number of bytes to read in the buffer. We know this, and this is the non-rounded up version.
-#ifndef NDEBUG
+#ifdef YOJIMBO_DEBUG
         int m_numWords;                     ///< Number of words to read in the buffer. This is rounded up to the next word if necessary.
-#endif // #ifndef NDEBUG
+#endif // #ifdef YOJIMBO_DEBUG
         int m_bitsRead;                     ///< Number of bits read from the buffer so far.
         int m_scratchBits;                  ///< Number of bits currently in the scratch value. If the user wants to read more bits than this, we have to go fetch another dword from memory.
         int m_wordIndex;                    ///< Index of the next word to read from memory.
@@ -5242,6 +5196,14 @@ namespace yojimbo
 
         virtual uint64_t GetClientId( int clientIndex ) const = 0;
 
+        /**
+            Get the address of the client
+            @param clientIndex the index of the client slot in [0,maxClients-1], where maxClients corresponds to the value passed into the last call to Server::Start.
+            @returns The address of the client.
+         */
+
+        virtual netcode_address_t * GetClientAddress( int clientIndex ) const = 0;
+
         /** 
             Get the number of clients that are currently connected to the server.
             @returns the number of connected clients.
@@ -5508,6 +5470,8 @@ namespace yojimbo
         bool IsClientConnected( int clientIndex ) const;
 
         uint64_t GetClientId( int clientIndex ) const;
+
+        netcode_address_t * GetClientAddress( int clientIndex ) const;
 
         int GetNumConnectedClients() const;
 
@@ -5971,96 +5935,6 @@ namespace yojimbo
         Address m_address;                              ///< Original address passed to ctor.
         Address m_boundAddress;                         ///< Address after socket bind, eg. with valid port
         uint64_t m_clientId;                            ///< The globally unique client id (set on each call to connect)
-    };
-
-    /**
-        Matcher status enum.
-        Designed for when the matcher will be made non-blocking. The matcher is currently blocking in Matcher::RequestMatch
-     */
-
-    enum MatchStatus
-    {
-        MATCH_IDLE,                 ///< The matcher is idle.
-        MATCH_BUSY,                 ///< The matcher is requesting a match.
-        MATCH_READY,                ///< The match response is ready to read with Matcher::GetConnectToken.
-        MATCH_FAILED                ///< The matcher failed to find a match.
-    };
-
-    /**
-        Communicates with the matcher web service over HTTPS.
-        See docker/matcher/matcher.go for details. Launch the matcher via "premake5 matcher".
-        This class will be improved in the future, most importantly to make Matcher::RequestMatch a non-blocking operation.
-     */
-
-    class Matcher
-    {
-    public:
-
-        /**
-            Matcher constructor.
-            @param allocator The allocator to use for allocations.
-         */
-
-        explicit Matcher( Allocator & allocator );
-       
-        /**
-            Matcher destructor.
-         */
-
-        ~Matcher();
-
-        /**
-            Initialize the matcher. 
-            @returns True if the matcher initialized successfully, false otherwise.
-         */
-
-        bool Initialize();
-
-        /** 
-            Request a match.
-            This is how clients get connect tokens from matcher.go. 
-            They request a match and the server replies with a set of servers to connect to, and a connect token to pass to that server.
-            IMPORTANT: This function is currently blocking. It will be made non-blocking in the near future.
-            @param protocolId The protocol id that we are using. Used to filter out servers with different protocol versions.
-            @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64 bit number.
-            @see Matcher::GetMatchStatus
-            @see Matcher::GetConnectToken
-         */
-
-        void RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate );
-
-        /**
-            Get the current match status.
-            Because Matcher::RequestMatch is currently blocking this will be MATCH_READY or MATCH_FAILED immediately after that function returns.
-            If the status is MATCH_READY you can call Matcher::GetMatchResponse to get the match response data corresponding to the last call to Matcher::RequestMatch.
-            @returns The current match status.
-         */
-
-        MatchStatus GetMatchStatus();
-
-        /**
-            Get connect token.
-            This can only be called if the match status is MATCH_READY.
-            @param connectToken The connect token data to fill [out].
-            @see Matcher::RequestMatch
-            @see Matcher::GetMatchStatus
-         */
-
-        void GetConnectToken( uint8_t * connectToken );
-
-    private:
-
-        Matcher( const Matcher & matcher );
-
-        const Matcher & operator = ( const Matcher & other );
-
-        Allocator * m_allocator;                                ///< The allocator passed into the constructor.
-        bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
-        MatchStatus m_matchStatus;                              ///< The current match status.
-#if YOJIMBO_WITH_MBEDTLS
-		struct MatcherInternal * m_internal;                    ///< Internals are in here to avoid spilling details of mbedtls library outside of yojimbo_matcher.cpp
-        uint8_t m_connectToken[ConnectTokenBytes];              ///< The connect token data from the last call to Matcher::RequestMatch once the match status is MATCH_READY.
-#endif // #if YOJIMBO_WITH_MBEDTLS
     };
 }
 
