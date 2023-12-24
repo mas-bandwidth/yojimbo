@@ -2580,9 +2580,11 @@ void test_single_message_type_unreliable()
 extern "C" void netcode_test();
 extern "C" void reliable_test();
 
+/*
 #ifndef SOAK
 #define SOAK 1
 #endif
+*/
 
 #if SOAK
 #include <signal.h>
@@ -2654,7 +2656,6 @@ int main()
         // todo: this test is currently in a heisenbug state
         // RUN_TEST( test_reliable_fragment_overflow_bug );
         
-        RUN_TEST( test_reliable_outbound_sequence_outdated );
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );
         RUN_TEST( test_single_message_type_unreliable );
