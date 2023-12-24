@@ -35,8 +35,6 @@ The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennf
 
 Other open source libraries by the same author include: [netcode](http://netcode.io) and [reliable](https://github.com/networkprotocol/reliable)
 
-Glenn is now the founder and CEO of Network Next. Network Next is a radically new way to link networks together, it's a new internet for games, one where networks compete on performance and price to carry your game's traffic. Check it out at https://networknext.com
-
 ## Sponsors
 
 **yojimbo** was generously sponsored by:
@@ -47,10 +45,10 @@ Glenn is now the founder and CEO of Network Next. Network Next is a radically ne
     
 * **Silver Sponsors**
     * [Moon Studios](http://www.oriblindforest.com/#!moon-3/)
-    * [The Network Protocol Company](http://www.thenetworkprotocolcompany.com)
+    * The Network Protocol Company
     
 * **Bronze Sponsors**
-    * [Kite & Lightning](http://kiteandlightning.la/)
+    * Kite & Lightning
     * [Data Realms](http://datarealms.com)
  
 And by individual supporters on Patreon. Thank you. You made this possible!

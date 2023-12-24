@@ -1,5 +1,0 @@
-Use this package in your CMakeLists.txt:
-    
-    find_package(yojimbo REQUIRED)
-    target_link_libraries(main PRIVATE yojimbo)
-

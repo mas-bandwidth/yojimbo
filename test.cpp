@@ -129,46 +129,6 @@ void test_queue()
     check( queue.GetSize() == QueueSize );
 }
 
-#if YOJIMBO_WITH_MBEDTLS
-
-void test_base64()
-{
-    const int BufferSize = 256;
-
-    char input[BufferSize];
-    char encoded[BufferSize*2];
-    char decoded[BufferSize];
-
-    strcpy( input, "[2001:4860:4860::8888]:50000" );
-
-    const int encoded_bytes = base64_encode_string( input, encoded, sizeof( encoded ) );
- 
-    check( encoded_bytes == (int) strlen( encoded ) + 1 );
-
-    char encoded_expected[] = "WzIwMDE6NDg2MDo0ODYwOjo4ODg4XTo1MDAwMAA=";
-
-    check( strcmp( encoded, encoded_expected ) == 0 );
-
-    const int decoded_bytes = base64_decode_string( encoded, decoded, sizeof( decoded ) );
-
-    check( decoded_bytes == (int) strlen( decoded ) + 1 );
-
-    check( strcmp( input, decoded ) == 0 );
-
-    uint8_t key[KeyBytes];
-    random_bytes( key, KeyBytes );
-
-    char base64_key[KeyBytes*2];
-    base64_encode_data( key, KeyBytes, base64_key, (int) sizeof( base64_key ) );
-
-    uint8_t decoded_key[KeyBytes];
-    base64_decode_data( base64_key, decoded_key, KeyBytes );
-
-    check( memcmp( key, decoded_key, KeyBytes ) == 0 );
-}
-
-#endif // #if YOJIMBO_WITH_MBEDTLS
-
 void test_bitpacker()
 {
     const int BufferSize = 256;
@@ -800,6 +760,14 @@ void test_sequence_buffer()
         check( entry );
         check( entry->sequence == uint32_t( index ) );
         index--;
+    }
+
+    for ( int i = 0; i <= Size; ++i )
+    {
+        TestSequenceData * entry = sequence_buffer.Insert( i, true );
+        check( entry );
+        entry->sequence = i;
+        check( sequence_buffer.GetSequence() == i + 1 );
     }
 
     sequence_buffer.Reset();
@@ -2297,6 +2265,136 @@ void test_reliable_fragment_overflow_bug()
     server.Stop();
 }
 
+void test_reliable_outbound_sequence_outdated()
+{
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    double time = 100.0;
+    double deltaTime = 1.0 / 60.0;
+
+    ClientServerConfig config;
+    config.numChannels = 2;
+    config.timeout = -1;
+
+    const int BlockSize = config.channel[0].blockFragmentSize * 2;
+
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
+
+    server.Start( MaxClients );
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    Client * clients[] = { &client };
+    Server * servers[] = { &server };
+
+    const int NumIterations = 50000;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+    check( client.GetClientIndex() == 0 );
+    check( server.IsClientConnected(0) );
+
+    int numMessagesSent = 0;
+
+    TestMessage * clientMessage = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
+    check( clientMessage );
+    client.SendMessage( 0, clientMessage );
+    ++numMessagesSent;
+
+    TestBlockMessage * clientBlockMessage = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( clientBlockMessage );
+    uint8_t * clientBlockData = client.AllocateBlock( BlockSize );
+    memset( clientBlockData, 0, BlockSize );
+    client.AttachBlockToMessage( clientBlockMessage, clientBlockData, BlockSize );
+    client.SendMessage( 1, clientBlockMessage );
+    ++numMessagesSent;
+
+    // Simulate packet sequence being incremented by unreliable messages until it appears outdated.
+    for ( int i = 0; i < 32000; ++i ) // Test takes much longer when sending 32768 at once.
+    {
+        client.SendPackets();
+    }
+    PumpClientServerUpdate( time, clients, 1, servers, 1, deltaTime );
+    for ( int j = 0; j < 768; ++j )
+    {
+        client.SendPackets();
+    }
+
+    TestMessage * clientMessage2 = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
+    check( clientMessage2 );
+    client.SendMessage( 0, clientMessage2 );
+    ++numMessagesSent;
+
+    TestBlockMessage * clientBlockMessage2 = (TestBlockMessage*) client.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( clientBlockMessage2 );
+    uint8_t * clientBlockData2 = client.AllocateBlock( BlockSize );
+    memset( clientBlockData2, 0, BlockSize );
+    client.AttachBlockToMessage( clientBlockMessage2, clientBlockData2, BlockSize );
+    client.SendMessage( 1, clientBlockMessage2 );
+    ++numMessagesSent;
+
+    int numMessagesReceived = 0;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        if ( !client.IsConnected() )
+            break;
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1, deltaTime );
+
+        for ( int channelIndex = 0; channelIndex < config.numChannels; ++channelIndex )
+        {
+            Message * messageFromClient = server.ReceiveMessage( 0, channelIndex );
+            if ( messageFromClient )
+            {
+                server.ReleaseMessage( 0, messageFromClient );
+                ++numMessagesReceived;
+             }
+        }
+
+        if ( numMessagesReceived == numMessagesSent )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( client.GetClientIndex() ) );
+    check( numMessagesReceived == numMessagesSent );
+
+    client.Disconnect();
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
+            break;
+    }
+
+    check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+
+    server.Stop();
+}
+
 void test_single_message_type_reliable()
 {
 	SingleTestMessageFactory messageFactory( GetDefaultAllocator() );
@@ -2572,9 +2670,6 @@ int main()
 
         RUN_TEST( test_endian );
         RUN_TEST( test_queue );
-#if YOJIMBO_WITH_MBEDTLS
-		RUN_TEST( test_base64 );
-#endif // #if YOJIMBO_WITH_MBEDTLS
         RUN_TEST( test_bitpacker );
         RUN_TEST( test_bits_required );
         RUN_TEST( test_stream );
@@ -2598,6 +2693,7 @@ int main()
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
         RUN_TEST( test_reliable_fragment_overflow_bug );
+        RUN_TEST( test_reliable_outbound_sequence_outdated );
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );
         RUN_TEST( test_single_message_type_unreliable );
