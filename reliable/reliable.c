@@ -2258,7 +2258,7 @@ void test_sequence_buffer_rollover()
     reliable_endpoint_destroy( context.receiver );
 }
 
-#define RELIABLE_ARRAY_SIZE(x) ( int( sizeof((x)) / sizeof((x)[0]) ) )
+#define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 
 struct test_tracking_allocate_context_t
 {
@@ -2270,7 +2270,7 @@ void * test_tracking_allocate_function( void * context, uint64_t bytes )
     struct test_tracking_allocate_context_t* tracking_context = (struct test_tracking_allocate_context_t*)context;
     void * allocation = malloc( bytes );
     int tracking_index;
-    for ( tracking_index = 0; tracking_index < RELIABLE_ARRAY_SIZE(tracking_context->active_allocations); ++tracking_index )
+    for ( tracking_index = 0; tracking_index < (int) ARRAY_LENGTH(tracking_context->active_allocations); ++tracking_index )
     {
         if ( tracking_context->active_allocations[tracking_index] == NULL )
         {
@@ -2278,7 +2278,7 @@ void * test_tracking_allocate_function( void * context, uint64_t bytes )
         }
     }
 
-    reliable_assert(tracking_index < RELIABLE_ARRAY_SIZE(tracking_context->active_allocations));
+    reliable_assert(tracking_index < (int) ARRAY_LENGTH(tracking_context->active_allocations));
     tracking_context->active_allocations[tracking_index] = allocation;
     return allocation;
 }
@@ -2287,7 +2287,7 @@ void test_tracking_free_function( void * context, void * pointer )
 {
     struct test_tracking_allocate_context_t* tracking_context = (struct test_tracking_allocate_context_t*)context;
     int tracking_index;
-    for ( tracking_index = 0; tracking_index < RELIABLE_ARRAY_SIZE(tracking_context->active_allocations); ++tracking_index )
+    for ( tracking_index = 0; tracking_index < (int) ARRAY_LENGTH(tracking_context->active_allocations); ++tracking_index )
     {
         if ( tracking_context->active_allocations[tracking_index] == pointer )
         {
@@ -2295,7 +2295,7 @@ void test_tracking_free_function( void * context, void * pointer )
         }
     }
 
-    reliable_assert(tracking_index < RELIABLE_ARRAY_SIZE(tracking_context->active_allocations));
+    reliable_assert( tracking_index < (int) ARRAY_LENGTH(tracking_context->active_allocations) );
     tracking_context->active_allocations[tracking_index] = NULL;
     free( pointer );
 }
@@ -2355,10 +2355,10 @@ void test_fragment_cleanup()
     };
 
     // Make sure we're sending more than receiver_config.fragment_reassembly_buffer_size packets, so the buffer wraps around.
-    reliable_assert( RELIABLE_ARRAY_SIZE( packet_sizes ) > receiver_config.fragment_reassembly_buffer_size );
+    reliable_assert( (int) ARRAY_LENGTH( packet_sizes ) > receiver_config.fragment_reassembly_buffer_size );
 
     int i;
-    for ( i = 0; i < RELIABLE_ARRAY_SIZE( packet_sizes ); ++i )
+    for ( i = 0; i < (int) ARRAY_LENGTH( packet_sizes ); ++i )
     {
         // Only allow one packet per transmit, so that our fragmented packets are only partially
         // delivered.
@@ -2384,7 +2384,7 @@ void test_fragment_cleanup()
     
     // Make sure that there is no memory that hasn't been freed.
     int tracking_index;
-    for ( tracking_index = 0; tracking_index < RELIABLE_ARRAY_SIZE(tracking_alloc_context.active_allocations); ++tracking_index )
+    for ( tracking_index = 0; tracking_index < (int) ARRAY_LENGTH(tracking_alloc_context.active_allocations); ++tracking_index )
     {
         check( tracking_alloc_context.active_allocations[tracking_index] == NULL );
     }
