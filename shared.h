@@ -1,7 +1,7 @@
 /*
     Shared Code for Tests and Examples.
 
-    Copyright © 2016 - 2019, The Network Protocol Company, Inc.
+    Copyright © 2016 - 2024, Mas Bandwidth LLC.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -142,10 +142,10 @@ enum TestMessageType
 };
 
 YOJIMBO_MESSAGE_FACTORY_START( TestMessageFactory, NUM_TEST_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE, TestSerializeFailOnReadMessage );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_EXHAUST_STREAM_ALLOCATOR_ON_READ_MESSAGE, TestExhaustStreamAllocatorOnReadMessage );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE, TestMessage );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_BLOCK_MESSAGE, TestBlockMessage );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE, TestSerializeFailOnReadMessage );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_EXHAUST_STREAM_ALLOCATOR_ON_READ_MESSAGE, TestExhaustStreamAllocatorOnReadMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 enum SingleTestMessageType
@@ -155,7 +155,7 @@ enum SingleTestMessageType
 };
 
 YOJIMBO_MESSAGE_FACTORY_START( SingleTestMessageFactory, NUM_SINGLE_TEST_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( SINGLE_TEST_MESSAGE, TestMessage );
+YOJIMBO_DECLARE_MESSAGE_TYPE( SINGLE_TEST_MESSAGE, TestMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 enum SingleBlockTestMessageType
@@ -165,7 +165,7 @@ enum SingleBlockTestMessageType
 };
 
 YOJIMBO_MESSAGE_FACTORY_START( SingleBlockTestMessageFactory, NUM_SINGLE_BLOCK_TEST_MESSAGE_TYPES );
-    YOJIMBO_DECLARE_MESSAGE_TYPE( SINGLE_BLOCK_TEST_MESSAGE, TestBlockMessage );
+YOJIMBO_DECLARE_MESSAGE_TYPE( SINGLE_BLOCK_TEST_MESSAGE, TestBlockMessage );
 YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 class TestAdapter : public Adapter
