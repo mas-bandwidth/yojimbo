@@ -2,9 +2,6 @@ name: CI
 
 on: [push, pull_request]
 
-env:
-  MBEDTLS_VERSION: 3.0.0
-
 jobs:
   build_and_test:
     name: Build & test
