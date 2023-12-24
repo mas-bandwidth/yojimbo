@@ -5,7 +5,7 @@ solution "Yojimbo"
     kind "ConsoleApp"
     language "C++"
     configurations { "Debug", "Release" }
-    includedirs { ".", "mbedtls", "sodium", "tlsf", "certs", "netcode", "reliable" }
+    includedirs { ".", "sodium", "tlsf", "netcode", "reliable" }
     if os.istarget "windows" then
         libdirs { "./windows" }
     else
@@ -30,7 +30,7 @@ project "netcode"
 project "reliable"
     kind "StaticLib"
     language "C"
-    defines { "NETCODE_ENABLE_TESTS=1" }
+    defines { "RELIABLE_ENABLE_TESTS=1" }
     files { "reliable/reliable.c", "reliable/reliable.h" }
 
 project "tlsf"
@@ -38,44 +38,38 @@ project "tlsf"
     language "C"
     files { "tlsf/tlsf.c", "tlsf/tlsf.h" }
 
-project "certs"
-    kind "StaticLib"
-    language "C"
-    files { "certs/certs.c", "certs/certs.h" }
-
 project "yojimbo"
     kind "StaticLib"
-    links { "reliable", "netcode", "tlsf", "certs" }
-    defines { "NETCODE_ENABLE_TESTS=1", "RELIABLE_ENABLE_TESTS=1" }
+    links { "reliable", "netcode", "tlsf" }
     files { "yojimbo.h", "yojimbo.cpp" }
 
 project "client"
     files { "client.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "sodium", "tlsf", "certs", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "server"
     files { "server.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "sodium", "tlsf", "certs", "netcode", "reliable" }
-
-project "secure_client"
-    files { "secure_client.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "sodium", "tlsf", "certs", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "secure_server"
     files { "secure_server.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "sodium", "tlsf", "certs", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "client_server"
     files { "client_server.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "sodium", "tlsf", "certs", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "loopback"
     files { "loopback.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "sodium", "tlsf", "certs", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "soak"
     files { "soak.cpp", "shared.h" }
-    links { "yojimbo", "mbedtls", "sodium", "tlsf", "certs", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+
+project "test"
+    files { "test.cpp" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 if not os.istarget "windows" then
 

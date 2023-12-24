@@ -19,11 +19,11 @@ You can now build the library and run individual test programs as you would for 
 
 First, download and install [premake 5](https://premake.github.io/download.html).
 
-Next, install libsodium and mbedtls.
+Next, install libsodium
 
-On MacOS X, this can be done most easily with `brew install libsodium mbedtls`. If you don't have Brew, you can install it from <http://brew.sh>.
+On MacOS X, this can be done most easily with `brew install libsodium`. If you don't have Brew, you can install it from <http://brew.sh>.
 
-On Linux, depending on your particular distribution there may be prebuilt packages for libsodium and mbedtls, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases) and here [mbedtls](https://github.com/ARMmbed/mbedtls). Make sure you install the 3.x version of mbedtls as the 2.x & 1.x version will not work with yojimbo.
+On Linux, depending on your particular distribution there may be prebuilt packages for libsodium, or you may have to build from source from here [libsodium](https://github.com/jedisct1/libsodium/releases).
 
 Now go to the command line under the yojimbo directory and enter:
 
@@ -63,17 +63,15 @@ IMPORTANT: The premake docker action takes a long time initially, because it has
 
 4. Download, build and install libsodium
 
-5. Download, build and install mbedtls
+5. Build release version of yojimbo, run tests
 
-6. Build release version of yojimbo, run tests
+6. If all tests pass, clean everything and copy the yojimbo server to the /home dir
 
-7. If all tests pass, clean everything and copy the yojimbo server to the /home dir
-
-8. When the Docker container is run, start the yojimbo server /home/server on UDP port 40000.
+7. When the Docker container is run, start the yojimbo server /home/server on UDP port 40000.
 
 For details see docker/Dockerfile and the premake5.lua file with commands that build and run the container instance.
 
-What's most impressive is that if no dependencies have changed, the numbered steps above are precached as intermediate Docker instances are not rebuilt unless necessary. For example, if you have already downloaded and installed wget, g++, libsodium, premake5, mbedtls and you run "premake5 docker" again, these steps are skipped.
+What's most impressive is that if no dependencies have changed, the numbered steps above are precached as intermediate Docker instances are not rebuilt unless necessary. For example, if you have already downloaded and installed wget, g++, libsodium, premake5 and you run "premake5 docker" again, these steps are skipped.
 
 Try it yourself by running "premake5 docker" once (it should build everything), then run it again. It will go straight to the server running on port 40000. Similarly, if you change some yojimbo source it automatically rebuilds yojimbo server and runs tests before starting the server. Impressive!
 
