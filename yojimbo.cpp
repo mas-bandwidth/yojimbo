@@ -1556,7 +1556,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
-        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
+        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence, true );
         yojimbo_assert( sentPacket );
         if ( sentPacket )
         {
@@ -1838,7 +1838,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
     {
-        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
+        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence, true );
         yojimbo_assert( sentPacket );
         if ( sentPacket )
         {
