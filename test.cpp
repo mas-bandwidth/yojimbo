@@ -7,17 +7,17 @@
 
         1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 
-        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer
            in the documentation and/or other materials provided with the distribution.
 
-        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived 
+        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived
            from this software without specific prior written permission.
 
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
-    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
     WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
@@ -33,7 +33,7 @@
 
 using namespace yojimbo;
 
-static void CheckHandler( const char * condition, 
+static void CheckHandler( const char * condition,
                           const char * function,
                           const char * file,
                           int line )
@@ -223,6 +223,7 @@ struct TestData
     int numItems;
     int items[MaxItems];
     float float_value;
+    float compressed_float_value;
     double double_value;
     uint64_t uint64_value;
     uint8_t bytes[17];
@@ -253,10 +254,11 @@ struct TestObject : public Serializable
 
         data.numItems = MaxItems / 2;
         for ( int i = 0; i < data.numItems; ++i )
-            data.items[i] = i + 10;     
+            data.items[i] = i + 10;
 
+        data.compressed_float_value = 2.13f;
         data.float_value = 3.1415926f;
-        data.double_value = 1 / 3.0;   
+        data.double_value = 1 / 3.0;
         data.uint64_value = 0x1234567898765432L;
 
         for ( int i = 0; i < (int) sizeof( data.bytes ); ++i )
@@ -292,6 +294,8 @@ struct TestObject : public Serializable
             serialize_bits( stream, data.items[i], 8 );
 
         serialize_float( stream, data.float_value );
+
+        serialize_compressed_float(stream, data.compressed_float_value, 0, 10, 0.01);
 
         serialize_double( stream, data.double_value );
 
@@ -751,7 +755,7 @@ void test_sequence_buffer()
     {
         TestSequenceData * entry = sequence_buffer.Insert( i );
         check( !entry );
-    }    
+    }
 
     int index = Size * 4;
     for ( int i = 0; i < Size; ++i )
@@ -796,7 +800,7 @@ void test_allocator_tlsf()
     for ( int i = 0; i < NumBlocks; ++i )
     {
         blockData[i] = (uint8_t*) YOJIMBO_ALLOCATE( allocator, BlockSize );
-        
+
         if ( !blockData[i] )
         {
             check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_OUT_OF_MEMORY );
@@ -805,10 +809,10 @@ void test_allocator_tlsf()
             stopIndex = i;
             break;
         }
-        
+
         check( blockData[i] );
         check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_NONE );
-        
+
         memset( blockData[i], i + 10, BlockSize );
     }
 
@@ -867,7 +871,7 @@ void test_connection_reliable_ordered_messages()
     double time = 100.0;
 
     ConnectionConfig connectionConfig;
- 
+
     Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
     Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
@@ -930,7 +934,7 @@ void test_connection_reliable_ordered_blocks()
     double time = 100.0;
 
     ConnectionConfig connectionConfig;
-    
+
     Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
     Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
@@ -1010,9 +1014,9 @@ void test_connection_reliable_ordered_messages_and_blocks()
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     double time = 100.0;
-    
+
     ConnectionConfig connectionConfig;
-    
+
     Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
     Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
@@ -1088,7 +1092,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
                     const int blockSize = blockMessage->GetBlockSize();
 
                     check( blockSize == 1 + ( ( numMessagesReceived * 901 ) % 3333 ) );
-        
+
                     const uint8_t * blockData = blockMessage->GetBlockData();
 
                     check( blockData );
@@ -1118,7 +1122,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
     const int NumChannels = 2;
 
     double time = 100.0;
-    
+
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     ConnectionConfig connectionConfig;
@@ -1209,7 +1213,7 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
                         const int blockSize = blockMessage->GetBlockSize();
 
                         check( blockSize == 1 + ( ( numMessagesReceived[channelIndex] * 901 ) % 3333 ) );
-            
+
                         const uint8_t * blockData = blockMessage->GetBlockData();
 
                         check( blockData );
@@ -1318,7 +1322,7 @@ void test_connection_unreliable_unordered_blocks()
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
     double time = 100.0;
-    
+
     ConnectionConfig connectionConfig;
     connectionConfig.numChannels = 1;
     connectionConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
@@ -1491,7 +1495,7 @@ void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFr
             break;
 
         check( message->GetId() == (int) numMessagesReceivedFromServer );
-        
+
         switch ( message->GetType() )
         {
             case TEST_MESSAGE:
@@ -1577,7 +1581,7 @@ void test_client_server_messages()
     Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
-    
+
     ClientServerConfig config;
     config.channel[0].messageSendQueueSize = 32;
     config.channel[0].maxMessagesPerPacket = 8;
@@ -1613,7 +1617,7 @@ void test_client_server_messages()
         {
             Client * clients[] = { &client };
             Server * servers[] = { &server };
-            
+
             PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
             if ( client.ConnectionFailed() )
@@ -1721,7 +1725,7 @@ bool AllClientsConnected( int numClients, Server & server, Client ** clients )
             return false;
     }
 
-    return true;    
+    return true;
 }
 
 bool AnyClientDisconnected( int numClients, Client ** clients )
@@ -1741,7 +1745,7 @@ void test_client_server_start_stop_restart()
     Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
-    
+
     ClientServerConfig config;
     config.channel[0].messageSendQueueSize = 32;
     config.channel[0].maxMessagesPerPacket = 8;
@@ -1852,7 +1856,7 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
-    
+
     ClientServerConfig config;
     config.maxPacketSize = 1100;
     config.numChannels = 1;
@@ -1877,7 +1881,7 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        
+
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
@@ -1903,7 +1907,7 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        
+
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
@@ -1925,7 +1929,7 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
-    
+
     ClientServerConfig config;
     config.maxPacketSize = 1100;
     config.numChannels = 1;
@@ -1950,7 +1954,7 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        
+
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
@@ -1972,7 +1976,7 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        
+
         Message * message = client.CreateMessage( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
         check( message );
         client.SendMessage( 0, message );
@@ -1999,7 +2003,7 @@ void test_client_server_message_exhaust_stream_allocator()
     Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
-    
+
     ClientServerConfig config;
     config.maxPacketSize = 1100;
     config.numChannels = 1;
@@ -2024,7 +2028,7 @@ void test_client_server_message_exhaust_stream_allocator()
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        
+
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
@@ -2050,7 +2054,7 @@ void test_client_server_message_exhaust_stream_allocator()
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        
+
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
@@ -2072,7 +2076,7 @@ void test_client_server_message_receive_queue_overflow()
     Address serverAddress( "127.0.0.1", ServerPort );
 
     double time = 100.0;
-    
+
     ClientServerConfig config;
     config.maxPacketSize = 1100;
     config.numChannels = 1;
@@ -2081,7 +2085,7 @@ void test_client_server_message_receive_queue_overflow()
     config.channel[0].blockFragmentSize = 200;
     config.channel[0].messageSendQueueSize = 1024;
     config.channel[0].messageReceiveQueueSize = 256;
-    
+
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
@@ -2097,7 +2101,7 @@ void test_client_server_message_receive_queue_overflow()
     {
         Client * clients[] = { &client };
         Server * servers[] = { &server };
-        
+
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
         if ( client.ConnectionFailed() )
@@ -2123,7 +2127,7 @@ void test_client_server_message_receive_queue_overflow()
     for ( int i = 0; i < NumMessagesSent * 4; ++i )
     {
         Client * clients[] = { &client };
-        Server * servers[] = { &server };  
+        Server * servers[] = { &server };
 
         PumpClientServerUpdate( time, clients, 1, servers, 1 );
     }
@@ -2139,82 +2143,82 @@ void test_client_server_message_receive_queue_overflow()
 void test_reliable_fragment_overflow_bug()
 {
     double time = 100.0;
-    
+
     ClientServerConfig config;
     config.numChannels = 2;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
     config.channel[0].packetBudget = 8000;
     config.channel[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
     config.channel[1].packetBudget = -1;
-    
+
     uint8_t privateKey[KeyBytes];
     memset(privateKey, 0, KeyBytes);
     Server server(GetDefaultAllocator(), privateKey, Address("127.0.0.1", ServerPort), config, adapter, time);
-    
+
     server.Start(MaxClients);
     check(server.IsRunning());
-    
+
     uint64_t clientId = 0;
     random_bytes((uint8_t*)&clientId, 8);
-    
+
     Client client(GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time);
-    
+
     Address serverAddress("127.0.0.1", ServerPort);
-    
+
     client.InsecureConnect(privateKey, clientId, serverAddress);
-    
+
     Client * clients[] = { &client };
     Server * servers[] = { &server };
-    
+
     while (true)
     {
         PumpClientServerUpdate(time, clients, 1, servers, 1);
-        
+
         if (client.ConnectionFailed())
             break;
-        
+
         if (!client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1)
             break;
     }
-    
+
     check(!client.IsConnecting());
     check(client.IsConnected());
     check(server.GetNumConnectedClients() == 1);
     check(client.GetClientIndex() == 0);
     check(server.IsClientConnected(0));
-    
+
     PumpClientServerUpdate(time, clients, 1, servers, 1);
     check(!client.IsDisconnected());
-    
+
     TestBlockMessage *testBlockMessage = (TestBlockMessage *)client.CreateMessage(TEST_BLOCK_MESSAGE);
     uint8_t * blockData = client.AllocateBlock(7169);
     memset( blockData, 0, 7169 );
     client.AttachBlockToMessage(testBlockMessage, blockData, 7169);
     client.SendMessage(0, testBlockMessage);
-    
+
     testBlockMessage = (TestBlockMessage *)client.CreateMessage(TEST_BLOCK_MESSAGE);
     blockData = client.AllocateBlock(1024);
     memset( blockData, 0, 1024 );
     client.AttachBlockToMessage(testBlockMessage, blockData, 1024);
     client.SendMessage(1, testBlockMessage);
-    
+
     PumpClientServerUpdate(time, clients, 1, servers, 1);
-    
+
     PumpClientServerUpdate(time, clients, 1, servers, 1);
-    
+
     PumpClientServerUpdate(time, clients, 1, servers, 1);
     check(!client.IsDisconnected());
-    
+
     Message *message = server.ReceiveMessage(0, 0);
     check(message);
     check(message->GetType() == TEST_BLOCK_MESSAGE);
     server.ReleaseMessage(0, message);
-    
+
     message = server.ReceiveMessage(0, 1);
     check(message);
     check(message->GetType() == TEST_BLOCK_MESSAGE);
     server.ReleaseMessage(0, message);
-    
+
     client.Disconnect();
 
     server.Stop();
@@ -2357,7 +2361,7 @@ void test_single_message_type_reliable()
     double time = 100.0;
 
     ConnectionConfig connectionConfig;
- 
+
     Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
     Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
@@ -2420,7 +2424,7 @@ void test_single_message_type_reliable_blocks()
     double time = 100.0;
 
     ConnectionConfig connectionConfig;
-    
+
     Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
     Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
@@ -2571,7 +2575,7 @@ void test_single_message_type_unreliable()
         test_function();                                                    \
         ShutdownYojimbo();                                                  \
     }                                                                       \
-    while (0)                                                                                                     
+    while (0)
 
 extern "C" void netcode_test();
 extern "C" void reliable_test();
@@ -2596,7 +2600,7 @@ int main()
     printf( "\n" );
 
 #if SOAK
-    signal( SIGINT, interrupt_handler );    
+    signal( SIGINT, interrupt_handler );
     int iter = 0;
     while ( true )
 #endif // #if SOAK
@@ -2605,7 +2609,7 @@ int main()
             printf( "[netcode.io]\n\n" );
 
             check( InitializeYojimbo() );
-            
+
             netcode_test();
 
             ShutdownYojimbo();
@@ -2615,7 +2619,7 @@ int main()
             printf( "\n[reliable.io]\n\n" );
 
             check( InitializeYojimbo() );
-            
+
             reliable_test();
 
             ShutdownYojimbo();
@@ -2651,19 +2655,19 @@ int main()
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );
         RUN_TEST( test_single_message_type_unreliable );
-        
+
 #if SOAK
         if ( quit )
             break;
         iter++;
         for ( int j = 0; j < iter % 10; ++j )
             printf( "." );
-        printf( "\n" );				 
+        printf( "\n" );
 #endif // #if SOAK
     }
 
 #if SOAK
-    if ( quit )					  
+    if ( quit )
         printf( "\n" );
     else
 #else // #if SOAK
