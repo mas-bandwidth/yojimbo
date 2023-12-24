@@ -714,7 +714,7 @@ void yojimbo_printf( int level, const char * format, ... )
     va_list args;
     va_start( args, format );
     char buffer[4*1024];
-    vsprintf( buffer, format, args );
+    vsnprintf( buffer, sizeof(buffer), format, args );
     printf_function( "%s", buffer );
     va_end( args );
 }
@@ -851,7 +851,7 @@ double yojimbo_time()
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/error.h>
 #include <mbedtls/x509_crt.h>
-#include "certs.h"
+#include "certs/certs.h"
 #endif // #if YOJIMBO_WITH_MBEDTLS
 #include <inttypes.h>
 #include <string.h>
@@ -1008,7 +1008,7 @@ namespace yojimbo
             }
         }
         
-        sprintf( request, "GET /match/%" PRIu64 "/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
+        snprintf( request, sizeof(request), "GET /match/%" PRIu64 "/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
 
         yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "match request:\n" );
         yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "%s\n", request );
