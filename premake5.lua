@@ -64,14 +64,6 @@ project "server"
     files { "server.cpp", "shared.h" }
     links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
-project "secure_server"
-    files { "secure_server.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
-
-project "client_server"
-    files { "client_server.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
-
 project "loopback"
     files { "loopback.cpp", "shared.h" }
     links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
