@@ -6,9 +6,7 @@ solution "Yojimbo"
     language "C++"
     configurations { "Debug", "Release" }
     includedirs { ".", "sodium", "tlsf", "netcode", "reliable" }
-    if os.istarget "windows" then
-        libdirs { "./windows" }
-    else
+    if not os.istarget "windows" then
         targetdir "bin/"  
     end
     rtti "Off"
@@ -24,6 +22,7 @@ solution "Yojimbo"
 
 project "sodium"
     kind "StaticLib"
+    language "C"
     files {
         "sodium/**.c",
         "sodium/**.h",

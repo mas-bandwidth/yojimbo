@@ -11,7 +11,7 @@ Once you have Visual Studio installed, go to the command line under the yojimbo 
 
     premake5 vs2019
 
-Open the generated Yojimbo.sln file.
+Open the generated yojimbo.sln file.
 
 You can now build the library and run individual test programs as you would for any other Visual Studio solution.
 
@@ -30,18 +30,8 @@ This creates makefiles which you can use to build the source via:
 Then run the built executables:
 
     ./bin/test           // run unit tests
-    ./bin/client         // run a client that connects to the local server
     ./bin/server         // run a server on localhost on UDP port 40000
-
-## Documentation and Support
-
-**yojimbo** now has reference documentation built from code comments with [doxygen](http://www.stack.nl/~dimitri/doxygen/).
-
-To build the documentation first install doxygen on your platform.
-
-Once you have doxygen installed and in your path, you can build and view the documentation with this command:
-
-    premake5 docs    
+    ./bin/client         // run a client that connects to the local server
 
 cheers
 
