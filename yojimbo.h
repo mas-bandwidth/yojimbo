@@ -7,17 +7,17 @@
 
         1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 
-        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+        2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer
            in the documentation and/or other materials provided with the distribution.
 
-        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived 
+        3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived
            from this software without specific prior written permission.
 
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
-    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
     WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
@@ -55,7 +55,7 @@
     #else
       #error Unknown machine endianess detected. User needs to define YOJIMBO_LITTLE_ENDIAN or YOJIMBO_BIG_ENDIAN.
     #endif // __BYTE_ORDER__
-  
+
   // Detect with GLIBC's endian.h
   #elif defined(__GLIBC__)
     #include <endian.h>
@@ -66,13 +66,13 @@
     #else
       #error Unknown machine endianess detected. User needs to define YOJIMBO_LITTLE_ENDIAN or YOJIMBO_BIG_ENDIAN.
     #endif // __BYTE_ORDER
-  
+
   // Detect with _LITTLE_ENDIAN and _BIG_ENDIAN macro
   #elif defined(_LITTLE_ENDIAN) && !defined(_BIG_ENDIAN)
     #define YOJIMBO_LITTLE_ENDIAN 1
   #elif defined(_BIG_ENDIAN) && !defined(_LITTLE_ENDIAN)
     #define YOJIMBO_BIG_ENDIAN 1
-  
+
   // Detect with architecture macros
   #elif    defined(__sparc)     || defined(__sparc__)                           \
         || defined(_POWER)      || defined(__powerpc__)                         \
@@ -88,7 +88,7 @@
   #elif defined(_MSC_VER) && defined(_M_ARM)
     #define YOJIMBO_LITTLE_ENDIAN 1
   #else
-    #error Unknown machine endianess detected. User needs to define YOJIMBO_LITTLE_ENDIAN or YOJIMBO_BIG_ENDIAN. 
+    #error Unknown machine endianess detected. User needs to define YOJIMBO_LITTLE_ENDIAN or YOJIMBO_BIG_ENDIAN.
   #endif
 #endif
 
@@ -103,10 +103,6 @@
 #ifndef YOJIMBO_DEFAULT_TIMEOUT
 #define YOJIMBO_DEFAULT_TIMEOUT 5
 #endif
-
-#if !defined( YOJIMBO_WITH_MBEDTLS )
-#define YOJIMBO_WITH_MBEDTLS 1
-#endif // #if !defined( YOJIMBO_WITH_MBEDTLS )
 
 #ifdef _MSC_VER
 #pragma warning( disable : 4127 )
@@ -184,35 +180,35 @@ namespace yojimbo
 
     enum ChannelType
     {
-        CHANNEL_TYPE_RELIABLE_ORDERED,                              ///< Messages are received reliably and in the same order they were sent. 
+        CHANNEL_TYPE_RELIABLE_ORDERED,                              ///< Messages are received reliably and in the same order they were sent.
         CHANNEL_TYPE_UNRELIABLE_UNORDERED                           ///< Messages are sent unreliably. Messages may arrive out of order, or not at all.
     };
 
-    /** 
+    /**
         Configuration properties for a message channel.
-     
+
         Channels let you specify different reliability and ordering guarantees for messages sent across a connection.
-     
+
         They may be configured as one of two types: reliable-ordered or unreliable-unordered.
-     
-        Reliable ordered channels guarantee that messages (see Message) are received reliably and in the same order they were sent. 
+
+        Reliable ordered channels guarantee that messages (see Message) are received reliably and in the same order they were sent.
         This channel type is designed for control messages and RPCs sent between the client and server.
-    
+
         Unreliable unordered channels are like UDP. There is no guarantee that messages will arrive, and messages may arrive out of order.
-        This channel type is designed for data that is time critical and should not be resent if dropped, like snapshots of world state sent rapidly 
+        This channel type is designed for data that is time critical and should not be resent if dropped, like snapshots of world state sent rapidly
         from server to client, or cosmetic events such as effects and sounds.
-        
+
         Both channel types support blocks of data attached to messages (see BlockMessage), but their treatment of blocks is quite different.
-        
-        Reliable ordered channels are designed for blocks that must be received reliably and in-order with the rest of the messages sent over the channel. 
-        Examples of these sort of blocks include the initial state of a level, or server configuration data sent down to a client on connect. These blocks 
+
+        Reliable ordered channels are designed for blocks that must be received reliably and in-order with the rest of the messages sent over the channel.
+        Examples of these sort of blocks include the initial state of a level, or server configuration data sent down to a client on connect. These blocks
         are sent by splitting them into fragments and resending each fragment until the other side has received the entire block. This allows for sending
         blocks of data larger that maximum packet size quickly and reliably even under packet loss.
-        
+
         Unreliable-unordered channels send blocks as-is without splitting them up into fragments. The idea is that transport level packet fragmentation
-        should be used on top of the generated packet to split it up into into smaller packets that can be sent across typical Internet MTU (<1500 bytes). 
+        should be used on top of the generated packet to split it up into into smaller packets that can be sent across typical Internet MTU (<1500 bytes).
         Because of this, you need to make sure that the maximum block size for an unreliable-unordered channel fits within the maximum packet size.
-        
+
         Channels are typically configured as part of a ConnectionConfig, which is included inside the ClientServerConfig that is passed into the Client and Server constructors.
      */
 
@@ -250,7 +246,7 @@ namespace yojimbo
         }
     };
 
-    /** 
+    /**
         Configures connection properties and the set of channels for sending and receiving messages.
         Specifies the maximum packet size to generate, and the number of message channels, and the per-channel configuration data. See ChannelConfig for details.
         Typically configured as part of a ClientServerConfig which is passed into Client and Server constructors.
@@ -269,7 +265,7 @@ namespace yojimbo
         }
     };
 
-    /** 
+    /**
         Configuration shared between client and server.
         Passed to Client and Server constructors to configure their behavior.
         Please make sure that the message configuration is identical between client and server.
@@ -425,7 +421,7 @@ void yojimbo_log_level( int level );
 
 /**
     Printf function used by yojimbo to emit logs.
-    This function internally calls the printf callback set by the user. 
+    This function internally calls the printf callback set by the user.
     @see yojimbo_set_printf_function
  */
 
@@ -491,9 +487,9 @@ namespace yojimbo
     #define YOJIMBO_NEW( a, T, ... ) ( new ( (a).Allocate( sizeof(T), __FILE__, __LINE__ ) ) T(__VA_ARGS__) )
 
     /// Macro for deleting an object created with a yojimbo allocator.
-    #define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free( p, __FILE__, __LINE__ ); p = NULL; } } while (0)    
+    #define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free( p, __FILE__, __LINE__ ); p = NULL; } } while (0)
 
-    /// Macro for allocating a block of memory with a yojimbo allocator. 
+    /// Macro for allocating a block of memory with a yojimbo allocator.
     #define YOJIMBO_ALLOCATE( a, bytes ) (a).Allocate( (bytes), __FILE__, __LINE__ )
 
     /// Macro for freeing a block of memory created with a yojimbo allocator.
@@ -522,7 +518,7 @@ namespace yojimbo
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
     /**
-        Debug structure used to track allocations and find memory leaks. 
+        Debug structure used to track allocations and find memory leaks.
         Active in debug build only. Disabled in release builds for performance reasons.
      */
 
@@ -697,7 +693,7 @@ namespace yojimbo
 
         /**
             TLSF allocator constructor.
-            If you want to integrate your own allocator with yojimbo for use with the client and server, this class is a good template to start from. 
+            If you want to integrate your own allocator with yojimbo for use with the client and server, this class is a good template to start from.
             Make sure your constructor has the same signature as this one, and it will work with the YOJIMBO_SERVER_ALLOCATOR and YOJIMBO_CLIENT_ALLOCATOR helper macros.
             @param memory Block of memory in which the allocator will work. This block must remain valid while this allocator exists. The allocator does not assume ownership of it, you must free it elsewhere, if necessary.
             @param bytes The size of the block of memory (bytes). The maximum amount of memory you can allocate will be less, due to allocator overhead.
@@ -768,7 +764,7 @@ namespace yojimbo
         return result;
     }
 
-    /** 
+    /**
         Generate a random float between a and b.
         IMPORTANT: This is not a cryptographically secure random. It's used only for test functions and in the network simulator.
         @param a The minimum integer value to generate.
@@ -801,7 +797,7 @@ namespace yojimbo
                  d =   c + ( c >> 8 ),
                  e =   d + ( d >> 16 ),
 
-            result = e & 0x0000003f 
+            result = e & 0x0000003f
         };
     };
 
@@ -968,10 +964,10 @@ namespace yojimbo
 #endif // #if YOJIMBO_BIG_ENDIAN
     }
 
-    /** 
+    /**
         Compares two 16 bit sequence numbers and returns true if the first one is greater than the second (considering wrapping).
         IMPORTANT: This is not the same as s1 > s2!
-        Greater than is defined specially to handle wrapping sequence numbers. 
+        Greater than is defined specially to handle wrapping sequence numbers.
         If the two sequence numbers are close together, it is as normal, but they are far apart, it is assumed that they have wrapped around.
         Thus, sequence_greater_than( 1, 0 ) returns true, and so does sequence_greater_than( 0, 65535 )!
         @param s1 The first sequence number.
@@ -981,14 +977,14 @@ namespace yojimbo
 
     inline bool sequence_greater_than( uint16_t s1, uint16_t s2 )
     {
-        return ( ( s1 > s2 ) && ( s1 - s2 <= 32768 ) ) || 
+        return ( ( s1 > s2 ) && ( s1 - s2 <= 32768 ) ) ||
                ( ( s1 < s2 ) && ( s2 - s1  > 32768 ) );
     }
 
-    /** 
+    /**
         Compares two 16 bit sequence numbers and returns true if the first one is less than the second (considering wrapping).
         IMPORTANT: This is not the same as s1 < s2!
-        Greater than is defined specially to handle wrapping sequence numbers. 
+        Greater than is defined specially to handle wrapping sequence numbers.
         If the two sequence numbers are close together, it is as normal, but they are far apart, it is assumed that they have wrapped around.
         Thus, sequence_less_than( 0, 1 ) returns true, and so does sequence_greater_than( 65535, 0 )!
         @param s1 The first sequence number.
@@ -1024,61 +1020,6 @@ namespace yojimbo
     {
         return ( n >> 1 ) ^ ( -int32_t( n & 1 ) );
     }
-
-#if YOJIMBO_WITH_MBEDTLS
-
-    /**
-        Base 64 encode a string.
-        @param input The input string value. Must be null terminated.
-        @param output The output base64 encoded string. Will be null terminated.
-        @param output_size The size of the output buffer (bytes). Must be large enough to store the base 64 encoded string.
-        @returns The number of bytes in the base64 encoded string, including terminating null. -1 if the base64 encode failed because the output buffer was too small.
-     */
-
-    int base64_encode_string( const char * input, char * output, int output_size );
-
-    /**
-        Base 64 decode a string.
-        @param input The base64 encoded string.
-        @param output The decoded string. Guaranteed to be null terminated, even if the base64 is maliciously encoded.
-        @param output_size The size of the output buffer (bytes).
-        @returns The number of bytes in the decoded string, including terminating null. -1 if the base64 decode failed.
-     */
-
-    int base64_decode_string( const char * input, char * output, int output_size );
-
-    /**
-        Base 64 encode a block of data.
-        @param input The data to encode.
-        @param input_length The length of the input data (bytes).
-        @param output The output base64 encoded string. Will be null terminated.
-        @param output_size The size of the output buffer. Must be large enough to store the base 64 encoded string.
-        @returns The number of bytes in the base64 encoded string, including terminating null. -1 if the base64 encode failed because the output buffer was too small.
-     */
-
-    int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size );
-
-    /**
-        Base 64 decode a block of data.
-        @param input The base 64 data to decode. Must be a null terminated string.
-        @param output The output data. Will *not* be null terminated.
-        @param output_size The size of the output buffer.
-        @returns The number of bytes of decoded data. -1 if the base64 decode failed.
-     */
-
-    int base64_decode_data( const char * input, uint8_t * output, int output_size );
-
-    /**
-        Print bytes with a label. 
-        Useful for printing out packets, encryption keys, nonce etc.
-        @param label The label to print out before the bytes.
-        @param data The data to print out to stdout.
-        @param data_bytes The number of bytes of data to print.
-     */
-
-    void print_bytes( const char * label, const uint8_t * data, int data_bytes );
-
-#endif // #if YOJIMBO_WITH_MBEDTLS
 
     /**
         A simple bit array class.
@@ -1230,7 +1171,7 @@ namespace yojimbo
         ~Queue()
         {
             yojimbo_assert( m_allocator );
-            
+
             YOJIMBO_FREE( *m_allocator, m_entries );
 
             m_arraySize = 0;
@@ -1268,7 +1209,7 @@ namespace yojimbo
         /**
             Push a value on to the queue.
             @param value The value to push onto the queue.
-            IMPORTANT: Will assert if the queue is already full. Check Queue::IsFull before calling this!   
+            IMPORTANT: Will assert if the queue is already full. Check Queue::IsFull before calling this!
          */
 
         void Push( const T & value )
@@ -1360,7 +1301,7 @@ namespace yojimbo
 
     /**
         Data structure that stores data indexed by sequence number.
-        Entries may or may not exist. If they don't exist the sequence value for the entry at that index is set to 0xFFFFFFFF. 
+        Entries may or may not exist. If they don't exist the sequence value for the entry at that index is set to 0xFFFFFFFF.
         This provides a constant time lookup for an entry by sequence number. If the entry at sequence modulo buffer size doesn't have the same sequence number, that sequence number is not stored.
         This is incredibly useful and is used as the foundation of the packet level ack system and the reliable message send and receive queues.
         @see Connection
@@ -1414,12 +1355,13 @@ namespace yojimbo
             Insert an entry in the sequence buffer.
             IMPORTANT: If another entry exists at the sequence modulo buffer size, it is overwritten.
             @param sequence The sequence number.
+            @param guaranteed_order Whether sequence is always the newest value (when sending) or can be out of order (when receiving).
             @returns The sequence buffer entry, which you must fill with your data. NULL if a sequence buffer entry could not be added for your sequence number (if the sequence number is too old for example).
          */
 
-        T * Insert( uint16_t sequence )
+        T * Insert( uint16_t sequence, bool guaranteed_order = false )
         {
-            if ( sequence_greater_than( sequence + 1, m_sequence ) )
+            if ( sequence_greater_than( sequence + 1, m_sequence ) || guaranteed_order )
             {
                 RemoveEntries( m_sequence, sequence );
                 m_sequence = sequence + 1;
@@ -1532,7 +1474,7 @@ namespace yojimbo
             @see yojimbo::sequence_less_than
          */
 
-        uint16_t GetSequence() const 
+        uint16_t GetSequence() const
         {
             return m_sequence;
         }
@@ -1549,7 +1491,7 @@ namespace yojimbo
             return sequence % m_size;
         }
 
-        /** 
+        /**
             Get the size of the sequence buffer.
             @returns The size of the sequence buffer (number of entries).
          */
@@ -1561,17 +1503,17 @@ namespace yojimbo
 
     protected:
 
-        /** 
+        /**
             Helper function to remove entries.
-            This is used to remove old entries as we advance the sequence buffer forward. 
-            Otherwise, if when entries are added with holes (eg. receive buffer for packets or messages, where not all sequence numbers are added to the buffer because we have high packet loss), 
+            This is used to remove old entries as we advance the sequence buffer forward.
+            Otherwise, if when entries are added with holes (eg. receive buffer for packets or messages, where not all sequence numbers are added to the buffer because we have high packet loss),
             and we are extremely unlucky, we can have old sequence buffer entries from the previous sequence # wrap around still in the buffer, which corrupts our internal connection state.
             This actually happened in the soak test at high packet loss levels (>90%). It took me days to track it down :)
          */
 
         void RemoveEntries( int start_sequence, int finish_sequence )
         {
-            if ( finish_sequence < start_sequence ) 
+            if ( finish_sequence < start_sequence )
                 finish_sequence += 65535;
             yojimbo_assert( finish_sequence >= start_sequence );
             if ( finish_sequence - start_sequence < m_size )
@@ -1593,7 +1535,7 @@ namespace yojimbo
         uint16_t m_sequence;                       ///< The most recent sequence number added to the buffer.
         uint32_t * m_entry_sequence;               ///< Array of sequence numbers corresponding to each sequence buffer entry for fast lookup. Set to 0xFFFFFFFF if no entry exists at that index.
         T * m_entries;                             ///< The sequence buffer entries. This is where the data is stored per-entry. Separate from the sequence numbers for fast lookup (hot/cold split) when the data per-sequence number is relatively large.
-        
+
         SequenceBuffer( const SequenceBuffer<T> & other );
 
         SequenceBuffer<T> & operator = ( const SequenceBuffer<T> & other );
@@ -1613,7 +1555,7 @@ namespace yojimbo
 
         /**
             Bit writer constructor.
-            Creates a bit writer object to write to the specified buffer. 
+            Creates a bit writer object to write to the specified buffer.
             @param data The pointer to the buffer to fill with bitpacked data.
             @param bytes The size of the buffer in bytes. Must be a multiple of 4, because the bitpacker reads and writes memory as dwords, not bytes.
          */
@@ -1746,7 +1688,7 @@ namespace yojimbo
                 m_data[m_wordIndex] = host_to_network( uint32_t( m_scratch & 0xFFFFFFFF ) );
                 m_scratch >>= 32;
                 m_scratchBits = 0;
-                m_wordIndex++;                
+                m_wordIndex++;
             }
         }
 
@@ -1760,7 +1702,7 @@ namespace yojimbo
             return ( 8 - ( m_bitsWritten % 8 ) ) % 8;
         }
 
-        /** 
+        /**
             How many bits have we written so far?
             @returns The number of bits written to the bit buffer.
          */
@@ -1780,7 +1722,7 @@ namespace yojimbo
         {
             return m_numBits - m_bitsWritten;
         }
-        
+
         /**
             Get a pointer to the data written by the bit writer.
             Corresponds to the data block passed in to the constructor.
@@ -1899,8 +1841,8 @@ namespace yojimbo
 
         /**
             Read an align.
-            Call this on read to correspond to a WriteAlign call when the bitpacked buffer was written. 
-            This makes sure we skip ahead to the next aligned byte index. As a safety check, we verify that the padding to next byte is zero bits and return false if that's not the case. 
+            Call this on read to correspond to a WriteAlign call when the bitpacked buffer was written.
+            This makes sure we skip ahead to the next aligned byte index. As a safety check, we verify that the padding to next byte is zero bits and return false if that's not the case.
             This will typically abort packet read. Just another safety measure...
             @returns True if we successfully read an align and skipped ahead past zero pad, false otherwise (probably means, no align was written to the stream).
             @see BitWriter::WriteAlign
@@ -1973,7 +1915,7 @@ namespace yojimbo
             return ( 8 - m_bitsRead % 8 ) % 8;
         }
 
-        /** 
+        /**
             How many bits have we read so far?
             @returns The number of bits read from the bit buffer so far.
          */
@@ -2026,7 +1968,7 @@ namespace yojimbo
     // #define yojimbo_getvarint yojimbo_get_varint
     // #define yojimbo_putvarint yojimbo_put_varint
 
-    /** 
+    /**
         Functionality common to all stream classes.
      */
 
@@ -2202,7 +2144,7 @@ namespace yojimbo
             return true;
         }
 
-        /** 
+        /**
             If we were to write an align right now, how many bits would be required?
             @returns The number of zero pad bits required to achieve byte alignment in [0,7].
          */
@@ -2331,7 +2273,7 @@ namespace yojimbo
             int i = 0;
             uint8_t data[6];
             uint32_t read_value;
-            do { 
+            do {
                 if ( m_reader.WouldReadPastEnd( 8 ) )
                     return false;
                 read_value = m_reader.ReadBits( 8 );
@@ -2353,7 +2295,7 @@ namespace yojimbo
             int i = 0;
             uint8_t data[10];
             uint32_t read_value;
-            do { 
+            do {
                 if ( m_reader.WouldReadPastEnd( 8 ) )
                     return false;
                 read_value = m_reader.ReadBits( 8 );
@@ -2414,7 +2356,7 @@ namespace yojimbo
             return true;
         }
 
-        /** 
+        /**
             If we were to read an align right now, how many bits would we need to read?
             @returns The number of zero pad bits required to achieve byte alignment in [0,7].
          */
@@ -2432,7 +2374,7 @@ namespace yojimbo
 
         bool SerializeCheck()
         {
-#if YOJIMBO_SERIALIZE_CHECKS            
+#if YOJIMBO_SERIALIZE_CHECKS
             if ( !SerializeAlign() )
                 return false;
             uint32_t value = 0;
@@ -2477,7 +2419,7 @@ namespace yojimbo
         Stream class for estimating how many bits it would take to serialize something.
         This class acts like a bit writer (IsWriting is 1, IsReading is 0), but instead of writing data, it counts how many bits would be written.
         It's used by the connection channel classes to work out how many messages will fit in the channel packet budget.
-        Note that when the serialization includes alignment to byte (see MeasureStream::SerializeAlign), this is an estimate and not an exact measurement. The estimate is guaranteed to be conservative. 
+        Note that when the serialization includes alignment to byte (see MeasureStream::SerializeAlign), this is an estimate and not an exact measurement. The estimate is guaranteed to be conservative.
         @see BitWriter
         @see BitReader
      */
@@ -2505,7 +2447,7 @@ namespace yojimbo
          */
 
         bool SerializeInteger( int32_t value, int32_t min, int32_t max )
-        {   
+        {
             (void) value;
             yojimbo_assert( min < max );
             yojimbo_assert( value >= min );
@@ -2522,7 +2464,7 @@ namespace yojimbo
          */
 
         bool SerializeVarint32( int32_t value )
-        {   
+        {
             const int bits = yojimbo_measure_varint( value ) * 8;
             m_bitsWritten += bits;
             return true;
@@ -2535,7 +2477,7 @@ namespace yojimbo
         */
 
         bool SerializeVarint64( int64_t value )
-        {   
+        {
             const int bits = yojimbo_measure_varint( value ) * 8;
             m_bitsWritten += bits;
             return true;
@@ -2584,9 +2526,9 @@ namespace yojimbo
             return true;
         }
 
-        /** 
+        /**
             If we were to write an align right now, how many bits would be required?
-            IMPORTANT: Since the number of bits required for alignment depends on where an object is written in the final bit stream, this measurement is conservative. 
+            IMPORTANT: Since the number of bits required for alignment depends on where an object is written in the final bit stream, this measurement is conservative.
             @returns Always returns worst case 7 bits.
          */
 
@@ -2636,7 +2578,7 @@ namespace yojimbo
 
     const int MaxAddressLength = 256;       ///< The maximum length of an address when converted to a string (includes terminating NULL). @see Address::ToString
 
-    /** 
+    /**
         Address type.
         @see Address::GetType.
      */
@@ -2648,7 +2590,7 @@ namespace yojimbo
         ADDRESS_IPV6                                                        ///< An IPv6 address, eg: "48d9:4a08:b543:ae31:89d8:3226:b92c:cbba"
     };
 
-    /** 
+    /**
         An IP address and port number.
         Supports both IPv4 and IPv6 addresses.
         Identifies where a packet came from, and where a packet should be sent.
@@ -2722,7 +2664,7 @@ namespace yojimbo
 
         /**
             Parse a string to an address.
-            This versions supports parsing a port included in the address string. For example, "127.0.0.1:4000" and "[::1]:40000". 
+            This versions supports parsing a port included in the address string. For example, "127.0.0.1:4000" and "[::1]:40000".
             Parsing is performed via inet_pton once the port # has been extracted from the string, so you may specify any IPv4 or IPv6 address formatted in any valid way, and it should work as you expect.
             Depending on the type of data in the string the address will become ADDRESS_TYPE_IPV4 or ADDRESS_TYPE_IPV6.
             If the string is not recognized as a valid address, the address type is set to ADDRESS_TYPE_NONE, causing Address::IsValid to return false. Please check that after creating an address from a string.
@@ -2853,8 +2795,8 @@ namespace yojimbo
 
     protected:
 
-        /** 
-            Helper function to parse an address string. 
+        /**
+            Helper function to parse an address string.
             Used by the constructors that take a string parameter.
             @param address The string to parse.
          */
@@ -3040,6 +2982,54 @@ namespace yojimbo
                 return false;                                                       \
             }                                                                       \
         } while (0)
+
+    template <typename Stream> bool serialize_compressed_float_internal(Stream &stream,
+                                             float &value,
+                                             float min,
+                                             float max,
+                                             float res)
+    {
+        const float delta = max - min;
+        const float values = delta / res;
+        const uint32_t maxIntegerValue = (uint32_t)ceil(values);
+        const int bits = bits_required(0, maxIntegerValue);
+        uint32_t integerValue = 0;
+        if (Stream::IsWriting)
+        {
+            float normalizedValue =
+                yojimbo_clamp((value - min) / delta, 0.0f, 1.0f);
+            integerValue = (uint32_t)floor(normalizedValue *
+                                               maxIntegerValue +
+                                           0.5f);
+        }
+        if (!stream.SerializeBits(integerValue, bits))
+        {
+            return false;
+        }
+        if (Stream::IsReading)
+        {
+            const float normalizedValue =
+                integerValue / float(maxIntegerValue);
+            value = normalizedValue * delta + min;
+        }
+        return true;
+    }
+    /**
+        Serialize compressed floating point value (read/write/measure).
+        This is a helper macro to make writing unified serialize functions easier.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The float value to serialize.
+     */
+#define serialize_compressed_float(stream, value, min, max, res)                         \
+    do                                                                                   \
+    {                                                                                    \
+        if (!yojimbo::serialize_compressed_float_internal(stream, value, min, max, res)) \
+        {                                                                                \
+            return false;                                                                \
+        }                                                                                \
+    } while (0)
 
     /**
         Serialize a 32 bit unsigned integer to the stream (read/write/measure).
@@ -3297,7 +3287,7 @@ namespace yojimbo
             }
             return true;
         }
-        
+
         bool twoBits = false;
         if ( Stream::IsWriting )
         {
@@ -3313,7 +3303,7 @@ namespace yojimbo
             }
             return true;
         }
-        
+
         bool fourBits = false;
         if ( Stream::IsWriting )
         {
@@ -3597,9 +3587,9 @@ namespace yojimbo
         @see WriteStream
         @see MeasureStream
      */
-    
+
     class Serializable
-    {  
+    {
     public:
 
         virtual ~Serializable() {}
@@ -3638,29 +3628,29 @@ namespace yojimbo
     #define YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()                                                               \
         bool SerializeInternal( class yojimbo::ReadStream & stream ) { return Serialize( stream ); };           \
         bool SerializeInternal( class yojimbo::WriteStream & stream ) { return Serialize( stream ); };          \
-        bool SerializeInternal( class yojimbo::MeasureStream & stream ) { return Serialize( stream ); };         
+        bool SerializeInternal( class yojimbo::MeasureStream & stream ) { return Serialize( stream ); };
 
     /**
         A reference counted object that can be serialized to a bitstream.
 
         Messages are objects that are sent between client and server across the connection. They are carried inside the ConnectionPacket generated by the Connection class. Messages can be sent reliable-ordered, or unreliable-unordered, depending on the configuration of the channel they are sent over.
-        
+
         To use messages, create your own set of message classes by inheriting from this class (or from BlockMessage, if you want to attach data blocks to your message), then setup an enum of all your message types and derive a message factory class to create your message instances by type.
-        
+
         There are macros to help make defining your message factory painless:
-        
+
             YOJIMBO_MESSAGE_FACTORY_START
             YOJIMBO_DECLARE_MESSAGE_TYPE
             YOJIMBO_MESSAGE_FACTORY_FINISH
-        
+
         Once you have a message factory, register it with your declared inside your client and server classes using:
-        
+
             YOJIMBO_MESSAGE_FACTORY
-        
+
         which overrides the Client::CreateMessageFactory and Server::CreateMessageFactory methods so the client and server classes use your message factory type.
-        
+
         See tests/shared.h for an example showing you how to do this, and the functional tests inside tests/test.cpp for examples showing how how to send and receive messages.
-        
+
         @see BlockMessage
         @see MessageFactory
         @see Connection
@@ -3679,7 +3669,7 @@ namespace yojimbo
 
         Message( int blockMessage = 0 ) : m_refCount(1), m_id(0), m_type(0), m_blockMessage( blockMessage ) {}
 
-        /** 
+        /**
             Set the message id.
             When messages are sent over a reliable-ordered channel, the message id starts at 0 and increases with each message sent over that channel.
             When messages are sent over an unreliable-unordered channel, the message id is set to the sequence number of the packet it was delivered in.
@@ -3706,7 +3696,7 @@ namespace yojimbo
 
         /**
             Get the reference count on the message.
-            Messages start with a reference count of 1 when they are created. This is decreased when they are released. 
+            Messages start with a reference count of 1 when they are created. This is decreased when they are released.
             When the reference count reaches 0, the message is destroyed.
             @returns The reference count on the message.
          */
@@ -3726,7 +3716,7 @@ namespace yojimbo
             Virtual serialize function (read).
             Reads the message in from a bitstream.
             Don't override this method directly, instead, use the YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS macro in your derived message class to redirect it to a templated serialize method.
-            This way you can implement serialization for your packets in a single method and the C++ compiler takes care of generating specialized read, write and measure implementations for you. 
+            This way you can implement serialization for your packets in a single method and the C++ compiler takes care of generating specialized read, write and measure implementations for you.
             See tests/shared.h for examples of this.
          */
 
@@ -3736,7 +3726,7 @@ namespace yojimbo
             Virtual serialize function (write).
             Write the message to a bitstream.
             Don't override this method directly, instead, use the YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS macro in your derived message class to redirect it to a templated serialize method.
-            This way you can implement serialization for your packets in a single method and the C++ compiler takes care of generating specialized read, write and measure implementations for you. 
+            This way you can implement serialization for your packets in a single method and the C++ compiler takes care of generating specialized read, write and measure implementations for you.
             See tests/shared.h for examples of this.
          */
 
@@ -3746,7 +3736,7 @@ namespace yojimbo
             Virtual serialize function (measure).
             Measure how many bits this message would take to write. This is used when working out how many messages will fit within the channel packet budget.
             Don't override this method directly, instead, use the YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS macro in your derived message class to redirect it to a templated serialize method.
-            This way you can implement serialization for your packets in a single method and the C++ compiler takes care of generating specialized read, write and measure implementations for you. 
+            This way you can implement serialization for your packets in a single method and the C++ compiler takes care of generating specialized read, write and measure implementations for you.
             See tests/shared.h for examples of this.
          */
 
@@ -3764,7 +3754,7 @@ namespace yojimbo
 
         /**
             Add a reference to the message.
-            This is called when a message is included in a packet and added to the receive queue. 
+            This is called when a message is included in a packet and added to the receive queue.
             This way we don't have to pass messages by value (more efficient) and messages get cleaned up when they are delivered and no packets refer to them.
          */
 
@@ -3790,8 +3780,8 @@ namespace yojimbo
     private:
 
         friend class MessageFactory;
-      
-        Message( const Message & other );        
+
+        Message( const Message & other );
 
         const Message & operator = ( const Message & other );
 
@@ -3835,7 +3825,7 @@ namespace yojimbo
             m_blockSize = blockSize;
         }
 
-        /** 
+        /**
             Detach the block from this message.
             By doing this you are responsible for copying the block pointer and allocator and making sure the block is freed.
             This could be used for example, if you wanted to copy off the block and store it somewhere, without the cost of copying it.
@@ -3901,7 +3891,7 @@ namespace yojimbo
 
         template <typename Stream> bool Serialize( Stream & stream ) { (void) stream; return true; }
 
-        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+        YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
 
     protected:
 
@@ -3940,16 +3930,16 @@ namespace yojimbo
         Defines the set of message types that can be created.
 
         You can derive a message factory yourself to create your own message types, or you can use these helper macros to do it for you:
-        
+
             YOJIMBO_MESSAGE_FACTORY_START
             YOJIMBO_DECLARE_MESSAGE_TYPE
             YOJIMBO_MESSAGE_FACTORY_FINISH
-        
+
         See tests/shared.h for an example showing how to use the macros.
      */
 
     class MessageFactory
-    {        
+    {
     public:
 
         /**
@@ -3983,7 +3973,7 @@ namespace yojimbo
                 yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "you leaked messages!\n" );
                 yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "%d messages leaked\n", (int) allocated_messages.size() );
                 typedef std::map<void*,int>::iterator itor_type;
-                for ( itor_type i = allocated_messages.begin(); i != allocated_messages.end(); ++i ) 
+                for ( itor_type i = allocated_messages.begin(); i != allocated_messages.end(); ++i )
                 {
                     Message * message = (Message*) i->first;
                     yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "leaked message %p (type %d, refcount %d)\n", message, message->GetType(), message->GetRefCount() );
@@ -4025,7 +4015,7 @@ namespace yojimbo
             @param message The message to add a reference to.
             @see MessageFactory::Create
             @see MessageFactory::Release
-         */   
+         */
 
         void AcquireMessage( Message * message )
         {
@@ -4123,16 +4113,16 @@ namespace yojimbo
         #if YOJIMBO_DEBUG_MESSAGE_LEAKS
         std::map<void*,int> allocated_messages;                                 ///< The set of allocated messages for this factory. Used to track down message leaks.
         #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-        
+
         Allocator * m_allocator;                                                ///< The allocator used to create messages.
-        
+
         int m_numTypes;                                                         ///< The number of message types.
-        
+
         MessageFactoryErrorLevel m_errorLevel;                                  ///< The message factory error level.
     };
 }
 
-/** 
+/**
     Start a definition of a new message factory.
     This is a helper macro to make declaring your own message factory class easier.
     @param factory_class The name of the message factory class to generate.
@@ -4154,7 +4144,7 @@ namespace yojimbo
             switch ( type )                                                                                                             \
             {                                                                                                                           \
 
-/** 
+/**
     Add a message type to a message factory.
     This is a helper macro to make declaring your own message factory class easier.
     @param message_type The message type value. This is typically an enum value.
@@ -4165,13 +4155,13 @@ namespace yojimbo
 #define YOJIMBO_DECLARE_MESSAGE_TYPE( message_type, message_class )                                                                     \
                                                                                                                                         \
                 case message_type:                                                                                                      \
-                    message = YOJIMBO_NEW( allocator, message_class );                                                                  \
+                    message = YOJIMBO_NEW( allocator, message_class, );                                                                 \
                     if ( !message )                                                                                                     \
                         return NULL;                                                                                                    \
                     SetMessageType( message, message_type );                                                                            \
                     return message;
 
-/** 
+/**
     Finish the definition of a new message factory.
     This is a helper macro to make declaring your own message factory class easier.
     See tests/shared.h for an example of usage.
@@ -4297,20 +4287,20 @@ namespace yojimbo
         virtual ~Channel() {}
 
         /**
-            Reset the channel. 
+            Reset the channel.
          */
 
         virtual void Reset() = 0;
 
         /**
             Returns true if a message can be sent over this channel.
-         */            
+         */
 
         virtual bool CanSendMessage() const = 0;
 
         /**
             Are there any messages in the send queue?
-            @returns True if there is at least one message in the send queue.            
+            @returns True if there is at least one message in the send queue.
          */
 
          virtual bool HasMessagesToSend() const = 0;
@@ -4322,7 +4312,7 @@ namespace yojimbo
 
         virtual void SendMessage( Message * message, void *context) = 0;
 
-        /** 
+        /**
             Pops the next message off the receive queue if one is available.
             @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns the message object returned by this function and is responsible for releasing it via Message::Release.
          */
@@ -4360,8 +4350,8 @@ namespace yojimbo
 
         /**
             Process a connection packet ack.
-            Depending on the channel type: 
-                1. Acks messages and block fragments so they stop being included in outgoing connection packets (reliable-ordered channel), 
+            Depending on the channel type:
+                1. Acks messages and block fragments so they stop being included in outgoing connection packets (reliable-ordered channel),
                 2. Does nothing at all (unreliable-unordered).
             @param sequence The sequence number of the connection packet that was acked.
          */
@@ -4377,7 +4367,7 @@ namespace yojimbo
 
         ChannelErrorLevel GetErrorLevel() const;
 
-        /** 
+        /**
             Gets the channel index.
             @returns The channel index in [0,numChannels-1].
          */
@@ -4403,9 +4393,9 @@ namespace yojimbo
 
         /**
             Set the channel error level.
-            All errors go through this function to make debug logging easier. 
+            All errors go through this function to make debug logging easier.
          */
-        
+
         void SetErrorLevel( ChannelErrorLevel errorLevel );
 
     protected:
@@ -4431,7 +4421,7 @@ namespace yojimbo
     {
     public:
 
-        /** 
+        /**
             Reliable ordered channel constructor.
             @param allocator The allocator to use.
             @param messageFactory Message factory for creating and destroying messages.
@@ -4467,7 +4457,7 @@ namespace yojimbo
         /**
             Are there any unacked messages in the send queue?
             Messages are acked individually and remain in the send queue until acked.
-            @returns True if there is at least one unacked message in the send queue.            
+            @returns True if there is at least one unacked message in the send queue.
          */
 
         bool HasMessagesToSend() const;
@@ -4518,8 +4508,8 @@ namespace yojimbo
 
         /**
             Track the oldest unacked message id in the send queue.
-            Because messages are acked individually, the send queue is not a true queue and may have holes. 
-            Because of this it is necessary to periodically walk forward from the previous oldest unacked message id, to find the current oldest unacked message id. 
+            Because messages are acked individually, the send queue is not a true queue and may have holes.
+            Because of this it is necessary to periodically walk forward from the previous oldest unacked message id, to find the current oldest unacked message id.
             This lets us know our starting point for considering messages to include in the next packet we send.
             @see GetMessagesToSend
          */
@@ -4528,9 +4518,9 @@ namespace yojimbo
 
         /**
             True if we are currently sending a block message.
-            Block messages are treated differently to regular messages. 
+            Block messages are treated differently to regular messages.
             Regular messages are small so we try to fit as many into the packet we can. See ReliableChannelData::GetMessagesToSend.
-            Blocks attached to block messages are usually larger than the maximum packet size or channel budget, so they are split up fragments. 
+            Blocks attached to block messages are usually larger than the maximum packet size or channel budget, so they are split up fragments.
             While in the mode of sending a block message, each channel packet data generated has exactly one fragment from the current block in it. Fragments keep getting included in packets until all fragments of that block are acked.
             @returns True if currently sending a block message over the network, false otherwise.
             @see BlockMessage
@@ -4565,12 +4555,12 @@ namespace yojimbo
             @returns An estimate of the number of bits required to serialize the block message and fragment data (upper bound).
          */
 
-        int GetFragmentPacketData( ChannelPacketData & packetData, 
-                                   uint16_t messageId, 
-                                   uint16_t fragmentId, 
-                                   uint8_t * fragmentData, 
-                                   int fragmentSize, 
-                                   int numFragments, 
+        int GetFragmentPacketData( ChannelPacketData & packetData,
+                                   uint16_t messageId,
+                                   uint16_t fragmentId,
+                                   uint8_t * fragmentData,
+                                   int fragmentSize,
+                                   int numFragments,
                                    int messageType );
 
         /**
@@ -4595,12 +4585,12 @@ namespace yojimbo
             @param blockMessage Pointer to the block message. Passed this in only with the first fragment (0), pass NULL for all other fragments.
          */
 
-        void ProcessPacketFragment( int messageType, 
-                                    uint16_t messageId, 
-                                    int numFragments, 
-                                    uint16_t fragmentId, 
-                                    const uint8_t * fragmentData, 
-                                    int fragmentBytes, 
+        void ProcessPacketFragment( int messageType,
+                                    uint16_t messageId,
+                                    int numFragments,
+                                    uint16_t fragmentId,
+                                    const uint8_t * fragmentData,
+                                    int fragmentBytes,
                                     BlockMessage * blockMessage );
 
     protected:
@@ -4686,9 +4676,9 @@ namespace yojimbo
         private:
 
             Allocator * m_allocator;                                                    ///< Allocator used to create the block data.
-        
+
             SendBlockData( const SendBlockData & other );
-            
+
             SendBlockData & operator = ( const SendBlockData & other );
         };
 
@@ -4741,7 +4731,7 @@ namespace yojimbo
             Allocator * m_allocator;                                                    ///< Allocator used to free the data on shutdown.
 
             ReceiveBlockData( const ReceiveBlockData & other );
-            
+
             ReceiveBlockData & operator = ( const ReceiveBlockData & other );
         };
 
@@ -4773,7 +4763,7 @@ namespace yojimbo
     {
     public:
 
-        /** 
+        /**
             Reliable ordered channel constructor.
             @param allocator The allocator to use.
             @param messageFactory Message factory for creating and destroying messages.
@@ -4828,7 +4818,7 @@ namespace yojimbo
         CONNECTION_ERROR_CHANNEL,                               ///< A channel is in an error state.
         CONNECTION_ERROR_ALLOCATOR,                             ///< The allocator is an error state.
         CONNECTION_ERROR_MESSAGE_FACTORY,                       ///< The message factory is in an error state.
-        CONNECTION_ERROR_READ_PACKET_FAILED,                    ///< Failed to read packet. Received an invalid packet?     
+        CONNECTION_ERROR_READ_PACKET_FAILED,                    ///< Failed to read packet. Received an invalid packet?
     };
 
     /**
@@ -4951,7 +4941,7 @@ namespace yojimbo
             @param packetData The packet data.
             @param packetBytes The packet size (bytes).
          */
-        
+
         void SendPacket( int to, uint8_t * packetData, int packetBytes );
 
         /**
@@ -5037,9 +5027,9 @@ namespace yojimbo
         PacketEntry * m_packetEntries;                  ///< Pointer to dynamically allocated packet entries. This is where buffered packets are stored.
     };
 
-    /** 
+    /**
         Specifies the message factory and callbacks for clients and servers.
-        An instance of this class is passed into the client and server constructors. 
+        An instance of this class is passed into the client and server constructors.
         You can share the same adapter across a client/server pair if you have local multiplayer, eg. loopback.
      */
 
@@ -5076,7 +5066,7 @@ namespace yojimbo
             return NULL;
         }
 
-        /** 
+        /**
             Override this callback to process packets sent from client to server over loopback.
             @param clientIndex The client index in range [0,maxClients-1]
             @param packetData The packet data (raw) to be sent to the server.
@@ -5161,7 +5151,7 @@ namespace yojimbo
         /**
             Set the context for reading and writing packets.
             This is optional. It lets you pass in a pointer to some structure that you want to have available when reading and writing packets via Stream::GetContext.
-            Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
+            Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time.
             If you do use a context, make sure the same context data is set on client and server, and include a checksum of the context data in the protocol id.
          */
 
@@ -5216,7 +5206,7 @@ namespace yojimbo
 
         /**
             Advance server time.
-            Call this at the end of each frame to advance the server time forward. 
+            Call this at the end of each frame to advance the server time forward.
             IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
          */
 
@@ -5263,7 +5253,7 @@ namespace yojimbo
 
         virtual netcode_address_t * GetClientAddress( int clientIndex ) const = 0;
 
-        /** 
+        /**
             Get the number of clients that are currently connected to the server.
             @returns the number of connected clients.
          */
@@ -5473,11 +5463,11 @@ namespace yojimbo
         virtual int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
         static void StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
-        
+
         static int StaticProcessPacketFunction( void * context,int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         static void * StaticAllocateFunction( void * context, uint64_t bytes );
-        
+
         static void StaticFreeFunction( void * context, void * pointer );
 
     private:
@@ -5496,7 +5486,7 @@ namespace yojimbo
         MessageFactory * m_clientMessageFactory[MaxClients];        ///< Array of per-client message factories. This silos message allocations per-client slot.
         Connection * m_clientConnection[MaxClients];                ///< Array of per-client connection classes. This is how messages are exchanged with clients.
         reliable_endpoint_t * m_clientEndpoint[MaxClients];         ///< Array of per-client reliable.io endpoints.
-        NetworkSimulator * m_networkSimulator;                      ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional. 
+        NetworkSimulator * m_networkSimulator;                      ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional.
         uint8_t * m_packetBuffer;                                   ///< Buffer used when writing packets.
     };
 
@@ -5577,7 +5567,7 @@ namespace yojimbo
         CLIENT_STATE_CONNECTED,
     };
 
-    /** 
+    /**
         The common interface for all clients.
      */
 
@@ -5590,7 +5580,7 @@ namespace yojimbo
         /**
             Set the context for reading and writing packets.
             This is optional. It lets you pass in a pointer to some structure that you want to have available when reading and writing packets via Stream::GetContext.
-            Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time. 
+            Typical use case is to pass in an array of min/max ranges for values determined by some data that is loaded from a toolchain vs. being known at compile time.
             If you do use a context, make sure the same context data is set on client and server, and include a checksum of the context data in the protocol id.
          */
 
@@ -5616,7 +5606,7 @@ namespace yojimbo
 
         /**
             Advance client time.
-            Call this at the end of each frame to advance the client time forward. 
+            Call this at the end of each frame to advance the client time forward.
             IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
          */
 
@@ -5662,7 +5652,7 @@ namespace yojimbo
 
         /**
             Get the client index.
-            The client index is the slot number that the client is occupying on the server. 
+            The client index is the slot number that the client is occupying on the server.
             @returns The client index in [0,maxClients-1], where maxClients is the number of client slots allocated on the server in Server::Start.
          */
 
@@ -5886,11 +5876,11 @@ namespace yojimbo
         virtual int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
         static void StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
-        
+
         static int StaticProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
         static void * StaticAllocateFunction( void * context, uint64_t bytes );
-        
+
         static void StaticFreeFunction( void * context, void * pointer );
 
     private:
@@ -5904,7 +5894,7 @@ namespace yojimbo
         reliable_endpoint_t * m_endpoint;                                   ///< reliable.io endpoint.
         MessageFactory * m_messageFactory;                                  ///< The client message factory. Created and destroyed on each connection attempt.
         Connection * m_connection;                                          ///< The client connection for exchanging messages with the server.
-        NetworkSimulator * m_networkSimulator;                              ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional. 
+        NetworkSimulator * m_networkSimulator;                              ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional.
         ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState
         int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.
         double m_time;                                                      ///< The current client time. See ClientInterface::AdvanceTime
@@ -5913,7 +5903,7 @@ namespace yojimbo
     private:
 
         BaseClient( const BaseClient & other );
-        
+
         const BaseClient & operator = ( const BaseClient & other );
     };
 
@@ -5967,10 +5957,10 @@ namespace yojimbo
 
     private:
 
-        bool GenerateInsecureConnectToken( uint8_t * connectToken, 
-                                           const uint8_t privateKey[], 
-                                           uint64_t clientId, 
-                                           const Address serverAddresses[], 
+        bool GenerateInsecureConnectToken( uint8_t * connectToken,
+                                           const uint8_t privateKey[],
+                                           uint64_t clientId,
+                                           const Address serverAddresses[],
                                            int numServerAddresses );
 
         void CreateClient( const Address & address );
@@ -5994,96 +5984,6 @@ namespace yojimbo
         Address m_address;                              ///< Original address passed to ctor.
         Address m_boundAddress;                         ///< Address after socket bind, eg. with valid port
         uint64_t m_clientId;                            ///< The globally unique client id (set on each call to connect)
-    };
-
-    /**
-        Matcher status enum.
-        Designed for when the matcher will be made non-blocking. The matcher is currently blocking in Matcher::RequestMatch
-     */
-
-    enum MatchStatus
-    {
-        MATCH_IDLE,                 ///< The matcher is idle.
-        MATCH_BUSY,                 ///< The matcher is requesting a match.
-        MATCH_READY,                ///< The match response is ready to read with Matcher::GetConnectToken.
-        MATCH_FAILED                ///< The matcher failed to find a match.
-    };
-
-    /**
-        Communicates with the matcher web service over HTTPS.
-        See docker/matcher/matcher.go for details. Launch the matcher via "premake5 matcher".
-        This class will be improved in the future, most importantly to make Matcher::RequestMatch a non-blocking operation.
-     */
-
-    class Matcher
-    {
-    public:
-
-        /**
-            Matcher constructor.
-            @param allocator The allocator to use for allocations.
-         */
-
-        explicit Matcher( Allocator & allocator );
-       
-        /**
-            Matcher destructor.
-         */
-
-        ~Matcher();
-
-        /**
-            Initialize the matcher. 
-            @returns True if the matcher initialized successfully, false otherwise.
-         */
-
-        bool Initialize();
-
-        /** 
-            Request a match.
-            This is how clients get connect tokens from matcher.go. 
-            They request a match and the server replies with a set of servers to connect to, and a connect token to pass to that server.
-            IMPORTANT: This function is currently blocking. It will be made non-blocking in the near future.
-            @param protocolId The protocol id that we are using. Used to filter out servers with different protocol versions.
-            @param clientId A unique client identifier that identifies each client to your back end services. If you don't have this yet, just roll a random 64 bit number.
-            @see Matcher::GetMatchStatus
-            @see Matcher::GetConnectToken
-         */
-
-        void RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate );
-
-        /**
-            Get the current match status.
-            Because Matcher::RequestMatch is currently blocking this will be MATCH_READY or MATCH_FAILED immediately after that function returns.
-            If the status is MATCH_READY you can call Matcher::GetMatchResponse to get the match response data corresponding to the last call to Matcher::RequestMatch.
-            @returns The current match status.
-         */
-
-        MatchStatus GetMatchStatus();
-
-        /**
-            Get connect token.
-            This can only be called if the match status is MATCH_READY.
-            @param connectToken The connect token data to fill [out].
-            @see Matcher::RequestMatch
-            @see Matcher::GetMatchStatus
-         */
-
-        void GetConnectToken( uint8_t * connectToken );
-
-    private:
-
-        Matcher( const Matcher & matcher );
-
-        const Matcher & operator = ( const Matcher & other );
-
-        Allocator * m_allocator;                                ///< The allocator passed into the constructor.
-        bool m_initialized;                                     ///< True if the matcher was successfully initialized. See Matcher::Initialize.
-        MatchStatus m_matchStatus;                              ///< The current match status.
-#if YOJIMBO_WITH_MBEDTLS
-		struct MatcherInternal * m_internal;                    ///< Internals are in here to avoid spilling details of mbedtls library outside of yojimbo_matcher.cpp
-        uint8_t m_connectToken[ConnectTokenBytes];              ///< The connect token data from the last call to Matcher::RequestMatch once the match status is MATCH_READY.
-#endif // #if YOJIMBO_WITH_MBEDTLS
     };
 }
 
