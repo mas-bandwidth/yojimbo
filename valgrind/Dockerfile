@@ -10,7 +10,7 @@ RUN wget https://github.com/jedisct1/libsodium/releases/download/1.0.16/libsodiu
     tar -zxvf libsodium-*.tar.gz && \
     cd libsodium-* && \
     ./configure && \
-    make -j32 && make check && \
+    make -j && make check && \
     make install && \
     cd .. && \
     rm -rf libsodium* && \
@@ -25,12 +25,12 @@ RUN wget https://github.com/ARMmbed/mbedtls/archive/mbedtls-2.13.0.tar.gz && \
     tar -zxvf mbedtls-*.tar.gz && \
     cd mbedtls-mbedtls-* && \
     cmake . && \
-    make -j32 && make install && \
+    make -j && make install && \
     ldconfig
 
 ADD yojimbo /app/yojimbo
 
-RUN cd yojimbo && find . -exec touch {} \; && premake5 gmake && make -j32 test && make -j32 soak && cp ./bin/* /app
+RUN cd yojimbo && find . -exec touch {} \; && premake5 gmake && make -j test && make -j soak && cp ./bin/* /app
 
 CMD [ "valgrind", "--tool=memcheck", "--leak-check=yes", "--show-reachable=yes", "--num-callers=20", "--track-fds=yes", "--track-origins=yes", "./test" ]
 

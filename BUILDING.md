@@ -27,7 +27,7 @@ On Linux, depending on your particular distribution there may be prebuilt packag
 
 Now go to the command line under the yojimbo directory and enter:
 
-    premake5 gmake2
+    premake5 gmake
 
 This creates makefiles which you can use to build the source via:
 

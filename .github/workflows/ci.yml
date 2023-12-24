@@ -60,15 +60,15 @@ jobs:
 
     ## Linux & MacOS-specific build steps
     # Build with premake + make
-    - name: Build (gmake2)
+    - name: Build (gmake)
       if: runner.os != 'Windows'
       run: |
-        premake5 gmake2
+        premake5 gmake
         make clean
-        make all config=${{ matrix.configuration }}_x64
+        make all config=${{ matrix.configuration }}
 
     # Run the tests with sh syntax
-    - name: Test (gmake2)
+    - name: Test (gmake)
       if: runner.os != 'Windows'
       run: ./bin/test
 
@@ -91,4 +91,5 @@ jobs:
     # Run the tests with Powershell syntax
     - name: Test (vs2019)
       if: runner.os == 'Windows'
-      run: "& ./bin/x64/${{ matrix.configuration }}/test.exe"
+      run: "& ./bin/${{ matrix.configuration }}/test.exe"
+      
