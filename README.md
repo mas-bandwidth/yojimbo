@@ -23,15 +23,11 @@ You can get the latest source code by cloning it from github:
 
       git clone https://github.com/networkprotocol/yojimbo.git
 
-After cloning, make sure to run this command to populate the netcode.io and reliable.io submodules:
-
-      git submodule update --init --recursive
-   
 Alternatively, you can download one of the latest [releases](https://github.com/networkprotocol/yojimbo/releases)
 
 ## Author
 
-The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glennfiedler).
+The author of this library is Glenn Fiedler.
 
 Other open source libraries by the same author include: [netcode](http://netcode.io) and [reliable](https://github.com/networkprotocol/reliable)
 
