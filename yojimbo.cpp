@@ -87,10 +87,6 @@ void ShutdownYojimbo()
 #include <string.h>
 #include <stdio.h>
 
-#if YOJIMBO_WITH_MBEDTLS
-#include <mbedtls/base64.h>
-#endif // #if YOJIMBO_WITH_MBEDTLS
-
 extern "C" void netcode_random_bytes( uint8_t*, int );
 
 namespace yojimbo
@@ -109,70 +105,6 @@ namespace yojimbo
         }
         printf( " (%d bytes)\n", data_bytes );
     }
-
-#if YOJIMBO_WITH_MBEDTLS
-
-    int base64_encode_string( const char * input, char * output, int output_size )
-    {
-        yojimbo_assert( input );
-        yojimbo_assert( output );
-        yojimbo_assert( output_size > 0 );
-
-        size_t output_length = 0;
-
-        const int input_length = (int) ( strlen( input ) + 1 );
-
-        int result = mbedtls_base64_encode( (unsigned char*) output, output_size, &output_length, (unsigned char*) input, input_length );
-
-        return ( result == 0 ) ? (int) output_length + 1 : -1;
-    }
-
-    int base64_decode_string( const char * input, char * output, int output_size )
-    {
-        yojimbo_assert( input );
-        yojimbo_assert( output );
-        yojimbo_assert( output_size > 0 );
-
-        size_t output_length = 0;
-
-        int result = mbedtls_base64_decode( (unsigned char*) output, output_size, &output_length, (const unsigned char*) input, strlen( input ) );
-
-        if ( result != 0 || output[output_length-1] != '\0' )
-        {
-            output[0] = '\0';
-            return -1;
-        }
-
-        return (int) output_length;
-    }
-
-    int base64_encode_data( const uint8_t * input, int input_length, char * output, int output_size )
-    {
-        yojimbo_assert( input );
-        yojimbo_assert( output );
-        yojimbo_assert( output_size > 0 );
-
-        size_t output_length = 0;
-
-        int result = mbedtls_base64_encode( (unsigned char*) output, output_size, &output_length, (unsigned char*) input, input_length );
-
-        return ( result == 0 ) ? (int) output_length : -1;
-    }
-
-    int base64_decode_data( const char * input, uint8_t * output, int output_size )
-    {
-        yojimbo_assert( input );
-        yojimbo_assert( output );
-        yojimbo_assert( output_size > 0 );
-
-        size_t output_length = 0;
-
-        int result = mbedtls_base64_decode( (unsigned char*) output, output_size, &output_length, (const unsigned char*) input, strlen( input ) );
-
-        return ( result == 0 ) ? (int) output_length : -1;
-    }
-
-#endif // #if YOJIMBO_WITH_MBEDTLS
 }
 
 // ---------------------------------------------------------------------------------
@@ -195,16 +127,16 @@ namespace yojimbo
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
         if ( m_alloc_map.size() )
         {
-            printf( "you leaked memory!\n\n" );
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "you leaked memory!\n\n" );
             typedef std::map<void*,AllocatorEntry>::iterator itor_type;
             for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i )
             {
                 void * p = i->first;
                 AllocatorEntry entry = i->second;
-                printf( "leaked block %p (%d bytes) - %s:%d\n", p, (int) entry.size, entry.file, entry.line );
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "leaked block %p (%d bytes) - %s:%d\n", p, (int) entry.size, entry.file, entry.line );
             }
-            printf( "\n" );
-            exit(1);
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "\n" );
+            yojimbo_assert( false && "Leaks detected, see log" );
         }
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
@@ -669,7 +601,9 @@ namespace yojimbo
 
 static void default_assert_handler( const char * condition, const char * function, const char * file, int line )
 {
-    printf( "assert failed: ( %s ), function %s, file %s, line %d\n", condition, function, file, line );
+    // We use YOJIMBO_LOG_LEVEL_NONE because it's lower than YOJIMBO_LOG_LEVEL_ERROR, so even if you suppress errors (by setting
+    // yojimbo_log_level(YOJIMBO_LOG_LEVEL_NONE)), this will still be logged.
+    yojimbo_printf( YOJIMBO_LOG_LEVEL_NONE, "assert failed: ( %s ), function %s, file %s, line %d\n", condition, function, file, line );
     #if defined( __GNUC__ )
     __builtin_trap();
     #elif defined( _MSC_VER )
@@ -712,7 +646,7 @@ void yojimbo_printf( int level, const char * format, ... )
     va_list args;
     va_start( args, format );
     char buffer[4*1024];
-    vsprintf( buffer, format, args );
+    vsnprintf( buffer, sizeof(buffer), format, args );
     printf_function( "%s", buffer );
     va_end( args );
 }
@@ -836,270 +770,6 @@ double yojimbo_time()
 #error unsupported platform!
 
 #endif
-
-// ---------------------------------------------------------------------------------
-
-#if YOJIMBO_WITH_MBEDTLS
-#include <mbedtls/build_info.h>
-#include <mbedtls/platform.h>
-#include <mbedtls/net_sockets.h>
-#include <mbedtls/debug.h>
-#include <mbedtls/ssl.h>
-#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h>
-#include <mbedtls/error.h>
-#include <mbedtls/x509_crt.h>
-#include "certs.h"
-#endif // #if YOJIMBO_WITH_MBEDTLS
-#include <inttypes.h>
-#include <string.h>
-#include "netcode.h"
-
-#define SERVER_PORT "8080"
-#define SERVER_NAME "localhost"
-
-namespace yojimbo
-{
-    struct MatcherInternal
-    {
-#if YOJIMBO_WITH_MBEDTLS
-        mbedtls_net_context server_fd;
-        mbedtls_entropy_context entropy;
-        mbedtls_ctr_drbg_context ctr_drbg;
-        mbedtls_ssl_context ssl;
-        mbedtls_ssl_config conf;
-        mbedtls_x509_crt cacert;
-#endif // #if YOJIMBO_WITH_MBEDTLS
-    };
-
-    Matcher::Matcher( Allocator & allocator )
-    {
-#if YOJIMBO_WITH_MBEDTLS
-        yojimbo_assert( ConnectTokenBytes == NETCODE_CONNECT_TOKEN_BYTES );
-        m_allocator = &allocator;
-        m_initialized = false;
-        m_matchStatus = MATCH_IDLE;
-        m_internal = YOJIMBO_NEW( allocator, MatcherInternal );
-        memset( m_connectToken, 0, sizeof( m_connectToken ) );
-#else // #if YOJIMBO_WITH_MBEDTLS
-		(void) allocator;
-#endif // #if YOJIMBO_WITH_MBEDTLS
-    }
-
-    Matcher::~Matcher()
-    {
-#if YOJIMBO_WITH_MBEDTLS
-        mbedtls_net_free( &m_internal->server_fd );
-        mbedtls_x509_crt_free( &m_internal->cacert );
-        mbedtls_ssl_free( &m_internal->ssl );
-        mbedtls_ssl_config_free( &m_internal->conf );
-        mbedtls_ctr_drbg_free( &m_internal->ctr_drbg );
-        mbedtls_entropy_free( &m_internal->entropy );
-        YOJIMBO_DELETE( *m_allocator, MatcherInternal, m_internal );
-#endif // #if YOJIMBO_WITH_MBEDTLS
-    }
-
-    bool Matcher::Initialize()
-    {
-#if YOJIMBO_WITH_MBEDTLS
-		
-		const char * pers = "yojimbo_client";
-
-        mbedtls_net_init( &m_internal->server_fd );
-        mbedtls_ssl_init( &m_internal->ssl );
-        mbedtls_ssl_config_init( &m_internal->conf );
-        mbedtls_x509_crt_init( &m_internal->cacert );
-        mbedtls_ctr_drbg_init( &m_internal->ctr_drbg );
-        mbedtls_entropy_init( &m_internal->entropy );
-
-        int result;
-
-        if ( ( result = mbedtls_ctr_drbg_seed( &m_internal->ctr_drbg, mbedtls_entropy_func, &m_internal->entropy, (const unsigned char *) pers, strlen( pers ) ) ) != 0 )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ctr_drbg_seed failed (%d)\n", result );
-            return false;
-        }
-
-        if ( mbedtls_x509_crt_parse( &m_internal->cacert, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len ) < 0 )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_x509_crt_parse failed (%d)\n", result );
-            return false;
-        }
-
-        memset( m_connectToken, 0, sizeof( m_connectToken ) );
-
-#endif // // #if YOJIMBO_WITH_MBEDTLS
-
-        m_initialized = true;
-
-        return true;
-    }
-
-    void Matcher::RequestMatch( uint64_t protocolId, uint64_t clientId, bool verifyCertificate )
-    {
-#if YOJIMBO_WITH_MBEDTLS
-		
-		yojimbo_assert( m_initialized );
-
-        const char * data;
-        char request[1024];
-        int bytesRead = 0;
-
-        int result;
-
-        if ( ( result = mbedtls_net_connect( &m_internal->server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_net_connect failed (%d)\n", result );
-            m_matchStatus = MATCH_FAILED;
-            goto cleanup;
-        }
-
-        if ( ( result = mbedtls_ssl_config_defaults( &m_internal->conf,
-                        MBEDTLS_SSL_IS_CLIENT,
-                        MBEDTLS_SSL_TRANSPORT_STREAM,
-                        MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_net_connect failed (%d)\n", result );
-            m_matchStatus = MATCH_FAILED;
-            goto cleanup;
-        }
-
-        mbedtls_ssl_conf_authmode( &m_internal->conf, verifyCertificate ? MBEDTLS_SSL_VERIFY_REQUIRED : MBEDTLS_SSL_VERIFY_OPTIONAL );
-        mbedtls_ssl_conf_ca_chain( &m_internal->conf, &m_internal->cacert, NULL );
-        mbedtls_ssl_conf_rng( &m_internal->conf, mbedtls_ctr_drbg_random, &m_internal->ctr_drbg );
-
-        if ( ( result = mbedtls_ssl_setup( &m_internal->ssl, &m_internal->conf ) ) != 0 )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_setup failed (%d)\n", result );
-            m_matchStatus = MATCH_FAILED;
-            goto cleanup;
-        }
-
-        if ( ( result = mbedtls_ssl_set_hostname( &m_internal->ssl, "yojimbo" ) ) != 0 )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_set_hostname failed (%d)\n", result );
-            m_matchStatus = MATCH_FAILED;
-            goto cleanup;
-        }
-
-        mbedtls_ssl_set_bio( &m_internal->ssl, &m_internal->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
-
-        while ( ( result = mbedtls_ssl_handshake( &m_internal->ssl ) ) != 0 )
-        {
-            if ( result != MBEDTLS_ERR_SSL_WANT_READ && result != MBEDTLS_ERR_SSL_WANT_WRITE )
-            {
-                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_handshake failed (%d)\n", result );
-                m_matchStatus = MATCH_FAILED;
-                goto cleanup;
-            }
-        }
-
-        if ( verifyCertificate )
-        {
-            uint32_t flags;
-            if ( ( flags = mbedtls_ssl_get_verify_result( &m_internal->ssl ) ) != 0 )
-            {
-                // IMPORTANT: certificate verification failed!
-                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_get_verify_result failed - flags = %x\n", flags );
-                m_matchStatus = MATCH_FAILED;
-                goto cleanup;
-            }
-        }
-        
-        sprintf( request, "GET /match/%" PRIu64 "/%" PRIu64 " HTTP/1.0\r\n\r\n", protocolId, clientId );
-
-        yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "match request:\n" );
-        yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "%s\n", request );
-
-        while ( ( result = mbedtls_ssl_write( &m_internal->ssl, (uint8_t*) request, strlen( request ) ) ) <= 0 )
-        {
-            if ( result != MBEDTLS_ERR_SSL_WANT_READ && result != MBEDTLS_ERR_SSL_WANT_WRITE )
-            {
-                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: mbedtls_ssl_write failed (%d)\n", result );
-                m_matchStatus = MATCH_FAILED;
-                goto cleanup;
-            }
-        }
-
-        char buffer[2*ConnectTokenBytes];
-        memset( buffer, 0, sizeof( buffer ) );
-        do
-        {
-            result = mbedtls_ssl_read( &m_internal->ssl, (uint8_t*) ( buffer + bytesRead ), sizeof( buffer ) - bytesRead - 1 );
-
-            if ( result == MBEDTLS_ERR_SSL_WANT_READ || result == MBEDTLS_ERR_SSL_WANT_WRITE )
-                continue;
-
-            if ( result == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
-                break;
-
-            if ( result <= 0 )
-                break;
-
-            bytesRead += result;
-        }
-        while( 1 );
-
-        yojimbo_assert( bytesRead <= (int) sizeof( buffer ) );
-
-        data = strstr( (const char*)buffer, "\r\n\r\n" );
-        if ( !data )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: invalid http response from matcher\n" );
-            m_matchStatus = MATCH_FAILED;
-            goto cleanup;
-        }
-
-        while ( *data == 13 || *data == 10 )
-            ++data;
-
-        yojimbo_printf( YOJIMBO_LOG_LEVEL_DEBUG, "================================================\n%s\n================================================\n", data );
-
-        result = base64_decode_data( data, m_connectToken, sizeof( m_connectToken ) );
-        if ( result == ConnectTokenBytes )
-        {
-            m_matchStatus = MATCH_READY;
-        }
-        else
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to decode connect token base64\n" );
-            m_matchStatus = MATCH_FAILED;
-        }
-
-    cleanup:
-
-        mbedtls_ssl_close_notify( &m_internal->ssl );
-
-#else // #if YOJIMBO_WITH_MBEDTLS
-
-	(void) protocolId;
-	(void) clientId; 
-	(void) verifyCertificate;
-	m_matchStatus = MATCH_FAILED;
-
-#endif // #if YOJIMBO_WITH_MBEDTLS
-    }
-
-    MatchStatus Matcher::GetMatchStatus()
-    {
-        return m_matchStatus;
-    }
-
-    void Matcher::GetConnectToken( uint8_t * connectToken )
-    {
-#if YOJIMBO_WITH_MBEDTLS
-        yojimbo_assert( connectToken );
-        yojimbo_assert( m_matchStatus == MATCH_READY );
-        if ( m_matchStatus == MATCH_READY )
-        {
-            memcpy( connectToken, m_connectToken, ConnectTokenBytes );
-        }
-#else // #if YOJIMBO_WITH_MBEDTLS
-		(void) connectToken;
-		yojimbo_assert( false );
-#endif // #if YOJIMBO_WITH_MBEDTLS
-    }
-}
 
 // ---------------------------------------------------------------------------------
 
@@ -1886,7 +1556,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
     {
-        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
+        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence, true );
         yojimbo_assert( sentPacket );
         if ( sentPacket )
         {
@@ -2168,7 +1838,7 @@ namespace yojimbo
 
     void ReliableOrderedChannel::AddFragmentPacketEntry( uint16_t messageId, uint16_t fragmentId, uint16_t sequence )
     {
-        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence );
+        SentPacketEntry * sentPacket = m_sentPackets->Insert( sequence, true );
         yojimbo_assert( sentPacket );
         if ( sentPacket )
         {
@@ -3299,7 +2969,7 @@ namespace yojimbo
                 Disconnect();
                 SetClientState( CLIENT_STATE_DISCONNECTED );
             }
-            else if ( state == NETCODE_CLIENT_STATE_SENDING_CONNECTION_REQUEST )
+            else if ( state == NETCODE_CLIENT_STATE_SENDING_CONNECTION_REQUEST || state == NETCODE_CLIENT_STATE_SENDING_CONNECTION_RESPONSE )
             {
                 SetClientState( CLIENT_STATE_CONNECTING );
             }

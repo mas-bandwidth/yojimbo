@@ -72,7 +72,7 @@ struct TestMessage : public Message
         return true;
     }
 
-    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
 };
 
 struct TestBlockMessage : public BlockMessage
@@ -90,7 +90,7 @@ struct TestBlockMessage : public BlockMessage
         return true;
     }
 
-    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
 };
 
 struct TestSerializeFailOnReadMessage : public Message
@@ -100,7 +100,7 @@ struct TestSerializeFailOnReadMessage : public Message
         return !Stream::IsReading;
     }
 
-    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
 };
 
 struct TestExhaustStreamAllocatorOnReadMessage : public Message
@@ -129,7 +129,7 @@ struct TestExhaustStreamAllocatorOnReadMessage : public Message
         return true;
     }
 
-    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS();
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
 };
 
 enum TestMessageType
