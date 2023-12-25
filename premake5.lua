@@ -54,7 +54,7 @@ project "tlsf"
 project "yojimbo"
     kind "StaticLib"
     links { "reliable", "netcode", "tlsf" }
-    files { "**.h", "**.cpp" }
+    files { "yojimbo.h", "yojimbo.cpp", "yojimbo_**.h", "yojimbo_**.cpp" }
     defines { "SERIALIZE_ENABLE_TESTS=1" }
 
 project "client"

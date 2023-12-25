@@ -26,6 +26,7 @@
 #define YOJIMBO_H
 
 #include "serialize.h"
+#include "yojimbo_constants.h"
 
 /** @file */
 
@@ -112,16 +113,6 @@ struct reliable_endpoint_t;
 namespace yojimbo
 {
     using namespace serialize;
-
-    const int MaxClients = 64;                                      ///< The maximum number of clients supported by this library. You can increase this if you want, but this library is designed around patterns that work best for [2,64] player games. If your game has less than 64 clients, reducing this will save memory.
-    const int MaxChannels = 64;                                     ///< The maximum number of message channels supported by this library. If you need less than 64 channels per-packet, reducing this will save memory.
-    const int KeyBytes = 32;                                        ///< Size of encryption key for dedicated client/server in bytes. Must be equal to key size for libsodium encryption primitive. Do not change.
-    const int ConnectTokenBytes = 2048;                             ///< Size of the encrypted connect token data return from the matchmaker. Must equal size of NETCODE_CONNECT_TOKEN_BYTE (2048).
-    const uint32_t SerializeCheckValue = 0x12345678;                ///< The value written to the stream for serialize checks. See WriteStream::SerializeCheck and ReadStream::SerializeCheck.
-    const int ConservativeMessageHeaderBits = 32;                   ///< Conservative number of bits per-message header.
-    const int ConservativeFragmentHeaderBits = 64;                  ///< Conservative number of bits per-fragment header.
-    const int ConservativeChannelHeaderBits = 32;                   ///< Conservative number of bits per-channel header.
-    const int ConservativePacketHeaderBits = 16;                    ///< Conservative number of bits per-packet header.
 
     /// Determines the reliability and ordering guarantees for a channel.
 
@@ -1304,8 +1295,6 @@ namespace yojimbo
 
         SequenceBuffer<T> & operator = ( const SequenceBuffer<T> & other );
     };
-
-    const int MaxAddressLength = 256;                                       ///< The maximum length of an address when converted to a string (includes terminating NULL). @see Address::ToString
 
     /**
         Address type.
