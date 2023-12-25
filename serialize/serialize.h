@@ -2333,10 +2333,10 @@ namespace serialize
 
 #include <time.h>
 
-static void CheckHandler( const char * condition,
-                          const char * function,
-                          const char * file,
-                          int line )
+static void SerializeCheckHandler( const char * condition,
+                                   const char * function,
+                                   const char * file,
+                                   int line )
 {
     printf( "check failed: ( %s ), function %s, file %s, line %d\n", condition, function, file, line );
 #ifndef NDEBUG
@@ -2349,13 +2349,13 @@ static void CheckHandler( const char * condition,
     exit( 1 );
 }
 
-#define check( condition )                                                     \
-do                                                                             \
-{                                                                              \
-    if ( !(condition) )                                                        \
-    {                                                                          \
-        CheckHandler( #condition, __FUNCTION__, __FILE__, __LINE__ );          \
-    }                                                                          \
+#define serialize_check( condition )                                                    \
+do                                                                                      \
+{                                                                                       \
+    if ( !(condition) )                                                                 \
+    {                                                                                   \
+        SerializeCheckHandler( #condition, __FUNCTION__, __FILE__, __LINE__ );          \
+    }                                                                                   \
 } while(0)
 
 void test_endian()
@@ -2366,17 +2366,17 @@ void test_endian()
 
 #if SERIALIZE_LITTLE_ENDIAN
 
-    check( bytes[0] == 0x44 );
-    check( bytes[1] == 0x33 );
-    check( bytes[2] == 0x22 );
-    check( bytes[3] == 0x11 );
+    serialize_check( bytes[0] == 0x44 );
+    serialize_check( bytes[1] == 0x33 );
+    serialize_check( bytes[2] == 0x22 );
+    serialize_check( bytes[3] == 0x11 );
 
 #else // #if SERIALIZE_LITTLE_ENDIAN
 
-    check( bytes[3] == 0x44 );
-    check( bytes[2] == 0x33 );
-    check( bytes[1] == 0x22 );
-    check( bytes[0] == 0x11 );
+    serialize_check( bytes[3] == 0x44 );
+    serialize_check( bytes[2] == 0x33 );
+    serialize_check( bytes[1] == 0x22 );
+    serialize_check( bytes[0] == 0x11 );
 
 #endif // #if SERIALIZE_LITTLE_ENDIAN
 }
@@ -2389,10 +2389,10 @@ void test_bitpacker()
 
     serialize::BitWriter writer( buffer, BufferSize );
 
-    check( writer.GetData() == buffer );
-    check( writer.GetBitsWritten() == 0 );
-    check( writer.GetBytesWritten() == 0 );
-    check( writer.GetBitsAvailable() == BufferSize * 8 );
+    serialize_check( writer.GetData() == buffer );
+    serialize_check( writer.GetBitsWritten() == 0 );
+    serialize_check( writer.GetBytesWritten() == 0 );
+    serialize_check( writer.GetBitsAvailable() == BufferSize * 8 );
 
     writer.WriteBits( 0, 1 );
     writer.WriteBits( 1, 1 );
@@ -2405,20 +2405,20 @@ void test_bitpacker()
 
     const int bitsWritten = 1 + 1 + 8 + 8 + 10 + 16 + 32;
 
-    check( writer.GetBytesWritten() == 10 );
-    check( writer.GetBitsWritten() == bitsWritten );
-    check( writer.GetBitsAvailable() == BufferSize * 8 - bitsWritten );
+    serialize_check( writer.GetBytesWritten() == 10 );
+    serialize_check( writer.GetBitsWritten() == bitsWritten );
+    serialize_check( writer.GetBitsAvailable() == BufferSize * 8 - bitsWritten );
 
     const int bytesWritten = writer.GetBytesWritten();
 
-    check( bytesWritten == 10 );
+    serialize_check( bytesWritten == 10 );
 
     memset( buffer + bytesWritten, 0, BufferSize - bytesWritten );
 
     serialize::BitReader reader( buffer, bytesWritten );
 
-    check( reader.GetBitsRead() == 0 );
-    check( reader.GetBitsRemaining() == bytesWritten * 8 );
+    serialize_check( reader.GetBitsRead() == 0 );
+    serialize_check( reader.GetBitsRemaining() == bytesWritten * 8 );
 
     uint32_t a = reader.ReadBits( 1 );
     uint32_t b = reader.ReadBits( 1 );
@@ -2428,32 +2428,32 @@ void test_bitpacker()
     uint32_t f = reader.ReadBits( 16 );
     uint32_t g = reader.ReadBits( 32 );
 
-    check( a == 0 );
-    check( b == 1 );
-    check( c == 10 );
-    check( d == 255 );
-    check( e == 1000 );
-    check( f == 50000 );
-    check( g == 9999999 );
+    serialize_check( a == 0 );
+    serialize_check( b == 1 );
+    serialize_check( c == 10 );
+    serialize_check( d == 255 );
+    serialize_check( e == 1000 );
+    serialize_check( f == 50000 );
+    serialize_check( g == 9999999 );
 
-    check( reader.GetBitsRead() == bitsWritten );
-    check( reader.GetBitsRemaining() == bytesWritten * 8 - bitsWritten );
+    serialize_check( reader.GetBitsRead() == bitsWritten );
+    serialize_check( reader.GetBitsRemaining() == bytesWritten * 8 - bitsWritten );
 }
 
 void test_bits_required()
 {
-    check( serialize::bits_required( 0, 0 ) == 0 );
-    check( serialize::bits_required( 0, 1 ) == 1 );
-    check( serialize::bits_required( 0, 2 ) == 2 );
-    check( serialize::bits_required( 0, 3 ) == 2 );
-    check( serialize::bits_required( 0, 4 ) == 3 );
-    check( serialize::bits_required( 0, 5 ) == 3 );
-    check( serialize::bits_required( 0, 6 ) == 3 );
-    check( serialize::bits_required( 0, 7 ) == 3 );
-    check( serialize::bits_required( 0, 8 ) == 4 );
-    check( serialize::bits_required( 0, 255 ) == 8 );
-    check( serialize::bits_required( 0, 65535 ) == 16 );
-    check( serialize::bits_required( 0, 4294967295 ) == 32 );
+    serialize_check( serialize::bits_required( 0, 0 ) == 0 );
+    serialize_check( serialize::bits_required( 0, 1 ) == 1 );
+    serialize_check( serialize::bits_required( 0, 2 ) == 2 );
+    serialize_check( serialize::bits_required( 0, 3 ) == 2 );
+    serialize_check( serialize::bits_required( 0, 4 ) == 3 );
+    serialize_check( serialize::bits_required( 0, 5 ) == 3 );
+    serialize_check( serialize::bits_required( 0, 6 ) == 3 );
+    serialize_check( serialize::bits_required( 0, 7 ) == 3 );
+    serialize_check( serialize::bits_required( 0, 8 ) == 4 );
+    serialize_check( serialize::bits_required( 0, 255 ) == 8 );
+    serialize_check( serialize::bits_required( 0, 65535 ) == 16 );
+    serialize_check( serialize::bits_required( 0, 4294967295 ) == 32 );
 }
 
 const int MaxItems = 11;
@@ -2603,10 +2603,10 @@ void test_stream()
     readStream.SetContext( &context );
     readObject.Serialize( readStream );
 
-    check( readObject == writeObject );
+    serialize_check( readObject == writeObject );
 }
 
-#define RUN_TEST( test_function )                                           \
+#define SERIALIZE_RUN_TEST( test_function )                                 \
     do                                                                      \
     {                                                                       \
         printf( #test_function "\n" );                                      \
@@ -2618,10 +2618,10 @@ void serialize_test()
 {
     // while ( 1 )
     {
-        RUN_TEST( test_endian );
-        RUN_TEST( test_bitpacker );
-        RUN_TEST( test_bits_required );
-        RUN_TEST( test_stream );
+        SERIALIZE_RUN_TEST( test_endian );
+        SERIALIZE_RUN_TEST( test_bitpacker );
+        SERIALIZE_RUN_TEST( test_bits_required );
+        SERIALIZE_RUN_TEST( test_stream );
     }
 }
 
