@@ -136,7 +136,8 @@ int ClientServerMain()
         yojimbo_sleep( deltaTime );
     }
 
-    client.Disconnect();
+    client.DisconnectLoopback();
+
     server.Stop();
 
     return 0;

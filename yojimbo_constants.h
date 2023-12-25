@@ -37,8 +37,6 @@ namespace yojimbo
 
     const int ConnectTokenBytes = 2048;                             ///< Size of the encrypted connect token data return from the matchmaker. Must equal size of NETCODE_CONNECT_TOKEN_BYTE (2048).
 
-    const uint32_t SerializeCheckValue = 0x12345678;                ///< The value written to the stream for serialize checks. See WriteStream::SerializeCheck and ReadStream::SerializeCheck.
-
     const int ConservativeMessageHeaderBits = 32;                   ///< Conservative number of bits per-message header.
     
     const int ConservativeFragmentHeaderBits = 64;                  ///< Conservative number of bits per-fragment header.
