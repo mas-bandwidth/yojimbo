@@ -2378,7 +2378,7 @@ int main()
         }
 
         {
-            printf( "[netcode]\n\n" );
+            printf( "\n[netcode]\n\n" );
 
             check( InitializeYojimbo() );
 
