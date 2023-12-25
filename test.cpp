@@ -2334,7 +2334,10 @@ void test_single_message_type_unreliable()
     }                                                                       \
     while (0)
 
+void serialize_test();
+
 extern "C" void netcode_test();
+
 extern "C" void reliable_test();
 
 /*
