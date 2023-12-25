@@ -96,7 +96,7 @@ int ClientServerMain()
     printf( "started server\n" );
 
     uint64_t clientId = 0;
-    random_bytes( (uint8_t*) &clientId, 8 );
+    yojimbo_random_bytes( (uint8_t*) &clientId, 8 );
     printf( "client id is %.16" PRIx64 "\n", clientId );
 
     Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, loopbackAdapter, time );

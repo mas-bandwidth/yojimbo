@@ -67,7 +67,7 @@ int SoakMain()
     server.Start( 1 );
 
     uint64_t clientId = 0;
-    random_bytes( (uint8_t*) &clientId, 8 );
+    yojimbo_random_bytes( (uint8_t*) &clientId, 8 );
 
     Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 
@@ -104,7 +104,7 @@ int SoakMain()
             clientConnected = true;
 
 			{
-				const int messagesToSend = random_int( 0, 64 );
+				const int messagesToSend = yojimbo_random_int( 0, 64 );
 
 				for ( int i = 0; i < messagesToSend; ++i )
 				{
@@ -152,7 +152,7 @@ int SoakMain()
             {
                 serverConnected = true;
 
-                const int messagesToSend = random_int( 0, 64 );
+                const int messagesToSend = yojimbo_random_int( 0, 64 );
 
                 for ( int i = 0; i < messagesToSend; ++i )
                 {

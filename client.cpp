@@ -47,7 +47,7 @@ int ClientMain( int argc, char * argv[] )
     double time = 100.0;
 
     uint64_t clientId = 0;
-    random_bytes( (uint8_t*) &clientId, 8 );
+    yojimbo_random_bytes( (uint8_t*) &clientId, 8 );
     printf( "client id is %.16" PRIx64 "\n", clientId );
 
     ClientServerConfig config;

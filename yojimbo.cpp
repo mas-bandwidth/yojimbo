@@ -23,6 +23,7 @@
 */
 
 #include "yojimbo.h"
+#include "yojimbo_utils.h"
 
 #ifdef _MSC_VER
 #define SODIUM_STATIC
@@ -89,22 +90,21 @@ void ShutdownYojimbo()
 
 extern "C" void netcode_random_bytes( uint8_t*, int );
 
-namespace yojimbo
-{
-    void random_bytes( uint8_t * data, int bytes )
-    {
-        netcode_random_bytes( data, bytes );
-    }
+// todo: move to yojimbo_utils.cpp
 
-    void print_bytes( const char * label, const uint8_t * data, int data_bytes )
+void yojimbo_random_bytes( uint8_t * data, int bytes )
+{
+    netcode_random_bytes( data, bytes );
+}
+
+void yojimbo_print_bytes( const char * label, const uint8_t * data, int data_bytes )
+{
+    printf( "%s: ", label );
+    for ( int i = 0; i < data_bytes; ++i )
     {
-        printf( "%s: ", label );
-        for ( int i = 0; i < data_bytes; ++i )
-        {
-            printf( "0x%02x,", (int) data[i] );
-        }
-        printf( " (%d bytes)\n", data_bytes );
+        printf( "0x%02x,", (int) data[i] );
     }
+    printf( " (%d bytes)\n", data_bytes );
 }
 
 // ---------------------------------------------------------------------------------
@@ -1591,10 +1591,10 @@ namespace yojimbo
 
             const uint16_t messageId = message->GetId();
 
-            if ( sequence_less_than( messageId, minMessageId ) )
+            if ( yojimbo_sequence_less_than( messageId, minMessageId ) )
                 continue;
 
-            if ( sequence_greater_than( messageId, maxMessageId ) )
+            if ( yojimbo_sequence_greater_than( messageId, maxMessageId ) )
             {
                 // Did you forget to dequeue messages on the receiver?
                 SetErrorLevel( CHANNEL_ERROR_DESYNC );
@@ -1707,7 +1707,7 @@ namespace yojimbo
             ++m_oldestUnackedMessageId;
         }
 
-        yojimbo_assert( !sequence_greater_than( m_oldestUnackedMessageId, stopMessageId ) );
+        yojimbo_assert( !yojimbo_sequence_greater_than( m_oldestUnackedMessageId, stopMessageId ) );
     }
 
     bool ReliableOrderedChannel::SendingBlockMessage()
@@ -3736,7 +3736,7 @@ namespace yojimbo
         yojimbo_assert( packetData );
         yojimbo_assert( packetBytes > 0 );
 
-        if ( random_float( 0.0f, 100.0f ) <= m_packetLoss )
+        if ( yojimbo_random_float( 0.0f, 100.0f ) <= m_packetLoss )
         {
             return;
         }
@@ -3752,7 +3752,7 @@ namespace yojimbo
         double delay = m_latency / 1000.0;
 
         if ( m_jitter > 0 )
-            delay += random_float( -m_jitter, +m_jitter ) / 1000.0;
+            delay += yojimbo_random_float( -m_jitter, +m_jitter ) / 1000.0;
 
         packetEntry.to = to;
         packetEntry.packetData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
@@ -3761,14 +3761,14 @@ namespace yojimbo
         packetEntry.deliveryTime = m_time + delay;
         m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
 
-        if ( random_float( 0.0f, 100.0f ) <= m_duplicates )
+        if ( yojimbo_random_float( 0.0f, 100.0f ) <= m_duplicates )
         {
             PacketEntry & nextPacketEntry = m_packetEntries[m_currentIndex];
             nextPacketEntry.to = to;
             nextPacketEntry.packetData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
             memcpy( nextPacketEntry.packetData, packetData, packetBytes );
             nextPacketEntry.packetBytes = packetBytes;
-            nextPacketEntry.deliveryTime = m_time + delay + random_float( 0, +1.0 );
+            nextPacketEntry.deliveryTime = m_time + delay + yojimbo_random_float( 0, +1.0 );
             m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
         }
     }

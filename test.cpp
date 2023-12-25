@@ -592,7 +592,7 @@ void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, C
     int packetBytes;
     if ( sender.GeneratePacket( NULL, senderSequence, packetData, connectionConfig.maxPacketSize, packetBytes ) )
     {
-        if ( random_int( 0, 100 ) >= packetLossPercent )
+        if ( yojimbo_random_int( 0, 100 ) >= packetLossPercent )
         {
             receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes );
             sender.ProcessAcks( &senderSequence, 1 );
@@ -601,7 +601,7 @@ void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, C
 
     if ( receiver.GeneratePacket( NULL, receiverSequence, packetData, connectionConfig.maxPacketSize, packetBytes ) )
     {
-        if ( random_int( 0, 100 ) >= packetLossPercent )
+        if ( yojimbo_random_int( 0, 100 ) >= packetLossPercent )
         {
             sender.ProcessPacket( NULL, receiverSequence, packetData, packetBytes );
             receiver.ProcessAcks( &receiverSequence, 1 );
@@ -1914,7 +1914,7 @@ void test_reliable_fragment_overflow_bug()
     check( server.IsRunning() );
 
     uint64_t clientId = 0;
-    random_bytes((uint8_t*)&clientId, 8);
+    yojimbo_random_bytes((uint8_t*)&clientId, 8);
 
     Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 
