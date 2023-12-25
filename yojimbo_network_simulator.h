@@ -26,6 +26,7 @@
 #define YOJIMBO_NETWORK_SIMULATOR_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_allocator.h"
 
 namespace yojimbo
 {
