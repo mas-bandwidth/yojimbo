@@ -1384,8 +1384,9 @@ namespace yojimbo
             yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
         }
 
-        MeasureStream measureStream( m_messageFactory->GetAllocator() );
+        MeasureStream measureStream;
 		measureStream.SetContext( context );
+        measureStream.SetAllocator( &m_messageFactory->GetAllocator() );
         message->SerializeInternal( measureStream );
         entry->measuredBits = measureStream.GetBitsProcessed();
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
@@ -1509,8 +1510,9 @@ namespace yojimbo
                 }
                 else
                 {
-                    MeasureStream stream( GetDefaultAllocator() );
+                    MeasureStream stream;
                     stream.SetContext( context );
+                    stream.SetAllocator( &m_messageFactory->GetAllocator() );
                     serialize_sequence_relative_internal( stream, previousMessageId, messageId );
                     messageBits += stream.GetBitsProcessed();
                 }
@@ -2121,8 +2123,9 @@ namespace yojimbo
 
             yojimbo_assert( message );
 
-            MeasureStream measureStream( m_messageFactory->GetAllocator() );
+            MeasureStream measureStream;
 			measureStream.SetContext( context );
+            measureStream.SetAllocator( &m_messageFactory->GetAllocator() );
             message->SerializeInternal( measureStream );
             
             if ( message->IsBlockMessage() )
@@ -2401,9 +2404,11 @@ namespace yojimbo
                             uint8_t * buffer, 
                             int bufferSize )
     {
-        WriteStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
+        WriteStream stream( buffer, bufferSize );
         
         stream.SetContext( context );
+
+        stream.SetAllocator( &messageFactory.GetAllocator() );
         
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
@@ -2477,9 +2482,11 @@ namespace yojimbo
         yojimbo_assert( buffer );
         yojimbo_assert( bufferSize > 0 );
 
-        ReadStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
+        ReadStream stream( buffer, bufferSize );
         
         stream.SetContext( context );
+
+        stream.SetAllocator( &messageFactory.GetAllocator() );
         
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {

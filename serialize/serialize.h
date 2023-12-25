@@ -821,7 +821,7 @@ namespace serialize
     ** Read a 64-bit variable-length integer from memory starting at p[0].
     ** Return the number of bytes read.  The value is stored in *v.
     */
-    uint8_t serialize_get_varint( const unsigned char * p, uint64_t * v )
+    inline uint8_t serialize_get_varint( const unsigned char * p, uint64_t * v )
     {
         uint32_t a, b, s;
 
@@ -972,7 +972,7 @@ namespace serialize
         return 9;
     }
 
-    uint8_t serialize_get_varint32( const unsigned char * p, uint32_t * v )
+    inline uint8_t serialize_get_varint32( const unsigned char * p, uint32_t * v )
     {
         uint32_t a, b;
 
@@ -1094,7 +1094,7 @@ namespace serialize
     ** Return the number of bytes that will be needed to store the given
     ** 64-bit integer.
     */
-    int serialize_measure_varint( uint64_t v )
+    inline int serialize_measure_varint( uint64_t v )
     {
         int i;
         for ( i = 1; (v>>=7) != 0; i++ ) { serialize_assert(i<10); }
@@ -1113,7 +1113,7 @@ namespace serialize
             Base stream constructor.
          */
 
-        explicit BaseStream() : m_context( NULL ) {}
+        explicit BaseStream() : m_context( NULL ), m_allocator( NULL ) {}
 
         /**
             Set a context on the stream.
@@ -1137,9 +1137,31 @@ namespace serialize
             return m_context;
         }
 
+        /**
+            Set an allocator pointer on the stream.
+            This can be helpful if you want to perform allocations within serialize functions.
+         */
+
+        void SetAllocator( void * allocator )
+        {
+            m_allocator = allocator;
+        }
+
+        /**
+            Get the allocator pointer set on the stream.
+
+            @returns The allocator pointer. May be NULL.
+         */
+
+        void * GetAllocator() const
+        {
+            return m_allocator;
+        }
+
     private:
 
         void * m_context;                           ///< The context pointer set on the stream. May be NULL.
+        void * m_allocator;                         ///< The allocator pointer set on the stream. May be NULL.
     };
 
     /**

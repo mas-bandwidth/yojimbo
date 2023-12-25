@@ -117,12 +117,12 @@ struct TestExhaustStreamAllocatorOnReadMessage : public Message
 
             for ( int i = 0; i < NumBuffers; ++i )
             {
-                buffers[i] = YOJIMBO_ALLOCATE( stream.GetAllocator(), 1024 * 1024 );
+                buffers[i] = YOJIMBO_ALLOCATE( *(Allocator*) stream.GetAllocator(), 1024 * 1024 );
             }
 
             for ( int i = 0; i < NumBuffers; ++i )
             {
-                YOJIMBO_FREE( stream.GetAllocator(), buffers[i] );
+                YOJIMBO_FREE( *(Allocator*) stream.GetAllocator(), buffers[i] );
             }
         }
 
