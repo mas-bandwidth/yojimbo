@@ -26,6 +26,8 @@
 #define YOJIMBO_MESSAGE_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_serialize.h"
+#include "yojimbo_allocator.h"
 
 namespace yojimbo
 {
@@ -572,5 +574,38 @@ namespace yojimbo
             }                                                                                                                           \
         }                                                                                                                               \
     };
+
+/**
+    Helper function to serialize a block attached to a message. Used by channel implementations.
+ */
+
+template <typename Stream> bool SerializeMessageBlock( Stream & stream, yojimbo::MessageFactory & messageFactory, yojimbo::BlockMessage * blockMessage, int maxBlockSize )
+{
+    int blockSize = Stream::IsWriting ? blockMessage->GetBlockSize() : 0;
+
+    serialize_int( stream, blockSize, 1, maxBlockSize );
+
+    uint8_t * blockData;
+
+    if ( Stream::IsReading )
+    {
+        yojimbo::Allocator & allocator = messageFactory.GetAllocator();
+        blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, blockSize );
+        if ( !blockData )
+        {
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate message block (SerializeMessageBlock)\n" );
+            return false;
+        }
+        blockMessage->AttachBlock( allocator, blockData, blockSize );
+    }                   
+    else
+    {
+        blockData = blockMessage->GetBlockData();
+    } 
+
+    serialize_bytes( stream, blockData, blockSize );
+
+    return true;
+}
 
 #endif // #ifndef YOJIMBO_MESSAGE_H

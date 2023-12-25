@@ -26,6 +26,7 @@
 #define YOJIMBO_CHANNEL_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_message.h"
 
 namespace yojimbo
 {

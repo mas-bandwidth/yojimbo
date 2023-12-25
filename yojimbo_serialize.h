@@ -26,6 +26,7 @@
 #define YOJIMBO_SERIALIZE_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_platform.h"
 
 namespace yojimbo
 {
