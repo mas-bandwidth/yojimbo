@@ -5,7 +5,7 @@ solution "Yojimbo"
     kind "ConsoleApp"
     language "C++"
     configurations { "Debug", "Release" }
-    includedirs { ".", "sodium", "tlsf", "netcode", "reliable" }
+    includedirs { ".", "sodium", "tlsf", "netcode", "reliable", "serialize" }
     if not os.istarget "windows" then
         targetdir "bin/"  
     end

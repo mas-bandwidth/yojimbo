@@ -29,7 +29,7 @@ Alternatively, you can download one of the latest [releases](https://github.com/
 
 The author of this library is Glenn Fiedler.
 
-Other open source libraries by the same author include: [netcode](http://netcode.io) and [reliable](https://github.com/networkprotocol/reliable)
+Open source libraries by the same author include: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/netcode) and [serialize](https://github.com/mas-bandwidth/serialize)
 
 ## Sponsors
 

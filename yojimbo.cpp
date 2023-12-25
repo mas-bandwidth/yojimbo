@@ -2411,14 +2411,6 @@ namespace yojimbo
             return 0;
         }
 
-#if YOJIMBO_SERIALIZE_CHECKS
-        if ( !stream.SerializeCheck() )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize check at end of connection packed failed (write packet)\n" );
-            return 0;
-        }
-#endif // #if YOJIMBO_SERIALIZE_CHECKS
-
         stream.Flush();
 
         return stream.GetBytesProcessed();
@@ -2494,14 +2486,6 @@ namespace yojimbo
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (read packet)\n" );
             return false;
         }
-
-#if YOJIMBO_SERIALIZE_CHECKS
-        if ( !stream.SerializeCheck() )
-        {
-            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize check failed at end of connection packet (read packet)\n" );
-            return false;
-        }
-#endif // #if YOJIMBO_SERIALIZE_CHECKS
 
         return true;
     }

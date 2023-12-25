@@ -2152,72 +2152,76 @@ void test_reliable_fragment_overflow_bug()
     config.channel[1].packetBudget = -1;
 
     uint8_t privateKey[KeyBytes];
-    memset(privateKey, 0, KeyBytes);
-    Server server(GetDefaultAllocator(), privateKey, Address("127.0.0.1", ServerPort), config, adapter, time);
+    memset( privateKey, 0, KeyBytes );
+    
+    Server server( GetDefaultAllocator(), privateKey, Address("127.0.0.1", ServerPort), config, adapter, time );
 
-    server.Start(MaxClients);
-    check(server.IsRunning());
+    server.Start( MaxClients );
+
+    check( server.IsRunning() );
 
     uint64_t clientId = 0;
     random_bytes((uint8_t*)&clientId, 8);
 
-    Client client(GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time);
+    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 
-    Address serverAddress("127.0.0.1", ServerPort);
+    Address serverAddress( "127.0.0.1", ServerPort );
 
-    client.InsecureConnect(privateKey, clientId, serverAddress);
+    client.InsecureConnect( privateKey, clientId, serverAddress );
 
     Client * clients[] = { &client };
     Server * servers[] = { &server };
 
-    while (true)
+    while ( true )
     {
-        PumpClientServerUpdate(time, clients, 1, servers, 1);
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
-        if (client.ConnectionFailed())
+        if ( client.ConnectionFailed() )
             break;
 
-        if (!client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1)
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
             break;
     }
 
-    check(!client.IsConnecting());
-    check(client.IsConnected());
-    check(server.GetNumConnectedClients() == 1);
-    check(client.GetClientIndex() == 0);
-    check(server.IsClientConnected(0));
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+    check( client.GetClientIndex() == 0 );
+    check( server.IsClientConnected(0) );
 
-    PumpClientServerUpdate(time, clients, 1, servers, 1);
-    check(!client.IsDisconnected());
+    PumpClientServerUpdate( time, clients, 1, servers, 1 );
+    
+    check( !client.IsDisconnected() );
 
-    TestBlockMessage *testBlockMessage = (TestBlockMessage *)client.CreateMessage(TEST_BLOCK_MESSAGE);
+    TestBlockMessage * testBlockMessage = (TestBlockMessage *) client.CreateMessage( TEST_BLOCK_MESSAGE );
     uint8_t * blockData = client.AllocateBlock(7169);
     memset( blockData, 0, 7169 );
-    client.AttachBlockToMessage(testBlockMessage, blockData, 7169);
-    client.SendMessage(0, testBlockMessage);
+    client.AttachBlockToMessage( testBlockMessage, blockData, 7169 );
+    client.SendMessage( 0, testBlockMessage );
 
-    testBlockMessage = (TestBlockMessage *)client.CreateMessage(TEST_BLOCK_MESSAGE);
-    blockData = client.AllocateBlock(1024);
+    testBlockMessage = (TestBlockMessage *) client.CreateMessage( TEST_BLOCK_MESSAGE );
+    blockData = client.AllocateBlock( 1024 );
     memset( blockData, 0, 1024 );
-    client.AttachBlockToMessage(testBlockMessage, blockData, 1024);
-    client.SendMessage(1, testBlockMessage);
+    client.AttachBlockToMessage( testBlockMessage, blockData, 1024 );
+    client.SendMessage( 1, testBlockMessage );
 
-    PumpClientServerUpdate(time, clients, 1, servers, 1);
+    PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
-    PumpClientServerUpdate(time, clients, 1, servers, 1);
+    PumpClientServerUpdate( time, clients, 1, servers, 1 );
 
-    PumpClientServerUpdate(time, clients, 1, servers, 1);
-    check(!client.IsDisconnected());
+    PumpClientServerUpdate( time, clients, 1, servers, 1 );
+    
+    check( !client.IsDisconnected() );
 
-    Message *message = server.ReceiveMessage(0, 0);
-    check(message);
-    check(message->GetType() == TEST_BLOCK_MESSAGE);
-    server.ReleaseMessage(0, message);
+    Message * message = server.ReceiveMessage(0, 0);
+    check( message );
+    check( message->GetType() == TEST_BLOCK_MESSAGE );
+    server.ReleaseMessage( 0, message );
 
     message = server.ReceiveMessage(0, 1);
-    check(message);
-    check(message->GetType() == TEST_BLOCK_MESSAGE);
-    server.ReleaseMessage(0, message);
+    check( message);
+    check( message->GetType() == TEST_BLOCK_MESSAGE );
+    server.ReleaseMessage( 0, message );
 
     client.Disconnect();
 
@@ -2580,11 +2584,9 @@ void test_single_message_type_unreliable()
 extern "C" void netcode_test();
 extern "C" void reliable_test();
 
-/*
 #ifndef SOAK
 #define SOAK 1
 #endif
-*/
 
 #if SOAK
 #include <signal.h>
@@ -2607,6 +2609,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        /*
         {
             printf( "[netcode]\n\n" );
 
@@ -2652,13 +2655,15 @@ int main()
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
+        */
 
-        // todo: this test is currently in a heisenbug state
-        // RUN_TEST( test_reliable_fragment_overflow_bug );
-        
+        RUN_TEST( test_reliable_fragment_overflow_bug );
+    
+        /*        
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );
         RUN_TEST( test_single_message_type_unreliable );
+        */
 
 #if SOAK
         if ( quit )
