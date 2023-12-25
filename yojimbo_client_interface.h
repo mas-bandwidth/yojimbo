@@ -26,6 +26,7 @@
 #define YOJIMBO_CLIENT_INTERFACE_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_network_info.h"
 
 // fucking windows =p
 #ifdef SendMessage
@@ -154,10 +155,10 @@ namespace yojimbo
 
         /**
             Create a message of the specified type.
-            @param type The type of the message to create. The message types corresponds to the message factory created by the adaptor set on this client.
+            @param type The type of the message to create. The message types corresponds to the message factory created by the adapter set on this client.
          */
 
-        virtual Message * CreateMessage( int type ) = 0;
+        virtual class Message * CreateMessage( int type ) = 0;
 
         /**
             Helper function to allocate a data block.

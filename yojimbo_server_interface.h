@@ -168,7 +168,7 @@ namespace yojimbo
         /**
             Create a message of the specified type for a specific client.
             @param clientIndex The index of the client this message belongs to. Determines which client heap is used to allocate the message.
-            @param type The type of the message to create. The message types corresponds to the message factory created by the adaptor set on the server.
+            @param type The type of the message to create. The message types corresponds to the message factory created by the adapter set on the server.
          */
 
         virtual Message * CreateMessage( int clientIndex, int type ) = 0;

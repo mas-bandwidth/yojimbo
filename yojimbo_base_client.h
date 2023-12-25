@@ -26,6 +26,10 @@
 #define YOJIMBO_BASE_CLIENT_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_platform.h"
+#include "yojimbo_client_interface.h"
+
+struct reliable_endpoint_t;
 
 namespace yojimbo
 {
@@ -45,7 +49,7 @@ namespace yojimbo
             @param allocator The adapter to the game program. Specifies allocators, message factory to use etc.
          */
 
-        explicit BaseClient( Allocator & allocator, const ClientServerConfig & config, Adapter & adapter, double time );
+        explicit BaseClient( class Allocator & allocator, const ClientServerConfig & config, class Adapter & adapter, double time );
 
         ~BaseClient();
 
@@ -111,15 +115,15 @@ namespace yojimbo
 
         void SetClientState( ClientState clientState );
 
-        Allocator & GetClientAllocator() { yojimbo_assert( m_clientAllocator ); return *m_clientAllocator; }
+        class Allocator & GetClientAllocator() { yojimbo_assert( m_clientAllocator ); return *m_clientAllocator; }
 
-        MessageFactory & GetMessageFactory() { yojimbo_assert( m_messageFactory ); return *m_messageFactory; }
+        class MessageFactory & GetMessageFactory() { yojimbo_assert( m_messageFactory ); return *m_messageFactory; }
 
-        NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
+        class NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
 
         reliable_endpoint_t * GetEndpoint() { return m_endpoint; }
 
-        Connection & GetConnection() { yojimbo_assert( m_connection ); return *m_connection; }
+        class Connection & GetConnection() { yojimbo_assert( m_connection ); return *m_connection; }
 
         virtual void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 

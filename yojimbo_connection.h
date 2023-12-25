@@ -26,6 +26,9 @@
 #define YOJIMBO_CONNECTION_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_allocator.h"
+#include "yojimbo_message.h"
+#include "yojimbo_channel.h"
 
 namespace yojimbo
 {

@@ -40,7 +40,7 @@
 #include "yojimbo_unreliable_unordered_channel.h"
 #include "yojimbo_connection.h"
 #include "yojimbo_network_simulator.h"
-#include "yojimbo_adaptor.h"
+#include "yojimbo_adapter.h"
 #include "yojimbo_network_info.h"
 #include "yojimbo_server_interface.h"
 #include "yojimbo_base_server.h"

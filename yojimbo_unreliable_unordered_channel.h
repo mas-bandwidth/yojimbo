@@ -26,6 +26,8 @@
 #define YOJIMBO_UNRELIABLE_UNORDERED_CHANNEL_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_channel.h"
+#include "yojimbo_queue.h"
 
 namespace yojimbo
 {
