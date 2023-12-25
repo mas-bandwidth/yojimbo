@@ -25,6 +25,7 @@
 #ifndef YOJIMBO_BIT_ARRAY_H
 #define YOJIMBO_BIT_ARRAY_H
 
+#include "yojimbo_config.h"
 #include "yojimbo_allocator.h"
 
 namespace yojimbo

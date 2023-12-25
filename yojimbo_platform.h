@@ -25,6 +25,8 @@
 #ifndef YOJIMBO_PLATFORM_H
 #define YOJIMBO_PLATFORM_H
 
+#include "yojimbo_config.h"
+
 /**
     Sleep for approximately this number of seconds.
     @param time number of seconds to sleep for.

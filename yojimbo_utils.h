@@ -25,6 +25,8 @@
 #ifndef YOJIMBO_UTILS_H
 #define YOJIMBO_UTILS_H
 
+#include "yojimbo_config.h"
+
 /**
     Template function to get the minimum of two values.
     @param a The first value.
