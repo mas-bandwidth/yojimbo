@@ -26,6 +26,8 @@
 #define YOJIMBO_CLIENT_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_address.h"
+#include "yojimbo_base_client.h"
 
 struct netcode_client_t;
 
