@@ -26,6 +26,9 @@
 #define YOJIMBO_RELIABLE_ORDERED_CHANNEL_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_channel.h"
+#include "yojimbo_bit_array.h"
+#include "yojimbo_sequence_buffer.h"
 
 namespace yojimbo
 {

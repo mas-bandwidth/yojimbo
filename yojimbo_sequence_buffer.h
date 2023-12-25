@@ -26,6 +26,8 @@
 #define YOJIMBO_SEQUENCE_BUFFER_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_serialize.h"
+#include "yojimbo_utils.h"
 
 namespace yojimbo
 {
