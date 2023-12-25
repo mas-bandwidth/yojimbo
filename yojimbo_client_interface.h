@@ -27,6 +27,11 @@
 
 #include "yojimbo_config.h"
 
+// fucking windows =p
+#ifdef SendMessage
+#undef SendMessage
+#endif
+
 namespace yojimbo
 {
     /**

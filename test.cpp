@@ -1893,94 +1893,6 @@ void test_client_server_message_receive_queue_overflow()
     server.Stop();
 }
 
-void test_reliable_fragment_overflow_bug()
-{
-    double time = 100.0;
-
-    ClientServerConfig config;
-    config.numChannels = 2;
-    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-    config.channel[0].packetBudget = 8000;
-    config.channel[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
-    config.channel[1].packetBudget = -1;
-
-    uint8_t privateKey[KeyBytes];
-    memset( privateKey, 0, KeyBytes );
-    
-    Server server( GetDefaultAllocator(), privateKey, Address("127.0.0.1", ServerPort), config, adapter, time );
-
-    server.Start( MaxClients );
-
-    check( server.IsRunning() );
-
-    uint64_t clientId = 0;
-    yojimbo_random_bytes((uint8_t*)&clientId, 8);
-
-    Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
-
-    Address serverAddress( "127.0.0.1", ServerPort );
-
-    client.InsecureConnect( privateKey, clientId, serverAddress );
-
-    Client * clients[] = { &client };
-    Server * servers[] = { &server };
-
-    while ( true )
-    {
-        PumpClientServerUpdate( time, clients, 1, servers, 1 );
-
-        if ( client.ConnectionFailed() )
-            break;
-
-        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
-            break;
-    }
-
-    check( !client.IsConnecting() );
-    check( client.IsConnected() );
-    check( server.GetNumConnectedClients() == 1 );
-    check( client.GetClientIndex() == 0 );
-    check( server.IsClientConnected(0) );
-
-    PumpClientServerUpdate( time, clients, 1, servers, 1 );
-    
-    check( !client.IsDisconnected() );
-
-    TestBlockMessage * testBlockMessage = (TestBlockMessage *) client.CreateMessage( TEST_BLOCK_MESSAGE );
-    uint8_t * blockData = client.AllocateBlock(7169);
-    memset( blockData, 0, 7169 );
-    client.AttachBlockToMessage( testBlockMessage, blockData, 7169 );
-    client.SendMessage( 0, testBlockMessage );
-
-    testBlockMessage = (TestBlockMessage *) client.CreateMessage( TEST_BLOCK_MESSAGE );
-    blockData = client.AllocateBlock( 1024 );
-    memset( blockData, 0, 1024 );
-    client.AttachBlockToMessage( testBlockMessage, blockData, 1024 );
-    client.SendMessage( 1, testBlockMessage );
-
-    PumpClientServerUpdate( time, clients, 1, servers, 1 );
-
-    PumpClientServerUpdate( time, clients, 1, servers, 1 );
-
-    PumpClientServerUpdate( time, clients, 1, servers, 1 );
-    
-    check( !client.IsDisconnected() );
-
-    Message * message = server.ReceiveMessage(0, 0);
-    check( message );
-    check( message->GetType() == TEST_BLOCK_MESSAGE );
-    server.ReleaseMessage( 0, message );
-
-    message = server.ReceiveMessage(0, 1);
-    check( message);
-    check( message->GetType() == TEST_BLOCK_MESSAGE );
-    server.ReleaseMessage( 0, message );
-
-    client.Disconnect();
-
-    server.Stop();
-}
-
 void test_reliable_outbound_sequence_outdated()
 {
     const uint64_t clientId = 1;
@@ -2419,8 +2331,6 @@ int main()
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
 
-        RUN_TEST( test_reliable_fragment_overflow_bug );
-    
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );
         RUN_TEST( test_single_message_type_unreliable );

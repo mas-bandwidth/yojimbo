@@ -29,6 +29,11 @@
 
 struct netcode_address_t;
 
+// fucking windows =p
+#ifdef SendMessage
+#undef SendMessage
+#endif
+
 namespace yojimbo
 {
     /**
