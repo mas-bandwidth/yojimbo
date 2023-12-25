@@ -171,7 +171,7 @@ namespace yojimbo
             @param type The type of the message to create. The message types corresponds to the message factory created by the adapter set on the server.
          */
 
-        virtual Message * CreateMessage( int clientIndex, int type ) = 0;
+        virtual class Message * CreateMessage( int clientIndex, int type ) = 0;
 
         /**
             Helper function to allocate a data block.
@@ -235,7 +235,7 @@ namespace yojimbo
             @param message The message to release.
          */
 
-        virtual void ReleaseMessage( int clientIndex, Message * message ) = 0;
+        virtual void ReleaseMessage( int clientIndex, class Message * message ) = 0;
 
         /**
             Get client network info.
@@ -244,7 +244,7 @@ namespace yojimbo
             @param info The struct to be filled with network info [out].
          */
 
-        virtual void GetNetworkInfo( int clientIndex, NetworkInfo & info ) const = 0;
+        virtual void GetNetworkInfo( int clientIndex, struct NetworkInfo & info ) const = 0;
 
         /**
             Connect a loopback client.

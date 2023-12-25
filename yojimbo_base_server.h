@@ -26,6 +26,8 @@
 #define YOJIMBO_BASE_SERVER_H
 
 #include "yojimbo_config.h"
+#include "yojimbo_allocator.h"
+#include "yojimbo_server_interface.h"
 
 struct reliable_endpoint_t;
 
@@ -39,7 +41,7 @@ namespace yojimbo
     {
     public:
 
-        BaseServer( Allocator & allocator, const ClientServerConfig & config, Adapter & adapter, double time );
+        BaseServer( Allocator & allocator, const ClientServerConfig & config, class Adapter & adapter, double time );
 
         ~BaseServer();
 
@@ -95,13 +97,13 @@ namespace yojimbo
 
         Allocator & GetGlobalAllocator() { yojimbo_assert( m_globalAllocator ); return *m_globalAllocator; }
 
-        MessageFactory & GetClientMessageFactory( int clientIndex );
+        class MessageFactory & GetClientMessageFactory( int clientIndex );
 
-        NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
+        class NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
 
         reliable_endpoint_t * GetClientEndpoint( int clientIndex );
 
-        Connection & GetClientConnection( int clientIndex );
+        class Connection & GetClientConnection( int clientIndex );
 
         virtual void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
