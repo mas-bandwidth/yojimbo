@@ -30,6 +30,7 @@
 #include <inttypes.h>
 
 #include "shared.h"
+#include "serialize.h"
 
 using namespace yojimbo;
 
@@ -2245,8 +2246,6 @@ void test_single_message_type_unreliable()
         ShutdownYojimbo();                                                  \
     }                                                                       \
     while (0)
-
-void serialize_test();
 
 extern "C" void netcode_test();
 

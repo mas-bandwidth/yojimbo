@@ -55,7 +55,6 @@ project "yojimbo"
     kind "StaticLib"
     links { "reliable", "netcode", "tlsf" }
     files { "yojimbo.h", "yojimbo.cpp", "yojimbo_**.h", "yojimbo_**.cpp" }
-    defines { "SERIALIZE_ENABLE_TESTS=1" }
 
 project "client"
     files { "client.cpp", "shared.h" }
@@ -76,6 +75,7 @@ project "soak"
 project "test"
     files { "test.cpp" }
     links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    defines { "SERIALIZE_ENABLE_TESTS=1" }
 
 newaction
 {

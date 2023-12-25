@@ -2333,7 +2333,7 @@ namespace serialize
 
 #include <time.h>
 
-static void SerializeCheckHandler( const char * condition,
+inline void SerializeCheckHandler( const char * condition,
                                    const char * function,
                                    const char * file,
                                    int line )
@@ -2358,7 +2358,7 @@ do                                                                              
     }                                                                                   \
 } while(0)
 
-void test_endian()
+inline void test_endian()
 {
     uint32_t value = 0x11223344;
 
@@ -2381,7 +2381,7 @@ void test_endian()
 #endif // #if SERIALIZE_LITTLE_ENDIAN
 }
 
-void test_bitpacker()
+inline void test_bitpacker()
 {
     const int BufferSize = 256;
 
@@ -2440,7 +2440,7 @@ void test_bitpacker()
     serialize_check( reader.GetBitsRemaining() == bytesWritten * 8 - bitsWritten );
 }
 
-void test_bits_required()
+inline void test_bits_required()
 {
     serialize_check( serialize::bits_required( 0, 0 ) == 0 );
     serialize_check( serialize::bits_required( 0, 1 ) == 1 );
@@ -2576,7 +2576,7 @@ struct TestObject
     }
 };
 
-void test_stream()
+inline void test_stream()
 {
     const int BufferSize = 1024;
 
@@ -2614,7 +2614,7 @@ void test_stream()
     }                                                                       \
     while (0)
 
-void serialize_test()
+inline void serialize_test()
 {
     // while ( 1 )
     {

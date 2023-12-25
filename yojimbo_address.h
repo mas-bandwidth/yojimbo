@@ -25,6 +25,9 @@
 #ifndef YOJIMBO_ADDRESS_H
 #define YOJIMBO_ADDRESS_H
 
+#include "yojimbo_config.h"
+#include <stdint.h>
+
 namespace yojimbo
 {
     /**
