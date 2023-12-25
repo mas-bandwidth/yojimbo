@@ -5,7 +5,7 @@ solution "Yojimbo"
     kind "ConsoleApp"
     language "C++"
     configurations { "Debug", "Release" }
-    includedirs { ".", "sodium", "tlsf", "netcode", "reliable", "serialize" }
+    includedirs { ".", "include", "sodium", "tlsf", "netcode", "reliable", "serialize" }
     if not os.istarget "windows" then
         targetdir "bin/"  
     end
@@ -53,8 +53,7 @@ project "tlsf"
 
 project "yojimbo"
     kind "StaticLib"
-    links { "reliable", "netcode", "tlsf" }
-    files { "yojimbo.h", "yojimbo.cpp", "yojimbo_**.h", "yojimbo_**.cpp" }
+    files { "include/*.h", "source/*.cpp" }
 
 project "client"
     files { "client.cpp", "shared.h" }

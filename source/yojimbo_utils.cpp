@@ -22,54 +22,23 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "yojimbo.h"
-#include "yojimbo_utils.h"
+#include "yojimbo_config.h"
 
-#ifdef _MSC_VER
-#define SODIUM_STATIC
-#endif // #ifdef _MSC_VER
+#include <stdint.h>
 
-#include <sodium.h>
+extern "C" void netcode_random_bytes( uint8_t*, int );
 
-static yojimbo::Allocator * g_defaultAllocator = NULL;
-
-namespace yojimbo
+void yojimbo_random_bytes( uint8_t * data, int bytes )
 {
-    Allocator & GetDefaultAllocator()
+    netcode_random_bytes( data, bytes );
+}
+
+void yojimbo_print_bytes( const char * label, const uint8_t * data, int data_bytes )
+{
+    printf( "%s: ", label );
+    for ( int i = 0; i < data_bytes; ++i )
     {
-        yojimbo_assert( g_defaultAllocator );
-        return *g_defaultAllocator;
+        printf( "0x%02x,", (int) data[i] );
     }
-}
-
-extern "C" int netcode_init();
-extern "C" int reliable_init();
-extern "C" void netcode_term();
-extern "C" void reliable_term();
-
-#define NETCODE_OK 1
-#define RELIABLE_OK 1
-
-bool InitializeYojimbo()
-{
-    g_defaultAllocator = new yojimbo::DefaultAllocator();
-
-    if ( netcode_init() != NETCODE_OK )
-        return false;
-
-    if ( reliable_init() != RELIABLE_OK )
-        return false;
-
-    return sodium_init() != -1;
-}
-
-void ShutdownYojimbo()
-{
-    reliable_term();
-
-    netcode_term();
-
-    yojimbo_assert( g_defaultAllocator );
-    delete g_defaultAllocator;
-    g_defaultAllocator = NULL;
+    printf( " (%d bytes)\n", data_bytes );
 }
