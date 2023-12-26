@@ -19,6 +19,15 @@ jobs:
         submodules: recursive
     - name: Setup premake
       uses: abel0b/setup-premake@v1
+      
+    ## Linux & MacOS-specific build steps
+    # Build with premake + make
+    - name: Build (gmake)
+      if: runner.os != 'Windows'
+      run: |
+        premake5 gmake2
+        make clean
+        make all config=${{ matrix.configuration }}
 
     # Run the tests with sh syntax
     - name: Test (gmake)
