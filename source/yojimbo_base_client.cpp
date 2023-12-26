@@ -59,6 +59,7 @@ namespace yojimbo
     void BaseClient::Disconnect()
     {
         SetClientState( CLIENT_STATE_DISCONNECTED );
+        Reset();
     }
 
     void BaseClient::AdvanceTime( double time )
@@ -273,6 +274,14 @@ namespace yojimbo
             info.RTT = reliable_endpoint_rtt( m_endpoint );
             info.packetLoss = reliable_endpoint_packet_loss( m_endpoint );
             reliable_endpoint_bandwidth( m_endpoint, &info.sentBandwidth, &info.receivedBandwidth, &info.ackedBandwidth );
+        }
+    }
+
+    void BaseClient::Reset()
+    {
+        if ( m_connection )
+        {
+            m_connection->Reset();
         }
     }
 }

@@ -328,4 +328,9 @@ namespace yojimbo
         Allocator * allocator = (Allocator*) context;
         YOJIMBO_FREE( *allocator, pointer );
     }
+
+    void BaseServer::ResetClient( int clientIndex )
+    {
+        m_clientConnection[clientIndex]->Reset();
+    }
 }

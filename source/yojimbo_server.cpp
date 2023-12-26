@@ -98,12 +98,18 @@ namespace yojimbo
     {
         yojimbo_assert( m_server );
         netcode_server_disconnect_client( m_server, clientIndex );
+        ResetClient( clientIndex );
     }
 
     void Server::DisconnectAllClients()
     {
         yojimbo_assert( m_server );
         netcode_server_disconnect_all_clients( m_server );
+        const int maxClients = GetMaxClients();
+        for ( int i = 0; i < maxClients; ++i )
+        {
+            ResetClient( i );
+        }
     }
 
     void Server::SendPackets()

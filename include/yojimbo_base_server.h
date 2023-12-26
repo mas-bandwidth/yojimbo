@@ -117,6 +117,10 @@ namespace yojimbo
 
         static void StaticFreeFunction( void * context, void * pointer );
 
+    protected:
+
+        virtual void ResetClient( int clientIndex );
+
     private:
 
         ClientServerConfig m_config;                                ///< Base client/server config.
