@@ -285,7 +285,7 @@ namespace yojimbo
                 break;
 
             // Increase your max packet size!
-            yojimbo_assert( entry->measuredBits <= maxBits );
+            yojimbo_assert( entry->measuredBits <= uint32_t(maxBits) );
             
             if ( entry->timeLastSent + m_config.messageResendTime <= m_time && availableBits >= (int) entry->measuredBits )
             {                
