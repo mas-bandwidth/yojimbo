@@ -20,10 +20,11 @@ solution "Yojimbo"
         optimize "Speed"
         defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE" }
 
-filter "system:not unix"
-    project "sodium"
-        kind "StaticLib"
-        language "C"
+project "sodium-builtin"
+    kind "StaticLib"
+    language "C"
+    files { "sodium/dummy.c" }
+    filter "system:windows"
             files {
                 "sodium/**.c",
                 "sodium/**.h",
@@ -59,23 +60,38 @@ project "yojimbo"
 
 project "client"
     files { "client.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    filter "system:windows"
+        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
+    filter "system:not windows"
+        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "server"
     files { "server.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    filter "system:windows"
+        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
+    filter "system:not windows"
+        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "loopback"
     files { "loopback.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    filter "system:windows"
+        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
+    filter "system:not windows"
+        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "soak"
     files { "soak.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    filter "system:windows"
+        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
+    filter "system:not windows"
+        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "test"
     files { "test.cpp" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    filter "system:windows"
+        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
+    filter "system:not windows"
+        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
     defines { "SERIALIZE_ENABLE_TESTS=1" }
 
 newaction
