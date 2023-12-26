@@ -133,7 +133,7 @@ namespace yojimbo
                 m_clientConnection[i]->AdvanceTime( time );
                 if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
                 {
-                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "client %d connection is in error state. disconnecting client\n", m_clientConnection[i]->GetErrorLevel() );
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "client %d connection is in error state. disconnecting client\n", i );
                     DisconnectClient( i );
                     continue;
                 }
