@@ -27,6 +27,7 @@
 #include "yojimbo_connection.h"
 #include "yojimbo_network_simulator.h"
 #include "yojimbo_adapter.h"
+#include "yojimbo_utils.h"
 #include "reliable.h"
 
 namespace yojimbo
@@ -142,11 +143,7 @@ namespace yojimbo
         }
         reliable_config_t reliable_config;
         reliable_default_config( &reliable_config );
-        #if defined(_MSC_VER)
-            strcpy_s( reliable_config.name, sizeof( reliable_config.name ), "client endpoint" );
-        #else
-            strcpy( reliable_config.name, "client endpoint" );
-        #endif
+        yojimbo_copy_string( reliable_config.name, "client endpoint", sizeof( reliable_config.name ) );
         reliable_config.context = (void*) this;
         reliable_config.max_packet_size = m_config.maxPacketSize;
         reliable_config.fragment_above = m_config.fragmentPacketsAbove;

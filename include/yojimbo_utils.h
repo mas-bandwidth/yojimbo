@@ -170,5 +170,23 @@ inline bool yojimbo_sequence_less_than( uint16_t s1, uint16_t s2 )
     return yojimbo_sequence_greater_than( s2, s1 );
 }
 
+/**
+    Copy a string without being stupid
+    Because apparently in 2023 it's really really hard...
+ */
+
+inline void yojimbo_copy_string( char * dest, const char * source, size_t dest_size )
+{
+    yojimbo_assert( dest );
+    yojimbo_assert( source );
+    yojimbo_assert( dest_size >= 1 );
+    memset( dest, 0, dest_size );
+    for ( size_t i = 0; i < dest_size - 1; i++ )
+    {
+        if ( source[i] == '\0' )
+            break;
+        dest[i] = source[i];
+    }
+}
 
 #endif // # YOJIMBO_UTILS_H

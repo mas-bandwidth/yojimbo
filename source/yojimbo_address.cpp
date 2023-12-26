@@ -24,6 +24,7 @@
 
 #include "yojimbo_address.h"
 #include "yojimbo_platform.h"
+#include "yojimbo_utils.h"
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
@@ -129,12 +130,7 @@ namespace yojimbo
 
         char buffer[MaxAddressLength];
         char * address = buffer;
-        #ifdef _MSC_VER
-        strcpy_s( address, address_in, MaxAddressLength );
-        #else
-        strncpy( address, address_in, MaxAddressLength - 1 );
-        address[MaxAddressLength-1] = '\0';
-        #endif 
+        yojimbo_copy_string( address, address_in, MaxAddressLength );
 
         int addressLength = (int) strlen( address );
         m_port = 0;
