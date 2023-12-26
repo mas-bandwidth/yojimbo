@@ -173,14 +173,6 @@ namespace yojimbo
 
         struct PacketEntry
         {
-            PacketEntry()
-            {
-                to = 0;
-                deliveryTime = 0.0;
-                packetData = NULL;
-                packetBytes = 0;
-            }
-
             int to;                                     ///< To index this packet should be sent to (for server -> client packets).
             double deliveryTime;                        ///< Delivery time for this packet (seconds).
             uint8_t * packetData;                       ///< Packet data (owns this pointer).

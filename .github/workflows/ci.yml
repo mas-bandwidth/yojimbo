@@ -8,13 +8,15 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, [ubuntu-latest]
+        os: [macos-latest, windows-latest, ubuntu-latest]
         configuration: [release, debug]
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@master
+      with:
+        submodules: recursive
     - name: Setup premake
       uses: abel0b/setup-premake@v1
 
@@ -25,7 +27,7 @@ jobs:
       run: |
         premake5 gmake
         make clean
-        make -j all config=${{ matrix.configuration }}
+        make all config=${{ matrix.configuration }}
 
     # Run the tests with sh syntax
     - name: Test (gmake)
@@ -45,7 +47,7 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         premake5 vs2019
-        msbuild yojimbo.sln -nologo -m -t:Clean -p:Configuration=${{ matrix.configuration }}
+        msbuild yojimbo.sln -nologo -m -t:Clean  -p:Configuration=${{ matrix.configuration }}
         msbuild yojimbo.sln -nologo -m -p:Configuration=${{ matrix.configuration }}
 
     # Run the tests with Powershell syntax
