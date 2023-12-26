@@ -20,26 +20,27 @@ solution "Yojimbo"
         optimize "Speed"
         defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE" }
 
-project "sodium-test"
-    kind "StaticLib"
-    language "C"
-    files {
-        "sodium/**.c",
-        "sodium/**.h",
-    }
-    filter { "system:not windows", "platforms:*x64 or *avx or *avx2" }
-        files {
-            "sodium/**.S"
-        }
-    filter { "action:gmake" }
-        buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
+filter "system:not unix"
+    project "sodium"
+        kind "StaticLib"
+        language "C"
+            files {
+                "sodium/**.c",
+                "sodium/**.h",
+            }
+        filter { "system:not windows", "platforms:*x64 or *avx or *avx2" }
+            files {
+                "sodium/**.S"
+            }
+        filter { "action:gmake*" }
+            buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
 
 project "netcode"
     kind "StaticLib"
     language "C"
     defines { "NETCODE_ENABLE_TESTS=1" }
     files { "netcode/netcode.c", "netcode/netcode.h" }
-    links { "sodium-test", "tlsf", "reliable" }
+    links { "sodium", "tlsf", "reliable" }
 
 project "reliable"
     kind "StaticLib"
@@ -58,23 +59,23 @@ project "yojimbo"
 
 project "client"
     files { "client.cpp", "shared.h" }
-    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "server"
     files { "server.cpp", "shared.h" }
-    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "loopback"
     files { "loopback.cpp", "shared.h" }
-    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "soak"
     files { "soak.cpp", "shared.h" }
-    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
 
 project "test"
     files { "test.cpp" }
-    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
     defines { "SERIALIZE_ENABLE_TESTS=1" }
 
 newaction
