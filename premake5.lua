@@ -31,7 +31,9 @@ project "sodium-test"
         files {
             "sodium/**.S"
         }
-    filter { "actions:gmake or gmake2" }
+    filter { "actions:gmake" }
+        buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
+    filter { "actions:gmake2" }
         buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
 
 project "netcode"
