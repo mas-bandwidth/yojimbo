@@ -36,6 +36,7 @@ project "sodium"
 
 project "netcode"
     kind "StaticLib"
+    links ["sodium"]
     language "C"
     defines { "NETCODE_ENABLE_TESTS=1" }
     files { "netcode/netcode.c", "netcode/netcode.h" }
