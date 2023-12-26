@@ -41,7 +41,6 @@ project "netcode"
     language "C"
     defines { "NETCODE_ENABLE_TESTS=1" }
     files { "netcode/netcode.c", "netcode/netcode.h" }
-    links { "sodium", "tlsf", "reliable" }
 
 project "reliable"
     kind "StaticLib"
