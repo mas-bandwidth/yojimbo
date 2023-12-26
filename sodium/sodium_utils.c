@@ -539,6 +539,7 @@ _alloc_aligned(const size_t size)
 static void
 _free_aligned(unsigned char *const ptr, const size_t size)
 {
+    (void) size;
 # if defined(MAP_ANON) && defined(HAVE_MMAP)
     (void) munmap(ptr, size);
 # elif defined(HAVE_POSIX_MEMALIGN)
