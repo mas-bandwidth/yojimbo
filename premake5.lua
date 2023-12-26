@@ -20,7 +20,7 @@ solution "Yojimbo"
         optimize "Speed"
         defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE" }
 
-project "sodium"
+project "sodium-test"
     kind "StaticLib"
     language "C"
     files {
@@ -57,23 +57,23 @@ project "yojimbo"
 
 project "client"
     files { "client.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
 
 project "server"
     files { "server.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
 
 project "loopback"
     files { "loopback.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
 
 project "soak"
     files { "soak.cpp", "shared.h" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
 
 project "test"
     files { "test.cpp" }
-    links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+    links { "yojimbo", "sodium-test", "tlsf", "netcode", "reliable" }
     defines { "SERIALIZE_ENABLE_TESTS=1" }
 
 newaction
