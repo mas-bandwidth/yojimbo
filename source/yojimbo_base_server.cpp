@@ -73,7 +73,11 @@ namespace yojimbo
 
             reliable_config_t reliable_config;
             reliable_default_config( &reliable_config );
-            strcpy( reliable_config.name, "server endpoint" );
+            #if defined(_MSC_VER)
+                strcpy_s( reliable_config.name, sizeof( reliable_config.name ), "server endpoint" );
+            #else
+                strcpy( reliable_config.name, "server endpoint" );
+            #endif
             reliable_config.context = (void*) this;
             reliable_config.index = i;
             reliable_config.max_packet_size = m_config.maxPacketSize;
