@@ -87,11 +87,11 @@ project "soak"
 
 project "test"
     files { "test.cpp" }
+    defines { "SERIALIZE_ENABLE_TESTS=1" }
     filter "system:windows"
         links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
     filter "system:not windows"
         links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
-    defines { "SERIALIZE_ENABLE_TESTS=1" }
 
 newaction
 {
