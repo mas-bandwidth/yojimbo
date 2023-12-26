@@ -104,6 +104,21 @@ int SoakMain()
 
         if ( client.IsConnected() )
         {
+            if ( ( rand() % 10000 ) == 0 )
+            {
+                printf( "client reconnect\n" );
+                client.Disconnect();
+                client.InsecureConnect( privateKey, clientId, serverAddress );
+                clientConnected = false;
+                numMessagesSentToServer = 0;
+                numMessagesSentToClient = 0;
+                numMessagesReceivedFromClient = 0;
+                numMessagesReceivedFromServer = 0;
+            }
+        }
+
+        if ( client.IsConnected() )
+        {
             clientConnected = true;
 
             if ( timeForNextClientMessage < time && ( rand() % 1000 ) == 0 )
