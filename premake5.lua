@@ -33,14 +33,13 @@ project "sodium-test"
         }
     filter { "action:gmake" }
         buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
-    filter { "action:gmake2" }
-        buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
 
 project "netcode"
     kind "StaticLib"
     language "C"
     defines { "NETCODE_ENABLE_TESTS=1" }
     files { "netcode/netcode.c", "netcode/netcode.h" }
+    links { "sodium-test", "tlsf", "reliable" }
 
 project "reliable"
     kind "StaticLib"

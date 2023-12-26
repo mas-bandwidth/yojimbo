@@ -25,7 +25,7 @@ jobs:
     - name: Build (gmake)
       if: runner.os != 'Windows'
       run: |
-        premake5 gmake2
+        premake5 gmake
         make clean
         make all config=${{ matrix.configuration }}
 
