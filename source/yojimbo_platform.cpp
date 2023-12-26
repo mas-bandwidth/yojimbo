@@ -41,7 +41,9 @@ static void default_assert_handler( const char * condition, const char * functio
 }
 
 static int log_level = 0;
+
 static int (*printf_function)( const char *, ... ) = printf;
+
 void (*yojimbo_assert_function)( const char *, const char *, const char * file, int line ) = default_assert_handler;
 
 void yojimbo_log_level( int level )

@@ -264,7 +264,9 @@ namespace yojimbo
         uint16_t previousMessageId = 0;
         int usedBits = ConservativeMessageHeaderBits;
         int giveUpCounter = 0;
+#if YOJIMBO_DEBUG
         const int maxBits = availableBits;
+#endif // YOJIMBO_DEBUG
 
         for ( int i = 0; i < messageLimit; ++i )
         {
@@ -382,6 +384,7 @@ namespace yojimbo
             if ( yojimbo_sequence_greater_than( messageId, maxMessageId ) )
             {
                 // Did you forget to dequeue messages on the receiver?
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "sequence overflow: %d vs. [%d,%d]\n", messageId, minMessageId, maxMessageId );
                 SetErrorLevel( CHANNEL_ERROR_DESYNC );
                 return;
             }
