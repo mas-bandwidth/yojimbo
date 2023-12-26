@@ -2233,6 +2233,183 @@ void test_single_message_type_unreliable()
     check( numMessagesReceived == NumMessagesSent );
 }
 
+
+void SendClientToServerMessagesSample( Client & client, int numMessagesToSend, int channelIndex = 0 )
+{
+    for ( int i = 0; i < numMessagesToSend; ++i )
+    {
+        if ( !client.CanSendMessage( channelIndex ) )
+            break;
+
+        TestMessage * message = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
+        check( message );
+        message->sequence = i;
+        client.SendMessage( channelIndex, message );
+    }
+}
+
+void SendServerToClientMessagesSample( Server & server, int clientIndex, int numMessagesToSend, int channelIndex = 0 )
+{
+    for ( int i = 0; i < numMessagesToSend; ++i )
+    {
+        if ( !server.CanSendMessage( clientIndex, channelIndex ) )
+            break;
+
+        TestMessage * message = (TestMessage*) server.CreateMessage( clientIndex, TEST_MESSAGE );
+        check( message );
+        message->sequence = i;
+        server.SendMessage( clientIndex, channelIndex, message );
+    }
+}
+
+void ProcessServerToClientMessagesSample( Client & client, int & numMessagesReceivedFromServer )
+{
+    while ( true )
+    {
+        Message * message = client.ReceiveMessage( 0 );
+
+        if ( !message )
+            break;
+
+        switch ( message->GetType() )
+        {
+            case TEST_MESSAGE:
+            {
+                ++numMessagesReceivedFromServer;
+            }
+            break;
+        }
+
+        client.ReleaseMessage( message );
+    }
+}
+
+void ProcessClientToServerMessagesSample( Server & server, int clientIndex, int & numMessagesReceivedFromClient )
+{
+    while ( true )
+    {
+        Message * message = server.ReceiveMessage( clientIndex, 0 );
+
+        if ( !message )
+            break;
+
+        switch ( message->GetType() )
+        {
+            case TEST_MESSAGE:
+            {
+                check( !message->IsBlockMessage() );
+                ++numMessagesReceivedFromClient;
+            }
+            break;
+        }
+
+        server.ReleaseMessage( clientIndex, message );
+    }
+}
+
+void test_client_server_messages_network_sim_leak()
+{
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    double time = 100.0;
+
+    ClientServerConfig config;
+    config.networkSimulator = true;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
+
+    server.Start( MaxClients );
+
+    server.SetLatency( 500 );
+    server.SetJitter( 100 );
+    server.SetPacketLoss( 5 );
+    server.SetDuplicates( 5 );
+
+    for ( int iteration = 0; iteration < 2; ++iteration )
+    {
+        client.InsecureConnect( privateKey, clientId, serverAddress );
+
+        client.SetLatency( 500 );
+        client.SetJitter( 100 );
+        client.SetPacketLoss( 5 );
+        client.SetDuplicates( 5 );
+
+        const int NumIterations = 10000;
+
+        for ( int i = 0; i < NumIterations; ++i )
+        {
+            Client * clients[] = { &client };
+            Server * servers[] = { &server };
+
+            PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+            if ( client.ConnectionFailed() )
+                break;
+
+            if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+                break;
+        }
+
+        check( !client.IsConnecting() );
+        check( client.IsConnected() );
+        check( server.GetNumConnectedClients() == 1 );
+        check( client.GetClientIndex() == 0 );
+        check( server.IsClientConnected(0) );
+
+        const int NumMessagesSent = 2000;
+
+        SendClientToServerMessagesSample( client, NumMessagesSent );
+
+        SendServerToClientMessagesSample( server, client.GetClientIndex(), NumMessagesSent );
+
+        int numMessagesReceivedFromClient = 0;
+        int numMessagesReceivedFromServer = 0;
+
+        for ( int i = 0; i < 100; ++i )
+        {
+            if ( !client.IsConnected() )
+                break;
+
+            Client * clients[] = { &client };
+            Server * servers[] = { &server };
+
+            PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+            ProcessServerToClientMessagesSample( client, numMessagesReceivedFromServer );
+            ProcessClientToServerMessagesSample( server, client.GetClientIndex(), numMessagesReceivedFromClient );
+        }
+
+        check( client.IsConnected() );
+        check( server.IsClientConnected( client.GetClientIndex() ) );
+
+        client.Disconnect();
+
+        for ( int i = 0; i < NumIterations; ++i )
+        {
+            Client * clients[] = { &client };
+            Server * servers[] = { &server };
+
+            PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+            if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
+                break;
+        }
+
+        check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+    }
+
+    server.Stop();
+}
+
 #define RUN_TEST( test_function )                                           \
     do                                                                      \
     {                                                                       \
@@ -2333,6 +2510,8 @@ int main()
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );
         RUN_TEST( test_single_message_type_unreliable );
+
+        RUN_TEST( test_client_server_messages_network_sim_leak );
 
 #if SOAK
         if ( quit )
