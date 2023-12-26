@@ -130,11 +130,11 @@ namespace yojimbo
         char buffer[MaxAddressLength];
         char * address = buffer;
         #ifdef _MSC_VER
-        strncpy_s( address, address_in, MaxAddressLength - 1 );
+        strcpy_s( address, address_in, MaxAddressLength );
         #else
         strncpy( address, address_in, MaxAddressLength - 1 );
-        #endif 
         address[MaxAddressLength-1] = '\0';
+        #endif 
 
         int addressLength = (int) strlen( address );
         m_port = 0;
