@@ -26,6 +26,8 @@
 #define RELIABLE_H
 
 #include <stdint.h>
+#include <stddef.h>
+#include <inttypes.h>
 
 #if !defined(RELIABLE_DEBUG) && !defined(RELIABLE_RELEASE)
 #if defined(NDEBUG)
@@ -110,7 +112,7 @@ struct reliable_config_t
     void (*transmit_packet_function)(void*,int,uint16_t,uint8_t*,int);
     int (*process_packet_function)(void*,int,uint16_t,uint8_t*,int);
     void * allocator_context;
-    void * (*allocate_function)(void*,uint64_t);
+    void * (*allocate_function)(void*,size_t);
     void (*free_function)(void*,void*);
 };
 

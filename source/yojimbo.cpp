@@ -31,7 +31,7 @@
 
 #include <sodium.h>
 
-static yojimbo::Allocator * g_defaultAllocator = NULL;
+static yojimbo::Allocator * g_defaultAllocator;
 
 namespace yojimbo
 {

@@ -11,6 +11,7 @@ solution "Yojimbo"
     end
     rtti "Off"
     warnings "Extra"
+    flags { "FatalWarnings" }
     floatingpoint "Fast"
     filter "configurations:Debug"
         symbols "On"

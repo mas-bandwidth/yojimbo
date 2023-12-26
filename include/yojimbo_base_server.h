@@ -113,7 +113,7 @@ namespace yojimbo
 
         static int StaticProcessPacketFunction( void * context,int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
-        static void * StaticAllocateFunction( void * context, uint64_t bytes );
+        static void * StaticAllocateFunction( void * context, size_t bytes );
 
         static void StaticFreeFunction( void * context, void * pointer );
 

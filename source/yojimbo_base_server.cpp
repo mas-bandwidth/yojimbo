@@ -314,7 +314,7 @@ namespace yojimbo
         return server->ProcessPacketFunction( index, packetSequence, packetData, packetBytes );
     }
 
-    void * BaseServer::StaticAllocateFunction( void * context, uint64_t bytes )
+    void * BaseServer::StaticAllocateFunction( void * context, size_t bytes )
     {
         yojimbo_assert( context );
         Allocator * allocator = (Allocator*) context;

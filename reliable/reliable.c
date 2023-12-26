@@ -97,7 +97,7 @@ void reliable_printf( int level, RELIABLE_CONST char * format, ... )
 
 #endif // #if RELIABLE_ENABLE_LOGGING
 
-void * reliable_default_allocate_function( void * context, uint64_t bytes )
+void * reliable_default_allocate_function( void * context, size_t bytes )
 {
     (void) context;
     return malloc( bytes );
@@ -138,7 +138,7 @@ int reliable_sequence_less_than( uint16_t s1, uint16_t s2 )
 struct reliable_sequence_buffer_t
 {
     void * allocator_context;
-    void * (*allocate_function)(void*,uint64_t);
+    void * (*allocate_function)(void*,size_t);
     void (*free_function)(void*,void*);
     uint16_t sequence;
     int num_entries;
@@ -150,7 +150,7 @@ struct reliable_sequence_buffer_t
 struct reliable_sequence_buffer_t * reliable_sequence_buffer_create( int num_entries, 
                                                                      int entry_stride, 
                                                                      void * allocator_context, 
-                                                                     void * (*allocate_function)(void*,uint64_t), 
+                                                                     void * (*allocate_function)(void*,size_t), 
                                                                      void (*free_function)(void*,void*) )
 {
     reliable_assert( num_entries > 0 );
@@ -503,7 +503,7 @@ void reliable_fragment_reassembly_data_cleanup( void * data, void * allocator_co
 struct reliable_endpoint_t
 {
     void * allocator_context;
-    void * (*allocate_function)(void*,uint64_t);
+    void * (*allocate_function)(void*,size_t);
     void (*free_function)(void*,void*);
     struct reliable_config_t config;
     double time;
@@ -576,7 +576,7 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
     reliable_assert( config->process_packet_function != NULL );
 
     void * allocator_context = config->allocator_context;
-    void * (*allocate_function)(void*,uint64_t) = config->allocate_function;
+    void * (*allocate_function)(void*,size_t) = config->allocate_function;
     void (*free_function)(void*,void*) = config->free_function;
 
     if ( allocate_function == NULL )
@@ -2265,7 +2265,7 @@ struct test_tracking_allocate_context_t
     void* active_allocations[1024];
 };
 
-void * test_tracking_allocate_function( void * context, uint64_t bytes )
+void * test_tracking_allocate_function( void * context, size_t bytes )
 {
     struct test_tracking_allocate_context_t* tracking_context = (struct test_tracking_allocate_context_t*)context;
     void * allocation = malloc( bytes );

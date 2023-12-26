@@ -190,7 +190,7 @@ namespace yojimbo
         return client->ProcessPacketFunction( packetSequence, packetData, packetBytes );
     }
 
-    void * BaseClient::StaticAllocateFunction( void * context, uint64_t bytes )
+    void * BaseClient::StaticAllocateFunction( void * context, size_t bytes )
     {
         yojimbo_assert( context );
         Allocator * allocator = (Allocator*) context;

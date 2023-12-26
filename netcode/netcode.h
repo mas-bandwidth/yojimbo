@@ -26,6 +26,7 @@
 #define NETCODE_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #if !defined(NETCODE_DEBUG) && !defined(NETCODE_RELEASE)
 #if defined(NDEBUG)
@@ -127,7 +128,7 @@ int netcode_address_equal( struct netcode_address_t * a, struct netcode_address_
 struct netcode_client_config_t
 {
     void * allocator_context;
-    void * (*allocate_function)(void*,uint64_t);
+    void * (*allocate_function)(void*,size_t);
     void (*free_function)(void*,void*);
     struct netcode_network_simulator_t * network_simulator;
     void * callback_context;
@@ -194,7 +195,7 @@ struct netcode_server_config_t
     uint64_t protocol_id;
     uint8_t private_key[NETCODE_KEY_BYTES];
     void * allocator_context;
-    void * (*allocate_function)(void*,uint64_t);
+    void * (*allocate_function)(void*,size_t);
     void (*free_function)(void*,void*);
     struct netcode_network_simulator_t * network_simulator;
     void * callback_context;
