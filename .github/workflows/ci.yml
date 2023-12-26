@@ -19,14 +19,18 @@ jobs:
         submodules: recursive
     - name: Setup premake
       uses: abel0b/setup-premake@v1
-      
-    # Install libsodium from apt and configure the compiler to look for our local mbedtls
+    
+    # Install libsodium from apt
     - name: Setup (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get install libsodium-dev
   
-      ## Linux & MacOS-specific build steps
+    # Install libsodium from brew
+    - name: Setup (MacOS)
+      if: runner.os == 'MacOS'
+      run: brew install libsodium
+
     # Build with premake + make
     - name: Build (gmake)
       if: runner.os != 'Windows'
