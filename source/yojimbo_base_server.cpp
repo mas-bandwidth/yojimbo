@@ -76,7 +76,7 @@ namespace yojimbo
             reliable_default_config( &reliable_config );
             yojimbo_copy_string( reliable_config.name, "server endpoint", sizeof( reliable_config.name ) );
             reliable_config.context = (void*) this;
-            reliable_config.index = i;
+            reliable_config.id = i;
             reliable_config.max_packet_size = m_config.maxPacketSize;
             reliable_config.fragment_above = m_config.fragmentPacketsAbove;
             reliable_config.max_fragments = m_config.maxPacketFragments;
@@ -303,13 +303,13 @@ namespace yojimbo
         return *m_clientConnection[clientIndex];
     }
 
-    void BaseServer::StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    void BaseServer::StaticTransmitPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
         BaseServer * server = (BaseServer*) context;
         server->TransmitPacketFunction( index, packetSequence, packetData, packetBytes );
     }
     
-    int BaseServer::StaticProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    int BaseServer::StaticProcessPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
         BaseServer * server = (BaseServer*) context;
         return server->ProcessPacketFunction( index, packetSequence, packetData, packetBytes );

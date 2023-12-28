@@ -177,14 +177,14 @@ namespace yojimbo
         YOJIMBO_FREE( *m_allocator, m_clientMemory );
     }
 
-    void BaseClient::StaticTransmitPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    void BaseClient::StaticTransmitPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
         (void) index;
         BaseClient * client = (BaseClient*) context;
         client->TransmitPacketFunction( packetSequence, packetData, packetBytes );
     }
     
-    int BaseClient::StaticProcessPacketFunction( void * context, int index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
+    int BaseClient::StaticProcessPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )
     {
         (void) index;
         BaseClient * client = (BaseClient*) context;

@@ -1266,19 +1266,43 @@ namespace serialize
         do                                                              \
         {                                                               \
             serialize_assert( bits > 0 );                               \
-            serialize_assert( bits <= 32 );                             \
-            uint32_t uint32_value = 0;                                  \
-            if ( Stream::IsWriting )                                    \
+            serialize_assert( bits <= 64 );                             \
+            if ( bits <= 32 )                                           \
             {                                                           \
-                uint32_value = (uint32_t) value;                        \
+                uint32_t uint32_value = 0;                              \
+                if ( Stream::IsWriting )                                \
+                {                                                       \
+                    uint32_value = (uint32_t) value;                    \
+                }                                                       \
+                if ( !stream.SerializeBits( uint32_value, bits ) )      \
+                {                                                       \
+                    return false;                                       \
+                }                                                       \
+                if ( Stream::IsReading )                                \
+                {                                                       \
+                    value = uint32_value;                               \
+                }                                                       \
             }                                                           \
-            if ( !stream.SerializeBits( uint32_value, bits ) )          \
+            else                                                        \
             {                                                           \
-                return false;                                           \
-            }                                                           \
-            if ( Stream::IsReading )                                    \
-            {                                                           \
-                value = uint32_value;                                   \
+                uint32_t hi = 0, lo = 0;                                \
+                if ( Stream::IsWriting )                                \
+                {                                                       \
+                    lo = uint32_t( uint64_t(value) & 0xFFFFFFFF );      \
+                    hi = uint32_t( uint64_t(value) >> 32 );             \
+                }                                                       \
+                if ( !stream.SerializeBits( lo, 32 ) )                  \
+                {                                                       \
+                    return false;                                       \
+                }                                                       \
+                if ( !stream.SerializeBits( hi, bits - 32 ) )           \
+                {                                                       \
+                    return false;                                       \
+                }                                                       \
+                if ( Stream::IsReading )                                \
+                {                                                       \
+                    value = ( uint64_t(hi) << 32 ) | lo;                \
+                }                                                       \
             }                                                           \
         } while (0)
 
@@ -1383,7 +1407,7 @@ namespace serialize
         @param stream The stream object. May be a read, write or measure stream.
         @param value The float value to serialize.
      */
-#define serialize_compressed_float(stream, value, min, max, res)                           \
+    #define serialize_compressed_float(stream, value, min, max, res)                       \
     do                                                                                     \
     {                                                                                      \
         if (!serialize::serialize_compressed_float_internal(stream, value, min, max, res)) \
@@ -1391,50 +1415,6 @@ namespace serialize
             return false;                                                                  \
         }                                                                                  \
     } while (0)
-
-    /**
-        Serialize a 32 bit unsigned integer to the stream (read/write/measure).
-        This is a helper macro to make unified serialize functions easier.
-        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
-        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
-        @param stream The stream object. May be a read, write or measure stream.
-        @param value The unsigned 32 bit integer value to serialize.
-     */
-
-    #define serialize_uint32( stream, value ) serialize_bits( stream, value, 32 );
-
-    template <typename Stream> bool serialize_uint64_internal( Stream & stream, uint64_t & value )
-    {
-        uint32_t hi = 0, lo = 0;
-        if ( Stream::IsWriting )
-        {
-            lo = value & 0xFFFFFFFF;
-            hi = value >> 32;
-        }
-        serialize_bits( stream, lo, 32 );
-        serialize_bits( stream, hi, 32 );
-        if ( Stream::IsReading )
-        {
-            value = ( uint64_t(hi) << 32 ) | lo;
-        }
-        return true;
-    }
-
-    /**
-        Serialize a 64 bit unsigned integer to the stream (read/write/measure).
-        This is a helper macro to make unified serialize functions easier.
-        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
-        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
-        @param stream The stream object. May be a read, write or measure stream.
-        @param value The unsigned 64 bit integer value to serialize.
-     */
-
-    #define serialize_uint64( stream, value )                                       \
-        do                                                                          \
-        {                                                                           \
-            if ( !serialize::serialize_uint64_internal( stream, value ) )           \
-                return false;                                                       \
-        } while (0)
 
     template <typename Stream> bool serialize_double_internal( Stream & stream, double & value )
     {
@@ -1448,7 +1428,7 @@ namespace serialize
         {
             tmp.double_value = value;
         }
-        serialize_uint64( stream, tmp.int_value );
+        serialize_bits( stream, tmp.int_value, 64 );
         if ( Stream::IsReading )
         {
             value = tmp.double_value;
@@ -1675,7 +1655,7 @@ namespace serialize
         }
 
         uint32_t value = current;
-        serialize_uint32( stream, value );
+        serialize_bits( stream, value, 32 );
         if ( Stream::IsReading )
         {
             current = value;
@@ -1815,6 +1795,20 @@ namespace serialize
     #define write_align                 serialize_align
     #define write_object                serialize_object
     #define write_int_relative          serialize_int_relative
+}
+
+inline void serialize_copy_string( char * dest, const char * source, size_t dest_size )
+{
+    serialize_assert( dest );
+    serialize_assert( source );
+    serialize_assert( dest_size >= 1 );
+    memset( dest, 0, dest_size );
+    for ( size_t i = 0; i < dest_size - 1; i++ )
+    {
+        if ( source[i] == '\0' )
+            break;
+        dest[i] = source[i];
+    }
 }
 
 #if SERIALIZE_ENABLE_TESTS
@@ -1977,20 +1971,6 @@ struct TestContext
     int max;
 };
 
-void serialize_copy_string( char * dest, const char * source, size_t dest_size )
-{
-    serialize_assert( dest );
-    serialize_assert( source );
-    serialize_assert( dest_size >= 1 );
-    memset( dest, 0, dest_size );
-    for ( size_t i = 0; i < dest_size - 1; i++ )
-    {
-        if ( source[i] == '\0' )
-            break;
-        dest[i] = source[i];
-    }
-}
-
 struct TestObject
 {
     TestData data;
@@ -2048,7 +2028,7 @@ struct TestObject
 
         serialize_double( stream, data.double_value );
 
-        serialize_uint64( stream, data.uint64_value );
+        serialize_bits( stream, data.uint64_value, 64 );
 
         serialize_int_relative( stream, data.a, data.int_relative );
 

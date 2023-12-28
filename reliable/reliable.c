@@ -773,7 +773,7 @@ void reliable_endpoint_send_packet( struct reliable_endpoint_t * endpoint, uint8
 
         memcpy( transmit_packet_data + packet_header_bytes, packet_data, packet_bytes );
 
-        endpoint->config.transmit_packet_function( endpoint->config.context, endpoint->config.index, sequence, transmit_packet_data, packet_header_bytes + packet_bytes );
+        endpoint->config.transmit_packet_function( endpoint->config.context, endpoint->config.id, sequence, transmit_packet_data, packet_header_bytes + packet_bytes );
 
         endpoint->free_function( endpoint->allocator_context, transmit_packet_data );
     }
@@ -831,7 +831,7 @@ void reliable_endpoint_send_packet( struct reliable_endpoint_t * endpoint, uint8
 
             int fragment_packet_bytes = (int) ( p - fragment_packet_data );
 
-            endpoint->config.transmit_packet_function( endpoint->config.context, endpoint->config.index, sequence, fragment_packet_data, fragment_packet_bytes );
+            endpoint->config.transmit_packet_function( endpoint->config.context, endpoint->config.id, sequence, fragment_packet_data, fragment_packet_bytes );
 
             endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_SENT]++;
         }
@@ -1107,7 +1107,7 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
         reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] processing packet %d\n", endpoint->config.name, sequence );
 
         if ( endpoint->config.process_packet_function( endpoint->config.context, 
-                                                       endpoint->config.index, 
+                                                       endpoint->config.id, 
                                                        sequence, 
                                                        packet_data + packet_header_bytes, 
                                                        packet_bytes - packet_header_bytes ) )
@@ -1501,6 +1501,20 @@ RELIABLE_CONST uint64_t * reliable_endpoint_counters( struct reliable_endpoint_t
     return endpoint->counters;
 }
 
+void reliable_copy_string( char * dest, RELIABLE_CONST char * source, size_t dest_size )
+{
+    reliable_assert( dest );
+    reliable_assert( source );
+    reliable_assert( dest_size >= 1 );
+    memset( dest, 0, dest_size );
+    for ( size_t i = 0; i < dest_size - 1; i++ )
+    {
+        if ( source[i] == '\0' )
+            break;
+        dest[i] = source[i];
+    }
+}
+
 // ---------------------------------------------------------------
 
 #if RELIABLE_ENABLE_TESTS
@@ -1762,7 +1776,7 @@ void test_default_context( struct test_context_t * context )
     context->allow_packets = -1;
 }
 
-static void test_transmit_packet_function( void * _context, int index, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+static void test_transmit_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
 {
     (void) sequence;
 
@@ -1783,22 +1797,22 @@ static void test_transmit_packet_function( void * _context, int index, uint16_t 
         context->allow_packets--;
     }
 
-    if ( index == 0 )
+    if ( id == 0 )
     {
         reliable_endpoint_receive_packet( context->receiver, packet_data, packet_bytes );
     }
-    else if ( index == 1 )
+    else if ( id == 1 )
     {
         reliable_endpoint_receive_packet( context->sender, packet_data, packet_bytes );
     }
 }
 
-static int test_process_packet_function( void * _context, int index, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+static int test_process_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
 {
     struct test_context_t * context = (struct test_context_t*) _context;
 
     (void) context;
-    (void) index;
+    (void) id;
     (void) sequence;
     (void) packet_data;
     (void) packet_bytes;
@@ -1822,12 +1836,12 @@ static void test_acks()
     reliable_default_config( &receiver_config );
 
     sender_config.context = &context;
-    sender_config.index = 0;
+    sender_config.id = 0;
     sender_config.transmit_packet_function = &test_transmit_packet_function;
     sender_config.process_packet_function = &test_process_packet_function;
 
     receiver_config.context = &context;
-    receiver_config.index = 1;
+    receiver_config.id = 1;
     receiver_config.transmit_packet_function = &test_transmit_packet_function;
     receiver_config.process_packet_function = &test_process_packet_function;
 
@@ -1899,12 +1913,12 @@ static void test_acks_packet_loss()
     reliable_default_config( &receiver_config );
 
     sender_config.context = &context;
-    sender_config.index = 0;
+    sender_config.id = 0;
     sender_config.transmit_packet_function = &test_transmit_packet_function;
     sender_config.process_packet_function = &test_process_packet_function;
 
     receiver_config.context = &context;
-    receiver_config.index = 1;
+    receiver_config.id = 1;
     receiver_config.transmit_packet_function = &test_transmit_packet_function;
     receiver_config.process_packet_function = &test_process_packet_function;
 
@@ -2004,14 +2018,14 @@ static void validate_packet_data( uint8_t * packet_data, int packet_bytes )
     }
 }
 
-static int test_process_packet_function_validate( void * context, int index, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+static int test_process_packet_function_validate( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
 {
     reliable_assert( packet_data );
     reliable_assert( packet_bytes > 0 );
     reliable_assert( packet_bytes <= TEST_MAX_PACKET_BYTES );
 
     (void) context;
-    (void) index;
+    (void) id;
     (void) sequence;
 
     validate_packet_data( packet_data, packet_bytes );
@@ -2035,15 +2049,15 @@ static int generate_packet_data_large( uint8_t* packet_data )
     return data_bytes + 2;
 }
 
-static int test_process_packet_function_validate_large( void * context, int index, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+static int test_process_packet_function_validate_large( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
 {
     reliable_assert( packet_data );
     reliable_assert( packet_bytes >= 2 );
     reliable_assert( packet_bytes <= TEST_MAX_PACKET_BYTES );
 
-    (void)context;
-    (void)index;
-    (void)sequence;
+    (void) context;
+    (void) id;
+    (void) sequence;
 
     uint16_t data_bytes = 0;
     data_bytes |= (uint16_t) packet_data[0];
@@ -2074,23 +2088,15 @@ void test_packets()
     sender_config.fragment_above = 500;
     receiver_config.fragment_above = 500;
 
-#if defined(_MSC_VER)
-    strcpy_s( sender_config.name, sizeof( sender_config.name ), "sender" );
-#else
-    strcpy( sender_config.name, "sender" );
-#endif
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
     sender_config.context = &context;
-    sender_config.index = 0;
+    sender_config.id = 0;
     sender_config.transmit_packet_function = &test_transmit_packet_function;
     sender_config.process_packet_function = &test_process_packet_function_validate;
 
-#if defined(_MSC_VER)
-    strcpy_s( receiver_config.name, sizeof( receiver_config.name ), "receiver" );
-#else
-    strcpy( receiver_config.name, "receiver" );
-#endif
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
     receiver_config.context = &context;
-    receiver_config.index = 1;
+    receiver_config.id = 1;
     receiver_config.transmit_packet_function = &test_transmit_packet_function;
     receiver_config.process_packet_function = &test_process_packet_function_validate;
 
@@ -2148,23 +2154,15 @@ void test_large_packets()
     sender_config.fragment_above = TEST_MAX_PACKET_BYTES;
     receiver_config.fragment_above = TEST_MAX_PACKET_BYTES;
 
-#if defined(_MSC_VER)
-    strcpy_s( sender_config.name, sizeof( sender_config.name ), "sender" );
-#else
-    strcpy( sender_config.name, "sender" );
-#endif
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
     sender_config.context = &context;
-    sender_config.index = 0;
+    sender_config.id = 0;
     sender_config.transmit_packet_function = &test_transmit_packet_function;
     sender_config.process_packet_function = &test_process_packet_function_validate_large;
 
-#if defined(_MSC_VER)
-    strcpy_s( receiver_config.name, sizeof( receiver_config.name ), "receiver" );
-#else
-    strcpy( receiver_config.name, "receiver" );
-#endif
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
     receiver_config.context = &context;
-    receiver_config.index = 1;
+    receiver_config.id = 1;
     receiver_config.transmit_packet_function = &test_transmit_packet_function;
     receiver_config.process_packet_function = &test_process_packet_function_validate_large;
 
@@ -2208,23 +2206,15 @@ void test_sequence_buffer_rollover()
     sender_config.fragment_above = 500;
     receiver_config.fragment_above = 500;
 
-#if defined(_MSC_VER)
-    strcpy_s( sender_config.name, sizeof( sender_config.name ), "sender" );
-#else
-    strcpy( sender_config.name, "sender" );
-#endif
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
     sender_config.context = &context;
-    sender_config.index = 0;
+    sender_config.id = 0;
     sender_config.transmit_packet_function = &test_transmit_packet_function;
     sender_config.process_packet_function = &test_process_packet_function;
 
-#if defined(_MSC_VER)
-    strcpy_s( receiver_config.name, sizeof( receiver_config.name ), "receiver" );
-#else
-    strcpy( receiver_config.name, "receiver" );
-#endif
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
     receiver_config.context = &context;
-    receiver_config.index = 1;
+    receiver_config.id = 1;
     receiver_config.transmit_packet_function = &test_transmit_packet_function;
     receiver_config.process_packet_function = &test_process_packet_function;
 
@@ -2321,23 +2311,15 @@ void test_fragment_cleanup()
     receiver_config.free_function = &test_tracking_free_function;
     receiver_config.fragment_reassembly_buffer_size = 4;
 
-#if defined(_MSC_VER)
-    strcpy_s( sender_config.name, sizeof( sender_config.name ), "sender" );
-#else
-    strcpy( sender_config.name, "sender" );
-#endif
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
     sender_config.context = &context;
-    sender_config.index = 0;
+    sender_config.id = 0;
     sender_config.transmit_packet_function = &test_transmit_packet_function;
     sender_config.process_packet_function = &test_process_packet_function;
 
-#if defined(_MSC_VER)
-    strcpy_s( receiver_config.name, sizeof( receiver_config.name ), "receiver" );
-#else
-    strcpy( receiver_config.name, "receiver" );
-#endif
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
     receiver_config.context = &context;
-    receiver_config.index = 1;
+    receiver_config.id = 1;
     receiver_config.transmit_packet_function = &test_transmit_packet_function;
     receiver_config.process_packet_function = &test_process_packet_function;
 
