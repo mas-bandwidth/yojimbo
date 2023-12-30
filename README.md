@@ -12,6 +12,7 @@ It has the following features:
 * Client/server connection management and timeouts
 * Encrypted and signed packets sent over UDP
 * Packet fragmentation and reassembly
+* Bitpacker and serialization system
 * Reliable-ordered messages and data blocks
 * Estimates of packet loss, latency and bandwidth usage
 
@@ -30,6 +31,8 @@ Alternatively, you can download one of the latest [releases](https://github.com/
 The author of this library is Glenn Fiedler.
 
 Open source libraries by the same author include: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/reliable),  and [serialize](https://github.com/mas-bandwidth/serialize)
+
+If you find this software useful, please consider [sponsoring it](). Thanks!
 
 ## Sponsors
 
