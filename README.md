@@ -24,7 +24,7 @@ You can get the latest source code by cloning it from github:
 
       git clone https://github.com/mas-bandwidth/yojimbo.git
 
-Alternatively, you can download one of the latest [releases](https://github.com/mas-bandwidth/yojimbo/releases)
+Alternatively, you can download the latest [releases](https://github.com/mas-bandwidth/yojimbo/releases)
 
 ## Author
 
