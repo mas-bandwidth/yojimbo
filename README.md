@@ -32,25 +32,7 @@ The author of this library is Glenn Fiedler.
 
 Open source libraries by the same author include: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/reliable),  and [serialize](https://github.com/mas-bandwidth/serialize)
 
-If you find this software useful, please consider [sponsoring it](). Thanks!
-
-## Sponsors
-
-**yojimbo** was generously sponsored by:
-
-* **Gold Sponsors**
-    * [Remedy Entertainment](http://www.remedygames.com/)
-    * [Cloud Imperium Games](https://cloudimperiumgames.com)
-    
-* **Silver Sponsors**
-    * [Moon Studios](http://www.oriblindforest.com/#!moon-3/)
-    * The Network Protocol Company
-    
-* **Bronze Sponsors**
-    * Kite & Lightning
-    * [Data Realms](http://datarealms.com)
- 
-And by individual supporters on Patreon. Thank you. You made this possible!
+If you find this software useful, please consider [sponsoring it](https://github.com/sponsors/mas-bandwidth). Thanks!
 
 ## License
 
