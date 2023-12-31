@@ -30,7 +30,7 @@ Alternatively, you can download the latest [releases](https://github.com/mas-ban
 
 The author of this library is Glenn Fiedler.
 
-Open source libraries by the same author include: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/reliable),  and [serialize](https://github.com/mas-bandwidth/serialize)
+Other open source libraries by the same author include: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/reliable), and [serialize](https://github.com/mas-bandwidth/serialize)
 
 If you find this software useful, please consider [sponsoring it](https://github.com/sponsors/mas-bandwidth). Thanks!
 
