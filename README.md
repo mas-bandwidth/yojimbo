@@ -2,7 +2,7 @@
 
 # yojimbo
 
-![image](https://github.com/mas-bandwidth/yojimbo/assets/696656/337099f4-e115-4060-8b88-e78ff2477466)
+![image](https://github.com/mas-bandwidth/yojimbo/assets/696656/098935f2-ba2b-4540-8d7f-474acc7f2cd8)
 
 **yojimbo** is a network library for client/server games written in C++.
 
