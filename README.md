@@ -4,9 +4,9 @@
 
 **yojimbo** is a network library for client/server games written in C++.
 
-![image](https://github.com/mas-bandwidth/yojimbo/assets/696656/098935f2-ba2b-4540-8d7f-474acc7f2cd8)
-
 It's designed around the networking requirements of competitive multiplayer games like first person shooters. 
+
+![image](https://github.com/mas-bandwidth/yojimbo/assets/696656/098935f2-ba2b-4540-8d7f-474acc7f2cd8)
 
 It has the following features:
 
