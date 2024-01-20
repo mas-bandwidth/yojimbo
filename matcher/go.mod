@@ -1,4 +1,4 @@
-module github.com/mas-bandwidth/yojimbo-matcher
+module github.com/mas-bandwidth/matcher
 
 go 1.20
 
