@@ -1,7 +1,11 @@
 Building yojimbo
 ================
++ Building with [premake](#Building-with-premake).
++ Building with [cmake](#Building-with-cmake).
 
-## Building on Windows
+## Building with premake
+
+### Building on Windows
 
 Download [premake 5](https://premake.github.io/download.html) and copy the **premake5** executable somewhere in your path.
 
@@ -15,7 +19,7 @@ Open the generated yojimbo.sln file.
 
 You can now build the library and run individual test programs as you would for any other Visual Studio solution.
 
-## Building on MacOS and Linux
+### Building on MacOS and Linux
 
 First, download and install [premake 5](https://premake.github.io/download.html).
 
@@ -46,3 +50,26 @@ Then run the built executables:
 cheers
 
  - Glenn
+
+## Building with cmake
+
+Download [CMake](https://cmake.org/download/) and install.
+
+Once you have Cmake installed, launch a terminal from the directory where you want your solution to be located and run the command below.
+
+    cmake "path_to_yojimbo_dir_where_cmakelist.txt_located"
+
+Then build your solution:
+
+    cmake --build . --config DEBUG/RELEASE
+
+Go to ./bin directory:
+
+    ./bin/lib         // contains libraries
+    ./bin/run         // contains executables
+
+Then run the built executables:
+
+    ./bin/run/test           // run unit tests
+    ./bin/run/server         // run a server on localhost on UDP port 40000
+    ./bin/run/client         // run a client that connects to the local server
