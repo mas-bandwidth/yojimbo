@@ -179,9 +179,9 @@ func (token *connectToken) Write(buffer []byte) error {
 		return errors.Wrap(err, "failed to encrypt message")
 	}
 	binary.LittleEndian.PutUint32(buffer[connectTokenPrivateBytes+61:], (uint32)(token.TimeoutSeconds))
-	offset := writeAddresses(buffer[1024+61+4:], token.ServerAddresses)
-	copy(buffer[1024+61+4+offset:], token.ClientToServerKey[:])
-	copy(buffer[1024+61+4+offset+keyBytes:], token.ServerToClientKey[:])
+	offset := writeAddresses(buffer[connectTokenPrivateBytes+61+4:], token.ServerAddresses)
+	copy(buffer[connectTokenPrivateBytes+61+4+offset:], token.ClientToServerKey[:])
+	copy(buffer[connectTokenPrivateBytes+61+4+offset+keyBytes:], token.ServerToClientKey[:])
 	return nil
 }
 
