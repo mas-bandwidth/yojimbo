@@ -7,7 +7,7 @@ solution "Yojimbo"
     configurations { "Debug", "Release" }
     includedirs { ".", "include", "sodium", "tlsf", "netcode", "reliable", "serialize" }
     if not os.istarget "windows" then
-        targetdir "bin/"  
+        targetdir "bin/"
     end
     rtti "Off"
     warnings "Extra"
@@ -64,6 +64,7 @@ project "client"
         links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
     filter "system:not windows"
         links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+        libdirs { "/opt/homebrew/lib" }
 
 project "server"
     files { "server.cpp", "shared.h" }
@@ -71,6 +72,7 @@ project "server"
         links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
     filter "system:not windows"
         links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+        libdirs { "/opt/homebrew/lib" }
 
 project "loopback"
     files { "loopback.cpp", "shared.h" }
@@ -78,6 +80,7 @@ project "loopback"
         links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
     filter "system:not windows"
         links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+        libdirs { "/opt/homebrew/lib" }
 
 project "soak"
     files { "soak.cpp", "shared.h" }
@@ -85,6 +88,7 @@ project "soak"
         links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
     filter "system:not windows"
         links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+        libdirs { "/opt/homebrew/lib" }
 
 project "test"
     files { "test.cpp" }
@@ -93,6 +97,7 @@ project "test"
         links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
     filter "system:not windows"
         links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
+        libdirs { "/opt/homebrew/lib" }
 
 newaction
 {
@@ -102,7 +107,7 @@ newaction
 
     execute = function ()
 
-        files_to_delete = 
+        files_to_delete =
         {
             "Makefile",
             "*.make",
@@ -120,7 +125,7 @@ newaction
             "*.xcworkspace"
         }
 
-        directories_to_delete = 
+        directories_to_delete =
         {
             "obj",
             "ipch",
