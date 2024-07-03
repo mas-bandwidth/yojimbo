@@ -60,13 +60,14 @@ func writeAddresses(buffer []byte, addresses []net.UDPAddr) int {
 			buffer[offset+4] = ipv4[3]
 			buffer[offset+5] = (byte)(port & 0xFF)
 			buffer[offset+6] = (byte)(port >> 8)
+			offset += 7
 		} else {
 			buffer[offset] = addressIPV6
 			copy(buffer[offset+1:], addr.IP)
 			buffer[offset+17] = (byte)(port & 0xFF)
 			buffer[offset+18] = (byte)(port >> 8)
+			offset += 19
 		}
-		offset += 19
 	}
 	return offset
 }
@@ -178,9 +179,9 @@ func (token *connectToken) Write(buffer []byte) error {
 		return errors.Wrap(err, "failed to encrypt message")
 	}
 	binary.LittleEndian.PutUint32(buffer[connectTokenPrivateBytes+61:], (uint32)(token.TimeoutSeconds))
-	offset := writeAddresses(buffer[1024+61+4:], token.ServerAddresses)
-	copy(buffer[1024+61+4+offset:], token.ClientToServerKey[:])
-	copy(buffer[1024+61+4+offset+keyBytes:], token.ServerToClientKey[:])
+	offset := writeAddresses(buffer[connectTokenPrivateBytes+61+4:], token.ServerAddresses)
+	copy(buffer[connectTokenPrivateBytes+61+4+offset:], token.ClientToServerKey[:])
+	copy(buffer[connectTokenPrivateBytes+61+4+offset+keyBytes:], token.ServerToClientKey[:])
 	return nil
 }
 
