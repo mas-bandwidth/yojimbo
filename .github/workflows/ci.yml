@@ -19,17 +19,17 @@ jobs:
         submodules: recursive
     - name: Setup premake
       uses: abel0b/setup-premake@v1
-
+    
     # Install libsodium from apt
     - name: Setup (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get install libsodium-dev
-
+  
     # Install libsodium from brew
     - name: Setup (MacOS)
       if: runner.os == 'MacOS'
-      run: brew reinstall libsodium
+      run: brew install libsodium
 
     # Build with premake + make
     - name: Build (gmake)
@@ -64,3 +64,4 @@ jobs:
     - name: Test (vs2019)
       if: runner.os == 'Windows'
       run: "& ./bin/${{ matrix.configuration }}/test.exe"
+      
