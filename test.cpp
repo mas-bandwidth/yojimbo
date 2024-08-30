@@ -877,6 +877,9 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
 {
     const int NumChannels = 2;
 
+    yojimbo_assert( NumChannels >= 0 );
+    yojimbo_assert( NumChannels <= MaxChannels );
+
     double time = 100.0;
 
     TestMessageFactory messageFactory( GetDefaultAllocator() );
@@ -1913,6 +1916,8 @@ void test_reliable_outbound_sequence_outdated()
     ClientServerConfig config;
     config.numChannels = 2;
     config.timeout = -1;
+
+    yojimbo_assert( config.numChannels <= MaxChannels );
 
     const int BlockSize = config.channel[0].blockFragmentSize * 2;
 
