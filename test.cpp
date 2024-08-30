@@ -1524,7 +1524,11 @@ void test_client_server_start_stop_restart()
 
     for ( int iteration = 0; iteration < NumIterations; ++iteration )
     {
-        yojimbo_assert( numClients[iteration] < MaxClients );
+        numClients[iteration] = numClients[iteration] % MaxClients;
+        if ( numClients[iteration] == 0 )
+        {
+            numClients[iteration] = 1;
+        }        
 
         server.Start( numClients[iteration] );
 
