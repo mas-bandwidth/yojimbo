@@ -50,8 +50,7 @@ namespace yojimbo
 
     void Server::Start( int maxClients )
     {
-        if ( IsRunning() )
-            Stop();
+        yojimbo_assert( maxClients <= MaxClients );
 
         BaseServer::Start( maxClients );
 

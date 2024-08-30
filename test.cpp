@@ -618,6 +618,8 @@ void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, C
     receiverSequence++;
 }
 
+const int ReliableChannel = 0;
+
 void test_connection_reliable_ordered_messages()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
@@ -636,7 +638,7 @@ void test_connection_reliable_ordered_messages()
         TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
         check( message );
         message->sequence = i;
-        sender.SendMessage( 0, message );
+        sender.SendMessage( ReliableChannel, message );
     }
 
     const int SenderPort = 10000;
@@ -658,7 +660,7 @@ void test_connection_reliable_ordered_messages()
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage( 0 );
+            Message * message = receiver.ReceiveMessage( ReliableChannel );
             if ( !message )
                 break;
 
@@ -704,7 +706,7 @@ void test_connection_reliable_ordered_blocks()
         for ( int j = 0; j < blockSize; ++j )
             blockData[j] = i + j;
         message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
-        sender.SendMessage( 0, message );
+        sender.SendMessage( ReliableChannel, message );
     }
 
     const int SenderPort = 10000;
@@ -726,7 +728,7 @@ void test_connection_reliable_ordered_blocks()
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage( 0 );
+            Message * message = receiver.ReceiveMessage( ReliableChannel );
             if ( !message )
                 break;
 
@@ -784,7 +786,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
             TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
             check( message );
             message->sequence = i;
-            sender.SendMessage( 0, message );
+            sender.SendMessage( ReliableChannel, message );
         }
         else
         {
@@ -796,7 +798,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
             for ( int j = 0; j < blockSize; ++j )
                 blockData[j] = i + j;
             message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
-            sender.SendMessage( 0, message );
+            sender.SendMessage( ReliableChannel, message );
         }
     }
 
@@ -819,7 +821,7 @@ void test_connection_reliable_ordered_messages_and_blocks()
 
         while ( true )
         {
-            Message * message = receiver.ReceiveMessage( 0 );
+            Message * message = receiver.ReceiveMessage( ReliableChannel );
             if ( !message )
                 break;
 
@@ -1179,7 +1181,7 @@ void PumpClientServerUpdate( double & time, Client ** client, int numClients, Se
     yojimbo_sleep( 0.0f );
 }
 
-void SendClientToServerMessages( Client & client, int numMessagesToSend, int channelIndex = 0 )
+void SendClientToServerMessages( Client & client, int numMessagesToSend, int channelIndex = ReliableChannel )
 {
     for ( int i = 0; i < numMessagesToSend; ++i )
     {
@@ -1209,7 +1211,7 @@ void SendClientToServerMessages( Client & client, int numMessagesToSend, int cha
     }
 }
 
-void SendServerToClientMessages( Server & server, int clientIndex, int numMessagesToSend, int channelIndex = 0 )
+void SendServerToClientMessages( Server & server, int clientIndex, int numMessagesToSend, int channelIndex = ReliableChannel )
 {
     for ( int i = 0; i < numMessagesToSend; ++i )
     {
@@ -1239,11 +1241,11 @@ void SendServerToClientMessages( Server & server, int clientIndex, int numMessag
     }
 }
 
-void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFromServer )
+void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFromServer, int channelIndex = ReliableChannel )
 {
     while ( true )
     {
-        Message * message = client.ReceiveMessage( 0 );
+        Message * message = client.ReceiveMessage( channelIndex );
 
         if ( !message )
             break;
@@ -1283,11 +1285,11 @@ void ProcessServerToClientMessages( Client & client, int & numMessagesReceivedFr
     }
 }
 
-void ProcessClientToServerMessages( Server & server, int clientIndex, int & numMessagesReceivedFromClient )
+void ProcessClientToServerMessages( Server & server, int clientIndex, int & numMessagesReceivedFromClient, int channelIndex = ReliableChannel )
 {
     while ( true )
     {
-        Message * message = server.ReceiveMessage( clientIndex, 0 );
+        Message * message = server.ReceiveMessage( clientIndex, channelIndex );
 
         if ( !message )
             break;
@@ -1511,19 +1513,19 @@ void test_client_server_start_stop_restart()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
-
     server.SetLatency( 250 );
     server.SetJitter( 100 );
     server.SetPacketLoss( 25 );
     server.SetDuplicates( 25 );
 
-    int numClients[] = { 3, 5, 1 };
+    int numClients[] = { 3, 5, 1, 32, 5 };
 
     const int NumIterations = sizeof( numClients ) / sizeof( int );
 
     for ( int iteration = 0; iteration < NumIterations; ++iteration )
     {
+        yojimbo_assert( numClients[iteration] < MaxClients );
+
         server.Start( numClients[iteration] );
 
         Client * clients[MaxClients];

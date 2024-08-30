@@ -170,8 +170,9 @@ namespace yojimbo
 
         ConnectionConfig()
         {
-            numChannels = 1;
+            numChannels = 2;
             maxPacketSize = 8 * 1024;
+            channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
         }
     };
 

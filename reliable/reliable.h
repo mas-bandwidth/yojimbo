@@ -68,7 +68,7 @@
 #define RELIABLE_ENDPOINT_NUM_COUNTERS                                      10
 
 #define RELIABLE_MAX_PACKET_HEADER_BYTES 9
-#define RELIABLE_FRAGMENT_HEADER_BYTES 5
+#define RELIABLE_FRAGMENT_HEADER_BYTES   5
 
 #define RELIABLE_LOG_LEVEL_NONE     0
 #define RELIABLE_LOG_LEVEL_ERROR    1
@@ -107,6 +107,7 @@ struct reliable_config_t
     int received_packets_buffer_size;
     int fragment_reassembly_buffer_size;
     float rtt_smoothing_factor;
+    int rtt_history_size;
     float packet_loss_smoothing_factor;
     float bandwidth_smoothing_factor;
     int packet_header_size;
@@ -138,6 +139,14 @@ void reliable_endpoint_reset( struct reliable_endpoint_t * endpoint );
 void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double time );
 
 float reliable_endpoint_rtt( struct reliable_endpoint_t * endpoint );
+
+float reliable_endpoint_rtt_min( struct reliable_endpoint_t * endpoint );
+
+float reliable_endpoint_rtt_max( struct reliable_endpoint_t * endpoint );
+
+float reliable_endpoint_rtt_avg( struct reliable_endpoint_t * endpoint );
+
+float reliable_endpoint_jitter( struct reliable_endpoint_t * endpoint );
 
 float reliable_endpoint_packet_loss( struct reliable_endpoint_t * endpoint );
 
