@@ -16,7 +16,7 @@ It has the following features:
 * Packet fragmentation and reassembly
 * Bitpacker and serialization system
 * Reliable-ordered messages and data blocks
-* Estimates of packet loss, latency and bandwidth usage
+* Estimates of latency, jitter and packet loss
 
 yojimbo is stable and production ready.
 
