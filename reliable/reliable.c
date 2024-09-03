@@ -1393,6 +1393,7 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
             if ( endpoint->rtt_history_buffer[i] >= 0.0f )
             {
                 sum += endpoint->rtt_history_buffer[i];
+                count++;
             }
         }
         if ( count > 0 )
@@ -1409,26 +1410,37 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
     {
         uint32_t base_sequence = ( endpoint->sent_packets->sequence - endpoint->config.sent_packets_buffer_size + 1 ) + 0xFFFF;
         int i;
+        int num_sent = 0;
         int num_dropped = 0;
         int num_samples = endpoint->config.sent_packets_buffer_size / 2;
         for ( i = 0; i < num_samples; ++i )
         {
             uint16_t sequence = (uint16_t) ( base_sequence + i );
-            struct reliable_sent_packet_data_t * sent_packet_data = (struct reliable_sent_packet_data_t*) 
-                reliable_sequence_buffer_find( endpoint->sent_packets, sequence );
-            if ( sent_packet_data && !sent_packet_data->acked )
+            struct reliable_sent_packet_data_t * sent_packet_data = (struct reliable_sent_packet_data_t*) reliable_sequence_buffer_find( endpoint->sent_packets, sequence );
+            if ( sent_packet_data )
             {
-                num_dropped++;
+                num_sent++;
+                if ( !sent_packet_data->acked )
+                {
+                    num_dropped++;
+                }
             }
         }
-        float packet_loss = ( (float) num_dropped ) / ( (float) num_samples ) * 100.0f;
-        if ( fabs( endpoint->packet_loss - packet_loss ) > 0.00001 )
+        if ( num_sent > 0 )
         {
-            endpoint->packet_loss += ( packet_loss - endpoint->packet_loss ) * endpoint->config.packet_loss_smoothing_factor;
+            float packet_loss = ( (float) num_dropped ) / ( (float) num_sent ) * 100.0f;
+            if ( fabs( endpoint->packet_loss - packet_loss ) > 0.00001 )
+            {
+                endpoint->packet_loss += ( packet_loss - endpoint->packet_loss ) * endpoint->config.packet_loss_smoothing_factor;
+            }
+            else
+            {
+                endpoint->packet_loss = packet_loss;
+            }
         }
         else
         {
-            endpoint->packet_loss = packet_loss;
+            endpoint->packet_loss = 0.0f;
         }
     }
 
