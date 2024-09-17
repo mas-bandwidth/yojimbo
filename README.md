@@ -19,7 +19,7 @@ It has the following features:
 * Bitpacker and serialization system
 * Unreliable-unordered messages for time sensitive data
 * Reliable-ordered messages with aggressive resend until ack
-* Data blocks larger that maximum packet size can be attached to reliable-ordered messages
+* Data blocks larger than maximum packet size can be attached to reliable-ordered messages
 * Estimates of latency, jitter, packet loss, bandwidth sent, received and acked per-connection
 
 yojimbo is stable and production ready.
