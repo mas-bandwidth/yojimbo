@@ -1440,7 +1440,7 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
         }
         if ( count > 0 )
         {
-            endpoint->jitter_stddev_vs_avg_rtt = pow( sum / (float)count, 0.5f );
+            endpoint->jitter_stddev_vs_avg_rtt = (float) pow( sum / (float)count, 0.5f );
         }
         else
         {
