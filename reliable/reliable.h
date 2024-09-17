@@ -138,7 +138,7 @@ void reliable_endpoint_reset( struct reliable_endpoint_t * endpoint );
 
 void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double time );
 
-float reliable_endpoint_rtt( struct reliable_endpoint_t * endpoint );
+float reliable_endpoint_rtt( struct reliable_endpoint_t * endpoint );       // exponentially smoothed moving average
 
 float reliable_endpoint_rtt_min( struct reliable_endpoint_t * endpoint );
 
@@ -146,7 +146,11 @@ float reliable_endpoint_rtt_max( struct reliable_endpoint_t * endpoint );
 
 float reliable_endpoint_rtt_avg( struct reliable_endpoint_t * endpoint );
 
-float reliable_endpoint_jitter( struct reliable_endpoint_t * endpoint );
+float reliable_endpoint_jitter_avg_vs_min_rtt( struct reliable_endpoint_t * endpoint );
+
+float reliable_endpoint_jitter_max_vs_min_rtt( struct reliable_endpoint_t * endpoint );
+
+float reliable_endpoint_jitter_stddev_vs_avg_rtt( struct reliable_endpoint_t * endpoint );
 
 float reliable_endpoint_packet_loss( struct reliable_endpoint_t * endpoint );
 

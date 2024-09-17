@@ -511,7 +511,9 @@ struct reliable_endpoint_t
     float rtt_min;
     float rtt_max;
     float rtt_avg;
-    float jitter;
+    float jitter_avg_vs_min_rtt;
+    float jitter_max_vs_min_rtt;
+    float jitter_stddev_vs_avg_rtt;
     float packet_loss;
     float sent_bandwidth_kbps;
     float received_bandwidth_kbps;
@@ -1384,7 +1386,7 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
         }
     }
 
-    // calculate jitter
+    // calculate average jitter vs. min rtt
     {
         float sum = 0.0f;
         int count = 0;
@@ -1398,11 +1400,51 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
         }
         if ( count > 0 )
         {
-            endpoint->jitter = sum / (float)count;
+            endpoint->jitter_avg_vs_min_rtt = sum / (float)count;
         }
         else
         {
-            endpoint->jitter = 0.0f;
+            endpoint->jitter_avg_vs_min_rtt = 0.0f;
+        }
+    }
+
+    // calculate max jitter vs. min rtt
+    {
+        float max = 0.0f;
+        for ( int i = 0; i < endpoint->config.rtt_history_size; i++ )
+        {
+            if ( endpoint->rtt_history_buffer[i] >= 0.0f )
+            {
+                float difference = ( endpoint->rtt_history_buffer[i] - endpoint->rtt_min );
+                if ( difference > max )
+                {
+                    max = difference;
+                }
+            }
+        }
+        endpoint->jitter_max_vs_min_rtt = max;
+    }
+
+    // calculate stddev jitter vs. avg rtt
+    {
+        float sum = 0.0f;
+        int count = 0;
+        for ( int i = 0; i < endpoint->config.rtt_history_size; i++ )
+        {
+            if ( endpoint->rtt_history_buffer[i] >= 0.0f )
+            {
+                float deviation = ( endpoint->rtt_history_buffer[i] - endpoint->rtt_min );
+                sum += deviation * deviation;
+                count++;
+            }
+        }
+        if ( count > 0 )
+        {
+            endpoint->jitter_stddev_vs_avg_rtt = pow( sum / (float)count, 0.5f );
+        }
+        else
+        {
+            endpoint->jitter_stddev_vs_avg_rtt = 0.0f;
         }
     }
 
@@ -1592,10 +1634,23 @@ float reliable_endpoint_rtt_avg( struct reliable_endpoint_t * endpoint )
     return endpoint->rtt_avg;
 }
 
-float reliable_endpoint_jitter( struct reliable_endpoint_t * endpoint )
+float reliable_endpoint_jitter_avg_vs_min_rtt( struct reliable_endpoint_t * endpoint )
 {
     reliable_assert( endpoint );
-    return endpoint->jitter;
+    return endpoint->jitter_avg_vs_min_rtt;
+}
+
+float reliable_endpoint_jitter_max_vs_min_rtt( struct reliable_endpoint_t * endpoint )
+{
+    reliable_assert( endpoint );
+    return endpoint->jitter_max_vs_min_rtt;
+}
+
+
+float reliable_endpoint_jitter_stddev_vs_avg_rtt( struct reliable_endpoint_t * endpoint )
+{
+    reliable_assert( endpoint );
+    return endpoint->jitter_stddev_vs_avg_rtt;
 }
 
 float reliable_endpoint_packet_loss( struct reliable_endpoint_t * endpoint )
