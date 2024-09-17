@@ -30,7 +30,7 @@ Alternatively, you can download the latest [release](https://github.com/mas-band
 
 ## Author
 
-The author of this library is Glenn Fiedler.
+The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glenn-fiedler-11b735302/).
 
 Other open source libraries by the same author include: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/reliable), and [serialize](https://github.com/mas-bandwidth/serialize)
 
