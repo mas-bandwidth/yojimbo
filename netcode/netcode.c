@@ -721,38 +721,7 @@ int netcode_socket_create( struct netcode_socket_t * s, struct netcode_address_t
     {
         struct sockaddr_storage addr;
         memset( &addr, 0, sizeof(addr) );
-
-        if ( address->type == NETCODE_ADDRESS_IPV6 )
-        {
-            /*
-            addr = (struct sockaddr*) &sin6;
-            socklen_t len = sizeof( sin6 );
-            if ( getsockname( s->handle, addr, &len ) == -1 )
-            {
-                netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: failed to get socket address (ipv6)\n" );
-                netcode_socket_destroy( s );
-                return NETCODE_SOCKET_ERROR_ENABLE_PACKET_TAGGING_FAILED;
-            }
-            address->port = ntohs( sin6.sin6_port );
-            */
-            addr.ss_family = AF_INET6;
-        }
-        else
-        {
-            /*
-            addr = (struct sockaddr*) &sin4;
-            socklen_t len = sizeof( sin4 );
-            if ( getsockname( s->handle, addr, &len ) == -1 )
-            {
-                netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: failed to get socket address (ipv4)\n" );
-                netcode_socket_destroy( s );
-                return NETCODE_SOCKET_ERROR_ENABLE_PACKET_TAGGING_FAILED;
-            }
-            address->port = ntohs( sin4.sin_port );
-            */
-            addr.ss_family = AF_INET;
-        }
-
+        addr.ss_family = ( address->type == NETCODE_ADDRESS_IPV6 ) ? AF_INET6 : AF_INET;
         netcode_set_socket_codepoint( s->handle, QOSTrafficTypeAudioVideo, 0, (PSOCKADDR) &addr );
     }
 
@@ -4414,9 +4383,19 @@ int netcode_server_find_client_index_by_address( struct netcode_server_t * serve
     netcode_assert( address );
 
     if ( address->type == 0 )
+    {
+        // todo
+        printf( "address type is zero?!\n" );
         return -1;
+    }
 
-    return netcode_address_map_get( &server->client_address_map, address );
+    int client_index = netcode_address_map_get( &server->client_address_map, address );
+
+    // todo
+    char address_string[NETCODE_MAX_ADDRESS_STRING_LENGTH];    
+    printf( "netcode_server_find_client_index_by_address: %s -> %d\n", netcode_address_to_string( address, address_string ), client_index );
+
+    return client_index;
 }
 
 void netcode_server_process_connection_request_packet( struct netcode_server_t * server, 
@@ -4567,7 +4546,12 @@ void netcode_server_connect_client( struct netcode_server_t * server,
     server->client_id[client_index] = client_id;
     server->client_sequence[client_index] = 0;
     server->client_address[client_index] = *address;
+    
     netcode_address_map_set( &server->client_address_map, address, client_index );
+    
+    netcode_assert( netcode_server_find_client_index_by_id( server, client_id ) == client_index );
+    netcode_assert( netcode_server_find_client_index_by_address( server, address ) == client_index );
+
     server->client_last_packet_send_time[client_index] = server->time;
     server->client_last_packet_receive_time[client_index] = server->time;
     memcpy( server->client_user_data[client_index], user_data, NETCODE_USER_DATA_BYTES );
@@ -4576,6 +4560,9 @@ void netcode_server_connect_client( struct netcode_server_t * server,
 
     netcode_printf( NETCODE_LOG_LEVEL_INFO, "server accepted client %s %.16" PRIx64 " in slot %d\n", 
         netcode_address_to_string( address, address_string ), client_id, client_index );
+
+    // todo
+    exit(1);
 
     struct netcode_connection_keep_alive_packet_t packet;
     packet.packet_type = NETCODE_CONNECTION_KEEP_ALIVE_PACKET;
@@ -4975,7 +4962,7 @@ void netcode_server_check_for_timeouts( struct netcode_server_t * server )
         // todo
         if ( ( server->time - server->client_last_packet_receive_time[i] ) >= 1.0f )
         {
-            printf( "server has not received a packet for %.2f seconds from client %d\n", server->time - server->client_last_packet_receive_time[i], i );
+            netcode_printf( NETCODE_LOG_LEVEL_DEBUG, "server has not received a packet from client %d for %.2f seconds\n", i, server->time - server->client_last_packet_receive_time[i] );
         }
 
         if ( server->client_last_packet_receive_time[i] + server->client_timeout[i] <= server->time )
