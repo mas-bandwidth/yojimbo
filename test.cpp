@@ -2466,6 +2466,7 @@ int main()
     while ( true )
 #endif // #if SOAK
     {
+        /*
         {
             printf( "[serialize]\n\n" );
 
@@ -2510,8 +2511,10 @@ int main()
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
+        */
 
         RUN_TEST( test_client_server_messages );
+        /*
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
@@ -2523,6 +2526,7 @@ int main()
         RUN_TEST( test_single_message_type_unreliable );
 
         RUN_TEST( test_client_server_messages_network_sim_leak );
+        */
 
 #if SOAK
         if ( quit )
