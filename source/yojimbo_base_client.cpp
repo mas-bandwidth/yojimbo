@@ -34,6 +34,9 @@ namespace yojimbo
 {
     BaseClient::BaseClient( Allocator & allocator, const ClientServerConfig & config, Adapter & adapter, double time ) : m_config( config )
     {
+        // todo
+        printf( "BaseClient::BaseClient\n" );
+
         m_allocator = &allocator;
         m_adapter = &adapter;
         m_time = time;
@@ -51,6 +54,9 @@ namespace yojimbo
 
     BaseClient::~BaseClient()
     {
+        // todo
+        printf( "BaseClient::~BaseClient\n" );
+
         // IMPORTANT: Please disconnect the client before destroying it
         yojimbo_assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
         YOJIMBO_FREE( *m_allocator, m_packetBuffer );
@@ -59,6 +65,9 @@ namespace yojimbo
 
     void BaseClient::Disconnect()
     {
+        // todo
+        printf( "BaseClient::Disconnect\n" );
+
         SetClientState( CLIENT_STATE_DISCONNECTED );
         Reset();
     }
@@ -127,6 +136,9 @@ namespace yojimbo
 
     void BaseClient::CreateInternal()
     {
+        // todo
+        printf( "BaseClient::CreateInternal\n" );
+
         yojimbo_assert( m_allocator );
         yojimbo_assert( m_adapter );
         yojimbo_assert( m_clientMemory == NULL );
@@ -137,6 +149,10 @@ namespace yojimbo
         m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
         m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, m_config, m_time );
         yojimbo_assert( m_connection );
+
+        // todo
+        printf( "m_connection = %p\n", m_connection );
+
         if ( m_config.networkSimulator )
         {
             m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets, m_time );

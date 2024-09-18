@@ -40,7 +40,8 @@ static void default_assert_handler( const char * condition, const char * functio
     #endif
 }
 
-static int log_level = 0;
+// todo
+static int log_level = 1000; //0;
 
 static int (*printf_function)( const char *, ... ) = printf;
 

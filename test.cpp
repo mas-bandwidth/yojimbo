@@ -1368,7 +1368,15 @@ void test_client_server_messages()
 
     for ( int iteration = 0; iteration < 2; ++iteration )
     {
+        // connect and wait until connection completes
+
+        // todo
+        printf( "iteration %d\n", iteration );
+
         client.InsecureConnect( privateKey, clientId, serverAddress );
+
+        // todo
+        printf( "A\n" );
 
         const int NumIterations = 10000;
 
@@ -1386,11 +1394,18 @@ void test_client_server_messages()
                 break;
         }
 
+        // todo
+        printf( "B\n" );
+
+        // verify connection has completed successfully
+
         check( !client.IsConnecting() );
         check( client.IsConnected() );
         check( server.GetNumConnectedClients() == 1 );
         check( client.GetClientIndex() == 0 );
         check( server.IsClientConnected(0) );
+
+        // send a bunch of messages and pump until they are received
 
         const int NumMessagesSent = config.channel[0].messageSendQueueSize;
 
@@ -1403,13 +1418,17 @@ void test_client_server_messages()
 
         for ( int i = 0; i < NumIterations; ++i )
         {
-            if ( !client.IsConnected() )
-                break;
-
             Client * clients[] = { &client };
             Server * servers[] = { &server };
 
             PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+            if ( !client.IsConnected() )
+            {
+                // todo
+                printf( "client is not connected\n" );
+                break;
+            }
 
             ProcessServerToClientMessages( client, numMessagesReceivedFromServer );
 
@@ -1423,6 +1442,8 @@ void test_client_server_messages()
         check( server.IsClientConnected( client.GetClientIndex() ) );
         check( numMessagesReceivedFromClient == NumMessagesSent );
         check( numMessagesReceivedFromServer == NumMessagesSent );
+
+        // disconnect and pump until client disconnects
 
         client.Disconnect();
 

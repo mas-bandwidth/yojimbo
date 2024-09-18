@@ -121,8 +121,10 @@ void netcode_set_assert_function( void (*function)( NETCODE_CONST char *, NETCOD
 
 void netcode_printf( int level, NETCODE_CONST char * format, ... ) 
 {
-    if ( level > log_level )
-        return;
+    // todo
+    (void) level;
+    // if ( level > log_level )
+        // return;
     va_list args;
     va_start( args, format );
     char buffer[4*1024];
@@ -3112,6 +3114,9 @@ void netcode_client_send_packet_to_server_internal( struct netcode_client_t * cl
 
     if ( client->config.network_simulator )
     {
+        // todo
+        printf( "sent packet through network simulator\n" );
+
         netcode_network_simulator_send_packet( client->config.network_simulator, &client->address, &client->server_address, packet_data, packet_bytes );
     }
     else
@@ -3180,7 +3185,7 @@ void netcode_client_send_packets( struct netcode_client_t * client )
             if ( client->last_packet_send_time + ( 1.0 / NETCODE_PACKET_SEND_RATE ) >= client->time )
                 return;
 
-            netcode_printf( NETCODE_LOG_LEVEL_DEBUG, "client sent connection keep-alive packet to server\n" );
+            netcode_printf( NETCODE_LOG_LEVEL_DEBUG, "client sent connection keep alive packet to server\n" );
 
             struct netcode_connection_keep_alive_packet_t packet;
             packet.packet_type = NETCODE_CONNECTION_KEEP_ALIVE_PACKET;
@@ -4953,6 +4958,10 @@ void netcode_server_check_for_timeouts( struct netcode_server_t * server )
         {
             netcode_printf( NETCODE_LOG_LEVEL_INFO, "server timed out client %d\n", i );
             netcode_server_disconnect_client_internal( server, i, 0 );
+
+            // todo
+            printf( "*** BROKEN ***\n" );
+            exit(1);
         }
     }
 }

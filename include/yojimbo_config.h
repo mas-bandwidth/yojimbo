@@ -33,7 +33,7 @@
 
 #define YOJIMBO_MAJOR_VERSION 1
 #define YOJIMBO_MINOR_VERSION 2
-#define YOJIMBO_PATCH_VERSION 4
+#define YOJIMBO_PATCH_VERSION 5
 
 #if !defined(YOJIMBO_DEBUG) && !defined(YOJIMBO_RELEASE)
 #if defined(NDEBUG)
@@ -65,6 +65,9 @@
 #else
 #define YOJIMBO_PLATFORM YOJIMBO_PLATFORM_UNIX
 #endif
+
+// todo
+#define YOJIMBO_DEBUG 1
 
 #ifdef YOJIMBO_DEBUG
 
