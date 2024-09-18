@@ -36,7 +36,7 @@ Alternatively, you can download the latest [release](https://github.com/mas-band
 
 The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glenn-fiedler-11b735302/).
 
-Other open source libraries by the same author include: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/reliable), and [serialize](https://github.com/mas-bandwidth/serialize)
+Yojimbo is built on top of other open source libraries by the same author: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/reliable), and [serialize](https://github.com/mas-bandwidth/serialize)
 
 If you find this software useful, please consider [sponsoring it](https://github.com/sponsors/mas-bandwidth). Thanks!
 
