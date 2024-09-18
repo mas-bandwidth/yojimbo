@@ -4107,15 +4107,17 @@ struct netcode_server_t * netcode_server_create_overload( NETCODE_CONST char * s
     memset( server->client_confirmed, 0, sizeof( server->client_confirmed ) );
     memset( server->client_id, 0, sizeof( server->client_id ) );
     memset( server->client_sequence, 0, sizeof( server->client_sequence ) );
-    memset( server->client_last_packet_send_time, 0, sizeof( server->client_last_packet_send_time ) );
-    memset( server->client_last_packet_receive_time, 0, sizeof( server->client_last_packet_receive_time ) );
+
     memset( server->client_address, 0, sizeof( server->client_address ) );
     netcode_address_map_reset( &server->client_address_map );
     memset( server->client_user_data, 0, sizeof( server->client_user_data ) );
 
+    memset( server->client_last_packet_send_time, 0, sizeof( server->client_last_packet_send_time ) );
+
     int i;
     for ( i = 0; i < NETCODE_MAX_CLIENTS; i++ )
     {
+        server->client_last_packet_receive_time[i] = time;
         server->client_encryption_index[i] = -1;
     }
 
@@ -4953,8 +4955,22 @@ void netcode_server_check_for_timeouts( struct netcode_server_t * server )
     int i;
     for ( i = 0; i < server->max_clients; i++ )
     {
-        if ( server->client_connected[i] && server->client_timeout[i] > 0 && !server->client_loopback[i] &&
-             ( server->client_last_packet_receive_time[i] + server->client_timeout[i] <= server->time ) )
+        if ( !server->client_connected[i] )
+            continue;
+
+        if ( server->client_timeout[i] <= 0 )
+            continue;
+
+        if ( server->client_loopback[i] )
+            continue;
+
+        // todo
+        if ( ( server->time - server->client_last_packet_receive_time[i] ) >= 1.0f )
+        {
+            printf( "server has not received a packet for %.2f seconds from client %d\n", server->time - server->client_last_packet_receive_time[i], i );
+        }
+
+        if ( server->client_last_packet_receive_time[i] + server->client_timeout[i] <= server->time )
         {
             netcode_printf( NETCODE_LOG_LEVEL_INFO, "server timed out client %d\n", i );
             netcode_server_disconnect_client_internal( server, i, 0 );
