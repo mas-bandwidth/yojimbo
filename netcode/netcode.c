@@ -2841,7 +2841,7 @@ void netcode_client_connect( struct netcode_client_t * client, uint8_t * connect
     if ( client->connect_token.num_server_addresses == 1 )
     {
         netcode_printf( NETCODE_LOG_LEVEL_INFO, "client connecting to server %s\n", 
-            netcode_address_to_string( &client->server_address, server_address_string ), client->server_address_index + 1, client->connect_token.num_server_addresses );
+            netcode_address_to_string( &client->server_address, server_address_string ) );
     }
     else
     {

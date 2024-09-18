@@ -1,6 +1,4 @@
 
-yojimbo_version = "1.0"
-
 solution "Yojimbo"
     kind "ConsoleApp"
     language "C++"
