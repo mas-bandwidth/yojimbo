@@ -10,9 +10,6 @@ namespace yojimbo
     Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) 
         : BaseClient( allocator, config, adapter, time ), m_config( config ), m_address( address )
     {
-        // todo
-        printf( "Client::Client\n" );
-
         m_clientId = 0;
         m_client = NULL;
         m_boundAddress = m_address;
@@ -20,9 +17,6 @@ namespace yojimbo
 
     Client::~Client()
     {
-        // todo
-        printf( "Client::~Client\n" );
-
         // IMPORTANT: Please disconnect the client before destroying it
         yojimbo_assert( m_client == NULL );
     }
@@ -34,9 +28,6 @@ namespace yojimbo
 
     void Client::InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses )
     {
-        // todo
-        printf( "Client::InsecureConnect\n" );
-
         yojimbo_assert( serverAddresses );
         yojimbo_assert( numServerAddresses > 0 );
         yojimbo_assert( numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
@@ -91,9 +82,6 @@ namespace yojimbo
 
     void Client::Connect( uint64_t clientId, uint8_t * connectToken )
     {
-        // todo
-        printf( "Client::Connect\n" );
-
         yojimbo_assert( connectToken );
         Disconnect();
         CreateInternal();
@@ -112,9 +100,6 @@ namespace yojimbo
 
     void Client::Disconnect()
     {
-        // todo
-        printf( "Client::Disconnect\n" );
-
         BaseClient::Disconnect();
         DestroyClient();
         DestroyInternal();
@@ -161,17 +146,11 @@ namespace yojimbo
             const int state = netcode_client_state( m_client );
             if ( state < NETCODE_CLIENT_STATE_DISCONNECTED )
             {
-                // todo
-                printf( "error state %d\n", state );
-
                 Disconnect();
                 SetClientState( CLIENT_STATE_ERROR );
             }
             else if ( state == NETCODE_CLIENT_STATE_DISCONNECTED )
             {
-                // todo
-                printf( "set disconnected state %d\n", state );
-
                 Disconnect();
                 SetClientState( CLIENT_STATE_DISCONNECTED );
             }

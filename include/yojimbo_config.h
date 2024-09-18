@@ -66,9 +66,6 @@
 #define YOJIMBO_PLATFORM YOJIMBO_PLATFORM_UNIX
 #endif
 
-// todo
-#define YOJIMBO_DEBUG 1
-
 #ifdef YOJIMBO_DEBUG
 
 #define YOJIMBO_DEBUG_MEMORY_LEAKS                  1
