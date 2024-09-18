@@ -4113,11 +4113,11 @@ struct netcode_server_t * netcode_server_create_overload( NETCODE_CONST char * s
     memset( server->client_user_data, 0, sizeof( server->client_user_data ) );
 
     memset( server->client_last_packet_send_time, 0, sizeof( server->client_last_packet_send_time ) );
+    memset( server->client_last_packet_receive_time, 0, sizeof( server->client_last_packet_receive_time ) );
 
     int i;
     for ( i = 0; i < NETCODE_MAX_CLIENTS; i++ )
     {
-        server->client_last_packet_receive_time[i] = time;
         server->client_encryption_index[i] = -1;
     }
 
@@ -4669,6 +4669,9 @@ void netcode_server_process_packet_internal( struct netcode_server_t * server,
 
     uint8_t packet_type = ( (uint8_t*) packet ) [0];
 
+    // todo
+    printf( "server process packet type %d\n", packet_type );
+
     switch ( packet_type )
     {
         case NETCODE_CONNECTION_REQUEST_PACKET:
@@ -4704,6 +4707,11 @@ void netcode_server_process_packet_internal( struct netcode_server_t * server,
                     netcode_printf( NETCODE_LOG_LEVEL_DEBUG, "server confirmed connection with client %d\n", client_index );
                     server->client_confirmed[client_index] = 1;
                 }
+            }
+            else
+            {
+                // todo
+                printf( "*** ignoring keep alive because client index is -1 ***\n" );
             }
         }
         break;
