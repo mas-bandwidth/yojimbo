@@ -264,7 +264,7 @@ namespace yojimbo
         uint16_t previousMessageId = 0;
         int usedBits = ConservativeMessageHeaderBits;
         int giveUpCounter = 0;
-#if YOJIMBO_DEBUG
+#ifdef YOJIMBO_DEBUG
         const int maxBits = availableBits;
 #endif // YOJIMBO_DEBUG
 

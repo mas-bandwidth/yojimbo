@@ -235,24 +235,32 @@ namespace yojimbo
     bool BaseClient::CanSendMessage( int channelIndex ) const
     {
         yojimbo_assert( m_connection );
+        yojimbo_assert( channelIndex >= 0 );
+        yojimbo_assert( channelIndex < m_config.numChannels );
         return m_connection->CanSendMessage( channelIndex );
     }
 
     bool BaseClient::HasMessagesToSend( int channelIndex ) const
     {
         yojimbo_assert( m_connection );
+        yojimbo_assert( channelIndex >= 0 );
+        yojimbo_assert( channelIndex < m_config.numChannels );
         return m_connection->HasMessagesToSend( channelIndex );
     }
 
     void BaseClient::SendMessage( int channelIndex, Message * message )
     {
         yojimbo_assert( m_connection );
+        yojimbo_assert( channelIndex >= 0 );
+        yojimbo_assert( channelIndex < m_config.numChannels );
         m_connection->SendMessage( channelIndex, message, GetContext() );
     }
 
     Message * BaseClient::ReceiveMessage( int channelIndex )
     {
         yojimbo_assert( m_connection );
+        yojimbo_assert( channelIndex >= 0 );
+        yojimbo_assert( channelIndex < m_config.numChannels );
         return m_connection->ReceiveMessage( channelIndex );
     }
 
@@ -273,6 +281,12 @@ namespace yojimbo
             info.numPacketsReceived = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED];
             info.numPacketsAcked = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED];
             info.RTT = reliable_endpoint_rtt( m_endpoint );
+            info.minRTT = reliable_endpoint_rtt_min( m_endpoint );
+            info.maxRTT = reliable_endpoint_rtt_min( m_endpoint );
+            info.averageRTT = reliable_endpoint_rtt_avg( m_endpoint );
+            info.averageJitter = reliable_endpoint_jitter_avg_vs_min_rtt( m_endpoint );
+            info.maxJitter = reliable_endpoint_jitter_max_vs_min_rtt( m_endpoint );
+            info.stddevJitter = reliable_endpoint_jitter_stddev_vs_avg_rtt( m_endpoint );
             info.packetLoss = reliable_endpoint_packet_loss( m_endpoint );
             reliable_endpoint_bandwidth( m_endpoint, &info.sentBandwidth, &info.receivedBandwidth, &info.ackedBandwidth );
         }

@@ -200,7 +200,7 @@ OnlineGameScreen::OnlineGameScreen(const yojimbo::Address& serverAddress) :
     m_client(yojimbo::GetDefaultAllocator(), yojimbo::Address("0.0.0.0"), m_connectionConfig, m_adapter, 0.0)
 {
     uint64_t clientId;
-    yojimbo::random_bytes((uint8_t*)&clientId, 8);
+    yojimbo_random_bytes((uint8_t*)&clientId, 8);
     m_client.InsecureConnect(DEFAULT_PRIVATE_KEY, clientId, m_serverAddress);
 }
 ```
