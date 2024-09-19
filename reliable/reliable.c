@@ -1433,7 +1433,7 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
         {
             if ( endpoint->rtt_history_buffer[i] >= 0.0f )
             {
-                float deviation = ( endpoint->rtt_history_buffer[i] - endpoint->rtt_min );
+                float deviation = ( endpoint->rtt_history_buffer[i] - endpoint->rtt_avg );
                 sum += deviation * deviation;
                 count++;
             }
