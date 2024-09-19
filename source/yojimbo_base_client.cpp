@@ -288,7 +288,7 @@ namespace yojimbo
             info.numPacketsAcked = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED];
             info.RTT = reliable_endpoint_rtt( m_endpoint );
             info.minRTT = reliable_endpoint_rtt_min( m_endpoint );
-            info.maxRTT = reliable_endpoint_rtt_min( m_endpoint );
+            info.maxRTT = reliable_endpoint_rtt_max( m_endpoint );
             info.averageRTT = reliable_endpoint_rtt_avg( m_endpoint );
             info.averageJitter = reliable_endpoint_jitter_avg_vs_min_rtt( m_endpoint );
             info.maxJitter = reliable_endpoint_jitter_max_vs_min_rtt( m_endpoint );
