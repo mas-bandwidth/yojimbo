@@ -300,6 +300,12 @@ namespace yojimbo
             info.numPacketsReceived = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED];
             info.numPacketsAcked = counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED];
             info.RTT = reliable_endpoint_rtt( m_clientEndpoint[clientIndex] );
+            info.minRTT = reliable_endpoint_rtt_min( m_clientEndpoint[clientIndex] );
+            info.maxRTT = reliable_endpoint_rtt_min( m_clientEndpoint[clientIndex] );
+            info.averageRTT = reliable_endpoint_rtt_avg( m_clientEndpoint[clientIndex] );
+            info.averageJitter = reliable_endpoint_jitter_avg_vs_min_rtt( m_clientEndpoint[clientIndex] );
+            info.maxJitter = reliable_endpoint_jitter_max_vs_min_rtt( m_clientEndpoint[clientIndex] );
+            info.stddevJitter = reliable_endpoint_jitter_stddev_vs_avg_rtt( m_clientEndpoint[clientIndex] );
             info.packetLoss = reliable_endpoint_packet_loss( m_clientEndpoint[clientIndex] );
             reliable_endpoint_bandwidth( m_clientEndpoint[clientIndex], &info.sentBandwidth, &info.receivedBandwidth, &info.ackedBandwidth );
         }
