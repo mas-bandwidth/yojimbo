@@ -210,7 +210,7 @@ namespace yojimbo
             @param sequence The sequence number of the connection packet that was acked.
          */
 
-        virtual void ProcessAck( uint16_t sequence ) = 0;
+        virtual void ProcessAck( uint16_t ack ) = 0;
 
     public:
 
