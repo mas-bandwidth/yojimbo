@@ -41,8 +41,6 @@ static const int RELIABLE_ORDERED_CHANNEL = 1;
 
 int SoakMain()
 {
-    srand( (unsigned int) time( NULL ) );
-
     ClientServerConfig config;
     config.maxPacketSize = MaxPacketSize;
     config.clientMemory = 100 * 1024 * 1024;
