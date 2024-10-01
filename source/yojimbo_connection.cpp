@@ -185,7 +185,7 @@ namespace yojimbo
     {
         yojimbo_assert( channelIndex >= 0 );
         yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
-        return m_channel[channelIndex]->SendMessage( message, context );
+        m_channel[channelIndex]->SendMessage( message, context );
     }
 
     Message * Connection::ReceiveMessage( int channelIndex )
