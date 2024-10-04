@@ -1100,15 +1100,15 @@ void test_connection_unreliable_unordered_blocks()
 
     const int NumMessagesSent = 8;
 
-    for ( int j = 0; j < NumMessagesSent; ++j )
+    for ( int i = 0; i < NumMessagesSent; ++i )
     {
         TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
         check( message );
-        message->sequence = j;
-        const int blockSize = 1 + ( j * 7 );
+        message->sequence = i;
+        const int blockSize = 1 + ( i * 7 );
         uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
-        for ( int k = 0; k < blockSize; ++k )
-            blockData[k] = j + k;
+        for ( int j = 0; j < blockSize; ++j )
+            blockData[k] = i + j;
         message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
         sender.SendMessage( 0, message );
     }
