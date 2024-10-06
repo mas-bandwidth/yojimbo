@@ -641,12 +641,6 @@ void test_connection_reliable_ordered_messages()
         sender.SendMessage( ReliableChannel, message );
     }
 
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
-
     int numMessagesReceived = 0;
 
     const int NumIterations = 1000;
@@ -708,12 +702,6 @@ void test_connection_reliable_ordered_blocks()
         message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
         sender.SendMessage( ReliableChannel, message );
     }
-
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
 
     int numMessagesReceived = 0;
 
@@ -801,12 +789,6 @@ void test_connection_reliable_ordered_messages_and_blocks()
             sender.SendMessage( ReliableChannel, message );
         }
     }
-
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
 
     int numMessagesReceived = 0;
 
@@ -923,12 +905,6 @@ void test_connection_reliable_ordered_messages_and_blocks_multiple_channels()
         }
     }
 
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
-
     const int NumIterations = 10000;
 
     int numMessagesReceived[NumChannels];
@@ -1025,12 +1001,6 @@ void test_connection_unreliable_unordered_messages()
     Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
     Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
-
     const int NumIterations = 256;
 
     const int NumMessagesSent = 16;
@@ -1089,12 +1059,6 @@ void test_connection_unreliable_unordered_blocks()
     Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
 
     Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
-
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
 
     const int NumIterations = 256;
 
@@ -2064,12 +2028,6 @@ void test_single_message_type_reliable()
         sender.SendMessage( 0, message );
     }
 
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
-
     int numMessagesReceived = 0;
 
     const int NumIterations = 1000;
@@ -2131,12 +2089,6 @@ void test_single_message_type_reliable_blocks()
         message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
         sender.SendMessage( 0, message );
     }
-
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
 
     int numMessagesReceived = 0;
 
@@ -2200,12 +2152,6 @@ void test_single_message_type_unreliable()
 
     Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
     Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
-
-    const int SenderPort = 10000;
-    const int ReceiverPort = 10001;
-
-    Address senderAddress( "::1", SenderPort );
-    Address receiverAddress( "::1", ReceiverPort );
 
     const int NumIterations = 256;
 
