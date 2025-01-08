@@ -234,7 +234,7 @@ namespace yojimbo
 
     const char * Address::ToString( char buffer[], int bufferSize ) const
     {
-        yojimbo_assert( bufferSize >= MaxAddressLength );
+        yojimbo_assert( bufferSize <= MaxAddressLength );
 
         if ( m_type == ADDRESS_IPV4 )
         {
