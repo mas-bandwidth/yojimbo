@@ -84,7 +84,7 @@
         || defined(__ia64__)    || defined(_M_IX86)     || defined(_M_IA64)     \
         || defined(_M_ALPHA)    || defined(__amd64)     || defined(__amd64__)   \
         || defined(_M_AMD64)    || defined(__x86_64)    || defined(__x86_64__)  \
-        || defined(_M_X64)      || defined(__bfin__)
+        || defined(_M_X64)      || defined(__bfin__)    || defined(_M_ARM64)
     #define SERIALIZE_LITTLE_ENDIAN 1
   #elif defined(_MSC_VER) && defined(_M_ARM)
     #define SERIALIZE_LITTLE_ENDIAN 1
