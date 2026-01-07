@@ -9,15 +9,15 @@ solution "Yojimbo"
     end
     rtti "Off"
     warnings "Extra"
-    flags { "FatalWarnings" }
+    fatalwarnings { "All" }
     floatingpoint "Fast"
     filter "configurations:Debug"
         symbols "On"
-        defines { "YOJIMBO_DEBUG", "NETCODE_DEBUG", "RELIABLE_DEBUG" }
+        defines { "YOJIMBO_DEBUG", "NETCODE_DEBUG", "RELIABLE_DEBUG", "SERIALIZE_DEBUG" }
     filter "configurations:Release"
         symbols "Off"
         optimize "Speed"
-        defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE" }
+        defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE", "SERIALIZE_RELEASE" }
 
 project "sodium-builtin"
     kind "StaticLib"
