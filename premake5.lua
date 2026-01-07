@@ -9,7 +9,7 @@ solution "Yojimbo"
     end
     rtti "Off"
     warnings "Extra"
-    fatalwarnings { "All" }
+    flags { "FatalWarnings" }
     floatingpoint "Fast"
     filter "configurations:Debug"
         symbols "On"
