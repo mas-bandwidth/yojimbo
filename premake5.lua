@@ -3,6 +3,9 @@ solution "Yojimbo"
     kind "ConsoleApp"
     language "C++"
     configurations { "Debug", "Release" }
+    if os.istarget "windows" then
+        platforms { "Win32", "x64", "ARM64" }
+    end
     includedirs { ".", "include", "sodium", "tlsf", "netcode", "reliable", "serialize" }
     if not os.istarget "windows" then
         targetdir "bin/"
@@ -18,6 +21,13 @@ solution "Yojimbo"
         symbols "Off"
         optimize "Speed"
         defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE" }
+
+    filter "platforms:Win32"
+        architecture "x86"
+    filter "platforms:x64"
+        architecture "x86_64"
+    filter "platforms:ARM64"
+        architecture "ARM64"
 
 project "sodium-builtin"
     kind "StaticLib"
