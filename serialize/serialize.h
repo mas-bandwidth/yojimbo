@@ -27,6 +27,12 @@
 
 /** @file */
 
+#if defined(_MSC_VER)
+#define serialize_restrict __restrict
+#else // #if defined(_MSC_VER)
+#define serialize_restrict __restrict__
+#endif // #if defined(_MSC_VER)
+
 #ifndef serialize_assert
 #include <assert.h>
 #define serialize_assert assert
@@ -84,7 +90,7 @@
         || defined(__ia64__)    || defined(_M_IX86)     || defined(_M_IA64)     \
         || defined(_M_ALPHA)    || defined(__amd64)     || defined(__amd64__)   \
         || defined(_M_AMD64)    || defined(__x86_64)    || defined(__x86_64__)  \
-        || defined(_M_X64)      || defined(__bfin__)
+        || defined(_M_X64)      || defined(__bfin__)    || defined(_M_ARM64)
     #define SERIALIZE_LITTLE_ENDIAN 1
   #elif defined(_MSC_VER) && defined(_M_ARM)
     #define SERIALIZE_LITTLE_ENDIAN 1
@@ -347,6 +353,24 @@ namespace serialize
     {
     public:
 
+        BitWriter()
+        {
+            memset( (void*) this, 0, sizeof(BitWriter) );
+        }
+
+        void Initialize( void * serialize_restrict data, int bytes )
+        {
+            serialize_assert( data );
+            serialize_assert( ( bytes % 4 ) == 0 );
+            m_data = (uint32_t*) data;
+            m_numWords = bytes / 4;
+            m_numBits = m_numWords * 32;
+            m_bitsWritten = 0;
+            m_wordIndex = 0;
+            m_scratch = 0;
+            m_scratchBits = 0;
+        }
+
         /**
             Bit writer constructor.
             Creates a bit writer object to write to the specified buffer.
@@ -354,7 +378,7 @@ namespace serialize
             @param bytes The size of the buffer in bytes. Must be a multiple of 4, because the bitpacker reads and writes memory as dwords, not bytes.
          */
 
-        BitWriter( void * data, int bytes ) : m_data( (uint32_t*) data ), m_numWords( bytes / 4 )
+        BitWriter( void * serialize_restrict data, int bytes ) : m_data( (uint32_t*) data ), m_numWords( bytes / 4 )
         {
             serialize_assert( data );
             serialize_assert( ( bytes % 4 ) == 0 );
@@ -426,10 +450,10 @@ namespace serialize
             @see BitReader::ReadBytes
          */
 
-        void WriteBytes( const uint8_t * data, int bytes )
+        void WriteBytes( const uint8_t * serialize_restrict data, int bytes )
         {
             serialize_assert( GetAlignBits() == 0 );
-            serialize_assert( m_bitsWritten + bytes * 8 <= m_numBits );
+            serialize_assert( uint64_t(m_bitsWritten) + uint64_t(bytes) * 8 <= uint64_t(m_numBits) );
             serialize_assert( ( m_bitsWritten % 32 ) == 0 || ( m_bitsWritten % 32 ) == 8 || ( m_bitsWritten % 32 ) == 16 || ( m_bitsWritten % 32 ) == 24 );
 
             int headBytes = ( 4 - ( m_bitsWritten % 32 ) / 8 ) % 4;
@@ -448,7 +472,7 @@ namespace serialize
             if ( numWords > 0 )
             {
                 serialize_assert( ( m_bitsWritten % 32 ) == 0 );
-                memcpy( &m_data[m_wordIndex], data + headBytes, numWords * 4 );
+                memcpy( (char*) &m_data[m_wordIndex], data + headBytes, numWords * 4 );
                 m_bitsWritten += numWords * 32;
                 m_wordIndex += numWords;
                 m_scratch = 0;
@@ -561,6 +585,33 @@ namespace serialize
     {
     public:
 
+        BitReader()
+        {
+            m_data = NULL;
+            m_numBytes = 0;
+            m_numWords = 0;
+            m_numBits = m_numBytes * 8;
+            m_bitsRead = 0;
+            m_scratch = 0;
+            m_scratchBits = 0;
+            m_wordIndex = 0;
+        }
+
+        void Initialize( const void * serialize_restrict data, int bytes )
+        {
+            serialize_assert( data );
+            m_data = (const uint32_t*) data;
+            m_numBytes = bytes;
+#ifdef SERIALIZE_DEBUG
+            m_numWords = ( bytes + 3 ) / 4;
+#endif // #ifdef SERIALIZE_DEBUG
+            m_numBits = m_numBytes * 8;
+            m_bitsRead = 0;
+            m_scratch = 0;
+            m_scratchBits = 0;
+            m_wordIndex = 0;            
+        }
+
         /**
             Bit reader constructor.
             Non-multiples of four buffer sizes are supported, as this naturally tends to occur when packets are read from the network.
@@ -570,11 +621,7 @@ namespace serialize
             @see BitWriter
          */
 
-#ifdef SERIALIZE_DEBUG
-        BitReader( const void * data, int bytes ) : m_data( (const uint32_t*) data ), m_numBytes( bytes ), m_numWords( ( bytes + 3 ) / 4)
-#else // #ifdef SERIALIZE_DEBUG
-        BitReader( const void * data, int bytes ) : m_data( (const uint32_t*) data ), m_numBytes( bytes )
-#endif // #ifdef SERIALIZE_DEBUG
+        BitReader( const void * serialize_restrict data, int bytes ) : m_data( (const uint32_t*) data ), m_numBytes( bytes ), m_numWords( ( bytes + 3 ) / 4 )
         {
             serialize_assert( data );
             m_numBits = m_numBytes * 8;
@@ -662,10 +709,10 @@ namespace serialize
             @see BitWriter::WriteBytes
          */
 
-        void ReadBytes( uint8_t * data, int bytes )
+        void ReadBytes( uint8_t * serialize_restrict data, int bytes )
         {
             serialize_assert( GetAlignBits() == 0 );
-            serialize_assert( m_bitsRead + bytes * 8 <= m_numBits );
+            serialize_assert( uint64_t(m_bitsRead) + uint64_t(bytes) * 8 <= uint64_t(m_numBits) );
             serialize_assert( ( m_bitsRead % 32 ) == 0 || ( m_bitsRead % 32 ) == 8 || ( m_bitsRead % 32 ) == 16 || ( m_bitsRead % 32 ) == 24 );
 
             int headBytes = ( 4 - ( m_bitsRead % 32 ) / 8 ) % 4;
@@ -682,7 +729,7 @@ namespace serialize
             if ( numWords > 0 )
             {
                 serialize_assert( ( m_bitsRead % 32 ) == 0 );
-                memcpy( data + headBytes, &m_data[m_wordIndex], numWords * 4 );
+                memcpy( (char*) data + headBytes, &m_data[m_wordIndex], numWords * 4 );
                 m_bitsRead += numWords * 32;
                 m_wordIndex += numWords;
                 m_scratchBits = 0;
@@ -734,16 +781,14 @@ namespace serialize
 
     private:
 
-        const uint32_t * m_data;            ///< The bitpacked data we're reading as a dword array.
-        uint64_t m_scratch;                 ///< The scratch value. New data is read in 32 bits at a top to the left of this buffer, and data is read off to the right.
-        int m_numBits;                      ///< Number of bits to read in the buffer. Of course, we can't *really* know this so it's actually m_numBytes * 8.
-        int m_numBytes;                     ///< Number of bytes to read in the buffer. We know this, and this is the non-rounded up version.
-#ifdef SERIALIZE_DEBUG
-        int m_numWords;                     ///< Number of words to read in the buffer. This is rounded up to the next word if necessary.
-#endif // #ifdef SERIALIZE_DEBUG
-        int m_bitsRead;                     ///< Number of bits read from the buffer so far.
-        int m_scratchBits;                  ///< Number of bits currently in the scratch value. If the user wants to read more bits than this, we have to go fetch another dword from memory.
-        int m_wordIndex;                    ///< Index of the next word to read from memory.
+        const uint32_t * serialize_restrict m_data;         ///< The bitpacked data we're reading as a dword array.
+        uint64_t m_scratch;                                 ///< The scratch value. New data is read in 32 bits at a top to the left of this buffer, and data is read off to the right.
+        int m_numBits;                                      ///< Number of bits to read in the buffer. Of course, we can't *really* know this so it's actually m_numBytes * 8.
+        int m_numBytes;                                     ///< Number of bytes to read in the buffer. We know this, and this is the non-rounded up version.
+        int m_numWords;                                     ///< Number of words to read in the buffer. This is rounded up to the next word if necessary. Only used in debug builds.
+        int m_bitsRead;                                     ///< Number of bits read from the buffer so far.
+        int m_scratchBits;                                  ///< Number of bits currently in the scratch value. If the user wants to read more bits than this, we have to go fetch another dword from memory.
+        int m_wordIndex;                                    ///< Index of the next word to read from memory.
     };
 
     /**
@@ -824,6 +869,13 @@ namespace serialize
 
         enum { IsWriting = 1 };
         enum { IsReading = 0 };
+
+        WriteStream() : m_writer() {}
+
+        void Initialize( uint8_t * buffer, int bytes )
+        {
+            m_writer.Initialize( buffer, bytes );
+        }
 
         /**
             Write stream constructor.
@@ -967,6 +1019,16 @@ namespace serialize
 
         enum { IsWriting = 0 };
         enum { IsReading = 1 };
+
+        ReadStream()
+        {
+            // ...
+        }
+
+        void Initialize( const uint8_t * buffer, int bytes )
+        {
+            m_reader.Initialize( buffer, bytes );
+        }
 
         /**
             Read stream constructor.
@@ -1306,6 +1368,7 @@ namespace serialize
             }                                                           \
         } while (0)
 
+
     /**
         Serialize a boolean value to the stream (read/write/measure).
         This is a helper macro to make writing unified serialize functions easier.
@@ -1332,15 +1395,15 @@ namespace serialize
 
     template <typename Stream> bool serialize_float_internal( Stream & stream, float & value )
     {
-        uint32_t int_value;
+        uint32_t int_value = 0;
         if ( Stream::IsWriting )
         {
-            memcpy( &int_value, &value, 4 );
+            memcpy( (char*) &int_value, &value, 4 );
         }
         bool result = stream.SerializeBits( int_value, 32 );
         if ( Stream::IsReading )
         {
-            memcpy( &value, &int_value, 4 );
+            memcpy( (char*) &value, &int_value, 4 );
         }
         return result;
     }
@@ -1363,11 +1426,7 @@ namespace serialize
             }                                                                       \
         } while (0)
 
-    template <typename Stream> bool serialize_compressed_float_internal(Stream &stream,
-                                             float &value,
-                                             float min,
-                                             float max,
-                                             float res)
+    template <typename Stream> bool serialize_compressed_float_internal( Stream & stream, float & value, float min, float max, float res )
     {
         const float delta = max - min;
 
@@ -1407,13 +1466,14 @@ namespace serialize
         @param stream The stream object. May be a read, write or measure stream.
         @param value The float value to serialize.
      */
-    #define serialize_compressed_float(stream, value, min, max, res)                       \
-    do                                                                                     \
-    {                                                                                      \
-        if (!serialize::serialize_compressed_float_internal(stream, value, min, max, res)) \
-        {                                                                                  \
-            return false;                                                                  \
-        }                                                                                  \
+
+    #define serialize_compressed_float(stream, value, min, max, res)                                \
+    do                                                                                              \
+    {                                                                                               \
+        if ( !serialize::serialize_compressed_float_internal( stream, value, min, max, res) )       \
+        {                                                                                           \
+            return false;                                                                           \
+        }                                                                                           \
     } while (0)
 
     template <typename Stream> bool serialize_double_internal( Stream & stream, double & value )
@@ -1458,6 +1518,42 @@ namespace serialize
     {
         return stream.SerializeBytes( data, bytes );
     }
+
+    /**
+        Serialize unsigned 8 bit integer (read/write/measure).
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned 16 bit integer value.
+     */
+
+    #define serialize_uint8( stream, value ) serialize_bits( stream, value, 8 );
+
+    /**
+        Serialize unsigned 16 bit integer (read/write/measure).
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned 16 bit integer value.
+     */
+
+    #define serialize_uint16( stream, value ) serialize_bits( stream, value, 16 );
+
+    /**
+        Serialize unsigned 32 bit integer (read/write/measure).
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned 32 bit integer value.
+     */
+
+    #define serialize_uint32( stream, value ) serialize_bits( stream, value, 32 );
+
+    /**
+        Serialize unsigned 64 bit integer (read/write/measure).
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned 64 bit integer value.
+     */
+
+    #define serialize_uint64( stream, value ) serialize_bits( stream, value, 64 );
 
     /**
         Serialize an array of bytes to the stream (read/write/measure).
@@ -1720,17 +1816,34 @@ namespace serialize
     // read macros corresponding to each serialize_*. useful when you want separate read and write functions.
 
     #define read_bits( stream, value, bits )                                                \
-    do                                                                                      \
-    {                                                                                       \
-        serialize_assert( bits > 0 );                                                       \
-        serialize_assert( bits <= 32 );                                                     \
-        uint32_t uint32_value= 0;                                                           \
-        if ( !stream.SerializeBits( uint32_value, bits ) )                                  \
+        do                                                                                  \
         {                                                                                   \
-            return false;                                                                   \
-        }                                                                                   \
-        value = uint32_value;                                                               \
-    } while (0)
+            serialize_assert( bits > 0 );                                                   \
+            serialize_assert( bits <= 64 );                                                 \
+            if ( bits <= 32 )                                                               \
+            {                                                                               \
+                uint32_t uint32_value;                                                      \
+                if ( !stream.SerializeBits( uint32_value, bits ) )                          \
+                {                                                                           \
+                    return false;                                                           \
+                }                                                                           \
+                value = uint32_value;                                                       \
+            }                                                                               \
+            else                                                                            \
+            {                                                                               \
+                uint32_t lo = 0;                                                            \
+                uint32_t hi = 0;                                                            \
+                if ( !stream.SerializeBits( lo, 32 ) )                                      \
+                {                                                                           \
+                    return false;                                                           \
+                }                                                                           \
+                if ( !stream.SerializeBits( hi, bits - 32 ) )                               \
+                {                                                                           \
+                    return false;                                                           \
+                }                                                                           \
+                value = ( uint64_t(hi) << 32 ) | lo;                                        \
+            }                                                                               \
+        } while (0)
 
     #define read_int( stream, value, min, max )                                             \
         do                                                                                  \
@@ -1748,53 +1861,129 @@ namespace serialize
             }                                                                               \
         } while (0)
 
-    #define read_bool( stream, value ) read_bits( stream, value, 1 )
+    #define read_bool( stream, value )      read_bits( stream, value, 1 )
+    #define read_uint8( stream, value )     read_bits( stream, value, 8 )
+    #define read_uint16( stream, value )    read_bits( stream, value, 16 )
+    #define read_uint32( stream, value )    read_bits( stream, value, 32 )
+    #define read_uint64( stream, value )    read_bits( stream, value, 64 )
 
     #define read_float                  serialize_float
-    #define read_uint32                 serialize_uint32
-    #define read_uint64                 serialize_uint64
     #define read_double                 serialize_double
-    #define read_bytes                  serialize_bytes
-    #define read_string                 serialize_string
+
+    #define read_bytes( stream, data, bytes )                                               \
+        do                                                                                  \
+        {                                                                                   \
+            uint8_t * data_ptr = (uint8_t*) data;                                           \
+            if ( !stream.SerializeBytes( data_ptr, bytes ) )                                \
+            {                                                                               \
+                return false;                                                               \
+            }                                                                               \
+        } while (0)
+
+    #define read_string( stream, string, buffer_size )                                      \
+        do                                                                                  \
+        {                                                                                   \
+            char * string_ptr = (char*) string;                                             \
+            if ( !serialize_string_internal( stream, string_ptr, buffer_size ) )            \
+            {                                                                               \
+                return false;                                                               \
+            }                                                                               \
+        } while (0)
+
     #define read_align                  serialize_align
     #define read_check                  serialize_check
     #define read_object                 serialize_object
     #define read_int_relative           serialize_int_relative
 
-    // write macros corresponding to each serialize_*. useful when you want separate read and write functions for some reason.
+    // write macros corresponding to each serialize_*. useful when you want separate read and write functions.
 
     #define write_bits( stream, value, bits )                                               \
         do                                                                                  \
         {                                                                                   \
-            serialize_assert( bits > 0 );                                                   \
-            serialize_assert( bits <= 32 );                                                 \
-            uint32_t uint32_value = (uint32_t) value;                                       \
-            if ( !stream.SerializeBits( uint32_value, bits ) )                              \
+            uint64_t uint64_value = value;                                                  \
+            if ( bits <= 32 )                                                               \
             {                                                                               \
-                return false;                                                               \
+                uint32_t uint32_value = (uint32_t) uint64_value;                            \
+                stream.SerializeBits( uint32_value, bits );                                 \
+            }                                                                               \
+            else                                                                            \
+            {                                                                               \
+                uint32_t lo = uint32_t( uint64_value & 0xFFFFFFFF );                        \
+                uint32_t hi = uint32_t( uint64_value >> 32 );                               \
+                stream.SerializeBits( lo, 32 );                                             \
+                stream.SerializeBits( hi, bits - 32 );                                      \
             }                                                                               \
         } while (0)
 
     #define write_int( stream, value, min, max )                                            \
         do                                                                                  \
         {                                                                                   \
-            serialize_assert( min < max );                                                  \
-            serialize_assert( value >= min );                                               \
-            serialize_assert( value <= max );                                               \
+            serialize_assert( (int32_t) min < (int32_t) max );                              \
+            serialize_assert( (int32_t) value >= (int32_t) min );                           \
+            serialize_assert( (int32_t) value <= (int32_t) max );                           \
             int32_t int32_value = (int32_t) value;                                          \
-            if ( !stream.SerializeInteger( int32_value, min, max ) )                        \
-                return false;                                                               \
+            stream.SerializeInteger( int32_value, min, max );                               \
         } while (0)
 
-    #define write_float                 serialize_float
-    #define write_uint32                serialize_uint32
-    #define write_uint64                serialize_uint64
-    #define write_double                serialize_double
-    #define write_bytes                 serialize_bytes
-    #define write_string                serialize_string
-    #define write_align                 serialize_align
-    #define write_object                serialize_object
-    #define write_int_relative          serialize_int_relative
+    #define write_bool( stream, value )         write_bits( stream, value, 1 )
+    #define write_uint8( stream, value )        write_bits( stream, value, 8 )
+    #define write_uint16( stream, value )       write_bits( stream, value, 16 )
+    #define write_uint32( stream, value )       write_bits( stream, value, 32 )
+    #define write_uint64( stream, value )       write_bits( stream, value, 64 )
+
+    #define write_float( stream, value )                                                    \
+        do                                                                                  \
+        {                                                                                   \
+            float float_value = (float) value;                                              \
+            uint32_t int_value;                                                             \
+            memcpy( (char*) &int_value, &float_value, 4 );                                  \
+            stream.SerializeBits( int_value, 32 );                                          \
+        } while (0)
+
+    #define write_double( stream, value )                                                   \
+        do                                                                                  \
+        {                                                                                   \
+            double double_value = (double) value;                                           \
+            uint64_t int64_value;                                                           \
+            memcpy( (char*) &int64_value, &double_value, 8 );                               \
+            write_bits( stream, int64_value, 64 );                                          \
+        } while (0)
+
+    #define write_bytes( stream, data, bytes )                                              \
+        do                                                                                  \
+        {                                                                                   \
+            const uint8_t * data_ptr = (const uint8_t*) data;                               \
+            stream.SerializeBytes( data_ptr, bytes );                                       \
+        } while (0)
+
+    #define write_string( stream, string, buffer_size )                                     \
+        do                                                                                  \
+        {                                                                                   \
+            int length = (int) strlen( string );                                            \
+            serialize_assert( length < buffer_size );                                       \
+            write_int( stream, length, 0, buffer_size - 1 );                                \
+            write_bytes( stream, (uint8_t*)string, length );                                \
+        } while (0)
+
+    #define write_align( stream )                                                           \
+        do                                                                                  \
+        {                                                                                   \
+            stream.SerializeAlign();                                                        \
+        } while (0)
+
+    #define write_object( stream, object )                                                  \
+        do                                                                                  \
+        {                                                                                   \
+            object.Serialize( stream );                                                     \
+        }                                                                                   \
+        while(0)
+
+    #define write_int_relative( stream, previous, current )                                 \
+        do                                                                                  \
+        {                                                                                   \
+            int current_value = (int) current;                                              \
+            serialize::serialize_int_relative_internal( stream, previous, current_value );  \
+        } while (0)
 }
 
 inline void serialize_copy_string( char * dest, const char * source, size_t dest_size )
@@ -1959,6 +2148,9 @@ struct TestData
     float float_value;
     float compressed_float_value;
     double double_value;
+    uint8_t uint8_value;
+    uint16_t uint16_value;
+    uint32_t uint32_value;
     uint64_t uint64_value;
     int int_relative;
     uint8_t bytes[17];
@@ -1992,11 +2184,14 @@ struct TestObject
         data.compressed_float_value = 2.13f;
         data.float_value = 3.1415926f;
         data.double_value = 1 / 3.0;
+        data.uint8_value = 123;
+        data.uint16_value = 0x1234;
+        data.uint32_value = 0x12345678;
         data.uint64_value = 0x1234567898765432L;
         data.int_relative = 5;
 
         for ( int i = 0; i < (int) sizeof( data.bytes ); ++i )
-            data.bytes[i] = rand() % 255;
+            data.bytes[i] = (uint8_t) ( i + 5 ) * 13;
 
         serialize_copy_string( data.string, "hello world!", sizeof(data.string) - 1 );
     }
@@ -2028,7 +2223,10 @@ struct TestObject
 
         serialize_double( stream, data.double_value );
 
-        serialize_bits( stream, data.uint64_value, 64 );
+        serialize_uint8( stream, data.uint8_value );
+        serialize_uint16( stream, data.uint16_value );
+        serialize_uint32( stream, data.uint32_value );
+        serialize_uint64( stream, data.uint64_value );
 
         serialize_int_relative( stream, data.a, data.int_relative );
 
@@ -2050,7 +2248,7 @@ struct TestObject
     }
 };
 
-inline void test_stream()
+inline void test_serialize()
 {
     const int BufferSize = 1024;
 
@@ -2080,6 +2278,173 @@ inline void test_stream()
     serialize_check( readObject == writeObject );
 }
 
+bool ReadFunction( serialize::ReadStream & readStream )
+{
+    // IMPORTANT: You wouldn't normally write a read function like this, but I'm just checking each value as it's read in
+    // Note that the only thing the read function has to have is to return bool: true on success, false on failing to read.
+    // This is important because protects you from maliciously crafted packets.
+
+    {
+        uint32_t value;
+        read_bits( readStream, value, 4 );
+        serialize_check( value == 13 );
+    }
+
+    {
+        bool value;
+        read_bool( readStream, value );
+        serialize_check( value == true );
+    }
+
+    {
+        uint8_t value;
+        read_uint8( readStream, value );
+        serialize_check( value == 255 );
+    }
+
+    {
+        uint16_t value;
+        read_uint16( readStream, value );
+        serialize_check( value == 65535 );
+    }
+
+    {
+        uint32_t value;
+        read_uint32( readStream, value );
+        serialize_check( value == 0xFFFFFFFF );
+    }
+
+    {
+        uint64_t value;
+        read_uint64( readStream, value );
+        serialize_check( value == 0xFFFFFFFFFFFFFFFFULL );      // i am very full
+    }
+
+    {
+        int value;
+        read_int( readStream, value, 10, 90 );
+        serialize_check( value == 55 );
+    }
+
+    {
+        float value;
+        read_float( readStream, value );
+        serialize_check( value == 100.0f );
+    }
+
+    {
+        double value;
+        read_double( readStream, value );
+        serialize_check( value == 1000000000.0 );
+    }
+
+    {
+        char value[5];
+        read_bytes( readStream, value, 5 );
+        serialize_check( value[0] == 1 );
+        serialize_check( value[1] == 2 );
+        serialize_check( value[2] == 3 );
+        serialize_check( value[3] == 4 );
+        serialize_check( value[4] == 5 );
+    }
+
+    {
+        char string[10];
+        read_string( readStream, string, 10 );
+        serialize_check( string[0] == 'h' );
+        serialize_check( string[1] == 'e' );
+        serialize_check( string[2] == 'l' );
+        serialize_check( string[3] == 'l' );
+        serialize_check( string[4] == 'o' );
+        serialize_check( string[5] == '\0' );
+    }
+
+    read_align( readStream );
+
+    TestContext context;
+    context.min = -10;
+    context.max = +10;
+
+    readStream.SetContext( &context );
+    {
+        TestObject expectedObject;
+        expectedObject.Init();
+
+        TestObject readObject;
+
+        read_object( readStream, readObject );
+
+        serialize_check( readObject == expectedObject );
+    }
+
+    {
+        int value;
+        read_int_relative( readStream, 100, value );
+        serialize_check( value == 105 );
+    }
+
+    return true;
+}
+
+inline void test_read_write()
+{
+    const int BufferSize = 10 * 1024;
+
+    uint8_t buffer[BufferSize];
+
+    int bytesWritten = 0;
+
+    // write to the buffer
+    {
+        serialize::WriteStream writeStream;
+        writeStream.Initialize( buffer, BufferSize );
+
+        write_bits( writeStream, 13, 4 );
+        write_bool( writeStream, true );
+        write_uint8( writeStream, 255 );
+        write_uint16( writeStream, 65535 );
+        write_uint32( writeStream, 0xFFFFFFFF );
+        write_uint64( writeStream, 0xFFFFFFFFFFFFFFFFULL );
+        write_int( writeStream, 55, 10, 90 );
+        write_float( writeStream, 100.0f );
+        write_double( writeStream, 1000000000.0f );
+
+        char data[5] = { 1, 2, 3, 4, 5 };
+        write_bytes( writeStream, data, 5 );
+
+        const char * string = "hello";
+        write_string( writeStream, string, 10 );
+
+        write_align( writeStream );
+
+        TestContext context;
+        context.min = -10;
+        context.max = +10;
+
+        writeStream.SetContext( &context );
+
+        TestObject object;
+        object.Init();
+
+        write_object( writeStream, object );
+
+        write_int_relative( writeStream, 100, 105 );
+
+        writeStream.Flush();
+
+        bytesWritten = writeStream.GetBytesProcessed();
+
+        memset( buffer + bytesWritten, 0, BufferSize - bytesWritten );
+    }
+
+    // read from the buffer
+    {
+        serialize::ReadStream readStream;
+        readStream.Initialize( buffer, bytesWritten );
+        serialize_check( ReadFunction( readStream ) );
+    }
+}
+
 #define SERIALIZE_RUN_TEST( test_function )                                 \
     do                                                                      \
     {                                                                       \
@@ -2095,7 +2460,8 @@ inline void serialize_test()
         SERIALIZE_RUN_TEST( test_endian );
         SERIALIZE_RUN_TEST( test_bitpacker );
         SERIALIZE_RUN_TEST( test_bits_required );
-        SERIALIZE_RUN_TEST( test_stream );
+        SERIALIZE_RUN_TEST( test_serialize );
+        SERIALIZE_RUN_TEST( test_read_write );
     }
 }
 
