@@ -1,5 +1,3 @@
-[![Build status](https://github.com/networkprotocol/yojimbo/workflows/CI/badge.svg)](https://github.com/networkprotocol/yojimbo/actions?query=workflow%3ACI)
-
 # yojimbo
 
 **yojimbo** is a network library for client/server games written in C++.
