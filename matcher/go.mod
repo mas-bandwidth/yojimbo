@@ -1,11 +1,11 @@
 module github.com/mas-bandwidth/matcher
 
-go 1.20
+go 1.25.0
 
 require (
-	github.com/go-chi/chi/v5 v5.0.8
+	github.com/go-chi/chi/v5 v5.3.0
 	github.com/pkg/errors v0.9.1
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.53.0
 )
 
-require golang.org/x/sys v0.28.0 // indirect
+require golang.org/x/sys v0.46.0 // indirect
