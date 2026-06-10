@@ -15,11 +15,11 @@ solution "Yojimbo"
     floatingpoint "Fast"
     filter "configurations:Debug"
         symbols "On"
-        defines { "YOJIMBO_DEBUG", "NETCODE_DEBUG", "RELIABLE_DEBUG" }
+        defines { "YOJIMBO_DEBUG", "NETCODE_DEBUG", "RELIABLE_DEBUG", "SERIALIZE_DEBUG" }
     filter "configurations:Release"
         symbols "Off"
         optimize "Speed"
-        defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE" }
+        defines { "YOJIMBO_RELEASE", "NETCODE_RELEASE", "RELIABLE_RELEASE", "SERIALIZE_RELEASE" }
 
     filter "platforms:Win32"
         architecture "x86"
