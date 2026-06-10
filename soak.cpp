@@ -62,24 +62,24 @@ int SoakMain()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
+    server.Start( 1 );
+
     server.SetLatency( 1000.0f );
     server.SetJitter( 100.0f );
     server.SetPacketLoss( 25.0f );
     server.SetDuplicates( 25.0f );
-
-    server.Start( 1 );
 
     uint64_t clientId = 0;
     yojimbo_random_bytes( (uint8_t*) &clientId, 8 );
 
     Client client( GetDefaultAllocator(), Address("0.0.0.0"), config, adapter, time );
 
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
     client.SetLatency( 1000.0f );
     client.SetJitter( 100.0f );
     client.SetPacketLoss( 25.0f );
     client.SetDuplicates( 25.0f );
-
-    client.InsecureConnect( privateKey, clientId, serverAddress );
 
     uint64_t numMessagesSentToServer = 0;
     uint64_t numMessagesSentToClient = 0;

@@ -1320,11 +1320,6 @@ void test_client_server_messages()
 
     server.Start( MaxClients );
 
-    client.SetLatency( 250 );
-    client.SetJitter( 100 );
-    client.SetPacketLoss( 25 );
-    client.SetDuplicates( 25 );
-
     server.SetLatency( 250 );
     server.SetJitter( 100 );
     server.SetPacketLoss( 25 );
@@ -1335,6 +1330,11 @@ void test_client_server_messages()
         // connect and wait until connection completes
 
         client.InsecureConnect( privateKey, clientId, serverAddress );
+
+        client.SetLatency( 250 );
+        client.SetJitter( 100 );
+        client.SetPacketLoss( 25 );
+        client.SetDuplicates( 25 );
 
         const int NumIterations = 10000;
 
@@ -1420,10 +1420,6 @@ void CreateClients( int numClients, Client ** clients, const Address & address, 
     for ( int i = 0; i < numClients; ++i )
     {
         clients[i] = YOJIMBO_NEW( GetDefaultAllocator(), Client, GetDefaultAllocator(), address, config, _adapter, time );
-        clients[i]->SetLatency( 250 );
-        clients[i]->SetJitter( 100 );
-        clients[i]->SetPacketLoss( 25 );
-        clients[i]->SetDuplicates( 25 );
     }
 }
 
@@ -1432,6 +1428,10 @@ void ConnectClients( int numClients, Client ** clients, const uint8_t privateKey
     for ( int i = 0; i < numClients; ++i )
     {
         clients[i]->InsecureConnect( privateKey, i + 1, serverAddress );
+        clients[i]->SetLatency( 250 );
+        clients[i]->SetJitter( 100 );
+        clients[i]->SetPacketLoss( 25 );
+        clients[i]->SetDuplicates( 25 );
     }
 }
 
@@ -1488,11 +1488,6 @@ void test_client_server_start_stop_restart()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.SetLatency( 250 );
-    server.SetJitter( 100 );
-    server.SetPacketLoss( 25 );
-    server.SetDuplicates( 25 );
-
     int numClients[] = { 3, 5, 1, 32, 5 };
 
     const int NumIterations = sizeof( numClients ) / sizeof( int );
@@ -1506,6 +1501,11 @@ void test_client_server_start_stop_restart()
         }        
 
         server.Start( numClients[iteration] );
+
+        server.SetLatency( 250 );
+        server.SetJitter( 100 );
+        server.SetPacketLoss( 25 );
+        server.SetDuplicates( 25 );
 
         Client * clients[MaxClients];
 
