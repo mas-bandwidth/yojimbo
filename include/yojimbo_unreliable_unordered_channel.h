@@ -41,7 +41,7 @@ namespace yojimbo
     public:
 
         /**
-            Reliable ordered channel constructor.
+            Unreliable unordered channel constructor.
             @param allocator The allocator to use.
             @param messageFactory Message factory for creating and destroying messages.
             @param config The configuration for this channel.
