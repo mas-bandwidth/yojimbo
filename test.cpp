@@ -754,6 +754,78 @@ void test_connection_reliable_ordered_blocks()
     check( numMessagesReceived == NumMessagesSent );
 }
 
+void test_connection_reliable_ordered_blocks_max_size()
+{
+    // Regression test: when maxBlockSize is not a multiple of blockFragmentSize, a
+    // full-size block needs ceil(maxBlockSize/blockFragmentSize) fragments. The
+    // send-side fragment buffers used to be sized with floor division, so sending a
+    // maxBlockSize block overflowed them. Here 1100/500 => floor 2, ceil 3.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.channel[ReliableChannel].maxBlockSize = 1100;
+    connectionConfig.channel[ReliableChannel].blockFragmentSize = 500;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    const int NumMessagesSent = 8;
+    const int BlockSize = connectionConfig.channel[ReliableChannel].maxBlockSize;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+        check( message );
+        message->sequence = i;
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), BlockSize );
+        for ( int j = 0; j < BlockSize; ++j )
+            blockData[j] = uint8_t( i + j );
+        message->AttachBlock( messageFactory.GetAllocator(), blockData, BlockSize );
+        sender.SendMessage( ReliableChannel, message );
+    }
+
+    int numMessagesReceived = 0;
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+    const int NumIterations = 10000;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence );
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage( ReliableChannel );
+            if ( !message )
+                break;
+
+            check( message->GetId() == (int) numMessagesReceived );
+            check( message->GetType() == TEST_BLOCK_MESSAGE );
+
+            TestBlockMessage * blockMessage = (TestBlockMessage*) message;
+            check( blockMessage->sequence == uint16_t( numMessagesReceived ) );
+
+            const int blockSize = blockMessage->GetBlockSize();
+            check( blockSize == BlockSize );
+
+            const uint8_t * blockData = blockMessage->GetBlockData();
+            check( blockData );
+            for ( int j = 0; j < blockSize; ++j )
+                check( blockData[j] == uint8_t( numMessagesReceived + j ) );
+
+            ++numMessagesReceived;
+            messageFactory.ReleaseMessage( message );
+        }
+
+        if ( numMessagesReceived == NumMessagesSent )
+            break;
+    }
+
+    check( numMessagesReceived == NumMessagesSent );
+}
+
 void test_connection_reliable_ordered_messages_and_blocks()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
@@ -2533,6 +2605,7 @@ int main()
 
         RUN_TEST( test_connection_reliable_ordered_messages );
         RUN_TEST( test_connection_reliable_ordered_blocks );
+        RUN_TEST( test_connection_reliable_ordered_blocks_max_size );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
