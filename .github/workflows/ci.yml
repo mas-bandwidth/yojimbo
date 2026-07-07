@@ -13,14 +13,19 @@ env:
 
 jobs:
   build-test:
-    name: build & test (${{ matrix.os }})
+    name: build & test (${{ matrix.label }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
+            label: linux x86-64
             premake: linux
-          - os: macos-latest
+          - os: macos-13
+            label: macOS x86-64 (Intel)
+            premake: macosx-x64
+          - os: macos-14
+            label: macOS arm64 (Apple Silicon)
             premake: macosx
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,9 +46,37 @@ jobs:
       - name: Test (release)
         run: ./bin/test
 
+  windows:
+    name: build & test (windows MSVC x64, ${{ matrix.config }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate solution (premake vs2022)
+        shell: bash
+        run: |
+          curl -fsSL -o premake.zip "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-windows.zip"
+          unzip -o premake.zip
+          ./premake5.exe vs2022
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+      - name: Build (${{ matrix.config }} x64)
+        run: msbuild Yojimbo.sln /p:Configuration=${{ matrix.config }} /p:Platform=x64 /m
+      - name: Test (${{ matrix.config }} x64)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter test.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error "test.exe not found"; exit 1 }
+          Write-Host "Running $($exe.FullName)"
+          & $exe.FullName
+          exit $LASTEXITCODE
+
   system-sodium:
     name: build & test (linux, --sodium=system)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install libsodium
@@ -59,10 +92,14 @@ jobs:
         run: make -j config=debug
       - name: Test (debug)
         run: ./bin/test
+      - name: Build (release)
+        run: make -j config=release
+      - name: Test (release)
+        run: ./bin/test
 
   sanitizers:
     name: sanitizers (linux, ASan+UBSan+LSan)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install premake5
@@ -81,27 +118,3 @@ jobs:
             CFLAGS="$SAN" CXXFLAGS="$SAN" LDFLAGS="-fsanitize=address,undefined"
       - name: Test (sanitized)
         run: ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ./bin/test
-
-  windows:
-    name: build & test (windows, MSVC)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate solution (premake vs2022)
-        shell: bash
-        run: |
-          curl -fsSL -o premake.zip "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-windows.zip"
-          unzip -o premake.zip
-          ./premake5.exe vs2022
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-      - name: Build (debug x64)
-        run: msbuild Yojimbo.sln /p:Configuration=Debug /p:Platform=x64 /m
-      - name: Test (debug x64)
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem -Recurse -Filter test.exe | Select-Object -First 1
-          if (-not $exe) { Write-Error "test.exe not found"; exit 1 }
-          Write-Host "Running $($exe.FullName)"
-          & $exe.FullName
-          exit $LASTEXITCODE
