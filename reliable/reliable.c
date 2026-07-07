@@ -1,7 +1,7 @@
 /*
     reliable
 
-    Copyright © 2017 - 2024, Mas Bandwidth LLC
+    Copyright © 2017 - 2026, Más Bandwidth LLC
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -997,10 +997,10 @@ int reliable_read_fragment_header( char * name,
 
     if ( *fragment_id == 0 )
     {
-        int packet_header_bytes = reliable_read_packet_header( name, 
-                                                               packet_data + RELIABLE_FRAGMENT_HEADER_BYTES, 
-                                                               packet_bytes, 
-                                                               &packet_sequence, 
+        int packet_header_bytes = reliable_read_packet_header( name,
+                                                               packet_data + RELIABLE_FRAGMENT_HEADER_BYTES,
+                                                               packet_bytes - RELIABLE_FRAGMENT_HEADER_BYTES,
+                                                               &packet_sequence,
                                                                &packet_ack, 
                                                                &packet_ack_bits );
 
@@ -1068,6 +1068,19 @@ void reliable_store_fragment_data( struct reliable_fragment_reassembly_data_t * 
         reassembly_data->packet_bytes = ( reassembly_data->num_fragments_total - 1 ) * fragment_size + fragment_bytes;
     }
 
+    size_t offset = RELIABLE_MAX_PACKET_HEADER_BYTES + fragment_id * fragment_size;
+    size_t end_offset = offset + fragment_bytes;
+    size_t max_size = RELIABLE_MAX_PACKET_HEADER_BYTES +
+                      reassembly_data->num_fragments_total * fragment_size;
+    
+    if ( fragment_bytes < 0 || end_offset > max_size )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_DEBUG,
+            "[reliable] invalid fragment size %d (would write past %zu/%zu)\n",
+            fragment_bytes, end_offset, max_size );
+        return;
+    }
+    
     memcpy( reassembly_data->packet_data + RELIABLE_MAX_PACKET_HEADER_BYTES + fragment_id * fragment_size, fragment_data, fragment_bytes );
 }
 
@@ -1244,6 +1257,7 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
             reassembly_data->num_fragments_total = num_fragments;
             reassembly_data->packet_data = (uint8_t*) endpoint->allocate_function( endpoint->allocator_context, packet_buffer_size );
             reassembly_data->packet_bytes = 0;
+            reassembly_data->packet_header_bytes = 0;
             memset( reassembly_data->fragment_received, 0, sizeof( reassembly_data->fragment_received ) );
         }
 
@@ -1513,7 +1527,7 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
                 finish_time = sent_packet_data->time;
             }
         }
-        if ( start_time != FLT_MAX && finish_time != 0.0 )
+        if ( start_time != FLT_MAX && finish_time > start_time )
         {
             float sent_bandwidth_kbps = (float) ( ( (double) bytes_sent ) / ( finish_time - start_time ) * 8.0f / 1000.0f );
             if ( fabs( endpoint->sent_bandwidth_kbps - sent_bandwidth_kbps ) > 0.00001 )
@@ -1554,7 +1568,7 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
                 finish_time = received_packet_data->time;
             }
         }
-        if ( start_time != FLT_MAX && finish_time != 0.0 )
+        if ( start_time != FLT_MAX && finish_time > start_time )
         {
             float received_bandwidth_kbps = (float) ( ( (double) bytes_sent ) / ( finish_time - start_time ) * 8.0f / 1000.0f );
             if ( fabs( endpoint->received_bandwidth_kbps - received_bandwidth_kbps ) > 0.00001 )
@@ -1595,7 +1609,7 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
                 finish_time = sent_packet_data->time;
             }
         }
-        if ( start_time != FLT_MAX && finish_time != 0.0 )
+        if ( start_time != FLT_MAX && finish_time > start_time )
         {
             float acked_bandwidth_kbps = (float) ( ( (double) bytes_sent ) / ( finish_time - start_time ) * 8.0f / 1000.0f );
             if ( fabs( endpoint->acked_bandwidth_kbps - acked_bandwidth_kbps ) > 0.00001 )

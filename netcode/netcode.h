@@ -1,7 +1,7 @@
 /*
     netcode
 
-    Copyright © 2017 - 2024, Mas Bandwidth LLC
+    Copyright © 2017 - 2026, Más Bandwidth LLC
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -38,7 +38,8 @@
 #error Can only define one of debug & release
 #endif
 
-#if    defined(__386__) || defined(i386)    || defined(__i386__)  \
+#if __LITTLE_ENDIAN__ \
+    || defined(__386__) || defined(i386)    || defined(__i386__)  \
     || defined(__X86)   || defined(_M_IX86)                       \
     || defined(_M_X64)  || defined(__x86_64__)                    \
     || defined(alpha)   || defined(__alpha) || defined(__alpha__) \
@@ -113,12 +114,16 @@ int netcode_init();
 void netcode_term();
 
 #ifndef NETCODE_PACKET_TAGGING
+#ifndef __MINGW32__
 #define NETCODE_PACKET_TAGGING 1
+#else
+// At least as of version 14.2.0, the Qwave library is not properly implemented
+// in MingW-w64, so packet tagging is disabled by default.
+#define NETCODE_PACKET_TAGGING 0
+#endif // #ifndef __MINGW32__
 #endif // #ifndef NETCODE_PACKET_TAGGING
 
-#if NETCODE_PACKET_TAGGING
 void netcode_enable_packet_tagging();
-#endif // #if NETCODE_PACKET_TAGGING
 
 struct netcode_address_t
 {
@@ -150,6 +155,8 @@ struct netcode_client_config_t
 void netcode_default_client_config( struct netcode_client_config_t * config );
 
 struct netcode_client_t * netcode_client_create( NETCODE_CONST char * address, NETCODE_CONST struct netcode_client_config_t * config, double time );
+
+struct netcode_client_t * netcode_client_create_dual( NETCODE_CONST char * address1, NETCODE_CONST char * address2, NETCODE_CONST struct netcode_client_config_t * config, double time );
 
 void netcode_client_destroy( struct netcode_client_t * client );
 
@@ -217,6 +224,8 @@ struct netcode_server_config_t
 void netcode_default_server_config( struct netcode_server_config_t * config );
 
 struct netcode_server_t * netcode_server_create( NETCODE_CONST char * server_address, NETCODE_CONST struct netcode_server_config_t * config, double time );
+
+struct netcode_server_t * netcode_server_create_dual( NETCODE_CONST char * server_address1, NETCODE_CONST char * server_address2, NETCODE_CONST struct netcode_server_config_t * config, double time );
 
 void netcode_server_destroy( struct netcode_server_t * server );
 
