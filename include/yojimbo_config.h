@@ -152,7 +152,11 @@ namespace yojimbo
 
         int GetMaxFragmentsPerBlock() const
         {
-            return maxBlockSize / blockFragmentSize;
+            // Round up: a block of maxBlockSize needs ceil(maxBlockSize/blockFragmentSize)
+            // fragments. Using floor here under-sizes the send-side fragment buffers when
+            // maxBlockSize is not a multiple of blockFragmentSize (see GetFragmentToSend,
+            // which counts fragments with ceil).
+            return ( maxBlockSize + blockFragmentSize - 1 ) / blockFragmentSize;
         }
     };
 

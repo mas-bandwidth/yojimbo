@@ -105,6 +105,11 @@ namespace yojimbo
         if ( yojimbo_random_float( 0.0f, 100.0f ) <= m_duplicates )
         {
             PacketEntry & nextPacketEntry = m_packetEntries[m_currentIndex];
+            if ( nextPacketEntry.packetData )
+            {
+                YOJIMBO_FREE( *m_allocator, nextPacketEntry.packetData );
+                nextPacketEntry = PacketEntry();
+            }
             nextPacketEntry.to = to;
             nextPacketEntry.packetData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
             memcpy( nextPacketEntry.packetData, packetData, packetBytes );
