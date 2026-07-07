@@ -19,23 +19,30 @@ You can now build the library and run individual test programs as you would for 
 
 First, download and install [premake 5](https://premake.github.io/download.html).
 
-Next, install libsodium.
-
-Linux:
-
-    sudo apt install libsodium-dev
-
-Mac:
-
-    brew install libsodium
-
-Now go to the command line under the yojimbo directory and enter:
+yojimbo bundles a small libsodium subset (in `sodium/`), so by default there is
+nothing else to install. Go to the command line under the yojimbo directory and
+enter:
 
     premake5 gmake
 
 This creates makefiles which you can use to build the source via:
 
     make -j
+
+### Using the system libsodium instead of the bundled one
+
+If you would rather link the system-installed libsodium, install it first:
+
+    sudo apt install libsodium-dev   # Linux
+    brew install libsodium           # Mac
+
+then pass `--sodium=system` when generating the makefiles:
+
+    premake5 gmake --sodium=system
+    make -j
+
+(The same `--sodium=system` option works with the Visual Studio generators too,
+e.g. `premake5 vs2019 --sodium=system`.)
 
 Then run the built executables:
 

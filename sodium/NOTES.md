@@ -6,12 +6,11 @@ autoconf/CMake.
 
 ## When is this used?
 
-Today `premake5.lua` links this `sodium-builtin` project only under
-`filter "system:windows"`; on macOS and Linux yojimbo links the system libsodium
-(e.g. from Homebrew or the distro package). However, this subset is written to be
-usable on **any** target (Linux, macOS x86-64, macOS Apple Silicon, Windows) —
-see "Optimized implementations" below — so it can be linked on other platforms if
-desired.
+This bundled subset is linked **by default on every platform** (Linux, macOS
+x86-64, macOS Apple Silicon, Windows), so yojimbo has no external libsodium
+dependency out of the box. To link the system-installed libsodium instead,
+generate the build with `--sodium=system` (e.g. `premake5 gmake --sodium=system`);
+that skips the `sodium-builtin` project and links `-lsodium`. See BUILDING.md.
 
 ## Baseline
 
