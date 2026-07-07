@@ -64,8 +64,8 @@ project "sodium-builtin"
     language "C"
     warnings "Off"
     files {
-        "sodium/**.c",
-        "sodium/**.h",
+        "sodium/sodium.c",
+        "sodium/sodium.h",
     }
     filter { "action:gmake*" }
         buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
