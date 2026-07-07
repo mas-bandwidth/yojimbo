@@ -21,9 +21,7 @@ jobs:
           - os: ubuntu-24.04
             label: linux x86-64
             premake: linux
-          - os: macos-13
-            label: macOS x86-64 (Intel)
-            premake: macosx-x64
+          # macOS x86-64 (Intel, macos-13) temporarily disabled — runner is slow to allocate.
           - os: macos-14
             label: macOS arm64 (Apple Silicon)
             premake: macosx
