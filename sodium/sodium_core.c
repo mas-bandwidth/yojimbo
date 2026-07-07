@@ -10,11 +10,8 @@
 #endif
 
 #include "sodium_core.h"
-#include "sodium_crypto_generichash.h"
 #include "sodium_crypto_onetimeauth.h"
-#include "sodium_crypto_scalarmult.h"
 #include "sodium_crypto_stream_chacha20.h"
-#include "sodium_crypto_stream_salsa20.h"
 #include "sodium_randombytes.h"
 #include "sodium_runtime.h"
 #include "sodium_utils.h"
@@ -41,11 +38,8 @@ sodium_init(void)
     _sodium_runtime_get_cpu_features();
     randombytes_stir();
     _sodium_alloc_init();
-    _crypto_generichash_blake2b_pick_best_implementation();
     _crypto_onetimeauth_poly1305_pick_best_implementation();
-    _crypto_scalarmult_curve25519_pick_best_implementation();
     _crypto_stream_chacha20_pick_best_implementation();
-    _crypto_stream_salsa20_pick_best_implementation();
     initialized = 1;
     if (sodium_crit_leave() != 0) {
         return -1; /* LCOV_EXCL_LINE */
