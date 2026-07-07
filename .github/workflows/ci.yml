@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PREMAKE_VERSION: "5.0.0-beta8"
+
+jobs:
+  build-test:
+    name: build & test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            premake: linux
+          - os: macos-latest
+            premake: macosx
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install premake5
+        run: |
+          curl -fsSL "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-${{ matrix.premake }}.tar.gz" | tar xz
+          echo "$PWD" >> "$GITHUB_PATH"
+      - name: Generate makefiles
+        run: premake5 gmake
+      - name: Build (debug)
+        run: make -j config=debug
+      - name: Test (debug)
+        run: ./bin/test
+      - name: Build (release)
+        run: make -j config=release
+      - name: Test (release)
+        run: ./bin/test
+
+  system-sodium:
+    name: build & test (linux, --sodium=system)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install libsodium
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+      - name: Install premake5
+        run: |
+          curl -fsSL "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-linux.tar.gz" | tar xz
+          echo "$PWD" >> "$GITHUB_PATH"
+      - name: Generate makefiles (system libsodium)
+        run: premake5 gmake --sodium=system
+      - name: Build (debug)
+        run: make -j config=debug
+      - name: Test (debug)
+        run: ./bin/test
+
+  sanitizers:
+    name: sanitizers (linux, ASan+UBSan+LSan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install premake5
+        run: |
+          curl -fsSL "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-linux.tar.gz" | tar xz
+          echo "$PWD" >> "$GITHUB_PATH"
+      - name: Generate makefiles
+        run: premake5 gmake
+      - name: Build (sanitized)
+        # nonnull-attribute is excluded: netcode encrypts zero-length plaintexts, and
+        # libsodium's AEAD then does memcpy(dst, NULL, 0) — benign UB in upstream code.
+        run: |
+          SAN="-fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
+          make -j config=debug test CC=clang CXX=clang++ \
+            CFLAGS="$SAN" CXXFLAGS="$SAN" LDFLAGS="-fsanitize=address,undefined"
+      - name: Test (sanitized)
+        run: ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ./bin/test
+
+  windows:
+    name: build & test (windows, MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate solution (premake vs2022)
+        shell: bash
+        run: |
+          curl -fsSL -o premake.zip "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-windows.zip"
+          unzip -o premake.zip
+          ./premake5.exe vs2022
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+      - name: Build (debug x64)
+        run: msbuild Yojimbo.sln /p:Configuration=Debug /p:Platform=x64 /m
+      - name: Test (debug x64)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter test.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error "test.exe not found"; exit 1 }
+          Write-Host "Running $($exe.FullName)"
+          & $exe.FullName
+          exit $LASTEXITCODE
