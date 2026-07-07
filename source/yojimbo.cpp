@@ -44,7 +44,7 @@ extern "C" int reliable_init();
 extern "C" void netcode_term();
 extern "C" void reliable_term();
 
-extern "C" int netcode_enable_packet_tagging();
+extern "C" void netcode_enable_packet_tagging();
 
 #define NETCODE_OK 1
 #define RELIABLE_OK 1
