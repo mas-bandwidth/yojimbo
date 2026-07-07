@@ -25,10 +25,6 @@
 #include "yojimbo.h"
 #include "yojimbo_utils.h"
 
-#ifdef _MSC_VER
-#define SODIUM_STATIC
-#endif // #ifdef _MSC_VER
-
 #include <sodium.h>
 
 static yojimbo::Allocator * g_defaultAllocator;
