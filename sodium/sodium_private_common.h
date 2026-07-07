@@ -14,6 +14,12 @@
 
 #define COMPILER_ASSERT(X) (void) sizeof(char[(X) ? 1 : -1])
 
+/* 128-bit integer support: enables the Poly1305 donna64 and SSE2 code paths.
+   Available on 64-bit GCC/Clang targets (x86-64, arm64, ...); not on MSVC. */
+#if !defined(HAVE_TI_MODE) && defined(__SIZEOF_INT128__)
+# define HAVE_TI_MODE 1
+#endif
+
 #ifdef HAVE_TI_MODE
 # if defined(__SIZEOF_INT128__)
 typedef unsigned __int128 uint128_t;
@@ -219,58 +225,37 @@ xor_buf(unsigned char *out, const unsigned char *in, size_t n)
 # endif
 #endif
 
+/*
+ * SIMD / intrinsics feature selection.
+ *
+ * The optimized implementations kept for the primitives yojimbo uses
+ * (ChaCha20 SSSE3/AVX2, Poly1305 SSE2) enable their own instruction set
+ * per-function with #pragma target on GCC/Clang, and the fastest variant the
+ * running CPU actually supports is chosen at runtime (see sodium_runtime.c and
+ * the *_pick_best_implementation() functions). So on any x86 target we enable
+ * the intrinsic headers unconditionally and let runtime dispatch decide; targets
+ * with no specialized implementation (e.g. arm64) fall back to the portable
+ * reference code, which is correct on every platform. A build may still predefine
+ * NETCODE_X64 / NETCODE_AVX / NETCODE_AVX2 to force the x86 set on.
+ *
+ * Note: the amd64/AVX *assembly* paths (HAVE_AMD64_ASM / HAVE_AVX_ASM) are left
+ * off on purpose. They only accelerated primitives that have been pruned from
+ * this copy; the kept SSE2/SSSE3/AVX2 code is pure intrinsics.
+ */
+
 #if defined(__clang__) || defined(__GNUC__)
-
-    #if NETCODE_AVX2
-
-        # define HAVE_MMINTRIN_H  1
-        # define HAVE_EMMINTRIN_H 1
-        # define HAVE_PMMINTRIN_H 1
-        # define HAVE_TMMINTRIN_H 1
-        # define HAVE_SMMINTRIN_H 1
-        # define HAVE_AVXINTRIN_H 1
-        # define HAVE_WMMINTRIN_H 1
-        # define HAVE_AVX2INTRIN_H 1
-        # define HAVE_AVX_ASM 1
-        # define HAVE_AMD64_ASM 1
-        # define HAVE_CPUID 1
-
-    #elif NETCODE_AVX
-
-        # define HAVE_MMINTRIN_H  1
-        # define HAVE_EMMINTRIN_H 1
-        # define HAVE_PMMINTRIN_H 1
-        # define HAVE_TMMINTRIN_H 1
-        # define HAVE_SMMINTRIN_H 1
-        # define HAVE_AVXINTRIN_H 1
-        # define HAVE_WMMINTRIN_H 1
-        # define HAVE_AVX_ASM 1
-        # define HAVE_AMD64_ASM 1
-        # define HAVE_CPUID 1
-
-    #elif NETCODE_X64
-
-        # define HAVE_MMINTRIN_H  1
-        # define HAVE_EMMINTRIN_H 1
-        # define HAVE_PMMINTRIN_H 1
-        # define HAVE_TMMINTRIN_H 1
-        # define HAVE_SMMINTRIN_H 1
-        # define HAVE_WMMINTRIN_H 1
-        # define HAVE_AMD64_ASM 1
-        # define HAVE_CPUID 1
-
-    #elif NETCODE_X64
-
-        # define HAVE_MMINTRIN_H  1
-        # define HAVE_EMMINTRIN_H 1
-        # define HAVE_PMMINTRIN_H 1
-        # define HAVE_TMMINTRIN_H 1
-        # define HAVE_SMMINTRIN_H 1
-        # define HAVE_WMMINTRIN_H 1
-        # define HAVE_CPUID 1
-
-    #endif
-
+# if defined(__x86_64__) || defined(__amd64__) || defined(__i386__) || \
+     NETCODE_X64 || NETCODE_AVX || NETCODE_AVX2
+#  define HAVE_MMINTRIN_H   1
+#  define HAVE_EMMINTRIN_H  1   /* SSE2   */
+#  define HAVE_PMMINTRIN_H  1   /* SSE3   */
+#  define HAVE_TMMINTRIN_H  1   /* SSSE3  */
+#  define HAVE_SMMINTRIN_H  1   /* SSE4.1 */
+#  define HAVE_AVXINTRIN_H  1   /* AVX    */
+#  define HAVE_WMMINTRIN_H  1
+#  define HAVE_AVX2INTRIN_H 1   /* AVX2   */
+#  define HAVE_CPUID        1
+# endif
 #endif
 
 #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64) || defined(_M_IX86))
@@ -284,19 +269,19 @@ xor_buf(unsigned char *out, const unsigned char *in, size_t n)
 # define HAVE_TMMINTRIN_H 1
 # define HAVE_SMMINTRIN_H 1
 
-#if NETCODE_AVX
-# define HAVE_AVXINTRIN_H 1
-#endif
-
 # if _MSC_VER >= 1600
 #  define HAVE_WMMINTRIN_H 1
 # endif
 
-#if NETCODE_AVX2
-# if _MSC_VER >= 1700 && defined(_M_X64)
+/* MSVC has no per-function target pragma, so AVX/AVX2 codegen requires the
+   matching /arch: switch (which predefines __AVX__ / __AVX2__). Honor that, and
+   still allow an explicit NETCODE_AVX/NETCODE_AVX2 override. */
+# if defined(__AVX__) || NETCODE_AVX || NETCODE_AVX2
+#  define HAVE_AVXINTRIN_H 1
+# endif
+# if (defined(__AVX2__) || NETCODE_AVX2) && _MSC_VER >= 1700 && defined(_M_X64)
 #  define HAVE_AVX2INTRIN_H 1
 # endif
-#endif
 
 #elif defined(HAVE_INTRIN_H)
 

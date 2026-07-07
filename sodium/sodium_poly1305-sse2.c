@@ -11,7 +11,9 @@
 
 #if defined(HAVE_TI_MODE) && defined(HAVE_EMMINTRIN_H)
 
-# ifdef __GNUC__
+# ifdef __clang__
+#  pragma clang attribute push(__attribute__((target("sse2"))), apply_to = function)
+# elif defined(__GNUC__)
 #  pragma GCC target("sse2")
 # endif
 
@@ -945,6 +947,10 @@ struct crypto_onetimeauth_poly1305_implementation
             crypto_onetimeauth_poly1305_sse2_update,
         SODIUM_C99(.onetimeauth_final =) crypto_onetimeauth_poly1305_sse2_final
     };
+
+# ifdef __clang__
+#  pragma clang attribute pop
+# endif
 
 #endif
 

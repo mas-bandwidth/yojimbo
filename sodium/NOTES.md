@@ -6,10 +6,12 @@ autoconf/CMake.
 
 ## When is this used?
 
-**Windows only.** `premake5.lua` links this `sodium-builtin` project only under
-`filter "system:windows"`. On macOS and Linux, yojimbo links the system libsodium
-(e.g. from Homebrew or the distro package). So changes here affect Windows builds
-only; on other platforms `libsodium-builtin.a` contains just `dummy.c`.
+Today `premake5.lua` links this `sodium-builtin` project only under
+`filter "system:windows"`; on macOS and Linux yojimbo links the system libsodium
+(e.g. from Homebrew or the distro package). However, this subset is written to be
+usable on **any** target (Linux, macOS x86-64, macOS Apple Silicon, Windows) —
+see "Optimized implementations" below — so it can be linked on other platforms if
+desired.
 
 ## Baseline
 
@@ -34,12 +36,36 @@ generichash/blake2, sha512, siphash, the salsa20 family, sandy2x asm, …) has b
 removed — it was dead code for yojimbo. `sodium_init()` in `sodium_core.c` was
 trimmed to initialise only the kept primitives.
 
+## Optimized implementations
+
+For the kept primitives, **all** of libsodium's optimized implementations are
+retained and selected at runtime by CPU feature detection:
+
+- **ChaCha20:** reference, SSSE3, AVX2.
+- **Poly1305:** donna (32/64-bit) and SSE2.
+
+(libsodium has no ARM/NEON implementation of ChaCha20 or Poly1305, so on arm64 the
+portable donna64 / reference code is the fastest available and is what upstream
+uses there too.)
+
+The SSSE3/AVX2/SSE2 code enables its own instruction set per-function via
+`#pragma ... target(...)` on GCC/Clang, so no global `-mavx2`/`-mssse3` build flags
+are required; the fastest variant the *running* CPU supports is chosen at runtime.
+`sodium_private_common.h` enables the intrinsic headers automatically from the
+compiler's own target macros (`__x86_64__`, `_MSC_VER`+`__AVX2__`, `__SIZEOF_INT128__`,
+…), so the optimized paths light up on any x86 build without extra configuration.
+On MSVC, AVX2 additionally requires building with `/arch:AVX2` (which predefines
+`__AVX2__`); SSE2/SSSE3 are always on for MSVC x64. `NETCODE_X64`/`NETCODE_AVX`/
+`NETCODE_AVX2` may still be predefined to force the x86 set on.
+
 ## Local modifications vs upstream
 
 - Includes are flattened and prefixed `sodium_` (mechanical rename).
 - Optional `NETCODE_CRYPTO_LOGS` debug prints in the implementation selectors.
-- SIMD feature macros (`HAVE_*INTRIN_H`) are derived from `NETCODE_X64/AVX/AVX2`
-  in `sodium_private_common.h` instead of from autoconf.
+- SIMD feature macros (`HAVE_*INTRIN_H`, `HAVE_TI_MODE`) are derived from the
+  compiler's own target macros in `sodium_private_common.h` instead of from
+  autoconf. The SIMD sources use the same `#pragma clang attribute` / `#pragma GCC
+  target` idiom as upstream 1.0.20 so they compile without global `-m` flags.
 
 The constant-time comparison qualifiers in `sodium_utils.c` (`sodium_memcmp`,
 `sodium_compare`) and `sodium_verify.c` (`crypto_verify_n`) are kept identical to
@@ -48,14 +74,19 @@ dropped the pointer-`volatile`, which this tree restores.
 
 ## Validation
 
-The crypto here is checked three ways:
+The crypto here is checked several ways:
 
 1. **libsodium's own known-answer tests** (`test/default/aead_chacha20poly1305` and
-   `aead_xchacha20poly1305`) pass against this subset, for both the reference and
-   the x86_64 SSE2/SSSE3/AVX2 builds.
-2. Output is **bit-identical** to a stock libsodium 1.0.20 for both AEADs.
-3. `test.cpp` includes `test_crypto_aead_vectors()`, a known-answer test that runs
-   in CI on every platform — so the Windows build exercises this vendored code.
+   `aead_xchacha20poly1305`) pass against this subset on both arm64 (reference /
+   donna64) and x86-64 (SSSE3 ChaCha20 + SSE2 Poly1305 selected at runtime; AVX2
+   compiled).
+2. Output is **bit-identical** to a stock libsodium 1.0.20 for both AEADs, on both
+   architectures.
+3. The full yojimbo test suite passes linked against this subset (exercises
+   netcode's real connect-token / packet encryption paths).
+4. `test.cpp` includes `test_crypto_aead_vectors()`, a known-answer test that runs
+   in CI on every platform — so whichever implementation the target CPU selects is
+   exercised.
 
 If you change anything in this directory, re-run `bin/test` and make sure
 `test_crypto_aead_vectors` passes.
