@@ -1,5 +1,7 @@
 # yojimbo
 
+[![CI](https://github.com/mas-bandwidth/yojimbo/actions/workflows/ci.yml/badge.svg)](https://github.com/mas-bandwidth/yojimbo/actions/workflows/ci.yml)
+
 **yojimbo** is a network library for client/server games written in C++.
 
 It's designed around the networking requirements of competitive multiplayer games like first person shooters. 
