@@ -324,7 +324,7 @@ namespace yojimbo
         {
             const int channelIndex = packet.channelEntry[i].channelIndex;
             yojimbo_assert( channelIndex >= 0 );
-            yojimbo_assert( channelIndex <= m_connectionConfig.numChannels );
+            yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
             m_channel[channelIndex]->ProcessPacketData( packet.channelEntry[i], packetSequence );
             if ( m_channel[channelIndex]->GetErrorLevel() != CHANNEL_ERROR_NONE )
             {

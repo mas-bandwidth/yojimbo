@@ -1258,6 +1258,16 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
             reassembly_data->packet_data = (uint8_t*) endpoint->allocate_function( endpoint->allocator_context, packet_buffer_size );
             reassembly_data->packet_bytes = 0;
             reassembly_data->packet_header_bytes = 0;
+
+            if ( !reassembly_data->packet_data )
+            {
+                reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] ignoring fragment. could not allocate reassembly buffer (%d bytes)\n",
+                    endpoint->config.name, packet_buffer_size );
+                reliable_sequence_buffer_remove_with_cleanup( endpoint->fragment_reassembly, sequence, reliable_fragment_reassembly_data_cleanup );
+                endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID]++;
+                return;
+            }
+
             memset( reassembly_data->fragment_received, 0, sizeof( reassembly_data->fragment_received ) );
         }
 

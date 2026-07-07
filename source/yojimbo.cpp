@@ -55,15 +55,22 @@ extern "C" int netcode_enable_packet_tagging();
 
 bool InitializeYojimbo()
 {
-    g_defaultAllocator = new yojimbo::DefaultAllocator();
-
+    // Create the default allocator only once everything else has initialised, so a
+    // failure partway through doesn't leak it (callers don't call ShutdownYojimbo
+    // when InitializeYojimbo returns false).
     if ( netcode_init() != NETCODE_OK )
         return false;
 
     if ( reliable_init() != RELIABLE_OK )
         return false;
 
-    return sodium_init() != -1;
+    if ( sodium_init() == -1 )
+        return false;
+
+    yojimbo_assert( g_defaultAllocator == NULL );
+    g_defaultAllocator = new yojimbo::DefaultAllocator();
+
+    return true;
 }
 
 void EnablePacketTagging()
