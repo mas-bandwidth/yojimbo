@@ -1,4 +1,32 @@
 
+newoption {
+    trigger     = "sodium",
+    value       = "impl",
+    description = "Which libsodium to link against",
+    default     = "builtin",
+    allowed     = {
+        { "builtin", "Use the bundled minimal libsodium in sodium/ (default; no external dependency)" },
+        { "system",  "Link the system-installed libsodium (-lsodium)" },
+    }
+}
+
+-- Default to the bundled libsodium on every platform. Pass --sodium=system to
+-- premake to link the system-installed libsodium instead.
+local use_system_sodium = ( _OPTIONS["sodium"] == "system" )
+
+-- Link yojimbo and its dependencies, selecting the libsodium backend.
+local function link_dependencies()
+    links { "yojimbo", "tlsf", "netcode", "reliable" }
+    if use_system_sodium then
+        links { "sodium" }
+        filter "system:not windows"
+            libdirs { "/opt/homebrew/lib" }
+        filter {}
+    else
+        links { "sodium-builtin" }
+    end
+end
+
 solution "Yojimbo"
     kind "ConsoleApp"
     language "C++"
@@ -28,21 +56,21 @@ solution "Yojimbo"
     filter "platforms:ARM64"
         architecture "ARM64"
 
+-- The bundled minimal libsodium. Built on every platform unless --sodium=system
+-- is given, in which case it is skipped and the system libsodium is linked.
+if not use_system_sodium then
 project "sodium-builtin"
     kind "StaticLib"
     language "C"
-    files { "sodium/dummy.c" }
-    filter "system:windows"
-            files {
-                "sodium/**.c",
-                "sodium/**.h",
-            }
-        filter { "system:not windows", "platforms:*x64 or *avx or *avx2" }
-            files {
-                "sodium/**.S"
-            }
-        filter { "action:gmake*" }
-            buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
+    warnings "Off"
+    files {
+        "sodium/sodium.c",
+        "sodium/sodium.h",
+    }
+    filter { "action:gmake*" }
+        buildoptions { "-Wno-unused-parameter", "-Wno-unused-function", "-Wno-unknown-pragmas", "-Wno-unused-variable", "-Wno-type-limits" }
+    filter {}
+end
 
 project "netcode"
     kind "StaticLib"
@@ -67,44 +95,24 @@ project "yojimbo"
 
 project "client"
     files { "client.cpp", "shared.h" }
-    filter "system:windows"
-        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
-    filter "system:not windows"
-        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
-        libdirs { "/opt/homebrew/lib" }
+    link_dependencies()
 
 project "server"
     files { "server.cpp", "shared.h" }
-    filter "system:windows"
-        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
-    filter "system:not windows"
-        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
-        libdirs { "/opt/homebrew/lib" }
+    link_dependencies()
 
 project "loopback"
     files { "loopback.cpp", "shared.h" }
-    filter "system:windows"
-        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
-    filter "system:not windows"
-        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
-        libdirs { "/opt/homebrew/lib" }
+    link_dependencies()
 
 project "soak"
     files { "soak.cpp", "shared.h" }
-    filter "system:windows"
-        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
-    filter "system:not windows"
-        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
-        libdirs { "/opt/homebrew/lib" }
+    link_dependencies()
 
 project "test"
     files { "test.cpp" }
     defines { "SERIALIZE_ENABLE_TESTS=1" }
-    filter "system:windows"
-        links { "yojimbo", "sodium-builtin", "tlsf", "netcode", "reliable" }
-    filter "system:not windows"
-        links { "yojimbo", "sodium", "tlsf", "netcode", "reliable" }
-        libdirs { "/opt/homebrew/lib" }
+    link_dependencies()
 
 newaction
 {
