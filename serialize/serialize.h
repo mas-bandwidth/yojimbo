@@ -619,7 +619,7 @@ namespace serialize
             Bit reader constructor.
             Non-multiples of four buffer sizes are supported, as this naturally tends to occur when packets are read from the network.
             However, actual buffer allocated for the packet data must round up at least to the next 4 bytes in memory, because the bit reader reads dwords from memory not bytes.
-            @param data Pointer to the bitpacked data to read. Must be aligned to 4 bytes, because the bitpacker reads memory as dwords.
+            @param data Pointer to the bitpacked data to read. Does not need to be aligned: the reader loads each dword with memcpy, which packet payloads require because they typically start at an unaligned offset once the transport header is stripped.
             @param bytes The number of bytes of bitpacked data to read. Buffers up to 256 megabytes are supported, because bit counts are stored in 32 bit signed integers.
             @see BitWriter
          */
@@ -670,7 +670,9 @@ namespace serialize
 #ifdef SERIALIZE_DEBUG
                 serialize_assert( m_wordIndex < m_numWords );
 #endif // SERIALIZE_DEBUG
-                m_scratch |= uint64_t( network_to_host( m_data[m_wordIndex] ) ) << m_scratchBits;
+                uint32_t word;
+                memcpy( &word, (const uint8_t*) m_data + (size_t) m_wordIndex * 4, sizeof( word ) );
+                m_scratch |= uint64_t( network_to_host( word ) ) << m_scratchBits;
                 m_scratchBits += 32;
                 m_wordIndex++;
             }
@@ -732,7 +734,7 @@ namespace serialize
             if ( numWords > 0 )
             {
                 serialize_assert( ( m_bitsRead % 32 ) == 0 );
-                memcpy( (char*) data + headBytes, &m_data[m_wordIndex], numWords * 4 );
+                memcpy( (char*) data + headBytes, (const uint8_t*) m_data + (size_t) m_wordIndex * 4, numWords * 4 );
                 m_bitsRead += numWords * 32;
                 m_wordIndex += numWords;
                 m_scratchBits = 0;
