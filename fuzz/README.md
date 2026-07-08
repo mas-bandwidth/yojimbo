@@ -25,7 +25,15 @@ Each target is **dual-mode**:
   address-list loop is only reached by fuzzing the decrypted layout directly.
 - `fuzz_connection.cpp` — `yojimbo::Connection::ProcessPacket` (bitpacker ReadStream,
   ConnectionPacket / ChannelPacketData serialization, per-channel message + block-fragment
-  reading) over a reliable-ordered and an unreliable-unordered channel.
+  reading). **Stateful**: one input is `[u8 config selector][u16 len][packet]...` — the
+  first byte picks a ConnectionConfig (`fuzz_config.h`: reliable/unreliable, ordering,
+  blocks-disabled, small fragments) and the rest is a sequence of packets fed to one
+  long-lived Connection, so block-fragment reassembly and the out-of-order receive queue are
+  reachable (a single packet on a fresh connection can never complete a multi-fragment block).
+  Messages use `fuzz_messages.h`, which drives the whole `serialize_*` vocabulary (int / bits /
+  bool / float / double / compressed_float / int_relative / align / string / variable-length
+  bytes), not just `serialize_bits`. This target found the disabled-blocks
+  `ChannelPacketData` union-init bug (fixed; regression test in `test.cpp`).
 
 All three run clean (≥300k standalone inputs under ASan+UBSan). Bugs found and fixed while
 bringing `fuzz_connection` up: a message leak on the "block fragment attached to non-block
@@ -111,7 +119,16 @@ Regenerate and re-commit the seeds if a wire format changes. The netcode generat
 `fuzz_netcode_params.h` (protocol id + timestamp) with the harness so its packets decrypt
 under the harness's keys.
 
+## Measuring coverage
+
+`tools/fuzz_coverage.sh <connection>` builds a target with source-based coverage
+instrumentation, runs it over the committed corpus plus a batch of pseudo-random inputs, and
+prints an `llvm-cov` report for the deserialization sources. Use it to see which branches a
+change reaches. Note the channel `.cpp` file percentages are dominated by *send-side* code
+(write/measure serialization, packet generation) that a receive-only fuzzer can't reach; the
+meaningful movement shows up in the read-path functions and in `serialize/serialize.h`.
+
 ## Ideas for later
-- Richer seeds: multi-fragment blocks, every netcode packet type, connection-request packets.
+- Every netcode packet type as seeds; more channel configs.
 - A target over `netcode_server_process_packet` end-to-end (needs a minimal server without a
   real socket).
