@@ -40,6 +40,10 @@ Yojimbo is built on top of other open source libraries by the same author: [netc
 
 If you find this software useful, please consider [sponsoring it](https://github.com/sponsors/mas-bandwidth). Thanks!
 
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to build, test, and submit changes. To report a security vulnerability, please follow [SECURITY.md](SECURITY.md) rather than opening a public issue.
+
 ## License
 
 [BSD 3-Clause license](https://opensource.org/licenses/BSD-3-Clause).
