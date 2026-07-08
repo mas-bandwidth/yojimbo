@@ -67,7 +67,36 @@ Swap `-DFUZZ_STANDALONE` for `-fsanitize=fuzzer` (added to the sanitizer set) an
 corpus dir + `-max_total_time=N`. Exactly what the `fuzz` CI job does; see it for the
 canonical commands.
 
+## Seed corpora (`fuzz/corpus/<target>/`)
+
+Committed seeds of valid packets so the time-boxed CI runs start at inputs that already
+reach the post-decrypt / reassembly code instead of rediscovering the wire format from
+random bytes. The `fuzz` CI job passes `fuzz/corpus/<target>` as a read-only seed dir
+alongside an ephemeral working dir (libFuzzer writes new finds only to the first dir, so the
+committed seeds stay pristine). Standalone builds can replay them too:
+`./fz_netcode fuzz/corpus/fuzz_netcode/*`.
+
+The seeds are produced by generators under `tools/`, which round-trip every seed through the
+matching reader and assert it decodes, so a committed seed is always a valid input:
+
+```
+# netcode + reliable seeds (writes fuzz/corpus/fuzz_netcode, fuzz/corpus/fuzz_reliable)
+clang -DNETCODE_DEBUG -DRELIABLE_DEBUG -Inetcode -Isodium -Ireliable -Ifuzz -g \
+  tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -o /tmp/gen_seed_corpus
+/tmp/gen_seed_corpus fuzz/corpus
+
+# connection seeds (writes fuzz/corpus/fuzz_connection)
+clang++ -std=c++11 -DYOJIMBO_DEBUG -DNETCODE_DEBUG -DRELIABLE_DEBUG -DSERIALIZE_DEBUG \
+  -I. -Iinclude -Isodium -Itlsf -Inetcode -Ireliable -Iserialize -Ifuzz -g \
+  tools/gen_seed_corpus_connection.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c sodium/sodium.c \
+  -o /tmp/gen_seed_corpus_connection
+/tmp/gen_seed_corpus_connection fuzz/corpus
+```
+
+Regenerate and re-commit the seeds if a wire format changes. The netcode generator shares
+`fuzz_netcode_params.h` (protocol id + timestamp) with the harness so its packets decrypt
+under the harness's keys.
+
 ## Ideas for later
-- Seed corpora (a captured valid packet per target) so the time-boxed CI runs reach the
-  post-decrypt / reassembled-payload paths faster.
 - A `netcode` connect-token / server-side read target.
+- Richer seeds: multi-fragment blocks, every netcode packet type, connection-request packets.

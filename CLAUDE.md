@@ -122,8 +122,16 @@ standalone inputs under ASan+UBSan, and a `fuzz` CI job builds + time-boxes them
   (`test_connection_reject_empty_packet`, `test_connection_unreliable_rejects_block_fragment`);
   both verified to fail without their fix. (1) is covered by the fuzzer.
 
+Seed corpora live in `fuzz/corpus/<target>/` (committed). The `fuzz` CI job passes them as a
+read-only seed dir alongside an ephemeral working dir so runs start at inputs that already
+reach the post-decrypt / reassembly code. Seeds are produced by generators under `tools/`
+(`gen_seed_corpus.c` for netcode+reliable, `gen_seed_corpus_connection.cpp`) that round-trip
+each seed through the matching reader and assert it decodes; the netcode generator shares
+`fuzz/fuzz_netcode_params.h` (protocol id + timestamp) with the harness. Regenerate + recommit
+if a wire format changes.
+
 ## Suggested next improvements (from the audit)
 
-Fuzzing is done. Next: time-boxed sanitized `soak` in CI; `SECURITY.md` disclosure policy;
-commit the libsodium amalgamation generator under `tools/`; `.clang-format`; seed corpora for
-the fuzz targets so time-boxed CI reaches post-decrypt paths faster.
+Fuzzing (harnesses, CI job, seed corpora) and the time-boxed sanitized `soak` CI job are done.
+Next: `SECURITY.md` disclosure policy; commit the libsodium amalgamation generator under
+`tools/`; `.clang-format`; a `netcode` connect-token / server-side fuzz target.
