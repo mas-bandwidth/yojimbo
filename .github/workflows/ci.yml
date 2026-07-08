@@ -157,3 +157,34 @@ jobs:
             UBSAN_OPTIONS=halt_on_error=1 ./"$t" "corpus/$t" $RUN
             echo "::endgroup::"
           done
+
+  soak:
+    name: soak (linux, sanitized, time-boxed)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install premake5
+        run: |
+          curl -fsSL "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-linux.tar.gz" | tar xz
+          chmod +x premake5
+          echo "$PWD" >> "$GITHUB_PATH"
+      - name: Generate makefiles
+        run: premake5 gmake
+      - name: Build soak (sanitized)
+        # Same sanitizer flags and nonnull-attribute carve-out as the sanitizers job.
+        run: |
+          SAN="-fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
+          make -j config=debug soak CC=clang CXX=clang++ \
+            CFLAGS="$SAN" CXXFLAGS="$SAN" LDFLAGS="-fsanitize=address,undefined"
+      - name: Run soak (time-boxed)
+        # Bounded iteration count so the normally-endless soak exits cleanly and the
+        # sanitizers run their end-of-process (incl. leak) checks. Output is verbose, so
+        # keep it in a file and only surface the tail on failure.
+        run: |
+          set -o pipefail
+          if ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+               ./bin/soak 20000 > soak.log 2>&1; then
+            echo "soak completed cleanly ($(grep -c 'received message' soak.log) messages exchanged)"
+          else
+            echo "soak failed (exit $?)"; tail -50 soak.log; exit 1
+          fi

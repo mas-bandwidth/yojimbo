@@ -39,7 +39,7 @@ void interrupt_handler( int /*dummy*/ )
 static const int UNRELIABLE_UNORDERED_CHANNEL = 0;
 static const int RELIABLE_ORDERED_CHANNEL = 1;
 
-int SoakMain()
+int SoakMain( int iterations )
 {
     ClientServerConfig config;
     config.maxPacketSize = MaxPacketSize;
@@ -94,8 +94,14 @@ int SoakMain()
     double timeForNextClientMessage = 0;
     double timeForNextServerMessage = 0;
 
-    while ( !quit )
+    // iterations <= 0 runs until interrupted (SIGINT); a positive count time-boxes the
+    // run so it exits cleanly — used by CI to soak under sanitizers for a bounded time.
+    int iteration = 0;
+
+    while ( !quit && ( iterations <= 0 || iteration < iterations ) )
     {
+        iteration++;
+
         client.SendPackets();
         server.SendPackets();
 
@@ -374,9 +380,12 @@ int SoakMain()
     return 0;
 }
 
-int main()
+int main( int argc, char ** argv )
 {
     printf( "\nsoak\n" );
+
+    // Optional iteration count: `soak [iterations]`. Zero or absent runs until Ctrl-C.
+    int iterations = ( argc > 1 ) ? atoi( argv[1] ) : 0;
 
     if ( !InitializeYojimbo() )
     {
@@ -388,7 +397,7 @@ int main()
 
     srand( (unsigned int) time( NULL ) );
 
-    int result = SoakMain();
+    int result = SoakMain( iterations );
 
     ShutdownYojimbo();
 
