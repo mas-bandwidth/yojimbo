@@ -1,5 +1,21 @@
 This guide is made to help you getting started with Yojimbo, integrate it into your game and cover some of the basic usages of the library.
 
+Before using any other part of Yojimbo, you must call `InitializeYojimbo()` once at startup, and `ShutdownYojimbo()` once when you are done. This applies to both the client and the server. `InitializeYojimbo()` returns `false` if the library failed to initialize, and `ShutdownYojimbo()` runs some checks for you, such as memory-leak detection in debug builds:
+
+```cpp
+int main() {
+    if (!InitializeYojimbo()) {
+        // handle the error
+        return 1;
+    }
+
+    // ... run your client or server ...
+
+    ShutdownYojimbo();
+    return 0;
+}
+```
+
 Yojimbo is meant to be used in a client/server architecture. The first thing you will need is a way to run your game "headless" (with no window / rendering context) for the server. Game servers usually run in VPS machines where there is no real use for a window or rendering to the screen. Let's create our main server class called `GameServer` and let it handle everything the server needs to do. The different parts of Yojimbo you need on the server are `Server`, `ClientServerConfig` and `Adapter`.
 
 The `Server` is the main part, used to receive and send messages. The `ClientServerConfig` allows you to configure the server: connection timeout, memory used or the different channels (reliable, unreliable). The `Adapter` allows you to get callbacks when a client connects or disconnects and is also responsible for providing Yojimbo with the `MessageFactory`. Both the `ClientServerConfig` and the `Adapter` are shared between client and server. Here is what it could look like:
