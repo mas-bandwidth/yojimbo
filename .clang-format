@@ -1,0 +1,39 @@
+# Encodes yojimbo's existing house style (also used by the in-tree netcode / reliable /
+# serialize sources): Allman braces, 4-space indent, spaces inside parentheses, pointers and
+# references spaced on both sides, indented case labels and namespaces, and no column limit.
+#
+# This is provided for formatting NEW/edited code consistently; it is not enforced in CI, and
+# the existing sources have not been mass-reformatted. The vendored third-party code under
+# sodium/ and tlsf/ opts out via its own .clang-format (DisableFormat) so it stays as
+# upstream — sodium/ in particular is verified byte-identical to libsodium.
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 0
+
+BreakBeforeBraces: Allman
+NamespaceIndentation: All
+IndentCaseLabels: true
+AccessModifierOffset: -4
+AlwaysBreakTemplateDeclarations: No
+
+PointerAlignment: Middle
+ReferenceAlignment: Middle
+
+SpacesInParentheses: true
+SpaceInEmptyParentheses: false
+SpacesInSquareBrackets: false
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+
+AlignAfterOpenBracket: Align
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: true
+SortIncludes: false
