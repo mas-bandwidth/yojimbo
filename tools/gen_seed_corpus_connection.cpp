@@ -140,6 +140,19 @@ int main( int argc, char ** argv )
         c.SendMessage( 0, m );
     } );
 
+    // a block larger than the fragment size -> a fragment of a multi-fragment block
+    // (numFragments > 1 path in SerializeBlockFragment, distinct from the single-fragment seed)
+    emit( dir, "reliable_block_multifragment", []( Connection & c, TestMessageFactory & mf ) {
+        TestBlockMessage * m = (TestBlockMessage*) mf.CreateMessage( TEST_BLOCK_MESSAGE );
+        m->sequence = 0;
+        const int blockSize = 3000;  // > default blockFragmentSize (1024) -> 3 fragments
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( mf.GetAllocator(), blockSize );
+        for ( int i = 0; i < blockSize; ++i )
+            blockData[i] = (uint8_t) ( i * 3 );
+        m->AttachBlock( mf.GetAllocator(), blockData, blockSize );
+        c.SendMessage( 0, m );
+    } );
+
     // both channels populated in a single packet
     emit( dir, "mixed_channels", []( Connection & c, TestMessageFactory & mf ) {
         for ( int i = 0; i < 4; ++i )

@@ -76,6 +76,8 @@ static void verify_netcode( const uint8_t * data, int bytes )
     netcode_default_free_function( NULL, packet );
 }
 
+static void gen_connection_request( const char * dir );
+
 static void gen_netcode( const char * root )
 {
     char dir[512];
@@ -121,6 +123,58 @@ static void gen_netcode( const char * root )
         verify_netcode( buffer, bytes );
         write_seed( dir, "disconnect", buffer, bytes );
     }
+
+    gen_connection_request( dir );
+}
+
+// A full connection-request packet: version + protocol + expiry + nonce wrapping an
+// encrypted private connect token. Exercises the outer request framing and the AEAD
+// connect-token decrypt in netcode_read_packet.
+static void gen_connection_request( const char * dir )
+{
+    uint8_t zero_key[NETCODE_KEY_BYTES];
+    memset( zero_key, 0, sizeof( zero_key ) );
+
+    struct netcode_address_t address;
+    char address_string[] = "127.0.0.1:40000";
+    if ( netcode_parse_address( address_string, &address ) != NETCODE_OK )
+    {
+        fprintf( stderr, "error: cannot parse server address\n" );
+        exit( 1 );
+    }
+
+    uint8_t user_data[NETCODE_USER_DATA_BYTES];
+    memset( user_data, 0, sizeof( user_data ) );
+
+    struct netcode_connect_token_private_t token;
+    netcode_generate_connect_token_private( &token, 0x1234567890abcdefULL, 30, 1, &address, user_data );
+
+    uint8_t token_data[NETCODE_CONNECT_TOKEN_PRIVATE_BYTES];
+    netcode_write_connect_token_private( &token, token_data, sizeof( token_data ) );
+
+    const uint64_t expire = FUZZ_TIMESTAMP + 3600;
+    uint8_t nonce[NETCODE_CONNECT_TOKEN_NONCE_BYTES];
+    memset( nonce, 0, sizeof( nonce ) );
+
+    if ( netcode_encrypt_connect_token_private( token_data, sizeof( token_data ), NETCODE_VERSION_INFO,
+                                                FUZZ_PROTOCOL_ID, expire, nonce, zero_key ) != NETCODE_OK )
+    {
+        fprintf( stderr, "error: cannot encrypt connect token\n" );
+        exit( 1 );
+    }
+
+    struct netcode_connection_request_packet_t p;
+    p.packet_type = NETCODE_CONNECTION_REQUEST_PACKET;
+    memcpy( p.version_info, NETCODE_VERSION_INFO, NETCODE_VERSION_INFO_BYTES );
+    p.protocol_id = FUZZ_PROTOCOL_ID;
+    p.connect_token_expire_timestamp = expire;
+    memcpy( p.connect_token_nonce, nonce, NETCODE_CONNECT_TOKEN_NONCE_BYTES );
+    memcpy( p.connect_token_data, token_data, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES );
+
+    uint8_t buffer[NETCODE_MAX_PACKET_BYTES];
+    int bytes = netcode_write_packet( &p, buffer, sizeof( buffer ), 0, zero_key, FUZZ_PROTOCOL_ID );
+    verify_netcode( buffer, bytes );
+    write_seed( dir, "connection_request", buffer, bytes );
 }
 
 // --- netcode connect token (decrypted private token) ---------------------------------
