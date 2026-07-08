@@ -151,10 +151,14 @@ jobs:
             -o fuzz_connection
           echo "::endgroup::"
 
+          # Seed from the committed corpus (fuzz/corpus/<target>) so the short run starts at
+          # inputs that already reach the post-decrypt / reassembly code. libFuzzer reads all
+          # corpus dirs but only writes new finds to the first, so the committed seeds stay
+          # pristine and discoveries land in the ephemeral working dir.
           for t in fuzz_reliable fuzz_netcode fuzz_connection; do
             echo "::group::run $t"
             mkdir -p "corpus/$t"
-            UBSAN_OPTIONS=halt_on_error=1 ./"$t" "corpus/$t" $RUN
+            UBSAN_OPTIONS=halt_on_error=1 ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
             echo "::endgroup::"
           done
 

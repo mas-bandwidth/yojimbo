@@ -15,12 +15,11 @@
 
 #include "netcode.c"
 
+#include "fuzz_netcode_params.h"
+
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
-
-#define FUZZ_PROTOCOL_ID     0x1122334455667788ULL
-#define FUZZ_TIMESTAMP       ( (uint64_t) 1000000 )
 
 static int g_init = 0;
 static uint8_t g_packet_key[NETCODE_KEY_BYTES];
