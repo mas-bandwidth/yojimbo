@@ -257,6 +257,9 @@ namespace yojimbo
         {
             block.message = NULL;
             block.fragmentData = NULL;
+            // messageType is only serialized with fragment 0 (below); default it so a
+            // non-zero fragment leaves it defined rather than read uninitialized by callers.
+            block.messageType = 0;
         }
 
         serialize_bits( stream, block.messageId, 16 );

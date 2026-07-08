@@ -39,9 +39,14 @@ ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 ./bin/test
 
 `.github/workflows/ci.yml` (GitHub Actions). Jobs: build+test on **Linux (ubuntu-24.04)**
 and **macOS Apple Silicon (macos-14)** in debug+release; **Windows MSVC** (Debug+Release);
-**`--sodium=system`** on Linux; and a **Linux ASan+UBSan+LSan** job. macOS **Intel
-(macos-13)** is commented out in the matrix (slow to allocate) — re-enable as
-`continue-on-error` if wanted. Badge is in the README.
+**`--sodium=system`** on Linux; a **Linux ASan+UBSan+LSan** job; a **libFuzzer** job (the
+`fuzz/` targets, ASan+UBSan, seeded from `fuzz/corpus/`); a **time-boxed sanitized soak**; and
+a **libFuzzer + MemorySanitizer** job (uninitialized-read detection — the C++ targets build
+with `-DYOJIMBO_RELEASE` so the debug `std::map` leak trackers aren't compiled in and MSan
+needs no instrumented libc++; an uninstrumented libstdc++ `std::map` traversal MSan-false
+-positives, which is how the first attempt failed). macOS **Intel (macos-13)** is commented out in the matrix (slow to allocate). Badge
+is in the README. **MSan is Linux-only — it cannot be reproduced on the macOS dev machine;
+CI is the only validator.**
 
 ## Vendored libsodium (`sodium/`) — it is generated
 
