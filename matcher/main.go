@@ -30,15 +30,20 @@ const (
 	userDataBytes            = 256
 	timeoutSeconds           = 5
 	versionInfo              = "NETCODE 1.02\x00"
-	verboseError             = true
-	addressIPV4              = 1
-	addressIPV6              = 2
+	// verboseError echoes internal error details back to HTTP clients. Handy while
+	// developing, but it leaks server internals, so it defaults to off.
+	verboseError = false
+	addressIPV4  = 1
+	addressIPV6  = 2
 )
 
 var (
 	stdoutLogger = log.New(os.Stdout, "yojimbo-matcher: ", log.Llongfile)
 	stderrLogger = log.New(os.Stderr, "yojimbo-matcher: ", log.Llongfile)
-	privateKey   = []byte{
+	// WARNING: this is the example private key shipped with yojimbo. It MUST match
+	// the key passed to your server, and you MUST replace it with your own secret,
+	// kept out of source control, before deploying anything real.
+	privateKey = []byte{
 		0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea,
 		0x9a, 0x65, 0x62, 0xf6, 0x6f, 0x2b, 0x30, 0xe4,
 		0x43, 0x71, 0xd6, 0x2c, 0xd1, 0x99, 0x27, 0x26,
@@ -114,13 +119,14 @@ type connectToken struct {
 	PrivateKey        [keyBytes]byte
 }
 
-func newConnectToken(clientID uint64, serverAddresses []net.UDPAddr, protocolID uint64, expireSeconds uint64, timeoutSeconds int32, userData []byte, privateKey []byte) (*connectToken, error) {
+func newConnectToken(clientID uint64, serverAddresses []net.UDPAddr, protocolID uint64, expireSeconds int64, timeoutSeconds int32, userData []byte, privateKey []byte) (*connectToken, error) {
 	connectToken := &connectToken{}
 	connectToken.protocolID = protocolID
 	connectToken.CreateTimestamp = uint64(time.Now().Unix())
 	if expireSeconds >= 0 {
-		connectToken.ExpireTimestamp = connectToken.CreateTimestamp + expireSeconds
+		connectToken.ExpireTimestamp = connectToken.CreateTimestamp + uint64(expireSeconds)
 	} else {
+		// negative expiry means the token never expires
 		connectToken.ExpireTimestamp = 0xFFFFFFFFFFFFFFFF
 	}
 	connectToken.TimeoutSeconds = timeoutSeconds
@@ -185,7 +191,7 @@ func (token *connectToken) Write(buffer []byte) error {
 	return nil
 }
 
-func generateConnectToken(clientID uint64, serverAddresses []net.UDPAddr, protocolID uint64, expireSeconds uint64, timeoutSeconds int32, userData []byte, privateKey []byte) ([]byte, error) {
+func generateConnectToken(clientID uint64, serverAddresses []net.UDPAddr, protocolID uint64, expireSeconds int64, timeoutSeconds int32, userData []byte, privateKey []byte) ([]byte, error) {
 	connectToken, err := newConnectToken(clientID, serverAddresses, protocolID, expireSeconds, timeoutSeconds, userData, privateKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create connect token")
