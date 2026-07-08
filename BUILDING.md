@@ -5,13 +5,13 @@ Building yojimbo
 
 Download [premake 5](https://premake.github.io/download.html) and copy the **premake5** executable somewhere in your path.
 
-You need Visual Studio to build the source code. If you don't have Visual Studio 2019 you can [download the community edition for free](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16).
+You need Visual Studio to build the source code. If you don't have it, you can [download the community edition for free](https://visualstudio.microsoft.com/downloads/).
 
 Once you have Visual Studio installed, go to the command line under the yojimbo directory and type:
 
-    premake5 vs2019
+    premake5 vs2022
 
-Open the generated yojimbo.sln file.
+Open the generated Yojimbo.sln file.
 
 You can now build the library and run individual test programs as you would for any other Visual Studio solution.
 
@@ -42,7 +42,7 @@ then pass `--sodium=system` when generating the makefiles:
     make -j
 
 (The same `--sodium=system` option works with the Visual Studio generators too,
-e.g. `premake5 vs2019 --sodium=system`.)
+e.g. `premake5 vs2022 --sodium=system`.)
 
 Then run the built executables:
 

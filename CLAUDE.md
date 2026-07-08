@@ -135,6 +135,69 @@ if a wire format changes.
 
 ## Suggested next improvements (from the audit)
 
-Fuzzing (harnesses, CI job, seed corpora) and the time-boxed sanitized `soak` CI job are done.
-Next: `SECURITY.md` disclosure policy; commit the libsodium amalgamation generator under
-`tools/`; `.clang-format`; a `netcode` connect-token / server-side fuzz target.
+Done: fuzzing (harnesses incl. the connect-token target, CI job, seed corpora); time-boxed
+sanitized `soak` in CI; `SECURITY.md`; `.clang-format`; `CONTRIBUTING.md`; markdown
+consistency pass.
+
+Remaining / open:
+- **libsodium amalgamation generator** under `tools/` — the one real gap. The generator that
+  produced `sodium/sodium.{h,c}` was never committed; the per-file pre-amalgamation sources
+  live at `4a745d6^` and the amalgamation left `/* ===== <file> ===== */` section markers, so
+  it's reconstructable but non-trivial (byte-exact reproduction of 6.5k lines with the SIMD
+  `#define`/`#undef` bracketing). Glenn deprioritized this — don't start it unless asked.
+- Ideas only: a `netcode_server_process_packet` end-to-end fuzz target (needs a socketless
+  server); richer message-serialization tests.
+
+## Assessment of yojimbo (my opinion, for future me and anyone curious)
+
+Written after a session spent fuzzing the parsers, fixing the bugs that surfaced, and reading
+most of the core. This is my honest read, not marketing.
+
+**Verdict: a genuinely good, production-grade library for its niche** — dedicated-server
+competitive multiplayer (FPS-style) where a web backend hands clients signed *connect tokens*
+and they connect to game servers over authenticated, encrypted UDP. The README's "stable and
+production ready" is fair. I'd trust it for a real game.
+
+**What it gets right**
+- *Clean layering.* Three focused libraries with real separation: **netcode** (connection +
+  crypto + connect-token auth + replay protection), **reliable** (acks, RTT, fragmentation),
+  **serialize** (the bitpacker). yojimbo is a thin, coherent client/server/message layer on
+  top. Each piece is understandable on its own.
+- *Crypto done the right way.* It doesn't roll its own — it vendors libsodium and uses real
+  AEAD (ChaCha20-Poly1305) with a sound token model and replay protection. The vendored sodium
+  subset is unusually careful: pruned, amalgamated, and *verified bit-identical to upstream*
+  with the KAT vectors run in CI. That's more rigor than most projects give a vendored crypto
+  dep.
+- *The unified read/write serialization* (one `Serialize` template drives measure/write/read)
+  is elegant and eliminates a whole class of send/receive-mismatch bugs. It's the best idea in
+  the codebase.
+- *Allocator-aware and deterministic* — TLSF, explicit per-connection memory budgets, no
+  hidden global allocation. Good for consoles / shipping titles.
+
+**Where it's rough (be honest)**
+- *The untrusted-input parsing layer had not been fuzzed before this session, and it showed.*
+  Fuzzing `Connection::ProcessPacket` turned up three real, post-authentication,
+  attacker-reachable bugs in short order — a `ChannelPacketData` union misread that
+  dereferenced attacker bytes as a pointer (SEGV), a message leak on an error path, and an
+  assert on a zero-payload packet. These sat latent for years. They're fixed and now fuzzed in
+  CI, but the lesson stands: the crypto/auth boundary was solid, the *post-decrypt parsing*
+  behind it was under-tested. Treat that layer with suspicion when changing it.
+- *`ChannelPacketData` is a hand-managed tagged union* whose `Initialize()` only zeroes one
+  arm; correctness depends on careful `blockMessage` sequencing and the reader nulling the
+  block pointers. It works, but it's a footgun — exactly where bug #3 lived.
+- *Debug invariants are blunt* — the message factory calls `exit(1)` on a leak, asserts
+  `__builtin_trap()`. Effective at catching mistakes, hostile to embedding/tooling (this is
+  why the fuzzer looked "silent" until the log level was raised).
+- *Ergonomics are low-level by design.* You hand-write serialization, manually ref-count and
+  release messages, run your own fixed-timestep loop, and must remember `InitializeYojimbo()`.
+  Right for the audience (engine programmers), not friendly to newcomers — and the docs had
+  drifted (USAGE.md never mentioned the mandatory init; BUILDING.md referenced VS2019). Now
+  fixed.
+- *Build friction:* premake with gitignored makefiles means "run premake first" is a required
+  incantation, and the clever amalgamated libsodium has no committed generator.
+
+**Net:** the core protocol and crypto are sound and thoughtfully built; the safety floor was
+raised materially this session by adding fuzzing + sanitizer/soak CI and fixing the parser
+bugs. My residual caution is entirely about the message/channel *deserialization* code — it's
+the least-defended, most-attacker-exposed surface, and it's where I'd keep looking if I were
+hunting for the next bug.
