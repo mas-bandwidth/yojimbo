@@ -399,7 +399,12 @@ namespace yojimbo
             }
 
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET
-            if ( channelConfig.packetBudget > 0 )
+            // Only assert on write/measure: this validates that *we* stay within the packet
+            // budget when producing a packet. On read the data is untrusted (post-decrypt, but
+            // still attacker-controlled), so a peer that ignores the budget must not be able to
+            // crash a debug build — the message count and sizes are already bounded by the
+            // serialize_* range checks, so an over-budget read is harmless, just larger.
+            if ( !Stream::IsReading && channelConfig.packetBudget > 0 )
             {
                 yojimbo_assert( stream.GetBitsProcessed() - startBits <= channelConfig.packetBudget * 8 );
             }
