@@ -278,6 +278,50 @@ void test_address()
         check( address.IsLoopback() );
     }
 
+    // Regression: bracketed IPv6 with no port. Scanning for ':' from the end used to misparse
+    // a colon inside the address as a port separator, leaving the address unparseable.
+    {
+        Address address( "[::1]" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 0 );
+        check( address.GetAddress6()[0] == 0x0000 );
+        check( address.GetAddress6()[1] == 0x0000 );
+        check( address.GetAddress6()[2] == 0x0000 );
+        check( address.GetAddress6()[3] == 0x0000 );
+        check( address.GetAddress6()[4] == 0x0000 );
+        check( address.GetAddress6()[5] == 0x0000 );
+        check( address.GetAddress6()[6] == 0x0000 );
+        check( address.GetAddress6()[7] == 0x0001 );
+        check( address.IsLoopback() );
+    }
+
+    {
+        Address address( "[::]" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 0 );
+        for ( int i = 0; i < 8; ++i )
+            check( address.GetAddress6()[i] == 0x0000 );
+        check( !address.IsLoopback() );
+    }
+
+    {
+        Address address( "[fe80::202:b3ff:fe1e:8329]" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 0 );
+        check( address.GetAddress6()[0] == 0xfe80 );
+        check( address.GetAddress6()[1] == 0x0000 );
+        check( address.GetAddress6()[2] == 0x0000 );
+        check( address.GetAddress6()[3] == 0x0000 );
+        check( address.GetAddress6()[4] == 0x0202 );
+        check( address.GetAddress6()[5] == 0xb3ff );
+        check( address.GetAddress6()[6] == 0xfe1e );
+        check( address.GetAddress6()[7] == 0x8329 );
+        check( !address.IsLoopback() );
+    }
+
     char buffer[MaxAddressLength];
 
     {
@@ -1335,6 +1379,84 @@ void test_connection_reliable_block_fragment_on_disabled_blocks()
 
     // The receiver rejected the disallowed block fragment without crashing.
     check( receiver.GetErrorLevel() != CONNECTION_ERROR_NONE );
+}
+
+// Hand-serialize a connection packet carrying a single reliable-ordered channel entry that is
+// a block fragment. Matches ConnectionPacket + ChannelPacketData::Serialize + SerializeBlockFragment
+// for a numChannels==1 config. Lets tests inject fragment fields a well-behaved sender never would.
+template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream & stream, int maxFragmentsPerBlock, int blockFragmentSize, int numFragments, int fragmentId, int fragmentSize )
+{
+    int numChannelEntries = 1;
+    serialize_int( stream, numChannelEntries, 0, 1 );   // numChannels == 1, so channelIndex is not serialized
+
+    bool blockMessage = true;
+    serialize_bool( stream, blockMessage );
+
+    uint32_t messageId = 0;
+    serialize_bits( stream, messageId, 16 );
+
+    if ( maxFragmentsPerBlock > 1 )
+        serialize_int( stream, numFragments, 1, maxFragmentsPerBlock );
+
+    if ( numFragments > 1 )
+        serialize_int( stream, fragmentId, 0, numFragments - 1 );
+
+    serialize_int( stream, fragmentSize, 1, blockFragmentSize );
+
+    uint8_t payload[2048];
+    yojimbo_assert( fragmentSize <= (int) sizeof( payload ) );
+    memset( payload, 0xAB, sizeof( payload ) );
+    serialize_bytes( stream, payload, fragmentSize );
+
+    // fragmentId != 0 here, so no message type / block message is serialized.
+    return true;
+}
+
+void test_connection_reliable_block_fragment_overflow()
+{
+    // Regression test: a peer sends a reliable-ordered block fragment whose final fragment
+    // claims a full blockFragmentSize of data, even though maxBlockSize is not a multiple of
+    // blockFragmentSize. The receive buffer (blockData) is maxBlockSize bytes, but the final
+    // fragment is copied at offset (numFragments-1)*blockFragmentSize, so a full-size copy
+    // used to run past the end of the buffer (heap-buffer-overflow, caught by ASan). The
+    // fragment must be rejected before the copy. fragmentSize is attacker-controllable in
+    // [1,blockFragmentSize], so a legitimate sender never produces this.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1100;      // deliberately not a multiple of blockFragmentSize
+    config.channel[0].blockFragmentSize = 500;  // => GetMaxFragmentsPerBlock() == ceil(1100/500) == 3
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+
+    // messageId=0 (== expected receive sequence), final fragment, full blockFragmentSize payload.
+    const int numFragments = maxFragmentsPerBlock;   // 3
+    const int fragmentId = numFragments - 1;         // 2 (final fragment)
+    const int fragmentSize = blockFragmentSize;      // 500 -> write [1000,1500) into a 1100-byte buffer
+
+    uint8_t buffer[4096];
+    memset( buffer, 0, sizeof( buffer ) );
+    WriteStream stream( buffer, sizeof( buffer ) );
+    check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, fragmentId, fragmentSize ) );
+    stream.Flush();
+    const int packetBytes = stream.GetBytesProcessed();
+    check( packetBytes > 0 );
+
+    // Before the fix this overflowed the receive buffer inside ProcessPacketFragment. After the
+    // fix the fragment is rejected: the read fails and the channel drops into an error state.
+    const bool processed = receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    check( !processed );
+
+    receiver.AdvanceTime( time );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_CHANNEL );
 }
 
 void test_connection_reliable_over_budget_packet()
@@ -2824,6 +2946,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
+        RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
 
         RUN_TEST( test_client_server_messages );
