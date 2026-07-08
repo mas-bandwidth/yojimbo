@@ -1,9 +1,9 @@
 # Fuzz targets
 
 libFuzzer harnesses over yojimbo's untrusted-input parsers — the code that runs on raw,
-attacker-controlled bytes off the wire. Standalone from the premake build (their own
-sources), so they don't affect the normal build; a CI job builds and runs them under real
-libFuzzer on Linux (see `.github/workflows/ci.yml`, job `fuzz`).
+attacker-controlled bytes off the wire. They are not part of the CMake build (they compile
+their own sources directly), so they don't affect the normal build; a CI job builds and runs
+them under real libFuzzer on Linux (see `.github/workflows/ci.yml`, job `fuzz`).
 
 Each target is **dual-mode**:
 - **Real libFuzzer** (Linux clang, coverage-guided) — the CI mode. Built with

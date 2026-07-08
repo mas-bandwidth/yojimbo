@@ -8,9 +8,6 @@ on:
 permissions:
   contents: read
 
-env:
-  PREMAKE_VERSION: "5.0.0-beta8"
-
 jobs:
   build-test:
     name: build & test (${{ matrix.label }})
@@ -20,49 +17,38 @@ jobs:
         include:
           - os: ubuntu-24.04
             label: linux x86-64
-            premake: linux
           # macOS x86-64 (Intel, macos-13) temporarily disabled — runner is slow to allocate.
           - os: macos-14
             label: macOS arm64 (Apple Silicon)
-            premake: macosx
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install premake5
+      - name: Build & test (debug)
         run: |
-          curl -fsSL "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-${{ matrix.premake }}.tar.gz" | tar xz
-          chmod +x premake5
-          echo "$PWD" >> "$GITHUB_PATH"
-      - name: Generate makefiles
-        run: premake5 gmake
-      - name: Build (debug)
-        run: make -j config=debug
-      - name: Test (debug)
-        run: ./bin/test
-      - name: Build (release)
-        run: make -j config=release
-      - name: Test (release)
-        run: ./bin/test
+          cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build-debug -j
+          ./bin/test
+      - name: Build & test (release)
+        run: |
+          cmake -B build-release -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-release -j
+          ./bin/test
 
   windows:
     name: build & test (windows MSVC x64, ${{ matrix.config }})
-    runs-on: windows-latest
+    # Pinned to windows-2022 (Visual Studio 2022); the "Visual Studio 17 2022" CMake generator
+    # needs a matching VS install, which windows-latest no longer guarantees.
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
         config: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
-      - name: Generate solution (premake vs2022)
-        shell: bash
-        run: |
-          curl -fsSL -o premake.zip "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-windows.zip"
-          unzip -o premake.zip
-          ./premake5.exe vs2022
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+      - name: Configure (Visual Studio 2022, x64)
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64
       - name: Build (${{ matrix.config }} x64)
-        run: msbuild Yojimbo.sln /p:Configuration=${{ matrix.config }} /p:Platform=x64 /m
+        run: cmake --build build --config ${{ matrix.config }} -j
       - name: Test (${{ matrix.config }} x64)
         shell: pwsh
         run: |
@@ -79,41 +65,27 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install libsodium
         run: sudo apt-get update && sudo apt-get install -y libsodium-dev
-      - name: Install premake5
+      - name: Build & test (system libsodium)
         run: |
-          curl -fsSL "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-linux.tar.gz" | tar xz
-          chmod +x premake5
-          echo "$PWD" >> "$GITHUB_PATH"
-      - name: Generate makefiles (system libsodium)
-        run: premake5 gmake --sodium=system
-      - name: Build (debug)
-        run: make -j config=debug
-      - name: Test (debug)
-        run: ./bin/test
-      - name: Build (release)
-        run: make -j config=release
-      - name: Test (release)
-        run: ./bin/test
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug -DYOJIMBO_SYSTEM_SODIUM=ON
+          cmake --build build -j
+          ./bin/test
 
   sanitizers:
     name: sanitizers (linux, ASan+UBSan+LSan)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install premake5
-        run: |
-          curl -fsSL "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-linux.tar.gz" | tar xz
-          chmod +x premake5
-          echo "$PWD" >> "$GITHUB_PATH"
-      - name: Generate makefiles
-        run: premake5 gmake
       - name: Build (sanitized)
         # nonnull-attribute is excluded: netcode encrypts zero-length plaintexts, and
         # libsodium's AEAD then does memcpy(dst, NULL, 0) — benign UB in upstream code.
         run: |
           SAN="-fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
-          make -j config=debug test CC=clang CXX=clang++ \
-            CFLAGS="$SAN" CXXFLAGS="$SAN" LDFLAGS="-fsanitize=address,undefined"
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+          cmake --build build -j --target test
       - name: Test (sanitized)
         run: ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ./bin/test
 
@@ -174,19 +146,15 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install premake5
-        run: |
-          curl -fsSL "https://github.com/premake/premake-core/releases/download/v${PREMAKE_VERSION}/premake-${PREMAKE_VERSION}-linux.tar.gz" | tar xz
-          chmod +x premake5
-          echo "$PWD" >> "$GITHUB_PATH"
-      - name: Generate makefiles
-        run: premake5 gmake
       - name: Build soak (sanitized)
         # Same sanitizer flags and nonnull-attribute carve-out as the sanitizers job.
         run: |
           SAN="-fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
-          make -j config=debug soak CC=clang CXX=clang++ \
-            CFLAGS="$SAN" CXXFLAGS="$SAN" LDFLAGS="-fsanitize=address,undefined"
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+          cmake --build build -j --target soak
       - name: Run soak (time-boxed)
         # Bounded iteration count so the normally-endless soak exits cleanly and the
         # sanitizers run their end-of-process (incl. leak) checks. Output is verbose, so
