@@ -172,9 +172,47 @@ if a wire format changes.
 
 Done: fuzzing (harnesses incl. the connect-token target, CI job, seed corpora); time-boxed
 sanitized `soak` in CI; `SECURITY.md`; `.clang-format`; `CONTRIBUTING.md`; markdown
-consistency pass.
+consistency pass; premake→CMake; `ChannelPacketData` de-union (#280); network-reachable assert
+audit + budget-assert fix (#281).
 
-Remaining / open:
+Remaining / open (as of this session — read before picking up):
+
+- **Public-header encapsulation invariant (IMPORTANT, per Glenn).** A consumer must be able to
+  just `#include "yojimbo.h"` and link the static libs — nothing else on their include path. So
+  **`yojimbo.h` (and any `include/*.h`) must NOT include `netcode.h`, `reliable.h`, or
+  `serialize.h`; those are implementation headers for the `.cpp` files only.**
+  - Current state: `netcode.h`/`reliable.h` are already confined to `source/*.cpp` — good.
+  - The one violation: `serialize.h` is included by `include/yojimbo.h:28` and
+    `include/yojimbo_constants.h:28`.
+  - Why it's hard (Glenn: "may not be possible"): yojimbo's *public* headers
+    (`yojimbo_serialize.h`, `yojimbo_message.h`, `yojimbo_channel.h`) are built directly on
+    serialize's `ReadStream`/`WriteStream`/`MeasureStream` and the `serialize_*` macros, and
+    users write those macros in their own message `Serialize()` methods. serialize is
+    header-only (no lib to link), so its declarations must reach the consumer somehow. Removing
+    the include therefore isn't a move — it means **vendoring/amalgamating serialize's content
+    into a yojimbo header** so yojimbo ships it inline (same idea as the sodium amalgamation).
+    Don't attempt this without agreeing the approach first; it's a real chunk of work and may
+    be deemed not worth it.
+
+- **CMake install/export (paused).** Goal: `install()` rules + `yojimboConfig.cmake` so
+  downstream can `find_package(yojimbo)` and link `yojimbo::yojimbo`. Paused because a clean
+  install has to define the *public* header surface, which runs straight into the encapsulation
+  invariant above (the flatten-all-headers approach I started is wrong — it would publish
+  netcode/reliable/serialize as public). Resolve the header question first, then the install is
+  straightforward (export only yojimbo's own headers).
+
+- **Fuzz/MSan CI is too slow on the hot path (requested, not yet done).** The per-PR `fuzz`
+  (~3–4 min) and `msan` jobs slow every commit. Move them **off** the per-commit path: run them
+  only manually (`workflow_dispatch`) and nightly. The nightly workflow (`fuzz-nightly.yml`)
+  already exists and covers the extended runs; the simplest change is to drop the `fuzz` and
+  `msan` jobs from `ci.yml` (keep build/test, sanitizers, soak) and, if a per-target ASan+UBSan
+  smoke is still wanted, fold a short version into the nightly or a manual workflow. Keep the
+  hot path fast.
+
+- **Cover the yojimbo server/client wrapper (#33, open).** `yojimbo_server.cpp` /
+  `yojimbo_base_server.cpp` / client wrappers (slot allocation, connect/disconnect lifecycle,
+  send/receive across the wrapper) are only indirectly exercised.
+
 - Ideas only: a `netcode_server_process_packet` end-to-end fuzz target (needs a socketless
   server); richer message-serialization tests.
 
