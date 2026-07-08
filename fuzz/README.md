@@ -34,6 +34,13 @@ Each target is **dual-mode**:
   bool / float / double / compressed_float / int_relative / align / string / variable-length
   bytes), not just `serialize_bits`. This target found the disabled-blocks
   `ChannelPacketData` union-init bug (fixed; regression test in `test.cpp`).
+- `fuzz_connection_structured.cpp` — the same `Connection` deserialization, but driven by a
+  *script* instead of raw bytes: the input is a sequence of "send a message (fuzz picks type /
+  channel / contents)" and "tick (generate a packet, deliver or drop it, advance time)" ops
+  against a sender/receiver pair. Every packet comes from the real write path, so it is always
+  valid and the receiver never bails out early — this reaches the reliable-ordered reassembly
+  and in-order delivery state machine under fuzzer-chosen message streams and packet loss,
+  which the byte-level target can't do reliably. Shares `fuzz_config.h` / `fuzz_messages.h`.
 
 All three run clean (≥300k standalone inputs under ASan+UBSan). Bugs found and fixed while
 bringing `fuzz_connection` up: a message leak on the "block fragment attached to non-block

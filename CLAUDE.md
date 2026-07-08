@@ -134,6 +134,10 @@ standalone inputs under ASan+UBSan, and a `fuzz` CI job builds + time-boxes them
      block pointers are nulled) left `block.message` half-garbage, and the packet destructor's
      `Free()` dereferenced it → SEGV. Fixed by zeroing both union arms; regression test
      `test_connection_reliable_block_fragment_on_disabled_blocks`.
+  `fuzz/fuzz_connection_structured.cpp` complements the byte-level target: it drives a
+  sender/receiver pair from a *script* (send message / tick-deliver-or-drop), so every packet is
+  valid and the receive state machine (reassembly, in-order delivery under loss) is reached
+  directly rather than by chance.
   `tools/fuzz_coverage.sh` reports `llvm-cov` over the deserialization sources (the channel
   `.cpp` percentages are dominated by unreachable send-side code — look at the read-path
   functions and `serialize/serialize.h`, which the rich messages lifted from ~15%→~24% region
