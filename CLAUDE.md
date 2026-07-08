@@ -124,6 +124,20 @@ standalone inputs under ASan+UBSan, and a `fuzz` CI job builds + time-boxes them
   Regression tests for (2) and (3) are in `test.cpp`
   (`test_connection_reject_empty_packet`, `test_connection_unreliable_rejects_block_fragment`);
   both verified to fail without their fix. (1) is covered by the fuzzer.
+  `fuzz_connection` was later made **stateful** (input = `[u8 config selector][u16 len][pkt]...`
+  fed to one long-lived Connection, so block reassembly + the out-of-order receive queue are
+  reachable), given a **config selector** (`fuzz_config.h`) and a **rich message factory**
+  (`fuzz_messages.h`, the whole `serialize_*` vocabulary). That combination found a 4th bug:
+  4. **Uninitialized `block.message` deref** (`source/yojimbo_channel.cpp`
+     `ChannelPacketData::Initialize`): it only zeroed the low 4 bytes of the message/block
+     union, so a block fragment arriving on a `disableBlocks` channel (early return before the
+     block pointers are nulled) left `block.message` half-garbage, and the packet destructor's
+     `Free()` dereferenced it → SEGV. Fixed by zeroing both union arms; regression test
+     `test_connection_reliable_block_fragment_on_disabled_blocks`.
+  `tools/fuzz_coverage.sh` reports `llvm-cov` over the deserialization sources (the channel
+  `.cpp` percentages are dominated by unreachable send-side code — look at the read-path
+  functions and `serialize/serialize.h`, which the rich messages lifted from ~15%→~24% region
+  coverage on the seed corpus).
 
 Seed corpora live in `fuzz/corpus/<target>/` (committed). The `fuzz` CI job passes them as a
 read-only seed dir alongside an ephemeral working dir so runs start at inputs that already
