@@ -24,6 +24,8 @@
 
 #include "yojimbo.h"
 #include "yojimbo_utils.h"
+#include "netcode.h"
+#include "reliable.h"
 
 #include <sodium.h>
 
@@ -37,17 +39,6 @@ namespace yojimbo
         return *g_defaultAllocator;
     }
 }
-
-extern "C" int netcode_init();
-extern "C" int reliable_init();
-
-extern "C" void netcode_term();
-extern "C" void reliable_term();
-
-extern "C" void netcode_enable_packet_tagging();
-
-#define NETCODE_OK 1
-#define RELIABLE_OK 1
 
 bool InitializeYojimbo()
 {
