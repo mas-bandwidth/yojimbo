@@ -149,18 +149,20 @@ jobs:
             fuzz/fuzz_netcode_connect_token.c sodium/sodium.c -o fuzz_netcode_connect_token
           echo "::endgroup::"
 
-          echo "::group::build fuzz_connection"
-          clang++ -std=c++11 $SAN -DYOJIMBO_DEBUG -DNETCODE_DEBUG -DRELIABLE_DEBUG -DSERIALIZE_DEBUG \
-            -I. -Iinclude -Isodium -Itlsf -Inetcode -Ireliable -Iserialize -Ifuzz \
-            fuzz/fuzz_connection.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c sodium/sodium.c \
-            -o fuzz_connection
-          echo "::endgroup::"
+          for target in fuzz_connection fuzz_connection_structured; do
+            echo "::group::build $target"
+            clang++ -std=c++11 $SAN -DYOJIMBO_DEBUG -DNETCODE_DEBUG -DRELIABLE_DEBUG -DSERIALIZE_DEBUG \
+              -I. -Iinclude -Isodium -Itlsf -Inetcode -Ireliable -Iserialize -Ifuzz \
+              fuzz/$target.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c sodium/sodium.c \
+              -o $target
+            echo "::endgroup::"
+          done
 
           # Seed from the committed corpus (fuzz/corpus/<target>) so the short run starts at
           # inputs that already reach the post-decrypt / reassembly code. libFuzzer reads all
           # corpus dirs but only writes new finds to the first, so the committed seeds stay
           # pristine and discoveries land in the ephemeral working dir.
-          for t in fuzz_reliable fuzz_netcode fuzz_netcode_connect_token fuzz_connection; do
+          for t in fuzz_reliable fuzz_netcode fuzz_netcode_connect_token fuzz_connection fuzz_connection_structured; do
             echo "::group::run $t"
             mkdir -p "corpus/$t"
             UBSAN_OPTIONS=halt_on_error=1 ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
