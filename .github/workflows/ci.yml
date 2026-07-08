@@ -199,3 +199,47 @@ jobs:
           else
             echo "soak failed (exit $?)"; tail -50 soak.log; exit 1
           fi
+
+  msan:
+    name: fuzz (linux libFuzzer, MemorySanitizer)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # MemorySanitizer catches *reads of uninitialized memory* — the class of bug the
+      # ChannelPacketData union-init crash was (Free() dereferencing a half-initialized
+      # block.message). ASan/UBSan do not catch that. The C++ targets are built WITHOUT
+      # -DYOJIMBO_DEBUG so the debug std::map leak trackers aren't compiled in; that leaves the
+      # binaries free of C++ STL, so MSan needs no separately-instrumented libc++ (linking an
+      # uninstrumented libc++ would produce false positives). Asserts and leak detection stay
+      # covered by the sanitizers (ASan+UBSan+LSan) job.
+      - name: Build and run fuzz targets under MSan
+        run: |
+          set -euo pipefail
+          MSAN="-fsanitize=fuzzer,memory -fno-omit-frame-pointer -g"
+          RUN="-max_total_time=45 -print_final_stats=1 -rss_limit_mb=4096"
+
+          echo "::group::build C targets"
+          clang $MSAN -DRELIABLE_DEBUG -Ireliable -Ifuzz \
+            fuzz/fuzz_reliable.c reliable/reliable.c -o fuzz_reliable
+          clang $MSAN -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
+            fuzz/fuzz_netcode.c sodium/sodium.c -o fuzz_netcode
+          clang $MSAN -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
+            fuzz/fuzz_netcode_connect_token.c sodium/sodium.c -o fuzz_netcode_connect_token
+          echo "::endgroup::"
+
+          # No -DYOJIMBO_DEBUG here (keeps std::map out of the binary; see note above).
+          for target in fuzz_connection fuzz_connection_structured; do
+            echo "::group::build $target"
+            clang++ -std=c++11 $MSAN -DNETCODE_DEBUG -DRELIABLE_DEBUG -DSERIALIZE_DEBUG \
+              -I. -Iinclude -Isodium -Itlsf -Inetcode -Ireliable -Iserialize -Ifuzz \
+              fuzz/$target.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c sodium/sodium.c \
+              -o $target
+            echo "::endgroup::"
+          done
+
+          for t in fuzz_reliable fuzz_netcode fuzz_netcode_connect_token fuzz_connection fuzz_connection_structured; do
+            echo "::group::run $t"
+            mkdir -p "corpus/$t"
+            ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
+            echo "::endgroup::"
+          done
