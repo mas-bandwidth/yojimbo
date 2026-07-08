@@ -1,7 +1,7 @@
 /*
     Yojimbo Client/Server Network Library.
 
-    Copyright © 2016 - 2024, Mas Bandwidth LLC.
+    Copyright © 2016 - 2026, Más Bandwidth LLC.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -54,11 +54,15 @@ namespace yojimbo
             int messageType;
         };
 
-        union
-        {
-            MessageData message;
-            BlockData block;
-        };
+        // `blockMessage` selects which of these is live for a given packet. They were once a
+        // union to save a few bytes; that overlap made every access unsafe — a read of the
+        // wrong arm returned a reinterpreted pointer, and partial initialization of one arm
+        // left the other holding garbage. Three memory-safety bugs came from it. As separate
+        // members both are always present and zero-initialized, so a mistaken access is benign
+        // (NULL / zero) rather than a wild pointer. ChannelPacketData is transient (at most
+        // MaxChannels per packet), so the extra bytes are irrelevant.
+        MessageData message;
+        BlockData block;
 
         void Initialize();
 

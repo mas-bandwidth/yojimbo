@@ -1,7 +1,7 @@
 /*
     Yojimbo Client/Server Network Library.
 
-    Copyright © 2016 - 2024, Mas Bandwidth LLC.
+    Copyright © 2016 - 2026, Más Bandwidth LLC.
 
     Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -31,14 +31,18 @@ namespace yojimbo
         channelIndex = 0;
         blockMessage = 0;
         messageFailedToSerialize = 0;
-        // Zero both arms of the message/block union so Free() is safe no matter which one the
-        // serializer populates — or if it bails out after setting blockMessage but before
-        // initializing the block pointers (e.g. a block fragment on a disableBlocks channel,
-        // which returns early). Writing block.message clears the high bytes that a bare
-        // message.numMessages = 0 would leave uninitialized.
+        // Fully initialize both arms so Free() and any reader are safe no matter which one the
+        // serializer populates (or if it bails out early, e.g. a block fragment on a
+        // disableBlocks channel).
+        message.numMessages = 0;
+        message.messages = NULL;
         block.message = NULL;
         block.fragmentData = NULL;
-        message.numMessages = 0;
+        block.messageId = 0;
+        block.fragmentId = 0;
+        block.fragmentSize = 0;
+        block.numFragments = 0;
+        block.messageType = 0;
         initialized = 1;
     }
 

@@ -1,7 +1,7 @@
 # Working notes for yojimbo
 
 Context for AI agents (and humans) working on this repo. yojimbo is the official
-client/server networking library by Glenn Fiedler / Mas Bandwidth. It vendors three
+client/server networking library by Glenn Fiedler / Más Bandwidth LLC. It vendors three
 sibling libraries in-tree: **netcode** (`netcode/`), **reliable** (`reliable/`),
 **serialize** (`serialize/`), plus **tlsf** (allocator) and a pruned **libsodium**
 (`sodium/`). The Go **matcher** (`matcher/`) is a reference matchmaker.
