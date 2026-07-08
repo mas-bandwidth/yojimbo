@@ -36,7 +36,9 @@ jobs:
 
   windows:
     name: build & test (windows MSVC x64, ${{ matrix.config }})
-    runs-on: windows-latest
+    # Pinned to windows-2022 (Visual Studio 2022); the "Visual Studio 17 2022" CMake generator
+    # needs a matching VS install, which windows-latest no longer guarantees.
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
