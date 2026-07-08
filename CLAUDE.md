@@ -43,18 +43,6 @@ and **macOS Apple Silicon (macos-14)** in debug+release; **Windows MSVC** (Debug
 (macos-13)** is commented out in the matrix (slow to allocate) — re-enable as
 `continue-on-error` if wanted. Badge is in the README.
 
-## IMPORTANT: this repo auto-merges PRs
-
-PRs merge automatically the moment CI goes green. Practical consequences:
-- **Any commit you push to a branch *after* its first green CI does NOT reach `main`** —
-  the PR already merged at the earlier commit. This bit us repeatedly (e.g. #252 merged with
-  only its first commit; the README badge landed after #255 merged and had to be re-PR'd).
-- So: put each change in **one** commit / one PR, or expect to open a follow-up PR.
-- After "merging", **always verify the change is actually in `origin/main`** with
-  `git show origin/main:<path>` — don't trust the PR "merged" state alone.
-- To land work: branch off `main`, one focused commit, `gh pr create`, wait for the 6 checks,
-  `gh pr merge <n> --merge` if it hasn't auto-merged, then verify in `origin/main`.
-
 ## Vendored libsodium (`sodium/`) — it is generated
 
 `sodium/` is a **pruned + amalgamated** subset of libsodium 1.0.20: just `sodium.h` +
