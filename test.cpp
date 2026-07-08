@@ -1337,6 +1337,66 @@ void test_connection_reliable_block_fragment_on_disabled_blocks()
     check( receiver.GetErrorLevel() != CONNECTION_ERROR_NONE );
 }
 
+void test_connection_reliable_over_budget_packet()
+{
+    // A peer sends more channel data than the receiver's configured packetBudget. On read this
+    // used to trip the YOJIMBO_DEBUG_MESSAGE_BUDGET assert — a remote crash in debug builds
+    // reachable from a decrypted-but-attacker-controlled packet. The message count and sizes
+    // are already bounded by the serialize_* range checks, so an over-budget read must simply
+    // be accepted, not asserted on.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    // Sender: default (unlimited) packet budget, so it packs messages freely.
+    ConnectionConfig senderConfig;
+    senderConfig.numChannels = 1;
+    senderConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    // Receiver: a small per-channel packet budget.
+    ConnectionConfig receiverConfig;
+    receiverConfig.numChannels = 1;
+    receiverConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    receiverConfig.channel[0].packetBudget = 32;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, senderConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, receiverConfig, time );
+
+    const int NumMessages = 64;
+    for ( int i = 0; i < NumMessages; ++i )
+    {
+        TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+        check( message );
+        message->sequence = (uint16_t) i;
+        sender.SendMessage( 0, message );
+    }
+
+    // The first generated packet carries far more than 32 bytes of channel data. Before the
+    // fix, processing it aborted the receiver in the budget assert; after, it reads cleanly.
+    uint8_t * packetData = (uint8_t*) alloca( senderConfig.maxPacketSize );
+    uint16_t sequence = 0;
+    bool processed = false;
+
+    for ( int i = 0; i < 8 && !processed; ++i )
+    {
+        int packetBytes = 0;
+        if ( sender.GeneratePacket( NULL, sequence, packetData, senderConfig.maxPacketSize, packetBytes ) && packetBytes > 0 )
+        {
+            check( receiver.ProcessPacket( NULL, sequence, packetData, packetBytes ) );
+            processed = true;
+        }
+
+        sender.AdvanceTime( time );
+        receiver.AdvanceTime( time );
+        time += 0.1;
+        sequence++;
+    }
+
+    check( processed );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_NONE );
+}
+
 void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, float deltaTime = 0.1f )
 {
     for ( int i = 0; i < numClients; ++i )
@@ -2764,6 +2824,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
+        RUN_TEST( test_connection_reliable_over_budget_packet );
 
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );

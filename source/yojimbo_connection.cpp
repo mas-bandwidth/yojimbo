@@ -52,7 +52,10 @@ namespace yojimbo
             const int numChannels = connectionConfig.numChannels;
             serialize_int( stream, numChannelEntries, 0, connectionConfig.numChannels );
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET
-            yojimbo_assert( stream.GetBitsProcessed() <= ConservativePacketHeaderBits );
+            // Write/measure only — validates our own header-size estimate. (On read this is
+            // fixed-width and can't exceed the bound anyway, but keep it off the untrusted path.)
+            if ( !Stream::IsReading )
+                yojimbo_assert( stream.GetBitsProcessed() <= ConservativePacketHeaderBits );
 #endif // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
             if ( numChannelEntries > 0 )
             {

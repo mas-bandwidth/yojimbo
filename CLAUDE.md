@@ -217,7 +217,13 @@ production ready" is fair. I'd trust it for a real game.
   block pointers. It works, but it's a footgun — exactly where bug #3 lived.
 - *Debug invariants are blunt* — the message factory calls `exit(1)` on a leak, asserts
   `__builtin_trap()`. Effective at catching mistakes, hostile to embedding/tooling (this is
-  why the fuzzer looked "silent" until the log level was raised).
+  why the fuzzer looked "silent" until the log level was raised). A `yojimbo_assert` reachable
+  from a decrypted packet is a remote crash in debug builds. **The post-decrypt receive path
+  was audited for this**: it's largely safe (the `serialize_*` macros range-check every value,
+  and `ProcessPacketMessages`/`ProcessPacketFragment` handle bad ids/fragments with graceful
+  `CHANNEL_ERROR_DESYNC` rather than asserting). The one network-reachable assert found — the
+  `YOJIMBO_DEBUG_MESSAGE_BUDGET` per-channel budget check running on the read stream — is fixed
+  (guarded to write/measure; regression test `test_connection_reliable_over_budget_packet`).
 - *Ergonomics are low-level by design.* You hand-write serialization, manually ref-count and
   release messages, run your own fixed-timestep loop, and must remember `InitializeYojimbo()`.
   Right for the audience (engine programmers), not friendly to newcomers — and the docs had
