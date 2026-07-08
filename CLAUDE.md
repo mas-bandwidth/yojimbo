@@ -42,8 +42,9 @@ and **macOS Apple Silicon (macos-14)** in debug+release; **Windows MSVC** (Debug
 **`--sodium=system`** on Linux; a **Linux ASan+UBSan+LSan** job; a **libFuzzer** job (the
 `fuzz/` targets, ASan+UBSan, seeded from `fuzz/corpus/`); a **time-boxed sanitized soak**; and
 a **libFuzzer + MemorySanitizer** job (uninitialized-read detection — the C++ targets build
-without `-DYOJIMBO_DEBUG` so no `std::map` is compiled in and MSan needs no instrumented
-libc++). macOS **Intel (macos-13)** is commented out in the matrix (slow to allocate). Badge
+with `-DYOJIMBO_RELEASE` so the debug `std::map` leak trackers aren't compiled in and MSan
+needs no instrumented libc++; an uninstrumented libstdc++ `std::map` traversal MSan-false
+-positives, which is how the first attempt failed). macOS **Intel (macos-13)** is commented out in the matrix (slow to allocate). Badge
 is in the README. **MSan is Linux-only — it cannot be reproduced on the macOS dev machine;
 CI is the only validator.**
 
