@@ -1,0 +1,11 @@
+# Structural tokens for netcode_read_packet. The connection-request path checks the
+# 13-byte version string literally, so it is the highest-value entry.
+version_info="NETCODE 1.02\x00"
+protocol_id_le="\x88\x77\x66\x55\x44\x33\x22\x11"
+type_request="\x00"
+type_denied="\x01"
+type_challenge="\x02"
+type_response="\x03"
+type_keepalive="\x04"
+type_payload="\x05"
+type_disconnect="\x06"

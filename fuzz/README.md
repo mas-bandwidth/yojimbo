@@ -95,6 +95,24 @@ Swap `-DFUZZ_STANDALONE` for `-fsanitize=fuzzer` (added to the sanitizer set) an
 corpus dir + `-max_total_time=N`. Exactly what the `fuzz` CI job does; see it for the
 canonical commands.
 
+## CI
+
+Three layers run in GitHub Actions:
+- **`fuzz` job** (`ci.yml`, per-PR) — 60s ASan+UBSan smoke run of each target, seeded from
+  `fuzz/corpus/`; a gate that catches regressions fast.
+- **`msan` job** (`ci.yml`, per-PR) — the same targets under MemorySanitizer for
+  uninitialized-read detection (the C++ targets build with `-DYOJIMBO_RELEASE` so no `std::map`
+  is compiled in, avoiding the need for an instrumented libc++).
+- **`Fuzz (nightly)`** (`fuzz-nightly.yml`, scheduled) — a much longer run per target with a
+  corpus that persists and grows across nights (via the Actions cache) and a libFuzzer
+  dictionary where one helps (`fuzz/dict/<target>.dict`). A crash fails that target and uploads
+  the reproducer as an artifact. Trigger it by hand from the Actions tab (`workflow_dispatch`,
+  with a `max_total_time` input) to reproduce or extend a run.
+
+Dictionaries hold byte-aligned structural tokens (the netcode version string, address-type
+tags, the structured target's op/type bytes, config selectors); they help most for the
+netcode packet framing and the structured script, less for the bitpacked message payloads.
+
 ## Seed corpora (`fuzz/corpus/<target>/`)
 
 Committed seeds of valid packets so the time-boxed CI runs start at inputs that already

@@ -1,0 +1,4 @@
+# Server-address type tags in the decrypted private connect token.
+addr_none="\x00"
+addr_ipv4="\x01"
+addr_ipv6="\x02"
