@@ -1,0 +1,7 @@
+# The first input byte selects the ConnectionConfig (fuzz_config.h, 6 configs).
+config_0="\x00"
+config_1="\x01"
+config_2="\x02"
+config_3="\x03"
+config_4="\x04"
+config_5="\x05"

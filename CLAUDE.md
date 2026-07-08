@@ -44,7 +44,10 @@ and **macOS Apple Silicon (macos-14)** in debug+release; **Windows MSVC** (Debug
 a **libFuzzer + MemorySanitizer** job (uninitialized-read detection — the C++ targets build
 with `-DYOJIMBO_RELEASE` so the debug `std::map` leak trackers aren't compiled in and MSan
 needs no instrumented libc++; an uninstrumented libstdc++ `std::map` traversal MSan-false
--positives, which is how the first attempt failed). macOS **Intel (macos-13)** is commented out in the matrix (slow to allocate). Badge
+-positives, which is how the first attempt failed). A separate scheduled workflow
+`fuzz-nightly.yml` runs each target far longer (matrix, persisted+growing corpus via the
+Actions cache, per-target `fuzz/dict/*.dict`), uploading any crash reproducer as an artifact;
+it never gates PRs and can be run on demand via `workflow_dispatch`. macOS **Intel (macos-13)** is commented out in the matrix (slow to allocate). Badge
 is in the README. **MSan is Linux-only — it cannot be reproduced on the macOS dev machine;
 CI is the only validator.**
 

@@ -1,0 +1,11 @@
+# Script op bytes and message-type/config selectors for the structured target.
+op_tick="\x00"
+op_send="\x01"
+op_drop="\x04"
+type_primitives="\x00"
+type_string="\x01"
+type_bytes="\x02"
+type_block="\x03"
+config_0="\x00"
+config_1="\x01"
+config_5="\x05"
