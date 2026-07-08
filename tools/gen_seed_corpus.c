@@ -82,8 +82,6 @@ static void gen_netcode( const char * root )
     snprintf( dir, sizeof( dir ), "%s/fuzz_netcode", root );
     make_dir( dir );
 
-    netcode_init();
-
     uint8_t key[NETCODE_KEY_BYTES];
     memset( key, 0, sizeof( key ) );          // harness reads with an all-zero packet key
 
@@ -122,6 +120,52 @@ static void gen_netcode( const char * root )
         int bytes = netcode_write_packet( &p, buffer, sizeof( buffer ), sequence + 2, key, FUZZ_PROTOCOL_ID );
         verify_netcode( buffer, bytes );
         write_seed( dir, "disconnect", buffer, bytes );
+    }
+}
+
+// --- netcode connect token (decrypted private token) ---------------------------------
+
+static void gen_connect_token( const char * root )
+{
+    char dir[512];
+    snprintf( dir, sizeof( dir ), "%s/fuzz_netcode_connect_token", root );
+    make_dir( dir );
+
+    struct
+    {
+        const char * name;
+        const char * address;
+    } cases[] = {
+        { "ipv4", "127.0.0.1:40000" },
+        { "ipv6", "[::1]:40000" },
+    };
+
+    for ( size_t c = 0; c < sizeof( cases ) / sizeof( cases[0] ); ++c )
+    {
+        struct netcode_address_t address;
+        char address_string[64];
+        snprintf( address_string, sizeof( address_string ), "%s", cases[c].address );
+        if ( netcode_parse_address( address_string, &address ) != NETCODE_OK )
+        {
+            fprintf( stderr, "error: cannot parse %s\n", cases[c].address );
+            exit( 1 );
+        }
+
+        uint8_t user_data[NETCODE_USER_DATA_BYTES];
+        memset( user_data, 0, sizeof( user_data ) );
+
+        struct netcode_connect_token_private_t token;
+        netcode_generate_connect_token_private( &token, 0x1234567890abcdefULL, 30, 1, &address, user_data );
+
+        uint8_t buffer[NETCODE_CONNECT_TOKEN_PRIVATE_BYTES];
+        netcode_write_connect_token_private( &token, buffer, sizeof( buffer ) );
+
+        // prove the seed reads back through the target parser
+        struct netcode_connect_token_private_t readback;
+        assert( netcode_read_connect_token_private( buffer, sizeof( buffer ), &readback ) == NETCODE_OK
+                && "generated connect-token seed failed to read back" );
+
+        write_seed( dir, cases[c].name, buffer, (int) sizeof( buffer ) );
     }
 }
 
@@ -215,8 +259,13 @@ int main( int argc, char ** argv )
     const char * root = ( argc > 1 ) ? argv[1] : "fuzz/corpus";
     make_dir( root );
 
+    netcode_init();  // once for the whole process; netcode asserts on a second init
+
     printf( "generating netcode seeds:\n" );
     gen_netcode( root );
+
+    printf( "generating netcode connect-token seeds:\n" );
+    gen_connect_token( root );
 
     printf( "generating reliable seeds:\n" );
     gen_reliable( root );

@@ -102,6 +102,9 @@ standalone inputs under ASan+UBSan, and a `fuzz` CI job builds + time-boxes them
 - `fuzz/fuzz_reliable.c` — `reliable_endpoint_receive_packet`.
 - `fuzz/fuzz_netcode.c` — `netcode_read_packet` (`#include "netcode.c"` — the reader and its
   replay-protection / packet-type symbols are internal to that TU; tests are off by default).
+- `fuzz/fuzz_netcode_connect_token.c` — `netcode_read_connect_token_private` (the decrypted
+  private-token parser: address-list loop, keys, user data). Separate target because the AEAD
+  boundary makes this parser unreachable by mutating bytes through `fuzz_netcode`.
 - `fuzz/fuzz_connection.cpp` — `yojimbo::Connection::ProcessPacket`. An earlier "exits 1
   with no output" was the `TestMessageFactory` dtor's `exit(1)` leak check firing (its report
   was swallowed by the default log level, hence silent). It was a REAL bug the fuzzer found,

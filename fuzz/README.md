@@ -18,6 +18,11 @@ Each target is **dual-mode**:
 - `fuzz_netcode.c` — `netcode_read_packet` (prefix/type parse, length checks, sequence
   decode, AEAD + connect-token decryption). Includes `netcode.c` directly because the
   reader and its replay-protection / packet-type symbols are internal to that TU.
+- `fuzz_netcode_connect_token.c` — `netcode_read_connect_token_private`, the parser for the
+  *decrypted* private connect token (client id, timeout, IPv4/IPv6 server-address list, keys,
+  user data). A separate target because the AEAD boundary makes this parser unreachable by
+  mutation through `fuzz_netcode`: any change to the encrypted token fails the MAC, so the
+  address-list loop is only reached by fuzzing the decrypted layout directly.
 - `fuzz_connection.cpp` — `yojimbo::Connection::ProcessPacket` (bitpacker ReadStream,
   ConnectionPacket / ChannelPacketData serialization, per-channel message + block-fragment
   reading) over a reliable-ordered and an unreliable-unordered channel.
@@ -46,6 +51,14 @@ clang -DFUZZ_STANDALONE -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
   -fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -g \
   fuzz/fuzz_netcode.c sodium/sodium.c -o /tmp/fz_netcode
 FUZZ_ITERS=300000 UBSAN_OPTIONS=halt_on_error=1 /tmp/fz_netcode
+```
+
+netcode connect token (swap the source file for the connect-token target):
+```
+clang -DFUZZ_STANDALONE -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
+  -fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -g \
+  fuzz/fuzz_netcode_connect_token.c sodium/sodium.c -o /tmp/fz_netcode_connect_token
+FUZZ_ITERS=300000 UBSAN_OPTIONS=halt_on_error=1 /tmp/fz_netcode_connect_token
 ```
 
 connection:
@@ -80,7 +93,8 @@ The seeds are produced by generators under `tools/`, which round-trip every seed
 matching reader and assert it decodes, so a committed seed is always a valid input:
 
 ```
-# netcode + reliable seeds (writes fuzz/corpus/fuzz_netcode, fuzz/corpus/fuzz_reliable)
+# netcode + connect-token + reliable seeds
+# (writes fuzz/corpus/fuzz_netcode, fuzz_netcode_connect_token, fuzz_reliable)
 clang -DNETCODE_DEBUG -DRELIABLE_DEBUG -Inetcode -Isodium -Ireliable -Ifuzz -g \
   tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -o /tmp/gen_seed_corpus
 /tmp/gen_seed_corpus fuzz/corpus
@@ -98,5 +112,6 @@ Regenerate and re-commit the seeds if a wire format changes. The netcode generat
 under the harness's keys.
 
 ## Ideas for later
-- A `netcode` connect-token / server-side read target.
 - Richer seeds: multi-fragment blocks, every netcode packet type, connection-request packets.
+- A target over `netcode_server_process_packet` end-to-end (needs a minimal server without a
+  real socket).
