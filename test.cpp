@@ -2693,9 +2693,19 @@ void interrupt_handler( int /*dummy*/ )
 }
 #endif // #if SOAK
 
-int main()
+int main( int argc, char ** argv )
 {
-    srand( time( NULL ) );
+    // The tests are randomized (packet loss, ordering, ids). Seed rand() from the clock by
+    // default, but let a seed be passed on the command line so a flaky failure can be
+    // reproduced exactly: rerun `./bin/test <seed>` with the value printed below. Print and
+    // flush the seed first so it survives even if a later test aborts.
+    unsigned int seed = ( argc > 1 ) ? (unsigned int) strtoul( argv[1], NULL, 0 )
+                                     : (unsigned int) time( NULL );
+
+    printf( "test random seed %u\n", seed );
+    fflush( stdout );
+
+    srand( seed );
 
     printf( "\n" );
 
