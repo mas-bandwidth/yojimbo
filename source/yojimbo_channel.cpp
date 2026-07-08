@@ -31,6 +31,13 @@ namespace yojimbo
         channelIndex = 0;
         blockMessage = 0;
         messageFailedToSerialize = 0;
+        // Zero both arms of the message/block union so Free() is safe no matter which one the
+        // serializer populates — or if it bails out after setting blockMessage but before
+        // initializing the block pointers (e.g. a block fragment on a disableBlocks channel,
+        // which returns early). Writing block.message clears the high bytes that a bare
+        // message.numMessages = 0 would leave uninitialized.
+        block.message = NULL;
+        block.fragmentData = NULL;
         message.numMessages = 0;
         initialized = 1;
     }

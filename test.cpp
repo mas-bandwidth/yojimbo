@@ -1277,6 +1277,66 @@ void test_connection_unreliable_rejects_block_fragment()
     check( sawChannelError );
 }
 
+void test_connection_reliable_block_fragment_on_disabled_blocks()
+{
+    // A peer sends a block fragment on a reliable-ordered channel, but the receiver has
+    // blocks disabled on that channel. ChannelPacketData::Serialize reads blockMessage=1 then
+    // returns early on disableBlocks, before SerializeBlockFragment initializes the block
+    // pointers. The packet destructor's Free() must not then dereference an uninitialized
+    // block.message (it used to, because Initialize() only zeroed part of the union).
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    // Sender: reliable-ordered with blocks enabled, so it emits a real block fragment.
+    ConnectionConfig senderConfig;
+    senderConfig.numChannels = 1;
+    senderConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    // Receiver: reliable-ordered on the same channel, but with blocks disabled.
+    ConnectionConfig receiverConfig;
+    receiverConfig.numChannels = 1;
+    receiverConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    receiverConfig.channel[0].disableBlocks = true;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, senderConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, receiverConfig, time );
+
+    TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    const int blockSize = 2000;   // > fragment size, but even a single fragment reproduces it
+    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+    for ( int i = 0; i < blockSize; ++i )
+        blockData[i] = (uint8_t) i;
+    message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+    sender.SendMessage( 0, message );
+
+    // Feed generated block-fragment packets to the receiver. Before the fix this crashed in
+    // the packet destructor; after it, the read simply fails and the connection errors.
+    uint8_t * packetData = (uint8_t*) alloca( senderConfig.maxPacketSize );
+    uint16_t sequence = 0;
+
+    for ( int i = 0; i < 64; ++i )
+    {
+        int packetBytes = 0;
+        if ( sender.GeneratePacket( NULL, sequence, packetData, senderConfig.maxPacketSize, packetBytes ) && packetBytes > 0 )
+            receiver.ProcessPacket( NULL, sequence, packetData, packetBytes );
+
+        sender.AdvanceTime( time );
+        receiver.AdvanceTime( time );
+        time += 0.1;
+        sequence++;
+
+        if ( receiver.GetErrorLevel() != CONNECTION_ERROR_NONE )
+            break;
+    }
+
+    // The receiver rejected the disallowed block fragment without crashing.
+    check( receiver.GetErrorLevel() != CONNECTION_ERROR_NONE );
+}
+
 void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, float deltaTime = 0.1f )
 {
     for ( int i = 0; i < numClients; ++i )
@@ -2693,6 +2753,7 @@ int main()
         RUN_TEST( test_connection_unreliable_unordered_blocks );
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
+        RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
 
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
