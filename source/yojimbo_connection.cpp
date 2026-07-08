@@ -311,6 +311,15 @@ namespace yojimbo
             return false;
         }
 
+        // A packet that is exactly a reliable header reaches us with zero payload bytes.
+        // That's never a valid connection packet, so fail it like any other malformed read.
+        if ( !packetData || packetBytes <= 0 )
+        {
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to read packet (empty payload)\n" );
+            m_errorLevel = CONNECTION_ERROR_READ_PACKET_FAILED;
+            return false;
+        }
+
         ConnectionPacket packet;
 
         if ( !ReadPacket( context, *m_messageFactory, m_connectionConfig, packet, packetData, packetBytes ) )

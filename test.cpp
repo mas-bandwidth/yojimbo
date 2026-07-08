@@ -1196,6 +1196,87 @@ void test_connection_unreliable_unordered_blocks()
     check( numMessagesReceived == NumMessagesSent );
 }
 
+void test_connection_reject_empty_packet()
+{
+    // A packet that is exactly a reliable header reaches Connection::ProcessPacket with
+    // zero payload bytes. That must be rejected cleanly, not fed to the bit reader (which
+    // used to trip the bufferSize > 0 assert in ReadPacket).
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection connection( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    uint8_t buffer[1] = { 0 };
+
+    check( !connection.ProcessPacket( NULL, 0, buffer, 0 ) );
+    check( connection.GetErrorLevel() == CONNECTION_ERROR_READ_PACKET_FAILED );
+}
+
+void test_connection_unreliable_rejects_block_fragment()
+{
+    // An unreliable-unordered channel never sends a top-level block fragment (its blocks
+    // are serialized inline). A peer that puts a block fragment on that channel index used
+    // to be misread through the ChannelPacketData union (a BlockMessage* reinterpreted as a
+    // message-pointer array) and crash. It must instead be rejected as a serialize failure.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    // Sender speaks reliable-ordered on channel 0, so it emits a top-level block fragment.
+    ConnectionConfig senderConfig;
+    senderConfig.numChannels = 1;
+    senderConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    // Receiver treats channel 0 as unreliable-unordered.
+    ConnectionConfig receiverConfig;
+    receiverConfig.numChannels = 1;
+    receiverConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, senderConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, receiverConfig, time );
+
+    TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    const int blockSize = 64;
+    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+    for ( int i = 0; i < blockSize; ++i )
+        blockData[i] = (uint8_t) i;
+    message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+    sender.SendMessage( 0, message );
+
+    // The sender is never acked, so it keeps re-sending the block fragment every tick.
+    // Feed each generated packet to the receiver until its unreliable channel rejects the
+    // fragment and the connection drops into the channel error state.
+    uint8_t * packetData = (uint8_t*) alloca( senderConfig.maxPacketSize );
+    uint16_t sequence = 0;
+    bool sawChannelError = false;
+
+    for ( int i = 0; i < 64 && !sawChannelError; ++i )
+    {
+        int packetBytes = 0;
+        if ( sender.GeneratePacket( NULL, sequence, packetData, senderConfig.maxPacketSize, packetBytes ) && packetBytes > 0 )
+            receiver.ProcessPacket( NULL, sequence, packetData, packetBytes );
+
+        sender.AdvanceTime( time );
+        receiver.AdvanceTime( time );
+        time += 0.1;
+        sequence++;
+
+        if ( receiver.GetErrorLevel() == CONNECTION_ERROR_CHANNEL )
+            sawChannelError = true;
+    }
+
+    check( sawChannelError );
+}
+
 void PumpClientServerUpdate( double & time, Client ** client, int numClients, Server ** server, int numServers, float deltaTime = 0.1f )
 {
     for ( int i = 0; i < numClients; ++i )
@@ -2610,6 +2691,8 @@ int main()
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
+        RUN_TEST( test_connection_reject_empty_packet );
+        RUN_TEST( test_connection_unreliable_rejects_block_fragment );
 
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
