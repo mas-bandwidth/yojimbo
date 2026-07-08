@@ -315,6 +315,7 @@ namespace yojimbo
                 if ( !message->IsBlockMessage() )
                 {
                     yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: received block fragment attached to non-block message (SerializeBlockFragment)\n" );
+                    messageFactory.ReleaseMessage( message );
                     return false;
                 }
 

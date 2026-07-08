@@ -20,6 +20,9 @@ static void ensure_init()
     if ( !g_init )
     {
         InitializeYojimbo();
+        // The message-leak check in ~MessageFactory reports at ERROR level before
+        // calling exit(1); the default log level (NONE) would swallow the report.
+        yojimbo_log_level( YOJIMBO_LOG_LEVEL_ERROR );
         g_init = true;
     }
 }

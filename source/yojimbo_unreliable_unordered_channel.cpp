@@ -239,6 +239,17 @@ namespace yojimbo
             return;
         }
 
+        // An unreliable-unordered channel never sends a top-level block fragment
+        // (its block messages are serialized inline, see SerializeUnorderedMessages),
+        // so packetData here must hold the message union member. If blockMessage is set
+        // the packet is malformed: reading packetData.message would reinterpret the
+        // block union member as a message-pointer array. Treat it as a serialize failure.
+        if ( packetData.blockMessage )
+        {
+            SetErrorLevel( CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+            return;
+        }
+
         for ( int i = 0; i < (int) packetData.message.numMessages; ++i )
         {
             Message * message = packetData.message.messages[i];

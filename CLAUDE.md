@@ -90,32 +90,40 @@ ref/SSSE3/AVX2, Poly1305 donna/SSE2) selected at runtime. Key facts:
   reliable reassembly NULL-alloc check, InitializeYojimbo error-path leak). #258 remove dead
   `SODIUM_STATIC`. #259 fix `netcode_enable_packet_tagging` prototype (`int`→`void`). #260
   `yojimbo.cpp` include netcode.h/reliable.h instead of hand-declared prototypes.
-- **#261 (open):** matcher `expireSeconds` uint64→int64 (always-true expiry check) + safer
-  `verboseError`/key defaults.
+- #261 matcher `expireSeconds` uint64→int64 (always-true expiry check) + safer
+  `verboseError`/key defaults. #262 CLAUDE.md working notes + first fuzz harnesses.
 
-## CURRENT TASK — in progress: fuzzing (`fuzz/`)
+## Fuzzing (`fuzz/`)
 
-Goal: libFuzzer harnesses over the untrusted-input parsers, wired into CI. Status:
-- `fuzz/fuzz_reliable.c` — targets `reliable_endpoint_receive_packet`. **Works**: 300k
-  random inputs clean under ASan+UBSan (standalone mode).
-- `fuzz/fuzz_connection.cpp` — targets `yojimbo::Connection::ProcessPacket` (ReadStream +
-  channel/message/block deserialization). **NEEDS DEBUGGING**: standalone build exits **1
-  with no output** even at `FUZZ_ITERS=0/1/50`. Next step was to isolate whether it's process
-  init/exit vs an iteration. Prime suspect: `TestMessageFactory`'s destructor calls **`exit(1)`
-  on message leaks** (debug builds) — the per-iteration factory may be reporting a leak, which
-  could be (a) a harness lifetime issue, or (b) a REAL leak the fuzzer found in ProcessPacket's
-  error path. Confirm by checking whether the "you leaked messages" line prints (it may be lost
-  if `exit` races) — try building with `-DYOJIMBO_DEBUG_MESSAGE_LEAKS=0`, or add a print at top
-  of `main`, or run under lldb. Resolve before wiring into CI.
-- Harnesses are **dual-mode**: define `-DFUZZ_STANDALONE` for an ordinary ASan/UBSan driver
-  (Apple clang has no libFuzzer); real libFuzzer (`-fsanitize=fuzzer,...`) runs on Linux CI.
-  Standalone build commands are in the git history of this session / `fuzz/README.md`.
-- **TODO:** fix fuzz_connection; add `fuzz/README.md` build+run docs; add a `netcode_read_packet`
-  harness; add a CI job (Linux clang `-fsanitize=fuzzer,address,undefined`, short
-  `-max_total_time` per target); the fuzz targets are standalone (not in the premake build), so
-  they won't affect existing CI jobs.
+libFuzzer harnesses over the untrusted-input parsers, dual-mode (`-DFUZZ_STANDALONE` for an
+ASan/UBSan driver since Apple clang has no libFuzzer; `-fsanitize=fuzzer` on Linux CI). See
+`fuzz/README.md` for the canonical build/run commands. All three run clean at ≥300k
+standalone inputs under ASan+UBSan, and a `fuzz` CI job builds + time-boxes them.
+- `fuzz/fuzz_reliable.c` — `reliable_endpoint_receive_packet`.
+- `fuzz/fuzz_netcode.c` — `netcode_read_packet` (`#include "netcode.c"` — the reader and its
+  replay-protection / packet-type symbols are internal to that TU; tests are off by default).
+- `fuzz/fuzz_connection.cpp` — `yojimbo::Connection::ProcessPacket`. An earlier "exits 1
+  with no output" was the `TestMessageFactory` dtor's `exit(1)` leak check firing (its report
+  was swallowed by the default log level, hence silent). It was a REAL bug the fuzzer found,
+  not a harness artifact. Bringing it to clean turned up **three library bugs, now fixed:**
+  1. **Message leak** in `SerializeBlockFragment` (`source/yojimbo_channel.cpp`): the "block
+     fragment attached to non-block message" error path returned without releasing the just
+     -created message.
+  2. **`bufferSize > 0` assert** in `Connection::ProcessPacket` (`yojimbo_connection.cpp`) on a
+     zero-payload packet — reachable because a packet that is exactly a reliable header hands
+     the reader 0 payload bytes. Now rejected up front as a read failure.
+  3. **`ChannelPacketData` union misread** (`yojimbo_unreliable_unordered_channel.cpp`):
+     `ProcessPacketData` read `packetData.message` without checking `blockMessage`, so a block
+     fragment addressed to an unreliable channel was reinterpreted as a message-pointer array
+     → wild pointer deref (SEGV in `Message::SetId`). The unreliable channel never *sends* a
+     top-level block fragment (its blocks go inline via `SerializeMessageBlock`), so receiving
+     one is malformed; now treated as a serialize failure like the reliable channel does.
+  Regression tests for (2) and (3) are in `test.cpp`
+  (`test_connection_reject_empty_packet`, `test_connection_unreliable_rejects_block_fragment`);
+  both verified to fail without their fix. (1) is covered by the fuzzer.
 
 ## Suggested next improvements (from the audit)
 
-Fuzzing (this task) is #1. Then: time-boxed sanitized `soak` in CI; `SECURITY.md` disclosure
-policy; commit the libsodium amalgamation generator under `tools/`; `.clang-format`.
+Fuzzing is done. Next: time-boxed sanitized `soak` in CI; `SECURITY.md` disclosure policy;
+commit the libsodium amalgamation generator under `tools/`; `.clang-format`; seed corpora for
+the fuzz targets so time-boxed CI reaches post-decrypt paths faster.
