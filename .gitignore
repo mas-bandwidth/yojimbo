@@ -8,9 +8,12 @@
 *.vcxproj.filters
 *.sln
 
-# Makefiles
-Makefile
-*.make
+# CMake
+/build/
+/build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
 
 # Misc
 *.txt

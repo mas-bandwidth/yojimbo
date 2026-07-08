@@ -1,54 +1,51 @@
 Building yojimbo
 ================
 
+yojimbo builds with [CMake](https://cmake.org/) (3.16 or newer). By default it uses the
+bundled minimal libsodium in `sodium/`, so there is nothing else to install.
+
+## Building on macOS and Linux
+
+From the yojimbo directory:
+
+    cmake -B build
+    cmake --build build -j
+
+This produces the static libraries and the sample programs / tests in `bin/`. Run them with:
+
+    ./bin/test           # unit + integration tests — must print "ALL TESTS PASS"
+    ./bin/server         # run a server on localhost on UDP port 40000
+    ./bin/client         # run a client that connects to the local server
+    ./bin/soak           # long-running soak test at high packet loss (Ctrl-C to stop)
+
+The default is a debug build. For an optimized build, pass the build type:
+
+    cmake -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build -j
+
 ## Building on Windows
 
-Download [premake 5](https://premake.github.io/download.html) and copy the **premake5** executable somewhere in your path.
+Install [CMake](https://cmake.org/download/) and Visual Studio (the free
+[Community edition](https://visualstudio.microsoft.com/downloads/) works). Then, from the
+yojimbo directory:
 
-You need Visual Studio to build the source code. If you don't have it, you can [download the community edition for free](https://visualstudio.microsoft.com/downloads/).
+    cmake -B build -G "Visual Studio 17 2022" -A x64
+    cmake --build build --config Debug
 
-Once you have Visual Studio installed, go to the command line under the yojimbo directory and type:
+Open the generated `build\Yojimbo.sln` in Visual Studio if you prefer, or pass
+`--config Release` for an optimized build. The executables are written to `bin\`.
 
-    premake5 vs2022
+## Using the system libsodium instead of the bundled one
 
-Open the generated Yojimbo.sln file.
-
-You can now build the library and run individual test programs as you would for any other Visual Studio solution.
-
-## Building on MacOS and Linux
-
-First, download and install [premake 5](https://premake.github.io/download.html).
-
-yojimbo bundles a small libsodium subset (in `sodium/`), so by default there is
-nothing else to install. Go to the command line under the yojimbo directory and
-enter:
-
-    premake5 gmake
-
-This creates makefiles which you can use to build the source via:
-
-    make -j
-
-### Using the system libsodium instead of the bundled one
-
-If you would rather link the system-installed libsodium, install it first:
+To link the system-installed libsodium rather than the bundled subset, install it first:
 
     sudo apt install libsodium-dev   # Linux
-    brew install libsodium           # Mac
+    brew install libsodium           # macOS
 
-then pass `--sodium=system` when generating the makefiles:
+then configure with `-DYOJIMBO_SYSTEM_SODIUM=ON`:
 
-    premake5 gmake --sodium=system
-    make -j
-
-(The same `--sodium=system` option works with the Visual Studio generators too,
-e.g. `premake5 vs2022 --sodium=system`.)
-
-Then run the built executables:
-
-    ./bin/test           // run unit tests
-    ./bin/server         // run a server on localhost on UDP port 40000
-    ./bin/client         // run a client that connects to the local server
+    cmake -B build -DYOJIMBO_SYSTEM_SODIUM=ON
+    cmake --build build -j
 
 cheers
 

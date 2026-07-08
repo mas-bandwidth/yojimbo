@@ -25,8 +25,9 @@ The result is verified to be bit-identical to stock libsodium (see "Validation")
 This bundled subset is linked **by default on every platform** (Linux, macOS
 x86-64, macOS Apple Silicon, Windows), so yojimbo has no external libsodium
 dependency out of the box. To link the system-installed libsodium instead,
-generate the build with `--sodium=system` (e.g. `premake5 gmake --sodium=system`);
-that skips the `sodium-builtin` project and links `-lsodium`. See BUILDING.md.
+configure the build with `-DYOJIMBO_SYSTEM_SODIUM=ON` (e.g.
+`cmake -B build -DYOJIMBO_SYSTEM_SODIUM=ON`); that skips the `sodium-builtin` target and links
+the system `sodium` library. See BUILDING.md.
 
 ## Baseline
 
