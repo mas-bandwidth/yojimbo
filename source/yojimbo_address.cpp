@@ -138,17 +138,16 @@ namespace yojimbo
         m_port = 0;
         if ( address[0] == '[' )
         {
-            const int base_index = addressLength - 1;
-            for ( int i = 0; i < 6; ++i )                 // note: no need to search past 6 characters as ":65535" is longest port value
+            // Bracketed IPv6: "[addr6]" or "[addr6]:port". Locate the closing bracket, then
+            // treat only a ':' immediately after it as the port separator. Scanning for ':'
+            // from the end (as we do for IPv4 below) is wrong here because addr6 itself is full
+            // of colons, so "[::1]" with no port would misparse a colon inside the address.
+            char * closing = strrchr( address, ']' );
+            if ( closing )
             {
-                const int index = base_index - i;
-                if ( index < 3 )
-                    break;
-                if ( address[index] == ':' )
-                {
-                    m_port = uint16_t( atoi( &address[index + 1] ) );
-                    address[index-1] = '\0';
-                }
+                if ( closing[1] == ':' )
+                    m_port = uint16_t( atoi( closing + 2 ) );
+                *closing = '\0';
             }
             address += 1;
         }

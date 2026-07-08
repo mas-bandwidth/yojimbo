@@ -707,6 +707,20 @@ namespace yojimbo
                 return;
             }
 
+            // Validate the fragment write against the receive buffer BEFORE copying.
+            // blockData is allocated at maxBlockSize bytes, but when maxBlockSize is not a
+            // multiple of blockFragmentSize the fragment count rounds up, so the final fragment
+            // starts at an offset where a full blockFragmentSize write would run past the buffer.
+            // fragmentBytes is attacker-controlled in [1,blockFragmentSize] (see SerializeBlockFragment),
+            // so a peer can send an over-long final fragment. Reject anything that wouldn't fit
+            // rather than overflowing the heap (the blockSize check below only runs after the copy).
+            if ( fragmentId * m_config.blockFragmentSize + fragmentBytes > m_config.maxBlockSize )
+            {
+                // The fragment would write past the end of the block buffer.
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                return;
+            }
+
             // receive the fragment
 
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )
