@@ -77,6 +77,8 @@ YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 Note that the adapter will have a null `GameServer` pointer when used on the client. If you prefer, you can also create a different adapter for the client, but it needs to provide Yojimbo with the same `MessageFactory` as the server.
 
+A note on configuration: the config must be **identical on the client and the server**, or they won't be able to communicate. In debug builds, the config is validated automatically when the server starts and when the client connects — an invalid value asserts with an error naming the field and the required value. One thing to watch out for: `maxPacketFragments` is derived from `maxPacketSize` inside the `ClientServerConfig` constructor, so if you increase `maxPacketSize` in your own config, update `maxPacketFragments` to match (the validation catches this if you forget). In release builds validation compiles away entirely — correct configuration is your responsibility.
+
 Let's take a look at the `TestMessage` class and briefly cover basic serialization:
 
 ```cpp
@@ -128,9 +130,13 @@ void GameServer::ClientConnected(int clientIndex) {
 }
 
 void GameServer::ClientDisconnected(int clientIndex) {
-    std::cout << "client " << clientIndex << " disconnected" << std::endl;
+    int reason = m_server.GetClientDisconnectReason(clientIndex);
+    std::cout << "client " << clientIndex << " disconnected: "
+              << yojimbo::GetServerClientDisconnectReasonString(reason) << std::endl;
 }
 ```
+
+The server tracks *why* the client in each slot was last disconnected, and the reason is recorded before `OnServerClientDisconnected` is called, so you can query it from inside the callback like above. `Server::GetClientDisconnectReason` returns a `ServerClientDisconnectReason` value (see `yojimbo_server.h`): a client that left or timed out at the transport level reports `YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED`, a client you kicked with `DisconnectClient` reports `..._KICKED`, and connection errors report the specific cause — `..._FAILED_TO_SERIALIZE` usually means a client running a different protocol version, and `..._OUT_OF_MEMORY` means `serverPerClientMemory` is undersized for real traffic. Routing these into your metrics is how you find out whether disconnects in the wild are your bug, your config, or just the network.
 
 Note the use of a null private key. How to make secure connections to the server is a topic on its own that won't be covered here. But for development, you will be running both the server and the client on your own machine so you're fine with insecure connections.
 
@@ -224,6 +230,30 @@ OnlineGameScreen::OnlineGameScreen(const yojimbo::Address& serverAddress) :
 Yojimbo requires each client to have a unique `clientId`. In a game with user accounts, this would typically be the user id. While in development or if you don't have user accounts in your game, you can just pass a random `uint64_t` number. Note that with a secure connection, the `clientId` wouldn't be set by the client, but would come inside a connection token received from the web backend, so clients cannot spoof their identity. But this is out of the scope of this guide.
 
 The client is now connecting. You can check the state of the connection in your game loop to know when the connection is established. Note that later on, you will also want to detect disconnections and try to reconnect the client. Just like on the server, you also need to update the `Client` by calling the `AdvanceTime`, `ReceivePackets` and `SendPackets` methods.
+
+When the client ends up disconnected, ask it why with `Client::GetDisconnectReason`. It returns a `ClientDisconnectReason` value (see `yojimbo_client.h`) that tells you what to show the player and what to do next:
+
+```cpp
+if (m_client.IsDisconnected() || m_client.ConnectionFailed()) {
+    switch (m_client.GetDisconnectReason()) {
+    case YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_DENIED:
+        // the server refused us, eg. it is full -> try another server
+        break;
+    case YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED:
+        // ask the matchmaker for a fresh connect token and retry
+        break;
+    case YOJIMBO_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE:
+        // protocol mismatch -> tell the player to update their client
+        break;
+    case YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_TIMED_OUT:
+        // network problem -> offer to reconnect
+        break;
+    // ... and so on. GetClientDisconnectReasonString(reason) gives you a log-friendly string
+    }
+}
+```
+
+The reason is cleared back to `YOJIMBO_CLIENT_DISCONNECT_REASON_NONE` whenever a new connect attempt starts. One quirk worth knowing during development: an *insecure* connect to a server that isn't running reports `YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED` rather than a connection request timeout, because the insecure connect token uses the same value for its expiry and its timeout, and the expiry check runs first. Secure connect tokens issued by a matchmaker have a much longer expiry and report `YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT` as you'd expect.
 
 For testing purposes, let's also send a `TestMessage` when the player presses a key:
 

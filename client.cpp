@@ -101,6 +101,10 @@ int ClientMain( int argc, char * argv[] )
 
     client.Disconnect();
 
+    // Why did we end up disconnected? Deliberate disconnect (ctrl-c), kicked by the server,
+    // connect failure (eg. no server running), timeout etc. See ClientDisconnectReason.
+    printf( "client disconnected: %s\n", GetClientDisconnectReasonString( client.GetDisconnectReason() ) );
+
     return 0;
 }
 
