@@ -116,6 +116,15 @@ namespace yojimbo
 
                 messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
 
+                if ( !messages )
+                {
+                    // Out of memory. Leave the arm empty (numMessages = 0) so ChannelPacketData::Free
+                    // stays safe, then fail the read; the channel treats this as a serialize failure.
+                    numMessages = 0;
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate messages (SerializeOrderedMessages)\n" );
+                    return false;
+                }
+
                 for ( int i = 0; i < numMessages; ++i )
                 {
                     messages[i] = NULL;
@@ -200,6 +209,15 @@ namespace yojimbo
                 Allocator & allocator = messageFactory.GetAllocator();
 
                 messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
+
+                if ( !messages )
+                {
+                    // Out of memory. Leave the arm empty (numMessages = 0) so ChannelPacketData::Free
+                    // stays safe, then fail the read; the channel treats this as a serialize failure.
+                    numMessages = 0;
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate messages (SerializeUnorderedMessages)\n" );
+                    return false;
+                }
 
                 for ( int i = 0; i < numMessages; ++i )
                     messages[i] = NULL;

@@ -126,8 +126,14 @@ namespace yojimbo
 
         int numPackets = 0;
 
-        for ( int i = 0; i < yojimbo_min( m_numPacketEntries, maxPackets ); ++i )
+        // Scan the whole ring, but never return more than maxPackets. Packets are stored at
+        // m_currentIndex across the entire buffer, so bounding the scan by maxPackets (rather
+        // than the output count) would strand any packet held in a slot past that index.
+        for ( int i = 0; i < m_numPacketEntries; ++i )
         {
+            if ( numPackets >= maxPackets )
+                break;
+
             if ( !m_packetEntries[i].packetData )
                 continue;
 
