@@ -472,6 +472,7 @@ namespace yojimbo
             return;
 
         yojimbo_assert( !sentPacketEntry->acked );
+        sentPacketEntry->acked = true;
 
         for ( int i = 0; i < (int) sentPacketEntry->numMessageIds; ++i )
         {
