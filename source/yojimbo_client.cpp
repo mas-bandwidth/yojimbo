@@ -216,7 +216,9 @@ namespace yojimbo
 
     bool Client::IsLoopback() const
     {
-        return netcode_client_loopback( m_client ) != 0;
+        // Safe to query in any state: when not connected there is no netcode client, so this is
+        // not a loopback client. netcode_client_loopback() would dereference a NULL m_client.
+        return m_client ? ( netcode_client_loopback( m_client ) != 0 ) : false;
     }
 
     void Client::ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
