@@ -26,11 +26,11 @@ yojimbo is stable and production ready.
 
 ## Design Assumptions
 
-yojimbo is **single-threaded**. Call all client and server functions from the same thread. If you want to run networking on its own thread, that works fine — just make sure every yojimbo call happens on that one thread.
-
 yojimbo is designed for **client/server games with 100 players or less**.
 
 The client and server must use the **same configuration**. Make sure the `ClientServerConfig`, channels and message factory are identical on both sides, or the client and server won't work together. Keeping the two sides in sync is your responsibility.
+
+yojimbo is **single-threaded**. Call all client and server functions from the same thread. If you want to run networking on its own thread, that works fine — just make sure every yojimbo call happens on that one thread.
 
 ## Source Code
 
