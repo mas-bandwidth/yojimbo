@@ -189,4 +189,4 @@ inline void yojimbo_copy_string( char * dest, const char * source, size_t dest_s
     }
 }
 
-#endif // # YOJIMBO_UTILS_H
+#endif // #ifndef YOJIMBO_UTILS_H

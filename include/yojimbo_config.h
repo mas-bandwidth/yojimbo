@@ -223,4 +223,4 @@ namespace yojimbo
     };
 }
 
-#endif // # YOJIMBO_CONFIG_H
+#endif // #ifndef YOJIMBO_CONFIG_H

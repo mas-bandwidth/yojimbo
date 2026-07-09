@@ -321,4 +321,4 @@ namespace yojimbo
     };
 }
 
-#endif // # YOJIMBO_PLATFORM_H
+#endif // #ifndef YOJIMBO_ALLOCATOR_H

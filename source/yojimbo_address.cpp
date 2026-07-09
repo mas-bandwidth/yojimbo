@@ -61,6 +61,7 @@
 #endif
 
 #include <memory.h>
+#include <stdlib.h>
 #include <string.h>
 
 namespace yojimbo
@@ -122,6 +123,17 @@ namespace yojimbo
         m_port = port;
     }
 
+    // Parse a port string in [0,65535]. Returns false if the value is out of range, so callers
+    // can reject addresses like "127.0.0.1:99999" instead of silently truncating the port.
+    static bool ParsePort( const char * string, uint16_t & port )
+    {
+        const long value = strtol( string, NULL, 10 );
+        if ( value < 0 || value > 65535 )
+            return false;
+        port = (uint16_t) value;
+        return true;
+    }
+
     void Address::Parse( const char * address_in )
     {
         // first try to parse as an IPv6 address:
@@ -145,8 +157,11 @@ namespace yojimbo
             char * closing = strrchr( address, ']' );
             if ( closing )
             {
-                if ( closing[1] == ':' )
-                    m_port = uint16_t( atoi( closing + 2 ) );
+                if ( closing[1] == ':' && !ParsePort( closing + 2, m_port ) )
+                {
+                    Clear();
+                    return;
+                }
                 *closing = '\0';
             }
             address += 1;
@@ -176,7 +191,11 @@ namespace yojimbo
                 break;
             if ( address[index] == ':' )
             {
-                m_port = (uint16_t) atoi( &address[index+1] );
+                if ( !ParsePort( &address[index+1], m_port ) )
+                {
+                    Clear();
+                    return;
+                }
                 address[index] = '\0';
             }
         }

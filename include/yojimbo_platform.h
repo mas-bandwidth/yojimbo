@@ -99,4 +99,4 @@ void yojimbo_set_printf_function( int (*function)( const char * /*format*/, ... 
 
 void yojimbo_set_assert_function( void (*function)( const char * /*condition*/, const char * /*function*/, const char * /*file*/, int /*line*/ ) );
 
-#endif // # YOJIMBO_PLATFORM_H
+#endif // #ifndef YOJIMBO_PLATFORM_H

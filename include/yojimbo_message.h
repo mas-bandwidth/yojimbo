@@ -50,7 +50,7 @@ namespace yojimbo
 
         which overrides the Client::CreateMessageFactory and Server::CreateMessageFactory methods so the client and server classes use your message factory type.
 
-        See shared.h for an example showing you how to do this, and the functional tests inside tests/test.cpp for examples showing how how to send and receive messages.
+        See shared.h for an example showing you how to do this, and the functional tests inside test.cpp for examples showing how to send and receive messages.
 
         @see BlockMessage
         @see MessageFactory

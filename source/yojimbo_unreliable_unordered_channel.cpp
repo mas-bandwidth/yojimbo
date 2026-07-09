@@ -85,7 +85,7 @@ namespace yojimbo
     {
         yojimbo_assert( message );
         yojimbo_assert( CanSendMessage() );
-		(void)context;
+        (void)context;
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
@@ -172,7 +172,7 @@ namespace yojimbo
             yojimbo_assert( message );
 
             MeasureStream measureStream;
-			measureStream.SetContext( context );
+            measureStream.SetContext( context );
             measureStream.SetAllocator( &m_messageFactory->GetAllocator() );
             message->SerializeInternal( measureStream );
             
