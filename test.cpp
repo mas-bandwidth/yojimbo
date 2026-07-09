@@ -1891,6 +1891,62 @@ void test_connection_generate_packet_channel_data_alloc_failure()
     check( allocator.GetOutstanding() == 0 );   // no leak across teardown
 }
 
+void test_message_factory_create_message_alloc_failure()
+{
+    // Regression: YOJIMBO_NEW used to run the constructor on a NULL pointer when the allocation
+    // failed (undefined behavior / crash) before CreateMessage's NULL check. CreateMessage must
+    // return NULL cleanly on allocator exhaustion and flag the factory.
+    ArmableAllocator allocator;
+    {
+        TestMessageFactory factory( allocator );
+        allocator.Arm( 0 );     // fail the next allocation (the message object)
+        Message * message = factory.CreateMessage( TEST_MESSAGE );
+        allocator.Disarm();
+        check( message == NULL );
+        check( factory.GetErrorLevel() == MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE );
+    }
+    check( allocator.GetOutstanding() == 0 );
+}
+
+void test_connection_process_packet_channel_data_alloc_failure()
+{
+    // Regression: on the read path, if AllocateChannelData failed, numChannelEntries had already
+    // been read from the wire, so the ConnectionPacket destructor iterated a NULL channelEntry
+    // array (crash). Feed a valid packet to a receiver whose allocator fails the channel-data
+    // allocation, and verify the read fails cleanly without crashing or leaking.
+    ArmableAllocator senderAlloc;
+    ArmableAllocator receiverAlloc;
+    {
+        TestMessageFactory senderFactory( senderAlloc );
+        TestMessageFactory receiverFactory( receiverAlloc );
+
+        ConnectionConfig config;
+        config.numChannels = 1;
+        config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+        {
+            Connection sender( senderAlloc, senderFactory, config, 100.0 );
+            Connection receiver( receiverAlloc, receiverFactory, config, 100.0 );
+
+            Message * message = senderFactory.CreateMessage( TEST_MESSAGE );
+            check( message );
+            sender.SendMessage( 0, message );
+
+            uint8_t packetData[4096];
+            int packetBytes = 0;
+            check( sender.GeneratePacket( NULL, 0, packetData, sizeof( packetData ), packetBytes ) );
+            check( packetBytes > 0 );
+
+            receiverAlloc.Arm( 0 );     // fail the channel-data allocation in the connection-packet read
+            const bool ok = receiver.ProcessPacket( NULL, 0, packetData, packetBytes );
+            receiverAlloc.Disarm();
+            check( !ok );               // read fails cleanly rather than crashing in the destructor
+        }
+    }
+    check( senderAlloc.GetOutstanding() == 0 );
+    check( receiverAlloc.GetOutstanding() == 0 );
+}
+
 void test_client_server_messages()
 {
     const uint64_t clientId = 1;
@@ -3151,6 +3207,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_message_alloc_failure );
         RUN_TEST( test_connection_unreliable_message_alloc_failure );
         RUN_TEST( test_connection_generate_packet_channel_data_alloc_failure );
+        RUN_TEST( test_message_factory_create_message_alloc_failure );
+        RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );

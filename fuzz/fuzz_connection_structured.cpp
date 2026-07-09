@@ -51,7 +51,10 @@ struct Reader
     bool done() const { return pos >= size; }
 };
 
-static void fill_message( Message * message, int type, Reader & r, ConnectionConfig & config, int channel, Allocator & allocator )
+// Returns false if the message should be discarded rather than sent (e.g. a block message whose
+// block couldn't be allocated - sending a zero-size block would trip a send-time assert; under
+// allocation-fault injection that path is reachable).
+static bool fill_message( Message * message, int type, Reader & r, ConnectionConfig & config, int channel, Allocator & allocator )
 {
     switch ( type )
     {
@@ -95,17 +98,147 @@ static void fill_message( Message * message, int type, Reader & r, ConnectionCon
             int maxBlock = config.channel[channel].maxBlockSize;
             int blockSize = 1 + ( r.u16() % ( maxBlock < 8192 ? maxBlock : 8192 ) );
             uint8_t * block = (uint8_t*) YOJIMBO_ALLOCATE( allocator, blockSize );
-            if ( block )
-            {
-                uint8_t seed = r.u8();
-                for ( int i = 0; i < blockSize; ++i )
-                    block[i] = (uint8_t) ( i + seed );
-                m->AttachBlock( allocator, block, blockSize );
-            }
+            if ( !block )
+                return false;   // allocation failed (fault injection) -> don't send a blockless block message
+            uint8_t seed = r.u8();
+            for ( int i = 0; i < blockSize; ++i )
+                block[i] = (uint8_t) ( i + seed );
+            m->AttachBlock( allocator, block, blockSize );
             break;
         }
         default: break;
     }
+    return true;
+}
+
+// Allocator used to fuzz allocation-failure paths. Delegates to malloc/free but can be told to
+// fail the Nth upcoming allocation (then it disarms), driven by the fuzz input. Failures are only
+// armed *after* construction, since the library allocates its fixed pools up front and treats
+// those as infallible; every runtime allocation (packet generate/process, message create, block
+// attach) is expected to handle NULL gracefully - that is exactly what this exercises.
+class FaultAllocator : public Allocator
+{
+public:
+    FaultAllocator() : m_countdown( -1 ) {}
+    void FailIn( int n ) { m_countdown = n; }       // fail the n-th allocation from now, once
+    void Disarm() { m_countdown = -1; }
+
+    void * Allocate( size_t size, const char * file, int line )
+    {
+        if ( m_countdown == 0 )
+        {
+            m_countdown = -1;                       // one-shot: fail this allocation, then rearm off
+            SetErrorLevel( ALLOCATOR_ERROR_OUT_OF_MEMORY );
+            return NULL;
+        }
+        if ( m_countdown > 0 )
+            m_countdown--;
+        void * p = malloc( size );
+        if ( !p )
+        {
+            SetErrorLevel( ALLOCATOR_ERROR_OUT_OF_MEMORY );
+            return NULL;
+        }
+        TrackAlloc( p, size, file, line );
+        return p;
+    }
+
+    void Free( void * p, const char * file, int line )
+    {
+        if ( !p )
+            return;
+        TrackFree( p, file, line );
+        free( p );
+    }
+
+private:
+    int m_countdown;
+};
+
+// Serialize just the connection-packet channel-entry count, matching ConnectionPacket::Serialize.
+// (ConnectionPacket itself is internal; the per-entry body is written by the library below.)
+template <typename Stream> static bool write_channel_entry_count( Stream & stream, int & numChannelEntries, int numChannels )
+{
+    serialize_int( stream, numChannelEntries, 0, numChannels );
+    return true;
+}
+
+// Feed the receiver a *hand-built* reliable-ordered block fragment whose header fields
+// (numFragments / fragmentId / fragmentSize) are fuzz-chosen and deliberately out of spec - the
+// thing the real write path never emits (e.g. a full-size final fragment). The wire bytes are
+// produced by the library's own ChannelPacketData writer, so the format stays in sync; only the
+// adversarial field *values* come from the fuzzer. advConfig uses a maxBlockSize that is not a
+// multiple of blockFragmentSize, so this targets the block-reassembly bounds check directly. The
+// receiver is Reset first so messageId 0 is the expected next block and the fragment reaches the
+// reassembly memcpy.
+static void inject_adversarial_fragment( Connection & receiver, const ConnectionConfig & advConfig,
+                                         FuzzMessageFactory & factory, Reader & r )
+{
+    const ChannelConfig & cc = advConfig.channel[0];
+    const int maxFrags = cc.GetMaxFragmentsPerBlock();
+
+    receiver.Reset();
+
+    ChannelPacketData channelData;
+    channelData.Initialize();
+    channelData.channelIndex = 0;
+    channelData.blockMessage = 1;
+    channelData.block.messageId = 0;
+
+    int numFragments = ( maxFrags > 1 ) ? ( 1 + ( r.u8() % maxFrags ) ) : 1;
+    channelData.block.numFragments = numFragments;
+
+    int fragmentId = ( numFragments > 1 ) ? ( r.u8() % numFragments ) : 0;
+    if ( r.u8() & 1 )
+        fragmentId = numFragments - 1;              // bias toward the final fragment (overflow case)
+    channelData.block.fragmentId = fragmentId;
+
+    int fragmentSize = 1 + ( r.u16() % cc.blockFragmentSize );
+    if ( r.u8() & 1 )
+        fragmentSize = cc.blockFragmentSize;        // bias toward a full-size (adversarial) fragment
+    channelData.block.fragmentSize = fragmentSize;
+
+    channelData.block.fragmentData = (uint8_t*) YOJIMBO_ALLOCATE( factory.GetAllocator(), fragmentSize );
+    if ( !channelData.block.fragmentData )
+    {
+        channelData.Free( factory );
+        return;
+    }
+    memset( channelData.block.fragmentData, r.u8(), (size_t) fragmentSize );
+    channelData.block.messageType = FUZZ_MESSAGE_BLOCK;
+
+    if ( fragmentId == 0 )
+    {
+        // Fragment 0 carries the block message; the writer serializes it after the fragment data.
+        FuzzBlockMessage * bm = (FuzzBlockMessage*) factory.CreateMessage( FUZZ_MESSAGE_BLOCK );
+        if ( !bm )
+        {
+            channelData.Free( factory );
+            return;
+        }
+        bm->sequence = r.u16();
+        channelData.block.message = bm;
+    }
+
+    uint8_t packet[8 * 1024];
+    WriteStream stream( packet, (int) sizeof( packet ) );
+    int numChannelEntries = 1;
+    if ( write_channel_entry_count( stream, numChannelEntries, advConfig.numChannels ) &&
+         channelData.SerializeInternal( stream, factory, advConfig.channel, advConfig.numChannels ) )
+    {
+        stream.Flush();
+        int packetBytes = stream.GetBytesProcessed();
+        channelData.Free( factory );                // release our write-side fragment data + message
+        if ( packetBytes > 0 )
+            receiver.ProcessPacket( NULL, 0, packet, packetBytes );
+    }
+    else
+    {
+        channelData.Free( factory );
+    }
+
+    while ( Message * m = receiver.ReceiveMessage( 0 ) )
+        factory.ReleaseMessage( m );
 }
 
 extern "C" int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )
@@ -117,15 +250,29 @@ extern "C" int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )
 
     Reader r = { data, size, 0 };
 
+    // The fault allocator is declared first so it outlives (and its leak check runs after) the
+    // factories and connections built on top of it.
+    FaultAllocator allocator;
+
     ConnectionConfig config;
     fuzz_make_config( r.u8(), config );
 
-    FuzzMessageFactory senderFactory( GetDefaultAllocator() );
-    FuzzMessageFactory receiverFactory( GetDefaultAllocator() );
+    FuzzMessageFactory senderFactory( allocator );
+    FuzzMessageFactory receiverFactory( allocator );
 
     double time = 100.0;
-    Connection sender( GetDefaultAllocator(), senderFactory, config, time );
-    Connection receiver( GetDefaultAllocator(), receiverFactory, config, time );
+    Connection sender( allocator, senderFactory, config, time );
+    Connection receiver( allocator, receiverFactory, config, time );
+
+    // A dedicated receiver + factory for adversarial block fragments, on a config whose
+    // maxBlockSize is not a multiple of blockFragmentSize (the overflow-prone geometry).
+    ConnectionConfig advConfig;
+    advConfig.numChannels = 1;
+    advConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    advConfig.channel[0].maxBlockSize = 1100;
+    advConfig.channel[0].blockFragmentSize = 500;
+    FuzzMessageFactory advFactory( allocator );
+    Connection advReceiver( allocator, advFactory, advConfig, time );
 
     uint8_t packetData[8 * 1024];
     uint16_t sequence = 0;
@@ -134,6 +281,15 @@ extern "C" int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )
     for ( int op = 0; op < MAX_OPS && !r.done(); ++op )
     {
         uint8_t action = r.u8();
+
+        // Occasionally schedule an allocation failure a few allocations out (one-shot). Armed only
+        // here, inside the op loop, so it never disturbs the up-front pool allocations.
+        if ( action & 0x20 )
+            allocator.FailIn( 1 + ( r.u8() % 12 ) );
+
+        // Occasionally feed the dedicated receiver an adversarial block fragment.
+        if ( ( action & 0xC0 ) == 0xC0 )
+            inject_adversarial_fragment( advReceiver, advConfig, advFactory, r );
 
         if ( ( action & 3 ) != 0 )
         {
@@ -156,8 +312,10 @@ extern "C" int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )
                 Message * message = senderFactory.CreateMessage( type );
                 if ( message )
                 {
-                    fill_message( message, type, r, config, channel, senderFactory.GetAllocator() );
-                    sender.SendMessage( channel, message );
+                    if ( fill_message( message, type, r, config, channel, senderFactory.GetAllocator() ) )
+                        sender.SendMessage( channel, message );
+                    else
+                        senderFactory.ReleaseMessage( message );
                 }
             }
         }
