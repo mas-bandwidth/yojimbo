@@ -2677,12 +2677,14 @@ bool ReadFunction( serialize::ReadStream & readStream )
     {
         wchar_t wstring[20];
         read_wstring( readStream, wstring, 20 );
-        serialize_check( wstring[0] == L'п' );
-        serialize_check( wstring[1] == L'р' );
-        serialize_check( wstring[2] == L'и' );
-        serialize_check( wstring[3] == L'в' );
-        serialize_check( wstring[4] == L'і' );
-        serialize_check( wstring[5] == L'т' );
+        // explicit code points rather than cyrillic literals: serialize_check stringizes its
+        // condition into a narrow string, which warns as C4566 on MSVC with a western code page
+        serialize_check( wstring[0] == 0x043F );        // 'п'
+        serialize_check( wstring[1] == 0x0440 );        // 'р'
+        serialize_check( wstring[2] == 0x0438 );        // 'и'
+        serialize_check( wstring[3] == 0x0432 );        // 'в'
+        serialize_check( wstring[4] == 0x0456 );        // 'і'
+        serialize_check( wstring[5] == 0x0442 );        // 'т'
     }
 
     read_align( readStream );
@@ -3198,11 +3200,12 @@ inline void test_unaligned_writer()
     // the bit writer stores each dword with memcpy, so the write buffer does not need 4 byte alignment.
     // exercise every offset within a dword, covering the WriteBits, WriteBytes and FlushBits store paths.
 
-    alignas( 4 ) uint8_t storage[256 + 4];
+    uint32_t storage_words[( 256 + 4 ) / 4];                    // uint32_t backing guarantees 4 byte alignment without requiring C++11 alignas
+    uint8_t * storage = (uint8_t*) storage_words;
 
     for ( int offset = 0; offset < 4; offset++ )
     {
-        memset( storage, 0, sizeof( storage ) );
+        memset( storage, 0, sizeof( storage_words ) );
 
         uint8_t * buffer = storage + offset;
 
