@@ -25,6 +25,15 @@
 #ifndef NETCODE_H
 #define NETCODE_H
 
+/*
+    IMPORTANT: netcode is single-threaded by design and is not thread safe.
+
+    The library uses global state (netcode_init/netcode_term, the log level, and the
+    printf and assert hooks) and performs no internal synchronization. Call all netcode
+    functions from the same thread, or provide your own locking around them. Each client
+    and server object must only be updated from one thread at a time.
+*/
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -82,6 +91,23 @@
 #define NETCODE_CLIENT_STATE_SENDING_CONNECTION_REQUEST         1
 #define NETCODE_CLIENT_STATE_SENDING_CONNECTION_RESPONSE        2
 #define NETCODE_CLIENT_STATE_CONNECTED                          3
+
+#define NETCODE_CLIENT_CREATE_ERROR_NONE                        0
+#define NETCODE_CLIENT_CREATE_ERROR_PARSE_ADDRESS_FAILED        1
+#define NETCODE_CLIENT_CREATE_ERROR_PARSE_ADDRESS2_FAILED       2
+#define NETCODE_CLIENT_CREATE_ERROR_SIMULATOR_REQUIRES_PORT     3
+#define NETCODE_CLIENT_CREATE_ERROR_CREATE_SOCKET_IPV4_FAILED   4
+#define NETCODE_CLIENT_CREATE_ERROR_CREATE_SOCKET_IPV6_FAILED   5
+#define NETCODE_CLIENT_CREATE_ERROR_ALLOCATE_CLIENT_FAILED      6
+
+#define NETCODE_SERVER_CREATE_ERROR_NONE                        0
+#define NETCODE_SERVER_CREATE_ERROR_PARSE_ADDRESS_FAILED        1
+#define NETCODE_SERVER_CREATE_ERROR_PARSE_ADDRESS2_FAILED       2
+#define NETCODE_SERVER_CREATE_ERROR_CREATE_SOCKET_IPV4_FAILED   3
+#define NETCODE_SERVER_CREATE_ERROR_CREATE_SOCKET_IPV6_FAILED   4
+#define NETCODE_SERVER_CREATE_ERROR_BIND_SOCKET_IPV4_FAILED     5
+#define NETCODE_SERVER_CREATE_ERROR_BIND_SOCKET_IPV6_FAILED     6
+#define NETCODE_SERVER_CREATE_ERROR_ALLOCATE_SERVER_FAILED      7
 
 #define NETCODE_MAX_CLIENTS         256
 #define NETCODE_MAX_PACKET_SIZE     1200
@@ -158,6 +184,14 @@ struct netcode_client_t * netcode_client_create( NETCODE_CONST char * address, N
 
 struct netcode_client_t * netcode_client_create_dual( NETCODE_CONST char * address1, NETCODE_CONST char * address2, NETCODE_CONST struct netcode_client_config_t * config, double time );
 
+/*
+    If netcode_client_create or netcode_client_create_dual returns NULL, call this to find out why.
+    Returns the NETCODE_CLIENT_CREATE_ERROR_* value from the most recent client create call,
+    or NETCODE_CLIENT_CREATE_ERROR_NONE if that call succeeded.
+*/
+
+int netcode_client_create_error();
+
 void netcode_client_destroy( struct netcode_client_t * client );
 
 void netcode_client_connect( struct netcode_client_t * client, uint8_t * connect_token );
@@ -227,6 +261,16 @@ struct netcode_server_t * netcode_server_create( NETCODE_CONST char * server_add
 
 struct netcode_server_t * netcode_server_create_dual( NETCODE_CONST char * server_address1, NETCODE_CONST char * server_address2, NETCODE_CONST struct netcode_server_config_t * config, double time );
 
+/*
+    If netcode_server_create or netcode_server_create_dual returns NULL, call this to find out why.
+    Returns the NETCODE_SERVER_CREATE_ERROR_* value from the most recent server create call,
+    or NETCODE_SERVER_CREATE_ERROR_NONE if that call succeeded. Bind failures are reported
+    separately from other socket errors because a port already in use is the common
+    operational failure for dedicated servers.
+*/
+
+int netcode_server_create_error();
+
 void netcode_server_destroy( struct netcode_server_t * server );
 
 void netcode_server_start( struct netcode_server_t * server, int max_clients );
@@ -286,16 +330,21 @@ do                                                                              
     if ( !(condition) )                                                                     \
     {                                                                                       \
         netcode_assert_function( #condition, __FUNCTION__, __FILE__, __LINE__ );            \
-        exit(1);                                                                            \
     }                                                                                       \
 } while(0)
 #else
 #define netcode_assert( ignore ) ((void)0)
 #endif
 
-void netcode_set_assert_function( void (*function)( NETCODE_CONST char * /*condition*/, 
-                                  NETCODE_CONST char * /*function*/, 
-                                  NETCODE_CONST char * /*file*/, 
+/*
+    The default assert handler prints the failed condition, breaks into the debugger and
+    exits. A custom assert handler may return instead, in which case execution continues
+    past the failed assert -- that is the caller's choice and their responsibility.
+*/
+
+void netcode_set_assert_function( void (*function)( NETCODE_CONST char * /*condition*/,
+                                  NETCODE_CONST char * /*function*/,
+                                  NETCODE_CONST char * /*file*/,
                                   int /*line*/ ) );
 
 void netcode_random_bytes( uint8_t * data, int bytes );
