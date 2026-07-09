@@ -87,6 +87,13 @@ namespace yojimbo
         CreateInternal();
         m_clientId = clientId;
         CreateClient( m_address );
+        if ( !m_client )
+        {
+            // Socket creation/bind failed (e.g. port in use, invalid bind address). Bail before
+            // calling into netcode, which dereferences the client pointer without checking.
+            Disconnect();
+            return;
+        }
         netcode_client_connect( m_client, connectToken );
         if ( netcode_client_state( m_client ) > NETCODE_CLIENT_STATE_DISCONNECTED )
         {
@@ -188,6 +195,12 @@ namespace yojimbo
         CreateInternal();
         m_clientId = clientId;
         CreateClient( m_address );
+        if ( !m_client )
+        {
+            // Socket creation/bind failed. Bail before netcode dereferences the client pointer.
+            Disconnect();
+            return;
+        }
         netcode_client_connect_loopback( m_client, clientIndex, maxClients );
         SetClientState( CLIENT_STATE_CONNECTED );
     }
