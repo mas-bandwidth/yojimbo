@@ -1972,6 +1972,20 @@ void test_client_connect_socket_failure_no_crash()
     client.Disconnect();
 }
 
+void test_client_is_loopback_when_disconnected()
+{
+    // Regression: IsLoopback() called netcode_client_loopback(m_client) with no NULL guard, so a
+    // never-connected client (m_client == NULL) crashed. Like GetClientIndex(), it must be safe
+    // to query in any state and simply report false.
+    ClientServerConfig config;
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, 100.0 );
+
+    check( !client.IsLoopback() );              // must not crash; not connected -> not a loopback client
+    check( client.GetClientIndex() == -1 );
+    check( !client.IsConnected() );
+}
+
 void test_client_server_messages()
 {
     const uint64_t clientId = 1;
@@ -3236,6 +3250,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
         RUN_TEST( test_client_connect_socket_failure_no_crash );
+        RUN_TEST( test_client_is_loopback_when_disconnected );
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
