@@ -102,7 +102,18 @@ namespace yojimbo
 
         void GetNetworkInfo( NetworkInfo & info ) const;
 
+        /**
+            Get the reason this client was last disconnected.
+            See ClientDisconnectReason for the values. Cleared back to YOJIMBO_CLIENT_DISCONNECT_REASON_NONE
+            when a new connect attempt starts.
+            @returns The disconnect reason (a ClientDisconnectReason value). YOJIMBO_CLIENT_DISCONNECT_REASON_NONE if no disconnect has happened yet.
+         */
+
+        int GetDisconnectReason() const { return m_disconnectReason; }
+
     protected:
+
+        void SetDisconnectReason( int disconnectReason ) { m_disconnectReason = disconnectReason; }
 
         uint8_t * GetPacketBuffer() { return m_packetBuffer; }
 
@@ -156,6 +167,7 @@ namespace yojimbo
         NetworkSimulator * m_networkSimulator;                              ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional.
         ClientState m_clientState;                                          ///< The current client state. See ClientInterface::GetClientState
         int m_clientIndex;                                                  ///< The client slot index on the server [0,maxClients-1]. -1 if not connected.
+        int m_disconnectReason;                                             ///< The reason this client was last disconnected (ClientDisconnectReason). Cleared back to none when a new connect attempt starts.
         double m_time;                                                      ///< The current client time. See ClientInterface::AdvanceTime
         uint8_t * m_packetBuffer;                                           ///< Buffer used to read and write packets.
 
