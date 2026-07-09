@@ -27,6 +27,7 @@
 #include "reliable.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static void default_assert_handler( const char * condition, const char * function, const char * file, int line )
 {

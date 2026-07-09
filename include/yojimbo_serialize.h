@@ -27,6 +27,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_platform.h"
+#include <stdlib.h>
 
 namespace yojimbo
 {

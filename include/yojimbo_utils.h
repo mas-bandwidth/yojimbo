@@ -26,6 +26,7 @@
 #define YOJIMBO_UTILS_H
 
 #include "yojimbo_config.h"
+#include <stdlib.h>
 
 /**
     Template function to get the minimum of two values.

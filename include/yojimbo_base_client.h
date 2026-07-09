@@ -28,6 +28,7 @@
 #include "yojimbo_config.h"
 #include "yojimbo_platform.h"
 #include "yojimbo_client_interface.h"
+#include <stdlib.h>
 
 struct reliable_endpoint_t;
 
