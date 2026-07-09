@@ -77,6 +77,15 @@ namespace yojimbo
 
         ConnectionErrorLevel GetErrorLevel() { return m_errorLevel; }
 
+        /**
+            Get the error level of a channel on this connection.
+            Use this to find out which channel error drove the connection into CONNECTION_ERROR_CHANNEL.
+            @param channelIndex The channel index in [0,numChannels-1].
+            @returns The channel error level.
+         */
+
+        ChannelErrorLevel GetChannelErrorLevel( int channelIndex ) const;
+
     private:
 
         Allocator * m_allocator;                                ///< Allocator passed in to the connection constructor.

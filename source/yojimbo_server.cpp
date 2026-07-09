@@ -96,6 +96,13 @@ namespace yojimbo
     void Server::DisconnectClient( int clientIndex )
     {
         yojimbo_assert( m_server );
+        // Record the kick, but only if no reason is set yet: when the disconnect comes from
+        // BaseServer::AdvanceTime, the specific connection error reason is already recorded
+        // and must not be overwritten with the generic "kicked".
+        if ( IsClientConnected( clientIndex ) && GetClientDisconnectReason( clientIndex ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE )
+        {
+            SetClientDisconnectReason( clientIndex, YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED );
+        }
         netcode_server_disconnect_client( m_server, clientIndex );
         ResetClient( clientIndex );
     }
@@ -103,8 +110,15 @@ namespace yojimbo
     void Server::DisconnectAllClients()
     {
         yojimbo_assert( m_server );
-        netcode_server_disconnect_all_clients( m_server );
         const int maxClients = GetMaxClients();
+        for ( int i = 0; i < maxClients; ++i )
+        {
+            if ( IsClientConnected( i ) && GetClientDisconnectReason( i ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE )
+            {
+                SetClientDisconnectReason( i, YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED );
+            }
+        }
+        netcode_server_disconnect_all_clients( m_server );
         for ( int i = 0; i < maxClients; ++i )
         {
             ResetClient( i );
@@ -243,6 +257,13 @@ namespace yojimbo
     {
         if ( connected == 0 )
         {
+            // If no reason was recorded before the transport-level disconnect (connection error,
+            // kick), the client cleanly disconnected or timed out. Record it before the adapter
+            // callback, so OnServerClientDisconnected can query the reason.
+            if ( GetClientDisconnectReason( clientIndex ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE )
+            {
+                SetClientDisconnectReason( clientIndex, YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED );
+            }
             GetAdapter().OnServerClientDisconnected( clientIndex );
             reliable_endpoint_reset( GetClientEndpoint( clientIndex ) );
             GetClientConnection( clientIndex ).Reset();
@@ -254,6 +275,9 @@ namespace yojimbo
         }
         else
         {
+            // This slot now belongs to a new client: clear any disconnect reason left behind by
+            // the previous occupant of the slot.
+            SetClientDisconnectReason( clientIndex, YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE );
             GetAdapter().OnServerClientConnected( clientIndex );
         }
     }

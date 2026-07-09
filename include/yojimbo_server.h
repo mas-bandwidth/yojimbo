@@ -34,6 +34,56 @@ struct netcode_server_t;
 namespace yojimbo
 {
     /**
+        The reason the client in a server client slot was last disconnected.
+
+        This lets you distinguish problems you need to act on (eg. serialize failures indicating a client/server protocol
+        mismatch, or per-client memory exhaustion indicating an undersized config) from normal network behavior (a client
+        cleanly disconnecting or timing out), and route that into your own logging, metrics and analytics.
+
+        Tracked per-client slot. All slots reset to YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE when the server starts,
+        and a slot resets back to NONE when a new client connects to it. The reason is recorded before
+        Adapter::OnServerClientDisconnected is called, so you can query it from inside that callback.
+
+        @see Server::GetClientDisconnectReason
+     */
+
+    enum ServerClientDisconnectReason
+    {
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE = 0,                   ///< No client has disconnected from this slot since the server started, or a new client has since connected to this slot.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED,               ///< The client cleanly disconnected or timed out at the transport level.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED,                     ///< Server code called Server::DisconnectClient or Server::DisconnectAllClients for this client.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE,        ///< A message from this client failed to serialize read. Usually a client/server protocol version mismatch, or a bug in a message serialize function.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DESYNC,                     ///< A channel for this client desynced and cannot recover. See CHANNEL_ERROR_DESYNC.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_SEND_QUEUE_FULL,            ///< A channel send queue for this client filled up. See CHANNEL_ERROR_SEND_QUEUE_FULL.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_BLOCKS_DISABLED,            ///< This client sent block data on a channel that is configured with blocks disabled.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_MESSAGE_TOO_LARGE,          ///< A message sent to this client is too large to ever fit into a packet. See CHANNEL_ERROR_MESSAGE_TOO_LARGE.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY,              ///< The per-client memory budget for this client was exhausted. Consider increasing ClientServerConfig::serverPerClientMemory.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_READ_PACKET_FAILED,         ///< A connection packet from this client failed to deserialize.
+    };
+
+    /// Helper function to convert a server client disconnect reason to a user friendly string.
+
+    inline const char * GetServerClientDisconnectReasonString( int reason )
+    {
+        switch ( reason )
+        {
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE:                  return "none";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED:          return "disconnected";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED:                return "kicked";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE:   return "failed to serialize";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DESYNC:                return "desync";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_SEND_QUEUE_FULL:       return "send queue full";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_BLOCKS_DISABLED:       return "blocks disabled";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_MESSAGE_TOO_LARGE:     return "message too large";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY:         return "out of memory";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_READ_PACKET_FAILED:    return "read packet failed";
+            default:
+                yojimbo_assert( false );
+                return "(unknown)";
+        }
+    }
+
+    /**
         Server implementation.
      */
 
