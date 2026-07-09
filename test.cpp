@@ -2650,11 +2650,9 @@ void test_client_disconnect_reason()
     check( !client.IsConnected() );
     check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED_BY_SERVER );
 
-    // connecting to a server that isn't there fails with connect token expired: the insecure
-    // connect token uses config.timeout for both its expiry and its timeout, and netcode checks
-    // token expiry before the connection request timeout, so with equal timers expiry always
-    // wins. (secure connect tokens from a matchmaker have expiry >> timeout, and get
-    // connection request timed out instead.)
+    // connecting to a server that isn't there times out at the connection request stage.
+    // the insecure connect token expiry is deliberately much longer than the connection
+    // timeout, so this behaves the same way as a secure connect token from a matchmaker.
 
     server.Stop();
 
@@ -2673,7 +2671,7 @@ void test_client_disconnect_reason()
     }
 
     check( client.ConnectionFailed() );
-    check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED );
+    check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT );
 
     client.Disconnect();
 }

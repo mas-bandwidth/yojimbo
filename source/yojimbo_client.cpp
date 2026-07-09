@@ -2,6 +2,7 @@
 #include "yojimbo_connection.h"
 #include "yojimbo_network_simulator.h"
 #include "yojimbo_adapter.h"
+#include "yojimbo_utils.h"
 #include "netcode.h"
 #include "reliable.h"
 
@@ -86,15 +87,21 @@ namespace yojimbo
         uint8_t userData[256];
         memset( &userData, 0, sizeof(userData) );
 
-        return netcode_generate_connect_token( numServerAddresses, 
-                                               serverAddressStringPointers, 
-                                               serverAddressStringPointers, 
+        // Give the insecure connect token an expiry well above the connection timeout, so a
+        // failed insecure connect reports "connection request timed out" just like a secure
+        // connect token from a matchmaker would. With expiry == timeout, netcode checks token
+        // expiry first and every failed connect reports "connect token expired" instead.
+        const int expireSeconds = yojimbo_max( InsecureConnectTokenExpirySeconds, m_config.timeout * 2 );
+
+        return netcode_generate_connect_token( numServerAddresses,
+                                               serverAddressStringPointers,
+                                               serverAddressStringPointers,
+                                               expireSeconds,
                                                m_config.timeout,
-                                               m_config.timeout, 
-                                               clientId, 
-                                               m_config.protocolId, 
+                                               clientId,
+                                               m_config.protocolId,
                                                (uint8_t*)privateKey,
-                                               &userData[0], 
+                                               &userData[0],
                                                connectToken ) == NETCODE_OK;
     }
 
