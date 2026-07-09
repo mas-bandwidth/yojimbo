@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 #include <new>
+#include <utility>
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 #include <map>
 #endif // YOJIMBO_DEBUG_MEMORY_LEAKS
@@ -48,8 +49,23 @@ namespace yojimbo
 
     class Allocator & GetDefaultAllocator();
 
+    /**
+        Helper behind YOJIMBO_NEW. Allocates storage for a T and placement-constructs it, but
+        only if the allocation succeeded — on failure it returns NULL instead of running the
+        constructor on a NULL pointer (undefined behavior, and a crash the moment the constructor
+        touches a member). Callers already NULL-check the result (e.g. MessageFactory::CreateMessage).
+     */
+    template <typename T, typename A, typename... Args>
+    T * yojimbo_new( A & allocator, const char * file, int line, Args &&... args )
+    {
+        void * memory = allocator.Allocate( sizeof( T ), file, line );
+        if ( !memory )
+            return NULL;
+        return new ( memory ) T( std::forward<Args>( args )... );
+    }
+
     /// Macro for creating a new object instance with a yojimbo allocator.
-    #define YOJIMBO_NEW( a, T, ... ) ( new ( (a).Allocate( sizeof(T), __FILE__, __LINE__ ) ) T(__VA_ARGS__) )
+    #define YOJIMBO_NEW( a, T, ... ) ( yojimbo::yojimbo_new<T>( (a), __FILE__, __LINE__, ##__VA_ARGS__ ) )
 
     /// Macro for deleting an object created with a yojimbo allocator.
     #define YOJIMBO_DELETE( a, T, p ) do { if (p) { (p)->~T(); (a).Free( p, __FILE__, __LINE__ ); p = NULL; } } while (0)

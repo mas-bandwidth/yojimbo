@@ -556,7 +556,7 @@ namespace yojimbo
 #define YOJIMBO_DECLARE_MESSAGE_TYPE( message_type, message_class )                                                                     \
                                                                                                                                         \
                 case message_type:                                                                                                      \
-                    message = YOJIMBO_NEW( allocator, message_class, );                                                                 \
+                    message = YOJIMBO_NEW( allocator, message_class );                                                                  \
                     if ( !message )                                                                                                     \
                         return NULL;                                                                                                    \
                     SetMessageType( message, message_type );                                                                            \

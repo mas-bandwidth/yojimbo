@@ -38,7 +38,12 @@ namespace yojimbo
             Allocator & allocator = messageFactory->GetAllocator();
             channelEntry = (ChannelPacketData*) YOJIMBO_ALLOCATE( allocator, sizeof( ChannelPacketData ) * numEntries );
             if ( channelEntry == NULL )
+            {
+                // On the read path numChannelEntries was already set from the wire before this
+                // call; reset it so the destructor doesn't iterate a NULL channelEntry array.
+                numChannelEntries = 0;
                 return false;
+            }
             for ( int i = 0; i < numEntries; ++i )
             {
                 channelEntry[i].Initialize();
