@@ -39,6 +39,31 @@ void interrupt_handler( int /*dummy*/ )
     quit = 1;
 }
 
+// Adapter that logs when clients connect and disconnect. The disconnect reason is recorded
+// before OnServerClientDisconnected is called, so it can be queried inside the callback.
+class ServerAdapter : public TestAdapter
+{
+public:
+
+    ServerAdapter()
+    {
+        server = NULL;
+    }
+
+    void OnServerClientConnected( int clientIndex )
+    {
+        printf( "client %d connected\n", clientIndex );
+    }
+
+    void OnServerClientDisconnected( int clientIndex )
+    {
+        yojimbo_assert( server );
+        printf( "client %d disconnected: %s\n", clientIndex, GetServerClientDisconnectReasonString( server->GetClientDisconnectReason( clientIndex ) ) );
+    }
+
+    Server * server;
+};
+
 int ServerMain()
 {
     printf( "started server on port %d (insecure)\n", ServerPort );
@@ -50,7 +75,11 @@ int ServerMain()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, time );
+    ServerAdapter serverAdapter;
+
+    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, serverAdapter, time );
+
+    serverAdapter.server = &server;
 
     server.Start( MaxClients );
 
