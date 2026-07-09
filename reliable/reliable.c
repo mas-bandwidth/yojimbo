@@ -166,8 +166,10 @@ struct reliable_sequence_buffer_t * reliable_sequence_buffer_create( int num_ent
         free_function = reliable_default_free_function;
     }
 
-    struct reliable_sequence_buffer_t * sequence_buffer = (struct reliable_sequence_buffer_t*) 
+    struct reliable_sequence_buffer_t * sequence_buffer = (struct reliable_sequence_buffer_t*)
         allocate_function( allocator_context, sizeof( struct reliable_sequence_buffer_t ) );
+
+    reliable_assert( sequence_buffer );
 
     sequence_buffer->allocator_context = allocator_context;
     sequence_buffer->allocate_function = allocate_function;
@@ -522,6 +524,7 @@ struct reliable_endpoint_t
     uint16_t * acks;
     uint16_t sequence;
     float * rtt_history_buffer;
+    uint8_t * transmit_buffer;
     struct reliable_sequence_buffer_t * sent_packets;
     struct reliable_sequence_buffer_t * received_packets;
     struct reliable_sequence_buffer_t * fragment_reassembly;
@@ -611,7 +614,10 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
     endpoint->time = time;
 
     endpoint->acks = (uint16_t*) allocate_function( allocator_context, config->ack_buffer_size * sizeof(uint16_t) );
-    
+
+    reliable_assert( endpoint->acks );
+
+
     endpoint->sent_packets = reliable_sequence_buffer_create( config->sent_packets_buffer_size, 
                                                               sizeof( struct reliable_sent_packet_data_t ), 
                                                               allocator_context, 
@@ -632,6 +638,21 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
 
     endpoint->rtt_history_buffer = (float*) allocate_function( allocator_context, config->rtt_history_size * sizeof(float) );
 
+    reliable_assert( endpoint->rtt_history_buffer );
+
+    // scratch buffer for outgoing packets, so the send path doesn't allocate. sized for whichever is larger: a regular packet or a fragment
+
+    int transmit_buffer_size = config->max_packet_size + RELIABLE_MAX_PACKET_HEADER_BYTES;
+    int fragment_transmit_buffer_size = RELIABLE_FRAGMENT_HEADER_BYTES + RELIABLE_MAX_PACKET_HEADER_BYTES + config->fragment_size;
+    if ( fragment_transmit_buffer_size > transmit_buffer_size )
+    {
+        transmit_buffer_size = fragment_transmit_buffer_size;
+    }
+
+    endpoint->transmit_buffer = (uint8_t*) allocate_function( allocator_context, transmit_buffer_size );
+
+    reliable_assert( endpoint->transmit_buffer );
+
     for ( int i = 0; i < config->rtt_history_size; i++ )
     {
         endpoint->rtt_history_buffer[i] = -1.0f;
@@ -650,6 +671,7 @@ void reliable_endpoint_destroy( struct reliable_endpoint_t * endpoint )
     reliable_assert( endpoint->received_packets );
     reliable_assert( endpoint->fragment_reassembly );
     reliable_assert( endpoint->rtt_history_buffer );
+    reliable_assert( endpoint->transmit_buffer );
 
     int i;
     for ( i = 0; i < endpoint->config.fragment_reassembly_buffer_size; ++i )
@@ -671,6 +693,8 @@ void reliable_endpoint_destroy( struct reliable_endpoint_t * endpoint )
     reliable_sequence_buffer_destroy( endpoint->fragment_reassembly );
 
     endpoint->free_function( endpoint->allocator_context, endpoint->rtt_history_buffer );
+
+    endpoint->free_function( endpoint->allocator_context, endpoint->transmit_buffer );
 
     endpoint->free_function( endpoint->allocator_context, endpoint );
 }
@@ -787,15 +811,13 @@ void reliable_endpoint_send_packet( struct reliable_endpoint_t * endpoint, uint8
 
         reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] sending packet %d without fragmentation\n", endpoint->config.name, sequence );
 
-        uint8_t * transmit_packet_data = (uint8_t*) endpoint->allocate_function( endpoint->allocator_context, packet_bytes + RELIABLE_MAX_PACKET_HEADER_BYTES );
+        uint8_t * transmit_packet_data = endpoint->transmit_buffer;
 
         int packet_header_bytes = reliable_write_packet_header( transmit_packet_data, sequence, ack, ack_bits );
 
         memcpy( transmit_packet_data + packet_header_bytes, packet_data, packet_bytes );
 
         endpoint->config.transmit_packet_function( endpoint->config.context, endpoint->config.id, sequence, transmit_packet_data, packet_header_bytes + packet_bytes );
-
-        endpoint->free_function( endpoint->allocator_context, transmit_packet_data );
     }
     else
     {
@@ -814,9 +836,7 @@ void reliable_endpoint_send_packet( struct reliable_endpoint_t * endpoint, uint8
         reliable_assert( num_fragments >= 1 );
         reliable_assert( num_fragments <= endpoint->config.max_fragments );
 
-        int fragment_buffer_size = RELIABLE_FRAGMENT_HEADER_BYTES + RELIABLE_MAX_PACKET_HEADER_BYTES + endpoint->config.fragment_size;
-
-        uint8_t * fragment_packet_data = (uint8_t*) endpoint->allocate_function( endpoint->allocator_context, fragment_buffer_size );
+        uint8_t * fragment_packet_data = endpoint->transmit_buffer;
 
         uint8_t * q = packet_data;
 
@@ -855,8 +875,6 @@ void reliable_endpoint_send_packet( struct reliable_endpoint_t * endpoint, uint8
 
             endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_SENT]++;
         }
-
-        endpoint->free_function( endpoint->allocator_context, fragment_packet_data );
     }
 
     endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_SENT]++;
@@ -1016,6 +1034,17 @@ int reliable_read_fragment_header( char * name,
             return -1;
         }
 
+        // the packet header is re-encoded canonically during reassembly, so a non-canonical
+        // header would shift where the fragment payload lands. reject it here instead.
+
+        uint8_t canonical_header[RELIABLE_MAX_PACKET_HEADER_BYTES];
+        int canonical_header_bytes = reliable_write_packet_header( canonical_header, packet_sequence, packet_ack, packet_ack_bits );
+        if ( canonical_header_bytes != packet_header_bytes || memcmp( canonical_header, packet_data + RELIABLE_FRAGMENT_HEADER_BYTES, canonical_header_bytes ) != 0 )
+        {
+            reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] non-canonical packet header in fragment\n", name );
+            return -1;
+        }
+
         *fragment_bytes = packet_bytes - packet_header_bytes - RELIABLE_FRAGMENT_HEADER_BYTES;
     }
 
@@ -1137,6 +1166,13 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
             return;
         }
 
+        if ( reliable_sequence_buffer_exists( endpoint->received_packets, sequence ) )
+        {
+            reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] ignoring duplicate packet %d\n", endpoint->config.name, sequence );
+            endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_DUPLICATE]++;
+            return;
+        }
+
         reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] processing packet %d\n", endpoint->config.name, sequence );
 
         if ( endpoint->config.process_packet_function( endpoint->config.context, 
@@ -1167,28 +1203,36 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
                     struct reliable_sent_packet_data_t * sent_packet_data = (struct reliable_sent_packet_data_t*) 
                         reliable_sequence_buffer_find( endpoint->sent_packets, ack_sequence );
 
-                    if ( sent_packet_data && !sent_packet_data->acked && endpoint->num_acks < endpoint->config.ack_buffer_size )
+                    if ( sent_packet_data && !sent_packet_data->acked )
                     {
-                        reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] acked packet %d\n", endpoint->config.name, ack_sequence );
-                        endpoint->acks[endpoint->num_acks++] = ack_sequence;
-                        endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED]++;
-                        sent_packet_data->acked = 1;
-
-                        const float rtt = (float) ( endpoint->time - sent_packet_data->time ) * 1000.0f;
-                        
-                        reliable_assert( rtt >= 0.0 );
-
-                        int index = ack_sequence % endpoint->config.rtt_history_size;
-
-                        endpoint->rtt_history_buffer[index] = rtt;
-
-                        if ( ( endpoint->rtt == 0.0f && rtt > 0.0f ) || fabs( endpoint->rtt - rtt ) < 0.00001 )
+                        if ( endpoint->num_acks < endpoint->config.ack_buffer_size )
                         {
-                            endpoint->rtt = rtt;
+                            reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] acked packet %d\n", endpoint->config.name, ack_sequence );
+                            endpoint->acks[endpoint->num_acks++] = ack_sequence;
+                            endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED]++;
+                            sent_packet_data->acked = 1;
+
+                            const float rtt = (float) ( endpoint->time - sent_packet_data->time ) * 1000.0f;
+
+                            reliable_assert( rtt >= 0.0 );
+
+                            int index = ack_sequence % endpoint->config.rtt_history_size;
+
+                            endpoint->rtt_history_buffer[index] = rtt;
+
+                            if ( ( endpoint->rtt == 0.0f && rtt > 0.0f ) || fabs( endpoint->rtt - rtt ) < 0.00001 )
+                            {
+                                endpoint->rtt = rtt;
+                            }
+                            else
+                            {
+                                endpoint->rtt += ( rtt - endpoint->rtt ) * endpoint->config.rtt_smoothing_factor;
+                            }
                         }
                         else
                         {
-                            endpoint->rtt += ( rtt - endpoint->rtt ) * endpoint->config.rtt_smoothing_factor;
+                            reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] ack buffer is full. dropped ack for packet %d. make sure you call reliable_endpoint_clear_acks\n",
+                                endpoint->config.name, ack_sequence );
                         }
                     }
                 }
@@ -1231,7 +1275,14 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
             return;
         }
 
-        struct reliable_fragment_reassembly_data_t * reassembly_data = (struct reliable_fragment_reassembly_data_t*) 
+        if ( reliable_sequence_buffer_exists( endpoint->received_packets, sequence ) )
+        {
+            reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] ignoring fragment %d of packet %d. packet already received\n",
+                endpoint->config.name, fragment_id, sequence );
+            return;
+        }
+
+        struct reliable_fragment_reassembly_data_t * reassembly_data = (struct reliable_fragment_reassembly_data_t*)
             reliable_sequence_buffer_find( endpoint->fragment_reassembly, sequence );
 
         if ( !reassembly_data )
@@ -1256,8 +1307,12 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
             reassembly_data->num_fragments_received = 0;
             reassembly_data->num_fragments_total = num_fragments;
             reassembly_data->packet_data = (uint8_t*) endpoint->allocate_function( endpoint->allocator_context, packet_buffer_size );
+            reliable_assert( reassembly_data->packet_data );
             reassembly_data->packet_bytes = 0;
             reassembly_data->packet_header_bytes = 0;
+
+            // yojimbo-local patch (da31341): yojimbo supplies fixed pool allocators that can
+            // run dry, so handle reassembly buffer allocation failure gracefully in release
 
             if ( !reassembly_data->packet_data )
             {
@@ -2162,7 +2217,7 @@ static void test_acks_packet_loss()
     uint8_t receiver_acked_packet[TEST_ACKS_NUM_ITERATIONS];
     memset( receiver_acked_packet, 0, sizeof( receiver_acked_packet ) );
     int receiver_num_acks;
-    uint16_t * receiver_acks = reliable_endpoint_get_acks( context.sender, &receiver_num_acks );
+    uint16_t * receiver_acks = reliable_endpoint_get_acks( context.receiver, &receiver_num_acks );
     for ( i = 0; i < receiver_num_acks; ++i )
     {
         if ( receiver_acks[i] < TEST_ACKS_NUM_ITERATIONS )
@@ -2174,6 +2229,267 @@ static void test_acks_packet_loss()
     {
         check( receiver_acked_packet[i] == (i+1) % 2 );
     }
+
+    reliable_endpoint_destroy( context.sender );
+    reliable_endpoint_destroy( context.receiver );
+}
+
+static int test_duplicate_packets_num_processed = 0;
+
+static void test_duplicate_packets_transmit_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) sequence;
+
+    struct test_context_t * context = (struct test_context_t*) _context;
+
+    if ( id == 0 )
+    {
+        // deliver each packet to the receiver twice, simulating duplication on the network
+        reliable_endpoint_receive_packet( context->receiver, packet_data, packet_bytes );
+        reliable_endpoint_receive_packet( context->receiver, packet_data, packet_bytes );
+    }
+}
+
+static int test_duplicate_packets_process_packet_function( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) context;
+    (void) id;
+    (void) sequence;
+    (void) packet_data;
+    (void) packet_bytes;
+
+    test_duplicate_packets_num_processed++;
+
+    return 1;
+}
+
+#define TEST_DUPLICATE_PACKETS_NUM_ITERATIONS 16
+
+static void test_duplicate_packets()
+{
+    double time = 100.0;
+
+    struct test_context_t context;
+    test_default_context( &context );
+
+    struct reliable_config_t sender_config;
+    struct reliable_config_t receiver_config;
+
+    reliable_default_config( &sender_config );
+    reliable_default_config( &receiver_config );
+
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
+    sender_config.context = &context;
+    sender_config.id = 0;
+    sender_config.transmit_packet_function = &test_duplicate_packets_transmit_packet_function;
+    sender_config.process_packet_function = &test_process_packet_function;
+
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
+    receiver_config.context = &context;
+    receiver_config.id = 1;
+    receiver_config.transmit_packet_function = &test_duplicate_packets_transmit_packet_function;
+    receiver_config.process_packet_function = &test_duplicate_packets_process_packet_function;
+
+    context.sender = reliable_endpoint_create( &sender_config, time );
+    context.receiver = reliable_endpoint_create( &receiver_config, time );
+
+    test_duplicate_packets_num_processed = 0;
+
+    int i;
+    for ( i = 0; i < TEST_DUPLICATE_PACKETS_NUM_ITERATIONS; ++i )
+    {
+        uint8_t dummy_packet[8];
+        memset( dummy_packet, 0, sizeof( dummy_packet ) );
+        reliable_endpoint_send_packet( context.sender, dummy_packet, sizeof( dummy_packet ) );
+    }
+
+    check( test_duplicate_packets_num_processed == TEST_DUPLICATE_PACKETS_NUM_ITERATIONS );
+
+    RELIABLE_CONST uint64_t * receiver_counters = reliable_endpoint_counters( context.receiver );
+
+    check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED] == 2 * TEST_DUPLICATE_PACKETS_NUM_ITERATIONS );
+    check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_DUPLICATE] == TEST_DUPLICATE_PACKETS_NUM_ITERATIONS );
+
+    // duplicate fragments arriving after their packet was delivered must not restart reassembly
+
+    uint16_t fragmented_sequence = reliable_endpoint_next_packet_sequence( context.sender );
+
+    uint8_t large_packet[2048];
+    memset( large_packet, 0, sizeof( large_packet ) );
+    reliable_endpoint_send_packet( context.sender, large_packet, sizeof( large_packet ) );
+
+    check( test_duplicate_packets_num_processed == TEST_DUPLICATE_PACKETS_NUM_ITERATIONS + 1 );
+    check( !reliable_sequence_buffer_exists( context.receiver->fragment_reassembly, fragmented_sequence ) );
+
+    reliable_endpoint_destroy( context.sender );
+    reliable_endpoint_destroy( context.receiver );
+}
+
+static uint8_t test_stale_packets_first_packet[64];
+static int test_stale_packets_first_packet_bytes = 0;
+static int test_stale_packets_num_processed = 0;
+
+static void test_stale_packets_transmit_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    struct test_context_t * context = (struct test_context_t*) _context;
+
+    if ( id == 0 )
+    {
+        if ( sequence == 0 && test_stale_packets_first_packet_bytes == 0 )
+        {
+            reliable_assert( packet_bytes <= (int) sizeof( test_stale_packets_first_packet ) );
+            memcpy( test_stale_packets_first_packet, packet_data, packet_bytes );
+            test_stale_packets_first_packet_bytes = packet_bytes;
+        }
+
+        reliable_endpoint_receive_packet( context->receiver, packet_data, packet_bytes );
+    }
+}
+
+static int test_stale_packets_process_packet_function( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) context;
+    (void) id;
+    (void) sequence;
+    (void) packet_data;
+    (void) packet_bytes;
+
+    test_stale_packets_num_processed++;
+
+    return 1;
+}
+
+#define TEST_STALE_PACKETS_NUM_ITERATIONS 300
+
+static void test_stale_packets()
+{
+    double time = 100.0;
+
+    struct test_context_t context;
+    test_default_context( &context );
+
+    struct reliable_config_t sender_config;
+    struct reliable_config_t receiver_config;
+
+    reliable_default_config( &sender_config );
+    reliable_default_config( &receiver_config );
+
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
+    sender_config.context = &context;
+    sender_config.id = 0;
+    sender_config.transmit_packet_function = &test_stale_packets_transmit_packet_function;
+    sender_config.process_packet_function = &test_process_packet_function;
+
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
+    receiver_config.context = &context;
+    receiver_config.id = 1;
+    receiver_config.transmit_packet_function = &test_stale_packets_transmit_packet_function;
+    receiver_config.process_packet_function = &test_stale_packets_process_packet_function;
+
+    context.sender = reliable_endpoint_create( &sender_config, time );
+    context.receiver = reliable_endpoint_create( &receiver_config, time );
+
+    test_stale_packets_first_packet_bytes = 0;
+    test_stale_packets_num_processed = 0;
+
+    // send enough packets that sequence 0 falls out of the receive window (256 entries)
+
+    int i;
+    for ( i = 0; i < TEST_STALE_PACKETS_NUM_ITERATIONS; ++i )
+    {
+        uint8_t dummy_packet[8];
+        memset( dummy_packet, 0, sizeof( dummy_packet ) );
+        reliable_endpoint_send_packet( context.sender, dummy_packet, sizeof( dummy_packet ) );
+    }
+
+    check( test_stale_packets_num_processed == TEST_STALE_PACKETS_NUM_ITERATIONS );
+    check( test_stale_packets_first_packet_bytes > 0 );
+
+    // replaying the first packet must be rejected as stale, not processed
+
+    reliable_endpoint_receive_packet( context.receiver, test_stale_packets_first_packet, test_stale_packets_first_packet_bytes );
+
+    check( test_stale_packets_num_processed == TEST_STALE_PACKETS_NUM_ITERATIONS );
+
+    RELIABLE_CONST uint64_t * receiver_counters = reliable_endpoint_counters( context.receiver );
+
+    check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_STALE] == 1 );
+
+    reliable_endpoint_destroy( context.sender );
+    reliable_endpoint_destroy( context.receiver );
+}
+
+#define TEST_ACK_BUFFER_OVERFLOW_NUM_PACKETS 32
+#define TEST_ACK_BUFFER_OVERFLOW_BUFFER_SIZE 16
+
+static void test_ack_buffer_overflow()
+{
+    double time = 100.0;
+
+    struct test_context_t context;
+    test_default_context( &context );
+
+    struct reliable_config_t sender_config;
+    struct reliable_config_t receiver_config;
+
+    reliable_default_config( &sender_config );
+    reliable_default_config( &receiver_config );
+
+    // undersized ack buffer on the sender, so a single received packet acking 32 sent packets overflows it
+
+    sender_config.ack_buffer_size = TEST_ACK_BUFFER_OVERFLOW_BUFFER_SIZE;
+
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
+    sender_config.context = &context;
+    sender_config.id = 0;
+    sender_config.transmit_packet_function = &test_transmit_packet_function;
+    sender_config.process_packet_function = &test_process_packet_function;
+
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
+    receiver_config.context = &context;
+    receiver_config.id = 1;
+    receiver_config.transmit_packet_function = &test_transmit_packet_function;
+    receiver_config.process_packet_function = &test_process_packet_function;
+
+    context.sender = reliable_endpoint_create( &sender_config, time );
+    context.receiver = reliable_endpoint_create( &receiver_config, time );
+
+    int i;
+    for ( i = 0; i < TEST_ACK_BUFFER_OVERFLOW_NUM_PACKETS; ++i )
+    {
+        uint8_t dummy_packet[8];
+        memset( dummy_packet, 0, sizeof( dummy_packet ) );
+        reliable_endpoint_send_packet( context.sender, dummy_packet, sizeof( dummy_packet ) );
+    }
+
+    // one packet back from the receiver acks all 32, but only 16 fit in the ack buffer. the rest are dropped
+
+    {
+        uint8_t dummy_packet[8];
+        memset( dummy_packet, 0, sizeof( dummy_packet ) );
+        reliable_endpoint_send_packet( context.receiver, dummy_packet, sizeof( dummy_packet ) );
+    }
+
+    int num_acks;
+    reliable_endpoint_get_acks( context.sender, &num_acks );
+    check( num_acks == TEST_ACK_BUFFER_OVERFLOW_BUFFER_SIZE );
+
+    RELIABLE_CONST uint64_t * sender_counters = reliable_endpoint_counters( context.sender );
+    check( sender_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED] == TEST_ACK_BUFFER_OVERFLOW_BUFFER_SIZE );
+
+    // once the caller clears acks, the dropped acks are reported on the next packet that covers them
+
+    reliable_endpoint_clear_acks( context.sender );
+
+    {
+        uint8_t dummy_packet[8];
+        memset( dummy_packet, 0, sizeof( dummy_packet ) );
+        reliable_endpoint_send_packet( context.receiver, dummy_packet, sizeof( dummy_packet ) );
+    }
+
+    reliable_endpoint_get_acks( context.sender, &num_acks );
+    check( num_acks == TEST_ACK_BUFFER_OVERFLOW_NUM_PACKETS - TEST_ACK_BUFFER_OVERFLOW_BUFFER_SIZE );
+    check( sender_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED] == TEST_ACK_BUFFER_OVERFLOW_NUM_PACKETS );
 
     reliable_endpoint_destroy( context.sender );
     reliable_endpoint_destroy( context.receiver );
@@ -2572,6 +2888,123 @@ void test_fragment_cleanup()
     }
 }
 
+static void test_endpoint_reset()
+{
+    double time = 100.0;
+
+    struct test_context_t context;
+    test_default_context( &context );
+
+    struct test_tracking_allocate_context_t tracking_alloc_context;
+    memset( &tracking_alloc_context, 0, sizeof( tracking_alloc_context ) );
+
+    struct reliable_config_t sender_config;
+    struct reliable_config_t receiver_config;
+
+    reliable_default_config( &sender_config );
+    reliable_default_config( &receiver_config );
+
+    sender_config.fragment_above = 500;
+    receiver_config.fragment_above = 500;
+
+    receiver_config.allocator_context = &tracking_alloc_context;
+    receiver_config.allocate_function = &test_tracking_allocate_function;
+    receiver_config.free_function = &test_tracking_free_function;
+
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
+    sender_config.context = &context;
+    sender_config.id = 0;
+    sender_config.transmit_packet_function = &test_transmit_packet_function;
+    sender_config.process_packet_function = &test_process_packet_function;
+
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
+    receiver_config.context = &context;
+    receiver_config.id = 1;
+    receiver_config.transmit_packet_function = &test_transmit_packet_function;
+    receiver_config.process_packet_function = &test_process_packet_function;
+
+    context.sender = reliable_endpoint_create( &sender_config, time );
+    context.receiver = reliable_endpoint_create( &receiver_config, time );
+
+    // exchange packets both ways so acks and counters accumulate
+
+    int i;
+    for ( i = 0; i < 8; ++i )
+    {
+        uint8_t dummy_packet[8];
+        memset( dummy_packet, 0, sizeof( dummy_packet ) );
+
+        reliable_endpoint_send_packet( context.sender, dummy_packet, sizeof( dummy_packet ) );
+        reliable_endpoint_send_packet( context.receiver, dummy_packet, sizeof( dummy_packet ) );
+
+        reliable_endpoint_update( context.sender, time );
+        reliable_endpoint_update( context.receiver, time );
+
+        time += 0.01;
+    }
+
+    int num_acks;
+    reliable_endpoint_get_acks( context.sender, &num_acks );
+    check( num_acks > 0 );
+    check( reliable_endpoint_counters( context.sender )[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_SENT] > 0 );
+
+    // leave a fragment reassembly in progress on the receiver by delivering only the first fragment of a large packet
+
+    context.allow_packets = 1;
+    {
+        uint8_t large_packet[1500];
+        memset( large_packet, 0, sizeof( large_packet ) );
+        reliable_endpoint_send_packet( context.sender, large_packet, sizeof( large_packet ) );
+    }
+    context.allow_packets = -1;
+
+    reliable_endpoint_reset( context.sender );
+    reliable_endpoint_reset( context.receiver );
+
+    check( reliable_endpoint_next_packet_sequence( context.sender ) == 0 );
+    check( reliable_endpoint_next_packet_sequence( context.receiver ) == 0 );
+
+    reliable_endpoint_get_acks( context.sender, &num_acks );
+    check( num_acks == 0 );
+
+    for ( i = 0; i < RELIABLE_ENDPOINT_NUM_COUNTERS; ++i )
+    {
+        check( reliable_endpoint_counters( context.sender )[i] == 0 );
+        check( reliable_endpoint_counters( context.receiver )[i] == 0 );
+    }
+
+    // the endpoints must work normally after reset
+
+    for ( i = 0; i < 8; ++i )
+    {
+        uint8_t dummy_packet[8];
+        memset( dummy_packet, 0, sizeof( dummy_packet ) );
+
+        reliable_endpoint_send_packet( context.sender, dummy_packet, sizeof( dummy_packet ) );
+        reliable_endpoint_send_packet( context.receiver, dummy_packet, sizeof( dummy_packet ) );
+
+        reliable_endpoint_update( context.sender, time );
+        reliable_endpoint_update( context.receiver, time );
+
+        time += 0.01;
+    }
+
+    reliable_endpoint_get_acks( context.sender, &num_acks );
+    check( num_acks > 0 );
+    check( reliable_endpoint_counters( context.receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED] > 0 );
+
+    reliable_endpoint_destroy( context.sender );
+    reliable_endpoint_destroy( context.receiver );
+
+    // reset must have freed the in-progress reassembly buffer, and destroy must not double-free it
+
+    int tracking_index;
+    for ( tracking_index = 0; tracking_index < (int) ARRAY_LENGTH( tracking_alloc_context.active_allocations ); ++tracking_index )
+    {
+        check( tracking_alloc_context.active_allocations[tracking_index] == NULL );
+    }
+}
+
 #define RUN_TEST( test_function )                                           \
     do                                                                      \
     {                                                                       \
@@ -2590,10 +3023,14 @@ void reliable_test()
         RUN_TEST( test_packet_header );
         RUN_TEST( test_acks );
         RUN_TEST( test_acks_packet_loss );
+        RUN_TEST( test_duplicate_packets );
+        RUN_TEST( test_stale_packets );
+        RUN_TEST( test_ack_buffer_overflow );
         RUN_TEST( test_packets );
         RUN_TEST( test_large_packets );
         RUN_TEST( test_sequence_buffer_rollover );
         RUN_TEST( test_fragment_cleanup );
+        RUN_TEST( test_endpoint_reset );
     }
 }
 
