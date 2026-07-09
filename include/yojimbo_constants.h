@@ -37,6 +37,8 @@ namespace yojimbo
 
     const int ConnectTokenBytes = 2048;                             ///< Size of the encrypted connect token data return from the matchmaker. Must equal size of NETCODE_CONNECT_TOKEN_BYTE (2048).
 
+    const int InsecureConnectTokenExpirySeconds = 60;               ///< Expiry for insecure connect tokens (seconds). Kept well above the connection timeout so a failed insecure connect reports "connection request timed out" like a secure connect token from a matchmaker would, rather than hitting token expiry first.
+
     const int ConservativeMessageHeaderBits = 32;                   ///< Conservative number of bits per-message header.
     
     const int ConservativeFragmentHeaderBits = 64;                  ///< Conservative number of bits per-fragment header.

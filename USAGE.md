@@ -253,7 +253,7 @@ if (m_client.IsDisconnected() || m_client.ConnectionFailed()) {
 }
 ```
 
-The reason is cleared back to `YOJIMBO_CLIENT_DISCONNECT_REASON_NONE` whenever a new connect attempt starts. One quirk worth knowing during development: an *insecure* connect to a server that isn't running reports `YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED` rather than a connection request timeout, because the insecure connect token uses the same value for its expiry and its timeout, and the expiry check runs first. Secure connect tokens issued by a matchmaker have a much longer expiry and report `YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT` as you'd expect.
+The reason is cleared back to `YOJIMBO_CLIENT_DISCONNECT_REASON_NONE` whenever a new connect attempt starts. Connecting to a server that isn't running reports `YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT` after the connection timeout, for both secure and insecure connects. `YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED` means the connect token's expiry passed before the client could connect — for example, the player sat on a menu too long after matchmaking — and the fix is to request a fresh token and retry.
 
 For testing purposes, let's also send a `TestMessage` when the player presses a key:
 
