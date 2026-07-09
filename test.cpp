@@ -1947,6 +1947,31 @@ void test_connection_process_packet_channel_data_alloc_failure()
     check( receiverAlloc.GetOutstanding() == 0 );
 }
 
+void test_client_connect_socket_failure_no_crash()
+{
+    // Regression: Connect() and ConnectLoopback() called into netcode_client_connect() without
+    // checking that CreateClient() succeeded. When the socket can't be created - forced here with
+    // an unparseable bind address - m_client is NULL and netcode dereferences it (crash in
+    // release; assert trap in debug). Both must bail like InsecureConnect() already does.
+    ClientServerConfig config;
+
+    Address invalidAddress;                     // ADDRESS_NONE -> "NONE" -> netcode_client_create fails
+    check( !invalidAddress.IsValid() );
+
+    Client client( GetDefaultAllocator(), invalidAddress, config, adapter, 100.0 );
+
+    uint8_t connectToken[ConnectTokenBytes];
+    memset( connectToken, 0, sizeof( connectToken ) );
+
+    client.Connect( 1, connectToken );          // must not crash - CreateClient failed
+    check( !client.IsConnected() );
+
+    client.ConnectLoopback( 0, 1, 1 );          // must not crash either
+    check( !client.IsConnected() );
+
+    client.Disconnect();
+}
+
 void test_client_server_messages()
 {
     const uint64_t clientId = 1;
@@ -3210,6 +3235,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
+        RUN_TEST( test_client_connect_socket_failure_no_crash );
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
