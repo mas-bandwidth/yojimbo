@@ -118,14 +118,16 @@ closed within the contract: `ClientServerConfig::Validate()`
 asserts each config invariant at startup with a message naming the field and the fix, and
 compiles away entirely in release.
 
-1. **Disconnect diagnostics are thin for production use.** *(Server side addressed:
+1. **Disconnect diagnostics** — *addressed on both sides.* Server:
    `Server::GetClientDisconnectReason(clientIndex)` returns a per-slot
-   `ServerClientDisconnectReason` — kicked, transport disconnect/timeout, serialize
-   failure, desync, out of memory, etc. — recorded before
-   `Adapter::OnServerClientDisconnected` fires so it can be queried from the callback.)*
-   The client side still compresses the detailed netcode states (connection denied, token
-   expired, timed out) into a single `CLIENT_STATE_ERROR`, so a game cannot tell the
-   player "server is full" versus "network error" without querying netcode directly.
+   `ServerClientDisconnectReason` (kicked, transport disconnect/timeout, serialize
+   failure, desync, out of memory, …), recorded before
+   `Adapter::OnServerClientDisconnected` fires so it can be queried from the callback.
+   Client: `Client::GetDisconnectReason()` returns a `ClientDisconnectReason` that
+   preserves the detailed netcode failure states (connection denied, connect token
+   expired/invalid, request/response/connection timed out, disconnected by server) plus
+   the same connection-error causes, so the game can tell the player "server is full"
+   versus "update your client" versus "network error".
 
 2. **The single-threaded, ≤100-player contract is under-signposted.** Both are deliberate
    design decisions (see the design contract above), and the author is comfortable with

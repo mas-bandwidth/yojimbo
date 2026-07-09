@@ -7,7 +7,23 @@
 
 namespace yojimbo
 {
-    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time ) 
+    // Map a netcode client error state to the disconnect reason we record for this client.
+    // This is where "server is full" vs "update your client" vs "network problem" comes from.
+    static int ClientDisconnectReasonForNetcodeState( int netcodeState )
+    {
+        switch ( netcodeState )
+        {
+            case NETCODE_CLIENT_STATE_CONNECT_TOKEN_EXPIRED:            return YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED;
+            case NETCODE_CLIENT_STATE_INVALID_CONNECT_TOKEN:            return YOJIMBO_CLIENT_DISCONNECT_REASON_INVALID_CONNECT_TOKEN;
+            case NETCODE_CLIENT_STATE_CONNECTION_TIMED_OUT:             return YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_TIMED_OUT;
+            case NETCODE_CLIENT_STATE_CONNECTION_RESPONSE_TIMED_OUT:    return YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_RESPONSE_TIMED_OUT;
+            case NETCODE_CLIENT_STATE_CONNECTION_REQUEST_TIMED_OUT:     return YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT;
+            case NETCODE_CLIENT_STATE_CONNECTION_DENIED:                return YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_DENIED;
+            default:                                                    return YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED_BY_SERVER;
+        }
+    }
+
+    Client::Client( Allocator & allocator, const Address & address, const ClientServerConfig & config, Adapter & adapter, double time )
         : BaseClient( allocator, config, adapter, time ), m_config( config ), m_address( address )
     {
         m_clientId = 0;
@@ -33,6 +49,7 @@ namespace yojimbo
         yojimbo_assert( numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
         Disconnect();
         CreateInternal();
+        SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );       // new connect attempt: clear the reason from any previous disconnect
         m_clientId = clientId;
         CreateClient( m_address );
         if ( !m_client )
@@ -44,6 +61,7 @@ namespace yojimbo
         if ( !GenerateInsecureConnectToken( connectToken, privateKey, clientId, serverAddresses, numServerAddresses ) )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to generate insecure connect token\n" );
+            SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_INVALID_CONNECT_TOKEN );
             SetClientState( CLIENT_STATE_ERROR );
             return;
         }
@@ -85,6 +103,7 @@ namespace yojimbo
         yojimbo_assert( connectToken );
         Disconnect();
         CreateInternal();
+        SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );       // new connect attempt: clear the reason from any previous disconnect
         m_clientId = clientId;
         CreateClient( m_address );
         if ( !m_client )
@@ -101,12 +120,21 @@ namespace yojimbo
         }
         else
         {
+            // The connect failed immediately, eg. an invalid connect token.
+            SetDisconnectReason( ClientDisconnectReasonForNetcodeState( netcode_client_state( m_client ) ) );
             Disconnect();
         }
     }
 
     void Client::Disconnect()
     {
+        // Record a deliberate local disconnect, but only if no more specific reason was already
+        // recorded (connection error, netcode error state) — the first reason recorded wins.
+        // Checked before BaseClient::Disconnect below, because that resets the client state.
+        if ( ( IsConnecting() || IsConnected() ) && GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE )
+        {
+            SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED );
+        }
         BaseClient::Disconnect();
         DestroyClient();
         DestroyInternal();
@@ -153,11 +181,23 @@ namespace yojimbo
             const int state = netcode_client_state( m_client );
             if ( state < NETCODE_CLIENT_STATE_DISCONNECTED )
             {
+                // Record why netcode failed (denied, token expired/invalid, timed out) before the
+                // disconnect, so the game can tell the player what actually happened.
+                if ( GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE )
+                {
+                    SetDisconnectReason( ClientDisconnectReasonForNetcodeState( state ) );
+                }
                 Disconnect();
                 SetClientState( CLIENT_STATE_ERROR );
             }
             else if ( state == NETCODE_CLIENT_STATE_DISCONNECTED )
             {
+                // netcode dropped to disconnected while we thought we were connecting/connected:
+                // the server disconnected us (server stopped, or kicked this client).
+                if ( GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE )
+                {
+                    SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED_BY_SERVER );
+                }
                 Disconnect();
                 SetClientState( CLIENT_STATE_DISCONNECTED );
             }
@@ -193,6 +233,7 @@ namespace yojimbo
     {
         Disconnect();
         CreateInternal();
+        SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );       // new connect attempt: clear the reason from any previous disconnect
         m_clientId = clientId;
         CreateClient( m_address );
         if ( !m_client )
@@ -207,6 +248,12 @@ namespace yojimbo
 
     void Client::DisconnectLoopback()
     {
+        // Same recording rule as Client::Disconnect: a deliberate local disconnect, unless a more
+        // specific reason was already recorded.
+        if ( ( IsConnecting() || IsConnected() ) && GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE )
+        {
+            SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED );
+        }
         netcode_client_disconnect_loopback( m_client );
         BaseClient::Disconnect();
         DestroyClient();

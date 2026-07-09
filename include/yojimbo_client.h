@@ -34,6 +34,67 @@ struct netcode_client_t;
 namespace yojimbo
 {
     /**
+        The reason this client was last disconnected.
+
+        This lets you distinguish what to show the player and what to do next: a denied connection (eg. server full),
+        an expired or invalid connect token (eg. matchmaking took too long, or a client/server version mismatch),
+        a timeout, or a protocol error such as a message that failed to serialize.
+
+        Cleared to YOJIMBO_CLIENT_DISCONNECT_REASON_NONE when a new connect attempt starts. The first reason recorded
+        for a disconnect wins, so a specific error is never overwritten by the generic disconnect that follows it.
+
+        @see BaseClient::GetDisconnectReason
+     */
+
+    enum ClientDisconnectReason
+    {
+        YOJIMBO_CLIENT_DISCONNECT_REASON_NONE = 0,                          ///< No disconnect has happened yet (or a new connect attempt is in progress).
+        YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED,                      ///< You called Client::Disconnect. A deliberate local disconnect.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED_BY_SERVER,            ///< The server disconnected us. The server was stopped, or it kicked this client.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_DENIED,                 ///< The server denied the connection request. For example, the server is full.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT,      ///< No response from the server to our connection request. Server not running, unreachable, or wrong address.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_RESPONSE_TIMED_OUT,     ///< No response from the server to our challenge response while establishing the connection.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_TIMED_OUT,              ///< The established connection timed out. We stopped hearing from the server.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_INVALID_CONNECT_TOKEN,             ///< The connect token is invalid, or could not be generated.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED,             ///< The connect token expired before we could connect. Request a fresh one from the matchmaker and retry.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE,               ///< A message from the server failed to serialize read. Usually a client/server protocol version mismatch, or a bug in a message serialize function.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_DESYNC,                            ///< A channel desynced and cannot recover. See CHANNEL_ERROR_DESYNC.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_SEND_QUEUE_FULL,                   ///< A channel send queue filled up. See CHANNEL_ERROR_SEND_QUEUE_FULL.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_BLOCKS_DISABLED,                   ///< The server sent block data on a channel that is configured with blocks disabled.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_MESSAGE_TOO_LARGE,                 ///< Tried to send a message too large to ever fit into a packet. See CHANNEL_ERROR_MESSAGE_TOO_LARGE.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY,                     ///< The client memory budget was exhausted. Consider increasing ClientServerConfig::clientMemory.
+        YOJIMBO_CLIENT_DISCONNECT_REASON_READ_PACKET_FAILED,                ///< A connection packet from the server failed to deserialize.
+    };
+
+    /// Helper function to convert a client disconnect reason to a user friendly string.
+
+    inline const char * GetClientDisconnectReasonString( int reason )
+    {
+        switch ( reason )
+        {
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_NONE:                             return "none";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED:                     return "disconnected";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_DISCONNECTED_BY_SERVER:           return "disconnected by server";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_DENIED:                return "connection denied";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT:     return "connection request timed out";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_RESPONSE_TIMED_OUT:    return "connection response timed out";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_TIMED_OUT:             return "connection timed out";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_INVALID_CONNECT_TOKEN:            return "invalid connect token";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED:            return "connect token expired";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE:              return "failed to serialize";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_DESYNC:                           return "desync";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_SEND_QUEUE_FULL:                  return "send queue full";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_BLOCKS_DISABLED:                  return "blocks disabled";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_MESSAGE_TOO_LARGE:                return "message too large";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY:                    return "out of memory";
+            case YOJIMBO_CLIENT_DISCONNECT_REASON_READ_PACKET_FAILED:               return "read packet failed";
+            default:
+                yojimbo_assert( false );
+                return "(unknown)";
+        }
+    }
+
+    /**
         Client implementation
      */
 
