@@ -92,6 +92,15 @@
 #define NETCODE_CLIENT_STATE_SENDING_CONNECTION_RESPONSE        2
 #define NETCODE_CLIENT_STATE_CONNECTED                          3
 
+// The reason the client in a server slot was last disconnected. Tracked per-client slot:
+// reset to NONE when the server starts and when a new client connects to the slot, and
+// recorded before the connect_disconnect_callback fires, so it can be queried from inside
+// that callback via netcode_server_client_disconnect_reason.
+#define NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE                0
+#define NETCODE_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT           1
+#define NETCODE_SERVER_CLIENT_DISCONNECT_REASON_CLIENT_DISCONNECT   2
+#define NETCODE_SERVER_CLIENT_DISCONNECT_REASON_SERVER_DISCONNECT   3
+
 #define NETCODE_CLIENT_CREATE_ERROR_NONE                        0
 #define NETCODE_CLIENT_CREATE_ERROR_PARSE_ADDRESS_FAILED        1
 #define NETCODE_CLIENT_CREATE_ERROR_PARSE_ADDRESS2_FAILED       2
@@ -284,6 +293,8 @@ int netcode_server_max_clients( struct netcode_server_t * server );
 void netcode_server_update( struct netcode_server_t * server, double time );
 
 int netcode_server_client_connected( struct netcode_server_t * server, int client_index );
+
+int netcode_server_client_disconnect_reason( struct netcode_server_t * server, int client_index );
 
 uint64_t netcode_server_client_id( struct netcode_server_t * server, int client_index );
 

@@ -3868,6 +3868,7 @@ struct netcode_server_t
     int client_timeout[NETCODE_MAX_CLIENTS];
     int client_loopback[NETCODE_MAX_CLIENTS];
     int client_confirmed[NETCODE_MAX_CLIENTS];
+    int client_disconnect_reason[NETCODE_MAX_CLIENTS];
     int client_encryption_index[NETCODE_MAX_CLIENTS];
     uint64_t client_id[NETCODE_MAX_CLIENTS];
     uint64_t client_sequence[NETCODE_MAX_CLIENTS];
@@ -4101,6 +4102,11 @@ void netcode_server_start( struct netcode_server_t * server, int max_clients )
     {
         netcode_packet_queue_init( &server->client_packet_queue[i], server->config.allocator_context, server->config.allocate_function, server->config.free_function );
     }
+
+    for ( i = 0; i < NETCODE_MAX_CLIENTS; i++ )
+    {
+        server->client_disconnect_reason[i] = NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE;
+    }
 }
 
 void netcode_server_send_global_packet( struct netcode_server_t * server, void * packet, struct netcode_address_t * to, uint8_t * packet_key )
@@ -4196,7 +4202,7 @@ static void netcode_server_reset_client_slot( struct netcode_server_t * server, 
     netcode_assert( server->num_connected_clients >= 0 );
 }
 
-void netcode_server_disconnect_client_internal( struct netcode_server_t * server, int client_index, int send_disconnect_packets )
+void netcode_server_disconnect_client_internal( struct netcode_server_t * server, int client_index, int send_disconnect_packets, int disconnect_reason )
 {
     netcode_assert( server );
     netcode_assert( server->running );
@@ -4207,6 +4213,10 @@ void netcode_server_disconnect_client_internal( struct netcode_server_t * server
     netcode_assert( server->encryption_manager.client_index[server->client_encryption_index[client_index]] == client_index );
 
     netcode_printf( NETCODE_LOG_LEVEL_INFO, "server disconnected client %d\n", client_index );
+
+    // record why before the callback fires, so the reason can be queried from inside the callback
+
+    server->client_disconnect_reason[client_index] = disconnect_reason;
 
     if ( server->config.connect_disconnect_callback )
     {
@@ -4259,7 +4269,7 @@ void netcode_server_disconnect_client( struct netcode_server_t * server, int cli
     if ( server->client_loopback[client_index] )
         return;
 
-    netcode_server_disconnect_client_internal( server, client_index, 1 );
+    netcode_server_disconnect_client_internal( server, client_index, 1, NETCODE_SERVER_CLIENT_DISCONNECT_REASON_SERVER_DISCONNECT );
 }
 
 void netcode_server_disconnect_all_clients( struct netcode_server_t * server )
@@ -4274,7 +4284,7 @@ void netcode_server_disconnect_all_clients( struct netcode_server_t * server )
     {
         if ( server->client_connected[i] && !server->client_loopback[i] )
         {
-            netcode_server_disconnect_client_internal( server, i, 1 );
+            netcode_server_disconnect_client_internal( server, i, 1, NETCODE_SERVER_CLIENT_DISCONNECT_REASON_SERVER_DISCONNECT );
         }
     }
 }
@@ -4495,7 +4505,8 @@ void netcode_server_connect_client( struct netcode_server_t * server,
     server->client_id[client_index] = client_id;
     server->client_sequence[client_index] = 0;
     server->client_address[client_index] = *address;
-    
+    server->client_disconnect_reason[client_index] = NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE;
+
     netcode_assert( netcode_server_find_client_index_by_id( server, client_id ) == client_index );
     netcode_assert( netcode_server_find_client_index_by_address( server, address ) == client_index );
 
@@ -4661,7 +4672,7 @@ void netcode_server_process_packet_internal( struct netcode_server_t * server,
             if ( client_index != -1 )
             {
                 netcode_printf( NETCODE_LOG_LEVEL_DEBUG, "server received disconnect packet from client %d\n", client_index );
-                netcode_server_disconnect_client_internal( server, client_index, 0 );
+                netcode_server_disconnect_client_internal( server, client_index, 0, NETCODE_SERVER_CLIENT_DISCONNECT_REASON_CLIENT_DISCONNECT );
            }
         }
         break;
@@ -4872,7 +4883,7 @@ void netcode_server_check_for_timeouts( struct netcode_server_t * server )
         if ( server->client_last_packet_receive_time[i] + server->client_timeout[i] <= server->time )
         {
             netcode_printf( NETCODE_LOG_LEVEL_INFO, "server timed out client %d\n", i );
-            netcode_server_disconnect_client_internal( server, i, 0 );
+            netcode_server_disconnect_client_internal( server, i, 0, NETCODE_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT );
         }
     }
 }
@@ -4888,6 +4899,19 @@ int netcode_server_client_connected( struct netcode_server_t * server, int clien
         return 0;
 
     return server->client_connected[client_index];
+}
+
+int netcode_server_client_disconnect_reason( struct netcode_server_t * server, int client_index )
+{
+    netcode_assert( server );
+
+    if ( !server->running )
+        return NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE;
+
+    if ( client_index < 0 || client_index >= server->max_clients )
+        return NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE;
+
+    return server->client_disconnect_reason[client_index];
 }
 
 uint64_t netcode_server_client_id( struct netcode_server_t * server, int client_index )
@@ -5102,6 +5126,7 @@ void netcode_server_connect_loopback_client( struct netcode_server_t * server, i
     server->client_encryption_index[client_index] = -1;
     server->client_id[client_index] = client_id;
     server->client_sequence[client_index] = 0;
+    server->client_disconnect_reason[client_index] = NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE;
     memset( &server->client_address[client_index], 0, sizeof( struct netcode_address_t ) );
     server->client_last_packet_send_time[client_index] = server->time;
     server->client_last_packet_receive_time[client_index] = server->time;
@@ -5143,6 +5168,8 @@ void netcode_server_disconnect_loopback_client( struct netcode_server_t * server
         return;
 
     netcode_printf( NETCODE_LOG_LEVEL_INFO, "server disconnected loopback client %d\n", client_index );
+
+    server->client_disconnect_reason[client_index] = NETCODE_SERVER_CLIENT_DISCONNECT_REASON_SERVER_DISCONNECT;
 
     if ( server->config.connect_disconnect_callback )
     {
@@ -8403,6 +8430,7 @@ void test_client_side_disconnect()
 
     check( netcode_server_client_connected( server, 0 ) == 0 );
     check( netcode_server_num_connected_clients( server ) == 0 );
+    check( netcode_server_client_disconnect_reason( server, 0 ) == NETCODE_SERVER_CLIENT_DISCONNECT_REASON_CLIENT_DISCONNECT );
 
     netcode_server_destroy( server );
 
@@ -8498,6 +8526,138 @@ void test_server_side_disconnect()
     check( netcode_client_state( client ) == NETCODE_CLIENT_STATE_DISCONNECTED );
     check( netcode_server_client_connected( server, 0 ) == 0 );
     check( netcode_server_num_connected_clients( server ) == 0 );
+    check( netcode_server_client_disconnect_reason( server, 0 ) == NETCODE_SERVER_CLIENT_DISCONNECT_REASON_SERVER_DISCONNECT );
+
+    netcode_server_destroy( server );
+
+    netcode_client_destroy( client );
+
+    netcode_network_simulator_destroy( network_simulator );
+}
+
+void test_server_client_disconnect_reason()
+{
+    struct netcode_network_simulator_t * network_simulator = netcode_network_simulator_create( NULL, NULL, NULL );
+
+    // start a server and connect one client
+
+    double time = 0.0;
+    double delta_time = 1.0 / 10.0;
+
+    struct netcode_client_config_t client_config;
+    netcode_default_client_config( &client_config );
+    client_config.network_simulator = network_simulator;
+
+    struct netcode_client_t * client = netcode_client_create( "[::]:50000", &client_config, time );
+
+    check( client );
+
+    struct netcode_server_config_t server_config;
+    netcode_default_server_config( &server_config );
+    server_config.protocol_id = TEST_PROTOCOL_ID;
+    server_config.network_simulator = network_simulator;
+    memcpy( &server_config.private_key, private_key, NETCODE_KEY_BYTES );
+
+    struct netcode_server_t * server = netcode_server_create( "[::1]:40000", &server_config, time );
+
+    check( server );
+
+    netcode_server_start( server, 1 );
+
+    // no disconnect has happened yet, so the client slot reason is none
+
+    check( netcode_server_client_disconnect_reason( server, 0 ) == NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE );
+
+    NETCODE_CONST char * server_address = "[::1]:40000";
+
+    uint8_t connect_token[NETCODE_CONNECT_TOKEN_BYTES];
+
+    uint64_t client_id = 0;
+    netcode_random_bytes( (uint8_t*) &client_id, 8 );
+
+    uint8_t user_data[NETCODE_USER_DATA_BYTES];
+    netcode_random_bytes(user_data, NETCODE_USER_DATA_BYTES);
+
+    check( netcode_generate_connect_token( 1, &server_address, &server_address, TEST_CONNECT_TOKEN_EXPIRY, TEST_TIMEOUT_SECONDS, client_id, TEST_PROTOCOL_ID, private_key, user_data, connect_token ) );
+
+    netcode_client_connect( client, connect_token );
+
+    while ( 1 )
+    {
+        netcode_network_simulator_update( network_simulator, time );
+
+        netcode_client_update( client, time );
+
+        netcode_server_update( server, time );
+
+        if ( netcode_client_state( client ) <= NETCODE_CLIENT_STATE_DISCONNECTED )
+            break;
+
+        if ( netcode_client_state( client ) == NETCODE_CLIENT_STATE_CONNECTED )
+            break;
+
+        time += delta_time;
+    }
+
+    check( netcode_client_state( client ) == NETCODE_CLIENT_STATE_CONNECTED );
+    check( netcode_server_client_connected( server, 0 ) == 1 );
+    check( netcode_server_client_disconnect_reason( server, 0 ) == NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE );
+
+    // stop updating the client so it goes silent. the server should time it out
+    // and record that as the disconnect reason, distinct from a clean disconnect
+
+    int i;
+    for ( i = 0; i < 200; i++ )
+    {
+        netcode_network_simulator_update( network_simulator, time );
+
+        netcode_server_update( server, time );
+
+        if ( !netcode_server_client_connected( server, 0 ) )
+            break;
+
+        time += delta_time;
+    }
+
+    check( netcode_server_client_connected( server, 0 ) == 0 );
+    check( netcode_server_num_connected_clients( server ) == 0 );
+    check( netcode_server_client_disconnect_reason( server, 0 ) == NETCODE_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT );
+
+    // reconnect. a new client connecting to the slot clears the reason back to none
+
+    netcode_client_disconnect( client );
+
+    // catch the client's internal clock up to the current time before reconnecting, since it
+    // was deliberately not updated above. otherwise the first update after connect sees the
+    // whole timeout leg as elapsed time and immediately times out the connection request.
+    netcode_client_update( client, time );
+
+    netcode_network_simulator_reset( network_simulator );
+
+    check( netcode_generate_connect_token( 1, &server_address, &server_address, TEST_CONNECT_TOKEN_EXPIRY, TEST_TIMEOUT_SECONDS, client_id, TEST_PROTOCOL_ID, private_key, user_data, connect_token ) );
+
+    netcode_client_connect( client, connect_token );
+
+    while ( 1 )
+    {
+        netcode_network_simulator_update( network_simulator, time );
+
+        netcode_client_update( client, time );
+
+        netcode_server_update( server, time );
+
+        if ( netcode_client_state( client ) <= NETCODE_CLIENT_STATE_DISCONNECTED )
+            break;
+
+        if ( netcode_client_state( client ) == NETCODE_CLIENT_STATE_CONNECTED )
+            break;
+
+        time += delta_time;
+    }
+
+    check( netcode_client_state( client ) == NETCODE_CLIENT_STATE_CONNECTED );
+    check( netcode_server_client_connected( server, 0 ) == 1 );
+    check( netcode_server_client_disconnect_reason( server, 0 ) == NETCODE_SERVER_CLIENT_DISCONNECT_REASON_NONE );
 
     netcode_server_destroy( server );
 
@@ -9319,6 +9479,7 @@ void netcode_test()
         RUN_TEST( test_client_error_connection_denied );
         RUN_TEST( test_client_side_disconnect );
         RUN_TEST( test_server_side_disconnect );
+        RUN_TEST( test_server_client_disconnect_reason );
         RUN_TEST( test_client_reconnect );
         RUN_TEST( test_disable_timeout );
         RUN_TEST( test_loopback );
