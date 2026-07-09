@@ -4,6 +4,7 @@
 #include "yojimbo_connection.h"
 #include "yojimbo_network_info.h"
 #include "yojimbo_utils.h"
+#include "yojimbo_server.h"             // for the ServerClientDisconnectReason enum
 #include "reliable.h"
 
 namespace yojimbo
@@ -25,6 +26,7 @@ namespace yojimbo
             m_clientMessageFactory[i] = NULL;
             m_clientConnection[i] = NULL;
             m_clientEndpoint[i] = NULL;
+            m_clientDisconnectReason[i] = YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE;
         }
         m_networkSimulator = NULL;
         m_packetBuffer = NULL;
@@ -53,6 +55,11 @@ namespace yojimbo
 
         m_running = true;
         m_maxClients = maxClients;
+
+        for ( int i = 0; i < MaxClients; ++i )
+        {
+            m_clientDisconnectReason[i] = YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE;
+        }
 
         yojimbo_assert( !m_globalMemory );
         yojimbo_assert( !m_globalAllocator );
@@ -145,6 +152,45 @@ namespace yojimbo
         m_packetBuffer = NULL;
     }
 
+    // Map the error that drove a connection into an error state to the disconnect reason we
+    // record for the client slot. For channel errors, drill into the channels to find the one
+    // in error, because that is where the actionable detail lives (eg. serialize failure vs
+    // desync vs out of memory).
+    static int ClientDisconnectReasonForConnectionError( const Connection & connection, ConnectionErrorLevel errorLevel, int numChannels )
+    {
+        switch ( errorLevel )
+        {
+            case CONNECTION_ERROR_ALLOCATOR:            return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY;
+            case CONNECTION_ERROR_MESSAGE_FACTORY:      return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY;
+            case CONNECTION_ERROR_READ_PACKET_FAILED:   return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_READ_PACKET_FAILED;
+
+            case CONNECTION_ERROR_CHANNEL:
+            {
+                for ( int i = 0; i < numChannels; ++i )
+                {
+                    switch ( connection.GetChannelErrorLevel( i ) )
+                    {
+                        case CHANNEL_ERROR_DESYNC:                  return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DESYNC;
+                        case CHANNEL_ERROR_SEND_QUEUE_FULL:         return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_SEND_QUEUE_FULL;
+                        case CHANNEL_ERROR_BLOCKS_DISABLED:         return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_BLOCKS_DISABLED;
+                        case CHANNEL_ERROR_FAILED_TO_SERIALIZE:     return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE;
+                        case CHANNEL_ERROR_OUT_OF_MEMORY:           return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY;
+                        case CHANNEL_ERROR_MESSAGE_TOO_LARGE:       return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_MESSAGE_TOO_LARGE;
+                        case CHANNEL_ERROR_NONE:                    break;
+                    }
+                }
+            }
+            break;
+
+            case CONNECTION_ERROR_NONE:
+                break;
+        }
+
+        // A connection in an error state always matches one of the cases above; keep a sane
+        // value if that ever changes rather than reporting garbage.
+        return YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED;
+    }
+
     void BaseServer::AdvanceTime( double time )
     {
         m_time = time;
@@ -153,9 +199,11 @@ namespace yojimbo
             for ( int i = 0; i < m_maxClients; ++i )
             {
                 m_clientConnection[i]->AdvanceTime( time );
-                if ( m_clientConnection[i]->GetErrorLevel() != CONNECTION_ERROR_NONE )
+                const ConnectionErrorLevel connectionErrorLevel = m_clientConnection[i]->GetErrorLevel();
+                if ( connectionErrorLevel != CONNECTION_ERROR_NONE )
                 {
                     yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "client %d connection is in error state. disconnecting client\n", i );
+                    SetClientDisconnectReason( i, ClientDisconnectReasonForConnectionError( *m_clientConnection[i], connectionErrorLevel, m_config.numChannels ) );
                     DisconnectClient( i );
                     continue;
                 }
@@ -367,6 +415,20 @@ namespace yojimbo
         yojimbo_assert( pointer );
         Allocator * allocator = (Allocator*) context;
         YOJIMBO_FREE( *allocator, pointer );
+    }
+
+    int BaseServer::GetClientDisconnectReason( int clientIndex ) const
+    {
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        return m_clientDisconnectReason[clientIndex];
+    }
+
+    void BaseServer::SetClientDisconnectReason( int clientIndex, int disconnectReason )
+    {
+        yojimbo_assert( clientIndex >= 0 );
+        yojimbo_assert( clientIndex < m_maxClients );
+        m_clientDisconnectReason[clientIndex] = disconnectReason;
     }
 
     void BaseServer::ResetClient( int clientIndex )

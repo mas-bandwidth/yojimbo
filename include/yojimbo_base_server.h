@@ -87,7 +87,19 @@ namespace yojimbo
 
         void GetNetworkInfo( int clientIndex, NetworkInfo & info ) const;
 
+        /**
+            Get the reason the client in this slot was last disconnected.
+            Valid while the server is running. Recorded before Adapter::OnServerClientDisconnected is called,
+            so you can query it from inside that callback. See ServerClientDisconnectReason for the values.
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+            @returns The disconnect reason (a ServerClientDisconnectReason value). YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE if no client has disconnected from this slot since the server started, or if a new client has since connected to it.
+         */
+
+        int GetClientDisconnectReason( int clientIndex ) const;
+
     protected:
+
+        void SetClientDisconnectReason( int clientIndex, int disconnectReason );
 
         uint8_t * GetPacketBuffer() { return m_packetBuffer; }
 
@@ -137,6 +149,7 @@ namespace yojimbo
         MessageFactory * m_clientMessageFactory[MaxClients];        ///< Array of per-client message factories. This silos message allocations per-client slot.
         Connection * m_clientConnection[MaxClients];                ///< Array of per-client connection classes. This is how messages are exchanged with clients.
         reliable_endpoint_t * m_clientEndpoint[MaxClients];         ///< Array of per-client reliable endpoints.
+        int m_clientDisconnectReason[MaxClients];                   ///< Per-client slot reason the last client in that slot was disconnected (ServerClientDisconnectReason). Reset to none at server start, and when a new client connects to the slot.
         NetworkSimulator * m_networkSimulator;                      ///< The network simulator used to simulate packet loss, latency, jitter etc. Optional.
         uint8_t * m_packetBuffer;                                   ///< Buffer used when writing packets.
     };

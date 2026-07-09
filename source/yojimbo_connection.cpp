@@ -362,6 +362,13 @@ namespace yojimbo
         return true;
     }
 
+    ChannelErrorLevel Connection::GetChannelErrorLevel( int channelIndex ) const
+    {
+        yojimbo_assert( channelIndex >= 0 );
+        yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
+        return m_channel[channelIndex]->GetErrorLevel();
+    }
+
     void Connection::ProcessAcks( const uint16_t * acks, int numAcks )
     {
         for ( int i = 0; i < numAcks; ++i )

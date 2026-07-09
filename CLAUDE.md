@@ -118,12 +118,14 @@ closed within the contract: `ClientServerConfig::Validate()`
 asserts each config invariant at startup with a message naming the field and the fix, and
 compiles away entirely in release.
 
-1. **Disconnect diagnostics are thin for production use.** Channel errors collapse into
-   one enum, trigger a disconnect, and the reason is only visible as an ERROR-level log
-   line at the moment it happens. A game shipping at scale wants to know *why* clients
-   disconnect (which channel, which error, counters over time) programmatically —
-   `GetNetworkInfo` covers transport stats but there's no error/disconnect-cause
-   telemetry surface. This is the gap I'd feel first operating a real game on it.
+1. **Disconnect diagnostics are thin for production use.** *(Server side addressed:
+   `Server::GetClientDisconnectReason(clientIndex)` returns a per-slot
+   `ServerClientDisconnectReason` — kicked, transport disconnect/timeout, serialize
+   failure, desync, out of memory, etc. — recorded before
+   `Adapter::OnServerClientDisconnected` fires so it can be queried from the callback.)*
+   The client side still compresses the detailed netcode states (connection denied, token
+   expired, timed out) into a single `CLIENT_STATE_ERROR`, so a game cannot tell the
+   player "server is full" versus "network error" without querying netcode directly.
 
 2. **The single-threaded, ≤100-player contract is under-signposted.** Both are deliberate
    design decisions (see the design contract above), and the author is comfortable with

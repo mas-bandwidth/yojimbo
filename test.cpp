@@ -2346,6 +2346,204 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     server.Stop();
 }
 
+void test_server_client_disconnect_reason()
+{
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    double time = 100.0;
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
+
+    server.Start( MaxClients );
+
+    // all client slots are cleared to none at server start
+
+    for ( int i = 0; i < MaxClients; ++i )
+    {
+        check( server.GetClientDisconnectReason( i ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE );
+    }
+
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
+
+    const int NumIterations = 10000;
+
+    // connect a client. while it is connected the reason stays none
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( 0 ) );
+    check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE );
+
+    // kick the client. the reason is recorded immediately, before the adapter callback fires
+
+    server.DisconnectClient( 0 );
+
+    check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( !client.IsConnected() )
+            break;
+    }
+
+    check( !client.IsConnected() );
+    check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED );
+
+    // reconnect. a new client connecting to the slot clears the reason back to none
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( 0 ) );
+    check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE );
+
+    // clean client-side disconnect is recorded as a transport-level disconnect
+
+    client.Disconnect();
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( server.GetNumConnectedClients() == 0 )
+            break;
+    }
+
+    check( server.GetNumConnectedClients() == 0 );
+    check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED );
+
+    // restarting the server clears all slots back to none
+
+    server.Stop();
+
+    server.Start( MaxClients );
+
+    for ( int i = 0; i < MaxClients; ++i )
+    {
+        check( server.GetClientDisconnectReason( i ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE );
+    }
+
+    server.Stop();
+}
+
+void test_server_client_disconnect_reason_failed_to_serialize()
+{
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    double time = 100.0;
+
+    ClientServerConfig config;
+    config.maxPacketSize = 1100;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1024;
+    config.channel[0].blockFragmentSize = 200;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
+
+    server.Start( MaxClients );
+
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    const int NumIterations = 10000;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( !client.IsConnecting() );
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+
+    // send a message that fails to serialize on read. the server disconnects the client
+    // and records the specific channel error as the disconnect reason
+
+    Message * message = client.CreateMessage( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
+    check( message );
+    client.SendMessage( 0, message );
+
+    for ( int i = 0; i < 256; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
+            break;
+    }
+
+    check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
+    check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE );
+
+    client.Disconnect();
+
+    server.Stop();
+}
+
 void test_client_server_message_failed_to_serialize_unreliable_unordered()
 {
     const uint64_t clientId = 1;
@@ -3254,6 +3452,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
+        RUN_TEST( test_server_client_disconnect_reason );
+        RUN_TEST( test_server_client_disconnect_reason_failed_to_serialize );
         RUN_TEST( test_client_server_message_failed_to_serialize_unreliable_unordered );
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
