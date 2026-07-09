@@ -27,6 +27,7 @@
 
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 #include <stdio.h>
+#include <stdlib.h>
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
 #include "tlsf/tlsf.h"

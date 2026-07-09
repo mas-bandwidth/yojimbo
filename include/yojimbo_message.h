@@ -26,6 +26,7 @@
 #define YOJIMBO_MESSAGE_H
 
 #include "yojimbo_config.h"
+#include <stdlib.h>
 #include "yojimbo_serialize.h"
 #include "yojimbo_allocator.h"
 

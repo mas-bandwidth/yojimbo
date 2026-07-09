@@ -25,6 +25,7 @@
 #include "yojimbo_config.h"
 
 #include <stdint.h>
+#include <stdio.h>
 
 extern "C" void netcode_random_bytes( uint8_t*, int );
 

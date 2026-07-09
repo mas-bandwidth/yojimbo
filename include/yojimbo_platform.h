@@ -26,6 +26,8 @@
 #define YOJIMBO_PLATFORM_H
 
 #include "yojimbo_config.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 /**
     Sleep for approximately this number of seconds.

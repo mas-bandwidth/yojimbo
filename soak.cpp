@@ -24,6 +24,8 @@
 
 #include "shared.h"
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 const int MaxPacketSize = 16 * 1024;
 const int MaxSnapshotSize = 8 * 1024;

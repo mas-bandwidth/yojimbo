@@ -25,6 +25,7 @@
 #include "yojimbo_address.h"
 #include "yojimbo_platform.h"
 #include "yojimbo_utils.h"
+#include <stdio.h>
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 

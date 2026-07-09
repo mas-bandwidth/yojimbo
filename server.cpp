@@ -25,6 +25,8 @@
 #include "yojimbo.h"
 #include <signal.h>
 #include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "shared.h"
 
