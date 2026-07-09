@@ -214,7 +214,7 @@ namespace yojimbo
             maxSimulatorPackets = 4 * 1024;
             fragmentPacketsAbove = 1024;
             packetFragmentSize = 1024;
-            maxPacketFragments = (int) ceil( maxPacketSize / packetFragmentSize );
+            maxPacketFragments = (int) ceil( maxPacketSize / (double) packetFragmentSize );
             packetReassemblyBufferSize = 64;
             ackedPacketsBufferSize = 256;
             receivedPacketsBufferSize = 256;
