@@ -258,11 +258,14 @@ namespace yojimbo
         if ( connected == 0 )
         {
             // If no reason was recorded before the transport-level disconnect (connection error,
-            // kick), the client cleanly disconnected or timed out. Record it before the adapter
-            // callback, so OnServerClientDisconnected can query the reason.
+            // kick), ask netcode why: the client either timed out or cleanly disconnected.
+            // Record it before the adapter callback, so OnServerClientDisconnected can query it.
             if ( GetClientDisconnectReason( clientIndex ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE )
             {
-                SetClientDisconnectReason( clientIndex, YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED );
+                const int netcodeReason = netcode_server_client_disconnect_reason( m_server, clientIndex );
+                SetClientDisconnectReason( clientIndex, netcodeReason == NETCODE_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT
+                                                            ? YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT
+                                                            : YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED );
             }
             GetAdapter().OnServerClientDisconnected( clientIndex );
             reliable_endpoint_reset( GetClientEndpoint( clientIndex ) );
