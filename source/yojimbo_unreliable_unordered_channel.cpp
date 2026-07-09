@@ -220,6 +220,19 @@ namespace yojimbo
         packetData.channelIndex = GetChannelIndex();
         packetData.message.numMessages = numMessages;
         packetData.message.messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
+
+        if ( !packetData.message.messages )
+        {
+            // Out of memory. These messages were already popped off the send queue, so this
+            // channel owns the only reference to each: release them here or they leak. Leave the
+            // arm empty (numMessages = 0) so packetData stays safe, and send no data this packet.
+            for ( int i = 0; i < numMessages; ++i )
+                m_messageFactory->ReleaseMessage( messages[i] );
+            packetData.message.numMessages = 0;
+            SetErrorLevel( CHANNEL_ERROR_OUT_OF_MEMORY );
+            return 0;
+        }
+
         for ( int i = 0; i < numMessages; ++i )
         {
             packetData.message.messages[i] = messages[i];

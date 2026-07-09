@@ -14,6 +14,15 @@
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+CTestTestfile.cmake
+# CMake generates the top-level Makefile for in-source builds; never commit it.
+/Makefile
+
+# Build artifacts: compiled objects and static libraries must never be committed.
+*.a
+*.o
+*.obj
+*.lib
 
 # Misc
 *.txt

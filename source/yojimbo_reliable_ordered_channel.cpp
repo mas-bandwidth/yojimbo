@@ -252,7 +252,8 @@ namespace yojimbo
 
             if ( numMessageIds > 0 )
             {
-                GetMessagePacketData( packetData, messageIds, numMessageIds );
+                if ( !GetMessagePacketData( packetData, messageIds, numMessageIds ) )
+                    return 0;
                 AddMessagePacketEntry( messageIds, numMessageIds, packetSequence );
                 return messageBits;
             }
@@ -337,18 +338,28 @@ namespace yojimbo
         return usedBits;
     }
 
-    void ReliableOrderedChannel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
+    bool ReliableOrderedChannel::GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds )
     {
         yojimbo_assert( messageIds );
 
         packetData.Initialize();
         packetData.channelIndex = GetChannelIndex();
         packetData.message.numMessages = numMessageIds;
-        
+
         if ( numMessageIds == 0 )
-            return;
+            return true;
 
         packetData.message.messages = (Message**) YOJIMBO_ALLOCATE( m_messageFactory->GetAllocator(), sizeof( Message* ) * numMessageIds );
+
+        if ( !packetData.message.messages )
+        {
+            // Out of memory. Leave the arm empty (numMessages = 0) so packetData stays safe to
+            // Free/serialize, and report failure so the caller drops this channel's data. We
+            // haven't acquired any message references yet, so there is nothing to release.
+            packetData.message.numMessages = 0;
+            SetErrorLevel( CHANNEL_ERROR_OUT_OF_MEMORY );
+            return false;
+        }
 
         for ( int i = 0; i < numMessageIds; ++i )
         {
@@ -359,6 +370,8 @@ namespace yojimbo
             packetData.message.messages[i] = entry->message;
             m_messageFactory->AcquireMessage( packetData.message.messages[i] );
         }
+
+        return true;
     }
 
     void ReliableOrderedChannel::AddMessagePacketEntry( const uint16_t * messageIds, int numMessageIds, uint16_t sequence )
