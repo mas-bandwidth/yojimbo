@@ -158,6 +158,17 @@ namespace yojimbo
             // which counts fragments with ceil).
             return ( maxBlockSize + blockFragmentSize - 1 ) / blockFragmentSize;
         }
+
+        /**
+            Validate this channel configuration.
+            Asserts (debug builds only, zero overhead in release) on invariants the channel implementations rely on,
+            so an invalid channel config fails loudly at startup rather than corrupting channel state at runtime.
+            Called for each channel by ConnectionConfig::Validate.
+            @param channelIndex The index of this channel in the connection config. Used for error reporting.
+            @param maxPacketSize The maximum packet size from the connection config (bytes).
+         */
+
+        void Validate( int channelIndex, int maxPacketSize ) const;
     };
 
     /**
@@ -178,6 +189,16 @@ namespace yojimbo
             maxPacketSize = 8 * 1024;
             channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
         }
+
+        /**
+            Validate this connection configuration.
+            Asserts (debug builds only, zero overhead in release) on invariants the connection and channels rely on,
+            so an invalid config fails loudly at startup rather than corrupting state at runtime.
+            IMPORTANT: The connection config must be identical on the client and the server. This validates each side
+            locally — keeping the two sides in sync is your responsibility.
+         */
+
+        void Validate() const;
     };
 
     /**
@@ -220,6 +241,18 @@ namespace yojimbo
             receivedPacketsBufferSize = 256;
             rttSmoothingFactor = 0.0025f;
         }
+
+        /**
+            Validate this client/server configuration.
+            Asserts (debug builds only, zero overhead in release) on invariants the client and server rely on,
+            so an invalid config fails loudly at startup rather than misbehaving at runtime.
+            Called automatically by Server::Start and when the client connects. You can also call it directly.
+            IMPORTANT: If you increase maxPacketSize after construction, you must also update maxPacketFragments,
+            because it is derived from maxPacketSize inside the ClientServerConfig constructor. This is one of the
+            things validated here.
+         */
+
+        void Validate() const;
     };
 }
 

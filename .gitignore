@@ -8,21 +8,56 @@
 *.vcxproj.filters
 *.sln
 
-# CMake
+# CMake generated build files must never be committed (including in-source builds)
 /build/
 /build-*/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 CTestTestfile.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+install_manifest.txt
+compile_commands.json
+Testing/
+_deps/
+.cmake/
 # CMake generates the top-level Makefile for in-source builds; never commit it.
 /Makefile
+# Ninja generator (in-source builds)
+build.ninja
+.ninja_deps
+.ninja_log
 
-# Build artifacts: compiled objects and static libraries must never be committed.
+# Build artifacts: compiled objects, libraries, executables and debug symbols
+# must never be committed.
 *.a
 *.o
 *.obj
 *.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.pdb
+*.ilk
+*.exp
+*.dSYM/
+
+# Locally built fuzz targets and libFuzzer artifacts (see fuzz/README.md; the
+# committed seed corpus lives in fuzz/corpus/, the working corpus in /corpus/)
+/fuzz_reliable
+/fuzz_netcode
+/fuzz_netcode_connect_token
+/fuzz_connection
+/fuzz_connection_structured
+/corpus/
+crash-*
+oom-*
+timeout-*
+leak-*
 
 # Misc
 *.txt

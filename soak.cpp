@@ -26,6 +26,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 const int MaxPacketSize = 16 * 1024;
 const int MaxSnapshotSize = 8 * 1024;
@@ -45,6 +46,10 @@ int SoakMain( int iterations )
 {
     ClientServerConfig config;
     config.maxPacketSize = MaxPacketSize;
+    // maxPacketFragments was derived from the default maxPacketSize in the ClientServerConfig
+    // constructor. We just doubled maxPacketSize, so recompute it or packets larger than
+    // packetFragmentSize * maxPacketFragments can't be fragmented (config.Validate() catches this).
+    config.maxPacketFragments = (int) ceil( config.maxPacketSize / (double) config.packetFragmentSize );
     config.clientMemory = 100 * 1024 * 1024;
     config.serverGlobalMemory = 10 * 1024 * 1024;
     config.serverPerClientMemory = 100 * 1024 * 1024;

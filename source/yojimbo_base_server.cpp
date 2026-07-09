@@ -47,6 +47,8 @@ namespace yojimbo
     {
         yojimbo_assert( maxClients <= MaxClients );
 
+        m_config.Validate();
+
         Stop();
 
         m_running = true;

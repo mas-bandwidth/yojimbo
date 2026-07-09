@@ -137,6 +137,8 @@ namespace yojimbo
         yojimbo_assert( m_clientAllocator == NULL );
         yojimbo_assert( m_messageFactory == NULL );
 
+        m_config.Validate();
+
         m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
         m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
         m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
