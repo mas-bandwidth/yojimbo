@@ -30,7 +30,7 @@ yojimbo is **single-threaded**. Call all client and server functions from the sa
 
 yojimbo is designed for **client/server games with 100 players or less**.
 
-The client and server must use the **same configuration**. Make sure the `ClientServerConfig`, channels and message factory are identical on both sides, or the client and server won't work together. In debug builds, each side validates its own configuration at startup and asserts if it's invalid — keeping the two sides in sync is your responsibility.
+The client and server must use the **same configuration**. Make sure the `ClientServerConfig`, channels and message factory are identical on both sides, or the client and server won't work together. Keeping the two sides in sync is your responsibility.
 
 ## Source Code
 
