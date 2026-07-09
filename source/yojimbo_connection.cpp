@@ -260,6 +260,15 @@ namespace yojimbo
                 if ( !packet.AllocateChannelData( *m_messageFactory, numChannelsWithData ) )
                 {
                     yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate channel data\n" );
+                    // GetPacketData already populated channelData for each channel with data
+                    // (acquired message references, allocated message-pointer arrays, copied
+                    // fragment data). Ownership hasn't transferred to the packet yet, so free
+                    // those entries here or they leak on this error path.
+                    for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
+                    {
+                        if ( channelHasData[channelIndex] )
+                            channelData[channelIndex].Free( *m_messageFactory );
+                    }
                     return false;
                 }
 

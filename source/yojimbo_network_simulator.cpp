@@ -97,6 +97,13 @@ namespace yojimbo
 
         packetEntry.to = to;
         packetEntry.packetData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
+        if ( !packetEntry.packetData )
+        {
+            // The simulator is lossy by design, so on OOM just drop this packet (leaving an
+            // empty slot, which ReceivePackets skips) rather than dereferencing NULL.
+            packetEntry = PacketEntry();
+            return;
+        }
         memcpy( packetEntry.packetData, packetData, packetBytes );
         packetEntry.packetBytes = packetBytes;
         packetEntry.deliveryTime = m_time + delay;
@@ -112,10 +119,18 @@ namespace yojimbo
             }
             nextPacketEntry.to = to;
             nextPacketEntry.packetData = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, packetBytes );
-            memcpy( nextPacketEntry.packetData, packetData, packetBytes );
-            nextPacketEntry.packetBytes = packetBytes;
-            nextPacketEntry.deliveryTime = m_time + delay + yojimbo_random_float( 0, +1.0 );
-            m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
+            if ( nextPacketEntry.packetData )
+            {
+                memcpy( nextPacketEntry.packetData, packetData, packetBytes );
+                nextPacketEntry.packetBytes = packetBytes;
+                nextPacketEntry.deliveryTime = m_time + delay + yojimbo_random_float( 0, +1.0 );
+                m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
+            }
+            else
+            {
+                // OOM on the duplicate copy: just skip the duplicate (leave an empty slot).
+                nextPacketEntry = PacketEntry();
+            }
         }
     }
 

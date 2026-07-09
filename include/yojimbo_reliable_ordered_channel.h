@@ -109,7 +109,7 @@ namespace yojimbo
             @see GetMessagesToSend
          */
 
-        void GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds );
+        bool GetMessagePacketData( ChannelPacketData & packetData, const uint16_t * messageIds, int numMessageIds );
 
         /**
             Add a packet entry for the set of messages included in a packet.

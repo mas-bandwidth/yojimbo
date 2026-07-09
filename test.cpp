@@ -60,6 +60,51 @@ do                                                                             \
     }                                                                          \
 } while(0)
 
+// Allocator used by the allocation-failure tests. Delegates to malloc/free, tracks the number of
+// outstanding blocks so leaks are observable, and can be "armed" to start returning NULL after a
+// given number of successful allocations (to force a failure at a specific point).
+class ArmableAllocator : public Allocator
+{
+public:
+    ArmableAllocator() : m_allocsUntilFail( -1 ), m_outstanding( 0 ) {}
+    void Arm( int allocsUntilFail ) { m_allocsUntilFail = allocsUntilFail; }
+    void Disarm() { m_allocsUntilFail = -1; }
+    int GetOutstanding() const { return m_outstanding; }
+
+    void * Allocate( size_t size, const char * file, int line )
+    {
+        if ( m_allocsUntilFail == 0 )
+        {
+            SetErrorLevel( ALLOCATOR_ERROR_OUT_OF_MEMORY );
+            return NULL;
+        }
+        if ( m_allocsUntilFail > 0 )
+            m_allocsUntilFail--;
+        void * p = malloc( size );
+        if ( !p )
+        {
+            SetErrorLevel( ALLOCATOR_ERROR_OUT_OF_MEMORY );
+            return NULL;
+        }
+        m_outstanding++;
+        TrackAlloc( p, size, file, line );
+        return p;
+    }
+
+    void Free( void * p, const char * file, int line )
+    {
+        if ( !p )
+            return;
+        m_outstanding--;
+        TrackFree( p, file, line );
+        free( p );
+    }
+
+private:
+    int m_allocsUntilFail;
+    int m_outstanding;
+};
+
 void test_queue()
 {
     const int QueueSize = 1024;
@@ -1745,6 +1790,107 @@ void ProcessClientToServerMessages( Server & server, int clientIndex, int & numM
     }
 }
 
+void test_connection_reliable_message_alloc_failure()
+{
+    // Regression: on the send path, GetMessagePacketData allocated the message-pointer array
+    // without checking for NULL and then wrote through it - a crash on allocator exhaustion.
+    // Arm the allocator to fail that first allocation inside GeneratePacket and verify we neither
+    // crash nor leak (the queued reliable message is retained and freed at teardown).
+    ArmableAllocator allocator;
+    {
+        TestMessageFactory messageFactory( allocator );
+
+        ConnectionConfig config;
+        config.numChannels = 1;
+        config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+        {
+            Connection connection( allocator, messageFactory, config, 100.0 );
+
+            Message * message = messageFactory.CreateMessage( TEST_MESSAGE );
+            check( message );
+            connection.SendMessage( 0, message );
+
+            uint8_t packetData[4096];
+            int packetBytes = 0;
+
+            allocator.Arm( 0 );     // fail the first allocation inside GeneratePacket (message array)
+            connection.GeneratePacket( NULL, 0, packetData, sizeof( packetData ), packetBytes );
+            allocator.Disarm();
+        }
+    }
+    check( allocator.GetOutstanding() == 0 );   // no leak across teardown
+}
+
+void test_connection_unreliable_message_alloc_failure()
+{
+    // Regression: the unreliable channel's GetPacketData allocated the message-pointer array
+    // without a NULL check and then wrote through it. The messages had already been popped off
+    // the send queue, so a failure crashed (NULL deref) and would have leaked the popped
+    // messages. Arm the allocator to fail that allocation and verify no crash and no leak.
+    ArmableAllocator allocator;
+    {
+        TestMessageFactory messageFactory( allocator );
+
+        ConnectionConfig config;
+        config.numChannels = 1;
+        config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+        {
+            Connection connection( allocator, messageFactory, config, 100.0 );
+
+            for ( int i = 0; i < 4; ++i )
+            {
+                Message * message = messageFactory.CreateMessage( TEST_MESSAGE );
+                check( message );
+                connection.SendMessage( 0, message );
+            }
+
+            uint8_t packetData[4096];
+            int packetBytes = 0;
+
+            allocator.Arm( 0 );     // fail the message-pointer array allocation in GetPacketData
+            connection.GeneratePacket( NULL, 0, packetData, sizeof( packetData ), packetBytes );
+            allocator.Disarm();
+        }
+    }
+    check( allocator.GetOutstanding() == 0 );   // popped messages released, nothing leaked
+}
+
+void test_connection_generate_packet_channel_data_alloc_failure()
+{
+    // Regression: when AllocateChannelData failed, GeneratePacket returned without freeing the
+    // per-channel packet data GetPacketData had already populated (acquired message references
+    // and the allocated message-pointer array), leaking them. Arm the allocator so the message
+    // array allocation succeeds but the subsequent channel-data allocation fails, and verify
+    // nothing leaks.
+    ArmableAllocator allocator;
+    {
+        TestMessageFactory messageFactory( allocator );
+
+        ConnectionConfig config;
+        config.numChannels = 1;
+        config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+        {
+            Connection connection( allocator, messageFactory, config, 100.0 );
+
+            Message * message = messageFactory.CreateMessage( TEST_MESSAGE );
+            check( message );
+            connection.SendMessage( 0, message );
+
+            uint8_t packetData[4096];
+            int packetBytes = 0;
+
+            allocator.Arm( 1 );     // 1st alloc (message array) succeeds, 2nd (channel data) fails
+            const bool result = connection.GeneratePacket( NULL, 0, packetData, sizeof( packetData ), packetBytes );
+            allocator.Disarm();
+            check( !result );       // the channel-data allocation failure fails the generate
+        }
+    }
+    check( allocator.GetOutstanding() == 0 );   // no leak across teardown
+}
+
 void test_client_server_messages()
 {
     const uint64_t clientId = 1;
@@ -3002,6 +3148,9 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
+        RUN_TEST( test_connection_reliable_message_alloc_failure );
+        RUN_TEST( test_connection_unreliable_message_alloc_failure );
+        RUN_TEST( test_connection_generate_packet_channel_data_alloc_failure );
 
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );

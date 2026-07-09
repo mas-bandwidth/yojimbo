@@ -27,7 +27,8 @@
 #include "netcode.h"
 #include "reliable.h"
 
-#include <sodium.h>
+// Note: libsodium is initialized by netcode_init() (which calls sodium_init and fails if it
+// can't), so this translation unit no longer calls sodium directly and does not include sodium.h.
 
 static yojimbo::Allocator * g_defaultAllocator;
 
@@ -42,18 +43,25 @@ namespace yojimbo
 
 bool InitializeYojimbo()
 {
-    // Create the default allocator only once everything else has initialised, so a
-    // failure partway through doesn't leak it (callers don't call ShutdownYojimbo
-    // when InitializeYojimbo returns false).
+    // Bring subsystems up in order and unwind anything already initialized if a later step
+    // fails. Callers do not call ShutdownYojimbo when InitializeYojimbo returns false, so on
+    // every failure path we must leave the process exactly as we found it: no subsystem left
+    // initialized, and no default allocator leaked.
     if ( netcode_init() != NETCODE_OK )
         return false;
 
+    // netcode_init() already calls sodium_init() (and fails if it can't), so we don't repeat it
+    // here: netcode owns that call and takes priority. There is nothing extra to initialize for
+    // libsodium at the yojimbo layer.
+
     if ( reliable_init() != RELIABLE_OK )
+    {
+        netcode_term();
         return false;
+    }
 
-    if ( sodium_init() == -1 )
-        return false;
-
+    // Create the default allocator last, so an earlier failure can't leak it. (Throwing new:
+    // it never returns NULL, so there is no allocator-failure path to unwind here.)
     yojimbo_assert( g_defaultAllocator == NULL );
     g_defaultAllocator = new yojimbo::DefaultAllocator();
 
