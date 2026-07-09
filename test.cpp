@@ -449,6 +449,59 @@ void test_address()
     }
 }
 
+void test_network_simulator_drains_all_slots()
+{
+    // Regression: ReceivePackets used to scan only the first min(numEntries, maxPackets) ring
+    // slots. Packets are stored across the whole ring (at m_currentIndex), so when a caller
+    // passes maxPackets < numEntries, any packet held in a tail slot was never drained. It must
+    // scan the entire ring and only cap how many packets it returns per call.
+
+    const int NumEntries = 4;
+
+    NetworkSimulator sim( GetDefaultAllocator(), NumEntries, 0.0 );
+
+    // Negative loss/duplicate rates make those RNG checks impossible to fire (random_float is
+    // always >= 0), so sends are fully deterministic, and they mark the simulator active.
+    sim.SetPacketLoss( -1.0f );
+    sim.SetDuplicates( -1.0f );
+
+    uint8_t payload[8];
+    for ( int i = 0; i < NumEntries; ++i )
+    {
+        memset( payload, (uint8_t) i, sizeof( payload ) );
+        sim.SendPacket( i, payload, sizeof( payload ) );    // fills ring slots 0..NumEntries-1, "to" == slot
+    }
+
+    sim.AdvanceTime( 1.0 );     // past every delivery time (latency 0)
+
+    // Drain with maxPackets (2) smaller than the ring (4). Everything must come out across calls,
+    // including packets in the tail slots that the old code stranded.
+    bool seen[NumEntries] = {};
+    int totalReceived = 0;
+
+    for ( int iter = 0; iter < NumEntries + 2; ++iter )
+    {
+        uint8_t * packetData[2];
+        int packetBytes[2];
+        int to[2];
+        const int n = sim.ReceivePackets( 2, packetData, packetBytes, to );
+        check( n <= 2 );        // never returns more than maxPackets
+        for ( int i = 0; i < n; ++i )
+        {
+            check( to[i] >= 0 && to[i] < NumEntries );
+            check( !seen[to[i]] );      // no packet delivered twice
+            check( packetBytes[i] == (int) sizeof( payload ) );
+            seen[to[i]] = true;
+            totalReceived++;
+            YOJIMBO_FREE( sim.GetAllocator(), packetData[i] );
+        }
+    }
+
+    check( totalReceived == NumEntries );
+    for ( int i = 0; i < NumEntries; ++i )
+        check( seen[i] );       // tail slots (index >= maxPackets) were drained too
+}
+
 void test_bit_array()
 {
     const int Size = 300;
@@ -2932,6 +2985,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_crypto_aead_vectors );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
+        RUN_TEST( test_network_simulator_drains_all_slots );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
         RUN_TEST( test_allocator_tlsf );
