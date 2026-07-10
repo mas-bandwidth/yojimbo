@@ -98,6 +98,13 @@ but they are footguns and polish, not rot.
   integration walkthrough rather than API listing, and `SECURITY.md` is clear about
   scope, reporting, and the vendored-sodium liability. Most commercial codebases don't
   document this well.
+- **Interface stability as a feature.** The library is over ten years old and
+  deliberately keeps the C++ dialect it was written in and the API its users have come
+  to expect — no interface churn chasing language fashion. That is exactly what you want
+  from a networking layer a shipped game depends on: yojimbo is a stable, mature library
+  that values compatibility, for serious people to get things done with. (The two header
+  side effects that reach user translation units on Windows — the `#undef SendMessage`
+  and the MSVC warning pragmas — are documented in BUILDING.md.)
 
 ## Honest criticisms
 
@@ -135,36 +142,32 @@ compiles away entirely in release.
    explains config validation. (These are deliberate design decisions per the contract
    above; the fix was writing them down where integrators read them.)
 
-3. **Manual message refcounting is easy to misuse.** Create/Send transfers ownership;
-   Receive obligates a Release; the compiler enforces none of it. This is consistent with
-   the library's contract style, and the debug leak checker is its enforcement mechanism
-   — which now fails through `yojimbo_assert` (interceptable via
-   `yojimbo_set_assert_function`) rather than `exit(1)`, so editors and tools embedding
-   yojimbo can handle it. This remains the part of the API where integrators will make
-   their first mistake.
+3. **Manual message refcounting — as designed, no change will be considered.**
+   Create/Send transfers ownership; Receive obligates a Release; the compiler enforces
+   none of it. The author's position: this library is over ten years old, deliberately
+   does not use modern C++ features, and changing the API would break the interface its
+   users have come to expect — interface stability is the point. The debug leak checker
+   is the contract's enforcement mechanism (it fails through `yojimbo_assert`,
+   interceptable via `yojimbo_set_assert_function`), and USAGE.md's examples show the
+   ownership pattern. Review future changes against this contract; do not propose
+   RAII/smart-pointer wrappers.
 
-4. **`alloca` sized by config in packet and tick paths** — *largely addressed.* The
-   client/server simulator pumps now drain in fixed-size batches, and the channels own
-   scratch buffers for packet generation, so stack usage no longer scales with
-   `maxSimulatorPackets` or `maxMessagesPerPacket` on those paths. The remaining allocas
-   in `yojimbo_channel.cpp`'s message serialize functions are bounded by the
-   wire-validated message count (≤ `maxMessagesPerPacket`, ~6 bytes per message) and were
-   left because replacing them means threading heap cleanup through many early-return
-   paths in template code.
+4. **`alloca` sized by config in packet and tick paths** — *addressed.* The
+   client/server simulator pumps drain in fixed-size batches, the channels own scratch
+   buffers for packet generation, and the message serialize functions in
+   `yojimbo_channel.cpp` allocate their type/id scratch from the message factory
+   allocator (an outer function owns the allocation and single free; the serialize body
+   with its early returns lives in a separate inner function). Stack usage no longer
+   scales with any config value.
 
-5. **The C++ dialect is dated — deliberately, and now documented.** C++03 idioms (NULL,
-   private copy constructors instead of `=delete`, no `override`, `std::map` in debug
-   trackers) are a fair trade for portability into engine codebases with exceptions and
-   RTTI off. The two side effects that leak into user translation units — the
-   `#undef SendMessage` and the MSVC warning pragmas / `_CRT_SECURE_NO_WARNINGS` in
-   `yojimbo_config.h` — are now documented in BUILDING.md ("Windows header side
-   effects").
-
-6. **Vendored-crypto maintenance burden.** The pruned libsodium subset means upstream
-   CVEs must be tracked and re-vendored by hand. `SECURITY.md` acknowledges this honestly
-   and `-DYOJIMBO_SYSTEM_SODIUM=ON` exists as an escape hatch, which is the right
-   mitigation — but it remains a standing liability inherent to the amalgamation
-   approach, and it's the one place where the single-maintainer model concentrates risk.
+5. **Vendored-crypto maintenance.** Inherent to the amalgamation approach, but managed
+   rather than ad hoc: the process for generating and validating the pruned libsodium
+   subset is documented in the **netcode repository** under `sodium/NOTES.md`
+   (intentionally not duplicated into this repo — yojimbo's copy follows netcode's),
+   netcode's nightly CI opens a tracking issue when upstream libsodium publishes a new
+   release, `SECURITY.md` states the policy, and `-DYOJIMBO_SYSTEM_SODIUM=ON` is the
+   escape hatch for anyone who prefers the system library. What remains is that
+   re-vendoring is a manual — though documented and repeatable — step.
 
 ## Bottom line
 
