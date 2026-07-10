@@ -76,95 +76,212 @@ namespace yojimbo
         initialized = 0;
     }
 
-    template <typename Stream> bool SerializeOrderedMessages( Stream & stream, 
-                                                              MessageFactory & messageFactory, 
-                                                              int & numMessages, 
-                                                              Message ** & messages, 
-                                                              int maxMessagesPerPacket )
+    template <typename Stream> bool SerializeOrderedMessagesInternal( Stream & stream,
+                                                                      MessageFactory & messageFactory,
+                                                                      int & numMessages,
+                                                                      Message ** & messages,
+                                                                      int * messageTypes,
+                                                                      uint16_t * messageIds )
     {
         const int maxMessageType = messageFactory.GetNumTypes() - 1;
 
+        memset( messageTypes, 0, sizeof( int ) * numMessages );
+        memset( messageIds, 0, sizeof( uint16_t ) * numMessages );
+
+        if ( Stream::IsWriting )
+        {
+            yojimbo_assert( messages );
+
+            for ( int i = 0; i < numMessages; ++i )
+            {
+                yojimbo_assert( messages[i] );
+                messageTypes[i] = messages[i]->GetType();
+                messageIds[i] = messages[i]->GetId();
+            }
+        }
+        else
+        {
+            Allocator & allocator = messageFactory.GetAllocator();
+
+            messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
+
+            if ( !messages )
+            {
+                // Out of memory. Leave the arm empty (numMessages = 0) so ChannelPacketData::Free
+                // stays safe, then fail the read; the channel treats this as a serialize failure.
+                numMessages = 0;
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate messages (SerializeOrderedMessages)\n" );
+                return false;
+            }
+
+            for ( int i = 0; i < numMessages; ++i )
+            {
+                messages[i] = NULL;
+            }
+        }
+
+        serialize_bits( stream, messageIds[0], 16 );
+
+        for ( int i = 1; i < numMessages; ++i )
+            serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
+
+        for ( int i = 0; i < numMessages; ++i )
+        {
+            if ( maxMessageType > 0 )
+            {
+                serialize_int( stream, messageTypes[i], 0, maxMessageType );
+            }
+            else
+            {
+                messageTypes[i] = 0;
+            }
+
+            if ( Stream::IsReading )
+            {
+                messages[i] = messageFactory.CreateMessage( messageTypes[i] );
+
+                if ( !messages[i] )
+                {
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to create message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
+                    return false;
+                }
+
+                messages[i]->SetId( messageIds[i] );
+            }
+
+            yojimbo_assert( messages[i] );
+
+            if ( !messages[i]->SerializeInternal( stream ) )
+            {
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    template <typename Stream> bool SerializeOrderedMessages( Stream & stream,
+                                                              MessageFactory & messageFactory,
+                                                              int & numMessages,
+                                                              Message ** & messages,
+                                                              int maxMessagesPerPacket )
+    {
         bool hasMessages = Stream::IsWriting && numMessages != 0;
 
         serialize_bool( stream, hasMessages );
 
-        if ( hasMessages )
+        if ( !hasMessages )
+            return true;
+
+        serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
+
+        // One heap block for the message type and id scratch arrays, so stack usage doesn't
+        // scale with maxMessagesPerPacket. The serialize body lives in a separate function so
+        // all its early returns (including the ones hidden inside serialize_* macros) funnel
+        // through the single free below.
+        Allocator & allocator = messageFactory.GetAllocator();
+
+        uint8_t * scratch = (uint8_t*) YOJIMBO_ALLOCATE( allocator, ( sizeof( int ) + sizeof( uint16_t ) ) * numMessages );
+
+        if ( !scratch )
         {
-            serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
-
-            int * messageTypes = (int*) alloca( sizeof( int ) * numMessages );
-
-            uint16_t * messageIds = (uint16_t*) alloca( sizeof( uint16_t ) * numMessages );
-
-            memset( messageTypes, 0, sizeof( int ) * numMessages );
-            memset( messageIds, 0, sizeof( uint16_t ) * numMessages );
-
-            if ( Stream::IsWriting )
+            if ( Stream::IsReading )
             {
-                yojimbo_assert( messages );
-
-                for ( int i = 0; i < numMessages; ++i )
-                {
-                    yojimbo_assert( messages[i] );
-                    messageTypes[i] = messages[i]->GetType();
-                    messageIds[i] = messages[i]->GetId();
-                }
+                // Leave the arm empty (numMessages = 0) so ChannelPacketData::Free stays safe.
+                // On write the messages remain owned by the packet data, so leave them alone.
+                numMessages = 0;
             }
-            else
-            {
-                Allocator & allocator = messageFactory.GetAllocator();
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate serialize scratch (SerializeOrderedMessages)\n" );
+            return false;
+        }
 
-                messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
+        int * messageTypes = (int*) scratch;
+        uint16_t * messageIds = (uint16_t*) ( scratch + sizeof( int ) * numMessages );
 
-                if ( !messages )
-                {
-                    // Out of memory. Leave the arm empty (numMessages = 0) so ChannelPacketData::Free
-                    // stays safe, then fail the read; the channel treats this as a serialize failure.
-                    numMessages = 0;
-                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate messages (SerializeOrderedMessages)\n" );
-                    return false;
-                }
+        const bool result = SerializeOrderedMessagesInternal( stream, messageFactory, numMessages, messages, messageTypes, messageIds );
 
-                for ( int i = 0; i < numMessages; ++i )
-                {
-                    messages[i] = NULL;
-                }
-            }
+        YOJIMBO_FREE( allocator, scratch );
 
-            serialize_bits( stream, messageIds[0], 16 );
+        return result;
+    }
 
-            for ( int i = 1; i < numMessages; ++i )
-                serialize_sequence_relative( stream, messageIds[i-1], messageIds[i] );
+    template <typename Stream> bool SerializeUnorderedMessagesInternal( Stream & stream,
+                                                                        MessageFactory & messageFactory,
+                                                                        int & numMessages,
+                                                                        Message ** & messages,
+                                                                        int maxBlockSize,
+                                                                        int * messageTypes )
+    {
+        const int maxMessageType = messageFactory.GetNumTypes() - 1;
+
+        memset( messageTypes, 0, sizeof( int ) * numMessages );
+
+        if ( Stream::IsWriting )
+        {
+            yojimbo_assert( messages );
 
             for ( int i = 0; i < numMessages; ++i )
             {
-                if ( maxMessageType > 0 )
-                {
-                    serialize_int( stream, messageTypes[i], 0, maxMessageType );
-                }
-                else
-                {
-                    messageTypes[i] = 0;
-                }
-
-                if ( Stream::IsReading )
-                {
-                    messages[i] = messageFactory.CreateMessage( messageTypes[i] );
-
-                    if ( !messages[i] )
-                    {
-                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to create message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
-                        return false;
-                    }
-
-                    messages[i]->SetId( messageIds[i] );
-                }
-
                 yojimbo_assert( messages[i] );
+                messageTypes[i] = messages[i]->GetType();
+            }
+        }
+        else
+        {
+            Allocator & allocator = messageFactory.GetAllocator();
 
-                if ( !messages[i]->SerializeInternal( stream ) )
+            messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
+
+            if ( !messages )
+            {
+                // Out of memory. Leave the arm empty (numMessages = 0) so ChannelPacketData::Free
+                // stays safe, then fail the read; the channel treats this as a serialize failure.
+                numMessages = 0;
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate messages (SerializeUnorderedMessages)\n" );
+                return false;
+            }
+
+            for ( int i = 0; i < numMessages; ++i )
+                messages[i] = NULL;
+        }
+
+        for ( int i = 0; i < numMessages; ++i )
+        {
+            if ( maxMessageType > 0 )
+            {
+                serialize_int( stream, messageTypes[i], 0, maxMessageType );
+            }
+            else
+            {
+                messageTypes[i] = 0;
+            }
+
+            if ( Stream::IsReading )
+            {
+                messages[i] = messageFactory.CreateMessage( messageTypes[i] );
+
+                if ( !messages[i] )
                 {
-                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message of type %d (SerializeOrderedMessages)\n", messageTypes[i] );
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to create message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
+                    return false;
+                }
+            }
+
+            yojimbo_assert( messages[i] );
+
+            if ( !messages[i]->SerializeInternal( stream ) )
+            {
+                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
+                return false;
+            }
+
+            if ( messages[i]->IsBlockMessage() )
+            {
+                BlockMessage * blockMessage = (BlockMessage*) messages[i];
+                if ( !SerializeMessageBlock( stream, messageFactory, blockMessage, maxBlockSize ) )
+                {
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message block (SerializeUnorderedMessages)\n" );
                     return false;
                 }
             }
@@ -173,99 +290,47 @@ namespace yojimbo
         return true;
     }
 
-    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream, 
-                                                                MessageFactory & messageFactory, 
-                                                                int & numMessages, 
-                                                                Message ** & messages, 
-                                                                int maxMessagesPerPacket, 
+    template <typename Stream> bool SerializeUnorderedMessages( Stream & stream,
+                                                                MessageFactory & messageFactory,
+                                                                int & numMessages,
+                                                                Message ** & messages,
+                                                                int maxMessagesPerPacket,
                                                                 int maxBlockSize )
     {
-        const int maxMessageType = messageFactory.GetNumTypes() - 1;
-
         bool hasMessages = Stream::IsWriting && numMessages != 0;
 
         serialize_bool( stream, hasMessages );
 
-        if ( hasMessages )
+        if ( !hasMessages )
+            return true;
+
+        serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
+
+        // Heap scratch for the message types, so stack usage doesn't scale with
+        // maxMessagesPerPacket. The serialize body lives in a separate function so all its
+        // early returns (including the ones hidden inside serialize_* macros) funnel through
+        // the single free below.
+        Allocator & allocator = messageFactory.GetAllocator();
+
+        int * messageTypes = (int*) YOJIMBO_ALLOCATE( allocator, sizeof( int ) * numMessages );
+
+        if ( !messageTypes )
         {
-            serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
-
-            int * messageTypes = (int*) alloca( sizeof( int ) * numMessages );
-
-            memset( messageTypes, 0, sizeof( int ) * numMessages );
-
-            if ( Stream::IsWriting )
+            if ( Stream::IsReading )
             {
-                yojimbo_assert( messages );
-
-                for ( int i = 0; i < numMessages; ++i )
-                {
-                    yojimbo_assert( messages[i] );
-                    messageTypes[i] = messages[i]->GetType();
-                }
+                // Leave the arm empty (numMessages = 0) so ChannelPacketData::Free stays safe.
+                // On write the messages remain owned by the packet data, so leave them alone.
+                numMessages = 0;
             }
-            else
-            {
-                Allocator & allocator = messageFactory.GetAllocator();
-
-                messages = (Message**) YOJIMBO_ALLOCATE( allocator, sizeof( Message* ) * numMessages );
-
-                if ( !messages )
-                {
-                    // Out of memory. Leave the arm empty (numMessages = 0) so ChannelPacketData::Free
-                    // stays safe, then fail the read; the channel treats this as a serialize failure.
-                    numMessages = 0;
-                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate messages (SerializeUnorderedMessages)\n" );
-                    return false;
-                }
-
-                for ( int i = 0; i < numMessages; ++i )
-                    messages[i] = NULL;
-            }
-
-            for ( int i = 0; i < numMessages; ++i )
-            {
-                if ( maxMessageType > 0 )
-                {
-                    serialize_int( stream, messageTypes[i], 0, maxMessageType );
-                }
-                else
-                {
-                    messageTypes[i] = 0;
-                }
-
-                if ( Stream::IsReading )
-                {
-                    messages[i] = messageFactory.CreateMessage( messageTypes[i] );
-
-                    if ( !messages[i] )
-                    {
-                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to create message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
-                        return false;
-                    }
-                }
-
-                yojimbo_assert( messages[i] );
-
-                if ( !messages[i]->SerializeInternal( stream ) )
-                {
-                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message type %d (SerializeUnorderedMessages)\n", messageTypes[i] );
-                    return false;
-                }
-
-                if ( messages[i]->IsBlockMessage() )
-                {
-                    BlockMessage * blockMessage = (BlockMessage*) messages[i];
-                    if ( !SerializeMessageBlock( stream, messageFactory, blockMessage, maxBlockSize ) )
-                    {
-                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to serialize message block (SerializeUnorderedMessages)\n" );
-                        return false;
-                    }
-                }
-            }
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate serialize scratch (SerializeUnorderedMessages)\n" );
+            return false;
         }
 
-        return true;
+        const bool result = SerializeUnorderedMessagesInternal( stream, messageFactory, numMessages, messages, maxBlockSize, messageTypes );
+
+        YOJIMBO_FREE( allocator, messageTypes );
+
+        return result;
     }
 
     template <typename Stream> bool SerializeBlockFragment( Stream & stream, 
