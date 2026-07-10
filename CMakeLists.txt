@@ -12,7 +12,7 @@
 # `cmake --install` installs the yojimbo headers and library.
 
 cmake_minimum_required(VERSION 3.16)
-project(Yojimbo VERSION 1.6.0 LANGUAGES C CXX)
+project(Yojimbo VERSION 1.6.1 LANGUAGES C CXX)
 
 option(YOJIMBO_SYSTEM_SODIUM
     "Link the system-installed libsodium instead of the bundled subset in sodium/" OFF)
@@ -131,6 +131,9 @@ else()
 
 endif()
 
+# Standalone tlsf archive for regular development (e.g. anyone building straight from this
+# tree). Not linked into yojimbo and not installed — see below, yojimbo compiles tlsf.c
+# directly into its own archive so that only libyojimbo.a ships to package consumers.
 add_library(tlsf STATIC tlsf/tlsf.c)
 target_include_directories(tlsf PRIVATE "${CMAKE_SOURCE_DIR}/tlsf")
 set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -139,16 +142,21 @@ set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Static by default; -DBUILD_SHARED_LIBS=ON builds it shared (the built-in objects are
 # position independent, so they fold in either way).
+#
+# tlsf.c is compiled directly into yojimbo's own sources (rather than linked in from the
+# tlsf target above) so that libyojimbo.a is self-contained: a package manager installs a
+# single archive, with no separate libtlsf.a for consumers to also link against. tlsf is a
+# private implementation detail of yojimbo's per-client allocators, not a public dependency.
 
 file(GLOB YOJIMBO_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/source/*.cpp")
-add_library(yojimbo ${YOJIMBO_SOURCES})
+add_library(yojimbo ${YOJIMBO_SOURCES} "${CMAKE_SOURCE_DIR}/tlsf/tlsf.c")
 target_include_directories(yojimbo PUBLIC ${YOJIMBO_INCLUDE_DIRS})
 set_target_properties(yojimbo PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR})
 
 if(YOJIMBO_SYSTEM_DEPS)
-    target_link_libraries(yojimbo PUBLIC ${YOJIMBO_NETCODE_LIBRARY} ${YOJIMBO_RELIABLE_LIBRARY} tlsf)
+    target_link_libraries(yojimbo PUBLIC ${YOJIMBO_NETCODE_LIBRARY} ${YOJIMBO_RELIABLE_LIBRARY})
     if(YOJIMBO_SODIUM_LIBRARY)
         target_link_libraries(yojimbo PUBLIC ${YOJIMBO_SODIUM_LIBRARY})
     endif()
@@ -157,7 +165,7 @@ if(YOJIMBO_SYSTEM_DEPS)
         target_link_libraries(yojimbo PUBLIC ws2_32 iphlpapi)
     endif()
 else()
-    target_link_libraries(yojimbo PUBLIC netcode reliable tlsf ${YOJIMBO_SODIUM})
+    target_link_libraries(yojimbo PUBLIC netcode reliable ${YOJIMBO_SODIUM})
 endif()
 if(NOT WIN32)
     target_link_libraries(yojimbo PUBLIC m)   # ceil/floor in the reliable-ordered channel etc.
