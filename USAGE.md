@@ -215,6 +215,17 @@ void GameServer::ProcessTestMessage(int clientIndex, TestMessage* message) {
 }
 ```
 
+Now that we're creating, sending, receiving and releasing messages, this is the place to state the **message ownership rules** explicitly. Messages are reference counted and always come from the message factory — never create one with `new` and never delete one directly:
+
+- `CreateMessage` returns a message that **you own**. Check the returned pointer — it is NULL if the message factory is out of memory.
+- `SendMessage` **takes ownership** of the message. After sending, the message belongs to yojimbo: don't touch it, and don't release it.
+- If you create a message and then decide not to send it, release it with `ReleaseMessage`, or it will leak.
+- `ReceiveMessage` returns a message that **you own**. Process it, then call `ReleaseMessage`. Don't use the pointer after releasing it.
+- On the server, messages belong to a **per-client** message factory. Create a message with the same client index you will send it to, and release received messages with the client index you received them from. A message created for one client cannot be sent to another.
+- A block allocated with `AllocateBlock` is owned by the message once you call `AttachBlockToMessage`, and is freed when the message is destroyed. If you allocate a block and never attach it, free it with `FreeBlock`.
+
+In debug builds the message factory checks for leaked messages when the client or server shuts down, prints each leaked message, and fails an assert — so ownership mistakes are caught during development.
+
 Let's leave the server aside for a moment and take a look at the client. You need a `Client` and the same `ClientServerConfig` and `Adapter` as the server. In this example, the game is divided into "screens" and the screen handling the online game is called `OnlineGameScreen`. It looks like this:
 
 ```cpp

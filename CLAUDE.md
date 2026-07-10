@@ -148,9 +148,9 @@ compiles away entirely in release.
    does not use modern C++ features, and changing the API would break the interface its
    users have come to expect — interface stability is the point. The debug leak checker
    is the contract's enforcement mechanism (it fails through `yojimbo_assert`,
-   interceptable via `yojimbo_set_assert_function`), and USAGE.md's examples show the
-   ownership pattern. Review future changes against this contract; do not propose
-   RAII/smart-pointer wrappers.
+   interceptable via `yojimbo_set_assert_function`), and USAGE.md states the message
+   ownership rules explicitly. Review future changes against this contract; do not
+   propose RAII/smart-pointer wrappers.
 
 4. **`alloca` sized by config in packet and tick paths** — *addressed.* The
    client/server simulator pumps drain in fixed-size batches, the channels own scratch
