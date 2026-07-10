@@ -31,7 +31,9 @@
 
 #include "shared.h"
 #include "serialize.h"
+#ifndef YOJIMBO_SYSTEM_DEPS
 #include <sodium.h>
+#endif // #ifndef YOJIMBO_SYSTEM_DEPS
 
 using namespace yojimbo;
 
@@ -3505,12 +3507,16 @@ void test_client_server_messages_network_sim_leak()
     server.Stop();
 }
 
+#ifndef YOJIMBO_SYSTEM_DEPS
+
 void test_crypto_aead_vectors()
 {
     // Known-answer test for the two AEAD primitives netcode relies on. On Windows
     // this exercises the vendored libsodium in sodium/ (including its SSE2/SSSE3/AVX2
     // paths); on other platforms the system libsodium. Expected ciphertext was
     // generated from libsodium 1.0.20 reference output. Do not edit the arrays by hand.
+    // Not built with YOJIMBO_SYSTEM_DEPS: there the system netcode carries its own
+    // crypto, and sodium.h is not on the include path.
     static const uint8_t kat_key[32] = {
         0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x4a,0x4b,
         0x4c,0x4d,0x4e,0x4f,0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,
@@ -3576,6 +3582,8 @@ void test_crypto_aead_vectors()
     check( crypto_aead_xchacha20poly1305_ietf_decrypt( m, &mlen, NULL, c, clen, kat_ad, sizeof( kat_ad ), kat_npub_xchacha, kat_key ) != 0 );
 }
 
+#endif // #ifndef YOJIMBO_SYSTEM_DEPS
+
 #define RUN_TEST( test_function )                                           \
     do                                                                      \
     {                                                                       \
@@ -3590,9 +3598,17 @@ void test_crypto_aead_vectors()
     }                                                                       \
     while (0)
 
+#ifndef YOJIMBO_SYSTEM_DEPS
+
+// The vendored netcode and reliable test suites are compiled into those libraries with
+// NETCODE_ENABLE_TESTS / RELIABLE_ENABLE_TESTS. System-installed libraries (eg. homebrew,
+// -DYOJIMBO_SYSTEM_DEPS=ON) are built without them, so these only exist in vendored builds.
+
 extern "C" void netcode_test();
 
 extern "C" void reliable_test();
+
+#endif // #ifndef YOJIMBO_SYSTEM_DEPS
 
 /*
 #ifndef SOAK
@@ -3641,6 +3657,8 @@ int main( int argc, char ** argv )
             ShutdownYojimbo();
         }
 
+#ifndef YOJIMBO_SYSTEM_DEPS
+
         {
             printf( "\n[netcode]\n\n" );
 
@@ -3661,9 +3679,13 @@ int main( int argc, char ** argv )
             ShutdownYojimbo();
         }
 
+#endif // #ifndef YOJIMBO_SYSTEM_DEPS
+
         printf( "\n[yojimbo]\n\n" );
 
+#ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_crypto_aead_vectors );
+#endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_network_simulator_drains_all_slots );

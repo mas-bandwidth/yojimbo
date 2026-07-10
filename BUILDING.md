@@ -60,6 +60,23 @@ then configure with `-DYOJIMBO_SYSTEM_SODIUM=ON`:
     cmake -B build -DYOJIMBO_SYSTEM_SODIUM=ON
     cmake --build build -j
 
+## Building against system-installed dependencies
+
+By default the build uses the vendored copies of serialize, reliable and netcode. For
+package managers (e.g. homebrew), configure with `-DYOJIMBO_SYSTEM_DEPS=ON` to build
+against system-installed copies of all three instead. They must be installed where CMake
+can find them — pass `-DCMAKE_PREFIX_PATH=/path/to/prefix` for a custom location. In this
+configuration the bundled libsodium isn't used at all (the system netcode supplies its own
+crypto), and `cmake --install` installs the yojimbo headers and library:
+
+    cmake -B build -DYOJIMBO_SYSTEM_DEPS=ON
+    cmake --build build -j
+    ./bin/test
+    cmake --install build
+
+Note that the test suite skips the embedded netcode and reliable self-test sections in
+this configuration — system libraries are built without their test hooks.
+
 cheers
 
  - Glenn
