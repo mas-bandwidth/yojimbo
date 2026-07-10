@@ -239,13 +239,21 @@ namespace yojimbo
     {
         ConnectionPacket packet;
 
+        // The serialize BitWriter stores qwords, so its buffer size must be a multiple of 8
+        // bytes (it may flush a full final qword past the written data). Round the write size
+        // down to the nearest multiple of 8: rounding down (never up) keeps packets within the
+        // configured maxPacketSize on the wire, and the packet buffer is physically
+        // maxPacketBytes so the writer can never overflow it. Budget the channels against the
+        // same rounded size so what we pack always fits what we write.
+        maxPacketBytes &= ~7;
+
         if ( m_connectionConfig.numChannels > 0 )
         {
             int numChannelsWithData = 0;
             bool channelHasData[MaxChannels];
             memset( channelHasData, 0, sizeof( channelHasData ) );
             ChannelPacketData channelData[MaxChannels];
-            
+
             int availableBits = maxPacketBytes * 8 - ConservativePacketHeaderBits;
             
             for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
