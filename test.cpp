@@ -2439,7 +2439,7 @@ void test_server_client_disconnect_reason()
     check( server.IsClientConnected( 0 ) );
     check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE );
 
-    // clean client-side disconnect is recorded as a transport-level disconnect
+    // clean client-side disconnect is recorded as disconnected, distinct from a timeout
 
     client.Disconnect();
 
@@ -2456,6 +2456,43 @@ void test_server_client_disconnect_reason()
 
     check( server.GetNumConnectedClients() == 0 );
     check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED );
+
+    // reconnect, then let the client go silent. the server times it out and records that
+    // as timed out, distinct from a clean disconnect
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, NULL, 0, servers, 1 );
+
+        if ( server.GetNumConnectedClients() == 0 )
+            break;
+    }
+
+    check( server.GetNumConnectedClients() == 0 );
+    check( server.GetClientDisconnectReason( 0 ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT );
+
+    client.Disconnect();
 
     // restarting the server clears all slots back to none
 

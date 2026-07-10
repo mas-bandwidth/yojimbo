@@ -50,7 +50,8 @@ namespace yojimbo
     enum ServerClientDisconnectReason
     {
         YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE = 0,                   ///< No client has disconnected from this slot since the server started, or a new client has since connected to this slot.
-        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED,               ///< The client cleanly disconnected or timed out at the transport level.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED,               ///< The client cleanly disconnected. It sent disconnect packets, eg. the player quit.
+        YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT,                  ///< The client timed out. We stopped hearing from it, eg. network problem or the client crashed.
         YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED,                     ///< Server code called Server::DisconnectClient or Server::DisconnectAllClients for this client.
         YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE,        ///< A message from this client failed to serialize read. Usually a client/server protocol version mismatch, or a bug in a message serialize function.
         YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DESYNC,                     ///< A channel for this client desynced and cannot recover. See CHANNEL_ERROR_DESYNC.
@@ -69,6 +70,7 @@ namespace yojimbo
         {
             case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE:                  return "none";
             case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED:          return "disconnected";
+            case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT:             return "timed out";
             case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED:                return "kicked";
             case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_FAILED_TO_SERIALIZE:   return "failed to serialize";
             case YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DESYNC:                return "desync";
