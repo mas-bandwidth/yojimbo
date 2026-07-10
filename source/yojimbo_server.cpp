@@ -230,6 +230,12 @@ namespace yojimbo
 
     void Server::DisconnectLoopbackClient( int clientIndex )
     {
+        // Same recording rule as DisconnectClient: disconnecting a loopback client is a kick,
+        // and must not overwrite a more specific reason recorded before the disconnect.
+        if ( IsClientConnected( clientIndex ) && GetClientDisconnectReason( clientIndex ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE )
+        {
+            SetClientDisconnectReason( clientIndex, YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED );
+        }
         netcode_server_disconnect_loopback_client( m_server, clientIndex );
     }
 
