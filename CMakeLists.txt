@@ -12,7 +12,7 @@
 # `cmake --install` installs the yojimbo headers and library.
 
 cmake_minimum_required(VERSION 3.16)
-project(Yojimbo VERSION 1.5.0 LANGUAGES C CXX)
+project(Yojimbo VERSION 1.6.0 LANGUAGES C CXX)
 
 option(YOJIMBO_SYSTEM_SODIUM
     "Link the system-installed libsodium instead of the bundled subset in sodium/" OFF)
@@ -43,12 +43,14 @@ endforeach()
 # already defines NDEBUG in Release and not in Debug, so the correct mode is selected
 # automatically — matching what premake set explicitly.
 
-# Warnings Extra, RTTI Off (yojimbo uses its own lightweight message-type RTTI), fast float —
-# matching premake's global settings.
+# Warnings Extra, RTTI Off (yojimbo uses its own lightweight message-type RTTI).
+# No fast math: yojimbo and the vendored libraries build with strict IEEE floating point.
+# (The old premake build set fast float globally; that is deliberately not carried forward —
+# the serializer round-trips floats bit-exactly and fast math has no business in that path.)
 if(MSVC)
-    add_compile_options(/W4 /fp:fast $<$<COMPILE_LANGUAGE:CXX>:/GR->)
+    add_compile_options(/W4 $<$<COMPILE_LANGUAGE:CXX>:/GR->)
 else()
-    add_compile_options(-Wall -Wextra -ffast-math $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>)
+    add_compile_options(-Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>)
 endif()
 
 if(YOJIMBO_SYSTEM_DEPS)

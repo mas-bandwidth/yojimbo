@@ -1299,7 +1299,7 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
 
             reliable_sequence_buffer_advance( endpoint->received_packets, sequence );
 
-            int packet_buffer_size = RELIABLE_MAX_PACKET_HEADER_BYTES + num_fragments * endpoint->config.fragment_size;
+            size_t packet_buffer_size = (size_t) RELIABLE_MAX_PACKET_HEADER_BYTES + (size_t) num_fragments * (size_t) endpoint->config.fragment_size;
 
             reassembly_data->sequence = sequence;
             reassembly_data->ack = 0;
@@ -1310,19 +1310,6 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
             reliable_assert( reassembly_data->packet_data );
             reassembly_data->packet_bytes = 0;
             reassembly_data->packet_header_bytes = 0;
-
-            // yojimbo-local patch (da31341): yojimbo supplies fixed pool allocators that can
-            // run dry, so handle reassembly buffer allocation failure gracefully in release
-
-            if ( !reassembly_data->packet_data )
-            {
-                reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] ignoring fragment. could not allocate reassembly buffer (%d bytes)\n",
-                    endpoint->config.name, packet_buffer_size );
-                reliable_sequence_buffer_remove_with_cleanup( endpoint->fragment_reassembly, sequence, reliable_fragment_reassembly_data_cleanup );
-                endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID]++;
-                return;
-            }
-
             memset( reassembly_data->fragment_received, 0, sizeof( reassembly_data->fragment_received ) );
         }
 

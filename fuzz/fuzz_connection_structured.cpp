@@ -220,8 +220,12 @@ static void inject_adversarial_fragment( Connection & receiver, const Connection
         channelData.block.message = bm;
     }
 
-    uint8_t packet[8 * 1024];
-    WriteStream stream( packet, (int) sizeof( packet ) );
+    // Zero-initialized, with 8 bytes of slack past the write size. The serialize reader loads
+    // a 64-bit window and reads up to 7 bytes past the packet data end (masked out of the
+    // result, but MemorySanitizer sees the load), so the over-read must stay in-bounds and
+    // initialized. Matches the padded buffer in fuzz_connection.
+    uint8_t packet[8 * 1024 + 8] = { 0 };
+    WriteStream stream( packet, 8 * 1024 );
     int numChannelEntries = 1;
     if ( write_channel_entry_count( stream, numChannelEntries, advConfig.numChannels ) &&
          channelData.SerializeInternal( stream, factory, advConfig.channel, advConfig.numChannels ) )
@@ -274,7 +278,9 @@ extern "C" int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )
     FuzzMessageFactory advFactory( allocator );
     Connection advReceiver( allocator, advFactory, advConfig, time );
 
-    uint8_t packetData[8 * 1024];
+    // Zero-initialized with 8 bytes of slack past the generate size, for the reader's 64-bit
+    // over-read window (see the note on the block-fragment packet buffer above).
+    uint8_t packetData[8 * 1024 + 8] = { 0 };
     uint16_t sequence = 0;
     const int MAX_OPS = 512;
 
@@ -323,7 +329,7 @@ extern "C" int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )
         {
             // tick: generate a packet and deliver or drop it
             int packetBytes = 0;
-            if ( sender.GeneratePacket( NULL, sequence, packetData, (int) sizeof( packetData ), packetBytes ) && packetBytes > 0 )
+            if ( sender.GeneratePacket( NULL, sequence, packetData, 8 * 1024, packetBytes ) && packetBytes > 0 )
             {
                 bool drop = ( action & 4 ) != 0;   // fuzz-controlled packet loss
                 if ( !drop )
