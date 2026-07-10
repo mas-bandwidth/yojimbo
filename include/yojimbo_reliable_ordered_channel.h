@@ -368,6 +368,7 @@ namespace yojimbo
         SequenceBuffer<MessageSendQueueEntry> * m_messageSendQueue;                     ///< Message send queue.
         SequenceBuffer<MessageReceiveQueueEntry> * m_messageReceiveQueue;               ///< Message receive queue.
         uint16_t * m_sentPacketMessageIds;                                              ///< Array of n message ids per sent connection packet. Allows the maximum number of messages per-packet to be allocated dynamically.
+        uint16_t * m_packetMessageIds;                                                  ///< Scratch space for the message ids gathered for the packet currently being generated (maxMessagesPerPacket entries). Owned by the channel so stack usage doesn't scale with the config.
         SendBlockData * m_sendBlock;                                                    ///< Data about the block being currently sent.
         ReceiveBlockData * m_receiveBlock;                                              ///< Data about the block being currently received.
 
