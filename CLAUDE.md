@@ -36,6 +36,18 @@ within them:
   that. `LOG_LEVEL_NONE` is not a severity — it's a glorified printf for emitting data to
   library users without log-level filtering interfering (e.g. the assert handler's
   output).
+- **The interface does not change.** The library is over ten years old, deliberately
+  keeps the C++ dialect it was written in, and will not break the API its users have come
+  to expect. This includes the manual message refcounting contract (Create/Send transfers
+  ownership, Receive obligates a Release — the rules are stated explicitly in USAGE.md,
+  and the debug leak checker enforces them). Do not propose interface changes,
+  modernization, or RAII/smart-pointer wrappers.
+- **Sodium vendoring follows netcode.** The process for generating and validating the
+  pruned libsodium subset is documented in the **netcode repository** under
+  `sodium/NOTES.md`, intentionally not duplicated into this repo — don't "fix" or copy
+  it. netcode's nightly CI tracks upstream libsodium releases; to update yojimbo's copy,
+  follow that process in netcode, then re-vendor. `-DYOJIMBO_SYSTEM_SODIUM=ON` links the
+  system library instead.
 
 ## Verdict
 
@@ -46,8 +58,10 @@ wraparound war story, the attacker-controlled-fragment bounds check), the error 
 handled rather than hoped away, and the recent hardening pass — fuzzers over every
 untrusted parser, sanitizers and a sanitized soak test in CI, allocation-failure
 injection tests — puts it well above the norm for open-source game networking. My honest
-overall opinion: I would trust this library in production. The criticisms below are real
-but they are footguns and polish, not rot.
+overall opinion: I would trust this library in production. The July 2026 audit raised a
+set of concerns; every one of them has since been fully addressed — fixed in code, or
+confirmed with the author as deliberate design and documented — so this audit carries no
+open concerns.
 
 ## What's genuinely good
 
@@ -105,80 +119,31 @@ but they are footguns and polish, not rot.
   that values compatibility, for serious people to get things done with. (The two header
   side effects that reach user translation units on Windows — the `#undef SendMessage`
   and the MSVC warning pragmas — are documented in BUILDING.md.)
-
-## Honest criticisms
-
-Ordered by how much I think they matter. (Two items from the first draft of this audit —
-"config validation is assert-only" and "`maxPacketFragments` goes stale" — were revised
-after the author clarified the assert design contract: debug-only validation is the
-intended mechanism, not a defect. What survived is captured in the note below and the
-list that follows.)
-
-*Note on config validation:* the one genuine gap the original criticism found was that
-`maxPacketFragments` is derived from `maxPacketSize` inside the `ClientServerConfig`
-constructor, so raising `maxPacketSize` afterwards (the documented config pattern)
-silently leaves it too small — the debug assert for that case fired three layers down in
-`reliable.c`, at send time, only when a large enough packet was actually generated, and
-nothing pointed at the config field. `soak.cpp` itself had this latent bug. This is now
-closed within the contract: `ClientServerConfig::Validate()`
-(`source/yojimbo_config.cpp`) runs at `Server::Start` and on every client connect path,
-asserts each config invariant at startup with a message naming the field and the fix, and
-compiles away entirely in release.
-
-1. **Disconnect diagnostics** — *addressed on both sides.* Server:
-   `Server::GetClientDisconnectReason(clientIndex)` returns a per-slot
-   `ServerClientDisconnectReason` (kicked, transport disconnect/timeout, serialize
-   failure, desync, out of memory, …), recorded before
-   `Adapter::OnServerClientDisconnected` fires so it can be queried from the callback.
-   Client: `Client::GetDisconnectReason()` returns a `ClientDisconnectReason` that
-   preserves the detailed netcode failure states (connection denied, connect token
-   expired/invalid, request/response/connection timed out, disconnected by server) plus
-   the same connection-error causes, so the game can tell the player "server is full"
-   versus "update your client" versus "network error".
-
-2. **The single-threaded, ≤100-player contract is under-signposted** — *addressed.* The
-   README now has a "Design Assumptions" section stating single-threaded operation, the
-   ~100-players-or-less target, and the identical-config requirement, and USAGE.md
-   explains config validation. (These are deliberate design decisions per the contract
-   above; the fix was writing them down where integrators read them.)
-
-3. **Manual message refcounting — as designed, no change will be considered.**
-   Create/Send transfers ownership; Receive obligates a Release; the compiler enforces
-   none of it. The author's position: this library is over ten years old, deliberately
-   does not use modern C++ features, and changing the API would break the interface its
-   users have come to expect — interface stability is the point. The debug leak checker
-   is the contract's enforcement mechanism (it fails through `yojimbo_assert`,
-   interceptable via `yojimbo_set_assert_function`), and USAGE.md states the message
-   ownership rules explicitly. Review future changes against this contract; do not
-   propose RAII/smart-pointer wrappers.
-
-4. **`alloca` sized by config in packet and tick paths** — *addressed.* The
-   client/server simulator pumps drain in fixed-size batches, the channels own scratch
-   buffers for packet generation, and the message serialize functions in
-   `yojimbo_channel.cpp` allocate their type/id scratch from the message factory
-   allocator (an outer function owns the allocation and single free; the serialize body
-   with its early returns lives in a separate inner function). Stack usage no longer
-   scales with any config value.
-
-5. **Vendored-crypto maintenance.** Inherent to the amalgamation approach, but managed
-   rather than ad hoc: the process for generating and validating the pruned libsodium
-   subset is documented in the **netcode repository** under `sodium/NOTES.md`
-   (intentionally not duplicated into this repo — yojimbo's copy follows netcode's),
-   netcode's nightly CI opens a tracking issue when upstream libsodium publishes a new
-   release, `SECURITY.md` states the policy, and `-DYOJIMBO_SYSTEM_SODIUM=ON` is the
-   escape hatch for anyone who prefers the system library. What remains is that
-   re-vendoring is a manual — though documented and repeatable — step.
+- **Operational visibility, within the contract.** `ClientServerConfig::Validate()` runs
+  at server start and on every client connect, asserting each config invariant with a
+  message naming the field and the fix — debug builds only, compiling away in release
+  (this is what catches the classic mistake of raising `maxPacketSize` without updating
+  the derived `maxPacketFragments`). Both sides report *why* a connection ended:
+  `Server::GetClientDisconnectReason(clientIndex)` distinguishes kicked, clean
+  disconnect, timed out, and the specific connection errors (serialize failure, desync,
+  out of memory, …), recorded before `Adapter::OnServerClientDisconnected` fires so it
+  can be queried from the callback; `Client::GetDisconnectReason()` preserves the
+  detailed netcode failure states, so the game can tell the player "server is full"
+  versus "update your client" versus "network error". Stack usage never scales with
+  config values — packet-path scratch lives on the heap or in fixed-size batches.
 
 ## Bottom line
 
 The architecture is sound, the security engineering is unusually serious for the genre,
 and the code reads like it's been maintained by someone who has debugged it at 90% packet
 loss — because it has. The design contract is coherent: zero trust for anything off the
-wire, full trust plus debug-time assert enforcement for the programmer's own inputs, and
-zero overhead in release. Every ask I weighted highly in the original audit has since
-been addressed: startup config validation, disconnect-cause telemetry on both client and
-server (including the timed-out vs clean-disconnect split, via netcode v1.3.2), and the
-threading/scale contract in the front-page docs. What remains is minor and recorded in
-the criticisms above. If I were choosing a C++ client/server layer for a competitive
-multiplayer game today, this would be on my shortlist, and the source being small and
-readable enough to audit in an afternoon is a large part of why.
+wire, full trust plus debug-time assert enforcement for the programmer's own inputs, zero
+overhead in release, and an interface that does not move underneath its users. The July
+2026 audit's findings were worked through with the author to full resolution — fixed in
+code (startup config validation, disconnect-cause telemetry on both sides including the
+timed-out vs clean-disconnect split via netcode v1.3.2, no config-scaled stack usage), or
+confirmed as deliberate design and documented (the ownership rules in USAGE.md, the
+design assumptions in the README, the Windows header notes in BUILDING.md). If I were
+choosing a C++ client/server layer for a competitive multiplayer game today, this would
+be on my shortlist, and the source being small and readable enough to audit in an
+afternoon is a large part of why.
