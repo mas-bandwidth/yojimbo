@@ -40,6 +40,7 @@ namespace yojimbo
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageSendQueueEntry>, *m_allocator, m_config.messageSendQueueSize );
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, *m_allocator, m_config.messageReceiveQueueSize );
         m_sentPacketMessageIds = (uint16_t*) YOJIMBO_ALLOCATE( *m_allocator, sizeof( uint16_t ) * m_config.maxMessagesPerPacket * m_config.sentPacketBufferSize );
+        m_packetMessageIds = (uint16_t*) YOJIMBO_ALLOCATE( *m_allocator, sizeof( uint16_t ) * m_config.maxMessagesPerPacket );
 
         if ( !config.disableBlocks )
         {
@@ -66,6 +67,7 @@ namespace yojimbo
         YOJIMBO_DELETE( *m_allocator, SequenceBuffer<MessageReceiveQueueEntry>, m_messageReceiveQueue );
         
         YOJIMBO_FREE( *m_allocator, m_sentPacketMessageIds );
+        YOJIMBO_FREE( *m_allocator, m_packetMessageIds );
 
         m_sentPacketMessageIds = NULL;
     }
@@ -247,7 +249,7 @@ namespace yojimbo
         else
         {
             int numMessageIds = 0;
-            uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
+            uint16_t * messageIds = m_packetMessageIds;
             const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits, context );
 
             if ( numMessageIds > 0 )

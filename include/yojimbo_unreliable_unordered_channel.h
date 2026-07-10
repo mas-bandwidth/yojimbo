@@ -80,6 +80,7 @@ namespace yojimbo
 
         Queue<Message*> * m_messageSendQueue;                   ///< Message send queue.
         Queue<Message*> * m_messageReceiveQueue;                ///< Message receive queue.
+        Message ** m_packetMessages;                            ///< Scratch space for the messages gathered for the packet currently being generated (maxMessagesPerPacket entries). Owned by the channel so stack usage doesn't scale with the config.
 
     private:
 

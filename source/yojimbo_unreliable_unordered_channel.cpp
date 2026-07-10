@@ -43,6 +43,7 @@ namespace yojimbo
         yojimbo_assert( config.type == CHANNEL_TYPE_UNRELIABLE_UNORDERED );
         m_messageSendQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.messageSendQueueSize );
         m_messageReceiveQueue = YOJIMBO_NEW( *m_allocator, Queue<Message*>, *m_allocator, m_config.messageReceiveQueueSize );
+        m_packetMessages = (Message**) YOJIMBO_ALLOCATE( *m_allocator, sizeof( Message* ) * m_config.maxMessagesPerPacket );
         Reset();
     }
 
@@ -51,6 +52,7 @@ namespace yojimbo
         Reset();
         YOJIMBO_DELETE( *m_allocator, Queue<Message*>, m_messageSendQueue );
         YOJIMBO_DELETE( *m_allocator, Queue<Message*>, m_messageReceiveQueue );
+        YOJIMBO_FREE( *m_allocator, m_packetMessages );
     }
 
     void UnreliableUnorderedChannel::Reset()
@@ -154,7 +156,7 @@ namespace yojimbo
 
         int usedBits = ConservativeMessageHeaderBits;
         int numMessages = 0;
-        Message ** messages = (Message**) alloca( sizeof( Message* ) * m_config.maxMessagesPerPacket );
+        Message ** messages = m_packetMessages;
 
         while ( true )
         {

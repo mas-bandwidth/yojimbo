@@ -177,14 +177,23 @@ namespace yojimbo
         NetworkSimulator * networkSimulator = GetNetworkSimulator();
         if ( networkSimulator && networkSimulator->IsActive() )
         {
-            uint8_t ** packetData = (uint8_t**) alloca( sizeof( uint8_t*) * m_config.maxSimulatorPackets );
-            int * packetBytes = (int*) alloca( sizeof(int) * m_config.maxSimulatorPackets );
-            int * to = (int*) alloca( sizeof(int) * m_config.maxSimulatorPackets );
-            int numPackets = networkSimulator->ReceivePackets( m_config.maxSimulatorPackets, packetData, packetBytes, to );
-            for ( int i = 0; i < numPackets; ++i )
+            // Drain the simulator in fixed size batches, so stack usage here doesn't scale
+            // with maxSimulatorPackets. Each batch scans the simulator ring again, but the
+            // simulator is a development tool, not a production path.
+            const int MaxBatchPackets = 64;
+            uint8_t * packetData[MaxBatchPackets];
+            int packetBytes[MaxBatchPackets];
+            int to[MaxBatchPackets];
+            while ( true )
             {
-                netcode_server_send_packet( m_server, to[i], (uint8_t*) packetData[i], packetBytes[i] );
-                YOJIMBO_FREE( networkSimulator->GetAllocator(), packetData[i] );
+                const int numPackets = networkSimulator->ReceivePackets( MaxBatchPackets, packetData, packetBytes, to );
+                if ( numPackets == 0 )
+                    break;
+                for ( int i = 0; i < numPackets; ++i )
+                {
+                    netcode_server_send_packet( m_server, to[i], packetData[i], packetBytes[i] );
+                    YOJIMBO_FREE( networkSimulator->GetAllocator(), packetData[i] );
+                }
             }
         }
     }
@@ -221,6 +230,12 @@ namespace yojimbo
 
     void Server::DisconnectLoopbackClient( int clientIndex )
     {
+        // Same recording rule as DisconnectClient: disconnecting a loopback client is a kick,
+        // and must not overwrite a more specific reason recorded before the disconnect.
+        if ( IsClientConnected( clientIndex ) && GetClientDisconnectReason( clientIndex ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE )
+        {
+            SetClientDisconnectReason( clientIndex, YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_KICKED );
+        }
         netcode_server_disconnect_loopback_client( m_server, clientIndex );
     }
 

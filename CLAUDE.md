@@ -129,37 +129,36 @@ compiles away entirely in release.
    the same connection-error causes, so the game can tell the player "server is full"
    versus "update your client" versus "network error".
 
-2. **The single-threaded, ≤100-player contract is under-signposted.** Both are deliberate
-   design decisions (see the design contract above), and the author is comfortable with
-   them being surfaced — the criticism is only that the codebase barely states them: one
-   line in `yojimbo_allocator.h` is the sole thread-safety statement. Contracts enforced
-   by programmer responsibility only work when they're written down where integrators
-   will read them; a prominent paragraph in README/USAGE would do it, because violating
-   the threading contract produces rare refcount races in production, not a clean
-   failure.
+2. **The single-threaded, ≤100-player contract is under-signposted** — *addressed.* The
+   README now has a "Design Assumptions" section stating single-threaded operation, the
+   ~100-players-or-less target, and the identical-config requirement, and USAGE.md
+   explains config validation. (These are deliberate design decisions per the contract
+   above; the fix was writing them down where integrators read them.)
 
 3. **Manual message refcounting is easy to misuse.** Create/Send transfers ownership;
    Receive obligates a Release; the compiler enforces none of it. This is consistent with
    the library's contract style, and the debug leak checker is its enforcement mechanism
-   — though `exit(1)` from the factory destructor is hostile if the library is embedded
-   in an editor or tool. This is the part of the API where integrators will make their
-   first mistake.
+   — which now fails through `yojimbo_assert` (interceptable via
+   `yojimbo_set_assert_function`) rather than `exit(1)`, so editors and tools embedding
+   yojimbo can handle it. This remains the part of the API where integrators will make
+   their first mistake.
 
-4. **`alloca` sized by config in packet and tick paths.** With default configs the sizes
-   are trivial, but `Client::AdvanceTime` puts ~12 bytes × `maxSimulatorPackets` (48KB at
-   the default 4096) on the stack per tick when the simulator is active, and a user who
-   cranks `maxMessagesPerPacket` or `maxSimulatorPackets` converts a config choice into a
-   silent stack-overflow risk. Fixed member buffers or the channel allocator would be
-   sturdier.
+4. **`alloca` sized by config in packet and tick paths** — *largely addressed.* The
+   client/server simulator pumps now drain in fixed-size batches, and the channels own
+   scratch buffers for packet generation, so stack usage no longer scales with
+   `maxSimulatorPackets` or `maxMessagesPerPacket` on those paths. The remaining allocas
+   in `yojimbo_channel.cpp`'s message serialize functions are bounded by the
+   wire-validated message count (≤ `maxMessagesPerPacket`, ~6 bytes per message) and were
+   left because replacing them means threading heap cleanup through many early-return
+   paths in template code.
 
-5. **The C++ dialect is dated — deliberately, but with a couple of leaks.** C++03 idioms
-   (NULL, private copy constructors instead of `=delete`, no `override`, `std::map` in
-   debug trackers) are a fair trade for portability into engine codebases with exceptions
-   and RTTI off. Two things do leak out of that choice, though:
-   `#pragma warning(disable: 4244)` in `yojimbo_config.h` suppresses narrowing warnings
-   in *user* translation units that include yojimbo headers, and the `#undef SendMessage`
-   in the public headers silently deletes the Win32 macro for users who include
-   `windows.h` first. Both deserve at least a documentation note.
+5. **The C++ dialect is dated — deliberately, and now documented.** C++03 idioms (NULL,
+   private copy constructors instead of `=delete`, no `override`, `std::map` in debug
+   trackers) are a fair trade for portability into engine codebases with exceptions and
+   RTTI off. The two side effects that leak into user translation units — the
+   `#undef SendMessage` and the MSVC warning pragmas / `_CRT_SECURE_NO_WARNINGS` in
+   `yojimbo_config.h` — are now documented in BUILDING.md ("Windows header side
+   effects").
 
 6. **Vendored-crypto maintenance burden.** The pruned libsodium subset means upstream
    CVEs must be tracked and re-vendored by hand. `SECURITY.md` acknowledges this honestly
@@ -173,8 +172,10 @@ The architecture is sound, the security engineering is unusually serious for the
 and the code reads like it's been maintained by someone who has debugged it at 90% packet
 loss — because it has. The design contract is coherent: zero trust for anything off the
 wire, full trust plus debug-time assert enforcement for the programmer's own inputs, and
-zero overhead in release. With startup config validation now in place, the remaining asks
-I'd weight most are disconnect-cause telemetry and writing the threading/scale contract
-into the front-page docs. If I were choosing a C++ client/server layer for a competitive
+zero overhead in release. Every ask I weighted highly in the original audit has since
+been addressed: startup config validation, disconnect-cause telemetry on both client and
+server (including the timed-out vs clean-disconnect split, via netcode v1.3.2), and the
+threading/scale contract in the front-page docs. What remains is minor and recorded in
+the criticisms above. If I were choosing a C++ client/server layer for a competitive
 multiplayer game today, this would be on my shortlist, and the source being small and
 readable enough to audit in an afternoon is a large part of why.

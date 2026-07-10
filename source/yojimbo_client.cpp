@@ -219,13 +219,22 @@ namespace yojimbo
             NetworkSimulator * networkSimulator = GetNetworkSimulator();
             if ( networkSimulator && networkSimulator->IsActive() )
             {
-                uint8_t ** packetData = (uint8_t**) alloca( sizeof( uint8_t*) * m_config.maxSimulatorPackets );
-                int * packetBytes = (int*) alloca( sizeof(int) * m_config.maxSimulatorPackets );
-                int numPackets = networkSimulator->ReceivePackets( m_config.maxSimulatorPackets, packetData, packetBytes, NULL );
-                for ( int i = 0; i < numPackets; ++i )
+                // Drain the simulator in fixed size batches, so stack usage here doesn't scale
+                // with maxSimulatorPackets. Each batch scans the simulator ring again, but the
+                // simulator is a development tool, not a production path.
+                const int MaxBatchPackets = 64;
+                uint8_t * packetData[MaxBatchPackets];
+                int packetBytes[MaxBatchPackets];
+                while ( true )
                 {
-                    netcode_client_send_packet( m_client, (uint8_t*) packetData[i], packetBytes[i] );
-                    YOJIMBO_FREE( networkSimulator->GetAllocator(), packetData[i] );
+                    const int numPackets = networkSimulator->ReceivePackets( MaxBatchPackets, packetData, packetBytes, NULL );
+                    if ( numPackets == 0 )
+                        break;
+                    for ( int i = 0; i < numPackets; ++i )
+                    {
+                        netcode_client_send_packet( m_client, packetData[i], packetBytes[i] );
+                        YOJIMBO_FREE( networkSimulator->GetAllocator(), packetData[i] );
+                    }
                 }
             }
         }

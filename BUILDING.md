@@ -35,6 +35,19 @@ yojimbo directory:
 Open the generated `build\Yojimbo.sln` in Visual Studio if you prefer, or pass
 `--config Release` for an optimized build. The executables are written to `bin\`.
 
+### Windows header side effects
+
+Two things to be aware of when including yojimbo headers in your own Windows code:
+
+- The yojimbo headers `#undef SendMessage`, because `windows.h` defines it as a macro that
+  would otherwise mangle the `SendMessage` methods on the client and server. If your code
+  uses the Win32 API after including yojimbo, call `SendMessageA` / `SendMessageW`
+  explicitly instead of relying on the macro.
+- `yojimbo_config.h` defines `_CRT_SECURE_NO_WARNINGS` and disables MSVC warnings 4127
+  (conditional expression is constant) and 4244 (narrowing conversion) via `#pragma`.
+  These apply to any translation unit that includes yojimbo headers, so code in those
+  files won't get narrowing-conversion warnings even at `/W4`.
+
 ## Using the system libsodium instead of the bundled one
 
 To link the system-installed libsodium rather than the bundled subset, install it first:

@@ -380,7 +380,10 @@ namespace yojimbo
                     Message * message = (Message*) i->first;
                     yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "leaked message %p (type %d, refcount %d)\n", message, message->GetType(), message->GetRefCount() );
                 }
-                exit(1);
+                // Fail through the assert handler rather than exit(1), so programs embedding
+                // yojimbo (editors, tools) can intercept via yojimbo_set_assert_function.
+                // Same idiom as the memory leak check in Allocator::~Allocator.
+                yojimbo_assert( false && "Message leaks detected, see log" );
             }
             #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
         }
