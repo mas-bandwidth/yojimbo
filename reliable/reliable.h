@@ -25,10 +25,10 @@
 #ifndef RELIABLE_H
 #define RELIABLE_H
 
-#define RELIABLE_VERSION_FULL    "1.3.1"
+#define RELIABLE_VERSION_FULL    "1.3.3"
 #define RELIABLE_VERSION_MAJOR   1
 #define RELIABLE_VERSION_MINOR   3
-#define RELIABLE_VERSION_PATCH   1
+#define RELIABLE_VERSION_PATCH   3
 
 #include <stdint.h>
 #include <stddef.h>

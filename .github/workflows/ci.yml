@@ -93,7 +93,7 @@ jobs:
           git clone --depth 1 --branch v1.4.3 https://github.com/mas-bandwidth/serialize.git "$DEPS_SRC/serialize"
           cp "$DEPS_SRC/serialize/serialize.h" "$PREFIX/include/"
           # reliable: build the library from source
-          git clone --depth 1 --branch v1.3.2 https://github.com/mas-bandwidth/reliable.git "$DEPS_SRC/reliable"
+          git clone --depth 1 --branch v1.3.3 https://github.com/mas-bandwidth/reliable.git "$DEPS_SRC/reliable"
           cc -O2 -c "$DEPS_SRC/reliable/reliable.c" -I"$DEPS_SRC/reliable" -o "$DEPS_SRC/reliable.o"
           ar rcs "$PREFIX/lib/libreliable.a" "$DEPS_SRC/reliable.o"
           cp "$DEPS_SRC/reliable/reliable.h" "$PREFIX/include/"
