@@ -76,7 +76,3 @@ crypto), and `cmake --install` installs the yojimbo headers and library:
 
 Note that the test suite skips the embedded netcode and reliable self-test sections in
 this configuration — system libraries are built without their test hooks.
-
-cheers
-
- - Glenn
