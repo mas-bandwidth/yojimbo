@@ -1,0 +1,46 @@
+name: Release Check
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  version-check:
+    name: version consistency
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check versions
+        run: |
+          cmake_version=$(sed -nE 's/^project\(Yojimbo VERSION ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' CMakeLists.txt)
+          major=$(sed -nE 's/^#define YOJIMBO_MAJOR_VERSION[[:space:]]+([0-9]+).*/\1/p' include/yojimbo_config.h)
+          minor=$(sed -nE 's/^#define YOJIMBO_MINOR_VERSION[[:space:]]+([0-9]+).*/\1/p' include/yojimbo_config.h)
+          patch=$(sed -nE 's/^#define YOJIMBO_PATCH_VERSION[[:space:]]+([0-9]+).*/\1/p' include/yojimbo_config.h)
+          if [ -z "$cmake_version" ] || [ -z "$major" ] || [ -z "$minor" ] || [ -z "$patch" ]; then
+            echo "::error::Could not extract versions (CMakeLists.txt: '$cmake_version', yojimbo_config.h MAJOR/MINOR/PATCH: '$major.$minor.$patch')"
+            exit 1
+          fi
+          header_version="$major.$minor.$patch"
+          echo "CMakeLists.txt project version:        $cmake_version"
+          echo "yojimbo_config.h MAJOR.MINOR.PATCH:    $header_version"
+          if [ "$cmake_version" != "$header_version" ]; then
+            echo "::error::project(Yojimbo VERSION $cmake_version) in CMakeLists.txt does not match YOJIMBO_MAJOR/MINOR/PATCH_VERSION ($header_version) in include/yojimbo_config.h"
+            exit 1
+          fi
+          case "$GITHUB_REF" in
+            refs/tags/*)
+              tag_version="${GITHUB_REF_NAME#v}"
+              echo "Release tag version:                   $tag_version"
+              if [ "$tag_version" != "$cmake_version" ]; then
+                echo "::error::Tag $GITHUB_REF_NAME does not match version $cmake_version in CMakeLists.txt and include/yojimbo_config.h — bump both as part of the release."
+                exit 1
+              fi
+              ;;
+          esac
