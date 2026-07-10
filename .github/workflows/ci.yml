@@ -71,6 +71,49 @@ jobs:
           cmake --build build -j
           ./bin/test
 
+  system-deps:
+    name: build & test (linux, --system-deps)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # Simulates the package-manager environment (e.g. homebrew): serialize, reliable and
+      # netcode installed into a prefix from their own releases, then yojimbo built against
+      # them with -DYOJIMBO_SYSTEM_DEPS=ON instead of the vendored copies. Versions pinned
+      # to match the vendored ones.
+      - name: Install serialize, reliable and netcode into a prefix
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y libsodium-dev
+          PREFIX="$HOME/deps"
+          # Clone outside the workspace: the yojimbo checkout already has serialize/,
+          # reliable/ and netcode/ directories (the vendored copies).
+          DEPS_SRC="$HOME/deps-src"
+          mkdir -p "$PREFIX/include" "$PREFIX/lib" "$DEPS_SRC"
+          # serialize: header-only
+          git clone --depth 1 --branch v1.3.1 https://github.com/mas-bandwidth/serialize.git "$DEPS_SRC/serialize"
+          cp "$DEPS_SRC/serialize/serialize.h" "$PREFIX/include/"
+          # reliable: build the library from source
+          git clone --depth 1 --branch v1.3.0 https://github.com/mas-bandwidth/reliable.git "$DEPS_SRC/reliable"
+          cc -O2 -c "$DEPS_SRC/reliable/reliable.c" -I"$DEPS_SRC/reliable" -o "$DEPS_SRC/reliable.o"
+          ar rcs "$PREFIX/lib/libreliable.a" "$DEPS_SRC/reliable.o"
+          cp "$DEPS_SRC/reliable/reliable.h" "$PREFIX/include/"
+          # netcode: has cmake install rules (built against the system libsodium, as a
+          # package manager would)
+          git clone --depth 1 --branch v1.3.2 https://github.com/mas-bandwidth/netcode.git "$DEPS_SRC/netcode"
+          cmake -B "$DEPS_SRC/netcode-build" -S "$DEPS_SRC/netcode" -DCMAKE_BUILD_TYPE=Release -DNETCODE_SYSTEM_SODIUM=ON -DCMAKE_INSTALL_PREFIX="$PREFIX"
+          cmake --build "$DEPS_SRC/netcode-build" -j
+          cmake --install "$DEPS_SRC/netcode-build"
+      - name: Build & test yojimbo against the installed dependencies
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug -DYOJIMBO_SYSTEM_DEPS=ON -DCMAKE_PREFIX_PATH="$HOME/deps"
+          cmake --build build -j
+          ./bin/test
+      - name: Install yojimbo and verify the layout
+        run: |
+          cmake --install build --prefix "$HOME/yojimbo-install"
+          test -f "$HOME/yojimbo-install/include/yojimbo.h"
+          test -f "$HOME/yojimbo-install/lib/libyojimbo.a"
+
   sanitizers:
     name: sanitizers (linux, ASan+UBSan+LSan)
     runs-on: ubuntu-24.04
