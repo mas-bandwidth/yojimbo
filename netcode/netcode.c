@@ -5325,7 +5325,7 @@ int netcode_generate_connect_token( int num_server_addresses,
 
 // ---------------------------------------------------------------
 
-#if __APPLE__
+#if NETCODE_PLATFORM == NETCODE_PLATFORM_MAC
 
 // MacOS
 
@@ -5356,11 +5356,19 @@ double netcode_time()
     return ( (double) ( current - start ) ) * ( (double) timebase_info.numer ) / ( (double) timebase_info.denom ) / 1000000000.0;
 }
 
-#elif __linux
+#elif NETCODE_PLATFORM == NETCODE_PLATFORM_UNIX
 
-// linux
+// linux and other unix systems (openbsd, freebsd etc.)
 
 #include <unistd.h>
+
+// linux has CLOCK_MONOTONIC_RAW, but other unix systems only have CLOCK_MONOTONIC
+
+#ifdef CLOCK_MONOTONIC_RAW
+#define NETCODE_MONOTONIC_CLOCK CLOCK_MONOTONIC_RAW
+#else
+#define NETCODE_MONOTONIC_CLOCK CLOCK_MONOTONIC
+#endif
 
 void netcode_sleep( double time )
 {
@@ -5376,17 +5384,17 @@ double netcode_time()
     if ( start == -1 )
     {
         struct timespec ts;
-        clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+        clock_gettime( NETCODE_MONOTONIC_CLOCK, &ts );
         start = ts.tv_sec + ( (double) ( ts.tv_nsec ) ) / 1000000000.0;
         return 0.0;
     }
     struct timespec ts;
-    clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+    clock_gettime( NETCODE_MONOTONIC_CLOCK, &ts );
     double current = ts.tv_sec + ( (double) ( ts.tv_nsec ) ) / 1000000000.0;
     return current - start;
 }
 
-#elif defined( _WIN32 )
+#elif NETCODE_PLATFORM == NETCODE_PLATFORM_WINDOWS
 
 // windows
 

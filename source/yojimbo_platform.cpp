@@ -93,7 +93,7 @@ void yojimbo_printf( int level, const char * format, ... )
 
 #endif // #if YOJIMBO_ENABLE_LOGGING
 
-#if __APPLE__
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC
 
 // ===============================
 //              MacOS
@@ -129,14 +129,22 @@ double yojimbo_time()
     return ( double( current - start ) * double( timebase_info.numer ) / double( timebase_info.denom ) ) / 1000000000.0;
 }
 
-#elif __linux
+#elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
 
 // ===============================
-//              Linux
+//              Unix
 // ===============================
 
 #include <unistd.h>
 #include <time.h>
+
+// linux has CLOCK_MONOTONIC_RAW, but other unix systems (openbsd, freebsd etc.) only have CLOCK_MONOTONIC
+
+#ifdef CLOCK_MONOTONIC_RAW
+#define YOJIMBO_MONOTONIC_CLOCK CLOCK_MONOTONIC_RAW
+#else
+#define YOJIMBO_MONOTONIC_CLOCK CLOCK_MONOTONIC
+#endif
 
 void yojimbo_sleep( double time )
 {
@@ -150,20 +158,20 @@ double yojimbo_time()
     if ( start == -1 )
     {
         timespec ts;
-        clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+        clock_gettime( YOJIMBO_MONOTONIC_CLOCK, &ts );
         start = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
         return 0.0;
     }
 
     timespec ts;
-    clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+    clock_gettime( YOJIMBO_MONOTONIC_CLOCK, &ts );
     double current = ts.tv_sec + double( ts.tv_nsec ) / 1000000000.0;
     if ( current < start )
         current = start;
     return current - start;
 }
 
-#elif defined(_WIN32)
+#elif YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
 // ===============================
 //             Windows
