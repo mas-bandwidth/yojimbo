@@ -680,20 +680,43 @@ int netcode_socket_create( struct netcode_socket_t * s, struct netcode_address_t
         }
     }
 
-    // increase socket send and receive buffer sizes
+    // increase socket send and receive buffer sizes. linux and windows clamp requests that
+    // exceed the OS limit, but the BSDs reject them instead, so back off until accepted.
 
-    if ( setsockopt( s->handle, SOL_SOCKET, SO_SNDBUF, (char*)&send_buffer_size, sizeof(int) ) != 0 )
     {
-        netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: failed to set socket send buffer size\n" );
-        netcode_socket_destroy( s );
-        return NETCODE_SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED;
+        int size = send_buffer_size;
+        while ( setsockopt( s->handle, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int) ) != 0 )
+        {
+            size /= 2;
+            if ( size < 256 * 1024 )
+            {
+                netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: failed to set socket send buffer size\n" );
+                netcode_socket_destroy( s );
+                return NETCODE_SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED;
+            }
+        }
+        if ( size != send_buffer_size )
+        {
+            netcode_printf( NETCODE_LOG_LEVEL_INFO, "socket send buffer size reduced from %d to %d\n", send_buffer_size, size );
+        }
     }
 
-    if ( setsockopt( s->handle, SOL_SOCKET, SO_RCVBUF, (char*)&receive_buffer_size, sizeof(int) ) != 0 )
     {
-        netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: failed to set socket receive buffer size\n" );
-        netcode_socket_destroy( s );
-        return NETCODE_SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED;
+        int size = receive_buffer_size;
+        while ( setsockopt( s->handle, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(int) ) != 0 )
+        {
+            size /= 2;
+            if ( size < 256 * 1024 )
+            {
+                netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: failed to set socket receive buffer size\n" );
+                netcode_socket_destroy( s );
+                return NETCODE_SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED;
+            }
+        }
+        if ( size != receive_buffer_size )
+        {
+            netcode_printf( NETCODE_LOG_LEVEL_INFO, "socket receive buffer size reduced from %d to %d\n", receive_buffer_size, size );
+        }
     }
 
     // bind to port
