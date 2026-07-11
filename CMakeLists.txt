@@ -23,6 +23,9 @@ option(YOJIMBO_SYSTEM_DEPS
 option(YOJIMBO_INSTALL
     "Generate the install target (yojimbo headers and library)" ON)
 
+option(YOJIMBO_BUILD_TESTS
+    "Build the test, client/server example and soak programs" ON)
+
 # Single-config generators (Make/Ninja) have no build type by default; match the old
 # `make config=debug` default of a debug build.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -190,16 +193,20 @@ endif()
 
 # --- sample programs and tests ------------------------------------------------------------
 
-foreach(app client server loopback soak test)
-    add_executable(${app} ${app}.cpp)
-    target_link_libraries(${app} PRIVATE yojimbo)
-endforeach()
+if(YOJIMBO_BUILD_TESTS)
 
-# serialize is header-only; its self-tests are gated on this and called from test.cpp.
-target_compile_definitions(test PRIVATE SERIALIZE_ENABLE_TESTS=1)
+    foreach(app client server loopback soak test)
+        add_executable(${app} ${app}.cpp)
+        target_link_libraries(${app} PRIVATE yojimbo)
+    endforeach()
 
-if(YOJIMBO_SYSTEM_DEPS)
-    # System netcode/reliable are built without their embedded test suites, so test.cpp
-    # skips the [netcode] and [reliable] sections in this configuration (see test.cpp).
-    target_compile_definitions(test PRIVATE YOJIMBO_SYSTEM_DEPS=1)
+    # serialize is header-only; its self-tests are gated on this and called from test.cpp.
+    target_compile_definitions(test PRIVATE SERIALIZE_ENABLE_TESTS=1)
+
+    if(YOJIMBO_SYSTEM_DEPS)
+        # System netcode/reliable are built without their embedded test suites, so test.cpp
+        # skips the [netcode] and [reliable] sections in this configuration (see test.cpp).
+        target_compile_definitions(test PRIVATE YOJIMBO_SYSTEM_DEPS=1)
+    endif()
+
 endif()
