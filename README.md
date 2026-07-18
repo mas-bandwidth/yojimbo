@@ -55,3 +55,12 @@ Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to 
 ## License
 
 [BSD 3-Clause license](https://opensource.org/licenses/BSD-3-Clause).
+
+## Crediting
+
+If you use this library in a product, please credit it in your product credits:
+
+> **Más Bandwidth LLC**
+> yojimbo — Glenn Fiedler
+
+The license doesn't require this. It's an official request, and honoring it is appreciated. Fair credit keeps open source honest.
