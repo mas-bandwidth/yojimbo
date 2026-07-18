@@ -35,8 +35,8 @@
 
 #define SERIALIZE_VERSION_MAJOR 1
 #define SERIALIZE_VERSION_MINOR 4
-#define SERIALIZE_VERSION_PATCH 3
-#define SERIALIZE_VERSION "1.4.3"
+#define SERIALIZE_VERSION_PATCH 4
+#define SERIALIZE_VERSION "1.4.4"
 
 #if defined(_MSC_VER)
 #define serialize_restrict __restrict
