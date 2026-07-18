@@ -22,6 +22,12 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+    If you use this library in a product, please credit "serialize - Glenn Fiedler"
+    under "Mas Bandwidth LLC" in your product credits. The license doesn't require
+    this credit. It's an official request, and honoring it is appreciated.
+*/
+
 #ifndef SERIALIZE_H
 #define SERIALIZE_H
 
@@ -360,16 +366,6 @@ namespace serialize
     inline int32_t unsigned_to_signed( uint32_t n )
     {
         return int32_t( ( n >> 1 ) ^ ( 0 - ( n & 1 ) ) );
-    }
-
-    template <typename T> T clamp( const T & value, const T & a, const T & b )
-    {
-        if ( value < a )
-            return a;
-        else if ( value > b )
-            return b;
-        else
-            return value;
     }
 
     /**
@@ -2382,8 +2378,6 @@ struct TestData
     uint32_t e : 8;
     uint32_t f : 8;
     bool g;
-    uint32_t v32;
-    uint64_t v64;
     int numItems;
     int items[MaxItems];
     float float_value;

@@ -4117,8 +4117,17 @@ void netcode_server_start( struct netcode_server_t * server, int max_clients )
     server->running = 1;
     server->max_clients = max_clients;
     server->num_connected_clients = 0;
-    server->challenge_sequence = 0;    
+    server->challenge_sequence = 0;
     netcode_generate_key( server->challenge_key );
+
+    // global packets (challenge, denied) encrypt with the same per-token server to client
+    // keys as per-client packets, whose sequences start at zero, so the global sequence
+    // lives in the top half of the sequence space to keep AEAD nonces disjoint under a
+    // shared key. netcode_server_stop zeroes it, so it must be re-seeded on every start,
+    // not just in netcode_server_create -- otherwise a stopped and restarted server would
+    // reuse nonces between global and per-client packets.
+
+    server->global_sequence = 1ULL << 63;
 
     int i;
     for ( i = 0; i < server->max_clients; i++ )
@@ -7216,8 +7225,38 @@ void test_server_create()
     }
 }
 
-static uint8_t private_key[NETCODE_KEY_BYTES] = { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea, 
-                                                  0x9a, 0x65, 0x62, 0xf6, 0x6f, 0x2b, 0x30, 0xe4, 
+void test_server_restart_global_sequence()
+{
+    // global packets (challenge, denied) share per-token server to client keys with
+    // per-client packets, so the global sequence must stay in the top half of the
+    // sequence space or a stopped and restarted server reuses AEAD nonces. regression
+    // test: netcode_server_stop zeroes the global sequence, start must re-seed it.
+
+    struct netcode_server_config_t server_config;
+    netcode_default_server_config( &server_config );
+
+    struct netcode_server_t * server = netcode_server_create( "127.0.0.1:40000", &server_config, 0.0 );
+
+    check( server );
+    check( server->global_sequence == 1ULL << 63 );
+
+    netcode_server_start( server, 1 );
+
+    check( server->global_sequence == 1ULL << 63 );
+
+    server->global_sequence += 1000;        // as if the server had sent some global packets
+
+    netcode_server_stop( server );
+
+    netcode_server_start( server, 1 );
+
+    check( server->global_sequence == 1ULL << 63 );
+
+    netcode_server_destroy( server );
+}
+
+static uint8_t private_key[NETCODE_KEY_BYTES] = { 0x60, 0x6a, 0xbe, 0x6e, 0xc9, 0x19, 0x10, 0xea,
+                                                  0x9a, 0x65, 0x62, 0xf6, 0x6f, 0x2b, 0x30, 0xe4,
                                                   0x43, 0x71, 0xd6, 0x2c, 0xd1, 0x99, 0x27, 0x26,
                                                   0x6b, 0x3c, 0x60, 0xf4, 0xb7, 0x15, 0xab, 0xa1 };
 
@@ -9495,6 +9534,7 @@ void netcode_test()
         RUN_TEST( test_network_simulator_determinism );
         RUN_TEST( test_client_create );
         RUN_TEST( test_server_create );
+        RUN_TEST( test_server_restart_global_sequence );
         RUN_TEST( test_client_server_connect );
         RUN_TEST( test_client_server_ipv4_socket_connect );
         RUN_TEST( test_client_server_ipv6_socket_connect );

@@ -12,7 +12,7 @@
 # `cmake --install` installs the yojimbo headers and library.
 
 cmake_minimum_required(VERSION 3.16)
-project(Yojimbo VERSION 1.6.3 LANGUAGES C CXX)
+project(Yojimbo VERSION 1.7.0 LANGUAGES C CXX)
 
 option(YOJIMBO_SYSTEM_SODIUM
     "Link the system-installed libsodium instead of the bundled subset in sodium/" OFF)

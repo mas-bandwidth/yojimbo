@@ -22,8 +22,19 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+    If you use this library in a product, please credit "netcode - Glenn Fiedler"
+    under "Mas Bandwidth LLC" in your product credits. The license doesn't require
+    this credit. It's an official request, and honoring it is appreciated.
+*/
+
 #ifndef NETCODE_H
 #define NETCODE_H
+
+#define NETCODE_VERSION_FULL    "1.4.0"
+#define NETCODE_VERSION_MAJOR   1
+#define NETCODE_VERSION_MINOR   4
+#define NETCODE_VERSION_PATCH   0
 
 /*
     IMPORTANT: netcode is single-threaded by design and is not thread safe.
