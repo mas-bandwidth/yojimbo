@@ -35,10 +35,10 @@ endif()
 
 # Executables go to bin/ at the repo root, as premake did (so ./bin/test etc. keep working,
 # including for multi-config generators like Visual Studio).
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 foreach(cfg ${CMAKE_CONFIGURATION_TYPES})
     string(TOUPPER "${cfg}" CFG)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CFG} "${CMAKE_SOURCE_DIR}/bin")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CFG} "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 endforeach()
 
 # yojimbo/netcode/reliable/serialize each derive their _DEBUG vs _RELEASE mode from NDEBUG
@@ -78,9 +78,9 @@ if(YOJIMBO_SYSTEM_DEPS)
     find_library(YOJIMBO_SODIUM_LIBRARY sodium)
 
     set(YOJIMBO_INCLUDE_DIRS
-        "${CMAKE_SOURCE_DIR}"
-        "${CMAKE_SOURCE_DIR}/include"
-        "${CMAKE_SOURCE_DIR}/tlsf"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tlsf"
         "${YOJIMBO_SERIALIZE_INCLUDE_DIR}"
         "${YOJIMBO_NETCODE_INCLUDE_DIR}"
         "${YOJIMBO_RELIABLE_INCLUDE_DIR}"
@@ -89,13 +89,13 @@ if(YOJIMBO_SYSTEM_DEPS)
 else()
 
     set(YOJIMBO_INCLUDE_DIRS
-        "${CMAKE_SOURCE_DIR}"
-        "${CMAKE_SOURCE_DIR}/include"
-        "${CMAKE_SOURCE_DIR}/sodium"
-        "${CMAKE_SOURCE_DIR}/tlsf"
-        "${CMAKE_SOURCE_DIR}/netcode"
-        "${CMAKE_SOURCE_DIR}/reliable"
-        "${CMAKE_SOURCE_DIR}/serialize"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sodium"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tlsf"
+        "${CMAKE_CURRENT_SOURCE_DIR}/netcode"
+        "${CMAKE_CURRENT_SOURCE_DIR}/reliable"
+        "${CMAKE_CURRENT_SOURCE_DIR}/serialize"
     )
 
     # --- libsodium backend ----------------------------------------------------------------
@@ -138,7 +138,7 @@ endif()
 # tree). Not linked into yojimbo and not installed — see below, yojimbo compiles tlsf.c
 # directly into its own archive so that only libyojimbo.a ships to package consumers.
 add_library(tlsf STATIC tlsf/tlsf.c)
-target_include_directories(tlsf PRIVATE "${CMAKE_SOURCE_DIR}/tlsf")
+target_include_directories(tlsf PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tlsf")
 set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # --- yojimbo library ----------------------------------------------------------------------
@@ -151,8 +151,8 @@ set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # single archive, with no separate libtlsf.a for consumers to also link against. tlsf is a
 # private implementation detail of yojimbo's per-client allocators, not a public dependency.
 
-file(GLOB YOJIMBO_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/source/*.cpp")
-add_library(yojimbo ${YOJIMBO_SOURCES} "${CMAKE_SOURCE_DIR}/tlsf/tlsf.c")
+file(GLOB YOJIMBO_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp")
+add_library(yojimbo ${YOJIMBO_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/tlsf/tlsf.c")
 target_include_directories(yojimbo PUBLIC ${YOJIMBO_INCLUDE_DIRS})
 set_target_properties(yojimbo PROPERTIES
     VERSION ${PROJECT_VERSION}
@@ -187,7 +187,7 @@ if(YOJIMBO_INSTALL)
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    file(GLOB YOJIMBO_PUBLIC_HEADERS "${CMAKE_SOURCE_DIR}/include/*.h")
+    file(GLOB YOJIMBO_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
     install(FILES ${YOJIMBO_PUBLIC_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
 
