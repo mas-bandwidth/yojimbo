@@ -80,7 +80,14 @@
 
 #endif // #ifdef YOJIMBO_DEBUG
 
+// Logging is ON by default, matching netcode and reliable: a networking library
+// that goes silent in a release build is worse than one that costs a few
+// nanoseconds per call. Guarded so it can still be compiled out from the build
+// system (-DYOJIMBO_ENABLE_LOGGING=0) without editing this header, which is
+// what netcode.c and reliable.c already allow.
+#ifndef YOJIMBO_ENABLE_LOGGING
 #define YOJIMBO_ENABLE_LOGGING                      1
+#endif // #ifndef YOJIMBO_ENABLE_LOGGING
 
 namespace yojimbo
 {
