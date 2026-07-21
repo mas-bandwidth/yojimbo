@@ -212,18 +212,6 @@ These are not advisory. Every one of them is a place where a malformed or
 hostile packet would otherwise be accepted, and yojimbo's parser runs on
 attacker-influenced bytes by construction.
 
-## Not on the wire, despite appearances
-
-`yojimbo_serialize.h` also defines **`serialize_ack_relative`**, which encodes
-an ack delta relative to a sequence number. It is **not used anywhere** — not
-by the connection packet, not by either channel, not by the tests — and
-therefore never appears on the wire. It is a leftover from an arrangement where
-yojimbo carried its own acknowledgements; netcode carries them now.
-
-It is documented here as *absent* on purpose. Someone writing an independent
-implementation will find it in the header, assume it must be part of the
-format, and go looking for where it fits. It doesn't fit anywhere.
-
 ## What This Format Does Not Do
 
 * **No encryption or authentication.** netcode has already provided both by the
