@@ -32,8 +32,8 @@ LEGAL = {
 }
 
 
-def build_and_run(cxx, build_dir):
-    src = os.path.join(ROOT, "tools", "conformance", "drive_state_machine.cpp")
+def build_and_run(cxx, build_dir, src_name="drive_state_machine.cpp"):
+    src = os.path.join(ROOT, "tools", "conformance", src_name)
     libs = ["-lyojimbo", "-lnetcode", "-lreliable", "-lsodium-builtin", "-ltlsf"]
     with tempfile.TemporaryDirectory() as tmp:
         exe = os.path.join(tmp, "drive")
@@ -105,6 +105,36 @@ def main():
 
     # 5. a clean disconnect lands in DISCONNECTED, never ERROR
     eq("clean disconnect ends in DISCONNECTED, not ERROR", moves[-1][1], DISCONNECTED)
+
+    # ---- error path: CONNECTING -> ERROR, which the happy path never takes.
+    # STATE-MACHINE.md lists ERROR as a state and CONNECTING->ERROR as a legal
+    # transition, but the happy-path driver connects every time, so that edge was
+    # transcribed and untested. This provokes it deterministically: InsecureConnect
+    # to a port where nothing listens, so the underlying netcode times out and
+    # yojimbo projects the negative state to ERROR.
+    err_src = os.path.join(ROOT, "tools", "conformance", "drive_error_paths.cpp")
+    # No silent skip: the driver is committed beside the checker, so its absence
+    # is a fault, not a reason to check less.
+    checks += 1
+    if not os.path.exists(err_src):
+        fails.append("drive_error_paths.cpp is missing — the error-path phase cannot run")
+    else:
+        eout = build_and_run(a.cxx, a.build, "drive_error_paths.cpp")
+        emoves, eresult = [], None
+        for line in eout.splitlines():
+            f = line.split()
+            if f[0] == "STATE" and int(f[1]) != int(f[2]):
+                emoves.append((int(f[1]), int(f[2])))
+            elif f[0] == "RESULT":
+                eresult = f[1:]
+        eq("error path reached the error state", eresult and eresult[0], "ok")
+        for frm, to in emoves:
+            checks += 1
+            if (frm, to) not in LEGAL:
+                fails.append(f"error-path transition {NAME.get(frm,frm)} -> "
+                             f"{NAME.get(to,to)} is not permitted by STATE-MACHINE.md")
+        eq("error is entered from CONNECTING, not by another route",
+           [f for f, t in emoves if t == ERROR], [CONNECTING])
 
     print(f"{checks} checks against STATE-MACHINE.md, {len(fails)} failures")
     print("  observed: " + " -> ".join(
