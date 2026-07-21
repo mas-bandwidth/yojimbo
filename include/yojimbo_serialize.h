@@ -173,10 +173,10 @@ namespace yojimbo
         See shared.h for examples of usage.
      */
 
-    #define YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()                                                               \
-        bool SerializeInternal( class yojimbo::ReadStream & stream ) override { return Serialize( stream ); };           \
-        bool SerializeInternal( class yojimbo::WriteStream & stream ) override { return Serialize( stream ); };          \
-        bool SerializeInternal( class yojimbo::MeasureStream & stream ) override { return Serialize( stream ); };
+    #define YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()                                                                         \
+        bool SerializeInternal( class yojimbo::ReadStream & stream ) YOJIMBO_OVERRIDE { return Serialize( stream ); };    \
+        bool SerializeInternal( class yojimbo::WriteStream & stream ) YOJIMBO_OVERRIDE { return Serialize( stream ); };   \
+        bool SerializeInternal( class yojimbo::MeasureStream & stream ) YOJIMBO_OVERRIDE { return Serialize( stream ); };
 }
 
 #endif // #ifndef YOJIMBO_SERIALIZE_H
