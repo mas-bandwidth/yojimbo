@@ -28,6 +28,22 @@ every message body in `fuzz/fuzz_messages.h`, which between them exercise
 ranged ints, odd bit widths, bool, float, double, compressed float, alignment,
 the relative-integer ladder, strings, and byte blocks.
 
+## The state machine, separately
+
+`verify_state_machine.py` checks `STATE-MACHINE.md` — behaviour over time
+rather than bytes on the wire. It drives a real client and server through
+connect, steady state and disconnect over UDP, records every client state
+transition, and checks that:
+
+* every observed transition is one the document permits;
+* the happy path is exactly DISCONNECTED → CONNECTING → CONNECTED →
+  DISCONNECTED;
+* nothing enters CONNECTED except from CONNECTING;
+* an idle connected client produces **no** transitions at all;
+* a clean disconnect lands in DISCONNECTED and never in ERROR.
+
+    python3 tools/conformance/verify_state_machine.py --build <dir with libyojimbo.a>
+
 ## What is NOT covered
 
 Channel configurations other than fuzz selector 0, and the reliability
