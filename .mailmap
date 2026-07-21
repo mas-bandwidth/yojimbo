@@ -1,0 +1,28 @@
+# .mailmap — canonical identities for git log, shortlog and blame.
+#
+# Git treats every distinct name/email pair as a different person. Without this
+# file, an ownership or contribution analysis silently miscounts: Glenn commits
+# under five identities across these repositories, and attributing four of them
+# to strangers inflates the apparent third-party share of the codebase by
+# thousands of lines. That is not hypothetical — it happened, on 2026-07-21,
+# during a copyright-ownership review, and was caught only by resolving authors
+# by email instead of by name.
+#
+# Contributors: if your entry here is wrong, or you would rather be credited
+# under a different name, send a patch. This file exists to credit people
+# accurately, not to overrule how they wish to be named.
+#
+# Format:  Canonical Name <canonical@email>  Commit Name <commit@email>
+
+Glenn Fiedler <glenn@mas-bandwidth.com> <glenn@networknext.com>
+Glenn Fiedler <glenn@mas-bandwidth.com> <glenn.fiedler@gmail.com>
+Glenn Fiedler <glenn@mas-bandwidth.com> Glenn <glenn.fiedler@gmail.com>
+Glenn Fiedler <glenn@mas-bandwidth.com> gafferongames <glenn.fiedler@gmail.com>
+Glenn Fiedler <glenn@mas-bandwidth.com> Glenn Fiedler <Glenn Fiedler>
+
+Jérôme Leclercq <lynix680@gmail.com> Lynix <lynix680@gmail.com>
+Val Vanderschaegen <valere.vanderschaegen@gmail.com> Val V <valere.vanderschaegen@gmail.com>
+NX <nxrighthere@gmail.com> nxrighthere <nxrighthere@gmail.com>
+Vavius <vavius@gmail.com> vavius <vavius@gmail.com>
+Kien Hoang <kienhg96@gmail.com> Hoang Kien <kienhg96@gmail.com>
+Ryan Scott <ryan@ryan-scott.me> Ryan <ryan@ryan-scott.me>
