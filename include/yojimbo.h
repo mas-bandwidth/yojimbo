@@ -85,6 +85,7 @@ void EnablePacketTagging();
 /**
     Shutdown the yojimbo library.
     Call this after you finish using the library and it will run some checks for you (for example, checking for memory leaks in debug build).
+    IMPORTANT: Destroy every Client and Server BEFORE calling this. Shutdown destroys the default allocator, and a Client or Server destructed afterwards will use it. In a debug build that fires an assert in GetDefaultAllocator; in a release build the assert is compiled out and the destructor dereferences a null allocator, so the failure is a crash with no message.
  */
 
 void ShutdownYojimbo();
