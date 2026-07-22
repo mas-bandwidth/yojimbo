@@ -31,39 +31,6 @@
 
 namespace yojimbo
 {
-    template <typename Stream> bool serialize_ack_relative_internal( Stream & stream, uint16_t sequence, uint16_t & ack )
-    {
-        int ack_delta = 0;
-        bool ack_in_range = false;
-        if ( Stream::IsWriting )
-        {
-            if ( ack < sequence )
-            {
-                ack_delta = sequence - ack;
-            }
-            else
-            {
-                ack_delta = (int)sequence + 65536 - ack;
-            }
-            yojimbo_assert( ack_delta > 0 );
-            yojimbo_assert( uint16_t( sequence - ack_delta ) == ack );
-            ack_in_range = ack_delta <= 64;
-        }
-        serialize_bool( stream, ack_in_range );
-        if ( ack_in_range )
-        {
-            serialize_int( stream, ack_delta, 1, 64 );
-            if ( Stream::IsReading )
-            {
-                ack = sequence - ack_delta;
-            }
-        }
-        else
-        {
-            serialize_bits( stream, ack, 16 );
-        }
-        return true;
-    }
 
     /**
         Serialize an ack relative to the current sequence number (read/write/measure).
@@ -74,15 +41,6 @@ namespace yojimbo
         @param sequence The current sequence number.
         @param ack The ack sequence number, which is typically near the current sequence number.
      */
-
-    #define serialize_ack_relative( stream, sequence, ack  )                                        \
-        do                                                                                          \
-        {                                                                                           \
-            if ( !yojimbo::serialize_ack_relative_internal( stream, sequence, ack ) )               \
-            {                                                                                       \
-                return false;                                                                       \
-            }                                                                                       \
-        } while (0)
 
     template <typename Stream> bool serialize_sequence_relative_internal( Stream & stream, uint16_t sequence1, uint16_t & sequence2 )
     {

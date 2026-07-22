@@ -257,3 +257,28 @@ jobs:
             ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
             echo "::endgroup::"
           done
+
+  conformance:
+    name: STANDARD.md + STATE-MACHINE.md conformance
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # The format checker needs no build: it decodes the committed fuzz corpus
+      # using ONLY what STANDARD.md states, with no reference to the source.
+      - name: Verify STANDARD.md
+        run: python3 tools/conformance/verify_standard.py
+
+      # The state-machine checker drives a real client and server over UDP, so
+      # it needs the library built first.
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DYOJIMBO_BUILD_TESTS=ON
+          cmake --build build -j
+
+      # A failure in either means the document and the code disagree — decide
+      # which is wrong and fix that one. A specification nothing verifies
+      # drifts, and a drifted spec is worse than none, because independent
+      # implementations are built on it and the failure is silent.
+      - name: Verify STATE-MACHINE.md
+        run: python3 tools/conformance/verify_state_machine.py --build build
