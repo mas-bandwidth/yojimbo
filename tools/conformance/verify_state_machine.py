@@ -45,8 +45,16 @@ def build_and_run(cxx, build_dir, src_name="drive_state_machine.cpp"):
                "-o", exe, src, "-L" + build_dir] + libs
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0:
-            print("build failed — is the library built in "
-                  f"{build_dir}?\n{r.stderr[:1500]}", file=sys.stderr)
+            # Say which stage actually failed. Reporting every non-zero exit as
+            # "is the library built?" sent a bad include path to the wrong
+            # diagnosis once already; a missing header is not a missing library.
+            err = r.stderr
+            linking = any(s in err for s in
+                          ("ld:", "cannot find -l", "undefined reference",
+                           "Undefined symbols", "linker command failed"))
+            what = (f"could not link {src_name} — is the library built in {build_dir}?"
+                    if linking else f"could not compile {src_name}")
+            print(f"{what}\n{err[:1500]}", file=sys.stderr)
             sys.exit(2)
         r = subprocess.run([exe], capture_output=True, text=True, timeout=120)
         if r.returncode != 0:
@@ -115,12 +123,13 @@ def main():
     err_src = os.path.join(ROOT, "tools", "conformance", "drive_error_paths.cpp")
     # No silent skip: the driver is committed beside the checker, so its absence
     # is a fault, not a reason to check less.
+    emoves = []
     checks += 1
     if not os.path.exists(err_src):
         fails.append("drive_error_paths.cpp is missing — the error-path phase cannot run")
     else:
         eout = build_and_run(a.cxx, a.build, "drive_error_paths.cpp")
-        emoves, eresult = [], None
+        eresult = None
         for line in eout.splitlines():
             f = line.split()
             if f[0] == "STATE" and int(f[1]) != int(f[2]):
@@ -136,9 +145,15 @@ def main():
         eq("error is entered from CONNECTING, not by another route",
            [f for f, t in emoves if t == ERROR], [CONNECTING])
 
+    def path(ms):
+        return " -> ".join([NAME.get(ms[0][0], "?")] + [NAME.get(t, "?") for _, t in ms])
+
+    # Both phases get their own line. A green run that printed only the happy
+    # path read as though the error phase had never executed, which is exactly
+    # the silence the error-path driver was added to remove.
     print(f"{checks} checks against STATE-MACHINE.md, {len(fails)} failures")
-    print("  observed: " + " -> ".join(
-        [NAME.get(moves[0][0], "?")] + [NAME.get(t, "?") for _, t in moves]))
+    print("  happy path: " + path(moves))
+    print("  error path: " + (path(emoves) if emoves else "no transitions observed"))
     for f in fails: print("  FAIL " + f)
     if fails:
         print("\nSTATE-MACHINE.md and the implementation disagree. One of them is wrong.")
