@@ -66,6 +66,14 @@
 #define YOJIMBO_PLATFORM YOJIMBO_PLATFORM_UNIX
 #endif
 
+#if !defined(YOJIMBO_OVERRIDE)
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1700)
+#define YOJIMBO_OVERRIDE override
+#else
+#define YOJIMBO_OVERRIDE
+#endif // #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1700)
+#endif // #if !defined(YOJIMBO_OVERRIDE)
+
 #ifdef YOJIMBO_DEBUG
 
 #define YOJIMBO_DEBUG_MEMORY_LEAKS                  1
