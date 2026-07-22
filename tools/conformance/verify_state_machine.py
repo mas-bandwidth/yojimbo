@@ -38,9 +38,9 @@ def build_and_run(cxx, build_dir, src_name="drive_state_machine.cpp"):
     with tempfile.TemporaryDirectory() as tmp:
         exe = os.path.join(tmp, "drive")
         cmd = [cxx, "-std=c++11", "-I" + os.path.join(ROOT, "include"), "-I" + ROOT,
-               "-I" + os.path.join(ROOT, "..", "serialize"),
-               "-I" + os.path.join(ROOT, "..", "netcode"),
-               "-I" + os.path.join(ROOT, "..", "reliable"),
+               "-I" + os.path.join(ROOT, "serialize"),
+               "-I" + os.path.join(ROOT, "netcode"),
+               "-I" + os.path.join(ROOT, "reliable"),
                "-I" + os.path.join(ROOT, "tlsf"),
                "-o", exe, src, "-L" + build_dir] + libs
         r = subprocess.run(cmd, capture_output=True, text=True)
