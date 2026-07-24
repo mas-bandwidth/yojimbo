@@ -48,6 +48,11 @@
 # A signature carrying extra text is still valid under Más Bandwidth policy
 # (version-pinned signatures were expressly ruled acceptable on 2026-07-24), so
 # it too must be recorded by hand.
+# One narrow variant does recover on its own: the action trims and lowercases
+# both sides before comparing, while the gate below is exact, so a signature
+# differing only in capitalisation or surrounding whitespace satisfies the
+# action but never reaches it. Commenting `recheck` re-runs the action, which
+# then finds that comment and records it normally.
 #
 # The second step below exists only to make both of those cases LOUD instead of
 # silent. It records nothing and writes nowhere; it raises a warning so that a
@@ -69,6 +74,14 @@
 #     gh api repos/mas-bandwidth/<repo> --jq .id
 # Commit it with a message naming the signer and the thread, so the ledger's
 # history stays auditable.
+#
+# Then, if a pull request is sitting red waiting on that signature, comment
+# `recheck` on it. That re-runs the check against the updated ledger and turns
+# it green. Nothing else re-evaluates an already-open pull request short of
+# pushing another commit to it, and that is true of every route into the
+# ledger, not just manual ones: the ledger is org-wide, so a contributor who
+# signs on one pull request leaves any other open pull request of theirs red
+# until it is rechecked.
 # ---------------------------------------------------------------------------
 
 name: Contributor Assignment Agreement
@@ -91,11 +104,22 @@ jobs:
       # Pull requests only. `github.event.issue.pull_request` is present only
       # when an issue_comment was posted on a PR; on a plain issue it is null
       # and the action would abort (see LIMIT 1 above).
+      #
+      # `recheck` re-runs the check; it records nothing by itself, it just makes
+      # the action re-read this PR's commit authors and the ledger and restate
+      # the verdict. It has to be accepted here because the action advertises it
+      # unprompted -- `suggest-recheck` defaults to true, so every "please sign"
+      # comment it posts ends with "You can retrigger this bot by commenting
+      # recheck in this Pull Request". Without this clause that instruction is
+      # dead: the comment arrives, no `if` matches, the job never starts, and
+      # the contributor gets no run, no log and no error. It is also the only
+      # way to clear a red check after a signature is recorded by hand.
       - name: CAA check
         if: >-
           github.event_name == 'pull_request_target' ||
           (github.event.issue.pull_request != null &&
-          github.event.comment.body == 'I have read the CAA and I hereby sign it, assigning copyright in my contributions to Más Bandwidth LLC.')
+          (github.event.comment.body == 'I have read the CAA and I hereby sign it, assigning copyright in my contributions to Más Bandwidth LLC.' ||
+          github.event.comment.body == 'recheck'))
         uses: contributor-assistant/github-action@v2.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
