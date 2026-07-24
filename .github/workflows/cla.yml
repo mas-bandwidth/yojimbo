@@ -3,7 +3,7 @@
 # Contributor Assignment Agreement (CAA). Signatures are recorded per GitHub
 # user in one central file, so a person signs once and it counts everywhere.
 #
-# Contributors sign by posting this exact comment on their PR:
+# Contributors sign by posting this exact comment ON THEIR PULL REQUEST:
 #   I have read the CAA and I hereby sign it, assigning copyright in my
 #   contributions to Más Bandwidth LLC.
 #
@@ -12,6 +12,64 @@
 # mas-bandwidth/.github). The built-in GITHUB_TOKEN is read-only for pull
 # requests from forks, which is exactly the case we need to gate, so the PAT is
 # required. Do not commit the token, add it in repo/org Settings -> Secrets.
+#
+# ---------------------------------------------------------------------------
+# SCOPE AND LIMITS OF THIS AUTOMATION -- read before changing this file.
+#
+# contributor-assistant/github-action is PULL-REQUEST-ONLY BY DESIGN. The first
+# thing it does is a GraphQL query for `repository.pullRequest(number: N)` in
+# order to list that PR's commit authors; its whole data model is "which commit
+# authors on this PR have signed". A plain issue has no pull request and no
+# commits, so the query fails with
+#
+#     graphql call to get the committers details failed: GraphqlError:
+#     Could not resolve to a PullRequest with the number of N
+#
+# and the run dies there, before it ever looks at the comments. That is not a
+# misconfiguration on our side and it cannot be fixed from this file. It will
+# not be fixed upstream either: the action's repository is ARCHIVED and v2.6.1
+# (2024-09-26) is the last release it will ever have.
+#
+# LIMIT 1 -- A SIGNATURE POSTED ON AN ISSUE IS NEVER RECORDED AUTOMATICALLY.
+# The check below is therefore gated to pull requests, so issue threads stop
+# showing a spurious failed run. A signature posted on an issue is still a valid
+# signature; it just has to be entered by hand (see RECORDING BY HAND).
+#
+# LIMIT 2 -- THE SIGNATURE TEST IS EXACT STRING EQUALITY.
+# Because `custom-pr-sign-comment` is set, the action matches signatures with
+#     getCustomPrSignComment().toLowerCase() === comment.trim().toLowerCase()
+# (src/pullrequest/signatureComment.ts). Anything extra -- a footnote, a version
+# pin, a trailing remark -- is not a match. The action does have a permissive
+# "contains" mode, but it is reachable only when `custom-pr-sign-comment` is
+# left empty, and its pattern is hardcoded to CLA Assistant's own default
+# wording ("I have read the CLA Document and I hereby sign the CLA"). Custom
+# wording and substring matching are mutually exclusive; we need our own
+# wording, so we are on the exact-equality branch and cannot leave it.
+# A signature carrying extra text is still valid under Más Bandwidth policy
+# (version-pinned signatures were expressly ruled acceptable on 2026-07-24), so
+# it too must be recorded by hand.
+#
+# The second step below exists only to make both of those cases LOUD instead of
+# silent. It records nothing and writes nowhere; it raises a warning so that a
+# maintainer notices and records the signature manually.
+#
+# RECORDING A SIGNATURE BY HAND
+# Append one object to signatures/caa.json on the `cla-signatures` branch of
+# mas-bandwidth/.github, in the same shape the action writes:
+#
+#     {"name": "<github login>", "id": <numeric user id>,
+#      "comment_id": <id of the signing comment>,
+#      "created_at": "<comment created_at, ISO 8601>",
+#      "repoId": <numeric repo id>, "pullRequestNo": <issue or PR number>}
+#
+# The ids come from the comment itself, e.g.
+#     gh api repos/mas-bandwidth/<repo>/issues/<n>/comments \
+#       --jq '.[] | {comment_id: .id, name: .user.login, id: .user.id,
+#                    created_at}'
+#     gh api repos/mas-bandwidth/<repo> --jq .id
+# Commit it with a message naming the signer and the thread, so the ledger's
+# history stays auditable.
+# ---------------------------------------------------------------------------
 
 name: Contributor Assignment Agreement
 on:
@@ -30,8 +88,14 @@ jobs:
   caa:
     runs-on: ubuntu-latest
     steps:
+      # Pull requests only. `github.event.issue.pull_request` is present only
+      # when an issue_comment was posted on a PR; on a plain issue it is null
+      # and the action would abort (see LIMIT 1 above).
       - name: CAA check
-        if: (github.event.comment.body == 'I have read the CAA and I hereby sign it, assigning copyright in my contributions to Más Bandwidth LLC.') || github.event_name == 'pull_request_target'
+        if: >-
+          github.event_name == 'pull_request_target' ||
+          (github.event.issue.pull_request != null &&
+          github.event.comment.body == 'I have read the CAA and I hereby sign it, assigning copyright in my contributions to Más Bandwidth LLC.')
         uses: contributor-assistant/github-action@v2.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,3 +113,62 @@ jobs:
           custom-pr-sign-comment: 'I have read the CAA and I hereby sign it, assigning copyright in my contributions to Más Bandwidth LLC.'
           custom-allsigned-prcomment: 'All contributors have signed the CAA. Thank you.'
           lock-pullrequest-aftermerge: false
+
+      # Fires when a comment reads like a CAA signature but will not be picked
+      # up by the step above -- either it is on an issue rather than a pull
+      # request (LIMIT 1), or it carries extra text and so fails the action's
+      # exact-equality test (LIMIT 2). This step records nothing anywhere. It
+      # only raises a warning, so that a signature is never lost silently.
+      # Bots are skipped because the action's own "please sign" comment quotes
+      # the signature sentence verbatim; the two accounts below are skipped for
+      # the same reason as in `allowlist` above -- they are ours, and they quote
+      # signatures back when replying by email.
+      - name: Flag a signature the automation cannot record
+        if: >-
+          github.event_name == 'issue_comment' &&
+          github.event.comment.user.type != 'Bot' &&
+          github.event.comment.user.login != 'gafferongames' &&
+          github.event.comment.user.login != 'rowan-claude' &&
+          contains(github.event.comment.body, 'I hereby sign it, assigning copyright') &&
+          !(github.event.issue.pull_request != null &&
+          github.event.comment.body == 'I have read the CAA and I hereby sign it, assigning copyright in my contributions to Más Bandwidth LLC.')
+        env:
+          # via env, never inlined into the script: comment bodies are untrusted
+          SIGNER: ${{ github.event.comment.user.login }}
+          SIGNER_ID: ${{ github.event.comment.user.id }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          REPO_ID: ${{ github.event.repository.id }}
+          THREAD_NO: ${{ github.event.issue.number }}
+          IS_PR: ${{ github.event.issue.pull_request != null }}
+        run: |
+          set -euo pipefail
+          if [ "$IS_PR" = "true" ]; then
+            why="it carries text beyond the exact signature sentence"
+          else
+            why="it was posted on an issue rather than a pull request"
+          fi
+          printf '::warning title=CAA signature needs manual recording::%s appears to have signed the CAA, but it was NOT recorded automatically because %s. See %s\n' \
+            "$SIGNER" "$why" "$COMMENT_URL"
+          {
+            echo "### CAA signature needs manual recording"
+            echo
+            echo "\`$SIGNER\` appears to have signed the CAA, but the signature was **not** recorded automatically because $why."
+            echo
+            echo "Comment: $COMMENT_URL"
+            echo
+            echo "Review the comment. If it is a genuine signature, append this to"
+            echo "\`signatures/caa.json\` on the \`cla-signatures\` branch of \`mas-bandwidth/.github\`:"
+            echo
+            echo '```json'
+            echo "{"
+            echo "  \"name\": \"$SIGNER\","
+            echo "  \"id\": $SIGNER_ID,"
+            echo "  \"comment_id\": $COMMENT_ID,"
+            echo "  \"created_at\": \"$COMMENT_AT\","
+            echo "  \"repoId\": $REPO_ID,"
+            echo "  \"pullRequestNo\": $THREAD_NO"
+            echo "}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
