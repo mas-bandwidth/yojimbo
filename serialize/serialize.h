@@ -1,4 +1,4 @@
-﻿/*
+/*
     serialize
 
     Copyright © 2016 - 2026, Más Bandwidth LLC.
@@ -34,9 +34,9 @@
 /** @file */
 
 #define SERIALIZE_VERSION_MAJOR 1
-#define SERIALIZE_VERSION_MINOR 4
-#define SERIALIZE_VERSION_PATCH 4
-#define SERIALIZE_VERSION "1.4.4"
+#define SERIALIZE_VERSION_MINOR 5
+#define SERIALIZE_VERSION_PATCH 0
+#define SERIALIZE_VERSION "1.5.0"
 
 #if defined(_MSC_VER)
 #define serialize_restrict __restrict
@@ -1708,29 +1708,29 @@ namespace serialize
 
     template <typename Stream> bool serialize_wstring_internal( Stream & stream, wchar_t * string, int buffer_size )
     {
+        const uint32_t max_wchar_value = ( sizeof( wchar_t ) >= 4 ) ? 0xFFFFFFFFU : 0xFFFFU;
         int length = 0;
         if ( Stream::IsWriting )
         {
             length = (int) wcslen( string );
             serialize_assert( length < buffer_size );
         }
-
         serialize_int( stream, length, 0, buffer_size - 1 );
         for ( int i = 0; i < length; i++ )
         {
-            uint32_t char_value = 0;
+            uint32_t character = 0;
             if ( Stream::IsWriting )
             {
-                char_value = (uint32_t) string[i];
+                character = (uint32_t) string[i];
             }
-            serialize_bits( stream, char_value, 32 );
+            serialize_bits( stream, character, 32 );
             if ( Stream::IsReading )
             {
-                if ( sizeof(wchar_t) == 2 && char_value > 0xFFFF )
+                if ( character > max_wchar_value )
                 {
                     return false;
                 }
-                string[i] = (wchar_t) char_value;
+                string[i] = (wchar_t) character;
             }
         }
         if ( Stream::IsReading )
@@ -1739,6 +1739,7 @@ namespace serialize
         }
         return true;
     }
+
 
     /**
         Serialize a string to the stream (read/write/measure).
@@ -1758,7 +1759,18 @@ namespace serialize
                 return false;                                                               \
             }                                                                               \
         } while (0)
-    
+
+    /**
+        Serialize a wide string to the stream (read/write/measure).
+        This is a helper macro to make writing unified serialize functions easier.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        The wire format is 32 bits per character, so streams are compatible between platforms with 2 and 4 byte wchar_t. Reading a character that doesn't fit in the local wchar_t fails rather than truncating.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param string The wide string to serialize write/measure. Pointer to buffer to be filled on read.
+        @param buffer_size The size of the string buffer in wide characters. String with terminating null character must fit into this buffer.
+     */
+
     #define serialize_wstring( stream, string, buffer_size )                                \
         do                                                                                  \
         {                                                                                   \
@@ -1767,6 +1779,7 @@ namespace serialize
                 return false;                                                               \
             }                                                                               \
         } while (0)
+
 
     /**
         Serialize an alignment to the stream (read/write/measure).
@@ -2041,15 +2054,16 @@ namespace serialize
             }                                                                               \
         } while (0)
 
-    #define read_wstring( stream, string, buffer_size )                                      \
-        do                                                                                   \
-        {                                                                                    \
-            wchar_t * string_ptr = (wchar_t*) ( string );                                    \
-            if ( !serialize_wstring_internal( stream, string_ptr, buffer_size ) )            \
-            {                                                                                \
-                return false;                                                                \
-            }                                                                                \
+    #define read_wstring( stream, string, buffer_size )                                     \
+        do                                                                                  \
+        {                                                                                   \
+            wchar_t * wstring_ptr = (wchar_t*) ( string );                                  \
+            if ( !serialize_wstring_internal( stream, wstring_ptr, buffer_size ) )          \
+            {                                                                               \
+                return false;                                                               \
+            }                                                                               \
         } while (0)
+
 
     #define read_align                  serialize_align
     #define read_object                 serialize_object
@@ -2138,15 +2152,16 @@ namespace serialize
     #define write_wstring( stream, string, buffer_size )                                    \
         do                                                                                  \
         {                                                                                   \
-            int length = (int) wcslen( string );                                            \
+            const wchar_t * wstring_ptr = (const wchar_t*) ( string );                      \
+            int length = (int) wcslen( wstring_ptr );                                       \
             serialize_assert( length < (buffer_size) );                                     \
             write_int( stream, length, 0, (buffer_size) - 1 );                              \
             for ( int i = 0; i < length; i++ )                                              \
             {                                                                               \
-                uint32_t wchar_value = (uint32_t) ( string )[i];                            \
-                write_bits( stream, wchar_value, 32 );                                      \
+                write_bits( stream, (uint32_t) wstring_ptr[i], 32 );                        \
             }                                                                               \
         } while (0)
+
 
     #define write_align( stream )                                                           \
         do                                                                                  \
@@ -2188,7 +2203,7 @@ inline void serialize_copy_wstring( wchar_t * dest, const wchar_t * source, size
     serialize_assert( dest );
     serialize_assert( source );
     serialize_assert( dest_size >= 1 );
-    memset( dest, 0, dest_size * sizeof(wchar_t) );
+    memset( dest, 0, dest_size * sizeof( wchar_t ) );
     for ( size_t i = 0; i < dest_size - 1; i++ )
     {
         if ( source[i] == L'\0' )
@@ -2196,6 +2211,7 @@ inline void serialize_copy_wstring( wchar_t * dest, const wchar_t * source, size
         dest[i] = source[i];
     }
 }
+
 
 #if SERIALIZE_ENABLE_TESTS
 
@@ -2435,7 +2451,15 @@ struct TestObject
 
         serialize_copy_string( data.string, "hello world!", sizeof(data.string) - 1 );
 
-        serialize_copy_wstring( data.wstring, L"привіт, світ!", sizeof(data.wstring) / sizeof(wchar_t) - 1 );
+        // Explicit code points, not a cyrillic literal. This header carries no BOM, and MSVC
+        // decodes a BOM-less UTF-8 source as the local ANSI code page, silently mangling wide
+        // literals. Writing the code points makes this independent of source encoding entirely,
+        // which also protects consumers who include this header without /utf-8. The assertions
+        // further down already do this for the same family of reason.
+        const wchar_t hello_world[] = { 0x043F, 0x0440, 0x0438, 0x0432, 0x0456, 0x0442,    // privit
+                                        0x002C, 0x0020,                                    // ", "
+                                        0x0441, 0x0432, 0x0456, 0x0442, 0x0021, 0 };       // svit!
+        serialize_copy_wstring( data.wstring, hello_world, sizeof(data.wstring) / sizeof(wchar_t) - 1 );
     }
 
     template <typename Stream> bool Serialize( Stream & stream )
@@ -2681,7 +2705,9 @@ inline void test_read_write()
         const char * string = "hello";
         write_string( writeStream, string, 10 );
 
-        const wchar_t * wstring = L"привіт";
+        // explicit code points, see the note above
+        const wchar_t wstring_storage[] = { 0x043F, 0x0440, 0x0438, 0x0432, 0x0456, 0x0442, 0 };
+        const wchar_t * wstring = wstring_storage;
         write_wstring( writeStream, wstring, 20 );
 
         write_align( writeStream );
@@ -2864,6 +2890,98 @@ inline void test_serialize_bytes_validation()
     {
         serialize::ReadStream readStream( buffer, 16 );
         serialize_check( readStream.SerializeBytes( data, 1 << 29 ) == false );
+    }
+}
+
+inline void test_wstring_validation()
+{
+    // Wide-string coverage. Before this existed the only exercise of the wstring path
+    // was incidental — a field inside test_serialize, a pair of calls in test_read_write,
+    // and the golden vector. None of them covered the boundaries, and none covered the
+    // documented failure behaviour at all. See STANDARD.md, "wstring".
+
+    const int BufferSize = 32;
+
+    // empty string: length 0, no characters, and the reader appends the terminator
+    {
+        uint8_t buffer[256];
+        wchar_t empty[BufferSize] = { 0 };
+        serialize::WriteStream writeStream( buffer, sizeof( buffer ) );
+        serialize_check( serialize::serialize_wstring_internal( writeStream, empty, BufferSize ) );
+        writeStream.Flush();
+
+        wchar_t read_back[BufferSize];
+        memset( read_back, 0xFF, sizeof( read_back ) );
+        serialize::ReadStream readStream( buffer, writeStream.GetBytesProcessed() );
+        serialize_check( serialize::serialize_wstring_internal( readStream, read_back, BufferSize ) );
+        serialize_check( read_back[0] == L'\0' );
+    }
+
+    // longest legal string: buffer_size - 1 characters, since the terminator is not sent
+    {
+        uint8_t buffer[512];
+        wchar_t full[BufferSize];
+        for ( int i = 0; i < BufferSize - 1; ++i )
+            full[i] = (wchar_t) ( 0x0041 + ( i % 26 ) );
+        full[BufferSize - 1] = 0;
+
+        serialize::WriteStream writeStream( buffer, sizeof( buffer ) );
+        serialize_check( serialize::serialize_wstring_internal( writeStream, full, BufferSize ) );
+        writeStream.Flush();
+
+        wchar_t read_back[BufferSize];
+        memset( read_back, 0xFF, sizeof( read_back ) );
+        serialize::ReadStream readStream( buffer, writeStream.GetBytesProcessed() );
+        serialize_check( serialize::serialize_wstring_internal( readStream, read_back, BufferSize ) );
+        serialize_check( wcscmp( read_back, full ) == 0 );
+    }
+
+    // the measure stream must agree with the write stream on cost
+    {
+        uint8_t buffer[256];
+        wchar_t text[BufferSize] = { 0x0041, 0x0042, 0x0043, 0 };
+
+        serialize::MeasureStream measureStream;
+        serialize_check( serialize::serialize_wstring_internal( measureStream, text, BufferSize ) );
+
+        serialize::WriteStream writeStream( buffer, sizeof( buffer ) );
+        serialize_check( serialize::serialize_wstring_internal( writeStream, text, BufferSize ) );
+        writeStream.Flush();
+
+        serialize_check( measureStream.GetBitsProcessed() == writeStream.GetBitsProcessed() );
+    }
+
+    // THE DOCUMENTED FAILURE BEHAVIOUR, previously untested. A code point that does not fit
+    // in the local wchar_t must FAIL THE READ rather than truncate, so a stream written on a
+    // 4-byte-wchar_t platform cannot silently lose data when read on a 2-byte one. The value
+    // is planted with raw bit operations so the test does not depend on the local width to
+    // produce it.
+    {
+        uint8_t buffer[256];
+        const uint32_t above_bmp = 0x0001F600;      // beyond 16 bits by construction
+
+        serialize::WriteStream writeStream( buffer, sizeof( buffer ) );
+        serialize_check( writeStream.SerializeInteger( 1, 0, BufferSize - 1 ) );   // length 1
+        serialize_check( writeStream.SerializeBits( above_bmp, 32 ) );
+        writeStream.Flush();
+
+        wchar_t read_back[BufferSize];
+        memset( read_back, 0, sizeof( read_back ) );
+        serialize::ReadStream readStream( buffer, writeStream.GetBytesProcessed() );
+        const bool result = serialize::serialize_wstring_internal( readStream, read_back, BufferSize );
+
+        if ( sizeof( wchar_t ) >= 4 )
+        {
+            // the value fits: it must round-trip exactly
+            serialize_check( result == true );
+            serialize_check( (uint32_t) read_back[0] == above_bmp );
+        }
+        else
+        {
+            // the value does not fit: reject, and do not leave a truncated character behind
+            serialize_check( result == false );
+            serialize_check( read_back[0] != (wchar_t) ( above_bmp & 0xFFFF ) );
+        }
     }
 }
 
@@ -3252,6 +3370,7 @@ inline void serialize_test()
         SERIALIZE_RUN_TEST( test_serialize_int64_full_range );
         SERIALIZE_RUN_TEST( test_serialize_int64_validation );
         SERIALIZE_RUN_TEST( test_serialize_bytes_validation );
+        SERIALIZE_RUN_TEST( test_wstring_validation );
         SERIALIZE_RUN_TEST( test_int_relative_validation );
         SERIALIZE_RUN_TEST( test_compressed_float_validation );
         SERIALIZE_RUN_TEST( test_golden_wire_format );

@@ -32,16 +32,6 @@
 namespace yojimbo
 {
 
-    /**
-        Serialize an ack relative to the current sequence number (read/write/measure).
-        This is a helper macro to make writing unified serialize functions easier.
-        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
-        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
-        @param stream The stream object. May be a read, write or measure stream.
-        @param sequence The current sequence number.
-        @param ack The ack sequence number, which is typically near the current sequence number.
-     */
-
     template <typename Stream> bool serialize_sequence_relative_internal( Stream & stream, uint16_t sequence1, uint16_t & sequence2 )
     {
         if ( Stream::IsWriting )
