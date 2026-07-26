@@ -5498,6 +5498,112 @@ do                                                                              
     }                                                                                                           \
 } while(0)
 
+static void test_crypto_aead_vectors()
+{
+    // Known-answer test for the two AEAD primitives netcode relies on, exercising
+    // whichever implementation the running CPU selects (reference / SSSE3 / AVX2 for
+    // ChaCha20, donna / SSE2 for Poly1305). Expected ciphertext was generated from
+    // libsodium reference output and is unchanged across 1.0.20 -> 1.0.22. Do not
+    // edit these arrays by hand: a golden failure here means the vendored crypto no
+    // longer agrees with upstream, which would break every other netcode
+    // implementation on the wire.
+    //
+    // Declared static on purpose. yojimbo vendors this file and compiles it with
+    // NETCODE_ENABLE_TESTS=1 while defining its own test_crypto_aead_vectors in
+    // test.cpp; internal linkage keeps the two from colliding.
+
+    static const uint8_t kat_key[32] = {
+        0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x4a,0x4b,
+        0x4c,0x4d,0x4e,0x4f,0x50,0x51,0x52,0x53,0x54,0x55,0x56,0x57,
+        0x58,0x59,0x5a,0x5b,0x5c,0x5d,0x5e,0x5f,
+    };
+    static const uint8_t kat_ad[12] = {
+        0xc0,0xc1,0xc2,0xc3,0xc4,0xc5,0xc6,0xc7,0xc8,0xc9,0xca,0xcb,
+    };
+    static const uint8_t kat_msg[58] = {
+        0x79,0x6f,0x6a,0x69,0x6d,0x62,0x6f,0x20,0x76,0x65,0x6e,0x64,0x6f,0x72,0x65,0x64,0x20,0x6c,0x69,0x62,
+        0x73,0x6f,0x64,0x69,0x75,0x6d,0x20,0x41,0x45,0x41,0x44,0x20,0x6b,0x6e,0x6f,0x77,0x6e,0x2d,0x61,0x6e,
+        0x73,0x77,0x65,0x72,0x20,0x74,0x65,0x73,0x74,0x20,0x76,0x65,0x63,0x74,0x6f,0x72,0x21,0x21,
+    };
+    static const uint8_t kat_npub_ietf[12] = {
+        0xa0,0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8,0xa9,0xaa,0xab,
+    };
+    static const uint8_t kat_ct_ietf[74] = {
+        0xd5,0xae,0xb1,0x85,0x15,0x8b,0x07,0xb3,0x01,0x15,0xf0,0x59,
+        0xb4,0x4e,0x9d,0x45,0x91,0x58,0xab,0xff,0xaf,0xbd,0x81,0x4f,
+        0xbf,0x52,0xc2,0x4c,0xa1,0x5e,0x60,0x5f,0x58,0x63,0x31,0x96,
+        0xda,0x90,0x07,0x63,0xb9,0x0c,0x21,0x46,0xf2,0xe4,0x65,0x96,
+        0x7a,0x81,0x7f,0xa2,0x5d,0xd1,0x79,0xf6,0x9b,0x18,0x5d,0xe0,
+        0xb6,0x57,0x93,0xbe,0x8c,0xb5,0xa9,0x75,0x98,0xa4,0x6f,0xd5,
+        0xbe,0x9d,
+    };
+    static const uint8_t kat_npub_xchacha[24] = {
+        0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1a,0x1b,
+        0x1c,0x1d,0x1e,0x1f,0x20,0x21,0x22,0x23,0x24,0x25,0x26,0x27,
+    };
+    static const uint8_t kat_ct_xchacha[74] = {
+        0x2b,0x24,0x83,0x2a,0x6c,0x9e,0x21,0x02,0x2a,0x14,0x32,0x56,
+        0x4b,0x27,0x37,0x92,0x24,0x40,0xa9,0x92,0xd3,0x53,0xa7,0xa5,
+        0x64,0xd3,0x8e,0x0c,0x75,0x79,0x75,0x3f,0xca,0x82,0xfa,0x85,
+        0xf0,0xa6,0xac,0x08,0x9a,0x25,0xf1,0x8f,0x42,0x20,0x70,0x8e,
+        0x38,0x25,0xd1,0x08,0x45,0x81,0x75,0x18,0xe4,0xd1,0x88,0xbd,
+        0x92,0xfa,0x84,0xdc,0xd6,0xa3,0x9a,0x67,0x52,0x91,0x62,0xf4,
+        0x86,0x7b,
+    };
+
+    uint8_t c[128];
+    uint8_t m[128];
+    unsigned long long clen = 0;
+    unsigned long long mlen = 0;
+
+    // ChaCha20-Poly1305 (IETF) -- the construction netcode uses on the wire
+
+    check( crypto_aead_chacha20poly1305_ietf_encrypt( c, &clen, kat_msg, sizeof( kat_msg ), kat_ad, sizeof( kat_ad ), NULL, kat_npub_ietf, kat_key ) == 0 );
+    check( clen == sizeof( kat_ct_ietf ) );
+    check( memcmp( c, kat_ct_ietf, (size_t) clen ) == 0 );
+    check( crypto_aead_chacha20poly1305_ietf_decrypt( m, &mlen, NULL, c, clen, kat_ad, sizeof( kat_ad ), kat_npub_ietf, kat_key ) == 0 );
+    check( mlen == sizeof( kat_msg ) );
+    check( memcmp( m, kat_msg, (size_t) mlen ) == 0 );
+
+    // a tampered tag must be rejected. this is the path ACQUIRE_FENCE guards: the
+    // plaintext must not be produced before authentication has completed.
+
+    c[0] ^= 0x01;
+    check( crypto_aead_chacha20poly1305_ietf_decrypt( m, &mlen, NULL, c, clen, kat_ad, sizeof( kat_ad ), kat_npub_ietf, kat_key ) != 0 );
+
+    // XChaCha20-Poly1305
+
+    check( crypto_aead_xchacha20poly1305_ietf_encrypt( c, &clen, kat_msg, sizeof( kat_msg ), kat_ad, sizeof( kat_ad ), NULL, kat_npub_xchacha, kat_key ) == 0 );
+    check( clen == sizeof( kat_ct_xchacha ) );
+    check( memcmp( c, kat_ct_xchacha, (size_t) clen ) == 0 );
+    check( crypto_aead_xchacha20poly1305_ietf_decrypt( m, &mlen, NULL, c, clen, kat_ad, sizeof( kat_ad ), kat_npub_xchacha, kat_key ) == 0 );
+    check( mlen == sizeof( kat_msg ) );
+    check( memcmp( m, kat_msg, (size_t) mlen ) == 0 );
+    c[0] ^= 0x01;
+    check( crypto_aead_xchacha20poly1305_ietf_decrypt( m, &mlen, NULL, c, clen, kat_ad, sizeof( kat_ad ), kat_npub_xchacha, kat_key ) != 0 );
+
+    // the constant-time comparison that checks the Poly1305 tag. libsodium 1.0.21
+    // hardened crypto_verify_n against the compiler optimising it into something
+    // branchy; these assertions pin its contract.
+
+    uint8_t a[64], b[64];
+    int i;
+    for ( i = 0; i < 64; i++ ) { a[i] = (uint8_t) i; b[i] = (uint8_t) i; }
+    check( crypto_verify_16( a, b ) == 0 );
+    check( crypto_verify_32( a, b ) == 0 );
+    check( crypto_verify_64( a, b ) == 0 );
+    for ( i = 0; i < 8; i++ )
+    {
+        b[0] = (uint8_t) ( a[0] ^ ( 1u << i ) );
+        check( crypto_verify_16( a, b ) == -1 );
+        check( crypto_verify_32( a, b ) == -1 );
+        check( crypto_verify_64( a, b ) == -1 );
+    }
+    b[0] = a[0];
+    b[63] = (uint8_t) ( a[63] ^ 0x80 );
+    check( crypto_verify_64( a, b ) == -1 );
+}
+
 static void test_queue()
 {
     struct netcode_packet_queue_t queue;
@@ -9511,6 +9617,7 @@ void netcode_test()
 {
     //while ( 1 )
     {
+        RUN_TEST( test_crypto_aead_vectors );
         RUN_TEST( test_queue );
         RUN_TEST( test_endian );
         RUN_TEST( test_address );
