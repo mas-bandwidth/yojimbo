@@ -29,20 +29,31 @@ DECISIONS THAT READ AS BUGS (they are not — do not "fix" them)
 SECURITY: yojimbo 1.6.3 and earlier vendor a netcode missing the AEAD nonce-reuse fix
 (netcode 1.4.0); 1.7.0 was the first with it. See netcode's SECURITY.md.
 
-KNOWN OPEN DEFECT -- do not rediscover, and do not assert the fix in tests
-- #320 `Address::IsMulticast` / `IsLinkLocal` / `IsSiteLocal` compare the first 16-bit
-  group for EXACT equality instead of masking the prefix. Multicast is ff00::/8 and
-  link-local is fe80::/10, so only the single address equal to the prefix matches.
-  `IsGlobalUnicast` is the negation of the other three, so a miss does not return false --
-  it returns TRUE. Measured: `ff02::1` (all-nodes multicast) reports mcast=0,
-  global_unicast=1; `febf::1` (valid fe80::/10) reports linklocal=0, global_unicast=1.
-  Fix is `( ipv6[0] & 0xff00 ) == 0xff00` and `( ipv6[0] & 0xffc0 ) == 0xfe80`.
-  Nothing inside yojimbo uses these predicates and nothing tests them -- which is why
-  they drifted. The exposure is a USER filtering on IsGlobalUnicast and accepting
-  multicast.
-  Found by writing tests, not by reading. mas-bandwidth/apt's autopkgtest asserts only
-  the cases that are correct TODAY, deliberately, so the Debian package does not look
-  broken while this is unfixed.
+THE WRITE/READ RULE — read this BEFORE reporting any assert as a missing bounds check
+Glenn, 2026-07-26: "intention is on write, user is responsible to not crash or do undefined
+behavior. asserts are there to help. callers responsibility. on read, obviously, we must
+check." Plus Postel: "be conservative in what you send, permissive in what you receive."
+  WRITE / caller-supplied -> the CALLER validates. Assert-only is the DESIGN; -DNDEBUG
+    removing it is correct. Do NOT add runtime checks here.
+  READ / off the wire     -> the library checks at runtime, for safety.
+yojimbo states this in its own code: yojimbo_config.cpp:34-36 explains that YOJIMBO_CONFIG_CHECK
+logs-then-asserts and the whole Validate() family is compiled to nothing in release
+(yojimbo_config.cpp:163-175). That is deliberate, not an oversight.
+DELIBERATELY ASSERT-ONLY, do NOT "fix" -- a future audit that finds these has found the
+contract: oversized block-message send (reliable_ordered_channel.cpp:562/611 -- SendMessage
+exempts block messages at :168 on purpose); BaseServer::Start's maxClients
+(base_server.cpp:48-50); Client::GenerateInsecureConnectToken (client.cpp:72); the whole
+clientIndex/channelIndex public surface.
+The WIRE path is properly checked and was verified clean by two independent audits: wire
+channelIndex (channel.cpp:446), numChannelEntries (connection.cpp:58), numFragments/fragmentId
+(reliable_ordered_channel.cpp:712-724) and the receive memcpy bounds test at :733-738.
+yojimbo also satisfies serialize's bytes%8 write contract deliberately at connection.cpp:248
+(maxPacketBytes &= ~7) -- do not "simplify" that line.
+FIXED 2026-07-26 (#320): Address::IsMulticast/IsLinkLocal/IsSiteLocal compared the first
+16-bit group for EXACT equality instead of masking the prefix, and IsGlobalUnicast is their
+negation, so ff02::1 (all nodes) reported as GLOBAL UNICAST. Now masked: /8 for multicast,
+/10 for link and site local. There had been ZERO test coverage of these predicates, which is
+how they drifted -- test_address_classification now covers the range boundaries.
 <!-- HOT:END -->
 
 # CLAUDE.md — Audit of yojimbo

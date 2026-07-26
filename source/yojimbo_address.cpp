@@ -302,17 +302,22 @@ namespace yojimbo
 
     bool Address::IsLinkLocal() const
     {
-        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == 0xfe80;
+        // fe80::/10 -- the prefix is 10 bits, so mask rather than compare the whole group.
+        // Comparing == 0xfe80 matched only fe80::/16 and missed the rest of the range.
+        return m_type == ADDRESS_IPV6 && ( m_address.ipv6[0] & 0xffc0 ) == 0xfe80;
     }
 
     bool Address::IsSiteLocal() const
     {
-        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == 0xfec0;
+        // fec0::/10
+        return m_type == ADDRESS_IPV6 && ( m_address.ipv6[0] & 0xffc0 ) == 0xfec0;
     }
 
     bool Address::IsMulticast() const
     {
-        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] == 0xff00;
+        // ff00::/8. Comparing == 0xff00 matched only the single group ff00 and missed every
+        // real multicast address, including ff02::1 (all nodes).
+        return m_type == ADDRESS_IPV6 && ( m_address.ipv6[0] & 0xff00 ) == 0xff00;
     }
 
     bool Address::IsLoopback() const
@@ -334,9 +339,11 @@ namespace yojimbo
 
     bool Address::IsGlobalUnicast() const
     {
-        return m_type == ADDRESS_IPV6 && m_address.ipv6[0] != 0xfe80
-                                      && m_address.ipv6[0] != 0xfec0
-                                      && m_address.ipv6[0] != 0xff00
+        // Defined as the negation of the others, so a missed classification above did not
+        // merely return false here -- it returned TRUE, reporting multicast as global unicast.
+        return m_type == ADDRESS_IPV6 && !IsLinkLocal()
+                                      && !IsSiteLocal()
+                                      && !IsMulticast()
                                       && !IsLoopback();
     }
 
