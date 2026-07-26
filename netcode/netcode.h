@@ -31,10 +31,10 @@
 #ifndef NETCODE_H
 #define NETCODE_H
 
-#define NETCODE_VERSION_FULL    "1.4.1"
+#define NETCODE_VERSION_FULL    "1.4.2"
 #define NETCODE_VERSION_MAJOR   1
 #define NETCODE_VERSION_MINOR   4
-#define NETCODE_VERSION_PATCH   1
+#define NETCODE_VERSION_PATCH   2
 
 /*
     IMPORTANT: netcode is single-threaded by design and is not thread safe.

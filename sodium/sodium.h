@@ -758,6 +758,31 @@ int crypto_stream_chacha20_ietf_ext_xor_ic(unsigned char *c, const unsigned char
 # define HAVE_TI_MODE 1
 #endif
 
+/* Optimisation barriers used by the constant-time code and by the AEAD decrypt
+   paths (libsodium 1.0.21/1.0.22). Upstream gets these from autoconf; this
+   amalgamation derives them from the compiler's own macros, as it already does
+   for HAVE_TI_MODE and the SIMD intrinsics above.
+
+   ACQUIRE_FENCE is placed after MAC verification and before the plaintext is
+   produced, so a speculative read cannot reach unauthenticated plaintext.
+   Falling back to (void) 0 matches upstream's behaviour when autoconf detects
+   no fence primitive: correct and interoperable, without the hardening. */
+#if !defined(HAVE_GCC_MEMORY_FENCES) && (defined(__GNUC__) || defined(__clang__))
+# define HAVE_GCC_MEMORY_FENCES 1
+#endif
+#if !defined(HAVE_INLINE_ASM) && (defined(__GNUC__) || defined(__clang__)) && \
+    !defined(_MSC_VER)
+# define HAVE_INLINE_ASM 1
+#endif
+
+#ifdef HAVE_GCC_MEMORY_FENCES
+# define ACQUIRE_FENCE __atomic_thread_fence(__ATOMIC_ACQUIRE)
+#elif defined(HAVE_C11_MEMORY_FENCES)
+# define ACQUIRE_FENCE atomic_thread_fence(memory_order_acquire)
+#else
+# define ACQUIRE_FENCE (void) 0
+#endif
+
 #ifdef HAVE_TI_MODE
 # if defined(__SIZEOF_INT128__)
 typedef unsigned __int128 uint128_t;
@@ -1391,7 +1416,7 @@ int _sodium_alloc_init(void);
 #define sodium_version_H
 
 
-#define SODIUM_VERSION_STRING "1.0.20"
+#define SODIUM_VERSION_STRING "1.0.22"
 
 #define SODIUM_LIBRARY_VERSION_MAJOR 26
 #define SODIUM_LIBRARY_VERSION_MINOR 2

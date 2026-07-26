@@ -918,6 +918,8 @@ crypto_verify_n(const unsigned char *x_, const unsigned char *y_,
 
 #else
 
+static volatile uint16_t optblocker_u16;
+
 static inline int
 crypto_verify_n(const unsigned char *x_, const unsigned char *y_,
                 const int n)
@@ -926,13 +928,19 @@ crypto_verify_n(const unsigned char *x_, const unsigned char *y_,
         (const volatile unsigned char *volatile) x_;
     const volatile unsigned char *volatile y =
         (const volatile unsigned char *volatile) y_;
-    volatile uint_fast16_t d = 0U;
-    int i;
+    volatile uint16_t d = 0U;
+    int               i;
 
     for (i = 0; i < n; i++) {
         d |= x[i] ^ y[i];
     }
-    return (1 & ((d - 1) >> 8)) - 1;
+# ifdef HAVE_INLINE_ASM
+    __asm__ __volatile__("" : "+r"(d) :);
+# endif
+    d--;
+    d = ((d >> 13) ^ optblocker_u16) >> 2;
+
+    return (int) d - 1;
 }
 
 #endif
@@ -4995,6 +5003,8 @@ poly1305_init_ext(poly1305_state_internal_t *st, const unsigned char key[32],
     st->leftover = 0U;
 }
 
+static volatile uint64_t optblocker_u64;
+
 static POLY1305_NOINLINE void
 poly1305_blocks(poly1305_state_internal_t *st, const unsigned char *m,
                 unsigned long long bytes)
@@ -5546,7 +5556,7 @@ poly1305_blocks(poly1305_state_internal_t *st, const unsigned char *m,
         g1 &= 0xfffffffffff;
         g2 = h2 + c - ((uint64_t) 1 << 42);
 
-        c  = (g2 >> 63) - 1;
+        c  = (((g2 >> 61) ^ optblocker_u64) >> 2) - 1;
         nc = ~c;
         h0 = (h0 & nc) | (g0 & c);
         h1 = (h1 & nc) | (g1 & c);
@@ -6062,6 +6072,7 @@ crypto_aead_chacha20poly1305_decrypt_detached(unsigned char *m,
         memset(m, 0, mlen);
         return -1;
     }
+    ACQUIRE_FENCE;
     crypto_stream_chacha20_xor_ic(m, c, mlen, npub, 1U, k);
 
     return 0;
@@ -6146,6 +6157,7 @@ crypto_aead_chacha20poly1305_ietf_decrypt_detached(unsigned char *m,
         memset(m, 0, mlen);
         return -1;
     }
+    ACQUIRE_FENCE;
     crypto_stream_chacha20_ietf_xor_ic(m, c, mlen, npub, 1U, k);
 
     return 0;
@@ -6358,6 +6370,7 @@ _decrypt_detached(unsigned char *m,
         memset(m, 0, mlen);
         return -1;
     }
+    ACQUIRE_FENCE;
     crypto_stream_chacha20_ietf_ext_xor_ic(m, c, mlen, npub, 1U, k);
 
     return 0;
