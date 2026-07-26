@@ -1,3 +1,35 @@
+<!-- HOT:BEGIN -->
+## HOT — read before reasoning about this repo
+
+WHAT: the C++ client/server networking library built on netcode + reliable + serialize,
+all three VENDORED in-tree (netcode/, reliable/, serialize/) plus a pruned libsodium subset
+in sodium/.
+
+**THE INTERFACE DOES NOT CHANGE.** The library is over ten years old and deliberately
+stable. Do not propose interface changes.
+
+**VENDORED CODE IS NOT EDITED HERE.** sodium/ is byte-identical to netcode's copy and
+`.github/workflows/sodium-parity.yml` fails if it drifts; see sodium/NOTES.md. Patch
+upstream, re-vendor, let it flow down.
+
+DECISIONS THAT READ AS BUGS (they are not — do not "fix" them)
+- **Debug asserts are deliberately kept OFF the untrusted network read path**, so a hostile
+  peer cannot crash a debug server. This is the single most important invariant to preserve
+  when adding validation: the full-trust rule for programmer inputs must never be confused
+  with the zero-trust rule for wire data.
+- **Config invariants assert in constructors** (power-of-two buffer sizes, channel counts)
+  so every debug run validates config at startup; usage contracts assert where exercised;
+  API misuse ALSO degrades gracefully in release. That layering is intentional.
+- **Malformed wire input degrades to a channel error and a disconnect — never an assert.**
+  Validation happens before the memcpy (see the over-long-final-fragment check in
+  `ReliableOrderedChannel::ProcessPacketFragment`).
+- **Allocation failure is handled on essentially every path** deliberately, because this is
+  a game server.
+
+SECURITY: yojimbo 1.6.3 and earlier vendor a netcode missing the AEAD nonce-reuse fix
+(netcode 1.4.0); 1.7.0 was the first with it. See netcode's SECURITY.md.
+<!-- HOT:END -->
+
 # CLAUDE.md — Audit of yojimbo
 
 *An honest code audit written by Claude (July 2026), covering the yojimbo library proper
