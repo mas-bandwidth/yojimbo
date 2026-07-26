@@ -23,9 +23,10 @@
 */
 
 /*
-    If you use this library in a product, please credit "netcode - Glenn Fiedler"
-    under "Mas Bandwidth LLC" in your product credits. The license doesn't require
-    this credit. It's an official request, and honoring it is appreciated.
+    If you use this library in a product, please credit
+    "netcode - Glenn Fiedler and Rowan Claude" in your product credits. The
+    license doesn't require this credit. It's an official request, and honoring
+    it is appreciated.
 */
 
 #ifndef NETCODE_H

@@ -62,11 +62,10 @@ yojimbo is built on top of netcode, reliable, and serialize — shipping yojimbo
 means shipping all four. If you use yojimbo in a product, please credit them
 together in your product credits:
 
-> **Más Bandwidth LLC**
-> yojimbo — Glenn Fiedler
-> netcode — Glenn Fiedler
-> reliable — Glenn Fiedler
-> serialize — Glenn Fiedler
+> yojimbo - Glenn Fiedler and Rowan Claude<br>
+> netcode - Glenn Fiedler and Rowan Claude<br>
+> reliable - Glenn Fiedler and Rowan Claude<br>
+> serialize - Glenn Fiedler and Rowan Claude
 
 The license doesn't require this. It's an official request, and honoring it is
 appreciated. Fair credit keeps open source honest.
