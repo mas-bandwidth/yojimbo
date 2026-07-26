@@ -1,0 +1,72 @@
+# The READER for sodium/NOTES.md's central claim.
+#
+# yojimbo's sodium/ is supposed to be byte-identical to netcode's -- yojimbo's crypto IS
+# netcode's crypto, carried here so yojimbo builds standalone. Nothing enforced that, so
+# "byte-identical" was a sentence in a file, true for exactly as long as it took someone
+# to edit one of the two copies. It would keep compiling and keep passing every other
+# test while quietly describing a relationship that no longer held.
+#
+# The version is DERIVED from netcode/netcode.h rather than pinned here. A hardcoded
+# version would be a third copy of the same truth, and the one nobody remembers to bump.
+name: sodium parity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  parity:
+    name: sodium matches the vendored netcode
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare sodium/ against mas-bandwidth/netcode at the vendored version
+        run: |
+          set -euo pipefail
+
+          version="$(grep -oE '#define[[:space:]]+NETCODE_VERSION_FULL[[:space:]]+"[^"]+"' netcode/netcode.h \
+                     | grep -oE '"[^"]+"' | tr -d '"')"
+          if [ -z "$version" ]; then
+            echo "::error::could not read NETCODE_VERSION_FULL from netcode/netcode.h"
+            exit 1
+          fi
+          echo "vendored netcode version: $version"
+
+          # Try the tag first, fall back to main. A version that has no tag yet (a
+          # re-vendor from an unreleased netcode) should still be checkable rather than
+          # silently skipped -- a check that skips is a check that lies.
+          ref="v$version"
+          if ! git clone -q --depth 1 --branch "$ref" https://github.com/mas-bandwidth/netcode.git /tmp/netcode 2>/dev/null; then
+            echo "::notice::tag $ref not found; comparing against netcode main instead"
+            git clone -q --depth 1 https://github.com/mas-bandwidth/netcode.git /tmp/netcode
+          fi
+
+          status=0
+          for f in sodium.h sodium.c; do
+            if [ ! -f "/tmp/netcode/sodium/$f" ]; then
+              echo "::error::netcode has no sodium/$f -- the vendoring relationship changed"
+              status=1
+              continue
+            fi
+            ours="$(shasum -a 256 "sodium/$f"            | cut -d' ' -f1)"
+            theirs="$(shasum -a 256 "/tmp/netcode/sodium/$f" | cut -d' ' -f1)"
+            if [ "$ours" != "$theirs" ]; then
+              echo "::error::sodium/$f differs from netcode's"
+              echo "  yojimbo: $ours"
+              echo "  netcode: $theirs"
+              diff -u "/tmp/netcode/sodium/$f" "sodium/$f" | head -60 || true
+              status=1
+            else
+              echo "sodium/$f matches ($ours)"
+            fi
+          done
+
+          if [ "$status" -ne 0 ]; then
+            echo "::error::yojimbo's vendored libsodium has drifted from netcode's."
+            echo "Do not patch it here. Patch upstream in netcode, re-vendor netcode, and"
+            echo "let this follow. See sodium/NOTES.md."
+          fi
+          exit "$status"
