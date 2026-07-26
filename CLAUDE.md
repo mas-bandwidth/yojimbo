@@ -28,6 +28,21 @@ DECISIONS THAT READ AS BUGS (they are not — do not "fix" them)
 
 SECURITY: yojimbo 1.6.3 and earlier vendor a netcode missing the AEAD nonce-reuse fix
 (netcode 1.4.0); 1.7.0 was the first with it. See netcode's SECURITY.md.
+
+KNOWN OPEN DEFECT -- do not rediscover, and do not assert the fix in tests
+- #320 `Address::IsMulticast` / `IsLinkLocal` / `IsSiteLocal` compare the first 16-bit
+  group for EXACT equality instead of masking the prefix. Multicast is ff00::/8 and
+  link-local is fe80::/10, so only the single address equal to the prefix matches.
+  `IsGlobalUnicast` is the negation of the other three, so a miss does not return false --
+  it returns TRUE. Measured: `ff02::1` (all-nodes multicast) reports mcast=0,
+  global_unicast=1; `febf::1` (valid fe80::/10) reports linklocal=0, global_unicast=1.
+  Fix is `( ipv6[0] & 0xff00 ) == 0xff00` and `( ipv6[0] & 0xffc0 ) == 0xfe80`.
+  Nothing inside yojimbo uses these predicates and nothing tests them -- which is why
+  they drifted. The exposure is a USER filtering on IsGlobalUnicast and accepting
+  multicast.
+  Found by writing tests, not by reading. mas-bandwidth/apt's autopkgtest asserts only
+  the cases that are correct TODAY, deliberately, so the Debian package does not look
+  broken while this is unfixed.
 <!-- HOT:END -->
 
 # CLAUDE.md — Audit of yojimbo
