@@ -161,6 +161,62 @@ bool parse_address( const char string[] )
     return address.IsValid();
 }
 
+void test_address_classification()
+{
+    // These predicates had NO coverage at all, which is how they drifted: IsMulticast,
+    // IsLinkLocal and IsSiteLocal compared the first 16-bit group for exact equality
+    // instead of masking the prefix. Because IsGlobalUnicast is the negation of the other
+    // three, a missed classification did not return false -- it returned TRUE, so ff02::1
+    // (all nodes) reported as global unicast.
+
+    // multicast is ff00::/8 -- the whole range, not just the group ff00
+
+    check( Address( "ff00::1" ).IsMulticast() );
+    check( Address( "ff02::1" ).IsMulticast() );            // all nodes: the common one
+    check( Address( "ff05::1:3" ).IsMulticast() );
+    check( Address( "ffff::1" ).IsMulticast() );
+    check( !Address( "ff02::1" ).IsGlobalUnicast() );
+    check( !Address( "ff05::1:3" ).IsGlobalUnicast() );
+
+    // link local is fe80::/10, so fe80 through febf
+
+    check( Address( "fe80::1" ).IsLinkLocal() );
+    check( Address( "febf::1" ).IsLinkLocal() );
+    check( !Address( "febf::1" ).IsGlobalUnicast() );
+    check( !Address( "fec0::1" ).IsLinkLocal() );           // fec0 is site local, not link local
+
+    // site local is fec0::/10, so fec0 through feff
+
+    check( Address( "fec0::1" ).IsSiteLocal() );
+    check( Address( "feff::1" ).IsSiteLocal() );
+    check( !Address( "fe80::1" ).IsSiteLocal() );
+
+    // and the boundaries below the ranges must NOT be classified
+
+    check( !Address( "fe7f::1" ).IsLinkLocal() );
+    check( !Address( "fe7f::1" ).IsSiteLocal() );
+    check( Address( "fe7f::1" ).IsGlobalUnicast() );
+    check( !Address( "feff::1" ).IsGlobalUnicast() );
+
+    // genuine global unicast still classifies, so the fix cannot pass by returning false
+
+    check( Address( "2001:4860:4860::8888" ).IsGlobalUnicast() );
+    check( !Address( "2001:4860:4860::8888" ).IsMulticast() );
+    check( !Address( "2001:4860:4860::8888" ).IsLoopback() );
+
+    // loopback is unchanged, and is excluded from global unicast
+
+    check( Address( "::1" ).IsLoopback() );
+    check( !Address( "::1" ).IsGlobalUnicast() );
+    check( Address( "127.0.0.1" ).IsLoopback() );
+
+    // IPv4 is never any of the IPv6 classifications
+
+    check( !Address( "127.0.0.1" ).IsMulticast() );
+    check( !Address( "10.0.0.1" ).IsGlobalUnicast() );
+    check( !Address( "224.0.0.1" ).IsMulticast() );
+}
+
 void test_address()
 {
     check( parse_address( "" ) == false );
@@ -3688,6 +3744,7 @@ int main( int argc, char ** argv )
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
+        RUN_TEST( test_address_classification );
         RUN_TEST( test_network_simulator_drains_all_slots );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
