@@ -5285,6 +5285,16 @@ int netcode_generate_connect_token( int num_server_addresses,
     netcode_assert( num_server_addresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
     netcode_assert( public_server_addresses );
     netcode_assert( internal_server_addresses );
+
+    // the parsed address arrays below are sized NETCODE_MAX_SERVERS_PER_CONNECT. an out of
+    // range value here must not get through in release builds where asserts compile out.
+    // every other public entry point already does this; this one was missed
+
+    if ( num_server_addresses <= 0 || num_server_addresses > NETCODE_MAX_SERVERS_PER_CONNECT )
+    {
+        netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: number of server addresses must be in [1,%d], got %d\n", NETCODE_MAX_SERVERS_PER_CONNECT, num_server_addresses );
+        return NETCODE_ERROR;
+    }
     netcode_assert( private_key );
     netcode_assert( user_data );
     netcode_assert( output_buffer );
@@ -6002,6 +6012,63 @@ static void test_address()
 #define TEST_SERVER_PORT            40000
 #define TEST_CONNECT_TOKEN_EXPIRY   30
 #define TEST_TIMEOUT_SECONDS        15
+
+static int test_oor_asserts_fired = 0;
+
+static void test_oor_assert_handler( NETCODE_CONST char * condition, NETCODE_CONST char * function, NETCODE_CONST char * file, int line )
+{
+    (void) condition; (void) function; (void) file; (void) line;
+    test_oor_asserts_fired++;
+    // deliberately RETURNS. netcode.h documents that a custom handler may do this and
+    // execution continues past the failed assert -- which is the only way to reach the
+    // release-build code path from a test binary that has asserts compiled in.
+}
+
+static void test_generate_connect_token_out_of_range()
+{
+    // netcode_generate_connect_token parses into arrays sized NETCODE_MAX_SERVERS_PER_CONNECT.
+    // The bounds used to be assert-only, so -DNDEBUG release builds -- which is what ships,
+    // and what Debian packages -- wrote past a stack array. Every other public entry point
+    // already paired its asserts with a runtime check; this one was missed.
+    //
+    // The asserts fire first by design, so this installs a handler that returns in order to
+    // reach the runtime check underneath them. Without the fix, execution continues into the
+    // parse loop and writes out of bounds instead of returning NETCODE_ERROR.
+
+    uint8_t private_key[NETCODE_KEY_BYTES];
+    uint8_t user_data[NETCODE_USER_DATA_BYTES];
+    uint8_t connect_token[NETCODE_CONNECT_TOKEN_BYTES];
+
+    memset( private_key, 0, sizeof( private_key ) );
+    memset( user_data, 0, sizeof( user_data ) );
+
+    NETCODE_CONST char * server_address = "127.0.0.1:40000";
+
+    test_oor_asserts_fired = 0;
+    netcode_set_assert_function( &test_oor_assert_handler );
+
+    check( netcode_generate_connect_token( 0, &server_address, &server_address, 30, 5, 1000ULL, TEST_PROTOCOL_ID, private_key, user_data, connect_token ) == NETCODE_ERROR );
+    check( netcode_generate_connect_token( -1, &server_address, &server_address, 30, 5, 1000ULL, TEST_PROTOCOL_ID, private_key, user_data, connect_token ) == NETCODE_ERROR );
+    check( netcode_generate_connect_token( NETCODE_MAX_SERVERS_PER_CONNECT + 1, &server_address, &server_address, 30, 5, 1000ULL, TEST_PROTOCOL_ID, private_key, user_data, connect_token ) == NETCODE_ERROR );
+
+    // In a DEBUG build the asserts must still have fired -- they are the caller's debug aid
+    // and this test must not silently prove they were removed. In a RELEASE build they are
+    // compiled to ((void)0) by design, so requiring them there would fail the very
+    // configuration this fix exists for. That asymmetry IS the point of the fix.
+
+#ifndef NDEBUG
+    check( test_oor_asserts_fired > 0 );
+#endif // #ifndef NDEBUG
+
+    // restore the DEFAULT handler, not NULL: netcode_assert calls the pointer with no null
+    // guard, so NULL would turn the next failing assert anywhere in the suite into a crash
+
+    netcode_set_assert_function( &netcode_default_assert_handler );
+
+    // and an in-range call still succeeds, so the guard cannot pass by rejecting everything
+
+    check( netcode_generate_connect_token( 1, &server_address, &server_address, 30, 5, 1000ULL, TEST_PROTOCOL_ID, private_key, user_data, connect_token ) == NETCODE_OK );
+}
 
 static void test_connect_token()
 {
@@ -6942,7 +7009,11 @@ void test_init_and_defaults()
         struct netcode_client_config_t client_config;
         memset( &client_config, 0, sizeof( client_config ) );
 
-        struct netcode_client_t * client = netcode_client_create( "127.0.0.1:50000", &client_config, 0.0 );
+        // port 0 asks the OS for an ephemeral port. This test only checks that a zeroed
+        // config yields working defaults -- it never connects -- so a fixed port buys
+        // nothing and makes the test fail whenever anything else on the machine happens
+        // to hold that port. Observed on a windows CI runner, 2026-07-26.
+        struct netcode_client_t * client = netcode_client_create( "127.0.0.1:0", &client_config, 0.0 );
 
         check( client );
 
@@ -6953,7 +7024,8 @@ void test_init_and_defaults()
         struct netcode_server_config_t server_config;
         memset( &server_config, 0, sizeof( server_config ) );
 
-        struct netcode_server_t * server = netcode_server_create( "127.0.0.1:40000", &server_config, 0.0 );
+        // ephemeral here too, and for the same reason: nothing connects to this server.
+        struct netcode_server_t * server = netcode_server_create( "127.0.0.1:0", &server_config, 0.0 );
 
         check( server );
 
@@ -9623,6 +9695,7 @@ void netcode_test()
         RUN_TEST( test_address );
         RUN_TEST( test_sequence );
         RUN_TEST( test_connect_token );
+        RUN_TEST( test_generate_connect_token_out_of_range );
         RUN_TEST( test_challenge_token );
         RUN_TEST( test_connection_request_packet );
         RUN_TEST( test_connection_denied_packet );
