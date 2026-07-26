@@ -23,9 +23,10 @@
 */
 
 /*
-    If you use this library in a product, please credit "yojimbo - Glenn Fiedler"
-    under "Mas Bandwidth LLC" in your product credits. The license doesn't require
-    this credit. It's an official request, and honoring it is appreciated.
+    If you use this library in a product, please credit
+    "yojimbo - Glenn Fiedler and Rowan Claude" in your product credits. The
+    license doesn't require this credit. It's an official request, and honoring
+    it is appreciated.
     yojimbo includes netcode, reliable and serialize - please credit those the
     same way. See the README for the full list.
 */
