@@ -43,6 +43,40 @@ Out of scope: bugs in your own game code built on top of yojimbo, denial-of-serv
 requires an already-authenticated malicious peer flooding traffic, and issues in build
 tooling or example/test code that are not reachable at runtime.
 
+## Known issue: AEAD nonce reuse in vendored netcode (fixed in 1.7.0)
+
+**Advisory: [GHSA-hqp3-fj6v-hrpc](https://github.com/mas-bandwidth/yojimbo/security/advisories/GHSA-hqp3-fj6v-hrpc)** (published 2026-07-26; a CVE has been requested and is pending assignment).
+
+**Affected: yojimbo 1.6.3 and earlier. Fixed in 1.7.0.**
+
+yojimbo vendors netcode. Releases up to and including 1.6.3 carry a netcode at or below
+1.3.5, which is affected by an AEAD nonce reuse issue: the server's global packet sequence
+was seeded only on *create* and not on *start*, so a server stopped and restarted in the
+same process could emit global packets (connection challenge, connection denied) at
+sequence numbers already used under the same server-to-client key. netcode uses the packet
+sequence as the AEAD nonce, so this is nonce reuse under ChaCha20-Poly1305 — which voids
+both confidentiality and integrity for the affected packets.
+
+Fixed upstream in netcode 1.4.0; **yojimbo 1.7.0** is the first release to vendor it.
+
+### If you are using an affected version
+
+Upgrade to 1.7.0 or later. If you cannot, avoid restarting a server in-process — a fresh
+process is unaffected, because the sequence is seeded at creation.
+
+### Where affected versions can still be obtained
+
+The legacy Conan remote `center.conan.io` serves `yojimbo/1.2.1`, which vendors an affected
+netcode. That remote is frozen: nobody, including us, can update or withdraw it. This is
+recorded because we cannot remove it and a user has no other way to find out.
+
+### Why this has its own advisory
+
+yojimbo carries netcode as vendored source rather than as a declared dependency. Vendored
+code is invisible to dependency scanners, so a yojimbo user would not learn they are
+affected from an advisory filed only against netcode. Upstream: `netcode` <= 1.3.5, fixed in
+1.4.0 ([GHSA-3x95-24j9-7448](https://github.com/mas-bandwidth/netcode/security/advisories/GHSA-3x95-24j9-7448)).
+
 ## Supported versions
 
 Fixes land on `main` and ship in the next tagged release. Please test against `main` before
