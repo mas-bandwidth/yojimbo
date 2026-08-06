@@ -76,3 +76,19 @@ crypto), and `cmake --install` installs the yojimbo headers and library:
 
 Note that the test suite skips the embedded netcode and reliable self-test sections in
 this configuration — system libraries are built without their test hooks.
+
+## Building against a system-installed tlsf
+
+tlsf is a private implementation detail of yojimbo's per-client allocators, and by
+default the vendored copy is compiled directly into `libyojimbo` so the archive is
+self-contained. Package managers that ship tlsf as its own package (e.g. vcpkg)
+configure with `-DYOJIMBO_SYSTEM_TLSF=ON`: yojimbo then embeds nothing and links the
+system tlsf library publicly instead. tlsf must be installed where CMake can find it
+(`tlsf.h` plus a `tlsf` library — pass `-DCMAKE_PREFIX_PATH` for a custom location):
+
+    cmake -B build -DYOJIMBO_SYSTEM_TLSF=ON
+    cmake --build build -j
+    ./bin/test
+
+Combines freely with `-DYOJIMBO_SYSTEM_DEPS=ON`. This option exists so packages carry
+no patches — the design came out of the vcpkg port review (thanks, vicroms).
