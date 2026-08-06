@@ -9,10 +9,12 @@
 #
 # For package managers (e.g. homebrew): -DYOJIMBO_SYSTEM_DEPS=ON builds against
 # system-installed serialize, reliable and netcode instead of the vendored copies, and
-# `cmake --install` installs the yojimbo headers and library.
+# `cmake --install` installs the yojimbo headers and library. Package managers that ship
+# tlsf as its own package additionally set -DYOJIMBO_SYSTEM_TLSF=ON (see the tlsf backend
+# section below).
 
 cmake_minimum_required(VERSION 3.16)
-project(Yojimbo VERSION 1.8.2 LANGUAGES C CXX)
+project(Yojimbo VERSION 1.9.0 LANGUAGES C CXX)
 
 option(YOJIMBO_SYSTEM_SODIUM
     "Link the system-installed libsodium instead of the bundled subset in sodium/" OFF)
@@ -22,6 +24,9 @@ option(YOJIMBO_SYSTEM_DEPS
 
 option(YOJIMBO_INSTALL
     "Generate the install target (yojimbo headers and library)" ON)
+
+option(YOJIMBO_SYSTEM_TLSF
+    "Build against a system-installed tlsf instead of the vendored copy" OFF)
 
 option(YOJIMBO_BUILD_TESTS
     "Build the test, client/server example and soak programs" ON)
@@ -56,6 +61,24 @@ else()
     add_compile_options(-Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>)
 endif()
 
+# --- tlsf backend -------------------------------------------------------------------------
+#
+# tlsf is a private implementation detail of yojimbo's per-client allocators. By default the
+# vendored copy compiles directly into libyojimbo so the archive is self-contained. A package
+# manager that ships tlsf as its own package (e.g. vcpkg) sets -DYOJIMBO_SYSTEM_TLSF=ON:
+# yojimbo then stops embedding tlsf objects and links the system library publicly instead.
+# Design from the vcpkg port review — vicroms's use-system-tlsf patch, adopted upstream so
+# no package carries a patch.
+
+if(YOJIMBO_SYSTEM_TLSF)
+    find_path(YOJIMBO_TLSF_INCLUDE_DIR tlsf.h REQUIRED)
+    find_library(YOJIMBO_TLSF_LIBRARY tlsf REQUIRED)
+    message(STATUS "yojimbo: linking system tlsf: ${YOJIMBO_TLSF_LIBRARY}")
+    set(YOJIMBO_TLSF_INCLUDE_DIRS "${YOJIMBO_TLSF_INCLUDE_DIR}")
+else()
+    set(YOJIMBO_TLSF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tlsf")
+endif()
+
 if(YOJIMBO_SYSTEM_DEPS)
 
     # --- system dependencies (e.g. homebrew) ------------------------------------------------
@@ -80,7 +103,7 @@ if(YOJIMBO_SYSTEM_DEPS)
     set(YOJIMBO_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/tlsf"
+        "${YOJIMBO_TLSF_INCLUDE_DIRS}"
         "${YOJIMBO_SERIALIZE_INCLUDE_DIR}"
         "${YOJIMBO_NETCODE_INCLUDE_DIR}"
         "${YOJIMBO_RELIABLE_INCLUDE_DIR}"
@@ -92,7 +115,7 @@ else()
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/sodium"
-        "${CMAKE_CURRENT_SOURCE_DIR}/tlsf"
+        "${YOJIMBO_TLSF_INCLUDE_DIRS}"
         "${CMAKE_CURRENT_SOURCE_DIR}/netcode"
         "${CMAKE_CURRENT_SOURCE_DIR}/reliable"
         "${CMAKE_CURRENT_SOURCE_DIR}/serialize"
@@ -137,9 +160,12 @@ endif()
 # Standalone tlsf archive for regular development (e.g. anyone building straight from this
 # tree). Not linked into yojimbo and not installed — see below, yojimbo compiles tlsf.c
 # directly into its own archive so that only libyojimbo.a ships to package consumers.
-add_library(tlsf STATIC tlsf/tlsf.c)
-target_include_directories(tlsf PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tlsf")
-set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Under YOJIMBO_SYSTEM_TLSF the vendored copy is not built at all.
+if(NOT YOJIMBO_SYSTEM_TLSF)
+    add_library(tlsf STATIC tlsf/tlsf.c)
+    target_include_directories(tlsf PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tlsf")
+    set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 
 # --- yojimbo library ----------------------------------------------------------------------
 
@@ -150,9 +176,15 @@ set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # tlsf target above) so that libyojimbo.a is self-contained: a package manager installs a
 # single archive, with no separate libtlsf.a for consumers to also link against. tlsf is a
 # private implementation detail of yojimbo's per-client allocators, not a public dependency.
+# The exception is YOJIMBO_SYSTEM_TLSF: there the package manager ships tlsf as its own
+# package, so yojimbo embeds nothing and links it publicly instead.
 
 file(GLOB YOJIMBO_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp")
-add_library(yojimbo ${YOJIMBO_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/tlsf/tlsf.c")
+if(YOJIMBO_SYSTEM_TLSF)
+    add_library(yojimbo ${YOJIMBO_SOURCES})
+else()
+    add_library(yojimbo ${YOJIMBO_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/tlsf/tlsf.c")
+endif()
 target_include_directories(yojimbo PUBLIC ${YOJIMBO_INCLUDE_DIRS})
 set_target_properties(yojimbo PROPERTIES
     VERSION ${PROJECT_VERSION}
@@ -172,6 +204,9 @@ else()
 endif()
 if(NOT WIN32)
     target_link_libraries(yojimbo PUBLIC m)   # ceil/floor in the reliable-ordered channel etc.
+endif()
+if(YOJIMBO_SYSTEM_TLSF)
+    target_link_libraries(yojimbo PUBLIC ${YOJIMBO_TLSF_LIBRARY})
 endif()
 
 # --- install ------------------------------------------------------------------------------
