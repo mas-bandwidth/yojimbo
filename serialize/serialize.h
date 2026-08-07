@@ -50,6 +50,19 @@
 #define serialize_assert assert
 #endif // #ifndef serialize_assert
 
+// static_assert is C++11, and consumers vendor this header into pre-C++11 builds, so compile
+// time invariants go through this macro: real static_assert (message included) from C++11 up
+// and on MSVC (which ships static_assert in every language mode it supports), and a negative
+// size array emulation before that — the message string is dropped, and the compile error
+// points at the macro use site. the attribute silences unused-local-typedef warnings.
+#if ( defined( __cplusplus ) && __cplusplus >= 201103L ) || defined( _MSC_VER )
+#define serialize_static_assert( condition, message ) static_assert( condition, message )
+#else // #if ( defined( __cplusplus ) && __cplusplus >= 201103L ) || defined( _MSC_VER )
+#define serialize_static_assert_join2( a, b ) a##b
+#define serialize_static_assert_join( a, b ) serialize_static_assert_join2( a, b )
+#define serialize_static_assert( condition, message ) typedef char serialize_static_assert_join( serialize_static_assert_line_, __LINE__ )[ ( condition ) ? 1 : -1 ] __attribute__(( unused ))
+#endif // #if ( defined( __cplusplus ) && __cplusplus >= 201103L ) || defined( _MSC_VER )
+
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -159,6 +172,14 @@
 // their own function wrappers in their own tree. Everything else — constructors, the full
 // operator surface, the explicit conversions — is C++ only, inside #ifdef __cplusplus.
 //
+// The C++ in this block must stay usable by pre-C++11 consumers: a vendored header does not get
+// to choose the consumer's -std, and real consumers compile it at C++98/03 (clang accepts the
+// declaration-only C++11 extensions here — `= default`, the explicit conversion operators to the
+// 64 bit lanes — with a warning in those modes, but overload resolution before C++11 never
+// SELECTS an explicit conversion operator, so every conversion the library performs routes
+// through C++98 constructs: converting constructors). CI compiles and runs the tests at
+// -std=c++03 to hold this.
+//
 // Semantics match native __int128 exactly, with documented choices where native has none:
 // shift counts outside [0,127] yield zero (all sign bits for the signed arithmetic right
 // shift; native shifts by 128 or more are undefined behavior), and signed INT128_MIN over -1
@@ -181,6 +202,10 @@
 
 #if !defined( SERIALIZE_UINT128_DEFINED ) && ( !defined( __SIZEOF_INT128__ ) || SERIALIZE_ENABLE_TESTS )
 
+#ifdef __cplusplus
+struct serialize_int128_t;      // forward declaration for the bit preserving converting constructor below
+#endif
+
 typedef struct serialize_uint128_t
 {
     uint64_t lo;            ///< the low 64 bits. first, matching the little endian layout and the wire order
@@ -202,6 +227,14 @@ typedef struct serialize_uint128_t
     serialize_uint128_t( unsigned int value )       : lo( value ), hi( 0 ) {}
     serialize_uint128_t( unsigned long value )      : lo( value ), hi( 0 ) {}
     serialize_uint128_t( unsigned long long value ) : lo( value ), hi( 0 ) {}
+
+    // bit preserving conversion from the signed type, defined inline after serialize_int128_t below.
+    // this is a converting CONSTRUCTOR, not a conversion operator on serialize_int128_t, on purpose:
+    // explicit conversion operators are C++11, and consumers vendor this header into pre-C++11
+    // builds where a functional-style cast through one does not compile (overload resolution never
+    // considers explicit conversion functions before C++11). an explicit converting constructor is
+    // C++98 and behaves identically at every cast site.
+    explicit serialize_uint128_t( serialize_int128_t value );
 
     explicit operator uint64_t () const
     {
@@ -496,13 +529,10 @@ typedef struct serialize_int128_t
 
     explicit serialize_int128_t( serialize_uint128_t value ) : lo( value.lo ), hi( value.hi ) {}        // bit preserving
 
-    explicit operator serialize_uint128_t () const                                                // bit preserving
-    {
-        serialize_uint128_t result( 0 );
-        result.lo = lo;
-        result.hi = hi;
-        return result;
-    }
+    // the bit preserving conversion in the other direction is the explicit
+    // serialize_uint128_t( serialize_int128_t ) constructor, declared on the unsigned type and
+    // defined after this struct — a constructor rather than a C++11 explicit conversion operator
+    // so serialize_uint128_t( signed_value ) compiles in pre-C++11 consumers too
 
     explicit operator int64_t () const
     {
@@ -668,6 +698,14 @@ typedef struct serialize_int128_t
 #endif // #ifdef __cplusplus
 
 } serialize_int128_t;
+
+#ifdef __cplusplus
+
+// the bit preserving signed to unsigned conversion declared inside serialize_uint128_t above,
+// defined here where serialize_int128_t is complete
+inline serialize_uint128_t::serialize_uint128_t( serialize_int128_t value ) : lo( value.lo ), hi( value.hi ) {}
+
+#endif // #ifdef __cplusplus
 
 #define SERIALIZE_UINT128_DEFINED 1
 
@@ -2478,7 +2516,7 @@ namespace serialize
     {
         // refuse narrower types at compile time: a uint64_t here would shift by 64 — undefined
         // behavior — and silently is not the 128 bit operation the caller asked for
-        static_assert( sizeof( UInt128 ) == 16, "serialize_uint128 requires a 128 bit type (did you mean serialize_uint64?)" );
+        serialize_static_assert( sizeof( UInt128 ) == 16, "serialize_uint128 requires a 128 bit type (did you mean serialize_uint64?)" );
 
         uint64_t low_half = 0;
         uint64_t high_half = 0;
@@ -2833,8 +2871,8 @@ namespace serialize
     // the emulated pair works as storage too. without native __int128 these ARE the serialize
     // typedefs; with it they are a distinct set of types (present when tests are enabled, or
     // when a sibling header defined the block first), so the specializations never collide
-    template <> struct FixedPointInteger<::serialize_int128_t>            { enum { is_integer = 1, is_signed = 1 }; };
-    template <> struct FixedPointInteger<::serialize_uint128_t>           { enum { is_integer = 1, is_signed = 0 }; };
+    template <> struct FixedPointInteger< ::serialize_int128_t >            { enum { is_integer = 1, is_signed = 1 }; };
+    template <> struct FixedPointInteger< ::serialize_uint128_t >           { enum { is_integer = 1, is_signed = 0 }; };
 #endif // #if defined(SERIALIZE_UINT128_DEFINED)
 
     /**
@@ -2852,8 +2890,8 @@ namespace serialize
     template <> struct FixedPointUnsigned<uint128_t>                { typedef uint128_t type; };
 #endif // #if defined(__SIZEOF_INT128__)
 #if defined(SERIALIZE_UINT128_DEFINED)
-    template <> struct FixedPointUnsigned<::serialize_int128_t>           { typedef ::serialize_uint128_t type; };
-    template <> struct FixedPointUnsigned<::serialize_uint128_t>          { typedef ::serialize_uint128_t type; };
+    template <> struct FixedPointUnsigned< ::serialize_int128_t >           { typedef ::serialize_uint128_t type; };
+    template <> struct FixedPointUnsigned< ::serialize_uint128_t >          { typedef ::serialize_uint128_t type; };
 #endif // #if defined(SERIALIZE_UINT128_DEFINED)
 
     /**
@@ -2878,8 +2916,8 @@ namespace serialize
                 int64_t( ( uint64_t(1) << ( IntegerBits - 1 ) ) - 1 ) :
                 ( ( IntegerBits >= 64 ) ? INT64_MAX : int64_t( ( uint64_t(1) << ( IntegerBits < 64 ? IntegerBits : 0 ) ) - 1 ) );
 
-            static_assert( MinUnits >= min_representable_units, "serialize_fixed min bound in whole units does not fit the Q format" );
-            static_assert( MaxUnits <= max_representable_units, "serialize_fixed max bound in whole units does not fit the Q format" );
+            serialize_static_assert( MinUnits >= min_representable_units, "serialize_fixed min bound in whole units does not fit the Q format" );
+            serialize_static_assert( MaxUnits <= max_representable_units, "serialize_fixed max bound in whole units does not fit the Q format" );
 
             // shift the whole unit bounds into raw fixed point units in the unsigned domain, so negative bounds wrap two's complement instead of invoking undefined behavior.
             // everything below is a compile time constant: the bounds, the range and the bit count all fold, so the call site carries no runtime bit width computation at all.
@@ -2959,8 +2997,8 @@ namespace serialize
                 ( ( IntegerBits >= 64 ) ? INT64_MAX : int64_t( ( uint64_t(1) << ( ( IntegerBits < 64 ? IntegerBits : 1 ) - 1 ) ) - 1 ) ) :
                 ( ( IntegerBits >= 64 ) ? INT64_MAX : int64_t( ( uint64_t(1) << ( IntegerBits < 64 ? IntegerBits : 0 ) ) - 1 ) );
 
-            static_assert( MinUnits >= min_representable_units, "serialize_fixed min bound in whole units does not fit the Q format" );
-            static_assert( MaxUnits <= max_representable_units, "serialize_fixed max bound in whole units does not fit the Q format" );
+            serialize_static_assert( MinUnits >= min_representable_units, "serialize_fixed min bound in whole units does not fit the Q format" );
+            serialize_static_assert( MaxUnits <= max_representable_units, "serialize_fixed max bound in whole units does not fit the Q format" );
 
             // shift the whole unit bounds into raw fixed point units in the unsigned 128 bit domain, so negative bounds wrap two's complement instead of invoking undefined behavior.
             // the storage constructor sign extends the int64 bounds for signed storage. everything below folds: the bounds, the range, the bit count and the group structure.
@@ -3070,11 +3108,11 @@ namespace serialize
     template <int IntegerBits, int FractionalBits, int64_t MinUnits, int64_t MaxUnits, typename Stream, typename Storage>
     bool serialize_fixed_internal( Stream & stream, Storage & value )
     {
-        static_assert( FixedPointInteger<Storage>::is_integer == 1, "serialize_fixed storage must be an integer type" );
-        static_assert( IntegerBits >= 1, "serialize_fixed needs at least one integer bit. the sign bit counts for signed storage" );
-        static_assert( FractionalBits >= 0, "serialize_fixed fractional bits can't be negative" );
-        static_assert( IntegerBits + FractionalBits == 8 * (int) sizeof( Storage ), "serialize_fixed integer bits plus fractional bits must equal the number of bits in the storage type" );
-        static_assert( MinUnits < MaxUnits, "serialize_fixed min must be below max" );
+        serialize_static_assert( FixedPointInteger<Storage>::is_integer == 1, "serialize_fixed storage must be an integer type" );
+        serialize_static_assert( IntegerBits >= 1, "serialize_fixed needs at least one integer bit. the sign bit counts for signed storage" );
+        serialize_static_assert( FractionalBits >= 0, "serialize_fixed fractional bits can't be negative" );
+        serialize_static_assert( IntegerBits + FractionalBits == 8 * (int) sizeof( Storage ), "serialize_fixed integer bits plus fractional bits must equal the number of bits in the storage type" );
+        serialize_static_assert( MinUnits < MaxUnits, "serialize_fixed min must be below max" );
 
         return FixedPointSerializer< ( 8 * (int) sizeof( Storage ) > 64 ) >::template Serialize<IntegerBits, FractionalBits, MinUnits, MaxUnits>( stream, value );
     }
@@ -4519,7 +4557,7 @@ inline void test_serialize_fixed()
         serialize_check( stream.GetBitsProcessed() == 16 );         // 200 << 8 raw values needs 16 bits
     }
 
-    // compile time refusals. each of the following fails with a static_assert, which is the point.
+    // compile time refusals. each of the following fails with a serialize_static_assert, which is the point.
     // kept as comments because a compile failure can't run inside the suite: uncomment one to verify.
     //
     //     int32_t value = 0;
