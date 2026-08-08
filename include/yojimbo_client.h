@@ -30,6 +30,7 @@
 #include "yojimbo_base_client.h"
 
 struct netcode_client_t;
+struct netcode_address_t;
 
 namespace yojimbo
 {
@@ -165,6 +166,10 @@ namespace yojimbo
         void SendLoopbackPacketCallbackFunction( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
         static void StaticSendLoopbackPacketCallbackFunction( void * context, int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
+
+        static void StaticSendPacketOverride( void * context, netcode_address_t * to, const uint8_t * packetData, int packetBytes );
+
+        static int StaticReceivePacketOverride( void * context, netcode_address_t * from, uint8_t * packetData, int maxPacketBytes );
 
         ClientServerConfig m_config;                    ///< Client/server configuration.
         netcode_client_t * m_client;                    ///< netcode client data.
