@@ -14,7 +14,7 @@
 # section below).
 
 cmake_minimum_required(VERSION 3.16)
-project(Yojimbo VERSION 1.9.0 LANGUAGES C CXX)
+project(Yojimbo VERSION 1.9.1 LANGUAGES C CXX)
 
 option(YOJIMBO_SYSTEM_SODIUM
     "Link the system-installed libsodium instead of the bundled subset in sodium/" OFF)

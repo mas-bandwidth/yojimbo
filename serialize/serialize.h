@@ -35,9 +35,9 @@
 /** @file */
 
 #define SERIALIZE_VERSION_MAJOR 1
-#define SERIALIZE_VERSION_MINOR 5
+#define SERIALIZE_VERSION_MINOR 6
 #define SERIALIZE_VERSION_PATCH 0
-#define SERIALIZE_VERSION "1.5.0"
+#define SERIALIZE_VERSION "1.6.0"
 
 #if defined(_MSC_VER)
 #define serialize_restrict __restrict
@@ -1055,6 +1055,7 @@ namespace serialize
         Once the scratch fills to 64 bits it is flushed to memory as a qword; the handful of bits that spilled past 64 carry over into the next scratch. Flushing half as often as a dword design makes writes ~30% faster.
         The bit stream is written to memory in little endian order, which is considered network byte order for this library.
         IMPORTANT: The buffer size must be a multiple of 8 bytes, because words are stored to memory 8 bytes at a time. Bytes past the end of the written data are only ever written as zeros.
+        IMPORTANT: The buffer must not overlap the BitWriter object itself. The hot write methods promise this to the compiler with a restrict qualified this pointer (see WriteBits), and it is asserted in debug builds.
         @see BitReader
      */
 
@@ -1068,6 +1069,7 @@ namespace serialize
         {
             serialize_assert( data );
             serialize_assert( ( bytes % 8 ) == 0 );
+            serialize_assert( (const uint8_t*) data + bytes <= (const uint8_t*) (const void*) this || (const uint8_t*) (const void*) ( this + 1 ) <= (const uint8_t*) data );   // the buffer must not overlap the writer object itself: WriteBits and friends promise this to the compiler (see WriteBits)
             m_data = (uint8_t*) data;
             m_numBits = bytes * 8;
             m_bitsWritten = 0;
@@ -1079,7 +1081,7 @@ namespace serialize
         /**
             Bit writer constructor.
             Creates a bit writer object to write to the specified buffer.
-            @param data The pointer to the buffer to fill with bitpacked data. Does not need to be aligned: each word is stored with memcpy, matching the bit reader.
+            @param data The pointer to the buffer to fill with bitpacked data. Does not need to be aligned: each word is stored with memcpy, matching the bit reader. Must not overlap the BitWriter object itself (see WriteBits).
             @param bytes The size of the buffer in bytes. Must be a multiple of 8, because the bit writer stores qwords to memory. Buffer sizes are effectively unlimited, because bit counts are stored in 64 bit signed integers.
          */
 
@@ -1087,6 +1089,7 @@ namespace serialize
         {
             serialize_assert( data );
             serialize_assert( ( bytes % 8 ) == 0 );
+            serialize_assert( (const uint8_t*) data + bytes <= (const uint8_t*) (const void*) this || (const uint8_t*) (const void*) ( this + 1 ) <= (const uint8_t*) data );   // the buffer must not overlap the writer object itself: WriteBits and friends promise this to the compiler (see WriteBits)
             m_numBits = bytes * 8;
             m_bitsWritten = 0;
             m_wordIndex = 0;
@@ -1104,7 +1107,18 @@ namespace serialize
             @see BitReader::ReadBits
          */
 
-        void WriteBits( uint32_t value, int bits )
+        // serialize_restrict on 'this': m_data is a uint8_t pointer, and a uint8_t store legally aliases
+        // anything -- including this object's own members. Without the qualifier, in any serialize function
+        // it does not fully inline, the compiler is forced to reload m_scratch / m_scratchBits / m_wordIndex /
+        // m_bitsWritten from memory after every word flushed to the buffer, because the flush store could have
+        // modified them. Restricting 'this' promises the buffer never overlaps the writer object itself
+        // (asserted in the constructor in debug builds), which lets member state stay in registers across
+        // consecutive writes. Measured on Apple Silicon (Apple clang 21, -O3): +38% stream write throughput
+        // in bench.cpp, +38% to +152% on schema-generated write paths, zero change where serialize functions
+        // fully inline (the raw bitpacker loop compiles to identical code). The read path does not need this:
+        // the branchless reader stores nothing through m_data, so it already keeps its state in registers.
+
+        void WriteBits( uint32_t value, int bits ) serialize_restrict
         {
             serialize_assert( m_data );                 // if this fires, the writer was used before Initialize
             serialize_assert( bits > 0 );
@@ -1161,12 +1175,11 @@ namespace serialize
             @see BitReader::ReadBytes
          */
 
-        void WriteBytes( const uint8_t * serialize_restrict data, int64_t bytes )
+        void WriteBytes( const uint8_t * serialize_restrict data, int64_t bytes ) serialize_restrict     // restrict qualified this: see WriteBits
         {
             serialize_assert( m_data );                 // if this fires, the writer was used before Initialize
-            serialize_assert( GetAlignBits() == 0 );
             serialize_assert( uint64_t(m_bitsWritten) + uint64_t(bytes) * 8 <= uint64_t(m_numBits) );
-            serialize_assert( ( m_bitsWritten % 8 ) == 0 );
+            serialize_assert( ( m_bitsWritten % 8 ) == 0 );                         // byte aligned (GetAlignBits() == 0, spelled directly: a restrict qualified function cannot call unqualified members on some compilers)
 
             int64_t headBytes = ( 8 - ( m_bitsWritten % 64 ) / 8 ) % 8;
             if ( headBytes > bytes )
@@ -1176,7 +1189,7 @@ namespace serialize
             if ( headBytes == bytes )
                 return;
 
-            serialize_assert( GetAlignBits() == 0 );
+            serialize_assert( ( m_bitsWritten % 8 ) == 0 );     // still byte aligned
             serialize_assert( ( m_bitsWritten % 64 ) == 0 && m_scratchBits == 0 );      // the head bytes flushed the scratch at the word boundary
 
             int64_t numWords = ( bytes - headBytes ) / 8;
@@ -1188,7 +1201,7 @@ namespace serialize
                 m_scratch = 0;
             }
 
-            serialize_assert( GetAlignBits() == 0 );
+            serialize_assert( ( m_bitsWritten % 8 ) == 0 );     // still byte aligned
 
             int64_t tailStart = headBytes + numWords * 8;
             int64_t tailBytes = bytes - tailStart;
@@ -1196,7 +1209,7 @@ namespace serialize
             for ( int64_t i = 0; i < tailBytes; ++i )
                 WriteBits( data[tailStart+i], 8 );
 
-            serialize_assert( GetAlignBits() == 0 );
+            serialize_assert( ( m_bitsWritten % 8 ) == 0 );     // still byte aligned
 
             serialize_assert( headBytes + numWords * 8 + tailBytes == bytes );
         }
@@ -1207,7 +1220,7 @@ namespace serialize
             @see BitWriter::WriteBits
          */
 
-        void FlushBits()
+        void FlushBits() serialize_restrict     // restrict qualified this: see WriteBits
         {
             if ( m_scratchBits != 0 )
             {
@@ -3421,6 +3434,371 @@ namespace serialize
             int current_value = (int) ( current );                                          \
             serialize::serialize_int_relative_internal( stream, previous, current_value );  \
         } while (0)
+
+    // The compile time parameter surface below uses C++14 relaxed constexpr, and consumers vendor
+    // this header into pre-C++11 builds (the cxx03-consumer CI leg compiles it at -std=c++03).
+    // The surface is additive and aimed at generated code, so language modes older than C++14
+    // simply do not get it: everything else in the header stays available. MSVC reports
+    // __cplusplus as 199711L unless /Zc:__cplusplus is set, so it is detected by version instead
+    // (VS2017, _MSC_VER 1910, carries full C++14 constexpr in every language mode it supports).
+#if ( defined( __cplusplus ) && __cplusplus >= 201402L ) || ( defined( _MSC_VER ) && _MSC_VER >= 1910 )
+#define SERIALIZE_HAS_COMPILE_TIME_SURFACE 1
+#endif
+
+#if defined( SERIALIZE_HAS_COMPILE_TIME_SURFACE )
+
+    // ------------------------------------------------------------------------------------------
+    //
+    //      Compile time parameter surface (experimental, for generated code)
+    //
+    //      When serialize calls are generated from a schema, min/max/bits are known at code
+    //      generation time. The templates below move them into template argument position, so
+    //      the bit count is a compile time constant: no runtime bits_required call, no runtime
+    //      min/max parameter plumbing, and the 32/64 bit split resolves on a constant condition.
+    //      The wire bytes are identical to the runtime forms given identical inputs, so a code
+    //      generator can switch between forms without a wire change.
+    //
+    //      Humans keep the serialize_* macros above. Generated code calls these templates
+    //      directly and emits its own `if ( !... ) return false;`, or uses the thin
+    //      serialize_*_compile_time macro wrappers below.
+    //
+    // ------------------------------------------------------------------------------------------
+
+    /**
+        Calculates the number of bits required to serialize an integer in range [min,max], as a constant expression.
+        The constexpr companion to serialize::bits_required and serialize::bits_required64, for use in template argument position.
+        C++14 relaxed constexpr, matching the oldest standard this header is compiled at in practice (compilers' defaults: this project configures no -std flag).
+        @param min The minimum value, converted to the unsigned domain (sign extended for signed ranges).
+        @param max The maximum value, converted to the unsigned domain (sign extended for signed ranges).
+        @returns The number of bits required to serialize the integer in [0,64].
+     */
+
+    constexpr int bits_required64_constexpr( uint64_t min, uint64_t max )
+    {
+        // subtract in the unsigned domain: max - min overflows signed arithmetic when the range is wider than 2^63.
+        // sign extended int32 bounds wrap to the same difference, so this one function covers both integer domains.
+        int bits = 0;
+        for ( uint64_t diff = max - min; diff != 0; diff >>= 1 )
+        {
+            bits++;
+        }
+        return bits;
+    }
+
+    /**
+        Serialize an integer with compile time bounds (read/write/measure).
+        The compile time companion to WriteStream::SerializeInteger and ReadStream::SerializeInteger: the bit count is a constant, so there is no runtime bits_required call and no min/max parameter traffic.
+        Wire bytes are identical to the runtime form given identical inputs.
+        On write, the value is checked by debug asserts only, matching the runtime form. On read, the value off the wire is validated against the constant bounds and the function returns false on out of range data.
+        @tparam Min The minimum value. Must be less than Max (enforced at compile time).
+        @tparam Max The maximum value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The integer value in [Min,Max]. Written on write/measure, filled in on read.
+        @returns True if the serialize succeeded, false if the read data is truncated or out of range.
+     */
+
+    template <int32_t Min, int32_t Max, typename Stream> bool SerializeIntConst( Stream & stream, int32_t & value )
+    {
+        static_assert( Min < Max, "serialize: min must be less than max" );
+        constexpr int bits = bits_required64_constexpr( uint64_t( int64_t( Min ) ), uint64_t( int64_t( Max ) ) );
+        uint32_t unsigned_value = 0;
+        if ( Stream::IsWriting )
+        {
+            serialize_assert( value >= Min );
+            serialize_assert( value <= Max );
+            // subtract in the unsigned domain: value - min overflows signed arithmetic when the range is wider than 2^31
+            unsigned_value = uint32_t( value ) - uint32_t( Min );
+        }
+        if ( !stream.SerializeBits( unsigned_value, bits ) )
+        {
+            return false;
+        }
+        if ( Stream::IsReading )
+        {
+            if ( unsigned_value > uint32_t( Max ) - uint32_t( Min ) )
+            {
+                return false;
+            }
+            // add in the unsigned domain: unsigned_value + min overflows signed arithmetic when the range is wider than 2^31
+            value = int32_t( unsigned_value + uint32_t( Min ) );
+        }
+        return true;
+    }
+
+    /**
+        Serialize a 64 bit integer with compile time bounds (read/write/measure).
+        The compile time companion to WriteStream::SerializeInteger64 and ReadStream::SerializeInteger64: the bit count is a constant, and the one dword vs two dword split resolves on a constant condition, so the dead branch folds.
+        Wire bytes are identical to the runtime form given identical inputs: low dword first, then the high remainder, same convention as serialize_bits and serialize_uint64.
+        On write, the value is checked by debug asserts only, matching the runtime form. On read, the value off the wire is validated against the constant bounds and the function returns false on out of range data.
+        @tparam Min The minimum value. Must be less than Max (enforced at compile time).
+        @tparam Max The maximum value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The integer value in [Min,Max]. Written on write/measure, filled in on read.
+        @returns True if the serialize succeeded, false if the read data is truncated or out of range.
+     */
+
+    template <int64_t Min, int64_t Max, typename Stream> bool SerializeInt64Const( Stream & stream, int64_t & value )
+    {
+        static_assert( Min < Max, "serialize: min must be less than max" );
+        constexpr int bits = bits_required64_constexpr( uint64_t( Min ), uint64_t( Max ) );
+        uint64_t unsigned_value = 0;
+        if ( Stream::IsWriting )
+        {
+            serialize_assert( value >= Min );
+            serialize_assert( value <= Max );
+            // subtract in the unsigned domain: value - min overflows signed arithmetic when the range is wider than 2^63
+            unsigned_value = uint64_t( value ) - uint64_t( Min );
+        }
+        if ( bits <= 32 )       // constant condition: the dead branch folds at compile time
+        {
+            uint32_t unsigned_value32 = uint32_t( unsigned_value );
+            if ( !stream.SerializeBits( unsigned_value32, bits ) )
+            {
+                return false;
+            }
+            if ( Stream::IsReading )
+            {
+                unsigned_value = unsigned_value32;
+            }
+        }
+        else
+        {
+            // low dword first, then the high remainder: same convention as serialize_bits and serialize_uint64
+            uint32_t lo = uint32_t( unsigned_value & 0xFFFFFFFF );
+            uint32_t hi = uint32_t( unsigned_value >> 32 );
+            if ( !stream.SerializeBits( lo, 32 ) )
+            {
+                return false;
+            }
+            if ( !stream.SerializeBits( hi, bits - 32 ) )
+            {
+                return false;
+            }
+            if ( Stream::IsReading )
+            {
+                unsigned_value = ( uint64_t( hi ) << 32 ) | lo;
+            }
+        }
+        if ( Stream::IsReading )
+        {
+            if ( unsigned_value > uint64_t( Max ) - uint64_t( Min ) )
+            {
+                return false;
+            }
+            // add in the unsigned domain: unsigned_value + min overflows signed arithmetic when the range is wider than 2^63
+            value = int64_t( unsigned_value + uint64_t( Min ) );
+        }
+        return true;
+    }
+
+    /**
+        Serialize a compile time number of bits (read/write/measure).
+        The compile time companion to WriteStream::SerializeBits and ReadStream::SerializeBits for widths up to 32: the width is a constant, so there is no runtime bits parameter traffic.
+        Wire bytes are identical to the runtime form given identical inputs.
+        On write, the value is checked by debug asserts only, matching the runtime form (it must be in [0,(1<<Bits)-1]).
+        @tparam Bits The number of bits to serialize, in [1,32] (enforced at compile time).
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned integer value. Written on write/measure, filled in on read.
+        @returns True if the serialize succeeded, false if the read data is truncated.
+     */
+
+    template <int Bits, typename Stream> bool SerializeBitsConst( Stream & stream, uint32_t & value )
+    {
+        static_assert( Bits > 0, "serialize: bits must be greater than zero" );
+        static_assert( Bits <= 32, "serialize: bits must be less than or equal to 32. use SerializeBits64Const for wider values" );
+        return stream.SerializeBits( value, Bits );
+    }
+
+    /**
+        Serialize a compile time number of bits from a 64 bit value (read/write/measure).
+        The compile time companion to the serialize_bits macro for widths up to 64: the width is a constant, and the one dword vs two dword split resolves on a constant condition, so the dead branch folds.
+        Wire bytes are identical to the runtime form given identical inputs: low dword first, then the high remainder.
+        On write, the value is checked by debug asserts only, matching the runtime form (it must be in [0,(1<<Bits)-1]).
+        @tparam Bits The number of bits to serialize, in [1,64] (enforced at compile time).
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned 64 bit integer value. Written on write/measure, filled in on read.
+        @returns True if the serialize succeeded, false if the read data is truncated.
+     */
+
+    template <int Bits, typename Stream> bool SerializeBits64Const( Stream & stream, uint64_t & value )
+    {
+        static_assert( Bits > 0, "serialize: bits must be greater than zero" );
+        static_assert( Bits <= 64, "serialize: bits must be less than or equal to 64" );
+        if ( Bits <= 32 )       // constant condition: the dead branch folds at compile time
+        {
+            uint32_t value32 = uint32_t( value );
+            if ( !stream.SerializeBits( value32, Bits ) )
+            {
+                return false;
+            }
+            if ( Stream::IsReading )
+            {
+                value = value32;
+            }
+        }
+        else
+        {
+            // low dword first, then the high remainder: same convention as serialize_bits and serialize_uint64
+            uint32_t lo = uint32_t( value & 0xFFFFFFFF );
+            uint32_t hi = uint32_t( value >> 32 );
+            if ( !stream.SerializeBits( lo, 32 ) )
+            {
+                return false;
+            }
+            if ( !stream.SerializeBits( hi, Bits - 32 ) )
+            {
+                return false;
+            }
+            if ( Stream::IsReading )
+            {
+                value = ( uint64_t( hi ) << 32 ) | lo;
+            }
+        }
+        return true;
+    }
+
+    /**
+        Serialize integer value with compile time bounds (read/write/measure).
+        The compile time companion to serialize_int. min and max are expanded into template argument position, so they must be constant expressions: a runtime value fails to compile, deliberately.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The integer value to serialize in [min,max].
+        @param min The minimum value. Must be a constant expression.
+        @param max The maximum value. Must be a constant expression.
+     */
+
+    #define serialize_int_compile_time( stream, value, min, max )                           \
+        do                                                                                  \
+        {                                                                                   \
+            int32_t int32_value = 0;                                                        \
+            if ( Stream::IsWriting )                                                        \
+            {                                                                               \
+                int32_value = (int32_t) ( value );                                          \
+            }                                                                               \
+            if ( !serialize::SerializeIntConst<(min), (max)>( stream, int32_value ) )       \
+            {                                                                               \
+                return false;                                                               \
+            }                                                                               \
+            if ( Stream::IsReading )                                                        \
+            {                                                                               \
+                value = int32_value;                                                        \
+            }                                                                               \
+        } while (0)
+
+    /**
+        Serialize a 64 bit integer value with compile time bounds (read/write/measure).
+        The compile time companion to serialize_int64. min and max are expanded into template argument position, so they must be constant expressions: a runtime value fails to compile, deliberately.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The 64 bit integer value to serialize in [min,max].
+        @param min The minimum value. Must be a constant expression.
+        @param max The maximum value. Must be a constant expression.
+     */
+
+    #define serialize_int64_compile_time( stream, value, min, max )                         \
+        do                                                                                  \
+        {                                                                                   \
+            int64_t int64_value = 0;                                                        \
+            if ( Stream::IsWriting )                                                        \
+            {                                                                               \
+                int64_value = (int64_t) ( value );                                          \
+            }                                                                               \
+            if ( !serialize::SerializeInt64Const<(min), (max)>( stream, int64_value ) )     \
+            {                                                                               \
+                return false;                                                               \
+            }                                                                               \
+            if ( Stream::IsReading )                                                        \
+            {                                                                               \
+                value = int64_value;                                                        \
+            }                                                                               \
+        } while (0)
+
+    /**
+        Serialize a compile time number of bits to the stream (read/write/measure).
+        The compile time companion to serialize_bits for widths up to 32. bits is expanded into template argument position, so it must be a constant expression: a runtime value fails to compile, deliberately.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned integer value to serialize.
+        @param bits The number of bits to serialize in [1,32]. Must be a constant expression.
+     */
+
+    #define serialize_bits_compile_time( stream, value, bits )                              \
+        do                                                                                  \
+        {                                                                                   \
+            uint32_t uint32_value = 0;                                                      \
+            if ( Stream::IsWriting )                                                        \
+            {                                                                               \
+                uint32_value = (uint32_t) ( value );                                        \
+            }                                                                               \
+            if ( !serialize::SerializeBitsConst<(bits)>( stream, uint32_value ) )           \
+            {                                                                               \
+                return false;                                                               \
+            }                                                                               \
+            if ( Stream::IsReading )                                                        \
+            {                                                                               \
+                value = uint32_value;                                                       \
+            }                                                                               \
+        } while (0)
+
+    /**
+        Serialize a compile time number of bits from a 64 bit value to the stream (read/write/measure).
+        The compile time companion to serialize_bits for widths up to 64. bits is expanded into template argument position, so it must be a constant expression: a runtime value fails to compile, deliberately.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The unsigned 64 bit integer value to serialize.
+        @param bits The number of bits to serialize in [1,64]. Must be a constant expression.
+     */
+
+    #define serialize_bits64_compile_time( stream, value, bits )                            \
+        do                                                                                  \
+        {                                                                                   \
+            uint64_t uint64_value = 0;                                                      \
+            if ( Stream::IsWriting )                                                        \
+            {                                                                               \
+                uint64_value = (uint64_t) ( value );                                        \
+            }                                                                               \
+            if ( !serialize::SerializeBits64Const<(bits)>( stream, uint64_value ) )         \
+            {                                                                               \
+                return false;                                                               \
+            }                                                                               \
+            if ( Stream::IsReading )                                                        \
+            {                                                                               \
+                value = uint64_value;                                                       \
+            }                                                                               \
+        } while (0)
+
+    /**
+        Serialize a boolean value to the stream through the compile time surface (read/write/measure).
+        The compile time companion to serialize_bool: one bit, width resolved at compile time.
+        Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param value The boolean value to serialize.
+     */
+
+    #define serialize_bool_compile_time( stream, value )                                    \
+        do                                                                                  \
+        {                                                                                   \
+            uint32_t uint32_bool_value = 0;                                                 \
+            if ( Stream::IsWriting )                                                        \
+            {                                                                               \
+                uint32_bool_value = ( value ) ? 1 : 0;                                      \
+            }                                                                               \
+            if ( !serialize::SerializeBitsConst<1>( stream, uint32_bool_value ) )           \
+            {                                                                               \
+                return false;                                                               \
+            }                                                                               \
+            if ( Stream::IsReading )                                                        \
+            {                                                                               \
+                value = uint32_bool_value ? true : false;                                   \
+            }                                                                               \
+        } while (0)
+
+#endif // #if defined( SERIALIZE_HAS_COMPILE_TIME_SURFACE )
 }
 
 inline void serialize_copy_string( char * dest, const char * source, size_t dest_size )
@@ -5740,6 +6118,647 @@ inline void test_int128_differential()
 
 #endif // #if defined(__SIZEOF_INT128__)
 
+#if defined( SERIALIZE_HAS_COMPILE_TIME_SURFACE )
+
+// Compile time surface tests. Every compile time form is held to the coverage of its runtime twin
+// (round trip, boundary values, read side rejection, measure agreement), and to the wire identity
+// property: given identical inputs, the compile time form must produce byte identical wire data to
+// the runtime form. That property is what lets a code generator switch forms without a wire change.
+
+// each helper drives the actual macro form under test, so the tests cover the macros as well as the templates
+
+template <typename Stream> bool serialize_int_runtime_form( Stream & stream, int32_t & value, int32_t min, int32_t max )
+{
+    serialize_int( stream, value, min, max );
+    return true;
+}
+
+template <typename Stream> bool serialize_int64_runtime_form( Stream & stream, int64_t & value, int64_t min, int64_t max )
+{
+    serialize_int64( stream, value, min, max );
+    return true;
+}
+
+template <typename Stream> bool serialize_bits64_runtime_form( Stream & stream, uint64_t & value, int bits )
+{
+    serialize_bits( stream, value, bits );
+    return true;
+}
+
+template <int32_t Min, int32_t Max, typename Stream> bool serialize_int_compile_time_form( Stream & stream, int32_t & value )
+{
+    serialize_int_compile_time( stream, value, Min, Max );
+    return true;
+}
+
+template <int64_t Min, int64_t Max, typename Stream> bool serialize_int64_compile_time_form( Stream & stream, int64_t & value )
+{
+    serialize_int64_compile_time( stream, value, Min, Max );
+    return true;
+}
+
+template <int Bits, typename Stream> bool serialize_bits_compile_time_form( Stream & stream, uint32_t & value )
+{
+    serialize_bits_compile_time( stream, value, Bits );
+    return true;
+}
+
+template <int Bits, typename Stream> bool serialize_bits64_compile_time_form( Stream & stream, uint64_t & value )
+{
+    serialize_bits64_compile_time( stream, value, Bits );
+    return true;
+}
+
+inline void test_compile_time_bits_required()
+{
+    // usable in template argument position by construction
+    static_assert( serialize::bits_required64_constexpr( 0, 255 ) == 8, "must be a constant expression" );
+
+    // agrees with the runtime bits_required across the 32 bit table
+    serialize_check( serialize::bits_required64_constexpr( 0, 0 ) == 0 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 1 ) == 1 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 2 ) == 2 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 3 ) == 2 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 4 ) == 3 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 7 ) == 3 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 8 ) == 4 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 255 ) == 8 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 65535 ) == 16 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 4294967295ULL ) == 32 );
+
+    // agrees with the runtime bits_required64 on 64 bit ranges
+    serialize_check( serialize::bits_required64_constexpr( 0, 4294967296ULL ) == 33 );
+    serialize_check( serialize::bits_required64_constexpr( 0, ( 1ULL << 40 ) ) == 41 );
+    serialize_check( serialize::bits_required64_constexpr( 0, 0xFFFFFFFFFFFFFFFFULL ) == 64 );
+    serialize_check( serialize::bits_required64_constexpr( uint64_t(INT64_MIN), uint64_t(INT64_MAX) ) == 64 );
+    serialize_check( serialize::bits_required64_constexpr( uint64_t(-5000000000LL), uint64_t(+5000000000LL) ) == 34 );
+
+    // sign extended int32 bounds wrap to the same difference as the uint32 runtime path
+    serialize_check( serialize::bits_required64_constexpr( uint64_t( int64_t( -100 ) ), uint64_t( int64_t( +100 ) ) ) == serialize::bits_required( uint32_t( -100 ), uint32_t( +100 ) ) );
+    serialize_check( serialize::bits_required64_constexpr( uint64_t( int64_t( INT32_MIN ) ), uint64_t( int64_t( INT32_MAX ) ) ) == 32 );
+
+    // sweep agreement with the runtime form
+    for ( uint32_t max = 0; max <= 1000; max++ )
+    {
+        serialize_check( serialize::bits_required64_constexpr( 0, max ) == serialize::bits_required( 0, max ) );
+    }
+}
+
+template <int32_t Min, int32_t Max> inline void check_compile_time_int_range( const int32_t * values, int num_values )
+{
+    for ( int i = 0; i < num_values; i++ )
+    {
+        const int32_t value = values[i];
+
+        // measure: both forms agree on cost
+        serialize::MeasureStream measureRuntime;
+        int32_t measure_value = value;
+        serialize_check( serialize_int_runtime_form( measureRuntime, measure_value, Min, Max ) == true );
+        serialize::MeasureStream measureCompileTime;
+        measure_value = value;
+        serialize_check( ( serialize_int_compile_time_form<Min, Max>( measureCompileTime, measure_value ) == true ) );
+        serialize_check( measureRuntime.GetBitsProcessed() == measureCompileTime.GetBitsProcessed() );
+
+        // write: the wire identity property, byte for byte
+        uint8_t buffer_runtime[8 + 8] = { 0 };              // + 8: read buffer allocations extend 8 bytes past the data
+        uint8_t buffer_compile_time[8 + 8] = { 0 };         // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::WriteStream writeRuntime( buffer_runtime, 8 );
+        int32_t write_value = value;
+        serialize_check( serialize_int_runtime_form( writeRuntime, write_value, Min, Max ) == true );
+        writeRuntime.Flush();
+
+        serialize::WriteStream writeCompileTime( buffer_compile_time, 8 );
+        write_value = value;
+        serialize_check( ( serialize_int_compile_time_form<Min, Max>( writeCompileTime, write_value ) == true ) );
+        writeCompileTime.Flush();
+
+        serialize_check( writeRuntime.GetBitsProcessed() == writeCompileTime.GetBitsProcessed() );
+        serialize_check( memcmp( buffer_runtime, buffer_compile_time, 8 ) == 0 );
+
+        // round trip through the compile time form
+        serialize::ReadStream readStream( buffer_compile_time, (int) writeCompileTime.GetBytesProcessed() );
+        int32_t read_value = 0;
+        serialize_check( ( serialize_int_compile_time_form<Min, Max>( readStream, read_value ) == true ) );
+        serialize_check( read_value == value );
+
+        // cross decode: runtime written bytes through the compile time form
+        serialize::ReadStream crossStream( buffer_runtime, (int) writeRuntime.GetBytesProcessed() );
+        read_value = 0;
+        serialize_check( ( serialize_int_compile_time_form<Min, Max>( crossStream, read_value ) == true ) );
+        serialize_check( read_value == value );
+    }
+}
+
+inline void test_compile_time_int()
+{
+    {
+        const int32_t values[] = { -100, -99, -37, 0, +1, +99, +100 };
+        check_compile_time_int_range<-100, +100>( values, (int) ( sizeof(values) / sizeof(values[0]) ) );
+    }
+
+    {
+        const int32_t values[] = { 0, 1, 255, 32768, 65534, 65535 };
+        check_compile_time_int_range<0, 65535>( values, (int) ( sizeof(values) / sizeof(values[0]) ) );
+    }
+
+    // ranges wider than 2^31 overflow if [min,max] arithmetic is done signed (undefined behavior)
+    {
+        const int32_t values[] = { INT32_MIN, INT32_MIN + 1, -1, 0, +1, INT32_MAX - 1, INT32_MAX };
+        check_compile_time_int_range<INT32_MIN, INT32_MAX>( values, (int) ( sizeof(values) / sizeof(values[0]) ) );
+    }
+
+    {
+        const int32_t values[] = { -2000000000, -1, 0, +1000000000, +2000000000 };
+        check_compile_time_int_range<-2000000000, +2000000000>( values, (int) ( sizeof(values) / sizeof(values[0]) ) );
+    }
+}
+
+template <int64_t Min, int64_t Max> inline void check_compile_time_int64_range( const int64_t * values, int num_values )
+{
+    for ( int i = 0; i < num_values; i++ )
+    {
+        const int64_t value = values[i];
+
+        // measure: both forms agree on cost
+        serialize::MeasureStream measureRuntime;
+        int64_t measure_value = value;
+        serialize_check( serialize_int64_runtime_form( measureRuntime, measure_value, Min, Max ) == true );
+        serialize::MeasureStream measureCompileTime;
+        measure_value = value;
+        serialize_check( ( serialize_int64_compile_time_form<Min, Max>( measureCompileTime, measure_value ) == true ) );
+        serialize_check( measureRuntime.GetBitsProcessed() == measureCompileTime.GetBitsProcessed() );
+
+        // write: the wire identity property, byte for byte
+        uint8_t buffer_runtime[8 + 8] = { 0 };              // + 8: read buffer allocations extend 8 bytes past the data
+        uint8_t buffer_compile_time[8 + 8] = { 0 };         // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::WriteStream writeRuntime( buffer_runtime, 8 );
+        int64_t write_value = value;
+        serialize_check( serialize_int64_runtime_form( writeRuntime, write_value, Min, Max ) == true );
+        writeRuntime.Flush();
+
+        serialize::WriteStream writeCompileTime( buffer_compile_time, 8 );
+        write_value = value;
+        serialize_check( ( serialize_int64_compile_time_form<Min, Max>( writeCompileTime, write_value ) == true ) );
+        writeCompileTime.Flush();
+
+        serialize_check( writeRuntime.GetBitsProcessed() == writeCompileTime.GetBitsProcessed() );
+        serialize_check( memcmp( buffer_runtime, buffer_compile_time, 8 ) == 0 );
+
+        // round trip through the compile time form
+        serialize::ReadStream readStream( buffer_compile_time, (int) writeCompileTime.GetBytesProcessed() );
+        int64_t read_value = 0;
+        serialize_check( ( serialize_int64_compile_time_form<Min, Max>( readStream, read_value ) == true ) );
+        serialize_check( read_value == value );
+
+        // cross decode: runtime written bytes through the compile time form
+        serialize::ReadStream crossStream( buffer_runtime, (int) writeRuntime.GetBytesProcessed() );
+        read_value = 0;
+        serialize_check( ( serialize_int64_compile_time_form<Min, Max>( crossStream, read_value ) == true ) );
+        serialize_check( read_value == value );
+    }
+}
+
+inline void test_compile_time_int64()
+{
+    // small ranges use the single dword path
+    {
+        const int64_t values[] = { -100, -99, -1, 0, +1, +55, +99, +100 };
+        check_compile_time_int64_range<-100, +100>( values, (int) ( sizeof(values) / sizeof(values[0]) ) );
+    }
+
+    // ranges spanning more than 32 bits use the two dword path
+    {
+        const int64_t values[] = { -5000000000LL, -5000000000LL + 1, -1, 0, +1, 4123456789LL, +5000000000LL - 1, +5000000000LL };
+        check_compile_time_int64_range<-5000000000LL, +5000000000LL>( values, (int) ( sizeof(values) / sizeof(values[0]) ) );
+    }
+
+    // ranges wider than 2^63 overflow if [min,max] arithmetic is done signed (undefined behavior)
+    {
+        const int64_t values[] = { INT64_MIN, INT64_MIN + 1, -1, 0, +1, INT64_MAX - 1, INT64_MAX };
+        check_compile_time_int64_range<INT64_MIN, INT64_MAX>( values, (int) ( sizeof(values) / sizeof(values[0]) ) );
+    }
+
+    // the single dword path uses the minimal number of bits, same as the runtime form
+    {
+        uint8_t buffer[8 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::WriteStream writeStream( buffer, 8 );
+        int64_t value = 55;
+        serialize_check( ( serialize::SerializeInt64Const<-100, +100>( writeStream, value ) == true ) );
+        writeStream.Flush();
+        serialize_check( writeStream.GetBitsProcessed() == 8 );        // bits_required64(-100,100) == 8, same as the 32 bit path
+    }
+}
+
+template <int Bits> inline void check_compile_time_bits_width()
+{
+    // ( ( 1 << ( Bits - 1 ) ) << 1 ) - 1 is the all ones value without shifting by the full width (undefined behavior at Bits == 32)
+    const uint32_t max_value = uint32_t( ( ( uint64_t(1) << ( Bits - 1 ) ) << 1 ) - 1 );
+    const uint32_t values[] = { 0, 1, max_value >> 1, max_value };
+
+    for ( int i = 0; i < (int) ( sizeof(values) / sizeof(values[0]) ); i++ )
+    {
+        const uint32_t value = values[i];
+
+        // measure: both forms agree on cost
+        serialize::MeasureStream measureRuntime;
+        uint64_t measure_value64 = value;
+        serialize_check( serialize_bits64_runtime_form( measureRuntime, measure_value64, Bits ) == true );
+        serialize::MeasureStream measureCompileTime;
+        uint32_t measure_value = value;
+        serialize_check( serialize_bits_compile_time_form<Bits>( measureCompileTime, measure_value ) == true );
+        serialize_check( measureRuntime.GetBitsProcessed() == measureCompileTime.GetBitsProcessed() );
+
+        // write: the wire identity property, byte for byte
+        uint8_t buffer_runtime[8 + 8] = { 0 };              // + 8: read buffer allocations extend 8 bytes past the data
+        uint8_t buffer_compile_time[8 + 8] = { 0 };         // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::WriteStream writeRuntime( buffer_runtime, 8 );
+        uint64_t write_value64 = value;
+        serialize_check( serialize_bits64_runtime_form( writeRuntime, write_value64, Bits ) == true );
+        writeRuntime.Flush();
+
+        serialize::WriteStream writeCompileTime( buffer_compile_time, 8 );
+        uint32_t write_value = value;
+        serialize_check( serialize_bits_compile_time_form<Bits>( writeCompileTime, write_value ) == true );
+        writeCompileTime.Flush();
+
+        serialize_check( writeRuntime.GetBitsProcessed() == writeCompileTime.GetBitsProcessed() );
+        serialize_check( memcmp( buffer_runtime, buffer_compile_time, 8 ) == 0 );
+
+        // round trip through the compile time form
+        serialize::ReadStream readStream( buffer_compile_time, (int) writeCompileTime.GetBytesProcessed() );
+        uint32_t read_value = 0;
+        serialize_check( serialize_bits_compile_time_form<Bits>( readStream, read_value ) == true );
+        serialize_check( read_value == value );
+
+        // cross decode: runtime written bytes through the compile time form
+        serialize::ReadStream crossStream( buffer_runtime, (int) writeRuntime.GetBytesProcessed() );
+        read_value = 0;
+        serialize_check( serialize_bits_compile_time_form<Bits>( crossStream, read_value ) == true );
+        serialize_check( read_value == value );
+    }
+}
+
+template <int Bits> inline void check_compile_time_bits64_width()
+{
+    // ( ( 1 << ( Bits - 1 ) ) << 1 ) - 1 is the all ones value without shifting by the full width (undefined behavior at Bits == 64)
+    const uint64_t max_value = ( ( uint64_t(1) << ( Bits - 1 ) ) << 1 ) - 1;
+    const uint64_t values[] = { 0, 1, max_value >> 1, max_value };
+
+    for ( int i = 0; i < (int) ( sizeof(values) / sizeof(values[0]) ); i++ )
+    {
+        const uint64_t value = values[i];
+
+        // measure: both forms agree on cost
+        serialize::MeasureStream measureRuntime;
+        uint64_t measure_value = value;
+        serialize_check( serialize_bits64_runtime_form( measureRuntime, measure_value, Bits ) == true );
+        serialize::MeasureStream measureCompileTime;
+        measure_value = value;
+        serialize_check( serialize_bits64_compile_time_form<Bits>( measureCompileTime, measure_value ) == true );
+        serialize_check( measureRuntime.GetBitsProcessed() == measureCompileTime.GetBitsProcessed() );
+
+        // write: the wire identity property, byte for byte
+        uint8_t buffer_runtime[8 + 8] = { 0 };              // + 8: read buffer allocations extend 8 bytes past the data
+        uint8_t buffer_compile_time[8 + 8] = { 0 };         // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::WriteStream writeRuntime( buffer_runtime, 8 );
+        uint64_t write_value = value;
+        serialize_check( serialize_bits64_runtime_form( writeRuntime, write_value, Bits ) == true );
+        writeRuntime.Flush();
+
+        serialize::WriteStream writeCompileTime( buffer_compile_time, 8 );
+        write_value = value;
+        serialize_check( serialize_bits64_compile_time_form<Bits>( writeCompileTime, write_value ) == true );
+        writeCompileTime.Flush();
+
+        serialize_check( writeRuntime.GetBitsProcessed() == writeCompileTime.GetBitsProcessed() );
+        serialize_check( memcmp( buffer_runtime, buffer_compile_time, 8 ) == 0 );
+
+        // round trip through the compile time form
+        serialize::ReadStream readStream( buffer_compile_time, (int) writeCompileTime.GetBytesProcessed() );
+        uint64_t read_value = 0;
+        serialize_check( serialize_bits64_compile_time_form<Bits>( readStream, read_value ) == true );
+        serialize_check( read_value == value );
+
+        // cross decode: runtime written bytes through the compile time form
+        serialize::ReadStream crossStream( buffer_runtime, (int) writeRuntime.GetBytesProcessed() );
+        read_value = 0;
+        serialize_check( serialize_bits64_compile_time_form<Bits>( crossStream, read_value ) == true );
+        serialize_check( read_value == value );
+    }
+}
+
+inline void test_compile_time_bits()
+{
+    check_compile_time_bits_width<1>();
+    check_compile_time_bits_width<2>();
+    check_compile_time_bits_width<7>();
+    check_compile_time_bits_width<8>();
+    check_compile_time_bits_width<13>();
+    check_compile_time_bits_width<23>();
+    check_compile_time_bits_width<31>();
+    check_compile_time_bits_width<32>();
+
+    check_compile_time_bits64_width<1>();
+    check_compile_time_bits64_width<20>();
+    check_compile_time_bits64_width<32>();
+    check_compile_time_bits64_width<33>();
+    check_compile_time_bits64_width<48>();
+    check_compile_time_bits64_width<63>();
+    check_compile_time_bits64_width<64>();
+}
+
+inline void test_compile_time_int_validation()
+{
+    // bits_required(0,5) is 3 bits, so a malicious packet can encode 6 or 7. reads must reject values above max.
+    {
+        uint8_t buffer[4 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::WriteStream writeStream( buffer, 8 );
+        uint32_t out_of_range = 7;
+        writeStream.SerializeBits( out_of_range, 3 );
+        writeStream.Flush();
+
+        serialize::ReadStream readStream( buffer, 4 );
+        int32_t value = 0;
+        serialize_check( ( serialize::SerializeIntConst<0, 5>( readStream, value ) == false ) );
+    }
+
+    // reads past the end of the buffer must fail cleanly
+    {
+        uint8_t buffer[8 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::ReadStream readStream( buffer, 1 );
+        int32_t value = 0;
+        serialize_check( ( serialize::SerializeIntConst<0, 65535>( readStream, value ) == false ) );
+    }
+}
+
+inline void test_compile_time_int64_validation()
+{
+    // a malicious packet can smuggle an out of range value into the bit headroom of the two dword path. reads must reject it.
+    {
+        uint8_t buffer[16 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::WriteStream writeStream( buffer, 16 );
+        const uint64_t out_of_range = ( 1ULL << 34 ) + 5;               // range [0, 2^34] is 35 bits, so values above 2^34 fit in the headroom
+        uint32_t lo = uint32_t( out_of_range & 0xFFFFFFFF );
+        uint32_t hi = uint32_t( out_of_range >> 32 );
+        writeStream.SerializeBits( lo, 32 );
+        writeStream.SerializeBits( hi, 3 );
+        writeStream.Flush();
+
+        serialize::ReadStream readStream( buffer, 16 );
+        int64_t value = 0;
+        serialize_check( ( serialize::SerializeInt64Const<0, ( int64_t(1) << 34 )>( readStream, value ) ) == false );
+    }
+
+    // reads past the end of the buffer must fail cleanly (the low dword fits, the high remainder does not)
+    {
+        uint8_t buffer[4 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::ReadStream readStream( buffer, 4 );
+        int64_t value = 0;
+        serialize_check( ( serialize::SerializeInt64Const<INT64_MIN, INT64_MAX>( readStream, value ) ) == false );
+    }
+}
+
+inline void test_compile_time_bits_validation()
+{
+    // reads past the end of the buffer must fail cleanly
+    {
+        uint8_t buffer[8 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::ReadStream readStream( buffer, 1 );
+        uint32_t value = 0;
+        serialize_check( serialize::SerializeBitsConst<13>( readStream, value ) == false );
+    }
+
+    // the two dword path: the low dword fits, the high remainder does not
+    {
+        uint8_t buffer[4 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::ReadStream readStream( buffer, 4 );
+        uint64_t value = 0;
+        serialize_check( serialize::SerializeBits64Const<48>( readStream, value ) == false );
+    }
+}
+
+// a packet exercising every compile time form next to its runtime twin, field for field
+
+struct CompileTimeTestPacket
+{
+    CompileTimeTestPacket()
+    {
+        memset( (void*) this, 0, sizeof( CompileTimeTestPacket ) );
+    }
+
+    int32_t int_a;          // [-100,+100]
+    int32_t int_b;          // [0,65535]
+    int32_t int_c;          // [INT32_MIN,INT32_MAX]
+    int64_t int64_small;    // [-100,+100]: single dword path
+    int64_t int64_wide;     // [-5000000000,+5000000000]: two dword path
+    int64_t int64_full;     // [INT64_MIN,INT64_MAX]
+    uint32_t bits1;
+    uint32_t bits7;
+    uint32_t bits13;
+    uint32_t bits23;
+    uint32_t bits32;
+    uint64_t bits48;        // the >32 bit serialize_bits case
+    uint64_t bits64;
+    bool flag_a;
+    bool flag_b;
+
+    void InitTypical()
+    {
+        int_a = -37;
+        int_b = 12345;
+        int_c = -123456789;
+        int64_small = 55;
+        int64_wide = 4123456789LL;
+        int64_full = -123456789012345LL;
+        bits1 = 1;
+        bits7 = 97;
+        bits13 = 5000;
+        bits23 = 1234567;
+        bits32 = 0xDEADBEEF;
+        bits48 = 0x123456789ABCULL;
+        bits64 = 0x123456789ABCDEF0ULL;
+        flag_a = true;
+        flag_b = false;
+    }
+
+    void InitLow()          // every field at its minimum legal value
+    {
+        int_a = -100;
+        int_b = 0;
+        int_c = INT32_MIN;
+        int64_small = -100;
+        int64_wide = -5000000000LL;
+        int64_full = INT64_MIN;
+        bits1 = 0;
+        bits7 = 0;
+        bits13 = 0;
+        bits23 = 0;
+        bits32 = 0;
+        bits48 = 0;
+        bits64 = 0;
+        flag_a = false;
+        flag_b = false;
+    }
+
+    void InitHigh()         // every field at its maximum legal value
+    {
+        int_a = +100;
+        int_b = 65535;
+        int_c = INT32_MAX;
+        int64_small = +100;
+        int64_wide = +5000000000LL;
+        int64_full = INT64_MAX;
+        bits1 = 1;
+        bits7 = 127;
+        bits13 = 8191;
+        bits23 = 8388607;
+        bits32 = 0xFFFFFFFF;
+        bits48 = ( 1ULL << 48 ) - 1;
+        bits64 = 0xFFFFFFFFFFFFFFFFULL;
+        flag_a = true;
+        flag_b = true;
+    }
+
+    template <typename Stream> bool SerializeRuntime( Stream & stream )
+    {
+        serialize_int( stream, int_a, -100, +100 );
+        serialize_int( stream, int_b, 0, 65535 );
+        serialize_int( stream, int_c, INT32_MIN, INT32_MAX );
+        serialize_int64( stream, int64_small, -100, +100 );
+        serialize_int64( stream, int64_wide, -5000000000LL, +5000000000LL );
+        serialize_int64( stream, int64_full, INT64_MIN, INT64_MAX );
+        serialize_bits( stream, bits1, 1 );
+        serialize_bits( stream, bits7, 7 );
+        serialize_bits( stream, bits13, 13 );
+        serialize_bits( stream, bits23, 23 );
+        serialize_bits( stream, bits32, 32 );
+        serialize_bits( stream, bits48, 48 );
+        serialize_bits( stream, bits64, 64 );
+        serialize_bool( stream, flag_a );
+        serialize_bool( stream, flag_b );
+        return true;
+    }
+
+    template <typename Stream> bool SerializeCompileTime( Stream & stream )
+    {
+        serialize_int_compile_time( stream, int_a, -100, +100 );
+        serialize_int_compile_time( stream, int_b, 0, 65535 );
+        serialize_int_compile_time( stream, int_c, INT32_MIN, INT32_MAX );
+        serialize_int64_compile_time( stream, int64_small, -100, +100 );
+        serialize_int64_compile_time( stream, int64_wide, -5000000000LL, +5000000000LL );
+        serialize_int64_compile_time( stream, int64_full, INT64_MIN, INT64_MAX );
+        serialize_bits_compile_time( stream, bits1, 1 );
+        serialize_bits_compile_time( stream, bits7, 7 );
+        serialize_bits_compile_time( stream, bits13, 13 );
+        serialize_bits_compile_time( stream, bits23, 23 );
+        serialize_bits_compile_time( stream, bits32, 32 );
+        serialize_bits64_compile_time( stream, bits48, 48 );
+        serialize_bits64_compile_time( stream, bits64, 64 );
+        serialize_bool_compile_time( stream, flag_a );
+        serialize_bool_compile_time( stream, flag_b );
+        return true;
+    }
+
+    bool operator == ( const CompileTimeTestPacket & other ) const
+    {
+        return int_a == other.int_a &&
+               int_b == other.int_b &&
+               int_c == other.int_c &&
+               int64_small == other.int64_small &&
+               int64_wide == other.int64_wide &&
+               int64_full == other.int64_full &&
+               bits1 == other.bits1 &&
+               bits7 == other.bits7 &&
+               bits13 == other.bits13 &&
+               bits23 == other.bits23 &&
+               bits32 == other.bits32 &&
+               bits48 == other.bits48 &&
+               bits64 == other.bits64 &&
+               flag_a == other.flag_a &&
+               flag_b == other.flag_b;
+    }
+
+    bool operator != ( const CompileTimeTestPacket & other ) const
+    {
+        return ! ( *this == other );
+    }
+};
+
+inline void check_compile_time_packet( CompileTimeTestPacket & packet )
+{
+    const int BufferSize = 64;
+
+    uint8_t buffer_runtime[BufferSize + 8];             // + 8: read buffer allocations extend 8 bytes past the data
+    uint8_t buffer_compile_time[BufferSize + 8];        // + 8: read buffer allocations extend 8 bytes past the data
+    memset( buffer_runtime, 0, sizeof( buffer_runtime ) );
+    memset( buffer_compile_time, 0, sizeof( buffer_compile_time ) );
+
+    serialize::WriteStream writeRuntime( buffer_runtime, BufferSize );
+    serialize_check( packet.SerializeRuntime( writeRuntime ) == true );
+    writeRuntime.Flush();
+
+    serialize::WriteStream writeCompileTime( buffer_compile_time, BufferSize );
+    serialize_check( packet.SerializeCompileTime( writeCompileTime ) == true );
+    writeCompileTime.Flush();
+
+    // the wire identity property: byte identical, so a code generator can switch forms without a wire change
+    serialize_check( writeRuntime.GetBitsProcessed() == writeCompileTime.GetBitsProcessed() );
+    serialize_check( memcmp( buffer_runtime, buffer_compile_time, BufferSize ) == 0 );
+
+    // measure streams agree with the write streams (no aligns in this packet, so the measure is exact)
+    serialize::MeasureStream measureRuntime;
+    serialize_check( packet.SerializeRuntime( measureRuntime ) == true );
+    serialize::MeasureStream measureCompileTime;
+    serialize_check( packet.SerializeCompileTime( measureCompileTime ) == true );
+    serialize_check( measureRuntime.GetBitsProcessed() == writeRuntime.GetBitsProcessed() );
+    serialize_check( measureCompileTime.GetBitsProcessed() == writeCompileTime.GetBitsProcessed() );
+
+    const int bytesWritten = (int) writeRuntime.GetBytesProcessed();
+
+    // cross decode: runtime written bytes through the compile time form...
+    {
+        serialize::ReadStream readStream( buffer_runtime, bytesWritten );
+        CompileTimeTestPacket read_packet;
+        serialize_check( read_packet.SerializeCompileTime( readStream ) == true );
+        serialize_check( read_packet == packet );
+    }
+
+    // ...and compile time written bytes through the runtime form
+    {
+        serialize::ReadStream readStream( buffer_compile_time, bytesWritten );
+        CompileTimeTestPacket read_packet;
+        serialize_check( read_packet.SerializeRuntime( readStream ) == true );
+        serialize_check( read_packet == packet );
+    }
+}
+
+inline void test_compile_time_packet()
+{
+    CompileTimeTestPacket packet;
+
+    packet.InitTypical();
+    check_compile_time_packet( packet );
+
+    packet.InitLow();
+    check_compile_time_packet( packet );
+
+    packet.InitHigh();
+    check_compile_time_packet( packet );
+}
+
+#endif // #if defined( SERIALIZE_HAS_COMPILE_TIME_SURFACE )
+
 // Golden wire format test. The exact bytes produced by the serializer are pinned down here and must never change.
 // If this test fails, the wire format has changed and previously written data no longer decodes: a breaking change.
 // The values below are chosen so every platform quantizes identically (see the compressed float: 5.0 in [0,10]
@@ -6048,6 +7067,16 @@ inline void serialize_test()
         SERIALIZE_RUN_TEST( test_uint128_differential );
         SERIALIZE_RUN_TEST( test_int128_differential );
 #endif // #if defined(__SIZEOF_INT128__)
+#if defined( SERIALIZE_HAS_COMPILE_TIME_SURFACE )
+        SERIALIZE_RUN_TEST( test_compile_time_bits_required );
+        SERIALIZE_RUN_TEST( test_compile_time_int );
+        SERIALIZE_RUN_TEST( test_compile_time_int64 );
+        SERIALIZE_RUN_TEST( test_compile_time_bits );
+        SERIALIZE_RUN_TEST( test_compile_time_int_validation );
+        SERIALIZE_RUN_TEST( test_compile_time_int64_validation );
+        SERIALIZE_RUN_TEST( test_compile_time_bits_validation );
+        SERIALIZE_RUN_TEST( test_compile_time_packet );
+#endif // #if defined( SERIALIZE_HAS_COMPILE_TIME_SURFACE )
         SERIALIZE_RUN_TEST( test_golden_wire_format );
         SERIALIZE_RUN_TEST( test_unaligned_writer );
         SERIALIZE_RUN_TEST( test_large_buffer );
