@@ -26,39 +26,12 @@
 #include "yojimbo_connection.h"
 #include "yojimbo_adapter.h"
 #include "yojimbo_network_simulator.h"
+#include "yojimbo_address_conversion.h"
 #include "reliable.h"
 #include "netcode.h"
 
 namespace yojimbo
 {
-    static Address ServerAddressFromNetcode( const netcode_address_t & address )
-    {
-        if ( address.type == NETCODE_ADDRESS_IPV4 )
-            return Address( address.data.ipv4, address.port );
-        if ( address.type == NETCODE_ADDRESS_IPV6 )
-            return Address( address.data.ipv6, address.port );
-        return Address();
-    }
-
-    static bool ServerAddressToNetcode( const Address & address, netcode_address_t & result )
-    {
-        memset( &result, 0, sizeof( result ) );
-        result.port = address.GetPort();
-        if ( address.GetType() == ADDRESS_IPV4 )
-        {
-            result.type = NETCODE_ADDRESS_IPV4;
-            memcpy( result.data.ipv4, address.GetAddress4(), sizeof( result.data.ipv4 ) );
-            return true;
-        }
-        if ( address.GetType() == ADDRESS_IPV6 )
-        {
-            result.type = NETCODE_ADDRESS_IPV6;
-            memcpy( result.data.ipv6, address.GetAddress6(), sizeof( result.data.ipv6 ) );
-            return true;
-        }
-        return false;
-    }
-
     Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time )
         : BaseServer( allocator, config, adapter, time )
     {
@@ -68,6 +41,7 @@ namespace yojimbo
         m_boundAddress = address;
         m_config = config;
         m_server = NULL;
+        m_stopping = false;
     }
 
     Server::~Server()
@@ -95,7 +69,8 @@ namespace yojimbo
         netcodeConfig.callback_context = this;
         netcodeConfig.connect_disconnect_callback = StaticConnectDisconnectCallbackFunction;
         netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;
-        if ( GetAdapter().UseCustomPacketIO() )
+        const bool useCustomPacketIO = GetAdapter().UseCustomPacketIO();
+        if ( useCustomPacketIO )
         {
             netcodeConfig.override_send_and_receive = 1;
             netcodeConfig.send_packet_override = StaticSendPacketOverride;
@@ -112,20 +87,34 @@ namespace yojimbo
 
         netcode_server_start( m_server, maxClients );
 
-        if ( !GetAdapter().UseCustomPacketIO() )
+        if ( !useCustomPacketIO )
             m_boundAddress.SetPort( netcode_server_get_port( m_server ) );
     }
 
     void Server::Stop()
     {
+        // Stop-in-progress guard: netcode_server_stop below sends disconnect packets and fires
+        // OnServerClientDisconnected, so an adapter callback can call Stop from inside this
+        // teardown. That reentrant call must be a harmless no-op — the outer call completes the
+        // teardown exactly once. Without this, the inner call reaches BaseServer::Stop and
+        // destroys the global allocator while the netcode server (allocated from it) still lives.
+        if ( m_stopping )
+            return;
+        m_stopping = true;
         if ( m_server )
         {
             m_boundAddress = m_address;
-            netcode_server_stop( m_server );
-            netcode_server_destroy( m_server );
+            // Clear the member before stopping, so an adapter that calls Stop from inside a
+            // teardown-time SendPacket callback (disconnect packets sent by netcode_server_stop)
+            // can't re-enter here and stop/destroy the same netcode server twice.
+            // ConnectDisconnectCallbackFunction handles m_server being NULL during this window.
+            netcode_server_t * server = m_server;
             m_server = NULL;
+            netcode_server_stop( server );
+            netcode_server_destroy( server );
         }
         BaseServer::Stop();
+        m_stopping = false;
     }
 
     void Server::DisconnectClient( int clientIndex )
@@ -312,7 +301,11 @@ namespace yojimbo
             // Record it before the adapter callback, so OnServerClientDisconnected can query it.
             if ( GetClientDisconnectReason( clientIndex ) == YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE )
             {
-                const int netcodeReason = netcode_server_client_disconnect_reason( m_server, clientIndex );
+                // m_server is NULL while Stop tears the netcode server down (cleared before
+                // netcode_server_stop, see Server::Stop). Disconnects delivered during that
+                // window are always netcode SERVER_DISCONNECT, never TIMED_OUT.
+                const int netcodeReason = m_server ? netcode_server_client_disconnect_reason( m_server, clientIndex )
+                                                   : NETCODE_SERVER_CLIENT_DISCONNECT_REASON_SERVER_DISCONNECT;
                 SetClientDisconnectReason( clientIndex, netcodeReason == NETCODE_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT
                                                             ? YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_TIMED_OUT
                                                             : YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_DISCONNECTED );
@@ -355,7 +348,7 @@ namespace yojimbo
     void Server::StaticSendPacketOverride( void * context, netcode_address_t * to, const uint8_t * packetData, int packetBytes )
     {
         Server * server = (Server*) context;
-        const Address address = ServerAddressFromNetcode( *to );
+        const Address address = AddressFromNetcode( *to );
         if ( address.IsValid() )
             server->GetAdapter().SendPacket( address, packetData, packetBytes );
     }
@@ -365,7 +358,7 @@ namespace yojimbo
         Server * server = (Server*) context;
         Address address;
         const int packetBytes = server->GetAdapter().ReceivePacket( address, packetData, maxPacketBytes );
-        if ( packetBytes <= 0 || packetBytes > maxPacketBytes || !ServerAddressToNetcode( address, *from ) )
+        if ( packetBytes <= 0 || packetBytes > maxPacketBytes || !AddressToNetcode( address, *from ) )
             return 0;
         return packetBytes;
     }

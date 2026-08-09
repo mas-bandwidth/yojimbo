@@ -32,6 +32,17 @@ namespace yojimbo
     class Address;
 
     /**
+        Complete netcode.io datagrams passed to and from the adapter are at most this many bytes
+        (netcode's internal NETCODE_MAX_PACKET_BYTES). Size custom transport buffers to THIS
+        constant, not to the payload-size constants — a full datagram carries netcode framing
+        and encryption overhead on top of the payload.
+        @see Adapter::SendPacket
+        @see Adapter::ReceivePacket
+     */
+
+    const int MaxAdapterPacketBytes = 1300;
+
+    /**
         Specifies the message factory and callbacks for clients and servers.
         An instance of this class is passed into the client and server constructors.
         You can share the same adapter across a client/server pair if you have local multiplayer, eg. loopback.
@@ -83,7 +94,12 @@ namespace yojimbo
 
         /**
             Send one complete netcode.io datagram through the custom transport.
-            Called only when UseCustomPacketIO returns true.
+            Called only when UseCustomPacketIO returns true. packetBytes is never larger than
+            MaxAdapterPacketBytes, so buffers sized to that constant always fit the datagram.
+            An adapter with UseCustomPacketIO() == true must be dedicated to a single Client
+            or Server instance — never share it between two objects. The loopback-style
+            sharing described in the class documentation above does not extend to custom
+            packet I/O.
          */
 
         virtual void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes )
@@ -98,6 +114,10 @@ namespace yojimbo
             Receive one complete netcode.io datagram from the custom transport.
             Set from to the stable transport-visible source address and return the byte count.
             Return zero when no packet is available.
+            This function MUST be non-blocking: netcode calls it in a loop each update and
+            drains packets until it returns zero, so a blocking implementation stalls the
+            client or server. maxPacketBytes is MaxAdapterPacketBytes — size transport-side
+            receive buffers to that constant.
          */
 
         virtual int ReceivePacket( Address & from, uint8_t * packetData, int maxPacketBytes )

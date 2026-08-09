@@ -3,39 +3,12 @@
 #include "yojimbo_network_simulator.h"
 #include "yojimbo_adapter.h"
 #include "yojimbo_utils.h"
+#include "yojimbo_address_conversion.h"
 #include "netcode.h"
 #include "reliable.h"
 
 namespace yojimbo
 {
-    static Address ClientAddressFromNetcode( const netcode_address_t & address )
-    {
-        if ( address.type == NETCODE_ADDRESS_IPV4 )
-            return Address( address.data.ipv4, address.port );
-        if ( address.type == NETCODE_ADDRESS_IPV6 )
-            return Address( address.data.ipv6, address.port );
-        return Address();
-    }
-
-    static bool ClientAddressToNetcode( const Address & address, netcode_address_t & result )
-    {
-        memset( &result, 0, sizeof( result ) );
-        result.port = address.GetPort();
-        if ( address.GetType() == ADDRESS_IPV4 )
-        {
-            result.type = NETCODE_ADDRESS_IPV4;
-            memcpy( result.data.ipv4, address.GetAddress4(), sizeof( result.data.ipv4 ) );
-            return true;
-        }
-        if ( address.GetType() == ADDRESS_IPV6 )
-        {
-            result.type = NETCODE_ADDRESS_IPV6;
-            memcpy( result.data.ipv6, address.GetAddress6(), sizeof( result.data.ipv6 ) );
-            return true;
-        }
-        return false;
-    }
-
     // Map a netcode client error state to the disconnect reason we record for this client.
     // This is where "server is full" vs "update your client" vs "network problem" comes from.
     static int ClientDisconnectReasonForNetcodeState( int netcodeState )
@@ -58,6 +31,7 @@ namespace yojimbo
         m_clientId = 0;
         m_client = NULL;
         m_boundAddress = m_address;
+        m_disconnecting = false;
     }
 
     Client::~Client()
@@ -163,6 +137,14 @@ namespace yojimbo
 
     void Client::Disconnect()
     {
+        // Stop-in-progress guard: netcode_client_destroy (inside DestroyClient below) sends
+        // disconnect packets, so an adapter SendPacket callback can call Disconnect from inside
+        // this teardown. That reentrant call must be a harmless no-op — the outer call completes
+        // the teardown exactly once. Without this, the inner call reaches DestroyInternal and
+        // destroys the client allocator while the netcode client (allocated from it) still lives.
+        if ( m_disconnecting )
+            return;
+        m_disconnecting = true;
         // Record a deliberate local disconnect, but only if no more specific reason was already
         // recorded (connection error, netcode error state) — the first reason recorded wins.
         // Checked before BaseClient::Disconnect below, because that resets the client state.
@@ -174,6 +156,7 @@ namespace yojimbo
         DestroyClient();
         DestroyInternal();
         m_clientId = 0;
+        m_disconnecting = false;
     }
 
     void Client::SendPackets()
@@ -292,6 +275,11 @@ namespace yojimbo
 
     void Client::DisconnectLoopback()
     {
+        // Same stop-in-progress guard as Client::Disconnect: this is the same teardown shape,
+        // so a reentrant Disconnect/DisconnectLoopback from an adapter callback is a no-op.
+        if ( m_disconnecting )
+            return;
+        m_disconnecting = true;
         // Same recording rule as Client::Disconnect: a deliberate local disconnect, unless a more
         // specific reason was already recorded.
         if ( ( IsConnecting() || IsConnected() ) && GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE )
@@ -303,6 +291,7 @@ namespace yojimbo
         DestroyClient();
         DestroyInternal();
         m_clientId = 0;
+        m_disconnecting = false;
     }
 
     bool Client::IsLoopback() const
@@ -331,17 +320,18 @@ namespace yojimbo
         netcodeConfig.callback_context              = this;
         netcodeConfig.state_change_callback         = StaticStateChangeCallbackFunction;
         netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;
-        if ( GetAdapter().UseCustomPacketIO() )
+        const bool useCustomPacketIO = GetAdapter().UseCustomPacketIO();
+        if ( useCustomPacketIO )
         {
             netcodeConfig.override_send_and_receive = 1;
             netcodeConfig.send_packet_override = StaticSendPacketOverride;
             netcodeConfig.receive_packet_override = StaticReceivePacketOverride;
         }
         m_client = netcode_client_create(addressString, &netcodeConfig, GetTime());
-        
+
         if ( m_client )
         {
-            if ( !GetAdapter().UseCustomPacketIO() )
+            if ( !useCustomPacketIO )
                 m_boundAddress.SetPort( netcode_client_get_port( m_client ) );
         }
     }
@@ -351,8 +341,12 @@ namespace yojimbo
         if ( m_client )
         {
             m_boundAddress = m_address;
-            netcode_client_destroy( m_client );
+            // Clear the member before destroying, so an adapter that calls Disconnect from
+            // inside a teardown-time SendPacket callback can't re-enter here and destroy
+            // the same netcode client twice.
+            netcode_client_t * client = m_client;
             m_client = NULL;
+            netcode_client_destroy( client );
         }
     }
 
@@ -401,7 +395,7 @@ namespace yojimbo
     void Client::StaticSendPacketOverride( void * context, netcode_address_t * to, const uint8_t * packetData, int packetBytes )
     {
         Client * client = (Client*) context;
-        const Address address = ClientAddressFromNetcode( *to );
+        const Address address = AddressFromNetcode( *to );
         if ( address.IsValid() )
             client->GetAdapter().SendPacket( address, packetData, packetBytes );
     }
@@ -411,7 +405,7 @@ namespace yojimbo
         Client * client = (Client*) context;
         Address address;
         const int packetBytes = client->GetAdapter().ReceivePacket( address, packetData, maxPacketBytes );
-        if ( packetBytes <= 0 || packetBytes > maxPacketBytes || !ClientAddressToNetcode( address, *from ) )
+        if ( packetBytes <= 0 || packetBytes > maxPacketBytes || !AddressToNetcode( address, *from ) )
             return 0;
         return packetBytes;
     }
