@@ -235,6 +235,9 @@ if(YOJIMBO_BUILD_TESTS)
         target_link_libraries(${app} PRIVATE yojimbo)
     endforeach()
 
+    add_executable(custom_packet_io_test custom_packet_io_test.cpp)
+    target_link_libraries(custom_packet_io_test PRIVATE yojimbo)
+
     # serialize is header-only; its self-tests are gated on this and called from test.cpp.
     target_compile_definitions(test PRIVATE SERIALIZE_ENABLE_TESTS=1)
 

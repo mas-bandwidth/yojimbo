@@ -29,6 +29,8 @@
 
 namespace yojimbo
 {
+    class Address;
+
     /**
         Specifies the message factory and callbacks for clients and servers.
         An instance of this class is passed into the client and server constructors.
@@ -66,6 +68,45 @@ namespace yojimbo
             (void) allocator;
             yojimbo_assert( false );
             return NULL;
+        }
+
+        /**
+            Override to route netcode.io packets through a custom datagram transport.
+            The result must remain stable for the lifetime of the client or server.
+            The default is false and preserves yojimbo's native UDP sockets.
+         */
+
+        virtual bool UseCustomPacketIO() const
+        {
+            return false;
+        }
+
+        /**
+            Send one complete netcode.io datagram through the custom transport.
+            Called only when UseCustomPacketIO returns true.
+         */
+
+        virtual void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes )
+        {
+            (void) to;
+            (void) packetData;
+            (void) packetBytes;
+            yojimbo_assert( false );
+        }
+
+        /**
+            Receive one complete netcode.io datagram from the custom transport.
+            Set from to the stable transport-visible source address and return the byte count.
+            Return zero when no packet is available.
+         */
+
+        virtual int ReceivePacket( Address & from, uint8_t * packetData, int maxPacketBytes )
+        {
+            (void) from;
+            (void) packetData;
+            (void) maxPacketBytes;
+            yojimbo_assert( false );
+            return 0;
         }
 
         /**

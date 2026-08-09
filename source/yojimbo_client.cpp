@@ -8,6 +8,34 @@
 
 namespace yojimbo
 {
+    static Address ClientAddressFromNetcode( const netcode_address_t & address )
+    {
+        if ( address.type == NETCODE_ADDRESS_IPV4 )
+            return Address( address.data.ipv4, address.port );
+        if ( address.type == NETCODE_ADDRESS_IPV6 )
+            return Address( address.data.ipv6, address.port );
+        return Address();
+    }
+
+    static bool ClientAddressToNetcode( const Address & address, netcode_address_t & result )
+    {
+        memset( &result, 0, sizeof( result ) );
+        result.port = address.GetPort();
+        if ( address.GetType() == ADDRESS_IPV4 )
+        {
+            result.type = NETCODE_ADDRESS_IPV4;
+            memcpy( result.data.ipv4, address.GetAddress4(), sizeof( result.data.ipv4 ) );
+            return true;
+        }
+        if ( address.GetType() == ADDRESS_IPV6 )
+        {
+            result.type = NETCODE_ADDRESS_IPV6;
+            memcpy( result.data.ipv6, address.GetAddress6(), sizeof( result.data.ipv6 ) );
+            return true;
+        }
+        return false;
+    }
+
     // Map a netcode client error state to the disconnect reason we record for this client.
     // This is where "server is full" vs "update your client" vs "network problem" comes from.
     static int ClientDisconnectReasonForNetcodeState( int netcodeState )
@@ -303,11 +331,18 @@ namespace yojimbo
         netcodeConfig.callback_context              = this;
         netcodeConfig.state_change_callback         = StaticStateChangeCallbackFunction;
         netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;
+        if ( GetAdapter().UseCustomPacketIO() )
+        {
+            netcodeConfig.override_send_and_receive = 1;
+            netcodeConfig.send_packet_override = StaticSendPacketOverride;
+            netcodeConfig.receive_packet_override = StaticReceivePacketOverride;
+        }
         m_client = netcode_client_create(addressString, &netcodeConfig, GetTime());
         
         if ( m_client )
         {
-            m_boundAddress.SetPort( netcode_client_get_port( m_client ) );
+            if ( !GetAdapter().UseCustomPacketIO() )
+                m_boundAddress.SetPort( netcode_client_get_port( m_client ) );
         }
     }
 
@@ -361,5 +396,23 @@ namespace yojimbo
     {
         Client * client = (Client*) context;
         client->SendLoopbackPacketCallbackFunction( clientIndex, packetData, packetBytes, packetSequence );
+    }
+
+    void Client::StaticSendPacketOverride( void * context, netcode_address_t * to, const uint8_t * packetData, int packetBytes )
+    {
+        Client * client = (Client*) context;
+        const Address address = ClientAddressFromNetcode( *to );
+        if ( address.IsValid() )
+            client->GetAdapter().SendPacket( address, packetData, packetBytes );
+    }
+
+    int Client::StaticReceivePacketOverride( void * context, netcode_address_t * from, uint8_t * packetData, int maxPacketBytes )
+    {
+        Client * client = (Client*) context;
+        Address address;
+        const int packetBytes = client->GetAdapter().ReceivePacket( address, packetData, maxPacketBytes );
+        if ( packetBytes <= 0 || packetBytes > maxPacketBytes || !ClientAddressToNetcode( address, *from ) )
+            return 0;
+        return packetBytes;
     }
 }

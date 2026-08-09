@@ -31,6 +31,34 @@
 
 namespace yojimbo
 {
+    static Address ServerAddressFromNetcode( const netcode_address_t & address )
+    {
+        if ( address.type == NETCODE_ADDRESS_IPV4 )
+            return Address( address.data.ipv4, address.port );
+        if ( address.type == NETCODE_ADDRESS_IPV6 )
+            return Address( address.data.ipv6, address.port );
+        return Address();
+    }
+
+    static bool ServerAddressToNetcode( const Address & address, netcode_address_t & result )
+    {
+        memset( &result, 0, sizeof( result ) );
+        result.port = address.GetPort();
+        if ( address.GetType() == ADDRESS_IPV4 )
+        {
+            result.type = NETCODE_ADDRESS_IPV4;
+            memcpy( result.data.ipv4, address.GetAddress4(), sizeof( result.data.ipv4 ) );
+            return true;
+        }
+        if ( address.GetType() == ADDRESS_IPV6 )
+        {
+            result.type = NETCODE_ADDRESS_IPV6;
+            memcpy( result.data.ipv6, address.GetAddress6(), sizeof( result.data.ipv6 ) );
+            return true;
+        }
+        return false;
+    }
+
     Server::Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time )
         : BaseServer( allocator, config, adapter, time )
     {
@@ -67,6 +95,12 @@ namespace yojimbo
         netcodeConfig.callback_context = this;
         netcodeConfig.connect_disconnect_callback = StaticConnectDisconnectCallbackFunction;
         netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;
+        if ( GetAdapter().UseCustomPacketIO() )
+        {
+            netcodeConfig.override_send_and_receive = 1;
+            netcodeConfig.send_packet_override = StaticSendPacketOverride;
+            netcodeConfig.receive_packet_override = StaticReceivePacketOverride;
+        }
 
         m_server = netcode_server_create(addressString, &netcodeConfig, GetTime());
 
@@ -78,7 +112,8 @@ namespace yojimbo
 
         netcode_server_start( m_server, maxClients );
 
-        m_boundAddress.SetPort( netcode_server_get_port( m_server ) );
+        if ( !GetAdapter().UseCustomPacketIO() )
+            m_boundAddress.SetPort( netcode_server_get_port( m_server ) );
     }
 
     void Server::Stop()
@@ -315,5 +350,23 @@ namespace yojimbo
     {
         Server * server = (Server*) context;
         server->SendLoopbackPacketCallbackFunction( clientIndex, packetData, packetBytes, packetSequence );
+    }
+
+    void Server::StaticSendPacketOverride( void * context, netcode_address_t * to, const uint8_t * packetData, int packetBytes )
+    {
+        Server * server = (Server*) context;
+        const Address address = ServerAddressFromNetcode( *to );
+        if ( address.IsValid() )
+            server->GetAdapter().SendPacket( address, packetData, packetBytes );
+    }
+
+    int Server::StaticReceivePacketOverride( void * context, netcode_address_t * from, uint8_t * packetData, int maxPacketBytes )
+    {
+        Server * server = (Server*) context;
+        Address address;
+        const int packetBytes = server->GetAdapter().ReceivePacket( address, packetData, maxPacketBytes );
+        if ( packetBytes <= 0 || packetBytes > maxPacketBytes || !ServerAddressToNetcode( address, *from ) )
+            return 0;
+        return packetBytes;
     }
 }
