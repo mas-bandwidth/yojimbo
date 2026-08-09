@@ -182,6 +182,7 @@ namespace yojimbo
         Address m_address;                              ///< Original address passed to ctor.
         Address m_boundAddress;                         ///< Address after socket bind, eg. with valid port. Custom packet I/O: stays the ctor-supplied synthetic address (no socket bind).
         uint64_t m_clientId;                            ///< The globally unique client id (set on each call to connect)
+        bool m_disconnecting;                           ///< True while Disconnect tears the client down. Makes a reentrant Disconnect from an adapter callback during teardown a harmless no-op.
     };
 }
 

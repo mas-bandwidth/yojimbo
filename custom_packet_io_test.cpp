@@ -96,6 +96,51 @@ private:
     int m_receivedPackets;
 };
 
+/**
+    Hostile adapter for the teardown-reentrancy regression: once armed, every teardown-time
+    SendPacket re-enters the owning object's own Disconnect/Stop from inside the callback.
+    The stop-in-progress guards in Client::Disconnect and Server::Stop must make those
+    reentrant calls harmless no-ops — without them the inner call tears down the allocator
+    the live netcode object was allocated from (leak assert in debug, use-after-free beyond).
+ */
+
+class ReentrantTeardownAdapter : public MemoryPacketAdapter
+{
+public:
+    explicit ReentrantTeardownAdapter( const Address & localAddress )
+        : MemoryPacketAdapter( localAddress ), m_client( NULL ), m_server( NULL ), m_teardown( false ), m_reentrantCalls( 0 )
+    {
+    }
+
+    void BeginHostileTeardown( Client * client, Server * server )
+    {
+        m_client = client;
+        m_server = server;
+        m_teardown = true;
+    }
+
+    void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE
+    {
+        if ( m_teardown )
+        {
+            ++m_reentrantCalls;
+            if ( m_client )
+                m_client->Disconnect();
+            if ( m_server )
+                m_server->Stop();
+        }
+        MemoryPacketAdapter::SendPacket( to, packetData, packetBytes );
+    }
+
+    int ReentrantCalls() const { return m_reentrantCalls; }
+
+private:
+    Client * m_client;
+    Server * m_server;
+    bool m_teardown;
+    int m_reentrantCalls;
+};
+
 static bool Require( bool condition, const char * message )
 {
     if ( condition )
@@ -192,11 +237,104 @@ int main()
         client.Disconnect();
         server.Stop();
     }
+
+    // Scenario 2: hostile reentrant teardown. Connect and exchange messages as above, then tear
+    // down with adapters that call the owning object's Disconnect/Stop from inside its own
+    // teardown-time SendPacket callback. The test completing cleanly (no assert, no crash, no
+    // leak) is the proof that teardown is reentrancy-safe.
+    {
+        const Address clientAddress( "203.0.113.2", 41230 );
+        const Address serverAddress( "203.0.113.1", 41230 );
+        ReentrantTeardownAdapter clientAdapter( clientAddress );
+        ReentrantTeardownAdapter serverAdapter( serverAddress );
+        clientAdapter.Connect( serverAdapter );
+        serverAdapter.Connect( clientAdapter );
+
+        ClientServerConfig config;
+        config.numChannels = 2;
+        config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+        config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+        uint8_t privateKey[KeyBytes];
+        memset( privateKey, 0, sizeof( privateKey ) );
+        double time = 100.0;
+
+        Server server( GetDefaultAllocator(), privateKey, serverAddress, config, serverAdapter, time );
+        server.Start( 1 );
+        Client client( GetDefaultAllocator(), clientAddress, config, clientAdapter, time );
+        client.InsecureConnect( privateKey, 1, serverAddress );
+
+        for ( int i = 0; i < 256 && !client.IsConnected(); ++i )
+        {
+            client.SendPackets();
+            server.SendPackets();
+            client.ReceivePackets();
+            server.ReceivePackets();
+            time += 0.1;
+            client.AdvanceTime( time );
+            server.AdvanceTime( time );
+        }
+
+        ok &= Require( client.IsConnected(), "client did not connect before the hostile teardown" );
+        ok &= Require( server.GetNumConnectedClients() == 1, "server did not admit the client before the hostile teardown" );
+
+        TestMessage * toServer = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
+        TestMessage * toClient = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+        ok &= Require( toServer != NULL && toClient != NULL, "could not allocate hostile-teardown test messages" );
+        if ( toServer && toClient )
+        {
+            toServer->sequence = 33;
+            toClient->sequence = 44;
+            client.SendMessage( 0, toServer );
+            server.SendMessage( 0, 1, toClient );
+
+            Message * fromClient = NULL;
+            Message * fromServer = NULL;
+            for ( int i = 0; i < 256 && ( !fromClient || !fromServer ); ++i )
+            {
+                client.SendPackets();
+                server.SendPackets();
+                client.ReceivePackets();
+                server.ReceivePackets();
+                if ( !fromClient )
+                    fromClient = server.ReceiveMessage( 0, 0 );
+                if ( !fromServer )
+                    fromServer = client.ReceiveMessage( 1 );
+                time += 0.1;
+                client.AdvanceTime( time );
+                server.AdvanceTime( time );
+            }
+
+            ok &= Require( fromClient && fromServer, "messages did not cross before the hostile teardown" );
+            if ( fromClient )
+                server.ReleaseMessage( 0, fromClient );
+            if ( fromServer )
+                client.ReleaseMessage( fromServer );
+        }
+
+        // Arm the adapters, then tear down. Stop the server first, while the client is still
+        // connected, so netcode_server_stop actually sends disconnect packets (the reentrancy
+        // window). The client has not processed those packets, so its own disconnect also
+        // sends packets and re-enters on the client side.
+        serverAdapter.BeginHostileTeardown( NULL, &server );
+        clientAdapter.BeginHostileTeardown( &client, NULL );
+        server.Stop();
+        client.Disconnect();
+
+        // Prove the hostile path actually ran — a teardown that never fired SendPacket would
+        // pass without testing anything.
+        ok &= Require( serverAdapter.ReentrantCalls() > 0, "server teardown did not exercise the reentrant Stop path" );
+        ok &= Require( clientAdapter.ReentrantCalls() > 0, "client teardown did not exercise the reentrant Disconnect path" );
+
+        // Teardown completed and the guards cleared: calling again must still be a safe no-op.
+        server.Stop();
+        client.Disconnect();
+    }
     ShutdownYojimbo();
 
     if ( !ok )
         return 1;
 
-    printf( "OK: custom packet I/O handshake passed without native sockets\n" );
+    printf( "OK: custom packet I/O handshake and hostile reentrant teardown passed without native sockets\n" );
     return 0;
 }

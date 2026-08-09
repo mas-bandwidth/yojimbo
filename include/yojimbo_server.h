@@ -161,6 +161,7 @@ namespace yojimbo
         Address m_address;                                  // original address passed to ctor
         Address m_boundAddress;                             // address after socket bind, eg. valid port. custom packet I/O: stays the ctor-supplied synthetic address (no socket bind)
         uint8_t m_privateKey[KeyBytes];
+        bool m_stopping;                                    // true while Stop tears the server down. makes a reentrant Stop from an adapter callback during teardown a harmless no-op
     };
 }
 

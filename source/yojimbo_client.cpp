@@ -31,6 +31,7 @@ namespace yojimbo
         m_clientId = 0;
         m_client = NULL;
         m_boundAddress = m_address;
+        m_disconnecting = false;
     }
 
     Client::~Client()
@@ -136,6 +137,14 @@ namespace yojimbo
 
     void Client::Disconnect()
     {
+        // Stop-in-progress guard: netcode_client_destroy (inside DestroyClient below) sends
+        // disconnect packets, so an adapter SendPacket callback can call Disconnect from inside
+        // this teardown. That reentrant call must be a harmless no-op — the outer call completes
+        // the teardown exactly once. Without this, the inner call reaches DestroyInternal and
+        // destroys the client allocator while the netcode client (allocated from it) still lives.
+        if ( m_disconnecting )
+            return;
+        m_disconnecting = true;
         // Record a deliberate local disconnect, but only if no more specific reason was already
         // recorded (connection error, netcode error state) — the first reason recorded wins.
         // Checked before BaseClient::Disconnect below, because that resets the client state.
@@ -147,6 +156,7 @@ namespace yojimbo
         DestroyClient();
         DestroyInternal();
         m_clientId = 0;
+        m_disconnecting = false;
     }
 
     void Client::SendPackets()
@@ -265,6 +275,11 @@ namespace yojimbo
 
     void Client::DisconnectLoopback()
     {
+        // Same stop-in-progress guard as Client::Disconnect: this is the same teardown shape,
+        // so a reentrant Disconnect/DisconnectLoopback from an adapter callback is a no-op.
+        if ( m_disconnecting )
+            return;
+        m_disconnecting = true;
         // Same recording rule as Client::Disconnect: a deliberate local disconnect, unless a more
         // specific reason was already recorded.
         if ( ( IsConnecting() || IsConnected() ) && GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE )
@@ -276,6 +291,7 @@ namespace yojimbo
         DestroyClient();
         DestroyInternal();
         m_clientId = 0;
+        m_disconnecting = false;
     }
 
     bool Client::IsLoopback() const

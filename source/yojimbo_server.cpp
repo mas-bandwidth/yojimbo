@@ -41,6 +41,7 @@ namespace yojimbo
         m_boundAddress = address;
         m_config = config;
         m_server = NULL;
+        m_stopping = false;
     }
 
     Server::~Server()
@@ -92,6 +93,14 @@ namespace yojimbo
 
     void Server::Stop()
     {
+        // Stop-in-progress guard: netcode_server_stop below sends disconnect packets and fires
+        // OnServerClientDisconnected, so an adapter callback can call Stop from inside this
+        // teardown. That reentrant call must be a harmless no-op — the outer call completes the
+        // teardown exactly once. Without this, the inner call reaches BaseServer::Stop and
+        // destroys the global allocator while the netcode server (allocated from it) still lives.
+        if ( m_stopping )
+            return;
+        m_stopping = true;
         if ( m_server )
         {
             m_boundAddress = m_address;
@@ -105,6 +114,7 @@ namespace yojimbo
             netcode_server_destroy( server );
         }
         BaseServer::Stop();
+        m_stopping = false;
     }
 
     void Server::DisconnectClient( int clientIndex )
