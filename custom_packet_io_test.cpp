@@ -23,7 +23,6 @@
 */
 
 #include "yojimbo.h"
-#include "netcode.h"
 #include "shared.h"
 
 #include <deque>
@@ -36,7 +35,7 @@ struct MemoryPacket
 {
     Address from;
     int bytes;
-    uint8_t data[NETCODE_MAX_PACKET_SIZE];
+    uint8_t data[MaxAdapterPacketBytes];
 };
 
 class MemoryPacketAdapter : public TestAdapter
@@ -52,14 +51,14 @@ public:
         m_peer = &peer;
     }
 
-    bool UseCustomPacketIO() const
+    bool UseCustomPacketIO() const YOJIMBO_OVERRIDE
     {
         return true;
     }
 
-    void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes )
+    void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE
     {
-        if ( !m_peer || to != m_peer->m_localAddress || packetBytes <= 0 || packetBytes > NETCODE_MAX_PACKET_SIZE )
+        if ( !m_peer || to != m_peer->m_localAddress || packetBytes <= 0 || packetBytes > MaxAdapterPacketBytes )
             return;
 
         MemoryPacket packet;
@@ -70,7 +69,7 @@ public:
         ++m_sentPackets;
     }
 
-    int ReceivePacket( Address & from, uint8_t * packetData, int maxPacketBytes )
+    int ReceivePacket( Address & from, uint8_t * packetData, int maxPacketBytes ) YOJIMBO_OVERRIDE
     {
         if ( m_packets.empty() )
             return 0;

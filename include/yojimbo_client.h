@@ -141,6 +141,12 @@ namespace yojimbo
 
         void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 
+        /**
+            Gets the local address the client socket is bound to (with the actual port, when port 0 was passed in).
+            Under custom packet I/O (Adapter::UseCustomPacketIO) there is no socket: this is the
+            constructor-supplied synthetic address, unchanged.
+         */
+
         const Address & GetAddress() const { return m_boundAddress; }
 
     private:
@@ -174,7 +180,7 @@ namespace yojimbo
         ClientServerConfig m_config;                    ///< Client/server configuration.
         netcode_client_t * m_client;                    ///< netcode client data.
         Address m_address;                              ///< Original address passed to ctor.
-        Address m_boundAddress;                         ///< Address after socket bind, eg. with valid port
+        Address m_boundAddress;                         ///< Address after socket bind, eg. with valid port. Custom packet I/O: stays the ctor-supplied synthetic address (no socket bind).
         uint64_t m_clientId;                            ///< The globally unique client id (set on each call to connect)
     };
 }

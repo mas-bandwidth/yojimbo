@@ -28,11 +28,13 @@ jobs:
           cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
           cmake --build build-debug -j
           ./bin/test
+          ./bin/custom_packet_io_test
       - name: Build & test (release)
         run: |
           cmake -B build-release -DCMAKE_BUILD_TYPE=Release
           cmake --build build-release -j
           ./bin/test
+          ./bin/custom_packet_io_test
 
   windows:
     name: build & test (windows MSVC x64, ${{ matrix.config }})
@@ -54,6 +56,11 @@ jobs:
         run: |
           $exe = Get-ChildItem -Recurse -Filter test.exe | Select-Object -First 1
           if (-not $exe) { Write-Error "test.exe not found"; exit 1 }
+          Write-Host "Running $($exe.FullName)"
+          & $exe.FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $exe = Get-ChildItem -Recurse -Filter custom_packet_io_test.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error "custom_packet_io_test.exe not found"; exit 1 }
           Write-Host "Running $($exe.FullName)"
           & $exe.FullName
           exit $LASTEXITCODE
