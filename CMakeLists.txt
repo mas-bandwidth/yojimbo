@@ -167,6 +167,38 @@ if(NOT YOJIMBO_SYSTEM_TLSF)
     set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
+# --- strict floating point ------------------------------------------------------------------
+
+# yojimbo's wire arithmetic lives in serialize.h, and serialize's compressed float quantizes
+# with two DISTINCT roundings on write and on read -- the product must round to float32 before
+# the constant is added. A compiler permitted to contract fuses those into a single FMA and
+# rounds once, which moves the encoded integer and the decoded float by one ulp. That is a
+# change to yojimbo's traffic, not a test-suite detail.
+#
+# It is architecture-dependent, which is why it stayed hidden: FMA is in the aarch64 baseline
+# and absent from the x86-64 one, so the same source and the same flags emit a fused multiply
+# add on arm64 and none on amd64. Debian package builds were green on every amd64 leg and red
+# on every arm64 leg (mas-bandwidth/yojimbo#332) -- and the green legs were green because of an
+# instruction set rather than because the build was right.
+#
+# So every target here that compiles serialize.h builds strict, exactly as serialize's own
+# CMakeLists.txt does for its executables:
+#   - GCC/Clang: -ffp-contract=off. Not merely "no -ffast-math" -- GCC's default is
+#     -ffp-contract=fast, which contracts ACROSS statements, and clang's default =on still
+#     fuses within a single expression.
+#   - MSVC: /fp:precise, which since VS 2022 does not imply contraction.
+#
+# This is Glenn's standing estate policy (2026-08-24): "generally speaking, network libraries
+# we work on require -ffp-contract=off". The flag is the floor. It is PRIVATE so nothing leaks
+# into consumers' own flags; consumers that compile serialize.h themselves need it too, and
+# BUILDING.md states that as a requirement.
+
+if(MSVC)
+    set(YOJIMBO_STRICT_FP_FLAGS /fp:precise)
+else()
+    set(YOJIMBO_STRICT_FP_FLAGS -ffp-contract=off)
+endif()
+
 # --- yojimbo library ----------------------------------------------------------------------
 
 # Static by default; -DBUILD_SHARED_LIBS=ON builds it shared (the built-in objects are
@@ -186,6 +218,7 @@ else()
     add_library(yojimbo ${YOJIMBO_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/tlsf/tlsf.c")
 endif()
 target_include_directories(yojimbo PUBLIC ${YOJIMBO_INCLUDE_DIRS})
+target_compile_options(yojimbo PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
 set_target_properties(yojimbo PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR})
@@ -233,10 +266,12 @@ if(YOJIMBO_BUILD_TESTS)
     foreach(app client server loopback soak test)
         add_executable(${app} ${app}.cpp)
         target_link_libraries(${app} PRIVATE yojimbo)
+        target_compile_options(${app} PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
     endforeach()
 
     add_executable(custom_packet_io_test custom_packet_io_test.cpp)
     target_link_libraries(custom_packet_io_test PRIVATE yojimbo)
+    target_compile_options(custom_packet_io_test PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
 
     # serialize is header-only; its self-tests are gated on this and called from test.cpp.
     target_compile_definitions(test PRIVATE SERIALIZE_ENABLE_TESTS=1)
