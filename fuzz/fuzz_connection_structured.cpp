@@ -77,7 +77,12 @@ static bool fill_message( Message * message, int type, Reader & r, ConnectionCon
             int n = r.u8() % FuzzMaxString;       // leave room for the terminator
             for ( int i = 0; i < n; ++i )
             {
-                uint8_t c = r.u8();
+                // masked to ASCII: the string payload is well-formed UTF-8 by the writer's
+                // contract (serialize debug-asserts it, and asserts are live in this
+                // harness), so this write-path target must generate conforming content —
+                // exactly as serialize's own fuzzer does. Arbitrary bytes still reach the
+                // reader's malformed-string refusal path via fuzz_connection's raw packets.
+                uint8_t c = r.u8() & 0x7F;
                 m->str[i] = (char) ( c ? c : ' ' );   // no embedded NUL
             }
             m->str[n] = '\0';
