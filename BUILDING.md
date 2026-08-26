@@ -27,23 +27,20 @@ The default is a debug build. For an optimized build, pass the build type:
 
 yojimbo's wire arithmetic lives in `serialize.h`, whose compressed float quantizes with two
 distinct roundings on write and on read: the product must round to float32 *before* the
-constant is added. A compiler allowed to contract fuses the multiply and the add into a
-single FMA and rounds once, which shifts the encoded integer and the decoded float by one
-ulp — a change to what goes on the wire.
+constant is added. The vendored serialize pins those roundings in-source with an
+optimization barrier, so the compressed-float wire bytes are identical under every
+`-ffp-contract` setting. Two rules remain:
 
-This build sets the right flag on every target it compiles, so nothing is required of you to
-build yojimbo itself:
+  - `-ffast-math` (and `-Ofast`) are not supported: they license reciprocal approximation
+    and reassociation, which change the wire in ways no barrier can pin.
+  - `-ffp-contract=off` (MSVC: `/fp:precise`) is the standing policy for the network
+    libraries serialize ships in — belt and braces on top of the in-source barrier, and
+    the certification setting for golden vectors.
 
-  - GCC/Clang: `-ffp-contract=off`. Not merely the absence of `-ffast-math` — GCC's default
-    is `-ffp-contract=fast`, which contracts across statement boundaries, and clang's default
-    `=on` still fuses within a single expression.
-  - MSVC: `/fp:precise`.
-
-**If you compile `serialize.h` in your own translation units, set the same flag there.** The
-flag is `PRIVATE` to yojimbo's targets and deliberately does not leak into your build, so
-this one is yours to set. It is easy to miss because the symptom is architecture-dependent:
-FMA is in the aarch64 baseline and absent from the x86-64 one, so an unflagged build is
-typically wrong on arm64 and accidentally right on amd64.
+This build sets the policy flag on every target it compiles, so nothing is required of you
+to build yojimbo itself. **If you compile `serialize.h` in your own translation units, set
+the same flag there** — the flag is `PRIVATE` to yojimbo's targets and deliberately does
+not leak into your build, so this one is yours to set.
 
 ## Building on Windows
 
