@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/mas-bandwidth/yojimbo/actions/workflows/ci.yml/badge.svg)](https://github.com/mas-bandwidth/yojimbo/actions/workflows/ci.yml)
 
+If this library helps you, please support it: **[Become a supporter](https://www.patreon.com/MasBandwidth/membership)**
+
 **yojimbo** is a network library for client/server games written in C++.
 
 It's designed around the networking requirements of competitive multiplayer games like first person shooters. 
@@ -46,7 +48,7 @@ The author of this library is [Glenn Fiedler](https://www.linkedin.com/in/glenn-
 
 Yojimbo is built on top of other open source libraries by the same author: [netcode](https://github.com/mas-bandwidth/netcode), [reliable](https://github.com/mas-bandwidth/reliable), and [serialize](https://github.com/mas-bandwidth/serialize)
 
-If you find this software useful, please consider [sponsoring it](https://github.com/sponsors/mas-bandwidth). Thanks!
+If you find this software useful, please consider [becoming a supporter](https://www.patreon.com/MasBandwidth/membership). Thanks!
 
 ## Contributing
 
