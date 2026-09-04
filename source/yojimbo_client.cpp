@@ -40,25 +40,32 @@ namespace yojimbo
         yojimbo_assert( m_client == NULL );
     }
 
-    void Client::InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address )
+    bool Client::InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address )
     {
-        InsecureConnect( privateKey, clientId, &address, 1 );
+        return InsecureConnect( privateKey, clientId, &address, 1 );
     }
 
-    void Client::InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses )
+    bool Client::InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses )
     {
         yojimbo_assert( serverAddresses );
         yojimbo_assert( numServerAddresses > 0 );
         yojimbo_assert( numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT );
         Disconnect();
-        CreateInternal();
+        if ( !CreateInternal() )
+        {
+            // Out of memory. CreateInternal already unwound everything it had allocated, so the
+            // client is exactly as it was before this call: disconnected and holding nothing.
+            SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY );
+            SetClientState( CLIENT_STATE_ERROR );
+            return false;
+        }
         SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );       // new connect attempt: clear the reason from any previous disconnect
         m_clientId = clientId;
         CreateClient( m_address );
         if ( !m_client )
         {
             Disconnect();
-            return;
+            return false;
         }
         uint8_t connectToken[NETCODE_CONNECT_TOKEN_BYTES];
         if ( !GenerateInsecureConnectToken( connectToken, privateKey, clientId, serverAddresses, numServerAddresses ) )
@@ -66,10 +73,11 @@ namespace yojimbo
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to generate insecure connect token\n" );
             SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_INVALID_CONNECT_TOKEN );
             SetClientState( CLIENT_STATE_ERROR );
-            return;
+            return false;
         }
         netcode_client_connect( m_client, connectToken );
         SetClientState( CLIENT_STATE_CONNECTING );
+        return true;
     }
 
     bool Client::GenerateInsecureConnectToken( uint8_t * connectToken, 
@@ -107,11 +115,16 @@ namespace yojimbo
                                                connectToken ) == NETCODE_OK;
     }
 
-    void Client::Connect( uint64_t clientId, uint8_t * connectToken )
+    bool Client::Connect( uint64_t clientId, uint8_t * connectToken )
     {
         yojimbo_assert( connectToken );
         Disconnect();
-        CreateInternal();
+        if ( !CreateInternal() )
+        {
+            SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY );
+            SetClientState( CLIENT_STATE_ERROR );
+            return false;
+        }
         SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );       // new connect attempt: clear the reason from any previous disconnect
         m_clientId = clientId;
         CreateClient( m_address );
@@ -120,19 +133,18 @@ namespace yojimbo
             // Socket creation/bind failed (e.g. port in use, invalid bind address). Bail before
             // calling into netcode, which dereferences the client pointer without checking.
             Disconnect();
-            return;
+            return false;
         }
         netcode_client_connect( m_client, connectToken );
         if ( netcode_client_state( m_client ) > NETCODE_CLIENT_STATE_DISCONNECTED )
         {
             SetClientState( CLIENT_STATE_CONNECTING );
+            return true;
         }
-        else
-        {
-            // The connect failed immediately, eg. an invalid connect token.
-            SetDisconnectReason( ClientDisconnectReasonForNetcodeState( netcode_client_state( m_client ) ) );
-            Disconnect();
-        }
+        // The connect failed immediately, eg. an invalid connect token.
+        SetDisconnectReason( ClientDisconnectReasonForNetcodeState( netcode_client_state( m_client ) ) );
+        Disconnect();
+        return false;
     }
 
     void Client::Disconnect()
@@ -256,10 +268,15 @@ namespace yojimbo
         return m_client ? netcode_client_index( m_client ) : -1;
     }
 
-    void Client::ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients )
+    bool Client::ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients )
     {
         Disconnect();
-        CreateInternal();
+        if ( !CreateInternal() )
+        {
+            SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY );
+            SetClientState( CLIENT_STATE_ERROR );
+            return false;
+        }
         SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );       // new connect attempt: clear the reason from any previous disconnect
         m_clientId = clientId;
         CreateClient( m_address );
@@ -267,10 +284,11 @@ namespace yojimbo
         {
             // Socket creation/bind failed. Bail before netcode dereferences the client pointer.
             Disconnect();
-            return;
+            return false;
         }
         netcode_client_connect_loopback( m_client, clientIndex, maxClients );
         SetClientState( CLIENT_STATE_CONNECTED );
+        return true;
     }
 
     void Client::DisconnectLoopback()

@@ -47,7 +47,14 @@ namespace yojimbo
 
         void SetContext( void * context );
 
-        void Start( int maxClients );
+        /**
+            Allocate the global and per-client memory the server needs to run.
+            Transactional: on the first allocation or adapter factory failure everything already
+            created is destroyed, the server is left stopped, and false is returned. Checked in
+            every build, not by an assert.
+         */
+
+        bool Start( int maxClients );
 
         void Stop();
 

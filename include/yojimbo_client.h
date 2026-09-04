@@ -115,11 +115,23 @@ namespace yojimbo
 
         ~Client();
 
-        void InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address );
+        /**
+            Connect to a server with a locally generated connect token.
+            @returns True if the connect attempt started. False if the client ran out of memory or could not generate the token, in which case nothing is allocated and the client is left disconnected or in the error state.
+         */
 
-        void InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
+        bool InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address );
 
-        void Connect( uint64_t clientId, uint8_t * connectToken );
+        /// @see Client::InsecureConnect
+
+        bool InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
+
+        /**
+            Connect to a server with a connect token from a matchmaker.
+            @returns True if the connect attempt started. False if the client ran out of memory, could not open its socket, or the token was rejected. In every false case nothing stays allocated.
+         */
+
+        bool Connect( uint64_t clientId, uint8_t * connectToken );
 
         void Disconnect();
 
@@ -133,7 +145,7 @@ namespace yojimbo
 
         uint64_t GetClientId() const { return m_clientId; }
 
-        void ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients );
+        bool ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients );
 
         void DisconnectLoopback();
 

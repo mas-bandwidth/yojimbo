@@ -45,8 +45,13 @@ namespace yojimbo
         m_context = context;
     }
 
-    void BaseServer::Start( int maxClients )
+    // Startup is transactional: every allocation and every adapter factory result is checked in
+    // every build (Debug and Release alike -- yojimbo_assert compiles out under NDEBUG, so an
+    // assert is not a check), and the first failure unwinds through Stop() and leaves the server
+    // stopped and holding nothing. The caller learns that from the return value.
+    bool BaseServer::Start( int maxClients )
     {
+        yojimbo_assert( maxClients > 0 );
         yojimbo_assert( maxClients <= MaxClients );
 
         m_config.Validate();
@@ -64,31 +69,61 @@ namespace yojimbo
         yojimbo_assert( !m_globalMemory );
         yojimbo_assert( !m_globalAllocator );
         m_globalMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverGlobalMemory );
+        if ( !m_globalMemory )
+        {
+            Stop();
+            return false;
+        }
 
         m_globalAllocator = m_adapter->CreateAllocator( *m_allocator, m_globalMemory, m_config.serverGlobalMemory );
-        yojimbo_assert( m_globalAllocator );
+        if ( !m_globalAllocator )
+        {
+            Stop();
+            return false;
+        }
 
         if ( m_config.networkSimulator )
         {
             m_networkSimulator = YOJIMBO_NEW( *m_globalAllocator, NetworkSimulator, *m_globalAllocator, m_config.maxSimulatorPackets, m_time );
+            if ( !m_networkSimulator )
+            {
+                Stop();
+                return false;
+            }
         }
 
         for ( int i = 0; i < m_maxClients; ++i )
         {
             yojimbo_assert( !m_clientMemory[i] );
             yojimbo_assert( !m_clientAllocator[i] );
-            
+
             m_clientMemory[i] = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.serverPerClientMemory );
-            yojimbo_assert( m_clientMemory[i] );            
+            if ( !m_clientMemory[i] )
+            {
+                Stop();
+                return false;
+            }
 
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
-            yojimbo_assert( m_clientAllocator[i] );
-            
+            if ( !m_clientAllocator[i] )
+            {
+                Stop();
+                return false;
+            }
+
             m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
-            yojimbo_assert( m_clientMessageFactory[i] );
-            
+            if ( !m_clientMessageFactory[i] )
+            {
+                Stop();
+                return false;
+            }
+
             m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config, m_time );
-            yojimbo_assert( m_clientConnection[i] );
+            if ( !m_clientConnection[i] )
+            {
+                Stop();
+                return false;
+            }
 
             reliable_config_t reliable_config;
             reliable_default_config( &reliable_config );
@@ -109,31 +144,46 @@ namespace yojimbo
             reliable_config.allocate_function = BaseServer::StaticAllocateFunction;
             reliable_config.free_function = BaseServer::StaticFreeFunction;
             m_clientEndpoint[i] = reliable_endpoint_create( &reliable_config, m_time );
+            if ( !m_clientEndpoint[i] )
+            {
+                Stop();
+                return false;
+            }
             reliable_endpoint_reset( m_clientEndpoint[i] );
         }
         m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( *m_globalAllocator, m_config.maxPacketSize );
+        if ( !m_packetBuffer )
+        {
+            Stop();
+            return false;
+        }
+        return true;
     }
 
+    // Safe to call on a partially started server: Start unwinds through it, so every slot is
+    // torn down by what it actually holds rather than by what a complete start would have held.
     void BaseServer::Stop()
     {
         if ( IsRunning() )
         {
-            YOJIMBO_FREE( *m_globalAllocator, m_packetBuffer );
-            yojimbo_assert( m_globalMemory );
-            yojimbo_assert( m_globalAllocator );
-            YOJIMBO_DELETE( *m_globalAllocator, NetworkSimulator, m_networkSimulator );
-            yojimbo_assert( m_maxClients > 0 );
-            yojimbo_assert( m_maxClients <= MaxClients );
-            for ( int i = 0; i < m_maxClients; ++i )
+            if ( m_globalAllocator )
             {
-                yojimbo_assert( m_clientMemory[i] );
-                yojimbo_assert( m_clientAllocator[i] );
-                yojimbo_assert( m_clientMessageFactory[i] );
-                yojimbo_assert( m_clientEndpoint[i] );
-                reliable_endpoint_destroy( m_clientEndpoint[i] ); m_clientEndpoint[i] = NULL;
-                YOJIMBO_DELETE( *m_clientAllocator[i], Connection, m_clientConnection[i] );
-                YOJIMBO_DELETE( *m_clientAllocator[i], MessageFactory, m_clientMessageFactory[i] );
-                YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
+                YOJIMBO_FREE( *m_globalAllocator, m_packetBuffer );
+                YOJIMBO_DELETE( *m_globalAllocator, NetworkSimulator, m_networkSimulator );
+            }
+            for ( int i = 0; i < MaxClients; ++i )
+            {
+                if ( m_clientEndpoint[i] )
+                {
+                    reliable_endpoint_destroy( m_clientEndpoint[i] );
+                    m_clientEndpoint[i] = NULL;
+                }
+                if ( m_clientAllocator[i] )
+                {
+                    YOJIMBO_DELETE( *m_clientAllocator[i], Connection, m_clientConnection[i] );
+                    YOJIMBO_DELETE( *m_clientAllocator[i], MessageFactory, m_clientMessageFactory[i] );
+                    YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator[i] );
+                }
                 YOJIMBO_FREE( *m_allocator, m_clientMemory[i] );
             }
             YOJIMBO_DELETE( *m_allocator, Allocator, m_globalAllocator );
@@ -147,6 +197,7 @@ namespace yojimbo
             m_clientConnection[i] = NULL;
             m_clientEndpoint[i] = NULL;
         }
+        m_networkSimulator = NULL;
         m_running = false;
         m_maxClients = 0;
         m_packetBuffer = NULL;

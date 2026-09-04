@@ -59,10 +59,11 @@ namespace yojimbo
             Start the server and allocate client slots.
             Each client that connects to this server occupies one of the client slots allocated by this function.
             @param maxClients The number of client slots to allocate. Must be in range [1,MaxClients]
+            @returns True if the server started. False if it ran out of memory or could not open its socket, in which case the server is left stopped and holding nothing.
             @see Server::Stop
          */
 
-        virtual void Start( int maxClients ) = 0;
+        virtual bool Start( int maxClients ) = 0;
 
         /**
             Stop the server and free client slots.

@@ -121,7 +121,15 @@ namespace yojimbo
 
         Adapter & GetAdapter() { yojimbo_assert( m_adapter ); return *m_adapter; }
 
-        void CreateInternal();
+        /**
+            Allocate everything the client needs to run.
+            Transactional: on the first allocation or adapter factory failure everything already
+            created is destroyed, the client is left as it was before the call, and false is
+            returned. Checked in every build, not by an assert.
+            @returns True if the client was created, false if it ran out of memory.
+         */
+
+        bool CreateInternal();
 
         void DestroyInternal();
 

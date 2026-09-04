@@ -98,7 +98,7 @@ namespace yojimbo
 
         ~Server();
 
-        void Start( int maxClients );
+        bool Start( int maxClients );
 
         void Stop();
 

@@ -231,9 +231,10 @@ namespace yojimbo
             @param clientIndex The index of the client.
             @param clientId The unique client id.
             @param maxClients The maximum number of clients supported by the server.
+            @returns True if the loopback connection was established. False if the client ran out of memory, in which case the client is left disconnected and nothing is allocated.
          */
 
-        virtual void ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients ) = 0;
+        virtual bool ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients ) = 0;
 
         /**
             Disconnect from server over loopback.

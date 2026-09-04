@@ -50,11 +50,12 @@ namespace yojimbo
         yojimbo_assert( !m_server );
     }
 
-    void Server::Start( int maxClients )
+    bool Server::Start( int maxClients )
     {
         yojimbo_assert( maxClients <= MaxClients );
 
-        BaseServer::Start( maxClients );
+        if ( !BaseServer::Start( maxClients ) )
+            return false;
 
         char addressString[MaxAddressLength];
         m_address.ToString( addressString, MaxAddressLength );
@@ -82,13 +83,15 @@ namespace yojimbo
         if ( !m_server )
         {
             Stop();
-            return;
+            return false;
         }
 
         netcode_server_start( m_server, maxClients );
 
         if ( !useCustomPacketIO )
             m_boundAddress.SetPort( netcode_server_get_port( m_server ) );
+
+        return true;
     }
 
     void Server::Stop()

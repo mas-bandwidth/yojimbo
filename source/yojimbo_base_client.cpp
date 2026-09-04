@@ -48,14 +48,14 @@ namespace yojimbo
         m_clientState = CLIENT_STATE_DISCONNECTED;
         m_clientIndex = -1;
         m_disconnectReason = YOJIMBO_CLIENT_DISCONNECT_REASON_NONE;
-        m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( allocator, config.maxPacketSize );
+        m_packetBuffer = NULL;
     }
 
     BaseClient::~BaseClient()
     {
         // IMPORTANT: Please disconnect the client before destroying it
         yojimbo_assert( m_clientState <= CLIENT_STATE_DISCONNECTED );
-        YOJIMBO_FREE( *m_allocator, m_packetBuffer );
+        yojimbo_assert( m_packetBuffer == NULL );
         m_allocator = NULL;
     }
 
@@ -172,7 +172,11 @@ namespace yojimbo
         m_clientState = clientState;
     }
 
-    void BaseClient::CreateInternal()
+    // Startup is transactional: every allocation and every adapter factory result is checked in
+    // every build (Debug and Release alike -- yojimbo_assert compiles out under NDEBUG, so an
+    // assert is not a check), and the first failure unwinds everything already created and leaves
+    // the client exactly as it was before the call. The caller learns that from the return value.
+    bool BaseClient::CreateInternal()
     {
         yojimbo_assert( m_allocator );
         yojimbo_assert( m_adapter );
@@ -182,16 +186,49 @@ namespace yojimbo
 
         m_config.Validate();
 
-        m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
-        m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
-        m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
-        m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, m_config, m_time );
+        m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.maxPacketSize );
+        if ( !m_packetBuffer )
+        {
+            DestroyInternal();
+            return false;
+        }
 
-        yojimbo_assert( m_connection );
+        m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
+        if ( !m_clientMemory )
+        {
+            DestroyInternal();
+            return false;
+        }
+
+        m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
+        if ( !m_clientAllocator )
+        {
+            DestroyInternal();
+            return false;
+        }
+
+        m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
+        if ( !m_messageFactory )
+        {
+            DestroyInternal();
+            return false;
+        }
+
+        m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, m_config, m_time );
+        if ( !m_connection )
+        {
+            DestroyInternal();
+            return false;
+        }
 
         if ( m_config.networkSimulator )
         {
             m_networkSimulator = YOJIMBO_NEW( *m_clientAllocator, NetworkSimulator, *m_clientAllocator, m_config.maxSimulatorPackets, m_time );
+            if ( !m_networkSimulator )
+            {
+                DestroyInternal();
+                return false;
+            }
         }
 
         reliable_config_t reliable_config;
@@ -213,23 +250,43 @@ namespace yojimbo
         reliable_config.free_function = BaseClient::StaticFreeFunction;
 
         m_endpoint = reliable_endpoint_create( &reliable_config, m_time );
+        if ( !m_endpoint )
+        {
+            DestroyInternal();
+            return false;
+        }
 
         reliable_endpoint_reset( m_endpoint );
+
+        return true;
     }
 
+    // Safe to call on a partially created client: CreateInternal unwinds through it, so every
+    // pointer is checked rather than assumed.
     void BaseClient::DestroyInternal()
     {
         yojimbo_assert( m_allocator );
         if ( m_endpoint )
         {
-            reliable_endpoint_destroy( m_endpoint ); 
+            reliable_endpoint_destroy( m_endpoint );
             m_endpoint = NULL;
         }
-        YOJIMBO_DELETE( *m_clientAllocator, NetworkSimulator, m_networkSimulator );
-        YOJIMBO_DELETE( *m_clientAllocator, Connection, m_connection );
-        YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
-        YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );
+        if ( m_clientAllocator )
+        {
+            YOJIMBO_DELETE( *m_clientAllocator, NetworkSimulator, m_networkSimulator );
+            YOJIMBO_DELETE( *m_clientAllocator, Connection, m_connection );
+            YOJIMBO_DELETE( *m_clientAllocator, MessageFactory, m_messageFactory );
+            YOJIMBO_DELETE( *m_allocator, Allocator, m_clientAllocator );
+        }
+        else
+        {
+            // Nothing was ever built inside the client allocator, so nothing can be outstanding.
+            m_networkSimulator = NULL;
+            m_connection = NULL;
+            m_messageFactory = NULL;
+        }
         YOJIMBO_FREE( *m_allocator, m_clientMemory );
+        YOJIMBO_FREE( *m_allocator, m_packetBuffer );
     }
 
     void BaseClient::StaticTransmitPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes )

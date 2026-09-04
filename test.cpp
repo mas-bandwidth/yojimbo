@@ -2005,6 +2005,199 @@ void test_connection_process_packet_channel_data_alloc_failure()
     check( receiverAlloc.GetOutstanding() == 0 );
 }
 
+// Adapter whose factory methods can be made to fail, so the startup paths are exercised at the
+// two points an ArmableAllocator cannot reach: a user allocator class that fails to construct,
+// and a message factory that fails to construct. Both return NULL from the adapter, which the
+// library must treat exactly like an allocation failure.
+class FailingFactoryAdapter : public TestAdapter
+{
+public:
+    FailingFactoryAdapter() : m_allocatorsUntilFail( -1 ), m_factoriesUntilFail( -1 ) {}
+
+    void FailAllocatorAfter( int n ) { m_allocatorsUntilFail = n; }
+    void FailMessageFactoryAfter( int n ) { m_factoriesUntilFail = n; }
+
+    Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
+    {
+        if ( m_allocatorsUntilFail == 0 )
+            return NULL;
+        if ( m_allocatorsUntilFail > 0 )
+            m_allocatorsUntilFail--;
+        return TestAdapter::CreateAllocator( allocator, memory, bytes );
+    }
+
+    MessageFactory * CreateMessageFactory( Allocator & allocator )
+    {
+        if ( m_factoriesUntilFail == 0 )
+            return NULL;
+        if ( m_factoriesUntilFail > 0 )
+            m_factoriesUntilFail--;
+        return TestAdapter::CreateMessageFactory( allocator );
+    }
+
+private:
+    int m_allocatorsUntilFail;
+    int m_factoriesUntilFail;
+};
+
+// The number of startup allocations a sweep is allowed to walk before we call it a runaway. Well
+// above the real counts (6 for a two-client server, 3 for a client) so the sweep terminates on a
+// bug instead of looping forever.
+static const int MaxStartupAllocations = 64;
+
+void test_server_start_alloc_failure()
+{
+    // YJ-01: BaseServer::Start guarded its allocations with yojimbo_assert, which compiles out
+    // under NDEBUG, so a release build bound references to failed allocations and ran on with a
+    // half-built server. Fail at allocation N for every N up to the first N that succeeds: each
+    // failure must return false, leave the server stopped, and free everything already taken.
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    int n = 0;
+    for ( ; n < MaxStartupAllocations; ++n )
+    {
+        ArmableAllocator allocator;
+        {
+            Server server( allocator, privateKey, serverAddress, config, adapter, 100.0 );
+            allocator.Arm( n );
+            const bool started = server.Start( 2 );
+            allocator.Disarm();
+            if ( started )
+            {
+                check( server.IsRunning() );
+                server.Stop();
+                check( !server.IsRunning() );
+                break;
+            }
+            check( !server.IsRunning() );           // no half-built server left behind
+            check( server.GetMaxClients() == 0 );
+        }
+        check( allocator.GetOutstanding() == 0 );   // everything already allocated was unwound
+    }
+    check( n > 0 );                                 // the sweep really did force failures
+    check( n < MaxStartupAllocations );             // ...and a fully armed start eventually succeeds
+}
+
+void test_server_start_factory_failure()
+{
+    // Same contract for the adapter factory results, which no allocator arming can reach: a user
+    // allocator or message factory that fails to construct returns NULL and must be handled like
+    // an allocation failure rather than dereferenced.
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    // allocator index 0 is the global allocator, 1 and 2 are the two per-client allocators
+    for ( int n = 0; n < 3; ++n )
+    {
+        ArmableAllocator allocator;
+        {
+            FailingFactoryAdapter failingAdapter;
+            failingAdapter.FailAllocatorAfter( n );
+            Server server( allocator, privateKey, serverAddress, config, failingAdapter, 100.0 );
+            check( !server.Start( 2 ) );
+            check( !server.IsRunning() );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    for ( int n = 0; n < 2; ++n )
+    {
+        ArmableAllocator allocator;
+        {
+            FailingFactoryAdapter failingAdapter;
+            failingAdapter.FailMessageFactoryAfter( n );
+            Server server( allocator, privateKey, serverAddress, config, failingAdapter, 100.0 );
+            check( !server.Start( 2 ) );
+            check( !server.IsRunning() );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
+void test_client_connect_alloc_failure()
+{
+    // YJ-01 on the client side: BaseClient::CreateInternal bound a reference to *m_clientAllocator
+    // one line after allocating it, with no check in any build. Same sweep: every failure point
+    // returns false, leaves the client disconnected with an out-of-memory reason, and leaks
+    // nothing.
+    Address clientAddress( "0.0.0.0", 0 );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    int n = 0;
+    for ( ; n < MaxStartupAllocations; ++n )
+    {
+        ArmableAllocator allocator;
+        {
+            Client client( allocator, clientAddress, config, adapter, 100.0 );
+            allocator.Arm( n );
+            const bool connecting = client.InsecureConnect( privateKey, 1, serverAddress );
+            allocator.Disarm();
+            if ( connecting )
+            {
+                check( client.IsConnecting() );
+                client.Disconnect();
+                break;
+            }
+            check( !client.IsConnecting() );
+            check( !client.IsConnected() );
+            check( client.ConnectionFailed() );
+            check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+    check( n > 0 );
+    check( n < MaxStartupAllocations );
+}
+
+void test_client_connect_factory_failure()
+{
+    Address clientAddress( "0.0.0.0", 0 );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    {
+        ArmableAllocator allocator;
+        {
+            FailingFactoryAdapter failingAdapter;
+            failingAdapter.FailAllocatorAfter( 0 );
+            Client client( allocator, clientAddress, config, failingAdapter, 100.0 );
+            check( !client.InsecureConnect( privateKey, 1, serverAddress ) );
+            check( client.ConnectionFailed() );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    {
+        ArmableAllocator allocator;
+        {
+            FailingFactoryAdapter failingAdapter;
+            failingAdapter.FailMessageFactoryAfter( 0 );
+            Client client( allocator, clientAddress, config, failingAdapter, 100.0 );
+            check( !client.InsecureConnect( privateKey, 1, serverAddress ) );
+            check( client.ConnectionFailed() );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
 void test_client_connect_socket_failure_no_crash()
 {
     // Regression: Connect() and ConnectLoopback() called into netcode_client_connect() without
@@ -3768,6 +3961,10 @@ int main( int argc, char ** argv )
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
+        RUN_TEST( test_server_start_alloc_failure );
+        RUN_TEST( test_server_start_factory_failure );
+        RUN_TEST( test_client_connect_alloc_failure );
+        RUN_TEST( test_client_connect_factory_failure );
         RUN_TEST( test_client_connect_socket_failure_no_crash );
         RUN_TEST( test_client_is_loopback_when_disconnected );
         RUN_TEST( test_client_server_messages );
