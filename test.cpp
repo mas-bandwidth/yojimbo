@@ -2005,6 +2005,35 @@ void test_connection_process_packet_channel_data_alloc_failure()
     check( receiverAlloc.GetOutstanding() == 0 );
 }
 
+// YJ-04: Allocator held a std::map and MessageFactory held another, both compiled in only when
+// YOJIMBO_DEBUG_MEMORY_LEAKS / YOJIMBO_DEBUG_MESSAGE_LEAKS were on -- which both derive from the
+// consumer's NDEBUG. A release consumer deriving from either class saw a different layout than
+// the debug library it linked against (Allocator 16 vs 40 bytes, MessageFactory 24 vs 48 on
+// arm64), which is silent memory corruption. Both trackers now live behind one always-present
+// pointer to state defined inside the library.
+//
+// test_layout_debug.cpp and test_layout_release.cpp compile the same public headers with
+// YOJIMBO_DEBUG and YOJIMBO_RELEASE forced on, so one binary carries both configurations' idea of
+// the layout.
+extern void yojimbo_test_layout_debug( size_t & allocatorSize, size_t & messageFactorySize );
+extern void yojimbo_test_layout_release( size_t & allocatorSize, size_t & messageFactorySize );
+
+void test_public_layout_is_configuration_independent()
+{
+    size_t debugAllocator = 0, debugMessageFactory = 0;
+    size_t releaseAllocator = 0, releaseMessageFactory = 0;
+
+    yojimbo_test_layout_debug( debugAllocator, debugMessageFactory );
+    yojimbo_test_layout_release( releaseAllocator, releaseMessageFactory );
+
+    check( debugAllocator == releaseAllocator );
+    check( debugMessageFactory == releaseMessageFactory );
+
+    // ...and this build agrees with both of them.
+    check( sizeof( Allocator ) == debugAllocator );
+    check( sizeof( MessageFactory ) == debugMessageFactory );
+}
+
 // YJ-02: ServerInterface::GetClientUserData was declared non-virtual with no definition
 // anywhere in the tree, so any call through a ServerInterface reference failed to link. Nothing
 // exercised the interfaces through a base reference, so it went unnoticed.
@@ -4076,6 +4105,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
+        RUN_TEST( test_public_layout_is_configuration_independent );
         RUN_TEST( test_interface_methods_link );
         RUN_TEST( test_server_start_alloc_failure );
         RUN_TEST( test_server_start_factory_failure );

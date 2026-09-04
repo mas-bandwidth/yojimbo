@@ -340,6 +340,23 @@ namespace yojimbo
         See shared.h for an example showing how to use the macros.
      */
 
+    /**
+        Opaque debug-only message leak tracking state for a MessageFactory.
+        Defined and used entirely inside libyojimbo (yojimbo_message.cpp), for the same reason as
+        AllocatorDebugState: the pointer is present in every build, so MessageFactory has one
+        layout whatever NDEBUG a consumer compiles with.
+     */
+
+    class MessageFactoryDebugState;
+
+    MessageFactoryDebugState * yojimbo_message_factory_debug_create();
+
+    void yojimbo_message_factory_debug_destroy( MessageFactoryDebugState * debug );
+
+    void yojimbo_message_factory_debug_track_create( MessageFactoryDebugState * debug, Message * message );
+
+    void yojimbo_message_factory_debug_track_release( MessageFactoryDebugState * debug, Message * message );
+
     class MessageFactory
     {
     public:
@@ -356,11 +373,12 @@ namespace yojimbo
             m_allocator = &allocator;
             m_numTypes = numTypes;
             m_errorLevel = MESSAGE_FACTORY_ERROR_NONE;
+            m_debug = yojimbo_message_factory_debug_create();
         }
 
         /**
             Message factory destructor.
-            Checks for message leaks if YOJIMBO_DEBUG_MESSAGE_LEAKS is defined and not equal to zero. This is on by default in debug build.
+            Checks for message leaks when libyojimbo itself was built with YOJIMBO_DEBUG_MESSAGE_LEAKS non-zero. This is on by default in debug build.
          */
 
         virtual ~MessageFactory()
@@ -369,23 +387,11 @@ namespace yojimbo
 
             m_allocator = NULL;
 
-            #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-            if ( allocated_messages.size() )
-            {
-                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "you leaked messages!\n" );
-                yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "%d messages leaked\n", (int) allocated_messages.size() );
-                typedef std::map<void*,int>::iterator itor_type;
-                for ( itor_type i = allocated_messages.begin(); i != allocated_messages.end(); ++i )
-                {
-                    Message * message = (Message*) i->first;
-                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "leaked message %p (type %d, refcount %d)\n", message, message->GetType(), message->GetRefCount() );
-                }
-                // Fail through the assert handler rather than exit(1), so programs embedding
-                // yojimbo (editors, tools) can intercept via yojimbo_set_assert_function.
-                // Same idiom as the memory leak check in Allocator::~Allocator.
-                yojimbo_assert( false && "Message leaks detected, see log" );
-            }
-            #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
+            // Reports and fails on any leaked message, then frees the tracking state. Fails
+            // through the assert handler rather than exit(1), so programs embedding yojimbo
+            // (editors, tools) can intercept via yojimbo_set_assert_function.
+            yojimbo_message_factory_debug_destroy( m_debug );
+            m_debug = NULL;
         }
 
         /**
@@ -408,10 +414,7 @@ namespace yojimbo
                 m_errorLevel = MESSAGE_FACTORY_ERROR_FAILED_TO_ALLOCATE_MESSAGE;
                 return NULL;
             }
-            #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-            allocated_messages[message] = 1;
-            yojimbo_assert( allocated_messages.find( message ) != allocated_messages.end() );
-            #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
+            yojimbo_message_factory_debug_track_create( m_debug, message );
             return message;
         }
 
@@ -446,10 +449,7 @@ namespace yojimbo
             message->Release();
             if ( message->GetRefCount() == 0 )
             {
-                #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-                yojimbo_assert( allocated_messages.find( message ) != allocated_messages.end() );
-                allocated_messages.erase( message );
-                #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
+                yojimbo_message_factory_debug_track_release( m_debug, message );
                 yojimbo_assert( m_allocator );
                 YOJIMBO_DELETE( *m_allocator, Message, message );
             }
@@ -515,9 +515,7 @@ namespace yojimbo
 
     private:
 
-        #if YOJIMBO_DEBUG_MESSAGE_LEAKS
-        std::map<void*,int> allocated_messages;                                 ///< The set of allocated messages for this factory. Used to track down message leaks.
-        #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
+        MessageFactoryDebugState * m_debug;                                     ///< Message leak tracking state, or NULL. Present in every configuration so the class has one layout; only allocated in a debug library build.
 
         Allocator * m_allocator;                                                ///< The allocator used to create messages.
 

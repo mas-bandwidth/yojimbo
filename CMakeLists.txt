@@ -281,6 +281,13 @@ if(YOJIMBO_BUILD_TESTS)
     # serialize is header-only; its self-tests are gated on this and called from test.cpp.
     target_compile_definitions(test PRIVATE SERIALIZE_ENABLE_TESTS=1)
 
+    # The cross-configuration layout test (YJ-04). These two translation units compile the public
+    # headers with YOJIMBO_DEBUG and YOJIMBO_RELEASE forced on respectively, whatever the build
+    # type is, and report the sizes of Allocator and MessageFactory. test.cpp checks the two agree
+    # with each other and with the build's own, so a member that appears only under one NDEBUG
+    # setting fails the test instead of silently giving consumers a different layout.
+    target_sources(test PRIVATE test_layout_debug.cpp test_layout_release.cpp)
+
     if(YOJIMBO_SYSTEM_DEPS)
         # System netcode/reliable are built without their embedded test suites, so test.cpp
         # skips the [netcode] and [reliable] sections in this configuration (see test.cpp).
