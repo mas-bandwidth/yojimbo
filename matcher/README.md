@@ -14,6 +14,10 @@ To build the image run the following command from the `matcher` directory:
 docker build --tag=matcher .
 ```
 
+The builder's Go version is the `GO_VERSION` build argument, defaulting to the version
+`go.mod` requires. CI builds this image on every change and fails if the two disagree, so the
+documented command is a command that works.
+
 # Running the Docker container:
 
 Run the container image mapping the port to your host machine:

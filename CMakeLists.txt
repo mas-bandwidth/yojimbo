@@ -34,14 +34,32 @@ option(YOJIMBO_SYSTEM_SODIUM
 option(YOJIMBO_SYSTEM_DEPS
     "Build against system-installed serialize, reliable and netcode instead of the vendored copies" OFF)
 
+# Same reasoning: a consumer embedding yojimbo in their own build installs their program, not
+# yojimbo's headers and archive into their prefix.
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(YOJIMBO_INSTALL_DEFAULT ON)
+else()
+    set(YOJIMBO_INSTALL_DEFAULT OFF)
+endif()
+
 option(YOJIMBO_INSTALL
-    "Generate the install target (yojimbo headers and library)" ON)
+    "Generate the install target (yojimbo headers and library)" ${YOJIMBO_INSTALL_DEFAULT})
 
 option(YOJIMBO_SYSTEM_TLSF
     "Build against a system-installed tlsf instead of the vendored copy" OFF)
 
+# Default ON for a top-level build (someone building yojimbo itself wants its tests and
+# examples) and OFF for a consumer that pulls this in with add_subdirectory or FetchContent
+# (YJ-08): they want the library, not five more executables and two more CTest entries in their
+# own project. Same rule as CMAKE_TARGET_MESSAGES and CMAKE_BUILD_TYPE above.
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(YOJIMBO_BUILD_TESTS_DEFAULT ON)
+else()
+    set(YOJIMBO_BUILD_TESTS_DEFAULT OFF)
+endif()
+
 option(YOJIMBO_BUILD_TESTS
-    "Build the test, client/server example and soak programs" ON)
+    "Build the test, client/server example and soak programs" ${YOJIMBO_BUILD_TESTS_DEFAULT})
 
 # Single-config generators (Make/Ninja) have no build type by default; match the old
 # `make config=debug` default of a debug build.
@@ -102,13 +120,26 @@ endif()
 
 include(GNUInstallDirs)
 
+# --- version ---------------------------------------------------------------------------------
+#
+# project() above and the YOJIMBO_*_VERSION macros in yojimbo_config.h are two statements of the
+# same fact, and consumers read the second. They must agree, and the documentation takes its
+# version from here rather than repeating it a third time (YJ-12).
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/YojimboDependencies.cmake")
+yojimbo_read_header_version("${CMAKE_CURRENT_SOURCE_DIR}/include/yojimbo_config.h" YOJIMBO YOJIMBO_HEADER_VERSION)
+if(NOT YOJIMBO_HEADER_VERSION VERSION_EQUAL PROJECT_VERSION)
+    message(FATAL_ERROR
+        "yojimbo: include/yojimbo_config.h says ${YOJIMBO_HEADER_VERSION} but project() says "
+        "${PROJECT_VERSION}. Both have to move together.")
+endif()
+
 # --- dependency manifest --------------------------------------------------------------------
 #
 # dependencies.manifest is the one place serialize, reliable and netcode are versioned: the
 # version vendored here, the upstream tag it came from (which the system-deps CI job installs)
 # and the floor a system-installed copy must meet.
 
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/YojimboDependencies.cmake")
 yojimbo_read_dependency_manifest("${CMAKE_CURRENT_SOURCE_DIR}/dependencies.manifest")
 
 if(YOJIMBO_SYSTEM_DEPS)
@@ -359,6 +390,27 @@ if(YOJIMBO_INSTALL)
 
 endif()
 
+# --- documentation --------------------------------------------------------------------------
+#
+# `cmake --build <build> --target docs` runs doxygen with the project version in the
+# environment, which is where doxygen.config's PROJECT_NUMBER comes from -- it used to say 1.0
+# for every release. doxygen.config also fails the build on any documentation warning, so an
+# undocumented public member or a @param that no longer matches its signature is a build error
+# and not a line that scrolls past (YJ-12). Only offered for a top-level build with doxygen
+# installed; nothing else depends on it.
+
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        add_custom_target(docs
+            COMMAND ${CMAKE_COMMAND} -E env "YOJIMBO_VERSION=${PROJECT_VERSION}"
+                    ${DOXYGEN_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/doxygen.config"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMENT "yojimbo: generating documentation with doxygen (warnings are errors)"
+            VERBATIM)
+    endif()
+endif()
+
 # --- sample programs and tests ------------------------------------------------------------
 
 if(YOJIMBO_BUILD_TESTS)
@@ -394,7 +446,7 @@ if(YOJIMBO_BUILD_TESTS)
     # configuration left behind. The examples (client, server, loopback) need a peer and the soak
     # runs until interrupted, so neither is a test; both stay buildable.
     enable_testing()
-    add_test(NAME test COMMAND yojimbo_test)
-    add_test(NAME custom_packet_io_test COMMAND yojimbo_custom_packet_io_test)
+    add_test(NAME yojimbo_test COMMAND yojimbo_test)
+    add_test(NAME yojimbo_custom_packet_io_test COMMAND yojimbo_custom_packet_io_test)
 
 endif()

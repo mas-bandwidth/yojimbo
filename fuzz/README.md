@@ -132,7 +132,10 @@ committed seeds stay pristine). Standalone builds can replay them too:
 `./fz_netcode fuzz/corpus/fuzz_netcode/*`.
 
 The seeds are produced by generators under `tools/`, which round-trip every seed through the
-matching reader and assert it decodes, so a committed seed is always a valid input:
+matching reader and assert it decodes, so a committed seed is always a valid input.
+`gen_seed_corpus` additionally refuses to finish unless every authenticated netcode packet type
+has a seed — random mutation cannot realistically produce a valid AEAD tag, so a type with no
+seed is a parser the fuzzer never enters. CI runs it on every change:
 
 ```
 # netcode + connect-token + reliable seeds

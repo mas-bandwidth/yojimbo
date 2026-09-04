@@ -218,6 +218,68 @@ void test_address_classification()
     check( !Address( "224.0.0.1" ).IsMulticast() );
 }
 
+// YJ-11: Address::Parse used strtol with no end pointer and treated everything past a closing
+// bracket as unread. strtol stops at the first character it cannot use and reports what it read,
+// so "127.0.0.1:40k" parsed as port 40, an empty port as 0, and a port with more digits than a
+// long saturated instead of failing; "[::1" skipped the missing bracket and "[::1]junk" had the
+// junk truncated away. Address::Parse documents that an unparseable address is cleared to
+// ADDRESS_NONE, so each of these must be invalid.
+void test_address_malformed_port()
+{
+    // trailing junk after the digits
+    check( parse_address( "127.0.0.1:40k" ) == false );
+    check( parse_address( "127.0.0.1:40 " ) == false );
+    check( parse_address( "127.0.0.1:4.0" ) == false );
+    check( parse_address( "[::1]:40k" ) == false );
+
+    // no digits at all
+    check( parse_address( "127.0.0.1:" ) == false );
+    check( parse_address( "[::1]:" ) == false );
+
+    // a sign or leading whitespace is not a port
+    check( parse_address( "127.0.0.1:+40" ) == false );
+    check( parse_address( "127.0.0.1:-1" ) == false );
+    check( parse_address( "[::1]:+40" ) == false );
+    check( parse_address( "[::1]: 40" ) == false );
+
+    // out of range, including more digits than fit in the parser's own integer
+    check( parse_address( "127.0.0.1:65536" ) == false );
+    check( parse_address( "127.0.0.1:99999" ) == false );
+    check( parse_address( "127.0.0.1:99999999999999999999999" ) == false );
+    check( parse_address( "[::1]:65536" ) == false );
+    check( parse_address( "[::1]:99999999999999999999999" ) == false );
+
+    // bracket syntax is exact
+    check( parse_address( "[::1" ) == false );
+    check( parse_address( "[::1]junk" ) == false );
+    check( parse_address( "[::1]]" ) == false );
+    check( parse_address( "[::1]40000" ) == false );
+
+    // ...and the forms that were always valid still are, with the port they say
+    {
+        Address address( "127.0.0.1:65535" );
+        check( address.IsValid() );
+        check( address.GetPort() == 65535 );
+    }
+    {
+        Address address( "127.0.0.1:0" );
+        check( address.IsValid() );
+        check( address.GetPort() == 0 );
+    }
+    {
+        Address address( "[::1]:40000" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 40000 );
+    }
+    {
+        Address address( "[::1]" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 0 );
+    }
+}
+
 void test_address()
 {
     check( parse_address( "" ) == false );
@@ -4110,6 +4172,7 @@ int main( int argc, char ** argv )
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
+        RUN_TEST( test_address_malformed_port );
         RUN_TEST( test_address_classification );
         RUN_TEST( test_network_simulator_drains_all_slots );
         RUN_TEST( test_bit_array );

@@ -34,10 +34,10 @@ function(yojimbo_read_dependency_manifest manifest)
     set(YOJIMBO_DEPENDENCIES "${names}" PARENT_SCOPE)
 endfunction()
 
-# Reads the version macros out of an installed or vendored header. Every one of the three
-# dependencies spells its version the same way -- <PREFIX>_VERSION_MAJOR / _MINOR / _PATCH -- so
-# one reader covers all of them, and it works against a plain header with no package config,
-# which is what these projects currently install.
+# Reads the version macros out of a header, which is all these projects install -- none of them
+# ships a package config to ask. serialize, netcode and reliable spell the macros
+# <PREFIX>_VERSION_MAJOR; yojimbo's own header spells them <PREFIX>_MAJOR_VERSION. Both are
+# accepted so one reader covers every header the build has to check.
 function(yojimbo_read_header_version header prefix out_version)
     if(NOT EXISTS "${header}")
         message(FATAL_ERROR "yojimbo: cannot read a version from ${header}: no such file")
@@ -45,10 +45,13 @@ function(yojimbo_read_header_version header prefix out_version)
     file(READ "${header}" contents)
     set(parts "")
     foreach(component MAJOR MINOR PATCH)
-        if(NOT contents MATCHES "#define[ \t]+${prefix}_VERSION_${component}[ \t]+([0-9]+)")
-            message(FATAL_ERROR "yojimbo: ${header} does not define ${prefix}_VERSION_${component}")
+        if(contents MATCHES "#define[ \t]+${prefix}_VERSION_${component}[ \t]+([0-9]+)")
+            list(APPEND parts "${CMAKE_MATCH_1}")
+        elseif(contents MATCHES "#define[ \t]+${prefix}_${component}_VERSION[ \t]+([0-9]+)")
+            list(APPEND parts "${CMAKE_MATCH_1}")
+        else()
+            message(FATAL_ERROR "yojimbo: ${header} defines neither ${prefix}_VERSION_${component} nor ${prefix}_${component}_VERSION")
         endif()
-        list(APPEND parts "${CMAKE_MATCH_1}")
     endforeach()
     list(JOIN parts "." version)
     set(${out_version} "${version}" PARENT_SCOPE)

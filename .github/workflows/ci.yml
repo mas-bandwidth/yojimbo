@@ -155,6 +155,48 @@ jobs:
           cmake -B consumer-build -S tools/consumer -DCMAKE_PREFIX_PATH="$HOME/yojimbo-install"
           cmake --build consumer-build -j
           ctest --test-dir consumer-build --output-on-failure
+      # ...and the other way a project takes yojimbo: add_subdirectory. tools/subproject fails
+      # configure if yojimbo defines any of the generic global target names, and `ctest -N` must
+      # report only the subproject's own test -- yojimbo's tests and examples default off when
+      # it is not the top-level project (YJ-08).
+      - name: Embed yojimbo with add_subdirectory
+        run: |
+          set -euo pipefail
+          cmake -B subproject-build -S tools/subproject -DYOJIMBO_SOURCE_DIR="$PWD"
+          cmake --build subproject-build -j
+          ctest --test-dir subproject-build --output-on-failure
+          test "$(ctest --test-dir subproject-build -N | awk '/^Total Tests:/ { print $3 }')" -eq 1
+
+  matcher:
+    name: matcher (go vet, docker image, live request)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # The image pinned golang:1.20.13 while go.mod required go 1.25.0, so the build documented
+      # in matcher/README.md could not succeed -- and nothing built it, so nobody found out
+      # (YJ-07). One value now: the Dockerfile's GO_VERSION argument, checked against go.mod.
+      - name: The Dockerfile's Go version matches go.mod
+        run: |
+          set -euo pipefail
+          mod=$(awk '/^go /{ print $2 }' matcher/go.mod)
+          img=$(awk -F= '/^ARG GO_VERSION=/{ print $2 }' matcher/Dockerfile)
+          echo "go.mod requires $mod, Dockerfile builds with $img"
+          test "$mod" = "$img"
+      - name: Build the matcher image
+        run: docker build --tag matcher matcher
+      # The image is only built if it also runs: ask it for a connect token and check the shape.
+      # A netcode connect token is 2048 bytes, base64 as 2732 characters.
+      - name: The image serves a connect token
+        run: |
+          set -euo pipefail
+          docker run -d -p 8081:8081 --name matcher matcher
+          for i in $(seq 1 30); do
+            if curl -fsS "http://localhost:8081/match/123/42" -o token.b64; then break; fi
+            sleep 1
+          done
+          docker logs matcher
+          test "$(wc -c < token.b64)" -eq 2732
+          test "$(base64 -d < token.b64 | wc -c)" -eq 2048
 
   sanitizers:
     name: sanitizers (linux, ASan+UBSan+LSan)
@@ -194,6 +236,17 @@ jobs:
       # sodium.c is compiled on its own, and it is the only compilation that carries
       # -fno-sanitize=nonnull-attribute: the exemption used to sit in the shared flags and
       # silently covered netcode, reliable and yojimbo too (SEC-05).
+      # The generator round-trips every seed through netcode_read_packet and refuses to finish
+      # unless every authenticated packet type has one, so this step is what keeps a parser from
+      # quietly falling out of the corpus (YJ-09). It writes to a scratch directory: the connect
+      # token seeds carry freshly generated random keys, so they are not byte-reproducible and
+      # the committed ones stay as they are.
+      - name: The seed generator covers every authenticated packet type
+        run: |
+          set -euo pipefail
+          clang -DNETCODE_DEBUG -DRELIABLE_DEBUG -Inetcode -Isodium -Ireliable -Ifuzz -w -g \
+            tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -o /tmp/gen_seed_corpus
+          /tmp/gen_seed_corpus /tmp/corpus-regen
       - name: Build and run fuzz targets
         run: |
           set -euo pipefail
@@ -313,6 +366,35 @@ jobs:
             ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
             echo "::endgroup::"
           done
+
+  docs:
+    name: doxygen (version from the build, warnings are errors)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doxygen
+        run: sudo apt-get update && sudo apt-get install -y doxygen
+      # doxygen.config reported PROJECT_NUMBER 1.0 for every release and never failed on a
+      # warning, and nothing built the docs, so neither showed (YJ-12). The docs target passes
+      # the project version in the environment, and the config now treats every documentation
+      # warning as an error, so an undocumented public member or a stale @param fails here.
+      - name: Build the documentation
+        run: |
+          set -euo pipefail
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DYOJIMBO_BUILD_TESTS=OFF
+          cmake --build build --target docs
+      - name: The generated documentation carries the build's version
+        run: |
+          set -euo pipefail
+          version=$(cmake -P cmake/PrintVersion.cmake 2>&1)
+          echo "project version: $version"
+          grep -rq "$version" docs/html/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: doxygen-html
+          path: docs/html
+          if-no-files-found: ignore
 
   conformance:
     name: STANDARD.md + STATE-MACHINE.md conformance
