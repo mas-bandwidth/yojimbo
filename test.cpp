@@ -30,6 +30,7 @@
 #include <inttypes.h>
 
 #include "shared.h"
+#include <typeinfo>
 #include "serialize.h"
 #ifndef YOJIMBO_SYSTEM_DEPS
 #include <sodium.h>
@@ -215,6 +216,68 @@ void test_address_classification()
     check( !Address( "127.0.0.1" ).IsMulticast() );
     check( !Address( "10.0.0.1" ).IsGlobalUnicast() );
     check( !Address( "224.0.0.1" ).IsMulticast() );
+}
+
+// YJ-11: Address::Parse used strtol with no end pointer and treated everything past a closing
+// bracket as unread. strtol stops at the first character it cannot use and reports what it read,
+// so "127.0.0.1:40k" parsed as port 40, an empty port as 0, and a port with more digits than a
+// long saturated instead of failing; "[::1" skipped the missing bracket and "[::1]junk" had the
+// junk truncated away. Address::Parse documents that an unparseable address is cleared to
+// ADDRESS_NONE, so each of these must be invalid.
+void test_address_malformed_port()
+{
+    // trailing junk after the digits
+    check( parse_address( "127.0.0.1:40k" ) == false );
+    check( parse_address( "127.0.0.1:40 " ) == false );
+    check( parse_address( "127.0.0.1:4.0" ) == false );
+    check( parse_address( "[::1]:40k" ) == false );
+
+    // no digits at all
+    check( parse_address( "127.0.0.1:" ) == false );
+    check( parse_address( "[::1]:" ) == false );
+
+    // a sign or leading whitespace is not a port
+    check( parse_address( "127.0.0.1:+40" ) == false );
+    check( parse_address( "127.0.0.1:-1" ) == false );
+    check( parse_address( "[::1]:+40" ) == false );
+    check( parse_address( "[::1]: 40" ) == false );
+
+    // out of range, including more digits than fit in the parser's own integer
+    check( parse_address( "127.0.0.1:65536" ) == false );
+    check( parse_address( "127.0.0.1:99999" ) == false );
+    check( parse_address( "127.0.0.1:99999999999999999999999" ) == false );
+    check( parse_address( "[::1]:65536" ) == false );
+    check( parse_address( "[::1]:99999999999999999999999" ) == false );
+
+    // bracket syntax is exact
+    check( parse_address( "[::1" ) == false );
+    check( parse_address( "[::1]junk" ) == false );
+    check( parse_address( "[::1]]" ) == false );
+    check( parse_address( "[::1]40000" ) == false );
+
+    // ...and the forms that were always valid still are, with the port they say
+    {
+        Address address( "127.0.0.1:65535" );
+        check( address.IsValid() );
+        check( address.GetPort() == 65535 );
+    }
+    {
+        Address address( "127.0.0.1:0" );
+        check( address.IsValid() );
+        check( address.GetPort() == 0 );
+    }
+    {
+        Address address( "[::1]:40000" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 40000 );
+    }
+    {
+        Address address( "[::1]" );
+        check( address.IsValid() );
+        check( address.GetType() == ADDRESS_IPV6 );
+        check( address.GetPort() == 0 );
+    }
 }
 
 void test_address()
@@ -2005,6 +2068,371 @@ void test_connection_process_packet_channel_data_alloc_failure()
     check( receiverAlloc.GetOutstanding() == 0 );
 }
 
+// YJ-05: the build added -fno-rtti to every C++ target, so libyojimbo emitted "vtable for
+// yojimbo::Allocator" with no matching typeinfo. Allocator, MessageFactory, Adapter and the two
+// interfaces are all public polymorphic classes consumers derive from, and consumers build with
+// the compiler default, which is RTTI on. Any dynamic_cast or typeid on one of them failed to
+// link on the missing typeinfo. RTTI is now on in yojimbo's own build too.
+//
+// This is a link test as much as a behaviour test: the typeinfo for Allocator and
+// DefaultAllocator comes out of libyojimbo, where their key functions live.
+void test_rtti_across_the_abi_boundary()
+{
+    ArmableAllocator allocator;
+
+    Allocator & base = allocator;
+    check( dynamic_cast<ArmableAllocator*>( &base ) == &allocator );
+    check( dynamic_cast<DefaultAllocator*>( &base ) == NULL );
+    check( typeid( base ) == typeid( ArmableAllocator ) );
+
+    // DefaultAllocator's key function is in yojimbo_allocator.cpp, so this resolves the library's
+    // own typeinfo rather than one the test binary could have emitted for itself.
+    Allocator & defaultAllocator = GetDefaultAllocator();
+    check( dynamic_cast<DefaultAllocator*>( &defaultAllocator ) != NULL );
+
+    // ...and the same across the message factory hierarchy.
+    TestMessageFactory factory( allocator );
+    MessageFactory & factoryBase = factory;
+    check( dynamic_cast<TestMessageFactory*>( &factoryBase ) == &factory );
+}
+
+// YJ-04: Allocator held a std::map and MessageFactory held another, both compiled in only when
+// YOJIMBO_DEBUG_MEMORY_LEAKS / YOJIMBO_DEBUG_MESSAGE_LEAKS were on -- which both derive from the
+// consumer's NDEBUG. A release consumer deriving from either class saw a different layout than
+// the debug library it linked against (Allocator 16 vs 40 bytes, MessageFactory 24 vs 48 on
+// arm64), which is silent memory corruption. Both trackers now live behind one always-present
+// pointer to state defined inside the library.
+//
+// test_layout_debug.cpp and test_layout_release.cpp compile the same public headers with
+// YOJIMBO_DEBUG and YOJIMBO_RELEASE forced on, so one binary carries both configurations' idea of
+// the layout.
+extern void yojimbo_test_layout_debug( size_t & allocatorSize, size_t & messageFactorySize );
+extern void yojimbo_test_layout_release( size_t & allocatorSize, size_t & messageFactorySize );
+
+void test_public_layout_is_configuration_independent()
+{
+    size_t debugAllocator = 0, debugMessageFactory = 0;
+    size_t releaseAllocator = 0, releaseMessageFactory = 0;
+
+    yojimbo_test_layout_debug( debugAllocator, debugMessageFactory );
+    yojimbo_test_layout_release( releaseAllocator, releaseMessageFactory );
+
+    check( debugAllocator == releaseAllocator );
+    check( debugMessageFactory == releaseMessageFactory );
+
+    // ...and this build agrees with both of them.
+    check( sizeof( Allocator ) == debugAllocator );
+    check( sizeof( MessageFactory ) == debugMessageFactory );
+}
+
+// YJ-02: ServerInterface::GetClientUserData was declared non-virtual with no definition
+// anywhere in the tree, so any call through a ServerInterface reference failed to link. Nothing
+// exercised the interfaces through a base reference, so it went unnoticed.
+//
+// This is a LINK test. A call to a non-virtual interface method needs a definition of that exact
+// symbol; a call to a virtual one goes through the vtable and needs none. Calling every declared
+// method of both interfaces through a base reference therefore fails to link the test binary if
+// any of them ever loses its "virtual" again.
+//
+// The calls are guarded by a volatile that is always false: the compiler cannot fold the branch
+// away, so it emits every call, and nothing here actually runs against a stopped server.
+static volatile bool g_callInterfaceMethods = false;
+
+static void CallEveryServerInterfaceMethod( ServerInterface & server )
+{
+    NetworkInfo info;
+    uint8_t userData[256];
+    memset( userData, 0, sizeof( userData ) );
+    uint8_t packet[16];
+    memset( packet, 0, sizeof( packet ) );
+
+    server.SetContext( NULL );
+    server.Start( 1 );
+    server.Stop();
+    server.DisconnectClient( 0 );
+    server.DisconnectAllClients();
+    server.SendPackets();
+    server.ReceivePackets();
+    server.AdvanceTime( 0.0 );
+    (void) server.IsRunning();
+    (void) server.GetMaxClients();
+    (void) server.IsClientConnected( 0 );
+    (void) server.GetClientId( 0 );
+    (void) server.GetClientUserData( 0 );
+    (void) server.GetClientAddress( 0 );
+    (void) server.GetNumConnectedClients();
+    (void) server.GetTime();
+    Message * message = server.CreateMessage( 0, TEST_MESSAGE );
+    uint8_t * block = server.AllocateBlock( 0, 16 );
+    server.AttachBlockToMessage( 0, message, block, 16 );
+    server.FreeBlock( 0, block );
+    (void) server.CanSendMessage( 0, 0 );
+    server.SendMessage( 0, 0, message );
+    (void) server.ReceiveMessage( 0, 0 );
+    server.ReleaseMessage( 0, message );
+    server.GetNetworkInfo( 0, info );
+    server.ConnectLoopbackClient( 0, 1, userData );
+    server.DisconnectLoopbackClient( 0 );
+    (void) server.IsLoopbackClient( 0 );
+    server.ProcessLoopbackPacket( 0, packet, sizeof( packet ), 0 );
+}
+
+static void CallEveryClientInterfaceMethod( ClientInterface & client )
+{
+    NetworkInfo info;
+    uint8_t packet[16];
+    memset( packet, 0, sizeof( packet ) );
+
+    client.SetContext( NULL );
+    client.Disconnect();
+    client.SendPackets();
+    client.ReceivePackets();
+    client.AdvanceTime( 0.0 );
+    (void) client.IsConnecting();
+    (void) client.IsConnected();
+    (void) client.IsDisconnected();
+    (void) client.ConnectionFailed();
+    (void) client.GetClientState();
+    (void) client.GetClientIndex();
+    (void) client.GetClientId();
+    (void) client.GetTime();
+    Message * message = client.CreateMessage( TEST_MESSAGE );
+    uint8_t * block = client.AllocateBlock( 16 );
+    client.AttachBlockToMessage( message, block, 16 );
+    client.FreeBlock( block );
+    (void) client.CanSendMessage( 0 );
+    client.SendMessage( 0, message );
+    (void) client.ReceiveMessage( 0 );
+    client.ReleaseMessage( message );
+    client.GetNetworkInfo( info );
+    (void) client.ConnectLoopback( 0, 1, 1 );
+    client.DisconnectLoopback();
+    (void) client.IsLoopback();
+    client.ProcessLoopbackPacket( packet, sizeof( packet ), 0 );
+}
+
+void test_interface_methods_link()
+{
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, 100.0 );
+    Client client( GetDefaultAllocator(), Address( "0.0.0.0", 0 ), config, adapter, 100.0 );
+
+    if ( g_callInterfaceMethods )
+    {
+        CallEveryServerInterfaceMethod( server );
+        CallEveryClientInterfaceMethod( client );
+    }
+
+    // The binary linked, which is the whole point. Prove the base reference really does reach
+    // the derived implementation for the method that had no definition at all. That method needs
+    // a running server, so start one for the comparison.
+    check( server.Start( 1 ) );
+    ServerInterface & serverInterface = server;
+    check( serverInterface.GetClientUserData( 0 ) == server.GetClientUserData( 0 ) );
+    check( serverInterface.GetMaxClients() == 1 );
+    server.Stop();
+
+    ClientInterface & clientInterface = client;
+    check( clientInterface.GetClientState() == client.GetClientState() );
+}
+
+// Adapter whose factory methods can be made to fail, so the startup paths are exercised at the
+// two points an ArmableAllocator cannot reach: a user allocator class that fails to construct,
+// and a message factory that fails to construct. Both return NULL from the adapter, which the
+// library must treat exactly like an allocation failure.
+class FailingFactoryAdapter : public TestAdapter
+{
+public:
+    FailingFactoryAdapter() : m_allocatorsUntilFail( -1 ), m_factoriesUntilFail( -1 ) {}
+
+    void FailAllocatorAfter( int n ) { m_allocatorsUntilFail = n; }
+    void FailMessageFactoryAfter( int n ) { m_factoriesUntilFail = n; }
+
+    Allocator * CreateAllocator( Allocator & allocator, void * memory, size_t bytes )
+    {
+        if ( m_allocatorsUntilFail == 0 )
+            return NULL;
+        if ( m_allocatorsUntilFail > 0 )
+            m_allocatorsUntilFail--;
+        return TestAdapter::CreateAllocator( allocator, memory, bytes );
+    }
+
+    MessageFactory * CreateMessageFactory( Allocator & allocator )
+    {
+        if ( m_factoriesUntilFail == 0 )
+            return NULL;
+        if ( m_factoriesUntilFail > 0 )
+            m_factoriesUntilFail--;
+        return TestAdapter::CreateMessageFactory( allocator );
+    }
+
+private:
+    int m_allocatorsUntilFail;
+    int m_factoriesUntilFail;
+};
+
+// The number of startup allocations a sweep is allowed to walk before we call it a runaway. Well
+// above the real counts (6 for a two-client server, 3 for a client) so the sweep terminates on a
+// bug instead of looping forever.
+static const int MaxStartupAllocations = 64;
+
+void test_server_start_alloc_failure()
+{
+    // YJ-01: BaseServer::Start guarded its allocations with yojimbo_assert, which compiles out
+    // under NDEBUG, so a release build bound references to failed allocations and ran on with a
+    // half-built server. Fail at allocation N for every N up to the first N that succeeds: each
+    // failure must return false, leave the server stopped, and free everything already taken.
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    int n = 0;
+    for ( ; n < MaxStartupAllocations; ++n )
+    {
+        ArmableAllocator allocator;
+        {
+            Server server( allocator, privateKey, serverAddress, config, adapter, 100.0 );
+            allocator.Arm( n );
+            const bool started = server.Start( 2 );
+            allocator.Disarm();
+            if ( started )
+            {
+                check( server.IsRunning() );
+                server.Stop();
+                check( !server.IsRunning() );
+                break;
+            }
+            check( !server.IsRunning() );           // no half-built server left behind
+            check( server.GetMaxClients() == 0 );
+        }
+        check( allocator.GetOutstanding() == 0 );   // everything already allocated was unwound
+    }
+    check( n > 0 );                                 // the sweep really did force failures
+    check( n < MaxStartupAllocations );             // ...and a fully armed start eventually succeeds
+}
+
+void test_server_start_factory_failure()
+{
+    // Same contract for the adapter factory results, which no allocator arming can reach: a user
+    // allocator or message factory that fails to construct returns NULL and must be handled like
+    // an allocation failure rather than dereferenced.
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    // allocator index 0 is the global allocator, 1 and 2 are the two per-client allocators
+    for ( int n = 0; n < 3; ++n )
+    {
+        ArmableAllocator allocator;
+        {
+            FailingFactoryAdapter failingAdapter;
+            failingAdapter.FailAllocatorAfter( n );
+            Server server( allocator, privateKey, serverAddress, config, failingAdapter, 100.0 );
+            check( !server.Start( 2 ) );
+            check( !server.IsRunning() );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    for ( int n = 0; n < 2; ++n )
+    {
+        ArmableAllocator allocator;
+        {
+            FailingFactoryAdapter failingAdapter;
+            failingAdapter.FailMessageFactoryAfter( n );
+            Server server( allocator, privateKey, serverAddress, config, failingAdapter, 100.0 );
+            check( !server.Start( 2 ) );
+            check( !server.IsRunning() );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
+void test_client_connect_alloc_failure()
+{
+    // YJ-01 on the client side: BaseClient::CreateInternal bound a reference to *m_clientAllocator
+    // one line after allocating it, with no check in any build. Same sweep: every failure point
+    // returns false, leaves the client disconnected with an out-of-memory reason, and leaks
+    // nothing.
+    Address clientAddress( "0.0.0.0", 0 );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    int n = 0;
+    for ( ; n < MaxStartupAllocations; ++n )
+    {
+        ArmableAllocator allocator;
+        {
+            Client client( allocator, clientAddress, config, adapter, 100.0 );
+            allocator.Arm( n );
+            const bool connecting = client.InsecureConnect( privateKey, 1, serverAddress );
+            allocator.Disarm();
+            if ( connecting )
+            {
+                check( client.IsConnecting() );
+                client.Disconnect();
+                break;
+            }
+            check( !client.IsConnecting() );
+            check( !client.IsConnected() );
+            check( client.ConnectionFailed() );
+            check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+    check( n > 0 );
+    check( n < MaxStartupAllocations );
+}
+
+void test_client_connect_factory_failure()
+{
+    Address clientAddress( "0.0.0.0", 0 );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    {
+        ArmableAllocator allocator;
+        {
+            FailingFactoryAdapter failingAdapter;
+            failingAdapter.FailAllocatorAfter( 0 );
+            Client client( allocator, clientAddress, config, failingAdapter, 100.0 );
+            check( !client.InsecureConnect( privateKey, 1, serverAddress ) );
+            check( client.ConnectionFailed() );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    {
+        ArmableAllocator allocator;
+        {
+            FailingFactoryAdapter failingAdapter;
+            failingAdapter.FailMessageFactoryAfter( 0 );
+            Client client( allocator, clientAddress, config, failingAdapter, 100.0 );
+            check( !client.InsecureConnect( privateKey, 1, serverAddress ) );
+            check( client.ConnectionFailed() );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
 void test_client_connect_socket_failure_no_crash()
 {
     // Regression: Connect() and ConnectLoopback() called into netcode_client_connect() without
@@ -3744,6 +4172,7 @@ int main( int argc, char ** argv )
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
+        RUN_TEST( test_address_malformed_port );
         RUN_TEST( test_address_classification );
         RUN_TEST( test_network_simulator_drains_all_slots );
         RUN_TEST( test_bit_array );
@@ -3768,6 +4197,13 @@ int main( int argc, char ** argv )
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
+        RUN_TEST( test_rtti_across_the_abi_boundary );
+        RUN_TEST( test_public_layout_is_configuration_independent );
+        RUN_TEST( test_interface_methods_link );
+        RUN_TEST( test_server_start_alloc_failure );
+        RUN_TEST( test_server_start_factory_failure );
+        RUN_TEST( test_client_connect_alloc_failure );
+        RUN_TEST( test_client_connect_factory_failure );
         RUN_TEST( test_client_connect_socket_failure_no_crash );
         RUN_TEST( test_client_is_loopback_when_disconnected );
         RUN_TEST( test_client_server_messages );

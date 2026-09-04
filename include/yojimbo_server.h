@@ -98,37 +98,37 @@ namespace yojimbo
 
         ~Server();
 
-        void Start( int maxClients );
+        bool Start( int maxClients ) YOJIMBO_OVERRIDE;
 
-        void Stop();
+        void Stop() YOJIMBO_OVERRIDE;
 
-        void DisconnectClient( int clientIndex );
+        void DisconnectClient( int clientIndex ) YOJIMBO_OVERRIDE;
 
-        void DisconnectAllClients();
+        void DisconnectAllClients() YOJIMBO_OVERRIDE;
 
-        void SendPackets();
+        void SendPackets() YOJIMBO_OVERRIDE;
 
-        void ReceivePackets();
+        void ReceivePackets() YOJIMBO_OVERRIDE;
 
-        void AdvanceTime( double time );
+        void AdvanceTime( double time ) YOJIMBO_OVERRIDE;
 
-        bool IsClientConnected( int clientIndex ) const;
+        bool IsClientConnected( int clientIndex ) const YOJIMBO_OVERRIDE;
 
-        uint64_t GetClientId( int clientIndex ) const;
+        uint64_t GetClientId( int clientIndex ) const YOJIMBO_OVERRIDE;
 
-        const uint8_t * GetClientUserData( int clientIndex ) const;
+        const uint8_t * GetClientUserData( int clientIndex ) const YOJIMBO_OVERRIDE;
 
-        netcode_address_t * GetClientAddress( int clientIndex ) const;
+        netcode_address_t * GetClientAddress( int clientIndex ) const YOJIMBO_OVERRIDE;
 
-        int GetNumConnectedClients() const;
+        int GetNumConnectedClients() const YOJIMBO_OVERRIDE;
 
-        void ConnectLoopbackClient( int clientIndex, uint64_t clientId, const uint8_t * userData );
+        void ConnectLoopbackClient( int clientIndex, uint64_t clientId, const uint8_t * userData ) YOJIMBO_OVERRIDE;
 
-        void DisconnectLoopbackClient( int clientIndex );
+        void DisconnectLoopbackClient( int clientIndex ) YOJIMBO_OVERRIDE;
 
-        bool IsLoopbackClient( int clientIndex ) const;
+        bool IsLoopbackClient( int clientIndex ) const YOJIMBO_OVERRIDE;
 
-        void ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
+        void ProcessLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence ) YOJIMBO_OVERRIDE;
 
         /**
             Gets the local address the server socket is bound to (with the actual port, when port 0 was passed in).
@@ -140,9 +140,9 @@ namespace yojimbo
 
     private:
 
-        void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE;
 
-        int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE;
 
         void ConnectDisconnectCallbackFunction( int clientIndex, int connected );
 

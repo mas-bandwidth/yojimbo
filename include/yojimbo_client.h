@@ -108,6 +108,7 @@ namespace yojimbo
             @param allocator The allocator for all memory used by the client.
             @param address The address the client should bind to.
             @param config The client/server configuration.
+            @param adapter The adapter to the game program. Specifies the allocator and the message factory to use.
             @param time The current time in seconds. See ClientInterface::AdvanceTime
          */
 
@@ -115,31 +116,43 @@ namespace yojimbo
 
         ~Client();
 
-        void InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address );
+        /**
+            Connect to a server with a locally generated connect token.
+            @returns True if the connect attempt started. False if the client ran out of memory or could not generate the token, in which case nothing is allocated and the client is left disconnected or in the error state.
+         */
 
-        void InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
+        bool InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address & address );
 
-        void Connect( uint64_t clientId, uint8_t * connectToken );
+        /// @see Client::InsecureConnect
 
-        void Disconnect();
+        bool InsecureConnect( const uint8_t privateKey[], uint64_t clientId, const Address serverAddresses[], int numServerAddresses );
 
-        void SendPackets();
+        /**
+            Connect to a server with a connect token from a matchmaker.
+            @returns True if the connect attempt started. False if the client ran out of memory, could not open its socket, or the token was rejected. In every false case nothing stays allocated.
+         */
 
-        void ReceivePackets();
+        bool Connect( uint64_t clientId, uint8_t * connectToken );
 
-        void AdvanceTime( double time );
+        void Disconnect() YOJIMBO_OVERRIDE;
 
-        int GetClientIndex() const;
+        void SendPackets() YOJIMBO_OVERRIDE;
 
-        uint64_t GetClientId() const { return m_clientId; }
+        void ReceivePackets() YOJIMBO_OVERRIDE;
 
-        void ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients );
+        void AdvanceTime( double time ) YOJIMBO_OVERRIDE;
 
-        void DisconnectLoopback();
+        int GetClientIndex() const YOJIMBO_OVERRIDE;
 
-        bool IsLoopback() const;
+        uint64_t GetClientId() const YOJIMBO_OVERRIDE { return m_clientId; }
 
-        void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
+        bool ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients ) YOJIMBO_OVERRIDE;
+
+        void DisconnectLoopback() YOJIMBO_OVERRIDE;
+
+        bool IsLoopback() const YOJIMBO_OVERRIDE;
+
+        void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence ) YOJIMBO_OVERRIDE;
 
         /**
             Gets the local address the client socket is bound to (with the actual port, when port 0 was passed in).
@@ -165,9 +178,9 @@ namespace yojimbo
 
         static void StaticStateChangeCallbackFunction( void * context, int previous, int current );
 
-        void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE;
 
-        int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE;
 
         void SendLoopbackPacketCallbackFunction( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 

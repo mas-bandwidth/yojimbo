@@ -1,9 +1,11 @@
 /*
     Seed-corpus generator for the C fuzz targets (fuzz_netcode, fuzz_reliable).
 
-    Emits a handful of valid packets so libFuzzer starts from inputs that already reach the
-    post-decrypt / reassembly code instead of rediscovering the wire format from random
-    bytes. Run it (see fuzz/README.md) to (re)generate the fuzz/corpus/<target> seed files;
+    Emits a valid packet of every authenticated netcode type -- connection request, denied,
+    challenge, response, keep-alive, payload and disconnect -- so libFuzzer starts from inputs
+    that already reach the post-decrypt / reassembly code instead of rediscovering the wire
+    format from random bytes. Random mutation cannot realistically produce a valid AEAD tag, so
+    a type with no seed is a parser the fuzzer never enters (YJ-09). Run it (see fuzz/README.md) to (re)generate the fuzz/corpus/<target> seed files;
     the produced files are committed so CI needs only the corpus, not this generator.
 
     Includes netcode.c directly (its writer and packet-type symbols are internal to that TU,
@@ -53,6 +55,12 @@ static void write_seed( const char * dir, const char * name, const uint8_t * dat
 
 // --- netcode -------------------------------------------------------------------------
 
+// Which authenticated packet types have a seed. Every netcode packet struct starts with its
+// packet_type byte, so verify_netcode records the type it just read back and gen_netcode
+// refuses to finish with a type missing: a type with no seed is a parser the fuzzer never
+// enters, because random mutation cannot produce a valid AEAD tag (YJ-09).
+static int g_netcode_seeded[NETCODE_CONNECTION_NUM_PACKETS];
+
 // Read the packet back exactly as fuzz_netcode.c does, to prove the seed decrypts and
 // parses (i.e. it reaches the code past the AEAD check, not just the prefix parse).
 static void verify_netcode( const uint8_t * data, int bytes )
@@ -73,7 +81,25 @@ static void verify_netcode( const uint8_t * data, int bytes )
     void * packet = netcode_read_packet( buffer, bytes, &sequence, key, FUZZ_PROTOCOL_ID,
                                          FUZZ_TIMESTAMP, key, allowed, &replay, NULL, NULL );
     assert( packet && "generated netcode seed failed to read back" );
+    const int packet_type = *(const uint8_t*) packet;
+    assert( packet_type >= 0 && packet_type < NETCODE_CONNECTION_NUM_PACKETS );
+    g_netcode_seeded[packet_type] = 1;
     netcode_default_free_function( NULL, packet );
+}
+
+static const char * netcode_packet_type_name( int packet_type )
+{
+    switch ( packet_type )
+    {
+        case NETCODE_CONNECTION_REQUEST_PACKET:     return "connection request";
+        case NETCODE_CONNECTION_DENIED_PACKET:      return "connection denied";
+        case NETCODE_CONNECTION_CHALLENGE_PACKET:   return "connection challenge";
+        case NETCODE_CONNECTION_RESPONSE_PACKET:    return "connection response";
+        case NETCODE_CONNECTION_KEEP_ALIVE_PACKET:  return "connection keep alive";
+        case NETCODE_CONNECTION_PAYLOAD_PACKET:     return "connection payload";
+        case NETCODE_CONNECTION_DISCONNECT_PACKET:  return "connection disconnect";
+        default:                                    return "(unknown)";
+    }
 }
 
 static void gen_connection_request( const char * dir );
@@ -124,7 +150,71 @@ static void gen_netcode( const char * root )
         write_seed( dir, "disconnect", buffer, bytes );
     }
 
+    // connection denied: zero-length encrypted payload, like disconnect but a different type
+    {
+        struct netcode_connection_denied_packet_t p;
+        p.packet_type = NETCODE_CONNECTION_DENIED_PACKET;
+        int bytes = netcode_write_packet( &p, buffer, sizeof( buffer ), sequence + 3, key, FUZZ_PROTOCOL_ID );
+        verify_netcode( buffer, bytes );
+        write_seed( dir, "connection_denied", buffer, bytes );
+    }
+
+    // connection challenge and connection response: both carry a challenge token sequence and a
+    // 300 byte encrypted challenge token. A real one is generated and encrypted here rather than
+    // filled with zeroes, so the seed is what a server and a client actually put on the wire.
+    {
+        struct netcode_challenge_token_t challenge_token;
+        challenge_token.client_id = 0x1234567890abcdefULL;
+        memset( challenge_token.user_data, 0, NETCODE_USER_DATA_BYTES );
+
+        uint8_t challenge_token_data[NETCODE_CHALLENGE_TOKEN_BYTES];
+        netcode_write_challenge_token( &challenge_token, challenge_token_data, sizeof( challenge_token_data ) );
+
+        const uint64_t challenge_token_sequence = 0x1122334455667788ULL;
+        if ( netcode_encrypt_challenge_token( challenge_token_data, sizeof( challenge_token_data ),
+                                              challenge_token_sequence, key ) != NETCODE_OK )
+        {
+            fprintf( stderr, "error: cannot encrypt challenge token\n" );
+            exit( 1 );
+        }
+
+        {
+            struct netcode_connection_challenge_packet_t p;
+            p.packet_type = NETCODE_CONNECTION_CHALLENGE_PACKET;
+            p.challenge_token_sequence = challenge_token_sequence;
+            memcpy( p.challenge_token_data, challenge_token_data, NETCODE_CHALLENGE_TOKEN_BYTES );
+            int bytes = netcode_write_packet( &p, buffer, sizeof( buffer ), sequence + 4, key, FUZZ_PROTOCOL_ID );
+            verify_netcode( buffer, bytes );
+            write_seed( dir, "connection_challenge", buffer, bytes );
+        }
+
+        {
+            struct netcode_connection_response_packet_t p;
+            p.packet_type = NETCODE_CONNECTION_RESPONSE_PACKET;
+            p.challenge_token_sequence = challenge_token_sequence;
+            memcpy( p.challenge_token_data, challenge_token_data, NETCODE_CHALLENGE_TOKEN_BYTES );
+            int bytes = netcode_write_packet( &p, buffer, sizeof( buffer ), sequence + 5, key, FUZZ_PROTOCOL_ID );
+            verify_netcode( buffer, bytes );
+            write_seed( dir, "connection_response", buffer, bytes );
+        }
+    }
+
     gen_connection_request( dir );
+
+    int missing = 0;
+    for ( int type = 0; type < NETCODE_CONNECTION_NUM_PACKETS; ++type )
+    {
+        if ( !g_netcode_seeded[type] )
+        {
+            fprintf( stderr, "error: no seed for packet type %d (%s)\n", type, netcode_packet_type_name( type ) );
+            missing++;
+        }
+    }
+    if ( missing )
+    {
+        fprintf( stderr, "error: %d authenticated packet type(s) have no seed\n", missing );
+        exit( 1 );
+    }
 }
 
 // A full connection-request packet: version + protocol + expiry + nonce wrapping an

@@ -45,19 +45,26 @@ namespace yojimbo
 
         ~BaseServer();
 
-        void SetContext( void * context );
+        void SetContext( void * context ) YOJIMBO_OVERRIDE;
 
-        void Start( int maxClients );
+        /**
+            Allocate the global and per-client memory the server needs to run.
+            Transactional: on the first allocation or adapter factory failure everything already
+            created is destroyed, the server is left stopped, and false is returned. Checked in
+            every build, not by an assert.
+         */
 
-        void Stop();
+        bool Start( int maxClients ) YOJIMBO_OVERRIDE;
 
-        void AdvanceTime( double time );
+        void Stop() YOJIMBO_OVERRIDE;
 
-        bool IsRunning() const { return m_running; }
+        void AdvanceTime( double time ) YOJIMBO_OVERRIDE;
 
-        int GetMaxClients() const { return m_maxClients; }
+        bool IsRunning() const YOJIMBO_OVERRIDE { return m_running; }
 
-        double GetTime() const { return m_time; }
+        int GetMaxClients() const YOJIMBO_OVERRIDE { return m_maxClients; }
+
+        double GetTime() const YOJIMBO_OVERRIDE { return m_time; }
 
         void SetLatency( float milliseconds );
 
@@ -67,25 +74,25 @@ namespace yojimbo
 
         void SetDuplicates( float percent );
 
-        Message * CreateMessage( int clientIndex, int type );
+        Message * CreateMessage( int clientIndex, int type ) YOJIMBO_OVERRIDE;
 
-        uint8_t * AllocateBlock( int clientIndex, int bytes );
+        uint8_t * AllocateBlock( int clientIndex, int bytes ) YOJIMBO_OVERRIDE;
 
-        void AttachBlockToMessage( int clientIndex, Message * message, uint8_t * block, int bytes );
+        void AttachBlockToMessage( int clientIndex, Message * message, uint8_t * block, int bytes ) YOJIMBO_OVERRIDE;
 
-        void FreeBlock( int clientIndex, uint8_t * block );
+        void FreeBlock( int clientIndex, uint8_t * block ) YOJIMBO_OVERRIDE;
 
-        bool CanSendMessage( int clientIndex, int channelIndex ) const;
+        bool CanSendMessage( int clientIndex, int channelIndex ) const YOJIMBO_OVERRIDE;
 
         bool HasMessagesToSend( int clientIndex, int channelIndex ) const;
 
-        void SendMessage( int clientIndex, int channelIndex, Message * message );
+        void SendMessage( int clientIndex, int channelIndex, Message * message ) YOJIMBO_OVERRIDE;
 
-        Message * ReceiveMessage( int clientIndex, int channelIndex );
+        Message * ReceiveMessage( int clientIndex, int channelIndex ) YOJIMBO_OVERRIDE;
 
-        void ReleaseMessage( int clientIndex, Message * message );
+        void ReleaseMessage( int clientIndex, Message * message ) YOJIMBO_OVERRIDE;
 
-        void GetNetworkInfo( int clientIndex, NetworkInfo & info ) const;
+        void GetNetworkInfo( int clientIndex, NetworkInfo & info ) const YOJIMBO_OVERRIDE;
 
         /**
             Get the reason the client in this slot was last disconnected.

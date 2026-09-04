@@ -31,9 +31,6 @@
 #include <stdint.h>
 #include <new>
 #include <utility>
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-#include <map>
-#endif // YOJIMBO_DEBUG_MEMORY_LEAKS
 
 typedef void* tlsf_t;
 
@@ -96,21 +93,15 @@ namespace yojimbo
         }
     }
 
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-
     /**
-        Debug structure used to track allocations and find memory leaks.
-        Active in debug build only. Disabled in release builds for performance reasons.
+        Opaque debug-only leak tracking state for an Allocator.
+        Defined and used entirely inside libyojimbo (yojimbo_allocator.cpp): the pointer to it is
+        present in every build, so Allocator has one layout whatever NDEBUG a consumer compiles
+        with, and it is only ever allocated when the library itself was built with
+        YOJIMBO_DEBUG_MEMORY_LEAKS.
      */
 
-    struct AllocatorEntry
-    {
-        size_t size;                        ///< The size of the allocation in bytes.
-        const char * file;                  ///< Filename of the source code file that made the allocation.
-        int line;                           ///< Line number in the source code where the allocation was made.
-    };
-
-#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+    class AllocatorDebugState;
 
     /**
         Functionality common to all allocators.
@@ -181,7 +172,7 @@ namespace yojimbo
         /**
             Set the error level.
             For correct client/server behavior when an allocation fails, please make sure you call this method to set the error level to ALLOCATOR_ERROR_FAILED_TO_ALLOCATE.
-            @param error The allocator error level to set.
+            @param errorLevel The allocator error level to set.
          */
 
         void SetErrorLevel( AllocatorErrorLevel errorLevel );
@@ -209,11 +200,9 @@ namespace yojimbo
 
         AllocatorErrorLevel m_errorLevel;                                       ///< The allocator error level.
 
-#if YOJIMBO_DEBUG_MEMORY_LEAKS
-        std::map<void*,AllocatorEntry> m_alloc_map;                             ///< Debug only data structure used to find and report memory leaks.
-#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
-
     private:
+
+        AllocatorDebugState * m_debug;                                          ///< Leak tracking state, or NULL. Present in every configuration so the class has one layout; only allocated in a debug library build.
 
         Allocator( const Allocator & other );
 

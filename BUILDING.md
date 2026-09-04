@@ -11,12 +11,13 @@ From the yojimbo directory:
     cmake -B build
     cmake --build build -j
 
-This produces the static libraries and the sample programs / tests in `bin/`. Run them with:
+This produces the static libraries and the sample programs / tests in `build/bin/`. Every build tree keeps its own, so a Debug and a Release build of the same checkout never overwrite each other. Run them with:
 
-    ./bin/test           # unit + integration tests — must print "ALL TESTS PASS"
-    ./bin/server         # run a server on localhost on UDP port 40000
-    ./bin/client         # run a client that connects to the local server
-    ./bin/soak           # long-running soak test at high packet loss (Ctrl-C to stop)
+    ctest --test-dir build --output-on-failure   # runs this build tree's tests
+    ./build/bin/test     # or the same binary directly — must print "ALL TESTS PASS"
+    ./build/bin/server   # run a server on localhost on UDP port 40000
+    ./build/bin/client   # run a client that connects to the local server
+    ./build/bin/soak     # long-running soak test at high packet loss (Ctrl-C to stop)
 
 The default is a debug build. For an optimized build, pass the build type:
 
@@ -41,6 +42,18 @@ This build sets the policy flag on every target it compiles, so nothing is requi
 to build yojimbo itself. **If you compile `serialize.h` in your own translation units, set
 the same flag there** — the flag is `PRIVATE` to yojimbo's targets and deliberately does
 not leak into your build, so this one is yours to set.
+
+## RTTI
+
+yojimbo builds with RTTI on, the compiler default. `Allocator`, `MessageFactory`, `Adapter`,
+`ClientInterface` and `ServerInterface` are public polymorphic classes you derive from, so their
+type information has to be there when your own code uses `dynamic_cast` or `typeid` on one of
+them. Building the library with `-fno-rtti` and your program without it links against vtables
+whose typeinfo was never emitted, and fails on `typeinfo for yojimbo::Allocator`.
+
+Messages carry their own one-bit block/non-block tag and an integer type from the message
+factory. That is the wire format and has nothing to do with C++ RTTI; nothing in yojimbo uses
+`dynamic_cast` on the message path.
 
 ## Building on Windows
 
@@ -86,15 +99,22 @@ package managers (e.g. homebrew), configure with `-DYOJIMBO_SYSTEM_DEPS=ON` to b
 against system-installed copies of all three instead. They must be installed where CMake
 can find them — pass `-DCMAKE_PREFIX_PATH=/path/to/prefix` for a custom location. In this
 configuration the bundled libsodium isn't used at all (the system netcode supplies its own
-crypto), and `cmake --install` installs the yojimbo headers and library:
+crypto).
+
+The three arrive as versioned imported targets: their versions are read from the installed
+headers and checked at configure time against the floors in `dependencies.manifest`, which is
+also where the versions vendored here and the tags CI installs are recorded. An installed
+netcode older than 1.4.0 is refused, not warned about — see SECURITY.md.
 
     cmake -B build -DYOJIMBO_SYSTEM_DEPS=ON
     cmake --build build -j
-    ./bin/test
+    ctest --test-dir build --output-on-failure
     cmake --install build
 
 Note that the test suite skips the embedded netcode and reliable self-test sections in
 this configuration — system libraries are built without their test hooks.
+
+See INSTALL.md for what each install puts in the prefix and how to consume it.
 
 ## Building against a system-installed tlsf
 
@@ -107,7 +127,7 @@ system tlsf library publicly instead. tlsf must be installed where CMake can fin
 
     cmake -B build -DYOJIMBO_SYSTEM_TLSF=ON
     cmake --build build -j
-    ./bin/test
+    ctest --test-dir build --output-on-failure
 
 Combines freely with `-DYOJIMBO_SYSTEM_DEPS=ON`. This option exists so packages carry
 no patches — the design came out of the vcpkg port review (thanks, vicroms).

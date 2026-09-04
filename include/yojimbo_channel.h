@@ -168,6 +168,7 @@ namespace yojimbo
         /**
             Queue a message to be sent across this channel.
             @param message The message to be sent.
+            @param context The serialization context, from Client::GetContext or Server::GetContext. Passed through to the message serialize functions. May be NULL.
          */
 
         virtual void SendMessage( Message * message, void *context) = 0;
@@ -188,6 +189,7 @@ namespace yojimbo
 
         /**
             Get channel packet data for this channel.
+            @param context The serialization context, from Client::GetContext or Server::GetContext. Passed through to the message serialize functions. May be NULL.
             @param packetData The channel packet data to be filled [out]
             @param packetSequence The sequence number of the packet being generated.
             @param availableBits The maximum number of bits of packet data the channel is allowed to write.

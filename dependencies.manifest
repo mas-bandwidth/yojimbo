@@ -1,0 +1,21 @@
+# The one place yojimbo's C library dependencies are versioned.
+#
+# Columns: name  vendored  tag  minimum
+#
+#   vendored   the version of the copy in this repository (its VERSION macros)
+#   tag        the upstream git tag carrying that version; the -DYOJIMBO_SYSTEM_DEPS CI job
+#              installs exactly these tags, so "system dependencies" means the same version the
+#              vendored build compiles
+#   minimum    the floor a system-installed copy must meet, enforced at configure time
+#
+# netcode's floor is 1.4.0: SECURITY.md records the advisory affecting netcode 1.3.5 and
+# earlier, so linking an older system netcode is refused rather than warned about. serialize
+# and reliable floor at the vendored version because yojimbo's sources are written against it
+# and both define wire formats.
+#
+# The vendored column is checked against the vendored headers at configure time, so this file
+# cannot drift from the tree it describes.
+
+serialize  1.15.0  v1.15.0  1.15.0
+reliable   1.4.0   v1.4.0   1.4.0
+netcode    1.4.3   v1.4.3   1.4.0

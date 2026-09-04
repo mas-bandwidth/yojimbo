@@ -42,8 +42,10 @@ logs-then-asserts and the whole Validate() family is compiled to nothing in rele
 DELIBERATELY ASSERT-ONLY, do NOT "fix" -- a future audit that finds these has found the
 contract: oversized block-message send (reliable_ordered_channel.cpp:562/611 -- SendMessage
 exempts block messages at :168 on purpose); BaseServer::Start's maxClients
-(base_server.cpp:48-50); Client::GenerateInsecureConnectToken (client.cpp:72); the whole
-clientIndex/channelIndex public surface.
+(base_server.cpp:54-55); Client::InsecureConnect's numServerAddresses (client.cpp:50-52); the
+whole clientIndex/channelIndex public surface. This rule is about CALLER-SUPPLIED values only:
+allocation and factory failure inside Start / CreateInternal is not a caller mistake, and those
+are checked in every build and reported through the bool those functions now return (YJ-01).
 The WIRE path is properly checked and was verified clean by two independent audits: wire
 channelIndex (channel.cpp:446), numChannelEntries (connection.cpp:58), numFragments/fragmentId
 (reliable_ordered_channel.cpp:712-724) and the receive memcpy bounds test at :733-738.

@@ -34,7 +34,9 @@ LEGAL = {
 
 def build_and_run(cxx, build_dir, src_name="drive_state_machine.cpp"):
     src = os.path.join(ROOT, "tools", "conformance", src_name)
-    libs = ["-lyojimbo", "-lnetcode", "-lreliable", "-lsodium-builtin", "-ltlsf"]
+    # libyojimbo is self-contained: the netcode, reliable, tlsf and libsodium objects are
+    # folded into it, so this is the whole link line.
+    libs = ["-lyojimbo", "-lm"]
     with tempfile.TemporaryDirectory() as tmp:
         exe = os.path.join(tmp, "drive")
         cmd = [cxx, "-std=c++11", "-I" + os.path.join(ROOT, "include"), "-I" + ROOT,

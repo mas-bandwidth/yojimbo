@@ -112,8 +112,7 @@ GameServer::GameServer(const yojimbo::Address& address) :
     m_server(yojimbo::GetDefaultAllocator(), DEFAULT_PRIVATE_KEY, address, m_connectionConfig, m_adapter, 0.0)
 {
     // start the server
-    m_server.Start(MAX_PLAYERS);
-    if (!m_server.IsRunning()) {
+    if (!m_server.Start(MAX_PLAYERS)) {
         throw std::runtime_error("Could not start server at port " + std::to_string(address.GetPort()));
     }
 
@@ -234,9 +233,13 @@ OnlineGameScreen::OnlineGameScreen(const yojimbo::Address& serverAddress) :
 {
     uint64_t clientId;
     yojimbo_random_bytes((uint8_t*)&clientId, 8);
-    m_client.InsecureConnect(DEFAULT_PRIVATE_KEY, clientId, m_serverAddress);
+    if (!m_client.InsecureConnect(DEFAULT_PRIVATE_KEY, clientId, m_serverAddress)) {
+        throw std::runtime_error("Could not start connecting to the server");
+    }
 }
 ```
+
+`Server::Start`, `Client::Connect`, `Client::InsecureConnect` and `Client::ConnectLoopback` all return a `bool`. They are transactional: on an out-of-memory failure, or a socket that cannot be opened, everything they had already allocated is freed, the object is left stopped or disconnected, and they return `false`. The check is compiled into release builds too, so a startup failure is an ordinary error you handle rather than a crash. `Client::GetDisconnectReason` reports `YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY` after a client startup that ran out of memory.
 
 Yojimbo requires each client to have a unique `clientId`. In a game with user accounts, this would typically be the user id. While in development or if you don't have user accounts in your game, you can just pass a random `uint64_t` number. Note that with a secure connection, the `clientId` wouldn't be set by the client, but would come inside a connection token received from the web backend, so clients cannot spoof their identity. But this is out of the scope of this guide.
 

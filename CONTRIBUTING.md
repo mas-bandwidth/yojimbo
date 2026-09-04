@@ -20,10 +20,10 @@ version:
 ```
 cmake -B build                   # bundled libsodium by default
 cmake --build build -j
-./bin/test                       # must end with "ALL TESTS PASS"
+ctest --test-dir build --output-on-failure   # must end with "100% tests passed"
 ```
 
-Please make sure `./bin/test` passes in **both** a Debug and a Release build
+Please make sure `ctest --test-dir build` passes in **both** a Debug and a Release build
 (`-DCMAKE_BUILD_TYPE=Debug` / `Release`) before opening a pull request, and add or update
 tests when you change behavior.
 

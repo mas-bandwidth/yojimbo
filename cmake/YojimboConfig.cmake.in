@@ -1,0 +1,45 @@
+@PACKAGE_INIT@
+
+# Consuming an installed yojimbo:
+#
+#   find_package(Yojimbo REQUIRED)
+#   target_link_libraries(myapp PRIVATE Yojimbo::yojimbo)
+#
+# There are two kinds of install and this file knows which one it came from.
+#
+# The default (bundled) install is self-contained: libyojimbo carries the netcode, reliable,
+# tlsf and libsodium objects, and installs the serialize, netcode, reliable and sodium headers
+# next to its own, so linking Yojimbo::yojimbo needs nothing else on the system.
+#
+# The -DYOJIMBO_SYSTEM_DEPS install is the package-manager one: serialize, reliable and netcode
+# come from their own packages. This file resolves them the same way yojimbo's own build did,
+# to the floors in the same dependencies.manifest, and refuses a version below them.
+
+set(YOJIMBO_SYSTEM_DEPS @YOJIMBO_SYSTEM_DEPS@)
+set(YOJIMBO_SYSTEM_SODIUM @YOJIMBO_SYSTEM_SODIUM@)
+set(YOJIMBO_SYSTEM_TLSF @YOJIMBO_SYSTEM_TLSF@)
+
+if(YOJIMBO_SYSTEM_DEPS)
+    include("${CMAKE_CURRENT_LIST_DIR}/YojimboSystemDeps.cmake")
+    yojimbo_find_system_deps("${CMAKE_CURRENT_LIST_DIR}/dependencies.manifest")
+elseif(YOJIMBO_SYSTEM_SODIUM)
+    # A bundled install built against the system libsodium instead of the vendored subset.
+    find_library(YOJIMBO_SODIUM_LIBRARY NAMES sodium REQUIRED
+        HINTS /opt/homebrew/lib /usr/local/lib /usr/lib)
+    if(NOT TARGET Yojimbo::sodium)
+        add_library(Yojimbo::sodium UNKNOWN IMPORTED)
+        set_target_properties(Yojimbo::sodium PROPERTIES IMPORTED_LOCATION "${YOJIMBO_SODIUM_LIBRARY}")
+    endif()
+endif()
+
+if(YOJIMBO_SYSTEM_TLSF)
+    find_library(YOJIMBO_TLSF_LIBRARY tlsf REQUIRED)
+    if(NOT TARGET Yojimbo::tlsf)
+        add_library(Yojimbo::tlsf UNKNOWN IMPORTED)
+        set_target_properties(Yojimbo::tlsf PROPERTIES IMPORTED_LOCATION "${YOJIMBO_TLSF_LIBRARY}")
+    endif()
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/YojimboTargets.cmake")
+
+check_required_components(Yojimbo)

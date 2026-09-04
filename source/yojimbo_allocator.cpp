@@ -28,34 +28,67 @@
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 #include <stdio.h>
 #include <stdlib.h>
+#include <map>
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
 #include "tlsf/tlsf.h"
 
 namespace yojimbo
 {
-    Allocator::Allocator() 
+    // The leak tracker lives here, behind Allocator::m_debug, instead of in the public header.
+    // Allocator is a base class consumers derive from, so a member whose presence depends on
+    // NDEBUG gave the class two layouts: one for a debug build of the library and another for a
+    // release consumer that included the same header. One pointer, always present, one layout.
+    class AllocatorDebugState
+    {
+    public:
+
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+
+        struct Entry
+        {
+            size_t size;
+            const char * file;
+            int line;
+        };
+
+        std::map<void*,Entry> alloc_map;
+
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+    };
+
+    Allocator::Allocator()
     {
         m_errorLevel = ALLOCATOR_ERROR_NONE;
+#if YOJIMBO_DEBUG_MEMORY_LEAKS
+        // The tracker's own std::map allocates from the global heap, and always did; the state
+        // object joins it there rather than routing through the allocator being tracked.
+        m_debug = new AllocatorDebugState();
+#else // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+        m_debug = NULL;
+#endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
 
     Allocator::~Allocator()
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        if ( m_alloc_map.size() )
+        yojimbo_assert( m_debug );
+        if ( m_debug->alloc_map.size() )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "you leaked memory!\n\n" );
-            typedef std::map<void*,AllocatorEntry>::iterator itor_type;
-            for ( itor_type i = m_alloc_map.begin(); i != m_alloc_map.end(); ++i )
+            typedef std::map<void*,AllocatorDebugState::Entry>::iterator itor_type;
+            for ( itor_type i = m_debug->alloc_map.begin(); i != m_debug->alloc_map.end(); ++i )
             {
                 void * p = i->first;
-                AllocatorEntry entry = i->second;
+                AllocatorDebugState::Entry entry = i->second;
                 yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "leaked block %p (%d bytes) - %s:%d\n", p, (int) entry.size, entry.file, entry.line );
             }
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "\n" );
             yojimbo_assert( false && "Leaks detected, see log" );
         }
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
+        delete m_debug;
+        m_debug = NULL;
     }
 
     void Allocator::SetErrorLevel( AllocatorErrorLevel errorLevel ) 
@@ -71,13 +104,14 @@ namespace yojimbo
     {
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
-        yojimbo_assert( m_alloc_map.find( p ) == m_alloc_map.end() );
+        yojimbo_assert( m_debug );
+        yojimbo_assert( m_debug->alloc_map.find( p ) == m_debug->alloc_map.end() );
 
-        AllocatorEntry entry;
+        AllocatorDebugState::Entry entry;
         entry.size = size;
         entry.file = file;
         entry.line = line;
-        m_alloc_map[p] = entry;
+        m_debug->alloc_map[p] = entry;
 
 #else // #if YOJIMBO_DEBUG_MEMORY_LEAKS
 
@@ -95,8 +129,9 @@ namespace yojimbo
         (void) file;
         (void) line;
 #if YOJIMBO_DEBUG_MEMORY_LEAKS
-        yojimbo_assert( m_alloc_map.find( p ) != m_alloc_map.end() );
-        m_alloc_map.erase( p );
+        yojimbo_assert( m_debug );
+        yojimbo_assert( m_debug->alloc_map.find( p ) != m_debug->alloc_map.end() );
+        m_debug->alloc_map.erase( p );
 #endif // #if YOJIMBO_DEBUG_MEMORY_LEAKS
     }
 

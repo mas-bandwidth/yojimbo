@@ -23,18 +23,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      # ctest --test-dir runs the binaries of that build tree and no other, so the debug step
+      # cannot silently run the release build's executables or the other way round.
       - name: Build & test (debug)
         run: |
           cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
           cmake --build build-debug -j
-          ./bin/test
-          ./bin/custom_packet_io_test
+          ctest --test-dir build-debug --output-on-failure
       - name: Build & test (release)
         run: |
           cmake -B build-release -DCMAKE_BUILD_TYPE=Release
           cmake --build build-release -j
-          ./bin/test
-          ./bin/custom_packet_io_test
+          ctest --test-dir build-release --output-on-failure
 
   windows:
     name: build & test (windows MSVC x64, ${{ matrix.config }})
@@ -51,19 +51,10 @@ jobs:
         run: cmake -B build -G "Visual Studio 17 2022" -A x64
       - name: Build (${{ matrix.config }} x64)
         run: cmake --build build --config ${{ matrix.config }} -j
+      # -C picks the configuration's own per-config output directory; no searching the tree for
+      # whatever test.exe happens to be lying around.
       - name: Test (${{ matrix.config }} x64)
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem -Recurse -Filter test.exe | Select-Object -First 1
-          if (-not $exe) { Write-Error "test.exe not found"; exit 1 }
-          Write-Host "Running $($exe.FullName)"
-          & $exe.FullName
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $exe = Get-ChildItem -Recurse -Filter custom_packet_io_test.exe | Select-Object -First 1
-          if (-not $exe) { Write-Error "custom_packet_io_test.exe not found"; exit 1 }
-          Write-Host "Running $($exe.FullName)"
-          & $exe.FullName
-          exit $LASTEXITCODE
+        run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure
 
   system-sodium:
     name: build & test (linux, --sodium=system)
@@ -76,7 +67,7 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug -DYOJIMBO_SYSTEM_SODIUM=ON
           cmake --build build -j
-          ./bin/test
+          ctest --test-dir build --output-on-failure
 
   system-deps:
     name: build & test (linux, --system-deps)
@@ -85,8 +76,13 @@ jobs:
       - uses: actions/checkout@v4
       # Simulates the package-manager environment (e.g. homebrew): serialize, reliable and
       # netcode installed into a prefix from their own releases, then yojimbo built against
-      # them with -DYOJIMBO_SYSTEM_DEPS=ON instead of the vendored copies. Versions pinned
-      # to match the vendored ones.
+      # them with -DYOJIMBO_SYSTEM_DEPS=ON instead of the vendored copies.
+      #
+      # The tags come from dependencies.manifest, which is also what the build checks the
+      # vendored copies against and what YojimboConfig.cmake enforces the floors from. They
+      # used to be typed here by hand and had drifted to serialize v1.4.3, reliable v1.3.3 and
+      # netcode v1.3.2 -- eleven minor versions of serialize behind the vendored copy, and a
+      # netcode inside the advisory range SECURITY.md records (SEC-04).
       - name: Install serialize, reliable and netcode into a prefix
         run: |
           set -euo pipefail
@@ -96,17 +92,19 @@ jobs:
           # reliable/ and netcode/ directories (the vendored copies).
           DEPS_SRC="$HOME/deps-src"
           mkdir -p "$PREFIX/include" "$PREFIX/lib" "$DEPS_SRC"
+          tag() { awk -v n="$1" '$1 == n { print $3 }' dependencies.manifest; }
+          echo "manifest tags: serialize $(tag serialize), reliable $(tag reliable), netcode $(tag netcode)"
           # serialize: header-only
-          git clone --depth 1 --branch v1.4.3 https://github.com/mas-bandwidth/serialize.git "$DEPS_SRC/serialize"
+          git clone --depth 1 --branch "$(tag serialize)" https://github.com/mas-bandwidth/serialize.git "$DEPS_SRC/serialize"
           cp "$DEPS_SRC/serialize/serialize.h" "$PREFIX/include/"
           # reliable: build the library from source
-          git clone --depth 1 --branch v1.3.3 https://github.com/mas-bandwidth/reliable.git "$DEPS_SRC/reliable"
+          git clone --depth 1 --branch "$(tag reliable)" https://github.com/mas-bandwidth/reliable.git "$DEPS_SRC/reliable"
           cc -O2 -c "$DEPS_SRC/reliable/reliable.c" -I"$DEPS_SRC/reliable" -o "$DEPS_SRC/reliable.o"
           ar rcs "$PREFIX/lib/libreliable.a" "$DEPS_SRC/reliable.o"
           cp "$DEPS_SRC/reliable/reliable.h" "$PREFIX/include/"
           # netcode: has cmake install rules (built against the system libsodium, as a
           # package manager would)
-          git clone --depth 1 --branch v1.3.2 https://github.com/mas-bandwidth/netcode.git "$DEPS_SRC/netcode"
+          git clone --depth 1 --branch "$(tag netcode)" https://github.com/mas-bandwidth/netcode.git "$DEPS_SRC/netcode"
           cmake -B "$DEPS_SRC/netcode-build" -S "$DEPS_SRC/netcode" -DCMAKE_BUILD_TYPE=Release -DNETCODE_SYSTEM_SODIUM=ON -DCMAKE_INSTALL_PREFIX="$PREFIX"
           cmake --build "$DEPS_SRC/netcode-build" -j
           cmake --install "$DEPS_SRC/netcode-build"
@@ -114,12 +112,92 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug -DYOJIMBO_SYSTEM_DEPS=ON -DCMAKE_PREFIX_PATH="$HOME/deps"
           cmake --build build -j
-          ./bin/test
-      - name: Install yojimbo and verify the layout
+          ctest --test-dir build --output-on-failure
+      # The install is only good if something outside the source tree can use it. This builds
+      # and runs tools/consumer against a clean prefix, using nothing but find_package(Yojimbo).
+      - name: Install and build a clean-prefix consumer
         run: |
+          set -euo pipefail
           cmake --install build --prefix "$HOME/yojimbo-install"
-          test -f "$HOME/yojimbo-install/include/yojimbo.h"
-          test -f "$HOME/yojimbo-install/lib/libyojimbo.a"
+          cmake -B consumer-build -S tools/consumer \
+            -DCMAKE_PREFIX_PATH="$HOME/yojimbo-install;$HOME/deps"
+          cmake --build consumer-build -j
+          ctest --test-dir consumer-build --output-on-failure
+      # A system-deps install must refuse a netcode inside the advisory range SECURITY.md
+      # records, at configure time (SEC-04). Break the installed netcode's version down to
+      # 1.3.2 and check the consumer's find_package fails.
+      - name: The netcode floor is enforced for consumers
+        run: |
+          set -euo pipefail
+          cp "$HOME/deps/include/netcode.h" "$HOME/netcode.h.orig"
+          sed -i 's/#define NETCODE_VERSION_MINOR.*/#define NETCODE_VERSION_MINOR 3/; s/#define NETCODE_VERSION_PATCH.*/#define NETCODE_VERSION_PATCH 2/' "$HOME/deps/include/netcode.h"
+          if cmake -B floor-build -S tools/consumer -DCMAKE_PREFIX_PATH="$HOME/yojimbo-install;$HOME/deps" > floor.log 2>&1; then
+            echo "expected find_package(Yojimbo) to refuse netcode 1.3.2"; cat floor.log; exit 1
+          fi
+          # CMake wraps message() text, so flatten the log before matching the sentence.
+          tr '\n' ' ' < floor.log | tr -s ' ' | grep -q "yojimbo requires 1.4.0 or later"
+          cp "$HOME/netcode.h.orig" "$HOME/deps/include/netcode.h"
+
+  bundled-install-consumer:
+    name: clean-prefix consumer (default bundled install)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # The default install has to stand on its own: libyojimbo carries the netcode, reliable,
+      # tlsf and libsodium objects and the prefix has every header they need. Before YJ-03 it
+      # published a libyojimbo.a whose netcode and libsodium symbols were undefined and shipped
+      # nothing that could satisfy them, and no job noticed because nothing consumed the install.
+      - name: Install into a clean prefix and build the consumer against it
+        run: |
+          set -euo pipefail
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DYOJIMBO_BUILD_TESTS=OFF
+          cmake --build build -j
+          cmake --install build --prefix "$HOME/yojimbo-install"
+          cmake -B consumer-build -S tools/consumer -DCMAKE_PREFIX_PATH="$HOME/yojimbo-install"
+          cmake --build consumer-build -j
+          ctest --test-dir consumer-build --output-on-failure
+      # ...and the other way a project takes yojimbo: add_subdirectory. tools/subproject fails
+      # configure if yojimbo defines any of the generic global target names, and `ctest -N` must
+      # report only the subproject's own test -- yojimbo's tests and examples default off when
+      # it is not the top-level project (YJ-08).
+      - name: Embed yojimbo with add_subdirectory
+        run: |
+          set -euo pipefail
+          cmake -B subproject-build -S tools/subproject -DYOJIMBO_SOURCE_DIR="$PWD"
+          cmake --build subproject-build -j
+          ctest --test-dir subproject-build --output-on-failure
+          test "$(ctest --test-dir subproject-build -N | awk '/^Total Tests:/ { print $3 }')" -eq 1
+
+  matcher:
+    name: matcher (go vet, docker image, live request)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # The image pinned golang:1.20.13 while go.mod required go 1.25.0, so the build documented
+      # in matcher/README.md could not succeed -- and nothing built it, so nobody found out
+      # (YJ-07). One value now: the Dockerfile's GO_VERSION argument, checked against go.mod.
+      - name: The Dockerfile's Go version matches go.mod
+        run: |
+          set -euo pipefail
+          mod=$(awk '/^go /{ print $2 }' matcher/go.mod)
+          img=$(awk -F= '/^ARG GO_VERSION=/{ print $2 }' matcher/Dockerfile)
+          echo "go.mod requires $mod, Dockerfile builds with $img"
+          test "$mod" = "$img"
+      - name: Build the matcher image
+        run: docker build --tag matcher matcher
+      # The image is only built if it also runs: ask it for a connect token and check the shape.
+      # A netcode connect token is 2048 bytes, base64 as 2732 characters.
+      - name: The image serves a connect token
+        run: |
+          set -euo pipefail
+          docker run -d -p 8081:8081 --name matcher matcher
+          for i in $(seq 1 30); do
+            if curl -fsS "http://localhost:8081/match/123/42" -o token.b64; then break; fi
+            sleep 1
+          done
+          docker logs matcher
+          test "$(wc -c < token.b64)" -eq 2732
+          test "$(base64 -d < token.b64 | wc -c)" -eq 2048
 
   sanitizers:
     name: sanitizers (linux, ASan+UBSan+LSan)
@@ -127,17 +205,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build (sanitized)
-        # nonnull-attribute is excluded: netcode encrypts zero-length plaintexts, and
-        # libsodium's AEAD then does memcpy(dst, NULL, 0) — benign UB in upstream code.
+        # The nonnull-attribute exemption is NOT here: it is attached to sodium/sodium.c in
+        # CMakeLists.txt, which is the only code that needs it. In the global flags it switched
+        # the check off for netcode, reliable and all of yojimbo as well.
         run: |
-          SAN="-fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
+          SAN="-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
-          cmake --build build -j --target test
+          cmake --build build -j --target yojimbo_test yojimbo_custom_packet_io_test
+      # custom_packet_io_test drives the whole client/server stack through the adapter's own
+      # transport instead of netcode's sockets. It was built and run by every other job but not
+      # under sanitizers, so that path had no ASan/UBSan/LSan coverage at all.
       - name: Test (sanitized)
-        run: ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ./bin/test
+        run: |
+          export ASAN_OPTIONS=detect_leaks=1
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          ctest --test-dir build --output-on-failure
 
   fuzz:
     name: fuzz (linux libFuzzer, ASan+UBSan)
@@ -148,13 +233,30 @@ jobs:
       # without -DFUZZ_STANDALONE (libFuzzer supplies main) and time-boxed. Debug defines
       # stay on so the libraries' asserts and the message-factory leak check are live —
       # that check is what surfaces leaks in the connection deserialization error paths.
-      # nonnull-attribute is excluded for the same reason as the sanitizers job (libsodium
-      # memcpy(dst, NULL, 0) on zero-length AEAD plaintext).
+      #
+      # sodium.c is compiled on its own, and it is the only compilation that carries
+      # -fno-sanitize=nonnull-attribute: the exemption used to sit in the shared flags and
+      # silently covered netcode, reliable and yojimbo too (SEC-05).
+      # The generator round-trips every seed through netcode_read_packet and refuses to finish
+      # unless every authenticated packet type has one, so this step is what keeps a parser from
+      # quietly falling out of the corpus (YJ-09). It writes to a scratch directory: the connect
+      # token seeds carry freshly generated random keys, so they are not byte-reproducible and
+      # the committed ones stay as they are.
+      - name: The seed generator covers every authenticated packet type
+        run: |
+          set -euo pipefail
+          clang -DNETCODE_DEBUG -DRELIABLE_DEBUG -Inetcode -Isodium -Ireliable -Ifuzz -w -g \
+            tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -lm -o /tmp/gen_seed_corpus
+          /tmp/gen_seed_corpus /tmp/corpus-regen
       - name: Build and run fuzz targets
         run: |
           set -euo pipefail
-          SAN="-fsanitize=fuzzer,address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
+          SAN="-fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
           RUN="-max_total_time=60 -print_final_stats=1 -rss_limit_mb=4096"
+
+          echo "::group::build sodium (nonnull-attribute exempt, vendored upstream code)"
+          clang $SAN -fno-sanitize=nonnull-attribute -w -Isodium -c sodium/sodium.c -o sodium.o
+          echo "::endgroup::"
 
           echo "::group::build fuzz_reliable"
           clang $SAN -DRELIABLE_DEBUG -Ireliable -Ifuzz \
@@ -163,19 +265,19 @@ jobs:
 
           echo "::group::build fuzz_netcode"
           clang $SAN -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
-            fuzz/fuzz_netcode.c sodium/sodium.c -o fuzz_netcode
+            fuzz/fuzz_netcode.c sodium.o -o fuzz_netcode
           echo "::endgroup::"
 
           echo "::group::build fuzz_netcode_connect_token"
           clang $SAN -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
-            fuzz/fuzz_netcode_connect_token.c sodium/sodium.c -o fuzz_netcode_connect_token
+            fuzz/fuzz_netcode_connect_token.c sodium.o -o fuzz_netcode_connect_token
           echo "::endgroup::"
 
           for target in fuzz_connection fuzz_connection_structured; do
             echo "::group::build $target"
             clang++ -std=c++11 $SAN -DYOJIMBO_DEBUG -DNETCODE_DEBUG -DRELIABLE_DEBUG -DSERIALIZE_DEBUG \
               -I. -Iinclude -Isodium -Itlsf -Inetcode -Ireliable -Iserialize -Ifuzz \
-              fuzz/$target.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c sodium/sodium.c \
+              fuzz/$target.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c sodium.o \
               -o $target
             echo "::endgroup::"
           done
@@ -197,14 +299,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build soak (sanitized)
-        # Same sanitizer flags and nonnull-attribute carve-out as the sanitizers job.
+        # Same sanitizer flags as the sanitizers job. The nonnull-attribute exemption rides on
+        # sodium/sodium.c in CMakeLists.txt, not on everything.
         run: |
-          SAN="-fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
+          SAN="-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
           cmake -B build -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
-          cmake --build build -j --target soak
+          cmake --build build -j --target yojimbo_soak
       - name: Run soak (time-boxed)
         # Bounded iteration count so the normally-endless soak exits cleanly and the
         # sanitizers run their end-of-process (incl. leak) checks. Output is verbose, so
@@ -212,7 +315,7 @@ jobs:
         run: |
           set -o pipefail
           if ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
-               ./bin/soak 20000 > soak.log 2>&1; then
+               ./build/bin/soak 20000 > soak.log 2>&1; then
             echo "soak completed cleanly ($(grep -c 'received message' soak.log) messages exchanged)"
           else
             echo "soak failed (exit $?)"; tail -50 soak.log; exit 1
@@ -264,6 +367,35 @@ jobs:
             ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
             echo "::endgroup::"
           done
+
+  docs:
+    name: doxygen (version from the build, warnings are errors)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install doxygen
+        run: sudo apt-get update && sudo apt-get install -y doxygen
+      # doxygen.config reported PROJECT_NUMBER 1.0 for every release and never failed on a
+      # warning, and nothing built the docs, so neither showed (YJ-12). The docs target passes
+      # the project version in the environment, and the config now treats every documentation
+      # warning as an error, so an undocumented public member or a stale @param fails here.
+      - name: Build the documentation
+        run: |
+          set -euo pipefail
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DYOJIMBO_BUILD_TESTS=OFF
+          cmake --build build --target docs
+      - name: The generated documentation carries the build's version
+        run: |
+          set -euo pipefail
+          version=$(cmake -P cmake/PrintVersion.cmake 2>&1)
+          echo "project version: $version"
+          grep -rq "$version" docs/html/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: doxygen-html
+          path: docs/html
+          if-no-files-found: ignore
 
   conformance:
     name: STANDARD.md + STATE-MACHINE.md conformance

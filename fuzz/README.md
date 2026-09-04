@@ -60,19 +60,26 @@ clang -DFUZZ_STANDALONE -DRELIABLE_DEBUG -Ireliable -Ifuzz \
 FUZZ_ITERS=300000 UBSAN_OPTIONS=halt_on_error=1 /tmp/fz_reliable
 ```
 
+The vendored libsodium is compiled on its own, because it is the only code that gets the
+`-fno-sanitize=nonnull-attribute` exemption:
+```
+clang -fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -g \
+  -w -Isodium -c sodium/sodium.c -o /tmp/sodium.o
+```
+
 netcode:
 ```
 clang -DFUZZ_STANDALONE -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
-  -fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -g \
-  fuzz/fuzz_netcode.c sodium/sodium.c -o /tmp/fz_netcode
+  -fsanitize=address,undefined -fno-sanitize-recover=all -g \
+  fuzz/fuzz_netcode.c /tmp/sodium.o -o /tmp/fz_netcode
 FUZZ_ITERS=300000 UBSAN_OPTIONS=halt_on_error=1 /tmp/fz_netcode
 ```
 
 netcode connect token (swap the source file for the connect-token target):
 ```
 clang -DFUZZ_STANDALONE -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
-  -fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -g \
-  fuzz/fuzz_netcode_connect_token.c sodium/sodium.c -o /tmp/fz_netcode_connect_token
+  -fsanitize=address,undefined -fno-sanitize-recover=all -g \
+  fuzz/fuzz_netcode_connect_token.c /tmp/sodium.o -o /tmp/fz_netcode_connect_token
 FUZZ_ITERS=300000 UBSAN_OPTIONS=halt_on_error=1 /tmp/fz_netcode_connect_token
 ```
 
@@ -80,15 +87,17 @@ connection:
 ```
 clang++ -std=c++11 -DFUZZ_STANDALONE -DYOJIMBO_DEBUG -DNETCODE_DEBUG -DRELIABLE_DEBUG -DSERIALIZE_DEBUG \
   -I. -Iinclude -Isodium -Itlsf -Inetcode -Ireliable -Iserialize -Ifuzz \
-  -fsanitize=address,undefined -fno-sanitize=nonnull-attribute -fno-sanitize-recover=all -g \
-  fuzz/fuzz_connection.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c sodium/sodium.c \
+  -fsanitize=address,undefined -fno-sanitize-recover=all -g \
+  fuzz/fuzz_connection.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c /tmp/sodium.o \
   -o /tmp/fz_connection
 FUZZ_ITERS=100000 /tmp/fz_connection
 ```
 
-`-fno-sanitize=nonnull-attribute` is required for any target that links libsodium (netcode,
-connection): netcode encrypts zero-length AEAD plaintexts, so libsodium does
-`memcpy(dst, NULL, 0)` — benign UB in upstream code.
+`-fno-sanitize=nonnull-attribute` belongs to `sodium/sodium.c` and nothing else: netcode
+encrypts zero-length AEAD plaintexts, so libsodium does `memcpy(dst, NULL, 0)` — benign UB in
+vendored upstream code. Put it in the shared flags and it switches the check off for netcode,
+reliable and yojimbo as well, which is how netcode.c came to be built with no nonnull checking
+at all.
 
 ## Build — real libFuzzer (Linux clang), the CI mode
 Swap `-DFUZZ_STANDALONE` for `-fsanitize=fuzzer` (added to the sanitizer set) and pass a
@@ -123,13 +132,16 @@ committed seeds stay pristine). Standalone builds can replay them too:
 `./fz_netcode fuzz/corpus/fuzz_netcode/*`.
 
 The seeds are produced by generators under `tools/`, which round-trip every seed through the
-matching reader and assert it decodes, so a committed seed is always a valid input:
+matching reader and assert it decodes, so a committed seed is always a valid input.
+`gen_seed_corpus` additionally refuses to finish unless every authenticated netcode packet type
+has a seed — random mutation cannot realistically produce a valid AEAD tag, so a type with no
+seed is a parser the fuzzer never enters. CI runs it on every change:
 
 ```
 # netcode + connect-token + reliable seeds
 # (writes fuzz/corpus/fuzz_netcode, fuzz_netcode_connect_token, fuzz_reliable)
 clang -DNETCODE_DEBUG -DRELIABLE_DEBUG -Inetcode -Isodium -Ireliable -Ifuzz -g \
-  tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -o /tmp/gen_seed_corpus
+  tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -lm -o /tmp/gen_seed_corpus
 /tmp/gen_seed_corpus fuzz/corpus
 
 # connection seeds (writes fuzz/corpus/fuzz_connection)

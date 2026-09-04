@@ -26,6 +26,9 @@
 #include "yojimbo_platform.h"
 #include "yojimbo_utils.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_WINDOWS
 
@@ -124,12 +127,23 @@ namespace yojimbo
         m_port = port;
     }
 
-    // Parse a port string in [0,65535]. Returns false if the value is out of range, so callers
-    // can reject addresses like "127.0.0.1:99999" instead of silently truncating the port.
+    // Parse a port string. The whole string must be a decimal number in [0,65535] and nothing
+    // else: at least one digit, no sign, no leading space, no trailing characters, no overflow.
+    // strtol alone stops at the first character it cannot use and reports success on what it
+    // read, so "40k" parsed as 40, "" as 0, and "99999999999999999999" saturated to LONG_MAX --
+    // all of them accepted addresses that the documented contract calls invalid (YJ-11).
     static bool ParsePort( const char * string, uint16_t & port )
     {
-        const long value = strtol( string, NULL, 10 );
-        if ( value < 0 || value > 65535 )
+        if ( string[0] < '0' || string[0] > '9' )
+            return false;                                   // no digits, or a sign or space first
+        char * end = NULL;
+        errno = 0;
+        const unsigned long value = strtoul( string, &end, 10 );
+        if ( errno == ERANGE )
+            return false;                                   // more digits than an unsigned long
+        if ( *end != '\0' )
+            return false;                                   // trailing junk
+        if ( value > 65535 )
             return false;
         port = (uint16_t) value;
         return true;
@@ -151,20 +165,36 @@ namespace yojimbo
         m_port = 0;
         if ( address[0] == '[' )
         {
-            // Bracketed IPv6: "[addr6]" or "[addr6]:port". Locate the closing bracket, then
-            // treat only a ':' immediately after it as the port separator. Scanning for ':'
-            // from the end (as we do for IPv4 below) is wrong here because addr6 itself is full
-            // of colons, so "[::1]" with no port would misparse a colon inside the address.
-            char * closing = strrchr( address, ']' );
-            if ( closing )
+            // Bracketed IPv6: exactly "[addr6]" or "[addr6]:port", and nothing else. Locate the
+            // closing bracket, then treat only a ':' immediately after it as the port separator.
+            // Scanning for ':' from the end (as we do for IPv4 below) is wrong here because
+            // addr6 itself is full of colons, so "[::1]" with no port would misparse a colon
+            // inside the address.
+            //
+            // A missing bracket, or anything at all after the closing one other than ":port",
+            // is invalid: "[::1" and "[::1]junk" used to be accepted, the first because the
+            // opening bracket was simply skipped and the second because everything past the
+            // bracket was truncated away unread (YJ-11).
+            char * closing = strchr( address, ']' );
+            if ( !closing )
             {
-                if ( closing[1] == ':' && !ParsePort( closing + 2, m_port ) )
+                Clear();
+                return;
+            }
+            if ( closing[1] == ':' )
+            {
+                if ( !ParsePort( closing + 2, m_port ) )
                 {
                     Clear();
                     return;
                 }
-                *closing = '\0';
             }
+            else if ( closing[1] != '\0' )
+            {
+                Clear();
+                return;
+            }
+            *closing = '\0';
             address += 1;
         }
         struct in6_addr sockaddr6;
