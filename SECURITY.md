@@ -43,7 +43,16 @@ Out of scope: bugs in your own game code built on top of yojimbo, denial-of-serv
 requires an already-authenticated malicious peer flooding traffic, and issues in build
 tooling or example/test code that are not reachable at runtime.
 
-## Connect token handling changed in 1.12.1
+## Known issue: connect token reuse after disconnect (fixed in 1.12.1)
+
+**Advisory: [GHSA-v29p-3vj4-vg4f](https://github.com/mas-bandwidth/netcode/security/advisories/GHSA-v29p-3vj4-vg4f)** (published 2026-09-04; filed against netcode, and it names yojimbo's affected range too).
+
+**Affected: yojimbo 1.12.0 and earlier. Fixed in 1.12.1.**
+
+A connect token that had already established a session could establish another one once that
+client disconnected, and the second session encrypts under the same keys from a packet
+sequence that starts over, so it repeats AEAD nonces. Upstream: `netcode` <= 1.4.4, fixed in
+1.4.5, which **yojimbo 1.12.1** is the first release to vendor.
 
 **yojimbo 1.12.1 vendors netcode 1.4.5.** That netcode tightens what the server accepts as a
 connect token, and the change is visible to anything built on yojimbo, so it is written down
