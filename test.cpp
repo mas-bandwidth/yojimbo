@@ -2005,6 +2005,121 @@ void test_connection_process_packet_channel_data_alloc_failure()
     check( receiverAlloc.GetOutstanding() == 0 );
 }
 
+// YJ-02: ServerInterface::GetClientUserData was declared non-virtual with no definition
+// anywhere in the tree, so any call through a ServerInterface reference failed to link. Nothing
+// exercised the interfaces through a base reference, so it went unnoticed.
+//
+// This is a LINK test. A call to a non-virtual interface method needs a definition of that exact
+// symbol; a call to a virtual one goes through the vtable and needs none. Calling every declared
+// method of both interfaces through a base reference therefore fails to link the test binary if
+// any of them ever loses its "virtual" again.
+//
+// The calls are guarded by a volatile that is always false: the compiler cannot fold the branch
+// away, so it emits every call, and nothing here actually runs against a stopped server.
+static volatile bool g_callInterfaceMethods = false;
+
+static void CallEveryServerInterfaceMethod( ServerInterface & server )
+{
+    NetworkInfo info;
+    uint8_t userData[256];
+    memset( userData, 0, sizeof( userData ) );
+    uint8_t packet[16];
+    memset( packet, 0, sizeof( packet ) );
+
+    server.SetContext( NULL );
+    server.Start( 1 );
+    server.Stop();
+    server.DisconnectClient( 0 );
+    server.DisconnectAllClients();
+    server.SendPackets();
+    server.ReceivePackets();
+    server.AdvanceTime( 0.0 );
+    (void) server.IsRunning();
+    (void) server.GetMaxClients();
+    (void) server.IsClientConnected( 0 );
+    (void) server.GetClientId( 0 );
+    (void) server.GetClientUserData( 0 );
+    (void) server.GetClientAddress( 0 );
+    (void) server.GetNumConnectedClients();
+    (void) server.GetTime();
+    Message * message = server.CreateMessage( 0, TEST_MESSAGE );
+    uint8_t * block = server.AllocateBlock( 0, 16 );
+    server.AttachBlockToMessage( 0, message, block, 16 );
+    server.FreeBlock( 0, block );
+    (void) server.CanSendMessage( 0, 0 );
+    server.SendMessage( 0, 0, message );
+    (void) server.ReceiveMessage( 0, 0 );
+    server.ReleaseMessage( 0, message );
+    server.GetNetworkInfo( 0, info );
+    server.ConnectLoopbackClient( 0, 1, userData );
+    server.DisconnectLoopbackClient( 0 );
+    (void) server.IsLoopbackClient( 0 );
+    server.ProcessLoopbackPacket( 0, packet, sizeof( packet ), 0 );
+}
+
+static void CallEveryClientInterfaceMethod( ClientInterface & client )
+{
+    NetworkInfo info;
+    uint8_t packet[16];
+    memset( packet, 0, sizeof( packet ) );
+
+    client.SetContext( NULL );
+    client.Disconnect();
+    client.SendPackets();
+    client.ReceivePackets();
+    client.AdvanceTime( 0.0 );
+    (void) client.IsConnecting();
+    (void) client.IsConnected();
+    (void) client.IsDisconnected();
+    (void) client.ConnectionFailed();
+    (void) client.GetClientState();
+    (void) client.GetClientIndex();
+    (void) client.GetClientId();
+    (void) client.GetTime();
+    Message * message = client.CreateMessage( TEST_MESSAGE );
+    uint8_t * block = client.AllocateBlock( 16 );
+    client.AttachBlockToMessage( message, block, 16 );
+    client.FreeBlock( block );
+    (void) client.CanSendMessage( 0 );
+    client.SendMessage( 0, message );
+    (void) client.ReceiveMessage( 0 );
+    client.ReleaseMessage( message );
+    client.GetNetworkInfo( info );
+    (void) client.ConnectLoopback( 0, 1, 1 );
+    client.DisconnectLoopback();
+    (void) client.IsLoopback();
+    client.ProcessLoopbackPacket( packet, sizeof( packet ), 0 );
+}
+
+void test_interface_methods_link()
+{
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, 100.0 );
+    Client client( GetDefaultAllocator(), Address( "0.0.0.0", 0 ), config, adapter, 100.0 );
+
+    if ( g_callInterfaceMethods )
+    {
+        CallEveryServerInterfaceMethod( server );
+        CallEveryClientInterfaceMethod( client );
+    }
+
+    // The binary linked, which is the whole point. Prove the base reference really does reach
+    // the derived implementation for the method that had no definition at all. That method needs
+    // a running server, so start one for the comparison.
+    check( server.Start( 1 ) );
+    ServerInterface & serverInterface = server;
+    check( serverInterface.GetClientUserData( 0 ) == server.GetClientUserData( 0 ) );
+    check( serverInterface.GetMaxClients() == 1 );
+    server.Stop();
+
+    ClientInterface & clientInterface = client;
+    check( clientInterface.GetClientState() == client.GetClientState() );
+}
+
 // Adapter whose factory methods can be made to fail, so the startup paths are exercised at the
 // two points an ArmableAllocator cannot reach: a user allocator class that fails to construct,
 // and a message factory that fails to construct. Both return NULL from the adapter, which the
@@ -3961,6 +4076,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
+        RUN_TEST( test_interface_methods_link );
         RUN_TEST( test_server_start_alloc_failure );
         RUN_TEST( test_server_start_factory_failure );
         RUN_TEST( test_client_connect_alloc_failure );

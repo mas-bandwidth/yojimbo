@@ -133,25 +133,25 @@ namespace yojimbo
 
         bool Connect( uint64_t clientId, uint8_t * connectToken );
 
-        void Disconnect();
+        void Disconnect() YOJIMBO_OVERRIDE;
 
-        void SendPackets();
+        void SendPackets() YOJIMBO_OVERRIDE;
 
-        void ReceivePackets();
+        void ReceivePackets() YOJIMBO_OVERRIDE;
 
-        void AdvanceTime( double time );
+        void AdvanceTime( double time ) YOJIMBO_OVERRIDE;
 
-        int GetClientIndex() const;
+        int GetClientIndex() const YOJIMBO_OVERRIDE;
 
-        uint64_t GetClientId() const { return m_clientId; }
+        uint64_t GetClientId() const YOJIMBO_OVERRIDE { return m_clientId; }
 
-        bool ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients );
+        bool ConnectLoopback( int clientIndex, uint64_t clientId, int maxClients ) YOJIMBO_OVERRIDE;
 
-        void DisconnectLoopback();
+        void DisconnectLoopback() YOJIMBO_OVERRIDE;
 
-        bool IsLoopback() const;
+        bool IsLoopback() const YOJIMBO_OVERRIDE;
 
-        void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
+        void ProcessLoopbackPacket( const uint8_t * packetData, int packetBytes, uint64_t packetSequence ) YOJIMBO_OVERRIDE;
 
         /**
             Gets the local address the client socket is bound to (with the actual port, when port 0 was passed in).
@@ -177,9 +177,9 @@ namespace yojimbo
 
         static void StaticStateChangeCallbackFunction( void * context, int previous, int current );
 
-        void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE;
 
-        int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes );
+        int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE;
 
         void SendLoopbackPacketCallbackFunction( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence );
 

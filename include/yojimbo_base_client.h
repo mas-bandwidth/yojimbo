@@ -54,25 +54,25 @@ namespace yojimbo
 
         ~BaseClient();
 
-        void SetContext( void * context ) { yojimbo_assert( IsDisconnected() ); m_context = context; }
+        void SetContext( void * context ) YOJIMBO_OVERRIDE { yojimbo_assert( IsDisconnected() ); m_context = context; }
 
-        void Disconnect();
+        void Disconnect() YOJIMBO_OVERRIDE;
 
-        void AdvanceTime( double time );
+        void AdvanceTime( double time ) YOJIMBO_OVERRIDE;
 
-        bool IsConnecting() const { return m_clientState == CLIENT_STATE_CONNECTING; }
+        bool IsConnecting() const YOJIMBO_OVERRIDE { return m_clientState == CLIENT_STATE_CONNECTING; }
 
-        bool IsConnected() const { return m_clientState == CLIENT_STATE_CONNECTED; }
+        bool IsConnected() const YOJIMBO_OVERRIDE { return m_clientState == CLIENT_STATE_CONNECTED; }
 
-        bool IsDisconnected() const { return m_clientState <= CLIENT_STATE_DISCONNECTED; }
+        bool IsDisconnected() const YOJIMBO_OVERRIDE { return m_clientState <= CLIENT_STATE_DISCONNECTED; }
 
-        bool ConnectionFailed() const { return m_clientState == CLIENT_STATE_ERROR; }
+        bool ConnectionFailed() const YOJIMBO_OVERRIDE { return m_clientState == CLIENT_STATE_ERROR; }
 
-        ClientState GetClientState() const { return m_clientState; }
+        ClientState GetClientState() const YOJIMBO_OVERRIDE { return m_clientState; }
 
-        int GetClientIndex() const { return m_clientIndex; }
+        int GetClientIndex() const YOJIMBO_OVERRIDE { return m_clientIndex; }
 
-        double GetTime() const { return m_time; }
+        double GetTime() const YOJIMBO_OVERRIDE { return m_time; }
 
         void SetLatency( float milliseconds );
 
@@ -82,25 +82,25 @@ namespace yojimbo
 
         void SetDuplicates( float percent );
 
-        Message * CreateMessage( int type );
+        Message * CreateMessage( int type ) YOJIMBO_OVERRIDE;
 
-        uint8_t * AllocateBlock( int bytes );
+        uint8_t * AllocateBlock( int bytes ) YOJIMBO_OVERRIDE;
 
-        void AttachBlockToMessage( Message * message, uint8_t * block, int bytes );
+        void AttachBlockToMessage( Message * message, uint8_t * block, int bytes ) YOJIMBO_OVERRIDE;
 
-        void FreeBlock( uint8_t * block );
+        void FreeBlock( uint8_t * block ) YOJIMBO_OVERRIDE;
 
-        bool CanSendMessage( int channelIndex ) const;
+        bool CanSendMessage( int channelIndex ) const YOJIMBO_OVERRIDE;
 
         bool HasMessagesToSend( int channelIndex ) const;
 
-        void SendMessage( int channelIndex, Message * message );
+        void SendMessage( int channelIndex, Message * message ) YOJIMBO_OVERRIDE;
 
-        Message * ReceiveMessage( int channelIndex );
+        Message * ReceiveMessage( int channelIndex ) YOJIMBO_OVERRIDE;
 
-        void ReleaseMessage( Message * message );
+        void ReleaseMessage( Message * message ) YOJIMBO_OVERRIDE;
 
-        void GetNetworkInfo( NetworkInfo & info ) const;
+        void GetNetworkInfo( NetworkInfo & info ) const YOJIMBO_OVERRIDE;
 
         /**
             Get the reason this client was last disconnected.
