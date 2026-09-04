@@ -79,7 +79,9 @@ static void verify_netcode( const uint8_t * data, int bytes )
 
     uint64_t sequence = 0;
     void * packet = netcode_read_packet( buffer, bytes, &sequence, key, FUZZ_PROTOCOL_ID,
-                                         FUZZ_TIMESTAMP, key, allowed, &replay, NULL, NULL );
+                                         FUZZ_TIMESTAMP,
+                                         0,     /* minimum expire timestamp: zero, so a seed's connect token is never refused for predating a server start */
+                                         key, allowed, &replay, NULL, NULL );
     assert( packet && "generated netcode seed failed to read back" );
     const int packet_type = *(const uint8_t*) packet;
     assert( packet_type >= 0 && packet_type < NETCODE_CONNECTION_NUM_PACKETS );
@@ -369,6 +371,7 @@ static void gen_reliable( const char * root )
     receiver_config.transmit_packet_function = reliable_receiver_noop_transmit;
     receiver_config.process_packet_function = reliable_count_received;
     g_reliable_receiver = reliable_endpoint_create( &receiver_config, 100.0 );
+    assert( g_reliable_receiver && "could not create the reliable receiver endpoint" );
 
     struct reliable_config_t config;
     reliable_default_config( &config );
@@ -376,6 +379,7 @@ static void gen_reliable( const char * root )
     config.process_packet_function = reliable_accept_all;
 
     struct reliable_endpoint_t * endpoint = reliable_endpoint_create( &config, 100.0 );
+    assert( endpoint && "could not create the reliable sender endpoint" );
 
     // a small payload -> one regular (non-fragmented) packet: prefix byte + header + payload
     uint8_t small_payload[512];

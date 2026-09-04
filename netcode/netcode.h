@@ -32,10 +32,10 @@
 #ifndef NETCODE_H
 #define NETCODE_H
 
-#define NETCODE_VERSION_FULL    "1.4.3"
+#define NETCODE_VERSION_FULL    "1.4.5"
 #define NETCODE_VERSION_MAJOR   1
 #define NETCODE_VERSION_MINOR   4
-#define NETCODE_VERSION_PATCH   3
+#define NETCODE_VERSION_PATCH   5
 
 /*
     IMPORTANT: netcode is single-threaded by design and is not thread safe.
@@ -92,6 +92,7 @@
 #define NETCODE_MAC_BYTES 16
 #define NETCODE_USER_DATA_BYTES 256
 #define NETCODE_MAX_SERVERS_PER_CONNECT 32
+#define NETCODE_DEFAULT_MAX_CONNECT_TOKEN_LIFETIME 30
 
 #define NETCODE_CLIENT_STATE_CONNECT_TOKEN_EXPIRED              -6
 #define NETCODE_CLIENT_STATE_INVALID_CONNECT_TOKEN              -5
@@ -274,7 +275,19 @@ struct netcode_server_config_t
     int override_send_and_receive;
     void (*send_packet_override)(void*,struct netcode_address_t*,NETCODE_CONST uint8_t*,int);
     int (*receive_packet_override)(void*,struct netcode_address_t*,uint8_t*,int);
+    int max_connect_token_lifetime;
 };
+
+/*
+    max_connect_token_lifetime is the longest lifetime in seconds that the backend issues
+    connect tokens with, as passed to netcode_generate_connect_token. The server ignores any
+    connection request whose connect token expire timestamp minus this lifetime is earlier
+    than the time the server started, so a connect token that could have been issued before
+    the server started cannot be presented after it. Set it to the lifetime your backend
+    issues: a larger value rejects legitimate connect tokens until the difference has elapsed,
+    and a smaller value lets connect tokens issued shortly before the server started through.
+    A value of zero or less takes NETCODE_DEFAULT_MAX_CONNECT_TOKEN_LIFETIME instead.
+*/
 
 void netcode_default_server_config( struct netcode_server_config_t * config );
 

@@ -33,7 +33,7 @@
 
 #define YOJIMBO_MAJOR_VERSION 1
 #define YOJIMBO_MINOR_VERSION 12
-#define YOJIMBO_PATCH_VERSION 0
+#define YOJIMBO_PATCH_VERSION 1
 
 #if !defined(YOJIMBO_DEBUG) && !defined(YOJIMBO_RELEASE)
 #if defined(NDEBUG)
@@ -238,6 +238,7 @@ namespace yojimbo
         int ackedPacketsBufferSize;                             ///< Number of packet entries in the acked packet buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
         int receivedPacketsBufferSize;                          ///< Number of packet entries in the received packet sequence buffer. Consider your packet send rate and aim to have at least a few seconds worth of entries.
         float rttSmoothingFactor;                               ///< Round-Trip Time (RTT) smoothing factor over time.
+        int maxConnectTokenLifetime;                            ///< The longest lifetime in seconds your backend issues connect tokens with. Server only. The server refuses any connect token whose expiry, minus this lifetime, is earlier than the time the server started, so a token that could have been issued before a restart cannot be presented after it. Set it to the lifetime your matchmaker actually issues: too large refuses legitimate connect tokens until the difference has elapsed, too small lets tokens issued shortly before the server started through. Zero or less takes DefaultMaxConnectTokenLifetime.
 
         ClientServerConfig()
         {
@@ -255,6 +256,7 @@ namespace yojimbo
             ackedPacketsBufferSize = 256;
             receivedPacketsBufferSize = 256;
             rttSmoothingFactor = 0.0025f;
+            maxConnectTokenLifetime = DefaultMaxConnectTokenLifetime;
         }
 
         /**

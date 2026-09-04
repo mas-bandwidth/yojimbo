@@ -37,6 +37,8 @@ namespace yojimbo
 
     const int ConnectTokenBytes = 2048;                             ///< Size of the encrypted connect token data return from the matchmaker. Must equal size of NETCODE_CONNECT_TOKEN_BYTE (2048).
 
+    const int DefaultMaxConnectTokenLifetime = 30;                  ///< Default for ClientServerConfig::maxConnectTokenLifetime (seconds). Must equal NETCODE_DEFAULT_MAX_CONNECT_TOKEN_LIFETIME (30). The matcher under matcher/ issues 45 second connect tokens, so a deployment running it as-is sets maxConnectTokenLifetime to 45.
+
     const int InsecureConnectTokenExpirySeconds = 60;               ///< Expiry for insecure connect tokens (seconds). Kept well above the connection timeout so a failed insecure connect reports "connection request timed out" like a secure connect token from a matchmaker would, rather than hitting token expiry first.
 
     const int ConservativeMessageHeaderBits = 32;                   ///< Conservative number of bits per-message header.

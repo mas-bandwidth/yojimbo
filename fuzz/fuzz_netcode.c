@@ -64,6 +64,7 @@ int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )
                                          g_packet_key,
                                          FUZZ_PROTOCOL_ID,
                                          FUZZ_TIMESTAMP,
+                                         0,                 // minimum expire timestamp: zero, so no connect token is refused for predating a server start and the fuzzer keeps reaching the parser
                                          g_private_key,
                                          allowed_packets,
                                          &replay_protection,

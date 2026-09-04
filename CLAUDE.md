@@ -28,6 +28,8 @@ DECISIONS THAT READ AS BUGS (they are not — do not "fix" them)
 
 SECURITY: yojimbo 1.6.3 and earlier vendor a netcode missing the AEAD nonce-reuse fix
 (netcode 1.4.0); 1.7.0 was the first with it. See netcode's SECURITY.md.
+1.12.1 vendors netcode 1.4.5, which spends a connect token on the connection it admits and
+refuses tokens that predate the server's start. See SECURITY.md.
 
 THE WRITE/READ RULE — read this BEFORE reporting any assert as a missing bounds check
 Glenn, 2026-07-26: "intention is on write, user is responsible to not crash or do undefined

@@ -36,6 +36,11 @@
 #include <sodium.h>
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
 
+// For netcode_generate_connect_token: one test mints a single connect token and keeps it,
+// which is what a matchmaker does and what Client::InsecureConnect deliberately will not do.
+// Present in both configurations, unlike sodium.h.
+#include "netcode.h"
+
 using namespace yojimbo;
 
 static void CheckHandler( const char * condition,
@@ -2472,6 +2477,127 @@ void test_client_is_loopback_when_disconnected()
     check( !client.IsConnected() );
 }
 
+void test_client_connect_twice_with_one_connect_token()
+{
+    // Mirrors netcode's test_client_reconnect_with_used_connect_token through yojimbo's API.
+    // A connect token is spent by the connection it admits: once the server has accepted a
+    // client holding it, presenting the same token again connects nothing, from the same
+    // address, after the client's slot is free again.
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    double time = 100.0;
+
+    ClientServerConfig config;
+
+    // The second connect attempt has to run all the way out to a connection request timeout,
+    // and the connect token's expiry has to stay above that so the failure is the timeout and
+    // not an expired token. A short timeout keeps both waits short.
+    config.timeout = 2;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
+
+    check( server.Start( MaxClients ) );
+
+    // One connect token, minted once and held, the way a matchmaker hands one to a client.
+
+    char serverAddressString[MaxAddressLength];
+    serverAddress.ToString( serverAddressString, MaxAddressLength );
+    const char * serverAddressStrings[] = { serverAddressString };
+
+    uint8_t userData[256];
+    memset( userData, 0, sizeof( userData ) );
+
+    uint8_t connectToken[ConnectTokenBytes];
+    check( netcode_generate_connect_token( 1,
+                                           serverAddressStrings,
+                                           serverAddressStrings,
+                                           InsecureConnectTokenExpirySeconds,
+                                           config.timeout,
+                                           clientId,
+                                           config.protocolId,
+                                           privateKey,
+                                           userData,
+                                           connectToken ) == NETCODE_OK );
+
+    const int NumIterations = 1000;
+
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
+
+    // First use of the token connects.
+
+    check( client.Connect( clientId, connectToken ) );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        if ( !client.IsConnecting() && client.IsConnected() && server.GetNumConnectedClients() == 1 )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.GetNumConnectedClients() == 1 );
+    check( client.GetClientIndex() == 0 );
+
+    // Free the slot server side and let the client see it, so the second attempt runs against
+    // a server with room for it and nothing left over from the first connection.
+
+    server.DisconnectClient( 0 );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( !client.IsConnected() && server.GetNumConnectedClients() == 0 )
+            break;
+    }
+
+    check( !client.IsConnected() );
+    check( server.GetNumConnectedClients() == 0 );
+
+    // Second use of the same token connects nothing. The server ignores the connection
+    // requests, so the client runs out of retries and reports a connection request timeout.
+
+    check( client.Connect( clientId, connectToken ) );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        Client * clients[] = { &client };
+        Server * servers[] = { &server };
+
+        PumpClientServerUpdate( time, clients, 1, servers, 1 );
+
+        if ( client.ConnectionFailed() )
+            break;
+
+        check( !client.IsConnected() );
+        check( server.GetNumConnectedClients() == 0 );
+    }
+
+    check( client.ConnectionFailed() );
+    check( !client.IsConnected() );
+    check( server.GetNumConnectedClients() == 0 );
+    check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT );
+
+    client.Disconnect();
+    server.Stop();
+}
+
 void test_client_server_messages()
 {
     const uint64_t clientId = 1;
@@ -4206,6 +4332,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_connect_factory_failure );
         RUN_TEST( test_client_connect_socket_failure_no_crash );
         RUN_TEST( test_client_is_loopback_when_disconnected );
+        RUN_TEST( test_client_connect_twice_with_one_connect_token );
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
