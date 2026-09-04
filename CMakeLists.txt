@@ -180,7 +180,12 @@ else()
         if(MSVC)
             target_compile_options(sodium-builtin PRIVATE /w)
         else()
-            target_compile_options(sodium-builtin PRIVATE -w)
+            # -fno-sanitize=nonnull-attribute belongs to these sources and nothing else (SEC-05).
+            # netcode encrypts zero-length plaintexts and libsodium's AEAD then does
+            # memcpy(dst, NULL, 0) -- benign UB in vendored upstream code. CI used to put the
+            # exemption in the global sanitizer flags, which switched the check off for every
+            # first-party source too. It is a no-op when no sanitizer is enabled.
+            target_compile_options(sodium-builtin PRIVATE -w -fno-sanitize=nonnull-attribute)
         endif()
         set(YOJIMBO_SODIUM_OBJECTS $<TARGET_OBJECTS:sodium-builtin>)
     endif()
