@@ -2,10 +2,11 @@
 #
 #   cmake -B build [-DCMAKE_BUILD_TYPE=Debug|Release] [-DYOJIMBO_SYSTEM_SODIUM=ON]
 #   cmake --build build -j
-#   ./bin/test        # must print "ALL TESTS PASS"
+#   ctest --test-dir build --output-on-failure     # or ./build/bin/test directly
 #
 # Static libraries: sodium-builtin (unless -DYOJIMBO_SYSTEM_SODIUM=ON), netcode, reliable,
-# tlsf, yojimbo. Executables: client, server, loopback, soak, test — all written to bin/.
+# tlsf, yojimbo. Executables: client, server, loopback, soak, test — all written to
+# <build>/bin (multi-config generators: <build>/bin/<Config>).
 #
 # For package managers (e.g. homebrew): -DYOJIMBO_SYSTEM_DEPS=ON builds against
 # system-installed serialize, reliable and netcode instead of the vendored copies, and
@@ -49,12 +50,15 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release)
 endif()
 
-# Executables go to bin/ at the repo root, as premake did (so ./bin/test etc. keep working,
-# including for multi-config generators like Visual Studio).
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
+# Executables go under the build tree, never into the source tree (YJ-06). Every build tree used
+# to write to <source>/bin, so a Debug and a Release build of the same checkout overwrote each
+# other's ./bin/test and whichever ran last was whatever had been built last — a test step could
+# silently exercise the other configuration. Multi-config generators additionally get one
+# directory per configuration, instead of the single flattened path they were forced into.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 foreach(cfg ${CMAKE_CONFIGURATION_TYPES})
     string(TOUPPER "${cfg}" CFG)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CFG} "${CMAKE_CURRENT_SOURCE_DIR}/bin")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CFG} "${CMAKE_BINARY_DIR}/bin/${cfg}")
 endforeach()
 
 # yojimbo/netcode/reliable/serialize each derive their _DEBUG vs _RELEASE mode from NDEBUG
@@ -274,30 +278,38 @@ endif()
 
 if(YOJIMBO_BUILD_TESTS)
 
-    foreach(app client server loopback soak test)
-        add_executable(${app} ${app}.cpp)
-        target_link_libraries(${app} PRIVATE yojimbo)
-        target_compile_options(${app} PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
+    # CMake target names are global, so they are prefixed; the executables they produce keep the
+    # plain names, so build/bin/test and build/bin/client are what they always were. `test` in
+    # particular is a name CTest reserves.
+    foreach(app client server loopback soak test custom_packet_io_test)
+        add_executable(yojimbo_${app} ${app}.cpp)
+        set_target_properties(yojimbo_${app} PROPERTIES OUTPUT_NAME ${app})
+        target_link_libraries(yojimbo_${app} PRIVATE yojimbo)
+        target_compile_options(yojimbo_${app} PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
     endforeach()
 
-    add_executable(custom_packet_io_test custom_packet_io_test.cpp)
-    target_link_libraries(custom_packet_io_test PRIVATE yojimbo)
-    target_compile_options(custom_packet_io_test PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
-
     # serialize is header-only; its self-tests are gated on this and called from test.cpp.
-    target_compile_definitions(test PRIVATE SERIALIZE_ENABLE_TESTS=1)
+    target_compile_definitions(yojimbo_test PRIVATE SERIALIZE_ENABLE_TESTS=1)
 
     # The cross-configuration layout test (YJ-04). These two translation units compile the public
     # headers with YOJIMBO_DEBUG and YOJIMBO_RELEASE forced on respectively, whatever the build
     # type is, and report the sizes of Allocator and MessageFactory. test.cpp checks the two agree
     # with each other and with the build's own, so a member that appears only under one NDEBUG
     # setting fails the test instead of silently giving consumers a different layout.
-    target_sources(test PRIVATE test_layout_debug.cpp test_layout_release.cpp)
+    target_sources(yojimbo_test PRIVATE test_layout_debug.cpp test_layout_release.cpp)
 
     if(YOJIMBO_SYSTEM_DEPS)
         # System netcode/reliable are built without their embedded test suites, so test.cpp
         # skips the [netcode] and [reliable] sections in this configuration (see test.cpp).
-        target_compile_definitions(test PRIVATE YOJIMBO_SYSTEM_DEPS=1)
+        target_compile_definitions(yojimbo_test PRIVATE YOJIMBO_SYSTEM_DEPS=1)
     endif()
+
+    # CTest registration (YJ-06). `ctest --test-dir <build>` runs the binaries of that build tree
+    # and no other, which is the point: it cannot pick up a stale executable another
+    # configuration left behind. The examples (client, server, loopback) need a peer and the soak
+    # runs until interrupted, so neither is a test; both stay buildable.
+    enable_testing()
+    add_test(NAME test COMMAND yojimbo_test)
+    add_test(NAME custom_packet_io_test COMMAND yojimbo_custom_packet_io_test)
 
 endif()

@@ -11,12 +11,13 @@ From the yojimbo directory:
     cmake -B build
     cmake --build build -j
 
-This produces the static libraries and the sample programs / tests in `bin/`. Run them with:
+This produces the static libraries and the sample programs / tests in `build/bin/`. Every build tree keeps its own, so a Debug and a Release build of the same checkout never overwrite each other. Run them with:
 
-    ./bin/test           # unit + integration tests — must print "ALL TESTS PASS"
-    ./bin/server         # run a server on localhost on UDP port 40000
-    ./bin/client         # run a client that connects to the local server
-    ./bin/soak           # long-running soak test at high packet loss (Ctrl-C to stop)
+    ctest --test-dir build --output-on-failure   # runs this build tree's tests
+    ./build/bin/test     # or the same binary directly — must print "ALL TESTS PASS"
+    ./build/bin/server   # run a server on localhost on UDP port 40000
+    ./build/bin/client   # run a client that connects to the local server
+    ./build/bin/soak     # long-running soak test at high packet loss (Ctrl-C to stop)
 
 The default is a debug build. For an optimized build, pass the build type:
 
@@ -102,7 +103,7 @@ crypto), and `cmake --install` installs the yojimbo headers and library:
 
     cmake -B build -DYOJIMBO_SYSTEM_DEPS=ON
     cmake --build build -j
-    ./bin/test
+    ctest --test-dir build --output-on-failure
     cmake --install build
 
 Note that the test suite skips the embedded netcode and reliable self-test sections in
@@ -119,7 +120,7 @@ system tlsf library publicly instead. tlsf must be installed where CMake can fin
 
     cmake -B build -DYOJIMBO_SYSTEM_TLSF=ON
     cmake --build build -j
-    ./bin/test
+    ctest --test-dir build --output-on-failure
 
 Combines freely with `-DYOJIMBO_SYSTEM_DEPS=ON`. This option exists so packages carry
 no patches — the design came out of the vcpkg port review (thanks, vicroms).

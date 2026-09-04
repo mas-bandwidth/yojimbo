@@ -23,18 +23,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      # ctest --test-dir runs the binaries of that build tree and no other, so the debug step
+      # cannot silently run the release build's executables or the other way round.
       - name: Build & test (debug)
         run: |
           cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
           cmake --build build-debug -j
-          ./bin/test
-          ./bin/custom_packet_io_test
+          ctest --test-dir build-debug --output-on-failure
       - name: Build & test (release)
         run: |
           cmake -B build-release -DCMAKE_BUILD_TYPE=Release
           cmake --build build-release -j
-          ./bin/test
-          ./bin/custom_packet_io_test
+          ctest --test-dir build-release --output-on-failure
 
   windows:
     name: build & test (windows MSVC x64, ${{ matrix.config }})
@@ -51,19 +51,10 @@ jobs:
         run: cmake -B build -G "Visual Studio 17 2022" -A x64
       - name: Build (${{ matrix.config }} x64)
         run: cmake --build build --config ${{ matrix.config }} -j
+      # -C picks the configuration's own per-config output directory; no searching the tree for
+      # whatever test.exe happens to be lying around.
       - name: Test (${{ matrix.config }} x64)
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem -Recurse -Filter test.exe | Select-Object -First 1
-          if (-not $exe) { Write-Error "test.exe not found"; exit 1 }
-          Write-Host "Running $($exe.FullName)"
-          & $exe.FullName
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $exe = Get-ChildItem -Recurse -Filter custom_packet_io_test.exe | Select-Object -First 1
-          if (-not $exe) { Write-Error "custom_packet_io_test.exe not found"; exit 1 }
-          Write-Host "Running $($exe.FullName)"
-          & $exe.FullName
-          exit $LASTEXITCODE
+        run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure
 
   system-sodium:
     name: build & test (linux, --sodium=system)
@@ -76,7 +67,7 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug -DYOJIMBO_SYSTEM_SODIUM=ON
           cmake --build build -j
-          ./bin/test
+          ctest --test-dir build --output-on-failure
 
   system-deps:
     name: build & test (linux, --system-deps)
@@ -114,7 +105,7 @@ jobs:
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug -DYOJIMBO_SYSTEM_DEPS=ON -DCMAKE_PREFIX_PATH="$HOME/deps"
           cmake --build build -j
-          ./bin/test
+          ctest --test-dir build --output-on-failure
       - name: Install yojimbo and verify the layout
         run: |
           cmake --install build --prefix "$HOME/yojimbo-install"
@@ -135,9 +126,9 @@ jobs:
             -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
-          cmake --build build -j --target test
+          cmake --build build -j --target yojimbo_test
       - name: Test (sanitized)
-        run: ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ./bin/test
+        run: ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ./build/bin/test
 
   fuzz:
     name: fuzz (linux libFuzzer, ASan+UBSan)
@@ -204,7 +195,7 @@ jobs:
             -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
-          cmake --build build -j --target soak
+          cmake --build build -j --target yojimbo_soak
       - name: Run soak (time-boxed)
         # Bounded iteration count so the normally-endless soak exits cleanly and the
         # sanitizers run their end-of-process (incl. leak) checks. Output is verbose, so
@@ -212,7 +203,7 @@ jobs:
         run: |
           set -o pipefail
           if ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
-               ./bin/soak 20000 > soak.log 2>&1; then
+               ./build/bin/soak 20000 > soak.log 2>&1; then
             echo "soak completed cleanly ($(grep -c 'received message' soak.log) messages exchanged)"
           else
             echo "soak failed (exit $?)"; tail -50 soak.log; exit 1
