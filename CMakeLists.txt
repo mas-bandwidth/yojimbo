@@ -26,7 +26,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(CMAKE_TARGET_MESSAGES OFF)
 endif()
 
-project(Yojimbo VERSION 1.11.0 LANGUAGES C CXX)
+project(Yojimbo VERSION 1.12.0 LANGUAGES C CXX)
 
 option(YOJIMBO_SYSTEM_SODIUM
     "Link the system-installed libsodium instead of the bundled subset in sodium/" OFF)
