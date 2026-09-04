@@ -134,7 +134,8 @@ jobs:
           if cmake -B floor-build -S tools/consumer -DCMAKE_PREFIX_PATH="$HOME/yojimbo-install;$HOME/deps" > floor.log 2>&1; then
             echo "expected find_package(Yojimbo) to refuse netcode 1.3.2"; cat floor.log; exit 1
           fi
-          grep -q "yojimbo requires 1.4.0 or later" floor.log
+          # CMake wraps message() text, so flatten the log before matching the sentence.
+          tr '\n' ' ' < floor.log | tr -s ' ' | grep -q "yojimbo requires 1.4.0 or later"
           cp "$HOME/netcode.h.orig" "$HOME/deps/include/netcode.h"
 
   bundled-install-consumer:
@@ -245,7 +246,7 @@ jobs:
         run: |
           set -euo pipefail
           clang -DNETCODE_DEBUG -DRELIABLE_DEBUG -Inetcode -Isodium -Ireliable -Ifuzz -w -g \
-            tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -o /tmp/gen_seed_corpus
+            tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -lm -o /tmp/gen_seed_corpus
           /tmp/gen_seed_corpus /tmp/corpus-regen
       - name: Build and run fuzz targets
         run: |

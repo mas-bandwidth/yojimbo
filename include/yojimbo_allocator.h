@@ -172,7 +172,7 @@ namespace yojimbo
         /**
             Set the error level.
             For correct client/server behavior when an allocation fails, please make sure you call this method to set the error level to ALLOCATOR_ERROR_FAILED_TO_ALLOCATE.
-            @param error The allocator error level to set.
+            @param errorLevel The allocator error level to set.
          */
 
         void SetErrorLevel( AllocatorErrorLevel errorLevel );

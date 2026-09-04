@@ -141,7 +141,7 @@ seed is a parser the fuzzer never enters. CI runs it on every change:
 # netcode + connect-token + reliable seeds
 # (writes fuzz/corpus/fuzz_netcode, fuzz_netcode_connect_token, fuzz_reliable)
 clang -DNETCODE_DEBUG -DRELIABLE_DEBUG -Inetcode -Isodium -Ireliable -Ifuzz -g \
-  tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -o /tmp/gen_seed_corpus
+  tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -lm -o /tmp/gen_seed_corpus
 /tmp/gen_seed_corpus fuzz/corpus
 
 # connection seeds (writes fuzz/corpus/fuzz_connection)
