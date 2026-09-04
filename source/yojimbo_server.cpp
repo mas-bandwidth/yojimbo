@@ -36,6 +36,7 @@ namespace yojimbo
         : BaseServer( allocator, config, adapter, time )
     {
         yojimbo_assert( KeyBytes == NETCODE_KEY_BYTES );
+        yojimbo_assert( DefaultMaxConnectTokenLifetime == NETCODE_DEFAULT_MAX_CONNECT_TOKEN_LIFETIME );
         memcpy( m_privateKey, privateKey, NETCODE_KEY_BYTES );
         m_address = address;
         m_boundAddress = address;
@@ -67,6 +68,7 @@ namespace yojimbo
         netcodeConfig.allocator_context = &GetGlobalAllocator();
         netcodeConfig.allocate_function = StaticAllocateFunction;
         netcodeConfig.free_function     = StaticFreeFunction;
+        netcodeConfig.max_connect_token_lifetime = m_config.maxConnectTokenLifetime;
         netcodeConfig.callback_context = this;
         netcodeConfig.connect_disconnect_callback = StaticConnectDisconnectCallbackFunction;
         netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;

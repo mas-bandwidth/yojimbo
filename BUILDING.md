@@ -104,7 +104,7 @@ crypto).
 The three arrive as versioned imported targets: their versions are read from the installed
 headers and checked at configure time against the floors in `dependencies.manifest`, which is
 also where the versions vendored here and the tags CI installs are recorded. An installed
-netcode older than 1.4.0 is refused, not warned about — see SECURITY.md.
+netcode older than 1.4.5 is refused, not warned about — see SECURITY.md.
 
     cmake -B build -DYOJIMBO_SYSTEM_DEPS=ON
     cmake --build build -j

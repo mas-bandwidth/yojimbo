@@ -10,6 +10,7 @@
 #include "reliable.h"
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 static struct reliable_endpoint_t * g_endpoint = NULL;
@@ -36,6 +37,8 @@ static void ensure_init( void )
     config.transmit_packet_function = fuzz_transmit_packet;
     config.process_packet_function = fuzz_process_packet;
     g_endpoint = reliable_endpoint_create( &config, g_time );
+    if ( !g_endpoint )
+        abort();    /* creation is fallible in every build: a NULL here is a broken target, not an input finding */
 }
 
 int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )

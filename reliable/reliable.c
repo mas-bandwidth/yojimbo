@@ -30,6 +30,7 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 
 #ifndef RELIABLE_ENABLE_TESTS
@@ -45,6 +46,7 @@
 static void default_assert_handler( RELIABLE_CONST char * condition, RELIABLE_CONST char * function, RELIABLE_CONST char * file, int line )
 {
     printf( "assert failed: ( %s ), function %s, file %s, line %d\n", condition, function, file, line );
+    fflush( stdout );
     #if defined( __GNUC__ )
     __builtin_trap();
     #elif defined( _MSC_VER )
@@ -75,7 +77,7 @@ void reliable_set_assert_function( void (*function)( RELIABLE_CONST char *, RELI
 
 #if RELIABLE_ENABLE_LOGGING
 
-void reliable_printf( int level, RELIABLE_CONST char * format, ... ) 
+static void reliable_printf( int level, RELIABLE_CONST char * format, ... ) 
 {
     if ( level > log_level )
         return;
@@ -89,7 +91,7 @@ void reliable_printf( int level, RELIABLE_CONST char * format, ... )
 
 #else // #if RELIABLE_ENABLE_LOGGING
 
-void reliable_printf( int level, RELIABLE_CONST char * format, ... ) 
+static void reliable_printf( int level, RELIABLE_CONST char * format, ... ) 
 {
     (void) level;
     (void) format;
@@ -97,16 +99,35 @@ void reliable_printf( int level, RELIABLE_CONST char * format, ... )
 
 #endif // #if RELIABLE_ENABLE_LOGGING
 
-void * reliable_default_allocate_function( void * context, size_t bytes )
+static void * reliable_default_allocate_function( void * context, size_t bytes )
 {
     (void) context;
     return malloc( bytes );
 }
 
-void reliable_default_free_function( void * context, void * pointer )
+static void reliable_default_free_function( void * context, void * pointer )
 {
     (void) context;
     free( pointer );
+}
+
+// multiplies an element count by an element size for an allocation. returns 0 if the count is
+// negative or the product does not fit in a size_t, so a config that would wrap the arithmetic
+// is refused instead of allocating a buffer smaller than the code goes on to use
+
+static int reliable_checked_size( int count, size_t element_bytes, size_t * result )
+{
+    reliable_assert( result );
+    if ( count <= 0 || element_bytes == 0 )
+    {
+        return 0;
+    }
+    if ( (size_t) count > SIZE_MAX / element_bytes )
+    {
+        return 0;
+    }
+    *result = ( (size_t) count ) * element_bytes;
+    return 1;
 }
 
 // ------------------------------------------------------------------
@@ -122,13 +143,13 @@ void reliable_term(void)
 
 // ---------------------------------------------------------------
 
-int reliable_sequence_greater_than( uint16_t s1, uint16_t s2 )
+static int reliable_sequence_greater_than( uint16_t s1, uint16_t s2 )
 {
     return ( ( s1 > s2 ) && ( s1 - s2 <= 32768 ) ) || 
            ( ( s1 < s2 ) && ( s2 - s1  > 32768 ) );
 }
 
-int reliable_sequence_less_than( uint16_t s1, uint16_t s2 )
+static int reliable_sequence_less_than( uint16_t s1, uint16_t s2 )
 {
     return reliable_sequence_greater_than( s2, s1 );
 }
@@ -147,7 +168,9 @@ struct reliable_sequence_buffer_t
     uint8_t * entry_data;
 };
 
-struct reliable_sequence_buffer_t * reliable_sequence_buffer_create( int num_entries, 
+static void reliable_sequence_buffer_destroy( struct reliable_sequence_buffer_t * sequence_buffer );
+
+static struct reliable_sequence_buffer_t * reliable_sequence_buffer_create( int num_entries, 
                                                                      int entry_stride, 
                                                                      void * allocator_context, 
                                                                      void * (*allocate_function)(void*,size_t), 
@@ -166,10 +189,28 @@ struct reliable_sequence_buffer_t * reliable_sequence_buffer_create( int num_ent
         free_function = reliable_default_free_function;
     }
 
+    size_t entry_sequence_bytes;
+    size_t entry_data_bytes;
+
+    if ( !reliable_checked_size( num_entries, sizeof( uint32_t ), &entry_sequence_bytes ) )
+    {
+        return NULL;
+    }
+
+    if ( !reliable_checked_size( num_entries, (size_t) entry_stride, &entry_data_bytes ) )
+    {
+        return NULL;
+    }
+
     struct reliable_sequence_buffer_t * sequence_buffer = (struct reliable_sequence_buffer_t*)
         allocate_function( allocator_context, sizeof( struct reliable_sequence_buffer_t ) );
 
-    reliable_assert( sequence_buffer );
+    if ( sequence_buffer == NULL )
+    {
+        return NULL;
+    }
+
+    memset( sequence_buffer, 0, sizeof( struct reliable_sequence_buffer_t ) );
 
     sequence_buffer->allocator_context = allocator_context;
     sequence_buffer->allocate_function = allocate_function;
@@ -177,32 +218,43 @@ struct reliable_sequence_buffer_t * reliable_sequence_buffer_create( int num_ent
     sequence_buffer->sequence = 0;
     sequence_buffer->num_entries = num_entries;
     sequence_buffer->entry_stride = entry_stride;
-    sequence_buffer->entry_sequence = (uint32_t*) allocate_function( allocator_context, num_entries * sizeof( uint32_t ) );
-    sequence_buffer->entry_data = (uint8_t*) allocate_function( allocator_context, num_entries * entry_stride );
-    reliable_assert( sequence_buffer->entry_sequence );
-    reliable_assert( sequence_buffer->entry_data );
-    memset( sequence_buffer->entry_sequence, 0xFF, sizeof( uint32_t) * sequence_buffer->num_entries );
-    memset( sequence_buffer->entry_data, 0, num_entries * entry_stride );
+    sequence_buffer->entry_sequence = (uint32_t*) allocate_function( allocator_context, entry_sequence_bytes );
+    sequence_buffer->entry_data = (uint8_t*) allocate_function( allocator_context, entry_data_bytes );
+
+    if ( sequence_buffer->entry_sequence == NULL || sequence_buffer->entry_data == NULL )
+    {
+        reliable_sequence_buffer_destroy( sequence_buffer );
+        return NULL;
+    }
+
+    memset( sequence_buffer->entry_sequence, 0xFF, entry_sequence_bytes );
+    memset( sequence_buffer->entry_data, 0, entry_data_bytes );
 
     return sequence_buffer;
 }
 
-void reliable_sequence_buffer_destroy( struct reliable_sequence_buffer_t * sequence_buffer )
+static void reliable_sequence_buffer_destroy( struct reliable_sequence_buffer_t * sequence_buffer )
 {
     reliable_assert( sequence_buffer );
-    sequence_buffer->free_function( sequence_buffer->allocator_context, sequence_buffer->entry_sequence );
-    sequence_buffer->free_function( sequence_buffer->allocator_context, sequence_buffer->entry_data );
+    if ( sequence_buffer->entry_sequence )
+    {
+        sequence_buffer->free_function( sequence_buffer->allocator_context, sequence_buffer->entry_sequence );
+    }
+    if ( sequence_buffer->entry_data )
+    {
+        sequence_buffer->free_function( sequence_buffer->allocator_context, sequence_buffer->entry_data );
+    }
     sequence_buffer->free_function( sequence_buffer->allocator_context, sequence_buffer );
 }
 
-void reliable_sequence_buffer_reset( struct reliable_sequence_buffer_t * sequence_buffer )
+static void reliable_sequence_buffer_reset( struct reliable_sequence_buffer_t * sequence_buffer )
 {
     reliable_assert( sequence_buffer );
     sequence_buffer->sequence = 0;
     memset( sequence_buffer->entry_sequence, 0xFF, sizeof( uint32_t) * sequence_buffer->num_entries );
 }
 
-void reliable_sequence_buffer_remove_entries( struct reliable_sequence_buffer_t * sequence_buffer, 
+static void reliable_sequence_buffer_remove_entries( struct reliable_sequence_buffer_t * sequence_buffer, 
                                               int start_sequence, 
                                               int finish_sequence, 
                                               void (*cleanup_function)(void*,void*,void(*free_function)(void*,void*)) )
@@ -242,12 +294,12 @@ void reliable_sequence_buffer_remove_entries( struct reliable_sequence_buffer_t 
     }
 }
 
-int reliable_sequence_buffer_test_insert( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
+static int reliable_sequence_buffer_test_insert( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
 {
     return reliable_sequence_less_than( sequence, sequence_buffer->sequence - ((uint16_t)sequence_buffer->num_entries) ) ? ((uint16_t)0) : ((uint16_t)1);
 }
 
-void * reliable_sequence_buffer_insert( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
+static void * reliable_sequence_buffer_insert( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
 {
     reliable_assert( sequence_buffer );
     if ( reliable_sequence_less_than( sequence, sequence_buffer->sequence - ((uint16_t)sequence_buffer->num_entries) ) )
@@ -264,7 +316,7 @@ void * reliable_sequence_buffer_insert( struct reliable_sequence_buffer_t * sequ
     return sequence_buffer->entry_data + index * sequence_buffer->entry_stride;
 }
 
-void reliable_sequence_buffer_advance( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
+static void reliable_sequence_buffer_advance( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
 {
     reliable_assert( sequence_buffer );
     if ( reliable_sequence_greater_than( sequence + 1, sequence_buffer->sequence ) )
@@ -274,7 +326,7 @@ void reliable_sequence_buffer_advance( struct reliable_sequence_buffer_t * seque
     }
 }
 
-void * reliable_sequence_buffer_insert_with_cleanup( struct reliable_sequence_buffer_t * sequence_buffer, 
+static void * reliable_sequence_buffer_insert_with_cleanup( struct reliable_sequence_buffer_t * sequence_buffer, 
                                                      uint16_t sequence, 
                                                      void (*cleanup_function)(void*,void*,void(*free_function)(void*,void*)) )
 {
@@ -299,7 +351,7 @@ void * reliable_sequence_buffer_insert_with_cleanup( struct reliable_sequence_bu
     return sequence_buffer->entry_data + index * sequence_buffer->entry_stride;
 }
 
-void reliable_sequence_buffer_advance_with_cleanup( struct reliable_sequence_buffer_t * sequence_buffer,
+static void reliable_sequence_buffer_advance_with_cleanup( struct reliable_sequence_buffer_t * sequence_buffer,
                                                     uint16_t sequence,
                                                     void (*cleanup_function)(void*,void*,void(*free_function)(void*,void*)) )
 {
@@ -311,13 +363,7 @@ void reliable_sequence_buffer_advance_with_cleanup( struct reliable_sequence_buf
     }
 }
 
-void reliable_sequence_buffer_remove( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
-{
-    reliable_assert( sequence_buffer );
-    sequence_buffer->entry_sequence[ sequence % sequence_buffer->num_entries ] = 0xFFFFFFFF;
-}
-
-void reliable_sequence_buffer_remove_with_cleanup( struct reliable_sequence_buffer_t * sequence_buffer, 
+static void reliable_sequence_buffer_remove_with_cleanup( struct reliable_sequence_buffer_t * sequence_buffer, 
                                                    uint16_t sequence, 
                                                    void (*cleanup_function)(void*,void*,void(*free_function)(void*,void*)) )
 {
@@ -330,19 +376,13 @@ void reliable_sequence_buffer_remove_with_cleanup( struct reliable_sequence_buff
     }
 }
 
-int reliable_sequence_buffer_available( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
-{
-    reliable_assert( sequence_buffer );
-    return sequence_buffer->entry_sequence[ sequence % sequence_buffer->num_entries ] == 0xFFFFFFFF;
-}
-
-int reliable_sequence_buffer_exists( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
+static int reliable_sequence_buffer_exists( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
 {
     reliable_assert( sequence_buffer );
     return sequence_buffer->entry_sequence[ sequence % sequence_buffer->num_entries ] == (uint32_t) sequence;
 }
 
-void * reliable_sequence_buffer_find( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
+static void * reliable_sequence_buffer_find( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t sequence )
 {
     reliable_assert( sequence_buffer );
     int index = sequence % sequence_buffer->num_entries;
@@ -350,7 +390,7 @@ void * reliable_sequence_buffer_find( struct reliable_sequence_buffer_t * sequen
 
 }
 
-void * reliable_sequence_buffer_at_index( struct reliable_sequence_buffer_t * sequence_buffer, int index )
+static void * reliable_sequence_buffer_at_index( struct reliable_sequence_buffer_t * sequence_buffer, int index )
 {
     reliable_assert( sequence_buffer );
     reliable_assert( index >= 0 );
@@ -358,7 +398,7 @@ void * reliable_sequence_buffer_at_index( struct reliable_sequence_buffer_t * se
     return sequence_buffer->entry_sequence[index] != 0xFFFFFFFF ? ( sequence_buffer->entry_data + index * sequence_buffer->entry_stride ) : NULL;
 }
 
-void reliable_sequence_buffer_generate_ack_bits( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t * ack, uint32_t * ack_bits )
+static void reliable_sequence_buffer_generate_ack_bits( struct reliable_sequence_buffer_t * sequence_buffer, uint16_t * ack, uint32_t * ack_bits )
 {
     reliable_assert( sequence_buffer );
     reliable_assert( ack );
@@ -378,50 +418,27 @@ void reliable_sequence_buffer_generate_ack_bits( struct reliable_sequence_buffer
 
 // ---------------------------------------------------------------
 
-void reliable_write_uint8( uint8_t ** p, uint8_t value )
+static void reliable_write_uint8( uint8_t ** p, uint8_t value )
 {
     **p = value;
     ++(*p);
 }
 
-void reliable_write_uint16( uint8_t ** p, uint16_t value )
+static void reliable_write_uint16( uint8_t ** p, uint16_t value )
 {
     (*p)[0] = value & 0xFF;
     (*p)[1] = value >> 8;
     *p += 2;
 }
 
-void reliable_write_uint32( uint8_t ** p, uint32_t value )
-{
-    (*p)[0] = value & 0xFF;
-    (*p)[1] = ( value >> 8  ) & 0xFF;
-    (*p)[2] = ( value >> 16 ) & 0xFF;
-    (*p)[3] = value >> 24;
-    *p += 4;
-}
-
-void reliable_write_uint64( uint8_t ** p, uint64_t value )
-{
-    (*p)[0] = value & 0xFF;
-    (*p)[1] = ( value >> 8  ) & 0xFF;
-    (*p)[2] = ( value >> 16 ) & 0xFF;
-    (*p)[3] = ( value >> 24 ) & 0xFF;
-    (*p)[4] = ( value >> 32 ) & 0xFF;
-    (*p)[5] = ( value >> 40 ) & 0xFF;
-    (*p)[6] = ( value >> 48 ) & 0xFF;
-    (*p)[7] = value >> 56;
-    *p += 8;
-}
-
-
-uint8_t reliable_read_uint8( uint8_t ** p )
+static uint8_t reliable_read_uint8( uint8_t ** p )
 {
     uint8_t value = **p;
     ++(*p);
     return value;
 }
 
-uint16_t reliable_read_uint16( uint8_t ** p )
+static uint16_t reliable_read_uint16( uint8_t ** p )
 {
     uint16_t value;
     value = (*p)[0];
@@ -429,33 +446,6 @@ uint16_t reliable_read_uint16( uint8_t ** p )
     *p += 2;
     return value;
 }
-
-uint32_t reliable_read_uint32( uint8_t ** p )
-{
-    uint32_t value;
-    value  = (*p)[0];
-    value |= ( ( (uint32_t)( (*p)[1] ) ) << 8 );
-    value |= ( ( (uint32_t)( (*p)[2] ) ) << 16 );
-    value |= ( ( (uint32_t)( (*p)[3] ) ) << 24 );
-    *p += 4;
-    return value;
-}
-
-uint64_t reliable_read_uint64( uint8_t ** p )
-{
-    uint64_t value;
-    value  = (*p)[0];
-    value |= ( ( (uint64_t)( (*p)[1] ) ) << 8  );
-    value |= ( ( (uint64_t)( (*p)[2] ) ) << 16 );
-    value |= ( ( (uint64_t)( (*p)[3] ) ) << 24 );
-    value |= ( ( (uint64_t)( (*p)[4] ) ) << 32 );
-    value |= ( ( (uint64_t)( (*p)[5] ) ) << 40 );
-    value |= ( ( (uint64_t)( (*p)[6] ) ) << 48 );
-    value |= ( ( (uint64_t)( (*p)[7] ) ) << 56 );
-    *p += 8;
-    return value;
-}
-
 
 // ---------------------------------------------------------------
 
@@ -472,7 +462,7 @@ struct reliable_fragment_reassembly_data_t
     uint8_t fragment_received[256];
 };
 
-void reliable_fragment_reassembly_data_cleanup( void * data, void * allocator_context, void (*free_function)(void*,void*) )
+static void reliable_fragment_reassembly_data_cleanup( void * data, void * allocator_context, void (*free_function)(void*,void*) )
 
 {
     reliable_assert( free_function );
@@ -556,20 +546,83 @@ void reliable_default_config( struct reliable_config_t * config )
     config->packet_header_size = 28;                    // note: UDP over IPv4 = 20 + 8 bytes, UDP over IPv6 = 40 + 8 bytes
 }
 
+// checks the config a caller hands to reliable_endpoint_create. every field is range checked
+// and the two relationships between fields are checked: a fragment threshold above the maximum
+// packet size can never fire, and a fragment count that does not cover the maximum packet size
+// means a large packet has nowhere to go. logs what is wrong and returns 0 to refuse the config
+
+static int reliable_config_valid( struct reliable_config_t * config )
+{
+    if ( config == NULL )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[reliable] config is NULL\n" );
+        return 0;
+    }
+
+    if ( config->max_packet_size <= 0 )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] max_packet_size must be positive\n", config->name );
+        return 0;
+    }
+
+    if ( config->fragment_above <= 0 )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] fragment_above must be positive\n", config->name );
+        return 0;
+    }
+
+    if ( config->fragment_size <= 0 )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] fragment_size must be positive\n", config->name );
+        return 0;
+    }
+
+    if ( config->max_fragments <= 0 || config->max_fragments > 256 )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] max_fragments must be between 1 and 256\n", config->name );
+        return 0;
+    }
+
+    if ( config->ack_buffer_size <= 0 || config->sent_packets_buffer_size <= 0 || 
+         config->received_packets_buffer_size <= 0 || config->fragment_reassembly_buffer_size <= 0 || 
+         config->rtt_history_size <= 0 )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] buffer sizes must be positive\n", config->name );
+        return 0;
+    }
+
+    if ( config->transmit_packet_function == NULL || config->process_packet_function == NULL )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] transmit and process packet functions are required\n", config->name );
+        return 0;
+    }
+
+    if ( config->fragment_above > config->max_packet_size )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] fragment_above (%d) is above max_packet_size (%d)\n", 
+                         config->name, config->fragment_above, config->max_packet_size );
+        return 0;
+    }
+
+    // max_fragments * fragment_size must cover max_packet_size. written as a division of the
+    // two values already known to be positive, so neither side can overflow
+
+    if ( config->max_fragments <= ( config->max_packet_size - 1 ) / config->fragment_size )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] max_fragments (%d) times fragment_size (%d) does not cover max_packet_size (%d)\n",
+                         config->name, config->max_fragments, config->fragment_size, config->max_packet_size );
+        return 0;
+    }
+
+    return 1;
+}
+
 struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t * config, double time )
 {
-    reliable_assert( config );
-    reliable_assert( config->max_packet_size > 0 );
-    reliable_assert( config->fragment_above > 0 );
-    reliable_assert( config->max_fragments > 0 );
-    reliable_assert( config->max_fragments <= 256 );
-    reliable_assert( config->fragment_size > 0 );
-    reliable_assert( config->ack_buffer_size > 0 );
-    reliable_assert( config->sent_packets_buffer_size > 0 );
-    reliable_assert( config->received_packets_buffer_size > 0 );
-    reliable_assert( config->transmit_packet_function != NULL );
-    reliable_assert( config->process_packet_function != NULL );
-    reliable_assert( config->rtt_history_size > 0 );
+    if ( !reliable_config_valid( config ) )
+    {
+        return NULL;
+    }
 
     void * allocator_context = config->allocator_context;
     void * (*allocate_function)(void*,size_t) = config->allocate_function;
@@ -585,9 +638,46 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
         free_function = reliable_default_free_function;
     }
 
+    // every size the endpoint allocates, computed up front so an overflowing config is refused
+    // before anything is allocated
+
+    size_t acks_bytes;
+    size_t rtt_history_bytes;
+
+    if ( !reliable_checked_size( config->ack_buffer_size, sizeof( uint16_t ), &acks_bytes ) )
+    {
+        return NULL;
+    }
+
+    if ( !reliable_checked_size( config->rtt_history_size, sizeof( float ), &rtt_history_bytes ) )
+    {
+        return NULL;
+    }
+
+    // scratch buffer for outgoing packets, so the send path doesn't allocate. sized for whichever is larger: a regular packet or a fragment
+
+    if ( config->max_packet_size > INT_MAX - RELIABLE_MAX_PACKET_HEADER_BYTES || 
+         config->fragment_size > INT_MAX - RELIABLE_FRAGMENT_HEADER_BYTES - RELIABLE_MAX_PACKET_HEADER_BYTES )
+    {
+        return NULL;
+    }
+
+    int transmit_buffer_size = config->max_packet_size + RELIABLE_MAX_PACKET_HEADER_BYTES;
+    int fragment_transmit_buffer_size = RELIABLE_FRAGMENT_HEADER_BYTES + RELIABLE_MAX_PACKET_HEADER_BYTES + config->fragment_size;
+    if ( fragment_transmit_buffer_size > transmit_buffer_size )
+    {
+        transmit_buffer_size = fragment_transmit_buffer_size;
+    }
+
+    // from here on every allocation is checked and the failure path hands back everything
+    // already taken, in every build, so the caller only ever sees a complete endpoint or NULL
+
     struct reliable_endpoint_t * endpoint = (struct reliable_endpoint_t*) allocate_function( allocator_context, sizeof( struct reliable_endpoint_t ) );
 
-    reliable_assert( endpoint );
+    if ( endpoint == NULL )
+    {
+        return NULL;
+    }
 
     memset( endpoint, 0, sizeof( struct reliable_endpoint_t ) );
 
@@ -597,10 +687,7 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
     endpoint->config = *config;
     endpoint->time = time;
 
-    endpoint->acks = (uint16_t*) allocate_function( allocator_context, config->ack_buffer_size * sizeof(uint16_t) );
-
-    reliable_assert( endpoint->acks );
-
+    endpoint->acks = (uint16_t*) allocate_function( allocator_context, acks_bytes );
 
     endpoint->sent_packets = reliable_sequence_buffer_create( config->sent_packets_buffer_size, 
                                                               sizeof( struct reliable_sent_packet_data_t ), 
@@ -620,29 +707,28 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
                                                                      allocate_function, 
                                                                      free_function );
 
-    endpoint->rtt_history_buffer = (float*) allocate_function( allocator_context, config->rtt_history_size * sizeof(float) );
+    endpoint->rtt_history_buffer = (float*) allocate_function( allocator_context, rtt_history_bytes );
 
-    reliable_assert( endpoint->rtt_history_buffer );
+    endpoint->transmit_buffer = (uint8_t*) allocate_function( allocator_context, (size_t) transmit_buffer_size );
 
-    // scratch buffer for outgoing packets, so the send path doesn't allocate. sized for whichever is larger: a regular packet or a fragment
-
-    int transmit_buffer_size = config->max_packet_size + RELIABLE_MAX_PACKET_HEADER_BYTES;
-    int fragment_transmit_buffer_size = RELIABLE_FRAGMENT_HEADER_BYTES + RELIABLE_MAX_PACKET_HEADER_BYTES + config->fragment_size;
-    if ( fragment_transmit_buffer_size > transmit_buffer_size )
+    if ( endpoint->acks == NULL || 
+         endpoint->sent_packets == NULL || 
+         endpoint->received_packets == NULL || 
+         endpoint->fragment_reassembly == NULL || 
+         endpoint->rtt_history_buffer == NULL || 
+         endpoint->transmit_buffer == NULL )
     {
-        transmit_buffer_size = fragment_transmit_buffer_size;
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] failed to allocate endpoint\n", config->name );
+        reliable_endpoint_destroy( endpoint );
+        return NULL;
     }
-
-    endpoint->transmit_buffer = (uint8_t*) allocate_function( allocator_context, transmit_buffer_size );
-
-    reliable_assert( endpoint->transmit_buffer );
 
     for ( int i = 0; i < config->rtt_history_size; i++ )
     {
         endpoint->rtt_history_buffer[i] = -1.0f;
     }
 
-    memset( endpoint->acks, 0, config->ack_buffer_size * sizeof(uint16_t) );
+    memset( endpoint->acks, 0, acks_bytes );
 
     return endpoint;
 }
@@ -650,35 +736,55 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
 void reliable_endpoint_destroy( struct reliable_endpoint_t * endpoint )
 {
     reliable_assert( endpoint );
-    reliable_assert( endpoint->acks );
-    reliable_assert( endpoint->sent_packets );
-    reliable_assert( endpoint->received_packets );
-    reliable_assert( endpoint->fragment_reassembly );
-    reliable_assert( endpoint->rtt_history_buffer );
-    reliable_assert( endpoint->transmit_buffer );
 
-    int i;
-    for ( i = 0; i < endpoint->config.fragment_reassembly_buffer_size; ++i )
+    // every member is checked rather than asserted, because reliable_endpoint_create hands a
+    // partly built endpoint to this function to unwind an allocation failure
+
+    if ( endpoint->fragment_reassembly )
     {
-        struct reliable_fragment_reassembly_data_t * reassembly_data = (struct reliable_fragment_reassembly_data_t*) 
-            reliable_sequence_buffer_at_index( endpoint->fragment_reassembly, i );
-
-        if ( reassembly_data && reassembly_data->packet_data )
+        int i;
+        for ( i = 0; i < endpoint->config.fragment_reassembly_buffer_size; ++i )
         {
-            endpoint->free_function( endpoint->allocator_context, reassembly_data->packet_data );
-            reassembly_data->packet_data = NULL;
+            struct reliable_fragment_reassembly_data_t * reassembly_data = (struct reliable_fragment_reassembly_data_t*) 
+                reliable_sequence_buffer_at_index( endpoint->fragment_reassembly, i );
+
+            if ( reassembly_data && reassembly_data->packet_data )
+            {
+                endpoint->free_function( endpoint->allocator_context, reassembly_data->packet_data );
+                reassembly_data->packet_data = NULL;
+            }
         }
     }
 
-    endpoint->free_function( endpoint->allocator_context, endpoint->acks );
+    if ( endpoint->acks )
+    {
+        endpoint->free_function( endpoint->allocator_context, endpoint->acks );
+    }
 
-    reliable_sequence_buffer_destroy( endpoint->sent_packets );
-    reliable_sequence_buffer_destroy( endpoint->received_packets );
-    reliable_sequence_buffer_destroy( endpoint->fragment_reassembly );
+    if ( endpoint->sent_packets )
+    {
+        reliable_sequence_buffer_destroy( endpoint->sent_packets );
+    }
 
-    endpoint->free_function( endpoint->allocator_context, endpoint->rtt_history_buffer );
+    if ( endpoint->received_packets )
+    {
+        reliable_sequence_buffer_destroy( endpoint->received_packets );
+    }
 
-    endpoint->free_function( endpoint->allocator_context, endpoint->transmit_buffer );
+    if ( endpoint->fragment_reassembly )
+    {
+        reliable_sequence_buffer_destroy( endpoint->fragment_reassembly );
+    }
+
+    if ( endpoint->rtt_history_buffer )
+    {
+        endpoint->free_function( endpoint->allocator_context, endpoint->rtt_history_buffer );
+    }
+
+    if ( endpoint->transmit_buffer )
+    {
+        endpoint->free_function( endpoint->allocator_context, endpoint->transmit_buffer );
+    }
 
     endpoint->free_function( endpoint->allocator_context, endpoint );
 }
@@ -689,7 +795,7 @@ uint16_t reliable_endpoint_next_packet_sequence( struct reliable_endpoint_t * en
     return endpoint->sequence;
 }
 
-int reliable_write_packet_header( uint8_t * packet_data, uint16_t sequence, uint16_t ack, uint32_t ack_bits )
+static int reliable_write_packet_header( uint8_t * packet_data, uint16_t sequence, uint16_t ack, uint32_t ack_bits )
 {
     uint8_t * p = packet_data;
 
@@ -864,7 +970,7 @@ void reliable_endpoint_send_packet( struct reliable_endpoint_t * endpoint, uint8
     endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_SENT]++;
 }
 
-int reliable_read_packet_header( RELIABLE_CONST char * name, uint8_t * packet_data, int packet_bytes, uint16_t * sequence, uint16_t * ack, uint32_t * ack_bits )
+static int reliable_read_packet_header( RELIABLE_CONST char * name, uint8_t * packet_data, int packet_bytes, uint16_t * sequence, uint16_t * ack, uint32_t * ack_bits )
 {
     if ( packet_bytes < 3 )
     {
@@ -948,7 +1054,7 @@ int reliable_read_packet_header( RELIABLE_CONST char * name, uint8_t * packet_da
     return (int) ( p - packet_data );
 }
 
-int reliable_read_fragment_header( char * name, 
+static int reliable_read_fragment_header( char * name, 
                                    uint8_t * packet_data, 
                                    int packet_bytes, 
                                    int max_fragments, 
@@ -1051,7 +1157,7 @@ int reliable_read_fragment_header( char * name,
     return (int) ( p - packet_data );
 }
 
-void reliable_store_fragment_data( struct reliable_fragment_reassembly_data_t * reassembly_data, 
+static void reliable_store_fragment_data( struct reliable_fragment_reassembly_data_t * reassembly_data, 
                                    uint16_t sequence, 
                                    uint16_t ack, 
                                    uint32_t ack_bits, 
@@ -1349,7 +1455,7 @@ void reliable_endpoint_free_packet( struct reliable_endpoint_t * endpoint, void 
     endpoint->free_function( endpoint->allocator_context, packet );
 }
 
-uint16_t * reliable_endpoint_get_acks( struct reliable_endpoint_t * endpoint, int * num_acks )
+RELIABLE_CONST uint16_t * reliable_endpoint_get_acks( struct reliable_endpoint_t * endpoint, int * num_acks )
 {
     reliable_assert( endpoint );
     reliable_assert( num_acks );
@@ -1370,8 +1476,29 @@ void reliable_endpoint_reset( struct reliable_endpoint_t * endpoint )
     endpoint->num_acks = 0;
     endpoint->sequence = 0;
 
+    // every value a getter can return goes back to what it was at create, so the header's
+    // promise holds for the statistics as well as for the buffers
+
+    endpoint->rtt = 0.0f;
+    endpoint->rtt_min = 0.0f;
+    endpoint->rtt_max = 0.0f;
+    endpoint->rtt_avg = 0.0f;
+    endpoint->jitter_avg_vs_min_rtt = 0.0f;
+    endpoint->jitter_max_vs_min_rtt = 0.0f;
+    endpoint->jitter_stddev_vs_avg_rtt = 0.0f;
+    endpoint->packet_loss = 0.0f;
+    endpoint->sent_bandwidth_kbps = 0.0f;
+    endpoint->received_bandwidth_kbps = 0.0f;
+    endpoint->acked_bandwidth_kbps = 0.0f;
+
     memset( endpoint->acks, 0, endpoint->config.ack_buffer_size * sizeof( uint16_t ) );
     memset( endpoint->counters, 0, RELIABLE_ENDPOINT_NUM_COUNTERS * sizeof( uint64_t ) );
+
+    int rtt_index;
+    for ( rtt_index = 0; rtt_index < endpoint->config.rtt_history_size; ++rtt_index )
+    {
+        endpoint->rtt_history_buffer[rtt_index] = -1.0f;
+    }
 
     int i;
     for ( i = 0; i < endpoint->config.fragment_reassembly_buffer_size; ++i )
@@ -1399,7 +1526,7 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
 
     // calculate min and max rtt
     {
-        float min_rtt = 10000.0f;
+        float min_rtt = FLT_MAX;
         float max_rtt = 0.0f;
         float sum_rtt = 0.0f;
         int count = 0;
@@ -1420,18 +1547,19 @@ void reliable_endpoint_update( struct reliable_endpoint_t * endpoint, double tim
                 count++;
             }
         }
-        if ( min_rtt == 10000.0f )
-        {
-            min_rtt = 0.0f;
-        }
-        endpoint->rtt_min = min_rtt;
-        endpoint->rtt_max = max_rtt;
+        // the sample count, not the value of min_rtt, says whether the history is empty. a
+        // sentinel compared against a real rtt reports 0 for a link slow enough to reach it
+
         if ( count > 0 )
         {
+            endpoint->rtt_min = min_rtt;
+            endpoint->rtt_max = max_rtt;
             endpoint->rtt_avg = sum_rtt / (float)count;
         }
         else
         {
+            endpoint->rtt_min = 0.0f;
+            endpoint->rtt_max = 0.0f;
             endpoint->rtt_avg = 0.0f;
         }
     }
@@ -1754,6 +1882,7 @@ static void check_handler( RELIABLE_CONST char * condition,
                            int line )
 {
     printf( "check failed: ( %s ), function %s, file %s, line %d\n", condition, function, file, line );
+    fflush( stdout );
 #ifdef RELIABLE_DEBUG
     #if defined( __GNUC__ )
         __builtin_trap();
@@ -2093,7 +2222,7 @@ static void test_acks()
     uint8_t sender_acked_packet[TEST_ACKS_NUM_ITERATIONS];
     memset( sender_acked_packet, 0, sizeof( sender_acked_packet ) );
     int sender_num_acks;
-    uint16_t * sender_acks = reliable_endpoint_get_acks( context.sender, &sender_num_acks );
+    RELIABLE_CONST uint16_t * sender_acks = reliable_endpoint_get_acks( context.sender, &sender_num_acks );
     for ( i = 0; i < sender_num_acks; ++i )
     {
         if ( sender_acks[i] < TEST_ACKS_NUM_ITERATIONS )
@@ -2109,7 +2238,7 @@ static void test_acks()
     uint8_t receiver_acked_packet[TEST_ACKS_NUM_ITERATIONS];
     memset( receiver_acked_packet, 0, sizeof( receiver_acked_packet ) );
     int receiver_num_acks;
-    uint16_t * receiver_acks = reliable_endpoint_get_acks( context.receiver, &receiver_num_acks );
+    RELIABLE_CONST uint16_t * receiver_acks = reliable_endpoint_get_acks( context.receiver, &receiver_num_acks );
     for ( i = 0; i < receiver_num_acks; ++i )
     {
         if ( receiver_acks[i] < TEST_ACKS_NUM_ITERATIONS )
@@ -2172,7 +2301,7 @@ static void test_acks_packet_loss()
     uint8_t sender_acked_packet[TEST_ACKS_NUM_ITERATIONS];
     memset( sender_acked_packet, 0, sizeof( sender_acked_packet ) );
     int sender_num_acks;
-    uint16_t * sender_acks = reliable_endpoint_get_acks( context.sender, &sender_num_acks );
+    RELIABLE_CONST uint16_t * sender_acks = reliable_endpoint_get_acks( context.sender, &sender_num_acks );
     for ( i = 0; i < sender_num_acks; ++i )
     {
         if ( sender_acks[i] < TEST_ACKS_NUM_ITERATIONS )
@@ -2188,7 +2317,7 @@ static void test_acks_packet_loss()
     uint8_t receiver_acked_packet[TEST_ACKS_NUM_ITERATIONS];
     memset( receiver_acked_packet, 0, sizeof( receiver_acked_packet ) );
     int receiver_num_acks;
-    uint16_t * receiver_acks = reliable_endpoint_get_acks( context.receiver, &receiver_num_acks );
+    RELIABLE_CONST uint16_t * receiver_acks = reliable_endpoint_get_acks( context.receiver, &receiver_num_acks );
     for ( i = 0; i < receiver_num_acks; ++i )
     {
         if ( receiver_acks[i] < TEST_ACKS_NUM_ITERATIONS )
@@ -3031,6 +3160,760 @@ static void test_rtt()
     reliable_endpoint_destroy(context.receiver);
 }
 
+// a pair of endpoints wired to each other through test_transmit_packet_function
+
+struct test_pair_t
+{
+    struct test_context_t context;
+    struct reliable_config_t sender_config;
+    struct reliable_config_t receiver_config;
+};
+
+static void test_pair_configs( struct test_pair_t * pair )
+{
+    test_default_context( &pair->context );
+
+    reliable_default_config( &pair->sender_config );
+    reliable_default_config( &pair->receiver_config );
+
+    reliable_copy_string( pair->sender_config.name, "sender", sizeof( pair->sender_config.name ) );
+    pair->sender_config.context = &pair->context;
+    pair->sender_config.id = 0;
+    pair->sender_config.transmit_packet_function = &test_transmit_packet_function;
+    pair->sender_config.process_packet_function = &test_process_packet_function;
+
+    reliable_copy_string( pair->receiver_config.name, "receiver", sizeof( pair->receiver_config.name ) );
+    pair->receiver_config.context = &pair->context;
+    pair->receiver_config.id = 1;
+    pair->receiver_config.transmit_packet_function = &test_transmit_packet_function;
+    pair->receiver_config.process_packet_function = &test_process_packet_function;
+}
+
+static void test_pair_create( struct test_pair_t * pair, double time )
+{
+    pair->context.sender = reliable_endpoint_create( &pair->sender_config, time );
+    pair->context.receiver = reliable_endpoint_create( &pair->receiver_config, time );
+    check( pair->context.sender );
+    check( pair->context.receiver );
+}
+
+static void test_pair_destroy( struct test_pair_t * pair )
+{
+    reliable_endpoint_destroy( pair->context.sender );
+    reliable_endpoint_destroy( pair->context.receiver );
+}
+
+// RL-02: a round trip long enough to reach any fixed sentinel must still be reported
+
+static void test_rtt_min_large()
+{
+    double time = 100.0;
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+    test_pair_create( &pair, time );
+
+    uint8_t packet[8];
+    memset( packet, 0, sizeof( packet ) );
+
+    reliable_endpoint_send_packet( pair.context.sender, packet, sizeof( packet ) );
+
+    // ten seconds pass before the acknowledgment comes back, so the one rtt sample is 10,000 ms
+
+    time += 10.0;
+
+    reliable_endpoint_update( pair.context.sender, time );
+    reliable_endpoint_update( pair.context.receiver, time );
+
+    reliable_endpoint_send_packet( pair.context.receiver, packet, sizeof( packet ) );
+
+    reliable_endpoint_update( pair.context.sender, time );
+
+    int num_acks;
+    reliable_endpoint_get_acks( pair.context.sender, &num_acks );
+    check( num_acks == 1 );
+
+    check( reliable_endpoint_rtt_min( pair.context.sender ) == 10000.0f );
+    check( reliable_endpoint_rtt_max( pair.context.sender ) == 10000.0f );
+    check( reliable_endpoint_rtt_avg( pair.context.sender ) == 10000.0f );
+    check( reliable_endpoint_jitter_avg_vs_min_rtt( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_jitter_max_vs_min_rtt( pair.context.sender ) == 0.0f );
+
+    // and an endpoint with no samples at all still reports zero
+
+    check( reliable_endpoint_rtt_min( pair.context.receiver ) == 0.0f );
+
+    test_pair_destroy( &pair );
+}
+
+// RL-03: reset clears every field a getter can return, the rtt history included
+
+static void test_endpoint_reset_clears_stats()
+{
+    double time = 100.0;
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+    test_pair_create( &pair, time );
+
+    // enough packets that the bandwidth window, which samples half the sent packets buffer,
+    // lands on packets that were actually sent
+
+    int i;
+    for ( i = 0; i < 300; ++i )
+    {
+        uint8_t packet[64];
+        memset( packet, 0, sizeof( packet ) );
+
+        // the reply comes back a step later, so the acknowledgment carries a real round trip
+
+        reliable_endpoint_send_packet( pair.context.sender, packet, sizeof( packet ) );
+
+        time += 0.1;
+        reliable_endpoint_update( pair.context.sender, time );
+        reliable_endpoint_update( pair.context.receiver, time );
+
+        reliable_endpoint_send_packet( pair.context.receiver, packet, sizeof( packet ) );
+
+        time += 0.1;
+        reliable_endpoint_update( pair.context.sender, time );
+        reliable_endpoint_update( pair.context.receiver, time );
+
+        reliable_endpoint_clear_acks( pair.context.sender );
+        reliable_endpoint_clear_acks( pair.context.receiver );
+    }
+
+    check( reliable_endpoint_rtt( pair.context.sender ) > 0.0f );
+    check( reliable_endpoint_rtt_min( pair.context.sender ) > 0.0f );
+    check( reliable_endpoint_rtt_max( pair.context.sender ) > 0.0f );
+    check( reliable_endpoint_rtt_avg( pair.context.sender ) > 0.0f );
+
+    float sent_bandwidth, received_bandwidth, acked_bandwidth;
+    reliable_endpoint_bandwidth( pair.context.sender, &sent_bandwidth, &received_bandwidth, &acked_bandwidth );
+    check( sent_bandwidth > 0.0f );
+    check( received_bandwidth > 0.0f );
+    check( acked_bandwidth > 0.0f );
+
+    reliable_endpoint_reset( pair.context.sender );
+
+    check( reliable_endpoint_rtt( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_rtt_min( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_rtt_max( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_rtt_avg( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_jitter_avg_vs_min_rtt( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_jitter_max_vs_min_rtt( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_jitter_stddev_vs_avg_rtt( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_packet_loss( pair.context.sender ) == 0.0f );
+
+    reliable_endpoint_bandwidth( pair.context.sender, &sent_bandwidth, &received_bandwidth, &acked_bandwidth );
+    check( sent_bandwidth == 0.0f );
+    check( received_bandwidth == 0.0f );
+    check( acked_bandwidth == 0.0f );
+
+    // the rtt history is part of the state, so recomputing the statistics after a reset must
+    // not resurrect the samples that were in it
+
+    time += 0.1;
+    reliable_endpoint_update( pair.context.sender, time );
+
+    check( reliable_endpoint_rtt_min( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_rtt_max( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_rtt_avg( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_jitter_avg_vs_min_rtt( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_jitter_max_vs_min_rtt( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_jitter_stddev_vs_avg_rtt( pair.context.sender ) == 0.0f );
+
+    test_pair_destroy( &pair );
+}
+
+// RL-06: a config the library cannot honor is refused instead of asserted
+
+static void test_endpoint_create_invalid_config()
+{
+    struct reliable_config_t valid;
+
+    reliable_default_config( &valid );
+    valid.transmit_packet_function = &test_transmit_packet_function;
+    valid.process_packet_function = &test_process_packet_function;
+
+    struct reliable_endpoint_t * endpoint = reliable_endpoint_create( &valid, 0.0 );
+    check( endpoint );
+    reliable_endpoint_destroy( endpoint );
+
+    check( reliable_endpoint_create( NULL, 0.0 ) == NULL );
+
+    struct reliable_config_t config;
+
+    // the two relationships between fields
+
+    config = valid;
+    config.fragment_above = config.max_packet_size + 1;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid;
+    config.max_fragments = 4;
+    config.fragment_size = 1024;
+    config.max_packet_size = 4 * 1024 + 1;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    // exactly covering is allowed, one fragment short is not
+
+    config = valid;
+    config.max_fragments = 4;
+    config.fragment_size = 1024;
+    config.max_packet_size = 4 * 1024;
+    config.fragment_above = 1024;
+    endpoint = reliable_endpoint_create( &config, 0.0 );
+    check( endpoint );
+    reliable_endpoint_destroy( endpoint );
+
+    // ranges
+
+    config = valid; config.max_packet_size = 0;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.fragment_above = 0;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.fragment_size = 0;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.max_fragments = 0;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.max_fragments = 257;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.ack_buffer_size = 0;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.sent_packets_buffer_size = -1;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.received_packets_buffer_size = 0;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.fragment_reassembly_buffer_size = 0;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.rtt_history_size = 0;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.transmit_packet_function = NULL;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.process_packet_function = NULL;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    // the size arithmetic behind every one of those buffers
+
+    size_t bytes = 0;
+
+    check( reliable_checked_size( 1, 4, &bytes ) );
+    check( bytes == 4 );
+
+    check( reliable_checked_size( 256, sizeof( uint16_t ), &bytes ) );
+    check( bytes == 512 );
+
+    check( !reliable_checked_size( 0, 4, &bytes ) );
+    check( !reliable_checked_size( -1, 4, &bytes ) );
+    check( !reliable_checked_size( 4, 0, &bytes ) );
+
+    // a product that does not fit in a size_t is refused rather than wrapped
+
+    check( !reliable_checked_size( 4, SIZE_MAX / 2, &bytes ) );
+    check( !reliable_checked_size( INT_MAX, SIZE_MAX / 3, &bytes ) );
+}
+
+// RL-06: every allocation failure returns NULL, in every build, having freed what it took
+
+#define TEST_FAILING_ALLOCATOR_SLOTS 64
+
+struct test_failing_allocate_context_t
+{
+    int fail_on;
+    int num_allocations;
+    void * active_allocations[TEST_FAILING_ALLOCATOR_SLOTS];
+};
+
+static void * test_failing_allocate_function( void * context, size_t bytes )
+{
+    struct test_failing_allocate_context_t * failing_context = (struct test_failing_allocate_context_t*) context;
+
+    if ( failing_context->num_allocations++ == failing_context->fail_on )
+    {
+        return NULL;
+    }
+
+    void * allocation = malloc( bytes );
+
+    int i;
+    for ( i = 0; i < TEST_FAILING_ALLOCATOR_SLOTS; ++i )
+    {
+        if ( failing_context->active_allocations[i] == NULL )
+        {
+            failing_context->active_allocations[i] = allocation;
+            return allocation;
+        }
+    }
+
+    check( 0 );
+    return allocation;
+}
+
+static void test_failing_free_function( void * context, void * pointer )
+{
+    struct test_failing_allocate_context_t * failing_context = (struct test_failing_allocate_context_t*) context;
+
+    int i;
+    for ( i = 0; i < TEST_FAILING_ALLOCATOR_SLOTS; ++i )
+    {
+        if ( failing_context->active_allocations[i] == pointer )
+        {
+            failing_context->active_allocations[i] = NULL;
+            free( pointer );
+            return;
+        }
+    }
+
+    check( 0 );
+}
+
+static void test_endpoint_create_allocation_failure()
+{
+    struct test_failing_allocate_context_t allocator;
+
+    struct reliable_config_t config;
+    reliable_default_config( &config );
+    config.transmit_packet_function = &test_transmit_packet_function;
+    config.process_packet_function = &test_process_packet_function;
+    config.allocator_context = &allocator;
+    config.allocate_function = &test_failing_allocate_function;
+    config.free_function = &test_failing_free_function;
+
+    // how many allocations a successful create makes
+
+    memset( &allocator, 0, sizeof( allocator ) );
+    allocator.fail_on = -1;
+
+    struct reliable_endpoint_t * endpoint = reliable_endpoint_create( &config, 0.0 );
+    check( endpoint );
+
+    const int num_allocations = allocator.num_allocations;
+    check( num_allocations > 1 );
+
+    reliable_endpoint_destroy( endpoint );
+
+    int i;
+    for ( i = 0; i < TEST_FAILING_ALLOCATOR_SLOTS; ++i )
+    {
+        check( allocator.active_allocations[i] == NULL );
+    }
+
+    // fail each one in turn
+
+    int fail_on;
+    for ( fail_on = 0; fail_on < num_allocations; ++fail_on )
+    {
+        memset( &allocator, 0, sizeof( allocator ) );
+        allocator.fail_on = fail_on;
+
+        check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+        for ( i = 0; i < TEST_FAILING_ALLOCATOR_SLOTS; ++i )
+        {
+            check( allocator.active_allocations[i] == NULL );
+        }
+    }
+}
+
+// RL-07: the sequence number crosses 65535 to 0
+
+static uint8_t test_wrap_acked[65536];
+
+static void test_sequence_wrap()
+{
+    double time = 100.0;
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+    test_pair_create( &pair, time );
+
+    memset( test_wrap_acked, 0, sizeof( test_wrap_acked ) );
+
+    const int num_iterations = 65536 + 64;
+
+    int i;
+    for ( i = 0; i < num_iterations; ++i )
+    {
+        uint8_t packet[8];
+        memset( packet, 0, sizeof( packet ) );
+
+        reliable_endpoint_send_packet( pair.context.sender, packet, sizeof( packet ) );
+        reliable_endpoint_send_packet( pair.context.receiver, packet, sizeof( packet ) );
+
+        int num_acks;
+        RELIABLE_CONST uint16_t * acks = reliable_endpoint_get_acks( pair.context.sender, &num_acks );
+
+        int j;
+        for ( j = 0; j < num_acks; ++j )
+        {
+            test_wrap_acked[acks[j]] = 1;
+        }
+
+        reliable_endpoint_clear_acks( pair.context.sender );
+        reliable_endpoint_clear_acks( pair.context.receiver );
+    }
+
+    check( reliable_endpoint_next_packet_sequence( pair.context.sender ) == (uint16_t) num_iterations );
+
+    // the sequences either side of the wrap were acked like any others
+
+    check( test_wrap_acked[65533] );
+    check( test_wrap_acked[65534] );
+    check( test_wrap_acked[65535] );
+    check( test_wrap_acked[0] );
+    check( test_wrap_acked[1] );
+    check( test_wrap_acked[2] );
+
+    for ( i = 0; i < 65536; ++i )
+    {
+        check( test_wrap_acked[i] );
+    }
+
+    check( reliable_endpoint_counters( pair.context.receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED] == (uint64_t) num_iterations );
+
+    test_pair_destroy( &pair );
+}
+
+// RL-07: fragment counts at both ends of the range, and a payload that is an exact multiple
+// of the fragment size
+
+struct test_fragment_context_t
+{
+    struct test_context_t base;
+    int num_processed;
+    int processed_bytes;
+    uint8_t processed[64 * 1024];
+};
+
+static int test_fragment_process_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) id;
+    (void) sequence;
+
+    struct test_fragment_context_t * context = (struct test_fragment_context_t*) _context;
+
+    check( packet_bytes <= (int) sizeof( context->processed ) );
+
+    context->num_processed++;
+    context->processed_bytes = packet_bytes;
+    memcpy( context->processed, packet_data, packet_bytes );
+
+    return 1;
+}
+
+static void test_fragment_case( int fragment_size, int max_fragments, int packet_bytes, int expected_fragments )
+{
+    struct test_fragment_context_t context;
+    memset( &context, 0, sizeof( context ) );
+    context.base.allow_packets = -1;
+
+    struct reliable_config_t sender_config;
+    struct reliable_config_t receiver_config;
+
+    reliable_default_config( &sender_config );
+    reliable_default_config( &receiver_config );
+
+    sender_config.fragment_size = fragment_size;
+    sender_config.max_fragments = max_fragments;
+    sender_config.max_packet_size = fragment_size * max_fragments;
+    sender_config.fragment_above = fragment_size;
+    receiver_config = sender_config;
+
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
+    sender_config.context = &context;
+    sender_config.id = 0;
+    sender_config.transmit_packet_function = &test_transmit_packet_function;
+    sender_config.process_packet_function = &test_fragment_process_packet_function;
+
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
+    receiver_config.context = &context;
+    receiver_config.id = 1;
+    receiver_config.transmit_packet_function = &test_transmit_packet_function;
+    receiver_config.process_packet_function = &test_fragment_process_packet_function;
+
+    context.base.sender = reliable_endpoint_create( &sender_config, 100.0 );
+    context.base.receiver = reliable_endpoint_create( &receiver_config, 100.0 );
+    check( context.base.sender );
+    check( context.base.receiver );
+
+    uint8_t * packet = (uint8_t*) malloc( packet_bytes );
+    check( packet );
+
+    int i;
+    for ( i = 0; i < packet_bytes; ++i )
+    {
+        packet[i] = (uint8_t) ( ( i * 31 ) + 7 );
+    }
+
+    reliable_endpoint_send_packet( context.base.sender, packet, packet_bytes );
+
+    check( context.num_processed == 1 );
+    check( context.processed_bytes == packet_bytes );
+    check( memcmp( context.processed, packet, packet_bytes ) == 0 );
+
+    const uint64_t fragments_sent = reliable_endpoint_counters( context.base.sender )[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_SENT];
+    const uint64_t fragments_received = reliable_endpoint_counters( context.base.receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_RECEIVED];
+
+    if ( expected_fragments == 0 )
+    {
+        // below the threshold: sent whole, no fragments at all
+        check( fragments_sent == 0 );
+        check( fragments_received == 0 );
+    }
+    else
+    {
+        check( fragments_sent == (uint64_t) expected_fragments );
+        check( fragments_received == (uint64_t) expected_fragments );
+    }
+
+    free( packet );
+
+    reliable_endpoint_destroy( context.base.sender );
+    reliable_endpoint_destroy( context.base.receiver );
+}
+
+static void test_fragment_counts()
+{
+    // an exact multiple of the fragment size, where the last fragment is full rather than a remainder
+    test_fragment_case( 512, 16, 512 * 4, 4 );
+
+    // the largest packet the config allows, again an exact multiple
+    test_fragment_case( 512, 16, 512 * 16, 16 );
+
+    // one fragment: above the threshold by a single byte
+    test_fragment_case( 512, 16, 513, 2 );
+    test_fragment_case( 64, 256, 65, 2 );
+
+    // 256 fragments, the maximum the wire format can express
+    test_fragment_case( 64, 256, 64 * 256, 256 );
+    test_fragment_case( 64, 256, 64 * 255 + 1, 256 );
+
+    // at or below the threshold the packet is not fragmented
+    test_fragment_case( 512, 16, 512, 0 );
+    test_fragment_case( 512, 16, 1, 0 );
+}
+
+// RL-07: truncated packets and fragments are rejected rather than acted on
+
+struct test_truncation_context_t
+{
+    struct test_context_t base;
+    int num_processed;
+    int num_captured;
+    int captured_bytes[300];
+    uint8_t captured[300][1024];
+};
+
+static void test_truncation_transmit_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) id;
+    (void) sequence;
+
+    struct test_truncation_context_t * context = (struct test_truncation_context_t*) _context;
+
+    if ( context->num_captured < (int) ARRAY_LENGTH( context->captured_bytes ) && packet_bytes <= (int) sizeof( context->captured[0] ) )
+    {
+        memcpy( context->captured[context->num_captured], packet_data, packet_bytes );
+        context->captured_bytes[context->num_captured] = packet_bytes;
+        context->num_captured++;
+    }
+}
+
+static int test_truncation_process_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) id;
+    (void) sequence;
+    (void) packet_data;
+    (void) packet_bytes;
+
+    struct test_truncation_context_t * context = (struct test_truncation_context_t*) _context;
+    context->num_processed++;
+    return 1;
+}
+
+static void test_truncated_packets()
+{
+    struct test_truncation_context_t context;
+    memset( &context, 0, sizeof( context ) );
+    context.base.allow_packets = -1;
+
+    struct reliable_config_t config;
+    reliable_default_config( &config );
+    config.fragment_size = 256;
+    config.max_fragments = 16;
+    config.max_packet_size = 256 * 16;
+    config.fragment_above = 256;
+    config.context = &context;
+    config.id = 0;
+    config.transmit_packet_function = &test_truncation_transmit_packet_function;
+    config.process_packet_function = &test_truncation_process_packet_function;
+
+    struct reliable_endpoint_t * sender = reliable_endpoint_create( &config, 100.0 );
+    struct reliable_endpoint_t * receiver = reliable_endpoint_create( &config, 100.0 );
+    check( sender );
+    check( receiver );
+
+    // an unfragmented packet, captured on the wire
+
+    uint8_t packet[200];
+    memset( packet, 0xAB, sizeof( packet ) );
+    reliable_endpoint_send_packet( sender, packet, sizeof( packet ) );
+    check( context.num_captured == 1 );
+
+    const int whole_bytes = context.captured_bytes[0];
+
+    // every truncation of it shorter than the header is rejected, and none is processed
+
+    int truncated_bytes;
+    for ( truncated_bytes = 1; truncated_bytes < 4; ++truncated_bytes )
+    {
+        reliable_endpoint_receive_packet( receiver, context.captured[0], truncated_bytes );
+    }
+
+    check( reliable_endpoint_counters( receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_INVALID] == 3 );
+    check( context.num_processed == 0 );
+
+    // the whole packet still arrives
+
+    reliable_endpoint_receive_packet( receiver, context.captured[0], whole_bytes );
+    check( context.num_processed == 1 );
+
+    // now a fragmented packet
+
+    context.num_captured = 0;
+
+    uint8_t large_packet[1024];
+    memset( large_packet, 0xCD, sizeof( large_packet ) );
+    reliable_endpoint_send_packet( sender, large_packet, sizeof( large_packet ) );
+    check( context.num_captured == 4 );
+
+    // a fragment truncated inside its header is rejected
+
+    for ( truncated_bytes = 1; truncated_bytes < RELIABLE_FRAGMENT_HEADER_BYTES; ++truncated_bytes )
+    {
+        reliable_endpoint_receive_packet( receiver, context.captured[1], truncated_bytes );
+    }
+
+    check( reliable_endpoint_counters( receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_RECEIVED] == 0 );
+    check( reliable_endpoint_counters( receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID] == RELIABLE_FRAGMENT_HEADER_BYTES - 1 );
+
+    // a fragment that is not the last one must carry exactly fragment_size bytes, so a
+    // truncated body is rejected too
+
+    reliable_endpoint_receive_packet( receiver, context.captured[1], context.captured_bytes[1] - 1 );
+    check( reliable_endpoint_counters( receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_RECEIVED] == 0 );
+    check( reliable_endpoint_counters( receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID] == RELIABLE_FRAGMENT_HEADER_BYTES );
+    check( context.num_processed == 1 );
+
+    // the intact fragments reassemble
+
+    int i;
+    for ( i = 0; i < context.num_captured; ++i )
+    {
+        reliable_endpoint_receive_packet( receiver, context.captured[i], context.captured_bytes[i] );
+    }
+
+    check( reliable_endpoint_counters( receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_RECEIVED] == 4 );
+    check( context.num_processed == 2 );
+
+    reliable_endpoint_destroy( sender );
+    reliable_endpoint_destroy( receiver );
+}
+
+// every function reliable.h declares is called at least once by the suite. this test names
+// them all in one place so a new entry point cannot be added without being exercised
+
+static int test_surface_printf_calls = 0;
+
+static int test_surface_printf_function( RELIABLE_CONST char * format, ... )
+{
+    (void) format;
+    test_surface_printf_calls++;
+    return 0;
+}
+
+static void test_public_api_surface()
+{
+    check( reliable_init() == RELIABLE_OK );
+
+    reliable_set_assert_function( reliable_assert_function );
+
+    reliable_set_printf_function( &test_surface_printf_function );
+    reliable_log_level( RELIABLE_LOG_LEVEL_NONE );
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+    test_pair_create( &pair, 100.0 );
+
+    check( reliable_endpoint_next_packet_sequence( pair.context.sender ) == 0 );
+
+    uint8_t packet[64];
+    memset( packet, 0, sizeof( packet ) );
+
+    reliable_endpoint_send_packet( pair.context.sender, packet, sizeof( packet ) );
+    reliable_endpoint_send_packet( pair.context.receiver, packet, sizeof( packet ) );
+
+    reliable_endpoint_receive_packet( pair.context.sender, packet, sizeof( packet ) );
+
+    reliable_endpoint_update( pair.context.sender, 100.1 );
+
+    int num_acks = 0;
+    RELIABLE_CONST uint16_t * acks = reliable_endpoint_get_acks( pair.context.sender, &num_acks );
+    check( acks );
+    check( num_acks == 1 );
+    reliable_endpoint_clear_acks( pair.context.sender );
+    reliable_endpoint_get_acks( pair.context.sender, &num_acks );
+    check( num_acks == 0 );
+
+    ( void ) reliable_endpoint_rtt( pair.context.sender );
+    ( void ) reliable_endpoint_rtt_min( pair.context.sender );
+    ( void ) reliable_endpoint_rtt_max( pair.context.sender );
+    ( void ) reliable_endpoint_rtt_avg( pair.context.sender );
+    ( void ) reliable_endpoint_jitter_avg_vs_min_rtt( pair.context.sender );
+    ( void ) reliable_endpoint_jitter_max_vs_min_rtt( pair.context.sender );
+    ( void ) reliable_endpoint_jitter_stddev_vs_avg_rtt( pair.context.sender );
+    ( void ) reliable_endpoint_packet_loss( pair.context.sender );
+
+    float sent_bandwidth, received_bandwidth, acked_bandwidth;
+    reliable_endpoint_bandwidth( pair.context.sender, &sent_bandwidth, &received_bandwidth, &acked_bandwidth );
+
+    check( reliable_endpoint_counters( pair.context.sender )[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_SENT] == 1 );
+
+    reliable_endpoint_reset( pair.context.sender );
+    check( reliable_endpoint_next_packet_sequence( pair.context.sender ) == 0 );
+
+    void * owned = malloc( 32 );
+    check( owned );
+    reliable_endpoint_free_packet( pair.context.sender, owned );
+
+    char name[8];
+    reliable_copy_string( name, "abcdefghij", sizeof( name ) );
+    check( strcmp( name, "abcdefg" ) == 0 );
+
+    struct reliable_config_t defaults;
+    reliable_default_config( &defaults );
+    check( defaults.max_packet_size > 0 );
+
+    test_pair_destroy( &pair );
+
+    reliable_set_printf_function( ( int (*)( RELIABLE_CONST char *, ... ) ) printf );
+
+    reliable_term();
+    check( reliable_init() == RELIABLE_OK );
+}
+
 #define RUN_TEST( test_function )                                           \
     do                                                                      \
     {                                                                       \
@@ -3058,6 +3941,14 @@ void reliable_test()
         RUN_TEST( test_fragment_cleanup );
         RUN_TEST( test_rtt );
         RUN_TEST( test_endpoint_reset );
+        RUN_TEST( test_endpoint_reset_clears_stats );
+        RUN_TEST( test_rtt_min_large );
+        RUN_TEST( test_endpoint_create_invalid_config );
+        RUN_TEST( test_endpoint_create_allocation_failure );
+        RUN_TEST( test_sequence_wrap );
+        RUN_TEST( test_fragment_counts );
+        RUN_TEST( test_truncated_packets );
+        RUN_TEST( test_public_api_surface );
     }
 }
 

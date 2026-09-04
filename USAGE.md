@@ -79,6 +79,8 @@ Note that the adapter will have a null `GameServer` pointer when used on the cli
 
 A note on configuration: the config must be **identical on the client and the server**, or they won't be able to communicate. In debug builds, the config is validated automatically when the server starts and when the client connects — an invalid value asserts with an error naming the field and the required value. One thing to watch out for: `maxPacketFragments` is derived from `maxPacketSize` inside the `ClientServerConfig` constructor, so if you increase `maxPacketSize` in your own config, update `maxPacketFragments` to match (the validation catches this if you forget). In release builds validation compiles away entirely — correct configuration is your responsibility.
 
+One config field is server-only and worth setting deliberately: `maxConnectTokenLifetime`. It is the longest lifetime, in seconds, that your matchmaker issues connect tokens with, and it defaults to 30 seconds, netcode's default. The server refuses any connect token whose expiry, minus this lifetime, falls before the moment the server started, so a token minted before a restart cannot be spent after one. Set it to the lifetime your own backend actually issues. Setting it higher than your backend's lifetime refuses legitimate connect tokens for the first few seconds after the server starts; setting it lower lets tokens issued shortly before the restart through. Zero or less means the default. The matcher under `matcher/` issues 45 second connect tokens, so set this to 45 if you run it as-is.
+
 Let's take a look at the `TestMessage` class and briefly cover basic serialization:
 
 ```cpp
@@ -268,6 +270,8 @@ if (m_client.IsDisconnected() || m_client.ConnectionFailed()) {
 ```
 
 The reason is cleared back to `YOJIMBO_CLIENT_DISCONNECT_REASON_NONE` whenever a new connect attempt starts. Connecting to a server that isn't running reports `YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECTION_REQUEST_TIMED_OUT` after the connection timeout, for both secure and insecure connects. `YOJIMBO_CLIENT_DISCONNECT_REASON_CONNECT_TOKEN_EXPIRED` means the connect token's expiry passed before the client could connect — for example, the player sat on a menu too long after matchmaking — and the fix is to request a fresh token and retry.
+
+A connect token is good for one connection. Once the server has accepted a client with it, the token is spent: presenting it again is refused, from any address, whether or not that client is still connected. A client that drops and wants back in asks the matchmaker for a fresh token, exactly as it did the first time. This is why `Client::InsecureConnect` generates a new token on every call, and why holding onto a token to skip a matchmaker round trip does not work.
 
 For testing purposes, let's also send a `TestMessage` when the player presses a key:
 

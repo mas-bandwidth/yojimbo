@@ -43,6 +43,41 @@ Out of scope: bugs in your own game code built on top of yojimbo, denial-of-serv
 requires an already-authenticated malicious peer flooding traffic, and issues in build
 tooling or example/test code that are not reachable at runtime.
 
+## Connect token handling changed in 1.12.1
+
+**yojimbo 1.12.1 vendors netcode 1.4.5.** That netcode tightens what the server accepts as a
+connect token, and the change is visible to anything built on yojimbo, so it is written down
+here rather than left in a version bump.
+
+A connect token is now good for exactly one connection. The server records a token as spent
+the moment it accepts the client holding it, and refuses that token from then on, from any
+address, whether or not the client is still connected. Before, a token stayed usable until it
+expired, so anyone who obtained a copy of a token in flight could ride it back in after the
+client it was minted for had left. The retry behavior a real client depends on is unchanged:
+retransmitted connection requests during a single handshake still work, because the token is
+not spent until the handshake completes.
+
+The server also refuses connect tokens that could have been issued before it started, which
+closes the gap where tokens minted for a previous run of a server stayed valid across a
+restart. This needs to know how long a lifetime your backend issues tokens with:
+`ClientServerConfig::maxConnectTokenLifetime`, in seconds, defaults to 30, which is netcode's
+default. Set it to your own backend's lifetime: the matcher under `matcher/` issues 45 second
+tokens, so a deployment running that sets 45. Setting it higher than your backend actually
+issues refuses legitimate tokens for the first few seconds after a server starts; setting it
+lower narrows the window this closes without breaking anything.
+
+Finally, every buffer holding a key is erased before it is reset or freed, so a key does not
+outlive its use in process memory.
+
+### What this asks of you
+
+If your game reuses a connect token to reconnect a dropped client, it stops working: ask the
+matchmaker for a fresh token instead, as you did for the first connection. If your backend
+issues connect tokens with a lifetime other than 30 seconds, set `maxConnectTokenLifetime` to
+match: 45 for the matcher in this repository. Nothing on the wire moved, so 1.12.1 talks to
+earlier versions exactly as before. What changed is which connect tokens a 1.12.1 server
+accepts, and your matchmaker does not have to change to keep issuing them.
+
 ## Known issue: AEAD nonce reuse in vendored netcode (fixed in 1.7.0)
 
 **Advisory: [GHSA-hqp3-fj6v-hrpc](https://github.com/mas-bandwidth/yojimbo/security/advisories/GHSA-hqp3-fj6v-hrpc)** (published 2026-07-26; a CVE has been requested and is pending assignment).
