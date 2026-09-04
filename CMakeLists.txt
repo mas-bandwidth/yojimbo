@@ -62,14 +62,20 @@ endforeach()
 # already defines NDEBUG in Release and not in Debug, so the correct mode is selected
 # automatically — matching what premake set explicitly.
 
-# Warnings Extra, RTTI Off (yojimbo uses its own lightweight message-type RTTI).
+# Warnings Extra. RTTI stays ON (YJ-05): yojimbo has public polymorphic classes — Allocator,
+# MessageFactory, Adapter, ClientInterface, ServerInterface — that consumers derive from, and the
+# compiler default is RTTI on. Building the library with -fno-rtti emitted their vtables without
+# the matching typeinfo, so an ordinary consumer that used dynamic_cast or typeid on one of them
+# failed to link on "typeinfo for yojimbo::Allocator". The public ABI is built the way consumers
+# build. Messages still carry their own lightweight type tag on the wire; that is a separate
+# thing and unaffected.
 # No fast math: yojimbo and the vendored libraries build with strict IEEE floating point.
 # (The old premake build set fast float globally; that is deliberately not carried forward —
 # the serializer round-trips floats bit-exactly and fast math has no business in that path.)
 if(MSVC)
-    add_compile_options(/W4 $<$<COMPILE_LANGUAGE:CXX>:/GR->)
+    add_compile_options(/W4)
 else()
-    add_compile_options(-Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>)
+    add_compile_options(-Wall -Wextra)
 endif()
 
 # --- tlsf backend -------------------------------------------------------------------------

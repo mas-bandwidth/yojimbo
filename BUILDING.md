@@ -42,6 +42,18 @@ to build yojimbo itself. **If you compile `serialize.h` in your own translation 
 the same flag there** — the flag is `PRIVATE` to yojimbo's targets and deliberately does
 not leak into your build, so this one is yours to set.
 
+## RTTI
+
+yojimbo builds with RTTI on, the compiler default. `Allocator`, `MessageFactory`, `Adapter`,
+`ClientInterface` and `ServerInterface` are public polymorphic classes you derive from, so their
+type information has to be there when your own code uses `dynamic_cast` or `typeid` on one of
+them. Building the library with `-fno-rtti` and your program without it links against vtables
+whose typeinfo was never emitted, and fails on `typeinfo for yojimbo::Allocator`.
+
+Messages carry their own one-bit block/non-block tag and an integer type from the message
+factory. That is the wire format and has nothing to do with C++ RTTI; nothing in yojimbo uses
+`dynamic_cast` on the message path.
+
 ## Building on Windows
 
 Install [CMake](https://cmake.org/download/) and Visual Studio (the free

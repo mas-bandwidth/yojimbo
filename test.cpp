@@ -30,6 +30,7 @@
 #include <inttypes.h>
 
 #include "shared.h"
+#include <typeinfo>
 #include "serialize.h"
 #ifndef YOJIMBO_SYSTEM_DEPS
 #include <sodium.h>
@@ -2003,6 +2004,34 @@ void test_connection_process_packet_channel_data_alloc_failure()
     }
     check( senderAlloc.GetOutstanding() == 0 );
     check( receiverAlloc.GetOutstanding() == 0 );
+}
+
+// YJ-05: the build added -fno-rtti to every C++ target, so libyojimbo emitted "vtable for
+// yojimbo::Allocator" with no matching typeinfo. Allocator, MessageFactory, Adapter and the two
+// interfaces are all public polymorphic classes consumers derive from, and consumers build with
+// the compiler default, which is RTTI on. Any dynamic_cast or typeid on one of them failed to
+// link on the missing typeinfo. RTTI is now on in yojimbo's own build too.
+//
+// This is a link test as much as a behaviour test: the typeinfo for Allocator and
+// DefaultAllocator comes out of libyojimbo, where their key functions live.
+void test_rtti_across_the_abi_boundary()
+{
+    ArmableAllocator allocator;
+
+    Allocator & base = allocator;
+    check( dynamic_cast<ArmableAllocator*>( &base ) == &allocator );
+    check( dynamic_cast<DefaultAllocator*>( &base ) == NULL );
+    check( typeid( base ) == typeid( ArmableAllocator ) );
+
+    // DefaultAllocator's key function is in yojimbo_allocator.cpp, so this resolves the library's
+    // own typeinfo rather than one the test binary could have emitted for itself.
+    Allocator & defaultAllocator = GetDefaultAllocator();
+    check( dynamic_cast<DefaultAllocator*>( &defaultAllocator ) != NULL );
+
+    // ...and the same across the message factory hierarchy.
+    TestMessageFactory factory( allocator );
+    MessageFactory & factoryBase = factory;
+    check( dynamic_cast<TestMessageFactory*>( &factoryBase ) == &factory );
 }
 
 // YJ-04: Allocator held a std::map and MessageFactory held another, both compiled in only when
@@ -4105,6 +4134,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
+        RUN_TEST( test_rtti_across_the_abi_boundary );
         RUN_TEST( test_public_layout_is_configuration_independent );
         RUN_TEST( test_interface_methods_link );
         RUN_TEST( test_server_start_alloc_failure );
