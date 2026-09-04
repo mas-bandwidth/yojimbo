@@ -47,6 +47,7 @@ namespace yojimbo
             @param config The configuration for this channel.
             @param maxPacketSize The maximum packet size in bytes (see ConnectionConfig::maxPacketSize).
             @param channelIndex The channel index in [0,numChannels-1].
+            @param time The current time in seconds. See Channel::AdvanceTime
          */
 
         UnreliableUnorderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int maxPacketSize, int channelIndex, double time );

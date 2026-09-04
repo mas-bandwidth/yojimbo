@@ -51,6 +51,7 @@ namespace yojimbo
             @param config The configuration for this channel.
             @param maxPacketSize The maximum packet size in bytes (see ConnectionConfig::maxPacketSize).
             @param channelIndex The channel index in [0,numChannels-1].
+            @param time The current time in seconds. See Channel::AdvanceTime
          */
 
         ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int maxPacketSize, int channelIndex, double time );
@@ -93,6 +94,7 @@ namespace yojimbo
             @param messageIds Array of message ids to be filled [out]. Fills up to ChannelConfig::maxMessagesPerPacket messages, make sure your array is at least this size.
             @param numMessageIds The number of message ids written to the array.
             @param remainingPacketBits Number of bits remaining in the packet. Considers this as a hard limit when determining how many messages can fit into the packet.
+            @param context The serialization context, from Client::GetContext or Server::GetContext. Passed through to the message serialize functions when measuring them. May be NULL.
             @returns Estimate of the number of bits required to serialize the messages (upper bound).
             @see GetMessagePacketData
          */
