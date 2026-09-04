@@ -4,8 +4,8 @@
 #   cmake --build build -j
 #   ctest --test-dir build --output-on-failure     # or ./build/bin/test directly
 #
-# Static libraries: sodium-builtin (unless -DYOJIMBO_SYSTEM_SODIUM=ON), netcode, reliable,
-# tlsf, yojimbo. Executables: client, server, loopback, soak, test — all written to
+# Produces one library, libyojimbo, with the vendored netcode, reliable, tlsf and libsodium
+# objects folded in. Executables: client, server, loopback, soak, test — all written to
 # <build>/bin (multi-config generators: <build>/bin/<Config>).
 #
 # For package managers (e.g. homebrew): -DYOJIMBO_SYSTEM_DEPS=ON builds against
@@ -100,6 +100,17 @@ else()
     set(YOJIMBO_TLSF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tlsf")
 endif()
 
+include(GNUInstallDirs)
+
+# --- dependency manifest --------------------------------------------------------------------
+#
+# dependencies.manifest is the one place serialize, reliable and netcode are versioned: the
+# version vendored here, the upstream tag it came from (which the system-deps CI job installs)
+# and the floor a system-installed copy must meet.
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/YojimboDependencies.cmake")
+yojimbo_read_dependency_manifest("${CMAKE_CURRENT_SOURCE_DIR}/dependencies.manifest")
+
 if(YOJIMBO_SYSTEM_DEPS)
 
     # --- system dependencies (e.g. homebrew) ------------------------------------------------
@@ -110,16 +121,14 @@ if(YOJIMBO_SYSTEM_DEPS)
     # crypto, so the bundled libsodium is not used at all here (YOJIMBO_SYSTEM_SODIUM is
     # moot). tlsf stays built-in — it is an implementation detail of yojimbo's per-client
     # allocators, not a public dependency.
+    #
+    # The three arrive as versioned imported targets whose versions are read from the installed
+    # headers and checked against the manifest floors at configure time. The same module runs
+    # again inside the installed YojimboConfig.cmake, so a consumer of this install resolves
+    # them identically.
 
-    find_path(YOJIMBO_SERIALIZE_INCLUDE_DIR serialize.h REQUIRED)
-    find_path(YOJIMBO_NETCODE_INCLUDE_DIR netcode.h REQUIRED)
-    find_library(YOJIMBO_NETCODE_LIBRARY netcode REQUIRED)
-    find_path(YOJIMBO_RELIABLE_INCLUDE_DIR reliable.h REQUIRED)
-    find_library(YOJIMBO_RELIABLE_LIBRARY reliable REQUIRED)
-
-    # Needed at link time when the installed netcode is a static archive (a shared netcode
-    # already carries its crypto). Optional: absent is fine when netcode is shared.
-    find_library(YOJIMBO_SODIUM_LIBRARY sodium)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/YojimboSystemDeps.cmake")
+    yojimbo_find_system_deps("${CMAKE_CURRENT_SOURCE_DIR}/dependencies.manifest")
 
     set(YOJIMBO_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -131,6 +140,18 @@ if(YOJIMBO_SYSTEM_DEPS)
     )
 
 else()
+
+    # The vendored copies must be exactly what the manifest says they are, so the tags the
+    # system-deps job installs really are the code the default build compiles.
+    foreach(dep serialize reliable netcode)
+        string(TOUPPER "${dep}" DEP)
+        yojimbo_read_header_version("${CMAKE_CURRENT_SOURCE_DIR}/${dep}/${dep}.h" ${DEP} vendored_version)
+        if(NOT vendored_version VERSION_EQUAL YOJIMBO_DEP_${dep}_VENDORED)
+            message(FATAL_ERROR
+                "yojimbo: vendored ${dep} is ${vendored_version} but dependencies.manifest says "
+                "${YOJIMBO_DEP_${dep}_VENDORED}. Update the manifest with the re-vendor.")
+        endif()
+    endforeach()
 
     set(YOJIMBO_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -145,14 +166,15 @@ else()
     # --- libsodium backend ----------------------------------------------------------------
 
     if(YOJIMBO_SYSTEM_SODIUM)
-        find_library(YOJIMBO_SODIUM_LIB NAMES sodium REQUIRED
+        find_library(YOJIMBO_SODIUM_LIBRARY NAMES sodium REQUIRED
             HINTS /opt/homebrew/lib /usr/local/lib /usr/lib)
-        message(STATUS "yojimbo: linking system libsodium: ${YOJIMBO_SODIUM_LIB}")
-        set(YOJIMBO_SODIUM ${YOJIMBO_SODIUM_LIB})
+        message(STATUS "yojimbo: linking system libsodium: ${YOJIMBO_SODIUM_LIBRARY}")
+        add_library(Yojimbo::sodium UNKNOWN IMPORTED)
+        set_target_properties(Yojimbo::sodium PROPERTIES IMPORTED_LOCATION "${YOJIMBO_SODIUM_LIBRARY}")
     else()
         # The bundled minimal libsodium (sodium/sodium.c). Warnings off — it is vendored,
         # amalgamated upstream code.
-        add_library(sodium-builtin STATIC sodium/sodium.c)
+        add_library(sodium-builtin OBJECT sodium/sodium.c)
         target_include_directories(sodium-builtin PRIVATE ${YOJIMBO_INCLUDE_DIRS})
         set_target_properties(sodium-builtin PROPERTIES POSITION_INDEPENDENT_CODE ON)
         if(MSVC)
@@ -160,32 +182,33 @@ else()
         else()
             target_compile_options(sodium-builtin PRIVATE -w)
         endif()
-        set(YOJIMBO_SODIUM sodium-builtin)
+        set(YOJIMBO_SODIUM_OBJECTS $<TARGET_OBJECTS:sodium-builtin>)
     endif()
 
     # --- vendored C libraries ---------------------------------------------------------------
+    #
+    # OBJECT libraries, folded into libyojimbo below (YJ-03). They used to be separate static
+    # archives that libyojimbo linked PUBLIC and the install rule never shipped, so the default
+    # install published a libyojimbo.a with netcode, reliable and libsodium symbols undefined
+    # and no way for a consumer to satisfy them. The bundled install is one self-contained
+    # archive; a consumer who wants those libraries as their own packages builds with
+    # -DYOJIMBO_SYSTEM_DEPS=ON.
 
-    add_library(netcode STATIC netcode/netcode.c)
+    add_library(netcode OBJECT netcode/netcode.c)
     target_include_directories(netcode PRIVATE ${YOJIMBO_INCLUDE_DIRS})
     target_compile_definitions(netcode PRIVATE NETCODE_ENABLE_TESTS=1)
     set_target_properties(netcode PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    target_link_libraries(netcode PUBLIC ${YOJIMBO_SODIUM})
 
-    add_library(reliable STATIC reliable/reliable.c)
+    add_library(reliable OBJECT reliable/reliable.c)
     target_include_directories(reliable PRIVATE ${YOJIMBO_INCLUDE_DIRS})
     target_compile_definitions(reliable PRIVATE RELIABLE_ENABLE_TESTS=1)
     set_target_properties(reliable PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-endif()
+    set(YOJIMBO_VENDORED_OBJECTS
+        $<TARGET_OBJECTS:netcode>
+        $<TARGET_OBJECTS:reliable>
+        ${YOJIMBO_SODIUM_OBJECTS})
 
-# Standalone tlsf archive for regular development (e.g. anyone building straight from this
-# tree). Not linked into yojimbo and not installed — see below, yojimbo compiles tlsf.c
-# directly into its own archive so that only libyojimbo.a ships to package consumers.
-# Under YOJIMBO_SYSTEM_TLSF the vendored copy is not built at all.
-if(NOT YOJIMBO_SYSTEM_TLSF)
-    add_library(tlsf STATIC tlsf/tlsf.c)
-    target_include_directories(tlsf PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tlsf")
-    set_target_properties(tlsf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 # --- strict floating point ------------------------------------------------------------------
@@ -227,51 +250,108 @@ endif()
 # package, so yojimbo embeds nothing and links it publicly instead.
 
 file(GLOB YOJIMBO_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp")
-if(YOJIMBO_SYSTEM_TLSF)
-    add_library(yojimbo ${YOJIMBO_SOURCES})
-else()
-    add_library(yojimbo ${YOJIMBO_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/tlsf/tlsf.c")
+if(NOT YOJIMBO_SYSTEM_TLSF)
+    list(APPEND YOJIMBO_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tlsf/tlsf.c")
 endif()
-target_include_directories(yojimbo PUBLIC ${YOJIMBO_INCLUDE_DIRS})
+add_library(yojimbo ${YOJIMBO_SOURCES} ${YOJIMBO_VENDORED_OBJECTS})
+add_library(Yojimbo::yojimbo ALIAS yojimbo)
+target_include_directories(yojimbo PUBLIC
+    "$<BUILD_INTERFACE:${YOJIMBO_INCLUDE_DIRS}>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 target_compile_options(yojimbo PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
 set_target_properties(yojimbo PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR})
 
 if(YOJIMBO_SYSTEM_DEPS)
-    target_link_libraries(yojimbo PUBLIC ${YOJIMBO_NETCODE_LIBRARY} ${YOJIMBO_RELIABLE_LIBRARY})
-    if(YOJIMBO_SODIUM_LIBRARY)
-        target_link_libraries(yojimbo PUBLIC ${YOJIMBO_SODIUM_LIBRARY})
-    endif()
-    if(WIN32)
-        # The system netcode needs these; a plain find_library result can't carry them.
-        target_link_libraries(yojimbo PUBLIC ws2_32 iphlpapi)
-    endif()
-else()
-    target_link_libraries(yojimbo PUBLIC netcode reliable ${YOJIMBO_SODIUM})
+    target_link_libraries(yojimbo PUBLIC Yojimbo::netcode Yojimbo::reliable Yojimbo::serialize)
+elseif(YOJIMBO_SYSTEM_SODIUM)
+    target_link_libraries(yojimbo PUBLIC Yojimbo::sodium)
 endif()
 if(NOT WIN32)
     target_link_libraries(yojimbo PUBLIC m)   # ceil/floor in the reliable-ordered channel etc.
 endif()
 if(YOJIMBO_SYSTEM_TLSF)
-    target_link_libraries(yojimbo PUBLIC ${YOJIMBO_TLSF_LIBRARY})
+    target_link_libraries(yojimbo PUBLIC Yojimbo::tlsf)
 endif()
 
 # --- install ------------------------------------------------------------------------------
-
-# Installs the yojimbo headers and library. The installed headers include serialize.h (and
-# consumers may include netcode.h for netcode_address_t), so this is intended for
-# YOJIMBO_SYSTEM_DEPS builds where those headers come from their own packages into the same
-# prefix. The vendored copies are never installed — they belong to their own projects.
+#
+# Two coherent installs, both consumable with nothing but what they put in the prefix (YJ-03):
+#
+#   default (vendored)   libyojimbo carries the netcode, reliable, tlsf and libsodium objects,
+#                        and the serialize, netcode, reliable and sodium headers are installed
+#                        beside yojimbo's own. yojimbo.h includes serialize.h and consumers
+#                        include netcode.h for netcode_address_t, so the headers have to be
+#                        there. Nothing else is needed on the system.
+#
+#   -DYOJIMBO_SYSTEM_DEPS=ON   the package-manager install. serialize, reliable and netcode come
+#                        from their own packages, so their headers are NOT installed here;
+#                        YojimboConfig.cmake requires them instead, at the manifest's floors.
+#
+# Both export Yojimbo::yojimbo through YojimboConfig.cmake, so a consumer writes
+# find_package(Yojimbo REQUIRED) and links one target.
 
 if(YOJIMBO_INSTALL)
-    include(GNUInstallDirs)
-    install(TARGETS yojimbo
+
+    install(TARGETS yojimbo EXPORT YojimboTargets
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
     file(GLOB YOJIMBO_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
     install(FILES ${YOJIMBO_PUBLIC_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+    if(NOT YOJIMBO_SYSTEM_DEPS)
+        install(FILES
+                "${CMAKE_CURRENT_SOURCE_DIR}/serialize/serialize.h"
+                "${CMAKE_CURRENT_SOURCE_DIR}/netcode/netcode.h"
+                "${CMAKE_CURRENT_SOURCE_DIR}/reliable/reliable.h"
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+        if(NOT YOJIMBO_SYSTEM_SODIUM)
+            install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/sodium/sodium.h"
+                    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+        endif()
+    endif()
+
+    if(NOT YOJIMBO_SYSTEM_TLSF)
+        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/tlsf/tlsf.h"
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    endif()
+
+    set(YOJIMBO_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/Yojimbo)
+
+    install(EXPORT YojimboTargets
+            FILE YojimboTargets.cmake
+            NAMESPACE Yojimbo::
+            DESTINATION ${YOJIMBO_CMAKE_DIR})
+
+    include(CMakePackageConfigHelpers)
+    configure_package_config_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/YojimboConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/YojimboConfig.cmake"
+        INSTALL_DESTINATION ${YOJIMBO_CMAKE_DIR})
+    write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/YojimboConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion)
+
+    install(FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/YojimboConfig.cmake"
+            "${CMAKE_CURRENT_BINARY_DIR}/YojimboConfigVersion.cmake"
+            DESTINATION ${YOJIMBO_CMAKE_DIR})
+
+    # The system-deps config resolves its dependencies with the same module and the same
+    # manifest yojimbo's own build used, so both ship with the package.
+    if(YOJIMBO_SYSTEM_DEPS)
+        install(FILES
+                "${CMAKE_CURRENT_SOURCE_DIR}/cmake/YojimboSystemDeps.cmake"
+                "${CMAKE_CURRENT_SOURCE_DIR}/cmake/YojimboDependencies.cmake"
+                "${CMAKE_CURRENT_SOURCE_DIR}/dependencies.manifest"
+                DESTINATION ${YOJIMBO_CMAKE_DIR})
+    endif()
+
 endif()
 
 # --- sample programs and tests ------------------------------------------------------------
