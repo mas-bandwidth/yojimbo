@@ -34,7 +34,7 @@ against a clean prefix for both installs.
 Here serialize, reliable and netcode come from their own packages: their headers are not
 installed, and `YojimboConfig.cmake` requires them instead, checking the installed versions
 against the floors in `dependencies.manifest` — currently netcode 1.4.5 or later (see
-SECURITY.md), reliable 1.4.2 or later and serialize 1.15.0 or later. A prefix holding a netcode
+SECURITY.md), reliable 1.4.2 or later and serialize 1.16.2 or later. A prefix holding a netcode
 below the floor fails at configure time rather than at runtime.
 
 `-DYOJIMBO_SYSTEM_SODIUM=ON` links the system libsodium instead of the bundled subset, and
