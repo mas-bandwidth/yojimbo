@@ -17,6 +17,6 @@
 # The vendored column is checked against the vendored headers at configure time, so this file
 # cannot drift from the tree it describes.
 
-serialize  1.15.0  v1.15.0  1.15.0
+serialize  1.16.2  v1.16.2  1.16.2
 reliable   1.4.2   v1.4.2   1.4.2
 netcode    1.4.5   v1.4.5   1.4.5

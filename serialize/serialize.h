@@ -35,9 +35,9 @@
 /** @file */
 
 #define SERIALIZE_VERSION_MAJOR 1
-#define SERIALIZE_VERSION_MINOR 15
-#define SERIALIZE_VERSION_PATCH 0
-#define SERIALIZE_VERSION "1.15.0"
+#define SERIALIZE_VERSION_MINOR 16
+#define SERIALIZE_VERSION_PATCH 2
+#define SERIALIZE_VERSION "1.16.2"
 
 #if defined(_MSC_VER)
 #define serialize_restrict __restrict
@@ -1054,6 +1054,21 @@ namespace serialize
     }
 
     /**
+        Does a value fit in a raw bit field of this width?
+        This is the write side range check for serialize_bits and write_bits, and it runs on the caller's value before the macro narrows it to the group width. An assertion placed after the narrowing sees a value already truncated to the field, so it cannot report the out of range input it exists to diagnose: writing a 40 bit value in 8 bits arrives at BitWriter::WriteBits as the low 8 bits, in range by construction.
+        The value is widened rather than narrowed, so a negative signed input arrives as a very large unsigned one and fails: a raw bit field is unsigned, and a signed value belongs in serialize_int over a range that includes it.
+        @param value The caller's value.
+        @param bits The field width in [1,64].
+        @returns True if the value fits in that many bits.
+     */
+
+    template <typename T> inline bool value_fits_in_bits( T value, int bits )
+    {
+        const uint64_t widened = uint64_t( value );
+        return bits >= 64 || widened <= ( ( uint64_t(1) << bits ) - 1 );
+    }
+
+    /**
         Reverse the order of bytes in a 64 bit integer.
         @param value The input value.
         @returns The input value with the byte order reversed.
@@ -1220,8 +1235,8 @@ namespace serialize
         // m_bitsWritten from memory after every word flushed to the buffer, because the flush store could have
         // modified them. Restricting 'this' promises the buffer never overlaps the writer object itself
         // (asserted in the constructor in debug builds), which lets member state stay in registers across
-        // consecutive writes. Measured on Apple Silicon (Apple clang 21, -O3): +38% stream write throughput
-        // in bench.cpp, +38% to +152% on schema-generated write paths, zero change where serialize functions
+        // consecutive writes. Measured on Apple Silicon (Apple clang 21, -O3): +38% stream write throughput,
+        // +38% to +152% on schema-generated write paths, zero change where serialize functions
         // fully inline (the raw bitpacker loop compiles to identical code). The read path does not need this:
         // the branchless reader stores nothing through m_data, so it already keeps its state in registers.
 
@@ -1459,6 +1474,7 @@ namespace serialize
 
         /**
             Would the bit reader would read past the end of the buffer if it read this many bits?
+            A reader whose position has been poisoned (see BitReader::PoisonPosition) answers true for every bit count, zero included, which is what makes the failure latch total.
             @param bits The number of bits that would be read.
             @returns True if reading the number of bits would read past the end of the buffer.
          */
@@ -1466,6 +1482,17 @@ namespace serialize
         bool WouldReadPastEnd( int bits ) const
         {
             return m_bitsRead + bits > m_numBits;
+        }
+
+        /**
+            Latch the reader into the failed state.
+            Failure is terminal: nothing after a failing read has a defined position, so nothing after it is interpretable. The position is poisoned one bit past the end of the buffer, so the past-end check every read already performs refuses every later read and the latch costs the read path nothing. Cleared only by Initialize, which points the reader at a new buffer.
+            @see BitReader::WouldReadPastEnd
+         */
+
+        SERIALIZE_ALWAYS_INLINE void PoisonPosition()
+        {
+            m_bitsRead = m_numBits + 1;
         }
 
         /**
@@ -1740,6 +1767,10 @@ namespace serialize
             serialize_assert( value >= min );
             serialize_assert( value <= max );
             const int bits = bits_required128( uint128_t(min), uint128_t(max) );
+            if ( bits == 0 )
+            {
+                return true;                // degenerate range: the value IS the range, nothing to send
+            }
             // subtract in the unsigned domain: value - min overflows signed arithmetic when the range is wider than 2^127
             const uint128_t unsigned_value = uint128_t(value) - uint128_t(min);
             // 32 bit groups, least significant first: the same convention as serialize_bits, serialize_uint64 and the wide fixed point path
@@ -1892,6 +1923,12 @@ namespace serialize
             // ...
         }
 
+        /**
+            Point the stream at a new buffer.
+            This is the re-initialization that clears a failed stream: a stream that has refused a read refuses every later read until it is re-initialized or discarded.
+            @see ReadStream::Fail
+         */
+
         void Initialize( const uint8_t * buffer, int64_t bytes )
         {
             m_reader.Initialize( buffer, bytes );
@@ -1906,6 +1943,20 @@ namespace serialize
         ReadStream( const uint8_t * buffer, int64_t bytes ) : m_reader( buffer, bytes ) {}
 
         /**
+            Refuse the read in progress and latch the stream into the failed state.
+            Failure is terminal: the first refused read poisons the reader's position, and every later read on this stream fails, consuming no bits and writing no destination. The failure persists until the stream is re-initialized onto a new buffer, or discarded. Every refusal on this stream goes through here, including refusals decided outside the stream — a malformed string payload, an int_relative reconstruction outside the domain — which reach it through serialize::serialize_fail.
+            @returns Always false, so a refusing read reads `return Fail();`.
+            @see BitReader::PoisonPosition
+            @see serialize::serialize_fail
+         */
+
+        SERIALIZE_ALWAYS_INLINE bool Fail()
+        {
+            m_reader.PoisonPosition();
+            return false;
+        }
+
+        /**
             Serialize an integer (read).
             @param value The integer value read is stored here. It is guaranteed to be in [min,max] if this function succeeds.
             @param min The minimum allowed value.
@@ -1917,16 +1968,18 @@ namespace serialize
         {
             serialize_assert( min <= max );
             const int bits = bits_required( min, max );
+            // the past-end check comes before the degenerate case so a failed stream refuses a zero bit read too: poisoning the position is what makes WouldReadPastEnd answer true for every bit count
+            if ( m_reader.WouldReadPastEnd( bits ) )
+                return Fail();
             if ( bits == 0 )
             {
                 value = min;                // degenerate range: the value IS the range
                 return true;
             }
-            if ( m_reader.WouldReadPastEnd( bits ) )
-                return false;
             uint32_t unsigned_value = m_reader.ReadBits( bits );
+            // the read side range rule, and the ONLY place it lives at this width: the offset is compared against the span in the unsigned domain, which cannot overflow on hostile input, and the value formed from an accepted offset is in [min,max] by construction. A second check on the decoded value behind this one is unreachable, and a rule guarded twice is a rule no negative control can measure
             if ( unsigned_value > uint32_t(max) - uint32_t(min) )
-                return false;
+                return Fail();
             // add in the unsigned domain: unsigned_value + min overflows signed arithmetic when the range is wider than 2^31
             value = int32_t( unsigned_value + uint32_t(min) );
             return true;
@@ -1944,13 +1997,14 @@ namespace serialize
         {
             serialize_assert( min <= max );
             const int bits = bits_required64( uint64_t(min), uint64_t(max) );
+            // the past-end check comes before the degenerate case so a failed stream refuses a zero bit read too
+            if ( m_reader.WouldReadPastEnd( bits ) )
+                return Fail();
             if ( bits == 0 )
             {
                 value = min;                // degenerate range: the value IS the range
                 return true;
             }
-            if ( m_reader.WouldReadPastEnd( bits ) )
-                return false;
             uint64_t unsigned_value;
             if ( bits <= 32 )
             {
@@ -1963,8 +2017,9 @@ namespace serialize
                 const uint32_t hi = m_reader.ReadBits( bits - 32 );
                 unsigned_value = ( uint64_t(hi) << 32 ) | lo;
             }
+            // the read side range rule at this width, and the only place it lives. See SerializeInteger
             if ( unsigned_value > uint64_t(max) - uint64_t(min) )
-                return false;
+                return Fail();
             // add in the unsigned domain: unsigned_value + min overflows signed arithmetic when the range is wider than 2^63
             value = int64_t( unsigned_value + uint64_t(min) );
             return true;
@@ -1982,8 +2037,14 @@ namespace serialize
         {
             serialize_assert( min <= max );
             const int bits = bits_required128( uint128_t(min), uint128_t(max) );
+            // the past-end check comes before the degenerate case so a failed stream refuses a zero bit read too
             if ( m_reader.WouldReadPastEnd( bits ) )
-                return false;
+                return Fail();
+            if ( bits == 0 )
+            {
+                value = min;                // degenerate range: the value IS the range, on the 128 bit width exactly as on the narrower ones
+                return true;
+            }
             // 32 bit groups, least significant first: the same convention as the write path
             uint32_t group0 = 0;
             uint32_t group1 = 0;
@@ -2012,8 +2073,9 @@ namespace serialize
                 group3 = m_reader.ReadBits( bits - 96 );
             }
             const uint128_t unsigned_value = ( uint128_t( group3 ) << 96 ) | ( uint128_t( group2 ) << 64 ) | ( uint128_t( group1 ) << 32 ) | uint128_t( group0 );
+            // the read side range rule at this width, and the only place it lives. See SerializeInteger
             if ( unsigned_value > uint128_t(max) - uint128_t(min) )
-                return false;
+                return Fail();
             // add in the unsigned domain: unsigned_value + min overflows signed arithmetic when the range is wider than 2^127
             value = int128_t( unsigned_value + uint128_t(min) );
             return true;
@@ -2031,7 +2093,7 @@ namespace serialize
             serialize_assert( bits > 0 );
             serialize_assert( bits <= 32 );
             if ( m_reader.WouldReadPastEnd( bits ) )
-                return false;
+                return Fail();
             uint32_t read_value = m_reader.ReadBits( bits );
             value = read_value;
             return true;
@@ -2039,6 +2101,7 @@ namespace serialize
 
         /**
             Serialize an array of bytes (read).
+            IMPORTANT: on a refused read the caller's buffer contents are unspecified. The unwritten-destination rule covers scalar reads; a read into a caller-owned buffer is excluded, and this copy path is not restructured for it.
             @param data Array of bytes to read.
             @param bytes The number of bytes to read.
             @returns Returns true if the serialize read succeeded. False otherwise.
@@ -2047,12 +2110,13 @@ namespace serialize
         SERIALIZE_ALWAYS_INLINE bool SerializeBytes( uint8_t * data, int64_t bytes )
         {
             if ( bytes < 0 )
-                return false;
+                return Fail();
+            // the align is what refuses on a failed stream: a poisoned position reads past the end at every align width
             if ( !SerializeAlign() )
                 return false;
             // compare in bytes rather than bits, consistent with the 64 bit bookkeeping
             if ( bytes > m_reader.GetBitsRemaining() / 8 )
-                return false;
+                return Fail();
             m_reader.ReadBytes( data, bytes );
             return true;
         }
@@ -2066,9 +2130,9 @@ namespace serialize
         {
             const int alignBits = m_reader.GetAlignBits();
             if ( m_reader.WouldReadPastEnd( alignBits ) )
-                return false;
+                return Fail();
             if ( !m_reader.ReadAlign() )
-                return false;
+                return Fail();
             return true;
         }
 
@@ -2266,12 +2330,42 @@ namespace serialize
     };
 
     /**
+        Routes a refusal to the stream it happened on.
+        Some refusals are decided outside the stream: a value out of range after the caller's own narrowing, a malformed string payload, an int_relative reconstruction outside the domain. Those still have to latch the stream, because failure is terminal. Serialize functions are templated over the stream and compile for all three, and only a read stream has a failure state, so the primary template is the no-op a write or measure needs — neither of which ever refuses.
+        A custom stream type gets the primary template and no latch, which is correct for a stream that cannot fail and is the caller's business otherwise.
+     */
+
+    template <typename Stream> struct StreamRefusal
+    {
+        static SERIALIZE_ALWAYS_INLINE bool Fail( Stream & ) { return false; }
+    };
+
+    template <> struct StreamRefusal<ReadStream>
+    {
+        static SERIALIZE_ALWAYS_INLINE bool Fail( ReadStream & stream ) { return stream.Fail(); }
+    };
+
+    /**
+        Refuse the read in progress on this stream.
+        @param stream The stream the refusal happened on.
+        @returns Always false, so a refusing read reads `return serialize::serialize_fail( stream );`.
+        @see ReadStream::Fail
+     */
+
+    template <typename Stream> SERIALIZE_ALWAYS_INLINE bool serialize_fail( Stream & stream )
+    {
+        return StreamRefusal<Stream>::Fail( stream );
+    }
+
+    /**
         Serialize integer value (read/write/measure).
         This is a helper macro to make writing unified serialize functions easier.
         Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
+        min <= max is the legal relation. A degenerate range where min == max costs zero bits: the writer emits nothing, the reader consumes nothing and takes the value from min, and a measure adds zero.
+        On read, a refused read leaves value exactly as the caller left it, and fails the stream: every later read on that stream fails too, until the stream is re-initialized.
         IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
         @param stream The stream object. May be a read, write or measure stream.
-        @param value The integer value to serialize in [min,max].
+        @param value The integer value to serialize in [min,max]. The destination must be wide enough to hold the range; a narrower one is caller error, debug asserted.
         @param min The minimum value.
         @param max The maximum value.
      */
@@ -2294,11 +2388,7 @@ namespace serialize
             if ( Stream::IsReading )                                    \
             {                                                           \
                 value = int32_value;                                    \
-                if ( int64_t(value) < int64_t(min) ||                   \
-                     int64_t(value) > int64_t(max) )                    \
-                {                                                       \
-                    return false;                                       \
-                }                                                       \
+                serialize_assert( int64_t(value) == int32_value );      \
             }                                                           \
         } while (0)
 
@@ -2332,11 +2422,7 @@ namespace serialize
             if ( Stream::IsReading )                                    \
             {                                                           \
                 value = int64_value;                                    \
-                if ( int64_t(value) < int64_t(min) ||                   \
-                     int64_t(value) > int64_t(max) )                    \
-                {                                                       \
-                    return false;                                       \
-                }                                                       \
+                serialize_assert( int64_t(value) == int64_value );      \
             }                                                           \
         } while (0)
 
@@ -2344,6 +2430,7 @@ namespace serialize
         Serialize a ranged 128 bit integer to the stream (read/write/measure).
         This is a helper macro to make writing unified serialize functions easier.
         The value is serialized as an offset from min in the minimal number of bits for the range, exactly as serialize_int and serialize_int64 do at their widths, and the bounds are runtime values. Where the range fits 64 bits or fewer the bytes are identical to serialize_int64 over the same bounds.
+        min <= max is the legal relation here exactly as on the narrower widths, in every build mode. A degenerate range where min == max costs zero bits: the writer emits nothing, the reader consumes nothing and takes the value from min, and a measure adds zero.
         The bounds and value are serialize::int128_t, which exists on every platform: native __int128 where the compiler provides it, the emulated pair where it doesn't. The bit count comes from the runtime serialize::bits_required128, so this works on pure MSVC — unlike the compile time serialize::BitsRequired128, which needs native __int128.
         **Do not confuse this with serialize_uint128**, which is not ranged — it is a raw 128 bit field and always costs 128 bits.
         Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
@@ -2357,7 +2444,7 @@ namespace serialize
     #define serialize_int128( stream, value, min, max )                                             \
         do                                                                                          \
         {                                                                                           \
-            serialize_assert( serialize::int128_t(min) < serialize::int128_t(max) );                \
+            serialize_assert( serialize::int128_t(min) <= serialize::int128_t(max) );               \
             serialize::int128_t int128_value = 0;                                                   \
             if ( Stream::IsWriting )                                                                \
             {                                                                                       \
@@ -2372,11 +2459,7 @@ namespace serialize
             if ( Stream::IsReading )                                                                \
             {                                                                                       \
                 value = int128_value;                                                               \
-                if ( serialize::int128_t(value) < serialize::int128_t(min) ||                       \
-                     serialize::int128_t(value) > serialize::int128_t(max) )                        \
-                {                                                                                   \
-                    return false;                                                                   \
-                }                                                                                   \
+                serialize_assert( serialize::int128_t(value) == int128_value );                     \
             }                                                                                       \
         } while (0)
 
@@ -2386,8 +2469,8 @@ namespace serialize
         Serialize macros returns false on error so we don't need to use exceptions for error handling on read. This is an important safety measure because packet data comes from the network and may be malicious.
         IMPORTANT: This macro must be called inside a templated serialize function with template \<typename Stream\>. The serialize method must have a bool return value.
         @param stream The stream object. May be a read, write or measure stream.
-        @param value The unsigned integer value to serialize.
-        @param bits The number of bits to serialize in [1,32].
+        @param value The unsigned integer value to serialize. Must be in [0,(1\<\<bits)-1]; a wider value is caller error, debug asserted before the macro narrows it to the group width.
+        @param bits The number of bits to serialize in [1,64].
      */
 
     #define serialize_bits( stream, value, bits )                       \
@@ -2395,6 +2478,8 @@ namespace serialize
         {                                                               \
             serialize_assert( (bits) > 0 );                             \
             serialize_assert( (bits) <= 64 );                           \
+            serialize_assert( !Stream::IsWriting ||                     \
+                serialize::value_fits_in_bits( value, bits ) );         \
             if ( (bits) <= 32 )                                         \
             {                                                           \
                 uint32_t uint32_value = 0;                              \
@@ -2466,12 +2551,15 @@ namespace serialize
         {
             memcpy( (char*) &int_value, &value, 4 );
         }
-        bool result = stream.SerializeBits( int_value, 32 );
+        if ( !stream.SerializeBits( int_value, 32 ) )
+        {
+            return false;                   // a refused read leaves value exactly as the caller left it
+        }
         if ( Stream::IsReading )
         {
             memcpy( (char*) &value, &int_value, 4 );
         }
-        return result;
+        return true;
     }
 
     /**
@@ -2618,7 +2706,7 @@ namespace serialize
         {
             if ( integerValue > max_integer_value )
             {
-                return false;
+                return serialize_fail( stream );
             }
             const float normalizedValue = integerValue / float(max_integer_value);
             // The reader rounds twice for the same reason the writer above does:
@@ -2927,8 +3015,13 @@ namespace serialize
         int length = 0;
         if ( Stream::IsWriting )
         {
-            length = (int) strlen( string );
-            serialize_assert( length < buffer_size );
+            // the length assertion runs on the size_t strlen returns, before it narrows to int:
+            // an assertion placed after the narrowing sees a length already truncated, and a
+            // string of 2^32 + 5 bytes truncates to 5, which fits any buffer
+            const size_t string_length = strlen( string );
+            serialize_assert( buffer_size > 0 );
+            serialize_assert( string_length < (size_t) buffer_size );
+            length = (int) string_length;
             // the writer's contract, debug only. See serialize_string_is_valid_utf8.
             serialize_assert( serialize_string_is_valid_utf8( string, length ) );
         }
@@ -2947,12 +3040,12 @@ namespace serialize
             {
                 if ( string[i] == '\0' )
                 {
-                    return false;
+                    return serialize_fail( stream );
                 }
             }
             if ( !serialize_string_is_valid_utf8( string, length ) )
             {
-                return false;
+                return serialize_fail( stream );
             }
             string[length] = '\0';
         }
@@ -3090,17 +3183,17 @@ namespace serialize
                 serialize_bits( stream, character, 32 );
                 if ( character > 0xFFFF )
                 {
-                    return false;                   // not a UTF-16 code unit: nothing conforming emits one
+                    return serialize_fail( stream );    // not a UTF-16 code unit: nothing conforming emits one
                 }
                 if ( character == 0 )
                 {
-                    return false;                   // interior NUL: the two-lengths smuggling primitive
+                    return serialize_fail( stream );    // interior NUL: the two-lengths smuggling primitive
                 }
                 if ( have_pending )
                 {
                     if ( character < 0xDC00 || character > 0xDFFF )
                     {
-                        return false;               // high surrogate without its low
+                        return serialize_fail( stream );    // high surrogate without its low
                     }
                     if ( wide_wchar )
                     {
@@ -3116,7 +3209,7 @@ namespace serialize
                 }
                 if ( character >= 0xDC00 && character <= 0xDFFF )
                 {
-                    return false;                   // low surrogate with no high before it
+                    return serialize_fail( stream );    // low surrogate with no high before it
                 }
                 if ( character >= 0xD800 && character <= 0xDBFF )
                 {
@@ -3128,7 +3221,7 @@ namespace serialize
             }
             if ( have_pending )
             {
-                return false;                       // the final group is a dangling high surrogate
+                return serialize_fail( stream );        // the final group is a dangling high surrogate
             }
             string[output_index] = L'\0';
         }
@@ -3214,13 +3307,69 @@ namespace serialize
         }                                                                                   \
         while(0)
 
+    /**
+        The int_relative domain: 0 to 2^31 - 1 inclusive.
+        Both previous and current lie in it. The domain is a property of the operation, not of the caller's storage type: a 64 bit or unsigned previous of 2^31 is caller error everywhere, exactly as a negative one is.
+     */
+
+    const int64_t serialize_int_relative_max = 2147483647;
+
+    /**
+        Is a value inside the int_relative domain?
+        This is the write side domain check for serialize_int_relative and write_int_relative, and it runs on the caller's value before the macro narrows it to int. An assertion placed after the narrowing sees a value already truncated to int, so it cannot report the out of domain input it exists to diagnose: writing 2^32 + 5 arrives at serialize::serialize_int_relative_internal as 5, in the domain by construction.
+        The value is widened rather than narrowed, so an input above the top of the domain fails wherever it came from. An unsigned 64 bit value above 2^63 - 1 widens to a negative int64_t and fails too, which is the right answer: it is above the domain, not below it.
+        @param value The caller's value.
+        @returns True if the value is in [0,2^31-1].
+     */
+
+    template <typename T> inline bool value_in_int_relative_domain( T value )
+    {
+        const int64_t widened = int64_t( value );
+        return widened >= 0 && widened <= serialize_int_relative_max;
+    }
+
+    /**
+        Accept a reconstructed int_relative value, or refuse the read.
+        Every tier reconstructs current in a width that cannot wrap and lands here, where the result is checked against the domain and against previous. current is written only once both checks pass, so a refused read leaves the caller's value exactly as it was, and the refusal fails the stream.
+        @param stream The stream the value was read from.
+        @param previous The previous value, in the domain.
+        @param current The destination. Written only on success.
+        @param reconstructed The reconstructed current, computed in a width wide enough that it cannot wrap.
+        @returns True if the reconstruction is in the domain and strictly greater than previous, false otherwise.
+     */
+
+    template <typename Stream, typename T> SERIALIZE_ALWAYS_INLINE bool serialize_int_relative_accept( Stream & stream, T previous, T & current, int64_t reconstructed )
+    {
+        if ( reconstructed < 0 || reconstructed > serialize_int_relative_max || reconstructed <= int64_t( previous ) )
+        {
+            return serialize_fail( stream );
+        }
+        current = T( reconstructed );
+        return true;
+    }
+
+    /**
+        Serialize an integer relative to a previous one (read/write/measure).
+        The encoding is a ladder of one-bit flags, each answering "does the difference fit in this tier?": a difference of 1 costs a single bit, then five bounded tiers of 3, 5, 9, 13 and 17 payload bits, then an absolute tier that transmits current itself as 32 raw bits.
+        The sequence is strictly increasing and no wrap semantics exist: a caller with a wrapping counter unwraps it before serializing. The domain is 0 to 2^31 - 1 inclusive for both previous and current — previous is the caller's own state and never arrives off the wire, so a previous outside the domain is caller error and is asserted in checked builds.
+        On read, every tier's reconstruction is checked: current is reconstructed in a width that cannot wrap, then compared against the domain and against previous, and the read is refused unless it lies in the domain and is strictly greater than previous. The absolute tier's 32 raw bits are read unsigned, so a value with the top bit set is outside the domain and is refused there. A refused read writes nothing to current and fails the stream.
+        @param stream The stream object. May be a read, write or measure stream.
+        @param previous The previous integer value, in [0,2^31-1].
+        @param current The current integer value, in [0,2^31-1] and strictly greater than previous.
+        @returns True if the serialize succeeded, false if the read was refused.
+     */
+
     template <typename Stream, typename T> bool serialize_int_relative_internal( Stream & stream, T previous, T & current )
     {
+        // previous is the caller's own state and never arrives off the wire, so one outside the domain is caller error. all checking is performed by debug asserts on it
+        serialize_assert( int64_t( previous ) >= 0 );
+        serialize_assert( int64_t( previous ) <= serialize_int_relative_max );
+
         uint32_t difference = 0;
         if ( Stream::IsWriting )
         {
             serialize_assert( previous < current );
-            // subtract in the unsigned domain: current - previous overflows signed arithmetic when the gap is wider than 2^31
+            serialize_assert( int64_t( current ) <= serialize_int_relative_max );
             difference = uint32_t( current ) - uint32_t( previous );
         }
 
@@ -3234,8 +3383,7 @@ namespace serialize
         {
             if ( Stream::IsReading )
             {
-                // reconstruct in the unsigned domain: previous + difference overflows signed arithmetic near the type maximum
-                current = T( uint32_t( previous ) + 1 );
+                return serialize_int_relative_accept( stream, previous, current, int64_t( previous ) + 1 );
             }
             return true;
         }
@@ -3251,8 +3399,7 @@ namespace serialize
             serialize_int( stream, difference, 2, 6 );
             if ( Stream::IsReading )
             {
-                // reconstruct in the unsigned domain: previous + difference overflows signed arithmetic near the type maximum
-                current = T( uint32_t( previous ) + difference );
+                return serialize_int_relative_accept( stream, previous, current, int64_t( previous ) + int64_t( difference ) );
             }
             return true;
         }
@@ -3268,8 +3415,7 @@ namespace serialize
             serialize_int( stream, difference, 7, 23 );
             if ( Stream::IsReading )
             {
-                // reconstruct in the unsigned domain: previous + difference overflows signed arithmetic near the type maximum
-                current = T( uint32_t( previous ) + difference );
+                return serialize_int_relative_accept( stream, previous, current, int64_t( previous ) + int64_t( difference ) );
             }
             return true;
         }
@@ -3285,8 +3431,7 @@ namespace serialize
             serialize_int( stream, difference, 24, 280 );
             if ( Stream::IsReading )
             {
-                // reconstruct in the unsigned domain: previous + difference overflows signed arithmetic near the type maximum
-                current = T( uint32_t( previous ) + difference );
+                return serialize_int_relative_accept( stream, previous, current, int64_t( previous ) + int64_t( difference ) );
             }
             return true;
         }
@@ -3302,8 +3447,7 @@ namespace serialize
             serialize_int( stream, difference, 281, 4377 );
             if ( Stream::IsReading )
             {
-                // reconstruct in the unsigned domain: previous + difference overflows signed arithmetic near the type maximum
-                current = T( uint32_t( previous ) + difference );
+                return serialize_int_relative_accept( stream, previous, current, int64_t( previous ) + int64_t( difference ) );
             }
             return true;
         }
@@ -3319,21 +3463,23 @@ namespace serialize
             serialize_int( stream, difference, 4378, 69914 );
             if ( Stream::IsReading )
             {
-                // reconstruct in the unsigned domain: previous + difference overflows signed arithmetic near the type maximum
-                current = T( uint32_t( previous ) + difference );
+                return serialize_int_relative_accept( stream, previous, current, int64_t( previous ) + int64_t( difference ) );
             }
             return true;
         }
 
-        uint32_t value = current;
+        // the absolute tier transmits current, not the difference, as 32 raw bits. the group is
+        // UNSIGNED, so a value with the top bit set is outside the domain and is refused below
+        // rather than read as a negative sequence number
+        uint32_t value = 0;
+        if ( Stream::IsWriting )
+        {
+            value = uint32_t( current );
+        }
         serialize_bits( stream, value, 32 );
         if ( Stream::IsReading )
         {
-            current = value;
-            if ( current <= previous )
-            {
-                return false;
-            }
+            return serialize_int_relative_accept( stream, previous, current, int64_t( value ) );
         }
 
         return true;
@@ -3438,7 +3584,13 @@ namespace serialize
 
             if ( MinUnits == MaxUnits )
             {
-                // degenerate range: the value IS the range, nothing to send (STANDARD.md: min == max costs zero bits, on every storage width)
+                // degenerate range: the value IS the range, nothing to send (STANDARD.md: min == max costs zero bits, on every storage width).
+                // the zero bit field still goes through the stream, as a degenerate ranged integer, because every read consults the failure state before it does anything else: a fixed point field on a stream that has already failed must refuse, exactly as a degenerate serialize_int does. On write and on measure this costs nothing and emits nothing
+                int32_t degenerate = 0;
+                if ( !stream.SerializeInteger( degenerate, 0, 0 ) )
+                {
+                    return false;
+                }
                 if ( Stream::IsWriting )
                 {
                     serialize_assert( uint64_t( value ) == raw_min );       // all checking is performed by debug asserts on write
@@ -3491,7 +3643,7 @@ namespace serialize
                 // reject raw values outside [raw_min,raw_max] smuggled into the bit headroom. reject, never clamp
                 if ( offset > raw_range )
                 {
-                    return false;
+                    return serialize_fail( stream );
                 }
                 // reconstruct in the unsigned domain, then convert: wraps two's complement for signed storage
                 value = Storage( raw_min + offset );
@@ -3535,7 +3687,13 @@ namespace serialize
             {
                 // degenerate range: the value IS the range, nothing to send. the wide path must agree
                 // with the narrow path here — FractionalBits of zeros is NOT a degenerate encoding
-                // (STANDARD.md: min == max costs zero bits, on every storage width)
+                // (STANDARD.md: min == max costs zero bits, on every storage width) — and it must
+                // consult the failure state through the stream for the same reason the narrow path does
+                int32_t degenerate = 0;
+                if ( !stream.SerializeInteger( degenerate, 0, 0 ) )
+                {
+                    return false;
+                }
                 if ( Stream::IsWriting )
                 {
                     serialize_assert( Unsigned( value ) == raw_min );       // all checking is performed by debug asserts on write
@@ -3636,7 +3794,7 @@ namespace serialize
                 // reject raw values outside [raw_min,raw_max] smuggled into the bit headroom. reject, never clamp
                 if ( offset > raw_range )
                 {
-                    return false;
+                    return serialize_fail( stream );
                 }
                 // reconstruct in the unsigned domain, then convert: wraps two's complement for signed storage
                 value = Storage( raw_min + offset );
@@ -3725,11 +3883,8 @@ namespace serialize
             {                                                                               \
                 return false;                                                               \
             }                                                                               \
-            if ( int32_value < int32_t(min) || int32_value > int32_t(max) )                 \
-            {                                                                               \
-                return false;                                                               \
-            }                                                                               \
             value = int32_value;                                                            \
+            serialize_assert( int64_t(value) == int64_t(int32_value) );                     \
         } while (0)
 
     #define read_int64( stream, value, min, max )                                           \
@@ -3741,28 +3896,21 @@ namespace serialize
             {                                                                               \
                 return false;                                                               \
             }                                                                               \
-            if ( int64_value < int64_t(min) || int64_value > int64_t(max) )                 \
-            {                                                                               \
-                return false;                                                               \
-            }                                                                               \
             value = int64_value;                                                            \
+            serialize_assert( int64_t(value) == int64_value );                              \
         } while (0)
 
     #define read_int128( stream, value, min, max )                                          \
         do                                                                                  \
         {                                                                                   \
-            serialize_assert( serialize::int128_t(min) < serialize::int128_t(max) );        \
+            serialize_assert( serialize::int128_t(min) <= serialize::int128_t(max) );       \
             serialize::int128_t int128_value = 0;                                           \
             if ( !stream.SerializeInteger128( int128_value, min, max ) )                    \
             {                                                                               \
                 return false;                                                               \
             }                                                                               \
             value = int128_value;                                                           \
-            if ( serialize::int128_t(value) < serialize::int128_t(min) ||                   \
-                 serialize::int128_t(value) > serialize::int128_t(max) )                    \
-            {                                                                               \
-                return false;                                                               \
-            }                                                                               \
+            serialize_assert( serialize::int128_t(value) == int128_value );                 \
         } while (0)
 
     #define read_fixed( stream, value, integer_bits, fraction_bits, min, max )                                  \
@@ -3829,9 +3977,20 @@ namespace serialize
 
     // write macros corresponding to each serialize_*. useful when you want separate read and write functions.
 
+    /**
+        Write bits to the stream, the write-only companion to serialize_bits.
+        Carries the same debug assertions: the width is in [1,64], and the value fits in that many bits, checked on the caller's value before it is narrowed to the group width.
+        @param stream The stream object. Must be a write stream.
+        @param value The unsigned integer value to write. Must be in [0,(1\<\<bits)-1].
+        @param bits The number of bits to write in [1,64].
+     */
+
     #define write_bits( stream, value, bits )                                               \
         do                                                                                  \
         {                                                                                   \
+            serialize_assert( (bits) > 0 );                                                 \
+            serialize_assert( (bits) <= 64 );                                               \
+            serialize_assert( serialize::value_fits_in_bits( value, bits ) );               \
             uint64_t uint64_value = value;                                                  \
             if ( (bits) <= 32 )                                                             \
             {                                                                               \
@@ -3850,9 +4009,9 @@ namespace serialize
     #define write_int( stream, value, min, max )                                            \
         do                                                                                  \
         {                                                                                   \
-            serialize_assert( (int32_t) ( min ) <= (int32_t) ( max ) );                     \
-            serialize_assert( (int32_t) ( value ) >= (int32_t) ( min ) );                   \
-            serialize_assert( (int32_t) ( value ) <= (int32_t) ( max ) );                   \
+            serialize_assert( int64_t( min ) <= int64_t( max ) );                           \
+            serialize_assert( int64_t( value ) >= int64_t( min ) );                         \
+            serialize_assert( int64_t( value ) <= int64_t( max ) );                         \
             int32_t int32_value = (int32_t) ( value );                                      \
             stream.SerializeInteger( int32_value, min, max );                               \
         } while (0)
@@ -3870,7 +4029,7 @@ namespace serialize
     #define write_int128( stream, value, min, max )                                         \
         do                                                                                  \
         {                                                                                   \
-            serialize_assert( serialize::int128_t( min ) < serialize::int128_t( max ) );    \
+            serialize_assert( serialize::int128_t( min ) <= serialize::int128_t( max ) );   \
             serialize_assert( serialize::int128_t( value ) >= serialize::int128_t( min ) ); \
             serialize_assert( serialize::int128_t( value ) <= serialize::int128_t( max ) ); \
             serialize::int128_t int128_value = serialize::int128_t( value );                \
@@ -3924,8 +4083,12 @@ namespace serialize
     #define write_string( stream, string, buffer_size )                                     \
         do                                                                                  \
         {                                                                                   \
-            int length = (int) strlen( string );                                            \
-            serialize_assert( length < (buffer_size) );                                     \
+            /* the length assertion runs on the size_t strlen returns, before it narrows */ \
+            /* to int. See serialize::serialize_string_internal */                          \
+            const size_t string_length = strlen( string );                                  \
+            serialize_assert( (buffer_size) > 0 );                                          \
+            serialize_assert( string_length < (size_t) (buffer_size) );                     \
+            int length = (int) string_length;                                               \
             /* the writer's contract, debug only. See serialize_string_is_valid_utf8 */     \
             serialize_assert( serialize::serialize_string_is_valid_utf8( string, length ) );\
             write_int( stream, length, 0, (buffer_size) - 1 );                              \
@@ -3972,9 +4135,18 @@ namespace serialize
         }                                                                                   \
         while(0)
 
+    /**
+        Write an integer relative to a previous one, the write-only companion to serialize_int_relative.
+        Carries the same debug assertion on the domain, checked on the caller's value before it is narrowed to int: an assertion inside the helper sees a value already truncated, and 2^32 + 5 truncates to 5, which is in the domain.
+        @param stream The stream object. Must be a write stream.
+        @param previous The previous integer value, in [0,2^31-1].
+        @param current The current integer value, in [0,2^31-1] and strictly greater than previous.
+     */
+
     #define write_int_relative( stream, previous, current )                                 \
         do                                                                                  \
         {                                                                                   \
+            serialize_assert( serialize::value_in_int_relative_domain( current ) );         \
             int current_value = (int) ( current );                                          \
             serialize::serialize_int_relative_internal( stream, previous, current_value );  \
         } while (0)
@@ -4061,7 +4233,7 @@ namespace serialize
         {
             if ( unsigned_value > uint32_t( Max ) - uint32_t( Min ) )
             {
-                return false;
+                return serialize_fail( stream );
             }
             // add in the unsigned domain: unsigned_value + min overflows signed arithmetic when the range is wider than 2^31
             value = int32_t( unsigned_value + uint32_t( Min ) );
@@ -4127,7 +4299,7 @@ namespace serialize
         {
             if ( unsigned_value > uint64_t( Max ) - uint64_t( Min ) )
             {
-                return false;
+                return serialize_fail( stream );
             }
             // add in the unsigned domain: unsigned_value + min overflows signed arithmetic when the range is wider than 2^63
             value = int64_t( unsigned_value + uint64_t( Min ) );
@@ -4218,6 +4390,8 @@ namespace serialize
             int32_t int32_value = 0;                                                        \
             if ( Stream::IsWriting )                                                        \
             {                                                                               \
+                serialize_assert( int64_t( value ) >= int64_t( min ) );                     \
+                serialize_assert( int64_t( value ) <= int64_t( max ) );                     \
                 int32_value = (int32_t) ( value );                                          \
             }                                                                               \
             if ( !serialize::SerializeIntConst<(min), (max)>( stream, int32_value ) )       \
@@ -4275,6 +4449,7 @@ namespace serialize
             uint32_t uint32_value = 0;                                                      \
             if ( Stream::IsWriting )                                                        \
             {                                                                               \
+                serialize_assert( serialize::value_fits_in_bits( value, bits ) );           \
                 uint32_value = (uint32_t) ( value );                                        \
             }                                                                               \
             if ( !serialize::SerializeBitsConst<(bits)>( stream, uint32_value ) )           \
@@ -4303,6 +4478,7 @@ namespace serialize
             uint64_t uint64_value = 0;                                                      \
             if ( Stream::IsWriting )                                                        \
             {                                                                               \
+                serialize_assert( serialize::value_fits_in_bits( value, bits ) );           \
                 uint64_value = (uint64_t) ( value );                                        \
             }                                                                               \
             if ( !serialize::SerializeBits64Const<(bits)>( stream, uint64_value ) )         \
@@ -5066,6 +5242,51 @@ inline void test_serialize_degenerate_range_64()
     serialize_check( measureStream.GetBitsProcessed() == 0 );
 }
 
+template <typename Stream> bool DegenerateInt128Serialize( Stream & stream, serialize::int128_t & value, serialize::int128_t point )
+{
+    serialize_int128( stream, value, point, point );
+    return true;
+}
+
+inline void test_serialize_degenerate_range_128()
+{
+    // The 128 bit twin, and the width where the same omission survived longest: SerializeInteger128
+    // had no bits == 0 early return, so a degenerate range reached WriteBits( group0, 0 ) on write
+    // and ReadBits( 0 ) on read -- both of which assert bits > 0 -- while serialize_int128,
+    // read_int128 and write_int128 asserted min < max above them, stricter than the standard and
+    // than every narrower width in this header. min <= max is the legal relation on every ranged
+    // operation, in every build mode.
+    //
+    // The point below is the conformance corpus's int128 vector: 2^100 + 7, far past 64 bits, so
+    // the field would take the multi-group path if it took any path at all.
+    uint8_t buffer[16] = { 0 };
+
+    const serialize::int128_t point = ( serialize::int128_t(1) << 100 ) + 7;
+
+    serialize::WriteStream writeStream( buffer, 16 );
+    serialize::int128_t degenerate = point;
+    int32_t after = 3;
+    serialize_check( DegenerateInt128Serialize( writeStream, degenerate, point ) );
+    serialize_check( writeStream.GetBitsProcessed() == 0 );      // nothing written
+    serialize_check( writeStream.SerializeInteger( after, 0, 7 ) );
+    serialize_check( writeStream.GetBitsProcessed() == 3 );      // the NEXT field starts at bit 0
+    writeStream.Flush();
+
+    serialize::ReadStream readStream( buffer, writeStream.GetBytesProcessed() );
+    serialize::int128_t read_degenerate = 0;
+    int32_t read_after = 0;
+    serialize_check( DegenerateInt128Serialize( readStream, read_degenerate, point ) );
+    serialize_check( read_degenerate == point );                 // recovered from the range
+    serialize_check( readStream.GetBitsProcessed() == 0 );
+    serialize_check( readStream.SerializeInteger( read_after, 0, 7 ) );
+    serialize_check( read_after == 3 );
+
+    serialize::MeasureStream measureStream;
+    serialize::int128_t measured = point;
+    serialize_check( DegenerateInt128Serialize( measureStream, measured, point ) );
+    serialize_check( measureStream.GetBitsProcessed() == 0 );
+}
+
 inline void test_serialize_integer_full_range()
 {
     // ranges wider than 2^31 overflow if [min,max] arithmetic is done signed (undefined behavior)
@@ -5565,7 +5786,7 @@ inline void test_wstring_read_validation()
 
 inline void test_int_relative_validation()
 {
-    // the 32 bit fallback must reject values that violate the previous < current contract
+    // the absolute tier must reject values that violate the previous < current contract
     {
         uint8_t buffer[8 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
 
@@ -5580,9 +5801,10 @@ inline void test_int_relative_validation()
         int previous = 100;
         int current = 0;
         serialize_check( serialize::serialize_int_relative_internal( readStream, previous, current ) == false );
+        serialize_check( current == 0 );        // a refused read writes nothing to the destination
     }
 
-    // a legitimate fallback round trip must still succeed
+    // a legitimate absolute tier round trip must still succeed
     {
         uint8_t buffer[8 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
 
@@ -5598,12 +5820,13 @@ inline void test_int_relative_validation()
         serialize_check( current == written );
     }
 
-    // gaps wider than 2^31 overflow if the difference is computed in signed arithmetic (undefined behavior)
+    // the widest gap the domain allows: previous at the floor, current at the top. the difference
+    // is 2^31 - 1, so a reader that reconstructs in a 32 bit signed width overflows on it
     {
         uint8_t buffer[8 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
 
         serialize::WriteStream writeStream( buffer, 8 );
-        int previous = -1000;
+        int previous = 0;
         int written = INT32_MAX;
         serialize_check( serialize::serialize_int_relative_internal( writeStream, previous, written ) == true );
         writeStream.Flush();
@@ -5614,15 +5837,15 @@ inline void test_int_relative_validation()
         serialize_check( current == written );
     }
 
-    // read side reconstructs current = previous + difference; a large previous overflows signed arithmetic.
-    // this must wrap in the unsigned domain rather than invoke undefined behavior.
+    // every tier reconstructs current in a width that cannot wrap and refuses the read when the
+    // result leaves the domain. previous sits at the top of the domain, so each tier's smallest
+    // legal difference already runs past it: the read must fail and write nothing, never wrap
     {
-        // difference of 1 exercises the oneBit branch, difference of 5 exercises a bucket branch
-        const int differences[] = { 1, 5 };
+        const int differences[] = { 1, 2, 7, 24, 281, 4378 };        // the one-bit tier, then the five bounded tiers
 
         for ( int d = 0; d < (int) ( sizeof(differences) / sizeof(differences[0]) ); d++ )
         {
-            uint8_t buffer[8 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+            uint8_t buffer[8 + 8] = { 0 };      // + 8: read buffer allocations extend 8 bytes past the data
 
             serialize::WriteStream writeStream( buffer, 8 );
             int prevWrite = 10;
@@ -5631,11 +5854,153 @@ inline void test_int_relative_validation()
             writeStream.Flush();
 
             serialize::ReadStream readStream( buffer, 8 );
-            int previous = INT32_MAX;                        // previous + difference exceeds INT32_MAX
-            int current = 0;
-            serialize_check( serialize::serialize_int_relative_internal( readStream, previous, current ) == true );
-            serialize_check( current == int32_t( uint32_t( INT32_MAX ) + uint32_t( differences[d] ) ) );
+            int previous = INT32_MAX;           // previous + difference is past the top of the domain
+            int current = -1;
+            serialize_check( serialize::serialize_int_relative_internal( readStream, previous, current ) == false );
+            serialize_check( current == -1 );   // a refused read writes nothing to the destination
         }
+    }
+
+    // the absolute tier's 32 raw bits are UNSIGNED: a value with the top bit set is outside the
+    // domain, and a reader that takes the group into a signed sequence type accepts it as negative
+    {
+        uint8_t buffer[8 + 8] = { 0 };          // + 8: read buffer allocations extend 8 bytes past the data
+
+        serialize::WriteStream writeStream( buffer, 8 );
+        uint32_t six_false_bools = 0;
+        writeStream.SerializeBits( six_false_bools, 6 );
+        uint32_t top_bit_set = 0x80000000;
+        writeStream.SerializeBits( top_bit_set, 32 );
+        writeStream.Flush();
+
+        serialize::ReadStream readStream( buffer, 8 );
+        int previous = 100;
+        int current = 0;
+        serialize_check( serialize::serialize_int_relative_internal( readStream, previous, current ) == false );
+        serialize_check( current == 0 );        // a refused read writes nothing to the destination
+    }
+}
+
+// STANDARD.md, Reader Obligations: failure is terminal. The first refused read latches the stream,
+// and every later read on it fails, consuming no bits and writing no destination, until the stream
+// is re-initialized onto a new buffer. Each block below fails a stream a different way and then
+// proves a read that would otherwise succeed does not.
+
+inline void test_read_stream_failure_is_terminal()
+{
+    uint8_t buffer[64 + 8] = { 0 };             // + 8: read buffer allocations extend 8 bytes past the data
+
+    // a valid stream of known content: 8 bits of 0xAF, then a ranged int over [0,10]
+    int writtenBytes = 0;
+    {
+        serialize::WriteStream writeStream( buffer, 64 );
+        uint32_t marker = 0xAF;
+        writeStream.SerializeBits( marker, 8 );
+        writeStream.SerializeInteger( 7, 0, 10 );
+        writeStream.Flush();
+        writtenBytes = (int) writeStream.GetBytesProcessed();
+    }
+
+    // failure before any consumption: the first read runs past the end of an empty stream
+    {
+        serialize::ReadStream readStream( buffer, 0 );
+        uint32_t value = 0xFFFFFFFF;
+        serialize_check( readStream.SerializeBits( value, 8 ) == false );
+        serialize_check( value == 0xFFFFFFFF );
+        int after = -1;
+        serialize_check( readStream.SerializeInteger( after, 5, 5 ) == false );      // a zero bit read, which needs no bits at all
+        serialize_check( after == -1 );
+    }
+
+    // failure after partial consumption: the first read succeeds, the second runs past the end
+    {
+        serialize::ReadStream readStream( buffer, writtenBytes );
+        uint32_t marker = 0;
+        serialize_check( readStream.SerializeBits( marker, 8 ) == true );
+        serialize_check( marker == 0xAF );
+        uint32_t past_end = 0xFFFFFFFF;
+        serialize_check( readStream.SerializeBits( past_end, 32 ) == false );
+        serialize_check( past_end == 0xFFFFFFFF );
+        uint32_t after = 0xFFFFFFFF;
+        serialize_check( readStream.SerializeBits( after, 1 ) == false );            // one bit was still available before the failure
+        serialize_check( after == 0xFFFFFFFF );
+    }
+
+    // failure on range headroom: 0xAF read as a ranged int over [0,10] is a value the range cannot hold
+    {
+        serialize::ReadStream readStream( buffer, writtenBytes );
+        int out_of_range = -1;
+        serialize_check( readStream.SerializeInteger( out_of_range, 0, 10 ) == false );
+        serialize_check( out_of_range == -1 );
+        int after = -1;
+        serialize_check( readStream.SerializeInteger( after, 0, 255 ) == false );
+        serialize_check( after == -1 );
+    }
+
+    // failure on alignment: the padding bits after the 0xAF marker are not zero
+    {
+        serialize::ReadStream readStream( buffer, writtenBytes );
+        uint32_t bits = 0;
+        serialize_check( readStream.SerializeBits( bits, 4 ) == true );              // leaves 4 non-zero padding bits, 0xA
+        serialize_check( readStream.SerializeAlign() == false );
+        uint32_t after = 0xFFFFFFFF;
+        serialize_check( readStream.SerializeBits( after, 4 ) == false );
+        serialize_check( after == 0xFFFFFFFF );
+    }
+
+    // failure on a malformed string: an interior NUL among the transmitted bytes
+    {
+        uint8_t stringBuffer[32 + 8] = { 0 };   // + 8: read buffer allocations extend 8 bytes past the data
+        int stringBytes = 0;
+        {
+            serialize::WriteStream writeStream( stringBuffer, 32 );
+            writeStream.SerializeInteger( 3, 0, 15 );                                // length 3, buffer_size 16
+            const uint8_t payload[3] = { 'a', 0, 'b' };
+            writeStream.SerializeBytes( payload, 3 );
+            uint32_t trailing = 0x2A;
+            writeStream.SerializeBits( trailing, 8 );
+            writeStream.Flush();
+            stringBytes = (int) writeStream.GetBytesProcessed();
+        }
+
+        serialize::ReadStream readStream( stringBuffer, stringBytes );
+        char string[16] = { 0 };
+        serialize_check( serialize::serialize_string_internal( readStream, string, 16 ) == false );
+        uint32_t after = 0xFFFFFFFF;
+        serialize_check( readStream.SerializeBits( after, 8 ) == false );             // the trailing byte is still in the stream
+        serialize_check( after == 0xFFFFFFFF );
+    }
+
+    // failure on int_relative: a reconstruction past the top of the domain
+    {
+        uint8_t relativeBuffer[8 + 8] = { 0 };  // + 8: read buffer allocations extend 8 bytes past the data
+        {
+            serialize::WriteStream writeStream( relativeBuffer, 8 );
+            uint32_t one_bit_tier = 1;
+            writeStream.SerializeBits( one_bit_tier, 1 );
+            uint32_t trailing = 0x2A;
+            writeStream.SerializeBits( trailing, 8 );
+            writeStream.Flush();
+        }
+
+        serialize::ReadStream readStream( relativeBuffer, 8 );
+        int previous = INT32_MAX;
+        int current = -1;
+        serialize_check( serialize::serialize_int_relative_internal( readStream, previous, current ) == false );
+        serialize_check( current == -1 );
+        uint32_t after = 0xFFFFFFFF;
+        serialize_check( readStream.SerializeBits( after, 8 ) == false );             // the trailing byte is still in the stream
+        serialize_check( after == 0xFFFFFFFF );
+    }
+
+    // re-initialization is what clears the latch: the same stream object reads cleanly afterwards
+    {
+        serialize::ReadStream readStream( buffer, 0 );
+        uint32_t value = 0;
+        serialize_check( readStream.SerializeBits( value, 8 ) == false );
+        readStream.Initialize( buffer, writtenBytes );
+        serialize_check( readStream.SerializeBits( value, 8 ) == true );
+        serialize_check( value == 0xAF );
     }
 }
 
@@ -8245,7 +8610,7 @@ inline void test_past_end_poison()
         memset( (void*) &poisonData, 0, sizeof( GoldenWireData ) );
         serialize_check( GoldenWireSerialize( poisonStream, poisonData ) == false );
 
-        serialize_check( poisonStream.GetBitsProcessed() == cleanStream.GetBitsProcessed() );   // refused at the same point
+        serialize_check( poisonStream.GetBitsProcessed() == cleanStream.GetBitsProcessed() );   // both latched by the refusal, so both report the same position
         serialize_check( memcmp( &poisonData, &cleanData, sizeof( GoldenWireData ) ) == 0 );    // with identical partial state
     }
 }
@@ -9758,6 +10123,7 @@ inline void serialize_test()
         SERIALIZE_RUN_TEST( test_serialize_integer_validation );
         SERIALIZE_RUN_TEST( test_serialize_degenerate_range );
         SERIALIZE_RUN_TEST( test_serialize_degenerate_range_64 );
+    SERIALIZE_RUN_TEST( test_serialize_degenerate_range_128 );
         SERIALIZE_RUN_TEST( test_serialize_integer_full_range );
         SERIALIZE_RUN_TEST( test_serialize_int64_full_range );
         SERIALIZE_RUN_TEST( test_serialize_int64_validation );
@@ -9767,6 +10133,7 @@ inline void serialize_test()
         SERIALIZE_RUN_TEST( test_string_read_validation );
         SERIALIZE_RUN_TEST( test_wstring_read_validation );
         SERIALIZE_RUN_TEST( test_int_relative_validation );
+    SERIALIZE_RUN_TEST( test_read_stream_failure_is_terminal );
         SERIALIZE_RUN_TEST( test_compressed_float_validation );
         SERIALIZE_RUN_TEST( test_compressed_float_top_of_range_clamp );
         SERIALIZE_RUN_TEST( test_compressed_float_non_finite_asserts );
