@@ -1486,6 +1486,40 @@ void test_connection_reject_empty_packet()
     check( connection.GetErrorLevel() == CONNECTION_ERROR_READ_PACKET_FAILED );
 }
 
+void test_connection_process_packet_exact_allocation()
+{
+    // Production receive hands ProcessPacket an exact payload allocation.
+    // BitReader needs 8 bytes of slack; ProcessPacket copies into packetBytes+8.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    double time = 100.0;
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    sender.SendMessage( 0, message );
+
+    uint8_t packet[2048];
+    int packetBytes = 0;
+    check( sender.GeneratePacket( NULL, 0, packet, (int) sizeof( packet ), packetBytes ) );
+    check( packetBytes > 0 );
+
+    uint8_t * exact = (uint8_t *) malloc( (size_t) packetBytes );
+    check( exact );
+    memcpy( exact, packet, (size_t) packetBytes );
+    check( receiver.ProcessPacket( NULL, 0, exact, packetBytes ) );
+    free( exact );
+
+    Message * received = receiver.ReceiveMessage( 0 );
+    check( received );
+    check( received->GetType() == TEST_MESSAGE );
+    messageFactory.ReleaseMessage( received );
+}
+
 void test_connection_unreliable_rejects_block_fragment()
 {
     // An unreliable-unordered channel never sends a top-level block fragment (its blocks
@@ -4313,6 +4347,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_unreliable_unordered_messages );
         RUN_TEST( test_connection_unreliable_unordered_blocks );
         RUN_TEST( test_connection_reject_empty_packet );
+        RUN_TEST( test_connection_process_packet_exact_allocation );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
