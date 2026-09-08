@@ -1636,6 +1636,27 @@ template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream &
     return true;
 }
 
+void test_channel_config_fragment_counts_without_overflow()
+{
+    // yojimbo#347: ceil(maxBlockSize / blockFragmentSize) used to add in int
+    // and overflow for a legal huge maxBlockSize. The 65535 check then saw
+    // garbage. The add is 64-bit; a too-large result stays well-defined and
+    // still fails Validate's cap.
+    ChannelConfig channel;
+    channel.maxBlockSize = 2147483647;
+    channel.blockFragmentSize = 1024;
+    const int n = channel.GetMaxFragmentsPerBlock();
+    check( n == (int) ( ( (int64_t) 2147483647 + 1023 ) / 1024 ) );
+    check( n > 65535 );
+
+    // yojimbo#346: fragmentSize on the wire is 16 bits.
+    ChannelConfig small;
+    small.maxBlockSize = 256 * 1024;
+    small.blockFragmentSize = 1024;
+    check( small.GetMaxFragmentsPerBlock() == 256 );
+    check( small.blockFragmentSize <= 65535 );
+}
+
 void test_connection_reliable_block_fragment_overflow()
 {
     // Regression test: a peer sends a reliable-ordered block fragment whose final fragment
@@ -4315,6 +4336,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
+        RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );
