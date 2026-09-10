@@ -64,8 +64,9 @@ extern "C" int LLVMFuzzerTestOneInput( const uint8_t * data, size_t size )
     FuzzMessageFactory messageFactory( GetDefaultAllocator() );
     Connection connection( GetDefaultAllocator(), messageFactory, config, 100.0 );
 
-    // The BitReader reads whole 32-bit words, so it may touch up to 3 bytes past the packet
-    // end. Real receive paths always have slack; mirror that with a padded, zeroed buffer.
+    // BitReader loads an 8-byte window from the byte at the read position, so a
+    // read in the last data byte can touch 7 bytes past the packet. ProcessPacket
+    // copies into packetBytes+8; the fuzzer mirrors that manufactured slack.
     static uint8_t buf[ 8 * 1024 + 16 ];
     if ( config.maxPacketSize + 16 > (int) sizeof( buf ) )
         return 0;

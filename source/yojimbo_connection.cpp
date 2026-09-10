@@ -2,6 +2,8 @@
 #include "yojimbo_reliable_ordered_channel.h"
 #include "yojimbo_unreliable_unordered_channel.h"
 
+#include <string.h>
+
 namespace yojimbo
 {
     struct ConnectionPacket
@@ -347,7 +349,22 @@ namespace yojimbo
 
         ConnectionPacket packet;
 
-        if ( !ReadPacket( context, *m_messageFactory, m_connectionConfig, packet, packetData, packetBytes ) )
+        // BitReader loads an 8-byte window. netcode/reliable hand back an exact
+        // payload allocation, so copy into packetBytes+8 before deserialize.
+        uint8_t * padded = (uint8_t *) YOJIMBO_ALLOCATE( *m_allocator, (size_t) packetBytes + 8 );
+        if ( !padded )
+        {
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to allocate padded read buffer\n" );
+            m_errorLevel = CONNECTION_ERROR_ALLOCATOR;
+            return false;
+        }
+        memcpy( padded, packetData, (size_t) packetBytes );
+        memset( padded + packetBytes, 0, 8 );
+
+        const bool readOk = ReadPacket( context, *m_messageFactory, m_connectionConfig, packet, padded, packetBytes );
+        YOJIMBO_FREE( *m_allocator, padded );
+
+        if ( !readOk )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to read packet\n" );
             m_errorLevel = CONNECTION_ERROR_READ_PACKET_FAILED;
