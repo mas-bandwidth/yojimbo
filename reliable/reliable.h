@@ -32,10 +32,10 @@
 #ifndef RELIABLE_H
 #define RELIABLE_H
 
-#define RELIABLE_VERSION_FULL    "1.4.2"
+#define RELIABLE_VERSION_FULL    "1.4.4"
 #define RELIABLE_VERSION_MAJOR   1
 #define RELIABLE_VERSION_MINOR   4
-#define RELIABLE_VERSION_PATCH   2
+#define RELIABLE_VERSION_PATCH   4
 
 #include <stdint.h>
 #include <stddef.h>
