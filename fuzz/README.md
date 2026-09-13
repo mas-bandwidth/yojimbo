@@ -2,11 +2,13 @@
 
 libFuzzer harnesses over yojimbo's untrusted-input parsers — the code that runs on raw,
 attacker-controlled bytes off the wire. They are not part of the CMake build (they compile
-their own sources directly), so they don't affect the normal build; a CI job builds and runs
-them under real libFuzzer on Linux (see `.github/workflows/ci.yml`, job `fuzz`).
+their own sources directly), so they don't affect the normal build. **Every commit builds
+them; the fuzzing runs nightly** — `ci.yml` job `fuzz-build` compiles all five targets and
+regenerates the seed corpus, and `.github/workflows/fuzz-nightly.yml` is what actually fuzzes
+(job key `fuzz-smoke` for the short ASan+UBSan pass).
 
 Each target is **dual-mode**:
-- **Real libFuzzer** (Linux clang, coverage-guided) — the CI mode. Built with
+- **Real libFuzzer** (Linux clang, coverage-guided) — the nightly CI mode. Built with
   `-fsanitize=fuzzer,address,undefined`; libFuzzer supplies `main`.
 - **Standalone** (`-DFUZZ_STANDALONE`) — an ordinary executable that replays file args or
   feeds pseudo-random buffers (`FUZZ_ITERS` env var, default 200k). Needed because Apple
@@ -99,21 +101,33 @@ vendored upstream code. Put it in the shared flags and it switches the check off
 reliable and yojimbo as well, which is how netcode.c came to be built with no nonnull checking
 at all.
 
-## Build — real libFuzzer (Linux clang), the CI mode
+## Build — real libFuzzer (Linux clang), the nightly CI mode
 Swap `-DFUZZ_STANDALONE` for `-fsanitize=fuzzer` (added to the sanitizer set) and pass a
-corpus dir + `-max_total_time=N`. Exactly what the `fuzz` CI job does; see it for the
-canonical commands.
+corpus dir + `-max_total_time=N`. Exactly what the `fuzz-smoke` job in `fuzz-nightly.yml`
+does; see it for the canonical commands.
 
 ## CI
 
-Three layers run in GitHub Actions:
-- **`fuzz` job** (`ci.yml`, per-PR) — 60s ASan+UBSan smoke run of each target, seeded from
-  `fuzz/corpus/`; a gate that catches regressions fast.
-- **`msan` job** (`ci.yml`, per-PR) — the same targets under MemorySanitizer for
-  uninitialized-read detection (the C++ targets build with `-DYOJIMBO_RELEASE` so no `std::map`
-  is compiled in, avoiding the need for an instrumented libc++).
-- **`Fuzz (nightly)`** (`fuzz-nightly.yml`, scheduled) — a much longer run per target with a
-  corpus that persists and grows across nights (via the Actions cache) and a libFuzzer
+**The runs are nightly; the builds are per commit.** Fuzzing used to run per-PR, but the two
+smoke jobs were 334s and 272s against a 46s next-slowest job, so they moved out of `ci.yml` on
+2026-09-13 to keep the per-commit tier inside two minutes (Glenn's law). They kept their job
+*names*; only the keys changed. What stayed per commit is the fast half — compiling the targets
+and regenerating the corpus — because those are what a single commit breaks outright:
+- **`fuzz targets build + seed corpus (linux, no fuzzing)`** (`ci.yml`, job key `fuzz-build`,
+  **per commit**, ~34s) — builds all five targets with the same ASan+UBSan flags and runs the
+  seed generator, then executes nothing (`-runs=0` load check only). A target that stops
+  compiling, or a packet type added without a seed, is red on the commit that did it.
+
+Then, nightly:
+- **`fuzz (linux libFuzzer, ASan+UBSan)`** (`fuzz-nightly.yml`, job key `fuzz-smoke`) — 60s
+  ASan+UBSan smoke run of each target, seeded from `fuzz/corpus/`; catches regressions the
+  morning after, not on the PR.
+- **`fuzz (linux libFuzzer, MemorySanitizer)`** (`fuzz-nightly.yml`, job key `msan`) — the same
+  targets under MemorySanitizer for uninitialized-read detection (the C++ targets build with
+  `-DYOJIMBO_RELEASE` so no `std::map` is compiled in, avoiding the need for an instrumented
+  libc++). This is the only job anywhere that runs MSan.
+- **`nightly fuzz (<target>)`** (`fuzz-nightly.yml`, job key `fuzz`) — a much longer run per
+  target with a corpus that persists and grows across nights (via the Actions cache) and a libFuzzer
   dictionary where one helps (`fuzz/dict/<target>.dict`). A crash fails that target and uploads
   the reproducer as an artifact. Trigger it by hand from the Actions tab (`workflow_dispatch`,
   with a `max_total_time` input) to reproduce or extend a run.
@@ -126,7 +140,7 @@ netcode packet framing and the structured script, less for the bitpacked message
 
 Committed seeds of valid packets so the time-boxed CI runs start at inputs that already
 reach the post-decrypt / reassembly code instead of rediscovering the wire format from
-random bytes. The `fuzz` CI job passes `fuzz/corpus/<target>` as a read-only seed dir
+random bytes. The `fuzz-smoke` job passes `fuzz/corpus/<target>` as a read-only seed dir
 alongside an ephemeral working dir (libFuzzer writes new finds only to the first dir, so the
 committed seeds stay pristine). Standalone builds can replay them too:
 `./fz_netcode fuzz/corpus/fuzz_netcode/*`.
@@ -135,7 +149,8 @@ The seeds are produced by generators under `tools/`, which round-trip every seed
 matching reader and assert it decodes, so a committed seed is always a valid input.
 `gen_seed_corpus` additionally refuses to finish unless every authenticated netcode packet type
 has a seed — random mutation cannot realistically produce a valid AEAD tag, so a type with no
-seed is a parser the fuzzer never enters. CI runs it on every change:
+seed is a parser the fuzzer never enters. CI runs it on every change, in the `fuzz-build` job
+in `ci.yml` (and again nightly, in `fuzz-smoke`):
 
 ```
 # netcode + connect-token + reliable seeds

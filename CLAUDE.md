@@ -140,10 +140,11 @@ open concerns.
   connect-token parser gets its own target because the AEAD boundary blocks mutation; the
   stateful connection target threads multiple packets through one live `Connection` so
   block reassembly is reachable; the structured target drives the real write path so the
-  receiver never bails early). CI runs them per-PR, a nightly runs them long with a
-  persistent corpus and dictionaries, and `fuzz/README.md` documents actual bugs found —
-  with regression tests in `test.cpp`. That is evidence of a working process, not
-  security theater.
+  receiver never bails early). Per commit, CI builds every target and regenerates the seed
+  corpus but runs no fuzzing; `fuzz-nightly.yml` runs them short under ASan+UBSan and
+  MemorySanitizer and long with a persistent corpus and dictionaries, and `fuzz/README.md`
+  documents actual bugs found — with regression tests in `test.cpp`. That is evidence of a
+  working process, not security theater.
 - **Memory architecture.** Everything allocates through a pluggable `Allocator`;
   the server silos each client into its own TLSF heap, so one client exhausting its
   budget cannot starve another or the global heap — the right containment model for a

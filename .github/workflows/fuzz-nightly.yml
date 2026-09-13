@@ -178,6 +178,21 @@ jobs:
             echo "::endgroup::"
           done
 
+      # On a crash libFuzzer writes the reproducer to the working dir; keep it. Per commit a
+      # crash was in front of the author in the PR's own logs; nightly it is a red run nobody
+      # is standing next to, so the reproducer has to survive the runner.
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crashes-fuzz-smoke
+          path: |
+            crash-*
+            oom-*
+            timeout-*
+            leak-*
+          if-no-files-found: ignore
+
   msan:
     name: fuzz (linux libFuzzer, MemorySanitizer)
     runs-on: ubuntu-24.04
@@ -224,3 +239,18 @@ jobs:
             ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
             echo "::endgroup::"
           done
+
+      # On a crash libFuzzer writes the reproducer to the working dir; keep it. Per commit a
+      # crash was in front of the author in the PR's own logs; nightly it is a red run nobody
+      # is standing next to, so the reproducer has to survive the runner.
+      - name: Upload crash reproducers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crashes-msan-smoke
+          path: |
+            crash-*
+            oom-*
+            timeout-*
+            leak-*
+          if-no-files-found: ignore
