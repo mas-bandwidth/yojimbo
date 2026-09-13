@@ -35,6 +35,26 @@ That is deliberately **not** duplicated here. Two copies of a review log is two 
 one truth, and the copy nobody updates is the one people read. One record, in the repo
 that owns the vendoring.
 
+## Console platforms need their own RNG
+
+On `__ORBIS__` / `__PROSPERO__` the `randombytes_sysrandom` backend in `sodium.c` is a set
+of stubs — upstream libsodium ships no system RNG for those platforms, so
+`randombytes_sysrandom_buf` returns without writing a byte of the buffer it was handed.
+Nothing warns at build time. netcode draws every key and nonce from `randombytes_buf`, and
+yojimbo's connect tokens and session keys are netcode's, so on a console build with the
+default backend they are whatever was in that memory, which is not a key.
+
+**A console port must register a real RNG before `netcode_init` runs** — before
+`InitializeYojimbo`, which calls it — using the platform's own cryptographic random source:
+
+    randombytes_set_implementation( &my_console_randombytes_implementation );
+
+This is a porting requirement, not a defect in the vendored slice: it matches upstream
+libsodium's behaviour on those platforms, and the platforms yojimbo builds and tests on
+(Linux, macOS, Windows) all use a real system RNG. netcode's `sodium/NOTES.md` and
+`IMPLEMENTERS.md` state it for netcode and its ports, from netcode 1.4.7; this is the same
+requirement seen from yojimbo.
+
 ## Why yojimbo has it at all
 
 So yojimbo builds with no external libsodium dependency on any platform. To link the

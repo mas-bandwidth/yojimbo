@@ -47,7 +47,6 @@
 #define NETCODE_VERSION_INFO_BYTES 13
 #define NETCODE_MAX_PACKET_BYTES 1300
 #define NETCODE_MAX_PAYLOAD_BYTES 1200
-#define NETCODE_MAX_ADDRESS_STRING_LENGTH 256
 #define NETCODE_PACKET_QUEUE_SIZE 256
 #define NETCODE_REPLAY_PROTECTION_BUFFER_SIZE 256
 #define NETCODE_CLIENT_MAX_RECEIVE_PACKETS 64
@@ -1487,8 +1486,16 @@ struct netcode_connection_payload_packet_t
 {
     uint8_t packet_type;
     uint32_t payload_bytes;
-    uint8_t payload_data[1];
+    /* serialize's BitReader loads an 8-byte window from the current byte, so a
+       read in the last payload byte reaches 7 past it. This array is the last
+       member; sizeof(*packet)+payload_bytes is allocated, leaving 8 bytes
+       behind the returned payload pointer. Do not shrink it. */
+    uint8_t payload_data[8];
 };
+
+typedef char netcode_payload_packet_tail_holds_reader_slack[
+    ( sizeof( struct netcode_connection_payload_packet_t )
+      - offsetof( struct netcode_connection_payload_packet_t, payload_data ) >= 8 ) ? 1 : -1 ];
 
 struct netcode_connection_disconnect_packet_t
 {
@@ -2610,6 +2617,17 @@ void netcode_network_simulator_queue_packet( struct netcode_network_simulator_t 
                                              int packet_bytes, 
                                              float delay )
 {
+    // allocate before touching the slot. if the allocator fails, drop this packet and leave
+    // the entry already queued in that slot alone, rather than copying into null.
+
+    uint8_t * entry_packet_data = (uint8_t*) network_simulator->allocate_function( network_simulator->allocator_context, packet_bytes );
+
+    if ( !entry_packet_data )
+    {
+        netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: network simulator could not allocate packet data\n" );
+        return;
+    }
+
     if ( network_simulator->packet_entries[network_simulator->current_index].packet_data )
     {
         network_simulator->free_function( network_simulator->allocator_context, network_simulator->packet_entries[network_simulator->current_index].packet_data );
@@ -2618,8 +2636,7 @@ void netcode_network_simulator_queue_packet( struct netcode_network_simulator_t 
 
     network_simulator->packet_entries[network_simulator->current_index].from = *from;
     network_simulator->packet_entries[network_simulator->current_index].to = *to;
-    network_simulator->packet_entries[network_simulator->current_index].packet_data = 
-        (uint8_t*) network_simulator->allocate_function( network_simulator->allocator_context, packet_bytes );
+    network_simulator->packet_entries[network_simulator->current_index].packet_data = entry_packet_data;
     memcpy( network_simulator->packet_entries[network_simulator->current_index].packet_data, packet_data, packet_bytes );
     network_simulator->packet_entries[network_simulator->current_index].packet_bytes = packet_bytes;
     network_simulator->packet_entries[network_simulator->current_index].delivery_time = network_simulator->time + delay;
@@ -2898,6 +2915,16 @@ struct netcode_client_t * netcode_client_create_dual( NETCODE_CONST char * addre
     if ( !config_copy.free_function )
         config_copy.free_function = netcode_default_free_function;
     config = &config_copy;
+
+    // the overrides are called on the update path with no null check. a missing one is a
+    // configuration error, refused here rather than dereferenced on the first update.
+
+    if ( config->override_send_and_receive && ( !config->send_packet_override || !config->receive_packet_override ) )
+    {
+        netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: override_send_and_receive requires both send_packet_override and receive_packet_override\n" );
+        client_create_error = NETCODE_CLIENT_CREATE_ERROR_MISSING_OVERRIDE_CALLBACK;
+        return NULL;
+    }
 
     struct netcode_address_t address1;
     struct netcode_address_t address2;
@@ -3620,6 +3647,18 @@ void netcode_client_connect_loopback( struct netcode_client_t * client, int clie
 {
     netcode_assert( client );
     netcode_assert( client->state <= NETCODE_CLIENT_STATE_DISCONNECTED );
+
+    // a loopback client sends only through this callback. without it the first send would
+    // call a null pointer, so refuse to enter loopback at all, in every build.
+
+    netcode_assert( client->config.send_loopback_packet_callback );
+
+    if ( !client->config.send_loopback_packet_callback )
+    {
+        netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: a loopback client requires send_loopback_packet_callback\n" );
+        return;
+    }
+
     netcode_printf( NETCODE_LOG_LEVEL_INFO, "client connected to server via loopback as client %d\n", client_index );
     client->state = NETCODE_CLIENT_STATE_CONNECTED;
     client->client_index = client_index;
@@ -4156,6 +4195,16 @@ struct netcode_server_t * netcode_server_create_dual( NETCODE_CONST char * serve
     if ( config_copy.max_connect_token_lifetime <= 0 )
         config_copy.max_connect_token_lifetime = NETCODE_DEFAULT_MAX_CONNECT_TOKEN_LIFETIME;
     config = &config_copy;
+
+    // the overrides are called on the update path with no null check. a missing one is a
+    // configuration error, refused here rather than dereferenced on the first update.
+
+    if ( config->override_send_and_receive && ( !config->send_packet_override || !config->receive_packet_override ) )
+    {
+        netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: override_send_and_receive requires both send_packet_override and receive_packet_override\n" );
+        server_create_error = NETCODE_SERVER_CREATE_ERROR_MISSING_OVERRIDE_CALLBACK;
+        return NULL;
+    }
 
     struct netcode_address_t server_address1;
     struct netcode_address_t server_address2;
@@ -5342,6 +5391,17 @@ void netcode_server_connect_loopback_client( struct netcode_server_t * server, i
     netcode_assert( client_index >= 0 );
     netcode_assert( client_index < server->max_clients );
     netcode_assert( server->running );
+
+    // the server sends to a loopback client only through this callback. without it the
+    // first send would call a null pointer, so refuse the slot at all, in every build.
+
+    netcode_assert( server->config.send_loopback_packet_callback );
+
+    if ( !server->config.send_loopback_packet_callback )
+    {
+        netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: a loopback client requires send_loopback_packet_callback\n" );
+        return;
+    }
 
     if ( !server->running )
         return;
@@ -7251,6 +7311,39 @@ static void * test_failing_allocate_function( void * context, size_t bytes )
     return NULL;
 }
 
+static int test_simulator_allocations_fail = 0;
+
+static void * test_toggle_allocate_function( void * context, size_t bytes )
+{
+    (void) context;
+    if ( test_simulator_allocations_fail )
+        return NULL;
+    return malloc( bytes );
+}
+
+static void test_toggle_free_function( void * context, void * pointer )
+{
+    (void) context;
+    free( pointer );
+}
+
+static void test_override_send_packet( void * context, struct netcode_address_t * to, NETCODE_CONST uint8_t * packet_data, int packet_bytes )
+{
+    (void) context;
+    (void) to;
+    (void) packet_data;
+    (void) packet_bytes;
+}
+
+static int test_override_receive_packet( void * context, struct netcode_address_t * from, uint8_t * packet_data, int max_packet_bytes )
+{
+    (void) context;
+    (void) from;
+    (void) packet_data;
+    (void) max_packet_bytes;
+    return 0;
+}
+
 void test_client_create_error()
 {
     struct netcode_client_config_t client_config;
@@ -7328,6 +7421,25 @@ void test_client_create_error()
         check( netcode_client_create( "0.0.0.0:50000", &failing_config, 0.0 ) == NULL );
         check( netcode_client_create_error() == NETCODE_CLIENT_CREATE_ERROR_ALLOCATE_CLIENT_FAILED );
     }
+
+    // override_send_and_receive with either override callback missing is refused at create time,
+    // rather than calling a null pointer on the first update
+
+    {
+        struct netcode_client_config_t override_config;
+        netcode_default_client_config( &override_config );
+        override_config.override_send_and_receive = 1;
+        override_config.send_packet_override = test_override_send_packet;
+
+        check( netcode_client_create( "0.0.0.0:50000", &override_config, 0.0 ) == NULL );
+        check( netcode_client_create_error() == NETCODE_CLIENT_CREATE_ERROR_MISSING_OVERRIDE_CALLBACK );
+
+        override_config.send_packet_override = NULL;
+        override_config.receive_packet_override = test_override_receive_packet;
+
+        check( netcode_client_create( "0.0.0.0:50000", &override_config, 0.0 ) == NULL );
+        check( netcode_client_create_error() == NETCODE_CLIENT_CREATE_ERROR_MISSING_OVERRIDE_CALLBACK );
+    }
 }
 
 void test_server_create_error()
@@ -7392,6 +7504,75 @@ void test_server_create_error()
         check( netcode_server_create( "127.0.0.1:40000", &failing_config, 0.0 ) == NULL );
         check( netcode_server_create_error() == NETCODE_SERVER_CREATE_ERROR_ALLOCATE_SERVER_FAILED );
     }
+
+    // override_send_and_receive with either override callback missing is refused at create time,
+    // rather than calling a null pointer on the first update
+
+    {
+        struct netcode_server_config_t override_config;
+        netcode_default_server_config( &override_config );
+        override_config.override_send_and_receive = 1;
+        override_config.send_packet_override = test_override_send_packet;
+
+        check( netcode_server_create( "127.0.0.1:40000", &override_config, 0.0 ) == NULL );
+        check( netcode_server_create_error() == NETCODE_SERVER_CREATE_ERROR_MISSING_OVERRIDE_CALLBACK );
+
+        override_config.send_packet_override = NULL;
+        override_config.receive_packet_override = test_override_receive_packet;
+
+        check( netcode_server_create( "127.0.0.1:40000", &override_config, 0.0 ) == NULL );
+        check( netcode_server_create_error() == NETCODE_SERVER_CREATE_ERROR_MISSING_OVERRIDE_CALLBACK );
+    }
+}
+
+void test_network_simulator_allocation_failure()
+{
+    // a failed allocation in the simulator must drop the packet, not memcpy into null
+
+    struct netcode_network_simulator_t * network_simulator = netcode_network_simulator_create( NULL, test_toggle_allocate_function, test_toggle_free_function );
+
+    check( network_simulator );
+
+    struct netcode_address_t from;
+    struct netcode_address_t to;
+
+    check( netcode_parse_address( "127.0.0.1:50000", &from ) == NETCODE_OK );
+    check( netcode_parse_address( "127.0.0.1:50001", &to ) == NETCODE_OK );
+
+    uint8_t packet_data[256];
+    int i;
+    for ( i = 0; i < 256; i++ )
+    {
+        packet_data[i] = (uint8_t) i;
+    }
+
+    test_simulator_allocations_fail = 1;
+
+    netcode_network_simulator_send_packet( network_simulator, &from, &to, packet_data, sizeof( packet_data ) );
+
+    test_simulator_allocations_fail = 0;
+
+    netcode_network_simulator_update( network_simulator, 0.0 );
+
+    uint8_t * receive_packet_data[16];
+    int receive_packet_bytes[16];
+    struct netcode_address_t receive_from[16];
+
+    check( netcode_network_simulator_receive_packets( network_simulator, &to, 16, receive_packet_data, receive_packet_bytes, receive_from ) == 0 );
+
+    // and the simulator still works once the allocator recovers
+
+    netcode_network_simulator_send_packet( network_simulator, &from, &to, packet_data, sizeof( packet_data ) );
+
+    netcode_network_simulator_update( network_simulator, 0.0 );
+
+    check( netcode_network_simulator_receive_packets( network_simulator, &to, 16, receive_packet_data, receive_packet_bytes, receive_from ) == 1 );
+
+    // a received packet buffer belongs to the caller, so free it before the simulator goes
+
+    test_toggle_free_function( NULL, receive_packet_data[0] );
+
+    netcode_network_simulator_destroy( network_simulator );
 }
 
 void test_network_simulator_determinism()
@@ -10292,6 +10473,55 @@ void test_packet_tagging()
 
 #endif // #if NETCODE_PACKET_TAGGING
 
+void test_loopback_callback_required()
+{
+    // entering loopback with send_loopback_packet_callback unset would call a null pointer
+    // on the next send. both sides must refuse to enter loopback instead. the guard asserts
+    // as well as returning, so install the handler that continues to run this in debug.
+
+    netcode_set_assert_function( test_runtime_guards_assert_handler );
+
+    struct netcode_client_config_t client_config;
+    netcode_default_client_config( &client_config );
+
+    struct netcode_client_t * client = netcode_client_create( "0.0.0.0:50000", &client_config, 0.0 );
+
+    check( client );
+
+    netcode_client_connect_loopback( client, 0, 1 );
+
+    check( netcode_client_loopback( client ) == 0 );
+    check( netcode_client_state( client ) == NETCODE_CLIENT_STATE_DISCONNECTED );
+
+    uint8_t payload[NETCODE_MAX_PACKET_SIZE];
+    memset( payload, 0, sizeof( payload ) );
+
+    netcode_client_send_packet( client, payload, NETCODE_MAX_PACKET_SIZE );
+
+    netcode_client_destroy( client );
+
+    struct netcode_server_config_t server_config;
+    netcode_default_server_config( &server_config );
+
+    struct netcode_server_t * server = netcode_server_create( "127.0.0.1:40000", &server_config, 0.0 );
+
+    check( server );
+
+    netcode_server_start( server, 1 );
+
+    netcode_server_connect_loopback_client( server, 0, 1, NULL );
+
+    check( netcode_server_client_loopback( server, 0 ) == 0 );
+    check( netcode_server_client_connected( server, 0 ) == 0 );
+    check( netcode_server_num_connected_clients( server ) == 0 );
+
+    netcode_server_send_packet( server, 0, payload, NETCODE_MAX_PACKET_SIZE );
+
+    netcode_server_destroy( server );
+
+    netcode_set_assert_function( netcode_default_assert_handler );
+}
+
 #define RUN_TEST( test_function )                                           \
     do                                                                      \
     {                                                                       \
@@ -10327,6 +10557,7 @@ void netcode_test()
         RUN_TEST( test_client_create_error );
         RUN_TEST( test_server_create_error );
         RUN_TEST( test_network_simulator_determinism );
+        RUN_TEST( test_network_simulator_allocation_failure );
         RUN_TEST( test_client_create );
         RUN_TEST( test_server_create );
         RUN_TEST( test_server_restart_global_sequence );
@@ -10354,6 +10585,7 @@ void netcode_test()
         RUN_TEST( test_client_error_connect_token_predates_server_start );
         RUN_TEST( test_disable_timeout );
         RUN_TEST( test_loopback );
+        RUN_TEST( test_loopback_callback_required );
 #if NETCODE_PACKET_TAGGING
         RUN_TEST( test_packet_tagging );
 #endif // #if NETCODE_PACKET_TAGGING
