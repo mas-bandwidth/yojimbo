@@ -26,6 +26,7 @@
 #define YOJIMBO_CONFIG_H
 
 #include "yojimbo_constants.h"
+#include <stdint.h>
 
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
@@ -171,7 +172,17 @@ namespace yojimbo
             // fragments. Using floor here under-sizes the send-side fragment buffers when
             // maxBlockSize is not a multiple of blockFragmentSize (see GetFragmentToSend,
             // which counts fragments with ceil).
-            return ( maxBlockSize + blockFragmentSize - 1 ) / blockFragmentSize;
+            //
+            // The add is 64-bit so a legal huge maxBlockSize cannot overflow signed int
+            // before the 65535 check in Validate (yojimbo#347).
+            if ( blockFragmentSize <= 0 )
+                return 0;
+            const int64_t n = ( (int64_t) maxBlockSize + blockFragmentSize - 1 ) / blockFragmentSize;
+            if ( n > 2147483647 )
+                return 2147483647;
+            if ( n < 0 )
+                return 0;
+            return (int) n;
         }
 
         /**

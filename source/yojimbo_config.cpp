@@ -84,6 +84,10 @@ namespace yojimbo
                 YOJIMBO_CONFIG_CHECK( blockFragmentSize > 0,
                     "error: invalid config: channel %d blockFragmentSize (%d) must be > 0\n", channelIndex, blockFragmentSize );
 
+                // On the wire fragmentSize is a 16-bit field (yojimbo#346).
+                YOJIMBO_CONFIG_CHECK( blockFragmentSize <= 65535,
+                    "error: invalid config: channel %d blockFragmentSize (%d) must be <= 65535\n", channelIndex, blockFragmentSize );
+
                 // A block fragment must fit inside a packet, or the channel stalls forever trying
                 // to send the block (see ReliableOrderedChannel::GetPacketData).
                 YOJIMBO_CONFIG_CHECK( blockFragmentSize <= maxPacketSize,
