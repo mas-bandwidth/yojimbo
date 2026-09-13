@@ -225,19 +225,18 @@ jobs:
           export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
           ctest --test-dir build --output-on-failure
 
-  fuzz:
-    name: fuzz (linux libFuzzer, ASan+UBSan)
+  fuzz-build:
+    name: fuzz targets build + seed corpus (linux, no fuzzing)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      # Coverage-guided libFuzzer over the untrusted-input parsers. Each target is built
-      # without -DFUZZ_STANDALONE (libFuzzer supplies main) and time-boxed. Debug defines
-      # stay on so the libraries' asserts and the message-factory leak check are live —
-      # that check is what surfaces leaks in the connection deserialization error paths.
+      # The fuzz *runs* moved to fuzz-nightly.yml on 2026-09-13 (334s and 272s against a 46s
+      # next-slowest job -- the two-minute law). What did not move is the part that is fast and
+      # that a commit can break outright: compiling the five targets, and regenerating the seed
+      # corpus. Without this job a target that no longer compiles, or a packet type added with
+      # no seed, would sit green until 07:17 UTC the next morning. The runs are nightly; the
+      # builds are per commit.
       #
-      # sodium.c is compiled on its own, and it is the only compilation that carries
-      # -fno-sanitize=nonnull-attribute: the exemption used to sit in the shared flags and
-      # silently covered netcode, reliable and yojimbo too (SEC-05).
       # The generator round-trips every seed through netcode_read_packet and refuses to finish
       # unless every authenticated packet type has one, so this step is what keeps a parser from
       # quietly falling out of the corpus (YJ-09). It writes to a scratch directory: the connect
@@ -249,11 +248,13 @@ jobs:
           clang -DNETCODE_DEBUG -DRELIABLE_DEBUG -Inetcode -Isodium -Ireliable -Ifuzz -w -g \
             tools/gen_seed_corpus.c reliable/reliable.c sodium/sodium.c -lm -o /tmp/gen_seed_corpus
           /tmp/gen_seed_corpus /tmp/corpus-regen
-      - name: Build and run fuzz targets
+      # Byte-for-byte the build half of the nightly `fuzz (linux libFuzzer, ASan+UBSan)` job,
+      # with the -max_total_time run loop left out. sodium.c is still compiled on its own and is
+      # still the only compilation carrying -fno-sanitize=nonnull-attribute (SEC-05).
+      - name: Build every fuzz target (no runs)
         run: |
           set -euo pipefail
           SAN="-fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -g"
-          RUN="-max_total_time=60 -print_final_stats=1 -rss_limit_mb=4096"
 
           echo "::group::build sodium (nonnull-attribute exempt, vendored upstream code)"
           clang $SAN -fno-sanitize=nonnull-attribute -w -Isodium -c sodium/sodium.c -o sodium.o
@@ -283,16 +284,13 @@ jobs:
             echo "::endgroup::"
           done
 
-          # Seed from the committed corpus (fuzz/corpus/<target>) so the short run starts at
-          # inputs that already reach the post-decrypt / reassembly code. libFuzzer reads all
-          # corpus dirs but only writes new finds to the first, so the committed seeds stay
-          # pristine and discoveries land in the ephemeral working dir.
+          # Every target must exist and be a libFuzzer binary; -runs=0 loads the target and
+          # exits without executing a single input, so this stays a build check.
           for t in fuzz_reliable fuzz_netcode fuzz_netcode_connect_token fuzz_connection fuzz_connection_structured; do
-            echo "::group::run $t"
-            mkdir -p "corpus/$t"
-            UBSAN_OPTIONS=halt_on_error=1 ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
-            echo "::endgroup::"
+            test -x "$t"
+            ./"$t" -runs=0 >/dev/null
           done
+          echo "five fuzz targets built and loadable; runs happen nightly in fuzz-nightly.yml"
 
   soak:
     name: soak (linux, sanitized, time-boxed)
@@ -321,53 +319,6 @@ jobs:
           else
             echo "soak failed (exit $?)"; tail -50 soak.log; exit 1
           fi
-
-  msan:
-    name: fuzz (linux libFuzzer, MemorySanitizer)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      # MemorySanitizer catches *reads of uninitialized memory* — the class of bug the
-      # ChannelPacketData union-init crash was (Free() dereferencing a half-initialized
-      # block.message). ASan/UBSan do not catch that. The C++ targets are built WITHOUT
-      # -DYOJIMBO_DEBUG so the debug std::map leak trackers aren't compiled in; that leaves the
-      # binaries free of C++ STL, so MSan needs no separately-instrumented libc++ (linking an
-      # uninstrumented libc++ would produce false positives). Asserts and leak detection stay
-      # covered by the sanitizers (ASan+UBSan+LSan) job.
-      - name: Build and run fuzz targets under MSan
-        run: |
-          set -euo pipefail
-          MSAN="-fsanitize=fuzzer,memory -fno-omit-frame-pointer -g"
-          RUN="-max_total_time=45 -print_final_stats=1 -rss_limit_mb=4096"
-
-          echo "::group::build C targets"
-          clang $MSAN -DRELIABLE_DEBUG -Ireliable -Ifuzz \
-            fuzz/fuzz_reliable.c reliable/reliable.c -o fuzz_reliable
-          clang $MSAN -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
-            fuzz/fuzz_netcode.c sodium/sodium.c -o fuzz_netcode
-          clang $MSAN -DNETCODE_DEBUG -Inetcode -Isodium -Ifuzz \
-            fuzz/fuzz_netcode_connect_token.c sodium/sodium.c -o fuzz_netcode_connect_token
-          echo "::endgroup::"
-
-          # -DYOJIMBO_RELEASE selects the release path so the debug std::map leak trackers
-          # (Allocator::m_alloc_map, MessageFactory::allocated_messages) are not compiled in.
-          # That keeps the binary free of C++ STL, so MSan needs no instrumented libc++ — an
-          # uninstrumented libstdc++ std::map traversal reports a spurious use-of-uninitialized.
-          for target in fuzz_connection fuzz_connection_structured; do
-            echo "::group::build $target"
-            clang++ -std=c++11 $MSAN -DYOJIMBO_RELEASE -DNETCODE_DEBUG -DRELIABLE_DEBUG -DSERIALIZE_DEBUG \
-              -I. -Iinclude -Isodium -Itlsf -Inetcode -Ireliable -Iserialize -Ifuzz \
-              fuzz/$target.cpp source/*.cpp netcode/netcode.c reliable/reliable.c tlsf/tlsf.c sodium/sodium.c \
-              -o $target
-            echo "::endgroup::"
-          done
-
-          for t in fuzz_reliable fuzz_netcode fuzz_netcode_connect_token fuzz_connection fuzz_connection_structured; do
-            echo "::group::run $t"
-            mkdir -p "corpus/$t"
-            ./"$t" "corpus/$t" "fuzz/corpus/$t" $RUN
-            echo "::endgroup::"
-          done
 
   docs:
     name: doxygen (version from the build, warnings are errors)

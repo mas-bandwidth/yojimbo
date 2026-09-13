@@ -36,9 +36,17 @@ green before a change is merged. The jobs are:
 - **build & test** on Windows (MSVC x64), debug and release;
 - **build & test** on Linux against the **system** libsodium (`--sodium=system`);
 - **sanitizers**: a Linux ASan + UBSan + LSan build of the test suite;
-- **fuzz**: short libFuzzer runs of the parser targets in `fuzz/`, seeded from
-  `fuzz/corpus/`;
-- **soak**: a time-boxed, sanitized run of the soak test.
+- **soak**: a time-boxed, sanitized run of the soak test;
+- **fuzz-build**: builds all five libFuzzer targets in `fuzz/` and regenerates the seed
+  corpus — but runs no fuzzing.
+
+**Fuzzing itself is not part of the per-PR gate.** The runs are nightly and the builds are per
+commit: `.github/workflows/fuzz-nightly.yml` runs at 07:17 UTC (and on demand from the Actions
+tab) with short ASan+UBSan and MemorySanitizer passes over the parser targets seeded from
+`fuzz/corpus/`, plus a long run per target with a persistent corpus. Those two smoke legs took
+334s and 272s against a 46s next-slowest job, and CI on every commit has to finish inside two
+minutes. So a fuzz target that stops compiling fails your PR; a crash the fuzzer has to search
+for shows up the next morning.
 
 If you touch an untrusted-input parser, consider extending the relevant target in `fuzz/`
 (see [fuzz/README.md](fuzz/README.md)); a crashing corpus input makes a great bug report.
