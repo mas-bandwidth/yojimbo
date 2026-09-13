@@ -8,9 +8,14 @@
 #              vendored build compiles
 #   minimum    the floor a system-installed copy must meet, enforced at configure time
 #
-# netcode's floor is 1.4.5: SECURITY.md records the connect token handling that lands there,
-# and yojimbo's server config passes max_connect_token_lifetime, a field netcode 1.4.4 and
-# earlier do not have. Linking an older system netcode is refused rather than warned about.
+# netcode's floor is 1.4.6: SECURITY.md records the connect token handling that lands in
+# 1.4.5, and yojimbo's server config passes max_connect_token_lifetime, a field netcode 1.4.4
+# and earlier do not have. 1.4.6 raises it again -- yojimbo reads netcode payloads through
+# serialize's BitReader, which loads an eight-byte window, and only from 1.4.6 does a payload
+# packet carry eight bytes of slack behind the payload, so an older system netcode gives
+# yojimbo an out-of-bounds read on packets it accepts. Linking an older system netcode is
+# refused rather than warned about. The floor stays below the vendored 1.4.7, whose changes
+# yojimbo's sources do not depend on.
 # serialize and reliable floor at the vendored version because yojimbo's sources are written
 # against it and both define wire formats.
 #
@@ -19,4 +24,4 @@
 
 serialize  1.16.2  v1.16.2  1.16.2
 reliable   1.4.4   v1.4.4   1.4.4
-netcode    1.4.5   v1.4.5   1.4.5
+netcode    1.4.7   v1.4.7   1.4.6

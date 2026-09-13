@@ -32,10 +32,10 @@
 #ifndef NETCODE_H
 #define NETCODE_H
 
-#define NETCODE_VERSION_FULL    "1.4.5"
+#define NETCODE_VERSION_FULL    "1.4.7"
 #define NETCODE_VERSION_MAJOR   1
 #define NETCODE_VERSION_MINOR   4
-#define NETCODE_VERSION_PATCH   5
+#define NETCODE_VERSION_PATCH   7
 
 /*
     IMPORTANT: netcode is single-threaded by design and is not thread safe.
@@ -121,6 +121,7 @@
 #define NETCODE_CLIENT_CREATE_ERROR_CREATE_SOCKET_IPV4_FAILED   4
 #define NETCODE_CLIENT_CREATE_ERROR_CREATE_SOCKET_IPV6_FAILED   5
 #define NETCODE_CLIENT_CREATE_ERROR_ALLOCATE_CLIENT_FAILED      6
+#define NETCODE_CLIENT_CREATE_ERROR_MISSING_OVERRIDE_CALLBACK   7
 
 #define NETCODE_SERVER_CREATE_ERROR_NONE                        0
 #define NETCODE_SERVER_CREATE_ERROR_PARSE_ADDRESS_FAILED        1
@@ -130,9 +131,12 @@
 #define NETCODE_SERVER_CREATE_ERROR_BIND_SOCKET_IPV4_FAILED     5
 #define NETCODE_SERVER_CREATE_ERROR_BIND_SOCKET_IPV6_FAILED     6
 #define NETCODE_SERVER_CREATE_ERROR_ALLOCATE_SERVER_FAILED      7
+#define NETCODE_SERVER_CREATE_ERROR_MISSING_OVERRIDE_CALLBACK   8
 
 #define NETCODE_MAX_CLIENTS         256
 #define NETCODE_MAX_PACKET_SIZE     1200
+
+#define NETCODE_MAX_ADDRESS_STRING_LENGTH 256
 
 #define NETCODE_LOG_LEVEL_NONE      0
 #define NETCODE_LOG_LEVEL_ERROR     1
@@ -183,6 +187,12 @@ struct netcode_address_t
 int netcode_parse_address( NETCODE_CONST char * address_string_in, struct netcode_address_t * address );
 
 char * netcode_address_to_string( struct netcode_address_t * address, char * buffer );
+
+/*
+    Writes the address into buffer in its printable form and returns buffer. The buffer must
+    be at least NETCODE_MAX_ADDRESS_STRING_LENGTH bytes. The result is always null terminated,
+    and is truncated to fit rather than overflowing the buffer.
+*/
 
 int netcode_address_equal( struct netcode_address_t * a, struct netcode_address_t * b );
 
