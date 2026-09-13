@@ -18,5 +18,5 @@
 # cannot drift from the tree it describes.
 
 serialize  1.16.2  v1.16.2  1.16.2
-reliable   1.4.2   v1.4.2   1.4.2
+reliable   1.4.4   v1.4.4   1.4.4
 netcode    1.4.5   v1.4.5   1.4.5
