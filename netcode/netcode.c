@@ -6411,7 +6411,7 @@ static void test_connect_token()
 
 static void test_challenge_token()
 {
-    // generate a challenge token
+    // additional data is NULL, 0. CMakeLists.txt keeps sodium's UBSan exemption as alignment only, so this path guards #186.
 
     struct netcode_challenge_token_t input_token;
 

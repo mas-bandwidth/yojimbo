@@ -113,13 +113,13 @@ int crypto_stream_chacha20(unsigned char *c, unsigned long long clen,
 int crypto_stream_chacha20_xor(unsigned char *c, const unsigned char *m,
                                unsigned long long mlen, const unsigned char *n,
                                const unsigned char *k)
-            __attribute__ ((nonnull));
+            __attribute__ ((nonnull(1, 4, 5)));
 
 int crypto_stream_chacha20_xor_ic(unsigned char *c, const unsigned char *m,
                                   unsigned long long mlen,
                                   const unsigned char *n, uint64_t ic,
                                   const unsigned char *k)
-            __attribute__ ((nonnull));
+            __attribute__ ((nonnull(1, 4, 6)));
 
 void crypto_stream_chacha20_keygen(unsigned char k[crypto_stream_chacha20_KEYBYTES])
             __attribute__ ((nonnull));
@@ -143,13 +143,13 @@ int crypto_stream_chacha20_ietf(unsigned char *c, unsigned long long clen,
 int crypto_stream_chacha20_ietf_xor(unsigned char *c, const unsigned char *m,
                                     unsigned long long mlen, const unsigned char *n,
                                     const unsigned char *k)
-            __attribute__ ((nonnull));
+            __attribute__ ((nonnull(1, 4, 5)));
 
 int crypto_stream_chacha20_ietf_xor_ic(unsigned char *c, const unsigned char *m,
                                        unsigned long long mlen,
                                        const unsigned char *n, uint32_t ic,
                                        const unsigned char *k)
-            __attribute__ ((nonnull));
+            __attribute__ ((nonnull(1, 4, 6)));
 
 void crypto_stream_chacha20_ietf_keygen(unsigned char k[crypto_stream_chacha20_ietf_KEYBYTES])
             __attribute__ ((nonnull));
@@ -431,7 +431,7 @@ int crypto_aead_xchacha20poly1305_ietf_decrypt_detached(unsigned char *m,
                                                         unsigned long long adlen,
                                                         const unsigned char *npub,
                                                         const unsigned char *k)
-            __attribute__ ((warn_unused_result)) __attribute__ ((nonnull(3, 5, 9, 9)));
+            __attribute__ ((warn_unused_result)) __attribute__ ((nonnull(3, 5, 8, 9)));
 
 void crypto_aead_xchacha20poly1305_ietf_keygen(unsigned char k[crypto_aead_xchacha20poly1305_ietf_KEYBYTES])
             __attribute__ ((nonnull));
@@ -514,13 +514,13 @@ int crypto_onetimeauth_poly1305(unsigned char *out,
                                 const unsigned char *in,
                                 unsigned long long inlen,
                                 const unsigned char *k)
-            __attribute__ ((nonnull));
+            __attribute__ ((nonnull(1, 4)));
 
 int crypto_onetimeauth_poly1305_verify(const unsigned char *h,
                                        const unsigned char *in,
                                        unsigned long long inlen,
                                        const unsigned char *k)
-            __attribute__ ((warn_unused_result)) __attribute__ ((nonnull));
+            __attribute__ ((warn_unused_result)) __attribute__ ((nonnull(1, 4)));
 
 int crypto_onetimeauth_poly1305_init(crypto_onetimeauth_poly1305_state *state,
                                      const unsigned char *key)
@@ -529,7 +529,7 @@ int crypto_onetimeauth_poly1305_init(crypto_onetimeauth_poly1305_state *state,
 int crypto_onetimeauth_poly1305_update(crypto_onetimeauth_poly1305_state *state,
                                        const unsigned char *in,
                                        unsigned long long inlen)
-            __attribute__ ((nonnull));
+            __attribute__ ((nonnull(1)));
 
 int crypto_onetimeauth_poly1305_final(crypto_onetimeauth_poly1305_state *state,
                                       unsigned char *out)
@@ -572,11 +572,11 @@ const char *crypto_onetimeauth_primitive(void);
 
 int crypto_onetimeauth(unsigned char *out, const unsigned char *in,
                        unsigned long long inlen, const unsigned char *k)
-            __attribute__ ((nonnull));
+            __attribute__ ((nonnull(1, 4)));
 
 int crypto_onetimeauth_verify(const unsigned char *h, const unsigned char *in,
                               unsigned long long inlen, const unsigned char *k)
-            __attribute__ ((warn_unused_result)) __attribute__ ((nonnull));
+            __attribute__ ((warn_unused_result)) __attribute__ ((nonnull(1, 4)));
 
 int crypto_onetimeauth_init(crypto_onetimeauth_state *state,
                             const unsigned char *key) __attribute__ ((nonnull));
@@ -584,7 +584,7 @@ int crypto_onetimeauth_init(crypto_onetimeauth_state *state,
 int crypto_onetimeauth_update(crypto_onetimeauth_state *state,
                               const unsigned char *in,
                               unsigned long long inlen)
-            __attribute__ ((nonnull));
+            __attribute__ ((nonnull(1)));
 
 int crypto_onetimeauth_final(crypto_onetimeauth_state *state,
                              unsigned char *out) __attribute__ ((nonnull));
@@ -1272,7 +1272,7 @@ extern "C" {
 # endif
 #endif
 
-void sodium_memzero(void * const pnt, const size_t len) __attribute__ ((nonnull));
+void sodium_memzero(void * const pnt, const size_t len);
 
 void sodium_stackzero(const size_t len);
 
