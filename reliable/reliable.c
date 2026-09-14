@@ -546,6 +546,13 @@ void reliable_default_config( struct reliable_config_t * config )
     config->packet_header_size = 28;                    // note: UDP over IPv4 = 20 + 8 bytes, UDP over IPv6 = 40 + 8 bytes
 }
 
+// the caller's name is not required to be NUL terminated, and reliable_config_valid runs before
+// reliable_endpoint_create copies the name and terminates its own copy. so every log of the
+// caller's name below prints it with this precision instead of a bare "%s": printf stops at the
+// end of the array rather than reading past it
+
+#define RELIABLE_MAX_NAME_CHARS ( (int) sizeof( ( (struct reliable_config_t *) NULL )->name ) - 1 )
+
 // checks the config a caller hands to reliable_endpoint_create. every field is range checked
 // and the two relationships between fields are checked: a fragment threshold above the maximum
 // packet size can never fire, and a fragment count that does not cover the maximum packet size
@@ -561,25 +568,25 @@ static int reliable_config_valid( struct reliable_config_t * config )
 
     if ( config->max_packet_size <= 0 )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] max_packet_size must be positive\n", config->name );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] max_packet_size must be positive\n", RELIABLE_MAX_NAME_CHARS, config->name );
         return 0;
     }
 
     if ( config->fragment_above <= 0 )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] fragment_above must be positive\n", config->name );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] fragment_above must be positive\n", RELIABLE_MAX_NAME_CHARS, config->name );
         return 0;
     }
 
     if ( config->fragment_size <= 0 )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] fragment_size must be positive\n", config->name );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] fragment_size must be positive\n", RELIABLE_MAX_NAME_CHARS, config->name );
         return 0;
     }
 
     if ( config->max_fragments <= 0 || config->max_fragments > 256 )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] max_fragments must be between 1 and 256\n", config->name );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] max_fragments must be between 1 and 256\n", RELIABLE_MAX_NAME_CHARS, config->name );
         return 0;
     }
 
@@ -587,20 +594,20 @@ static int reliable_config_valid( struct reliable_config_t * config )
          config->received_packets_buffer_size <= 0 || config->fragment_reassembly_buffer_size <= 0 || 
          config->rtt_history_size <= 0 )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] buffer sizes must be positive\n", config->name );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] buffer sizes must be positive\n", RELIABLE_MAX_NAME_CHARS, config->name );
         return 0;
     }
 
     if ( config->transmit_packet_function == NULL || config->process_packet_function == NULL )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] transmit and process packet functions are required\n", config->name );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] transmit and process packet functions are required\n", RELIABLE_MAX_NAME_CHARS, config->name );
         return 0;
     }
 
     if ( config->fragment_above > config->max_packet_size )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] fragment_above (%d) is above max_packet_size (%d)\n", 
-                         config->name, config->fragment_above, config->max_packet_size );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] fragment_above (%d) is above max_packet_size (%d)\n", 
+                         RELIABLE_MAX_NAME_CHARS, config->name, config->fragment_above, config->max_packet_size );
         return 0;
     }
 
@@ -609,35 +616,35 @@ static int reliable_config_valid( struct reliable_config_t * config )
 
     if ( config->max_fragments <= ( config->max_packet_size - 1 ) / config->fragment_size )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] max_fragments (%d) times fragment_size (%d) does not cover max_packet_size (%d)\n",
-                         config->name, config->max_fragments, config->fragment_size, config->max_packet_size );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] max_fragments (%d) times fragment_size (%d) does not cover max_packet_size (%d)\n",
+                         RELIABLE_MAX_NAME_CHARS, config->name, config->max_fragments, config->fragment_size, config->max_packet_size );
         return 0;
     }
 
     if ( (int64_t) config->max_fragments * config->fragment_size > (int64_t) INT_MAX - RELIABLE_MAX_PACKET_HEADER_BYTES )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] max_fragments (%d) times fragment_size (%d) does not fit in a packet length\n",
-                         config->name, config->max_fragments, config->fragment_size );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] max_fragments (%d) times fragment_size (%d) does not fit in a packet length\n",
+                         RELIABLE_MAX_NAME_CHARS, config->name, config->max_fragments, config->fragment_size );
         return 0;
     }
 
     if ( config->max_packet_size > INT_MAX - RELIABLE_MAX_PACKET_HEADER_BYTES - RELIABLE_FRAGMENT_HEADER_BYTES )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] max_packet_size (%d) is too large for the receive length check\n",
-                         config->name, config->max_packet_size );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] max_packet_size (%d) is too large for the receive length check\n",
+                         RELIABLE_MAX_NAME_CHARS, config->name, config->max_packet_size );
         return 0;
     }
 
     if ( config->packet_header_size < 0 )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] packet_header_size must not be negative\n", config->name );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] packet_header_size must not be negative\n", RELIABLE_MAX_NAME_CHARS, config->name );
         return 0;
     }
 
     if ( (int64_t) config->packet_header_size + (int64_t) config->max_packet_size > INT_MAX )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] packet_header_size (%d) plus max_packet_size (%d) does not fit a packet length\n",
-                         config->name, config->packet_header_size, config->max_packet_size );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] packet_header_size (%d) plus max_packet_size (%d) does not fit a packet length\n",
+                         RELIABLE_MAX_NAME_CHARS, config->name, config->packet_header_size, config->max_packet_size );
         return 0;
     }
 
@@ -712,6 +719,11 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
     endpoint->allocate_function = allocate_function;
     endpoint->free_function = free_function;
     endpoint->config = *config;
+
+    // force a terminator on the caller's name copy: reliable_printf logs it with "%s", so a caller
+    // that fills all 256 bytes with no NUL would make that log read past the array.
+    endpoint->config.name[sizeof( endpoint->config.name ) - 1 ] = '\0';
+
     endpoint->time = time;
 
     endpoint->acks = (uint16_t*) allocate_function( allocator_context, acks_bytes );
@@ -745,7 +757,7 @@ struct reliable_endpoint_t * reliable_endpoint_create( struct reliable_config_t 
          endpoint->rtt_history_buffer == NULL || 
          endpoint->transmit_buffer == NULL )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] failed to allocate endpoint\n", config->name );
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] failed to allocate endpoint\n", endpoint->config.name );
         reliable_endpoint_destroy( endpoint );
         return NULL;
     }
@@ -1437,6 +1449,13 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
                 endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID]++;
                 return;
             }
+
+            // allocate_function hands back uninitialized memory (malloc-shaped, not zeroed). completeness
+            // is guaranteed by the fragment bitmap plus validated offsets today, but zeroing means any
+            // future logic error that skips storing a fragment leaks zeros into the delivered packet
+            // instead of stale heap contents.
+            memset( reassembly_data->packet_data, 0, packet_buffer_size );
+
             reassembly_data->packet_bytes = 0;
             reassembly_data->packet_header_bytes = 0;
             memset( reassembly_data->fragment_received, 0, sizeof( reassembly_data->fragment_received ) );
@@ -3104,6 +3123,107 @@ void test_fragment_reassembly_alloc_failure()
     }
 }
 
+// security#26-2: the reassembly buffer is allocated through the caller's allocator, which is
+// malloc-shaped and returns uninitialized memory. Completeness is guaranteed today by the
+// fragment bitmap plus validated offsets, but zeroing the buffer means a future logic error that
+// skips storing a fragment leaks zeros into the delivered packet instead of stale heap contents.
+
+struct test_poison_allocate_context_t
+{
+    int poison;             // when set, freshly returned memory is filled with 0xCC
+};
+
+static void * test_poison_allocate_function( void * context, size_t bytes )
+{
+    struct test_poison_allocate_context_t * poison_context = (struct test_poison_allocate_context_t*) context;
+
+    void * allocation = malloc( bytes );
+    check( allocation );
+
+    if ( poison_context->poison )
+    {
+        memset( allocation, 0xCC, bytes );
+    }
+
+    return allocation;
+}
+
+static void test_poison_free_function( void * context, void * pointer )
+{
+    (void) context;
+    free( pointer );
+}
+
+static void test_fragment_reassembly_buffer_zeroed()
+{
+    double time = 100.0;
+
+    struct test_context_t context;
+    test_default_context( &context );
+
+    struct test_poison_allocate_context_t poison_context;
+    memset( &poison_context, 0, sizeof( poison_context ) );
+
+    struct reliable_config_t sender_config;
+    struct reliable_config_t receiver_config;
+
+    reliable_default_config( &sender_config );
+    reliable_default_config( &receiver_config );
+
+    receiver_config.allocator_context = &poison_context;
+    receiver_config.allocate_function = &test_poison_allocate_function;
+    receiver_config.free_function = &test_poison_free_function;
+
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
+    sender_config.context = &context;
+    sender_config.id = 0;
+    sender_config.transmit_packet_function = &test_transmit_packet_function;
+    sender_config.process_packet_function = &test_process_packet_function;
+
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
+    receiver_config.context = &context;
+    receiver_config.id = 1;
+    receiver_config.transmit_packet_function = &test_transmit_packet_function;
+    receiver_config.process_packet_function = &test_process_packet_function;
+
+    context.sender = reliable_endpoint_create( &sender_config, time );
+    context.receiver = reliable_endpoint_create( &receiver_config, time );
+    check( context.sender );
+    check( context.receiver );
+
+    // from here on the receive path's allocations are filled with the poison byte, so a buffer
+    // that is not explicitly zeroed is visibly non-zero
+    poison_context.poison = 1;
+
+    // deliver only the first fragment: the reassembly buffer is allocated and fragment 0 is
+    // stored, but the tail of the buffer is never written
+    context.allow_packets = 1;
+
+    uint8_t packet_data[TEST_MAX_PACKET_BYTES];
+    int packet_bytes = sender_config.fragment_size + sender_config.fragment_size / 2;
+    uint16_t sequence = reliable_endpoint_next_packet_sequence( context.sender );
+    generate_packet_data_with_size( sequence, packet_data, packet_bytes );
+    reliable_endpoint_send_packet( context.sender, packet_data, packet_bytes );
+
+    struct reliable_fragment_reassembly_data_t * reassembly_data =
+        (struct reliable_fragment_reassembly_data_t*) reliable_sequence_buffer_find( context.receiver->fragment_reassembly, sequence );
+
+    check( reassembly_data );
+    check( reassembly_data->packet_data );
+
+    const size_t packet_buffer_size = (size_t) RELIABLE_MAX_PACKET_HEADER_BYTES +
+        (size_t) reassembly_data->num_fragments_total * (size_t) sender_config.fragment_size + 8;
+
+    // fragment 0 only writes near the front of the buffer, so the last byte is untouched and must
+    // be zero. before the fix it still held the allocator's 0xCC poison.
+    check( reassembly_data->packet_data[packet_buffer_size - 1] == 0 );
+
+    poison_context.poison = 0;
+
+    reliable_endpoint_destroy( context.sender );
+    reliable_endpoint_destroy( context.receiver );
+}
+
 static void test_endpoint_reset()
 {
     double time = 100.0;
@@ -3660,6 +3780,86 @@ static void test_endpoint_create_allocation_failure()
     }
 }
 
+// security#26-3: reliable_printf logs the endpoint name with "%s". A caller that fills all 256
+// bytes of config.name with no NUL would make that log read past the array, so create forces a
+// terminator on its own copy.
+
+static void test_endpoint_name_terminated()
+{
+    struct reliable_config_t config;
+    reliable_default_config( &config );
+
+    // a caller is allowed to fill the whole name with no terminator
+    memset( config.name, 'x', sizeof( config.name ) );
+
+    config.transmit_packet_function = &test_transmit_packet_function;
+    config.process_packet_function = &test_process_packet_function;
+
+    struct reliable_endpoint_t * endpoint = reliable_endpoint_create( &config, 0.0 );
+    check( endpoint );
+    check( endpoint->config.name[sizeof( endpoint->config.name ) - 1] == '\0' );
+
+    reliable_endpoint_destroy( endpoint );
+}
+
+// security#26-3, create-time error paths: reliable_config_valid runs before create copies the
+// config and terminates the name, so its rejection logs print the caller's own buffer. a caller
+// that fills all 256 bytes with no NUL would make one of those logs read past the array and on
+// past the end of whatever holds it, so every one of them bounds the read with a precision.
+
+static char test_name_log_line[8*1024];
+static int test_name_log_calls = 0;
+
+static int test_name_log_printf_function( RELIABLE_CONST char * format, ... )
+{
+    va_list args;
+    va_start( args, format );
+    vsnprintf( test_name_log_line, sizeof( test_name_log_line ), format, args );
+    va_end( args );
+    test_name_log_calls++;
+    return 0;
+}
+
+static void test_config_name_bounded_in_rejection_log()
+{
+    // the config goes on the heap with no zero byte anywhere in it, so an unbounded "%s" on the name
+    // runs off the end of the allocation. every int field reads as -1, so reliable_config_valid
+    // refuses at the first check and logs the name. under ASan the over-read is a heap-buffer-overflow
+    // READ; without a sanitizer the logged name is simply longer than the array, and the check below
+    // catches it either way
+
+    struct reliable_config_t * config = (struct reliable_config_t*) malloc( sizeof( struct reliable_config_t ) );
+    check( config );
+    memset( config, 0xFF, sizeof( struct reliable_config_t ) );
+    memset( config->name, 'x', sizeof( config->name ) );
+
+    int (*previous_printf_function)( RELIABLE_CONST char *, ... ) = printf_function;
+    int previous_log_level = log_level;
+
+    test_name_log_line[0] = '\0';
+    test_name_log_calls = 0;
+
+    reliable_set_printf_function( &test_name_log_printf_function );
+    reliable_log_level( RELIABLE_LOG_LEVEL_ERROR );
+
+    struct reliable_endpoint_t * endpoint = reliable_endpoint_create( config, 0.0 );
+
+    reliable_log_level( previous_log_level );
+    reliable_set_printf_function( previous_printf_function );
+
+    check( endpoint == NULL );
+    check( test_name_log_calls == 1 );
+
+    // the line is "[<name>] ...", so the name is everything between the bracket and the next one.
+    // it must stop at the last byte of the array
+
+    char * name_end = strchr( test_name_log_line, ']' );
+    check( name_end != NULL );
+    check( (int) ( name_end - test_name_log_line ) - 1 == (int) sizeof( config->name ) - 1 );
+
+    free( config );
+}
+
 // RL-07: the sequence number crosses 65535 to 0
 
 static uint8_t test_wrap_acked[65536];
@@ -4073,12 +4273,15 @@ void reliable_test()
         RUN_TEST( test_sequence_buffer_rollover );
         RUN_TEST( test_fragment_cleanup );
         RUN_TEST( test_fragment_reassembly_alloc_failure );
+        RUN_TEST( test_fragment_reassembly_buffer_zeroed );
         RUN_TEST( test_rtt );
         RUN_TEST( test_endpoint_reset );
         RUN_TEST( test_endpoint_reset_clears_stats );
         RUN_TEST( test_rtt_min_large );
         RUN_TEST( test_endpoint_create_invalid_config );
         RUN_TEST( test_endpoint_create_allocation_failure );
+        RUN_TEST( test_endpoint_name_terminated );
+        RUN_TEST( test_config_name_bounded_in_rejection_log );
         RUN_TEST( test_sequence_wrap );
         RUN_TEST( test_fragment_counts );
         RUN_TEST( test_truncated_packets );
