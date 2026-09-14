@@ -32,10 +32,10 @@
 #ifndef RELIABLE_H
 #define RELIABLE_H
 
-#define RELIABLE_VERSION_FULL    "1.4.4"
+#define RELIABLE_VERSION_FULL    "1.4.5"
 #define RELIABLE_VERSION_MAJOR   1
 #define RELIABLE_VERSION_MINOR   4
-#define RELIABLE_VERSION_PATCH   4
+#define RELIABLE_VERSION_PATCH   5
 
 #include <stdint.h>
 #include <stddef.h>
@@ -187,7 +187,10 @@ struct reliable_config_t
 //                                   called for every allocation the endpoint makes, including
 //                                   during reliable_endpoint_create. returning NULL from
 //                                   allocate_function is a supported outcome: create frees
-//                                   whatever it had allocated and returns NULL.
+//                                   whatever it had allocated and returns NULL. returning NULL
+//                                   is also supported on the receive path: the fragment is
+//                                   dropped, counted invalid, and the endpoint keeps running
+//                                   without crash or corruption.
 
 // fills a config with sensible defaults for a client/server game exchanging packets at 60HZ
 
