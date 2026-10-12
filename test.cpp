@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include "shared.h"
 #include <typeinfo>
@@ -4290,6 +4291,39 @@ void interrupt_handler( int /*dummy*/ )
 }
 #endif // #if SOAK
 
+void test_fp_contract_off()
+{
+    // FP-contraction canary. If the compiler contracts a*b + c into a single fused
+    // multiply-add (e.g. -ffp-contract=fast / =on, or /fp:fast) the result differs from
+    // the two-rounding value yojimbo's wire arithmetic depends on. The inputs are read
+    // through volatile so nothing constant-folds.
+    //
+    // float:  a = b = 0x3F800800 (1 + 2^-12), c = 0xBF801000 (-(1 + 2^-11)).
+    //         a*b + c = 0x00000000 with two roundings, 0x33800000 if contracted.
+    // double: a = b = 0x3FF0000002000000, c = 0xBFF0000004000000.
+    //         a*b + c = 0x0 with two roundings, 0x3C90000000000000 if contracted.
+
+    volatile float af = 0.0f, bf = 0.0f, cf = 0.0f;
+    uint32_t u;
+    u = 0x3F800800u; memcpy( (void*) &af, &u, sizeof( u ) );
+    u = 0x3F800800u; memcpy( (void*) &bf, &u, sizeof( u ) );
+    u = 0xBF801000u; memcpy( (void*) &cf, &u, sizeof( u ) );
+    float rf = af * bf + cf;
+    uint32_t rfu;
+    memcpy( &rfu, &rf, sizeof( rfu ) );
+    check( rfu == 0x00000000u );    // one rounding (contracted) would give 0x33800000
+
+    volatile double ad = 0.0, bd = 0.0, cd = 0.0;
+    uint64_t v;
+    v = 0x3FF0000002000000ULL; memcpy( (void*) &ad, &v, sizeof( v ) );
+    v = 0x3FF0000002000000ULL; memcpy( (void*) &bd, &v, sizeof( v ) );
+    v = 0xBFF0000004000000ULL; memcpy( (void*) &cd, &v, sizeof( v ) );
+    double rd = ad * bd + cd;
+    uint64_t rdu;
+    memcpy( &rdu, &rd, sizeof( rdu ) );
+    check( rdu == 0x0000000000000000ULL );    // one rounding would give 0x3C90000000000000
+}
+
 int main( int argc, char ** argv )
 {
     // The tests are randomized (packet loss, ordering, ids). Seed rand() from the clock by
@@ -4351,6 +4385,7 @@ int main( int argc, char ** argv )
 #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_crypto_aead_vectors );
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
+        RUN_TEST( test_fp_contract_off );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_address_malformed_port );
