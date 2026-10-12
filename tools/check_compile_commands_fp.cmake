@@ -23,6 +23,8 @@ if(GENERATOR MATCHES "Visual Studio")
     # CTest runs this file as `cmake -P`, where no project targets exist (TARGET and
     # get_property would fail). CMakeLists.txt therefore resolves each target's COMPILE_OPTIONS
     # at configure time and passes them in as -D variables; check each one here for the flag.
+    # The option list is joined with '|' on the way in (an unquoted -D VAR=a;b splits at the
+    # ';' and hides /fp:precise behind the first option), so split it back first.
     set(targets sodium-builtin netcode reliable yojimbo yojimbo_test)
     set(vars SODIUM_BUILTIN_OPTS NETCODE_OPTS RELIABLE_OPTS YOJIMBO_OPTS YOJIMBO_TEST_OPTS)
     list(LENGTH targets n)
@@ -34,6 +36,7 @@ if(GENERATOR MATCHES "Visual Studio")
             message(FATAL_ERROR "target ${tgt}: its compile options were not passed to this check; CMakeLists.txt must resolve them at configure time and pass -D${var}=<options>")
         endif()
         set(opts "${${var}}")
+        string(REPLACE "|" ";" opts "${opts}")
         list(FIND opts "/fp:precise" idx)
         if(idx EQUAL -1)
             message(FATAL_ERROR "FP contraction is NOT off: target ${tgt} is missing /fp:precise (options: ${opts})")

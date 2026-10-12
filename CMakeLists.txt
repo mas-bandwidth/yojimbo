@@ -474,6 +474,13 @@ if(YOJIMBO_BUILD_TESTS)
             list(GET _fp_targets ${i} _fp_tgt)
             list(GET _fp_vars ${i} _fp_var)
             get_property(${_fp_var} TARGET ${_fp_tgt} PROPERTY COMPILE_OPTIONS)
+            # add_test stores its COMMAND as a CMake list, so passing a target's option
+            # list (which contains ';') as -DVAR=${VAR} splits it into several arguments:
+            # the -P script would receive only the first option (on MSVC the directory
+            # /W4) and never /fp:precise. Quoting does not help -- the semicolons still
+            # separate. Join the options with a separator that survives the trip; the
+            # script splits them back before checking.
+            string(REPLACE ";" "|" ${_fp_var} "${${_fp_var}}")
         endforeach()
         add_test(NAME yojimbo_check_compile_commands_fp
             COMMAND ${CMAKE_COMMAND}
