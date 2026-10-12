@@ -14,7 +14,7 @@
 # tlsf as its own package additionally set -DYOJIMBO_SYSTEM_TLSF=ON (see the tlsf backend
 # section below).
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 
 # A no-op build prints nothing (rowan-new#110). The per-target "Built target" lines are
 # the only output a rebuild with nothing to do produces, and they carry no information; a
@@ -27,6 +27,11 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 endif()
 
 project(Yojimbo VERSION 1.13.5 LANGUAGES C CXX)
+
+# Emit build/compile_commands.json so the FP-contraction CTest (check_compile_commands_fp.cmake)
+# can inspect every .c/.cpp compilation, including the OBJECT libraries folded into
+# libyojimbo (netcode.c, reliable.c, sodium.c).
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(YOJIMBO_SYSTEM_SODIUM
     "Link the system-installed libsodium instead of the bundled subset in sodium/" OFF)
@@ -142,6 +147,32 @@ endif()
 
 yojimbo_read_dependency_manifest("${CMAKE_CURRENT_SOURCE_DIR}/dependencies.manifest")
 
+# --- strict floating point ------------------------------------------------------------------
+
+# yojimbo's wire arithmetic lives in serialize.h, and serialize's compressed float quantizes
+# with two DISTINCT roundings on write and on read -- the product must round to float32 before
+# the constant is added. The vendored serialize pins those roundings in-source with an
+# optimization barrier, so the compressed-float wire bytes are identical under every
+# -ffp-contract setting. -ffast-math / -Ofast remain unsupported: they license reciprocal
+# approximation and reassociation, which change the wire in ways no barrier can pin.
+#
+# Every target here that compiles serialize.h still builds strict, exactly as serialize's own
+# CMakeLists.txt does for its executables:
+#   - GCC/Clang: -ffp-contract=off.
+#   - MSVC: /fp:precise, which since VS 2022 does not imply contraction.
+#
+# This is Glenn's standing estate policy (2026-08-24): "generally speaking, network libraries
+# we work on require -ffp-contract=off" -- belt and braces on top of the in-source barrier,
+# and the certification setting for golden vectors. The flag is PRIVATE so nothing leaks
+# into consumers' own flags; consumers that compile serialize.h themselves set it too, and
+# BUILDING.md states that as policy.
+
+if(MSVC)
+    set(YOJIMBO_STRICT_FP_FLAGS /fp:precise)
+else()
+    set(YOJIMBO_STRICT_FP_FLAGS -ffp-contract=off)
+endif()
+
 if(YOJIMBO_SYSTEM_DEPS)
 
     # --- system dependencies (e.g. homebrew) ------------------------------------------------
@@ -208,6 +239,7 @@ else()
         add_library(sodium-builtin OBJECT sodium/sodium.c)
         target_include_directories(sodium-builtin PRIVATE ${YOJIMBO_INCLUDE_DIRS})
         set_target_properties(sodium-builtin PROPERTIES POSITION_INDEPENDENT_CODE ON)
+        target_compile_options(sodium-builtin PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
         if(MSVC)
             target_compile_options(sodium-builtin PRIVATE /w)
         else()
@@ -234,43 +266,19 @@ else()
     target_include_directories(netcode PRIVATE ${YOJIMBO_INCLUDE_DIRS})
     target_compile_definitions(netcode PRIVATE NETCODE_ENABLE_TESTS=1)
     set_target_properties(netcode PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_compile_options(netcode PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
 
     add_library(reliable OBJECT reliable/reliable.c)
     target_include_directories(reliable PRIVATE ${YOJIMBO_INCLUDE_DIRS})
     target_compile_definitions(reliable PRIVATE RELIABLE_ENABLE_TESTS=1)
     set_target_properties(reliable PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_compile_options(reliable PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
 
     set(YOJIMBO_VENDORED_OBJECTS
         $<TARGET_OBJECTS:netcode>
         $<TARGET_OBJECTS:reliable>
         ${YOJIMBO_SODIUM_OBJECTS})
 
-endif()
-
-# --- strict floating point ------------------------------------------------------------------
-
-# yojimbo's wire arithmetic lives in serialize.h, and serialize's compressed float quantizes
-# with two DISTINCT roundings on write and on read -- the product must round to float32 before
-# the constant is added. The vendored serialize pins those roundings in-source with an
-# optimization barrier, so the compressed-float wire bytes are identical under every
-# -ffp-contract setting. -ffast-math / -Ofast remain unsupported: they license reciprocal
-# approximation and reassociation, which change the wire in ways no barrier can pin.
-#
-# Every target here that compiles serialize.h still builds strict, exactly as serialize's own
-# CMakeLists.txt does for its executables:
-#   - GCC/Clang: -ffp-contract=off.
-#   - MSVC: /fp:precise, which since VS 2022 does not imply contraction.
-#
-# This is Glenn's standing estate policy (2026-08-24): "generally speaking, network libraries
-# we work on require -ffp-contract=off" -- belt and braces on top of the in-source barrier,
-# and the certification setting for golden vectors. The flag is PRIVATE so nothing leaks
-# into consumers' own flags; consumers that compile serialize.h themselves set it too, and
-# BUILDING.md states that as policy.
-
-if(MSVC)
-    set(YOJIMBO_STRICT_FP_FLAGS /fp:precise)
-else()
-    set(YOJIMBO_STRICT_FP_FLAGS -ffp-contract=off)
 endif()
 
 # --- yojimbo library ----------------------------------------------------------------------
@@ -448,5 +456,47 @@ if(YOJIMBO_BUILD_TESTS)
     enable_testing()
     add_test(NAME yojimbo_test COMMAND yojimbo_test)
     add_test(NAME yojimbo_custom_packet_io_test COMMAND yojimbo_custom_packet_io_test)
+
+    # FP-contraction gate (the estate policy: network libraries build with -ffp-contract=off,
+    # /fp:precise on MSVC). Reads build/compile_commands.json and fails naming every .c/.cpp
+    # whose command lacks the flag -- this is the check that catches a missed OBJECT library
+    # (netcode, reliable, sodium-builtin) whose objects fold into libyojimbo.
+    if(CMAKE_GENERATOR MATCHES "Visual Studio")
+        # The Visual Studio generator writes no compile_commands.json, and CTest runs the
+        # -P script with no project targets (so TARGET/get_property cannot work in it).
+        # Resolve each target's compile options here at configure time and hand them to the
+        # script, which verifies /fp:precise is present on every one.
+        set(_fp_targets sodium-builtin netcode reliable yojimbo yojimbo_test)
+        set(_fp_vars SODIUM_BUILTIN_OPTS NETCODE_OPTS RELIABLE_OPTS YOJIMBO_OPTS YOJIMBO_TEST_OPTS)
+        list(LENGTH _fp_targets _fp_n)
+        math(EXPR _fp_last "${_fp_n} - 1")
+        foreach(i RANGE 0 ${_fp_last})
+            list(GET _fp_targets ${i} _fp_tgt)
+            list(GET _fp_vars ${i} _fp_var)
+            get_property(${_fp_var} TARGET ${_fp_tgt} PROPERTY COMPILE_OPTIONS)
+            # add_test stores its COMMAND as a CMake list, so passing a target's option
+            # list (which contains ';') as -DVAR=${VAR} splits it into several arguments:
+            # the -P script would receive only the first option (on MSVC the directory
+            # /W4) and never /fp:precise. Quoting does not help -- the semicolons still
+            # separate. Join the options with a separator that survives the trip; the
+            # script splits them back before checking.
+            string(REPLACE ";" "|" ${_fp_var} "${${_fp_var}}")
+        endforeach()
+        add_test(NAME yojimbo_check_compile_commands_fp
+            COMMAND ${CMAKE_COMMAND}
+                -DGENERATOR=${CMAKE_GENERATOR}
+                -DSODIUM_BUILTIN_OPTS=${SODIUM_BUILTIN_OPTS}
+                -DNETCODE_OPTS=${NETCODE_OPTS}
+                -DRELIABLE_OPTS=${RELIABLE_OPTS}
+                -DYOJIMBO_OPTS=${YOJIMBO_OPTS}
+                -DYOJIMBO_TEST_OPTS=${YOJIMBO_TEST_OPTS}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_compile_commands_fp.cmake)
+    else()
+        add_test(NAME yojimbo_check_compile_commands_fp
+            COMMAND ${CMAKE_COMMAND}
+                -DGENERATOR=${CMAKE_GENERATOR}
+                -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_compile_commands_fp.cmake)
+    endif()
 
 endif()

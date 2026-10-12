@@ -43,6 +43,24 @@ to build yojimbo itself. **If you compile `serialize.h` in your own translation 
 the same flag there** — the flag is `PRIVATE` to yojimbo's targets and deliberately does
 not leak into your build, so this one is yours to set.
 
+Three checks keep this honest, all in-tree:
+
+  - `tools/check_compile_commands_fp.cmake` (a CTest): reads `build/compile_commands.json`
+    and fails naming any `.c`/`.cpp` whose command lacks `-ffp-contract=off` (on the Visual
+    Studio generator, where the database carries no flags, it checks the target property
+    instead). This is the check that sees an OBJECT library (netcode, reliable, sodium-builtin)
+    missed by the flag.
+  - `test_fp_contract_off` in `test.cpp` (registered as a unit test): a canary that computes
+    `a*b + c` for float and double inputs whose result differs if the compiler contracts the
+    multiply-add into a fused operation.
+  - `tools/check_fp_contract.sh` (run in CI): scans the hand-written compile lines in
+    `.github/workflows/ci.yml` and `fuzz-nightly.yml` and fails naming any that lack
+    `-ffp-contract=off`.
+
+Note: `serialize.h` (lines 2682 and 2727) comments reference a `-ffp-contract=fast` test build
+— that build lives in the upstream `mas-bandwidth/serialize` repository and is not part of this
+one. Here the policy is `-ffp-contract=off` everywhere above.
+
 ## RTTI
 
 yojimbo builds with RTTI on, the compiler default. `Allocator`, `MessageFactory`, `Adapter`,
