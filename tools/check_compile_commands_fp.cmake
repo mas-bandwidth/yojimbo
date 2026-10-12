@@ -19,13 +19,21 @@ if(NOT DEFINED GENERATOR)
 endif()
 
 if(GENERATOR MATCHES "Visual Studio")
-    # The Visual Studio generator does not put per-file flags in compile_commands.json.
-    # Check the target property instead, exactly where the flag must land.
-    foreach(tgt sodium-builtin netcode reliable yojimbo yojimbo_test)
-        if(NOT TARGET ${tgt})
-            message(FATAL_ERROR "target ${tgt} not found; cannot verify /fp:precise")
+    # The Visual Studio generator does not put per-file flags in compile_commands.json, and
+    # CTest runs this file as `cmake -P`, where no project targets exist (TARGET and
+    # get_property would fail). CMakeLists.txt therefore resolves each target's COMPILE_OPTIONS
+    # at configure time and passes them in as -D variables; check each one here for the flag.
+    set(targets sodium-builtin netcode reliable yojimbo yojimbo_test)
+    set(vars SODIUM_BUILTIN_OPTS NETCODE_OPTS RELIABLE_OPTS YOJIMBO_OPTS YOJIMBO_TEST_OPTS)
+    list(LENGTH targets n)
+    math(EXPR last "${n} - 1")
+    foreach(i RANGE 0 ${last})
+        list(GET targets ${i} tgt)
+        list(GET vars ${i} var)
+        if(NOT DEFINED ${var})
+            message(FATAL_ERROR "target ${tgt}: its compile options were not passed to this check; CMakeLists.txt must resolve them at configure time and pass -D${var}=<options>")
         endif()
-        get_property(opts TARGET ${tgt} PROPERTY COMPILE_OPTIONS)
+        set(opts "${${var}}")
         list(FIND opts "/fp:precise" idx)
         if(idx EQUAL -1)
             message(FATAL_ERROR "FP contraction is NOT off: target ${tgt} is missing /fp:precise (options: ${opts})")

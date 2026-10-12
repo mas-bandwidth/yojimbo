@@ -14,7 +14,7 @@
 # tlsf as its own package additionally set -DYOJIMBO_SYSTEM_TLSF=ON (see the tlsf backend
 # section below).
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 
 # A no-op build prints nothing (rowan-new#110). The per-target "Built target" lines are
 # the only output a rebuild with nothing to do produces, and they carry no information; a
@@ -461,10 +461,35 @@ if(YOJIMBO_BUILD_TESTS)
     # /fp:precise on MSVC). Reads build/compile_commands.json and fails naming every .c/.cpp
     # whose command lacks the flag -- this is the check that catches a missed OBJECT library
     # (netcode, reliable, sodium-builtin) whose objects fold into libyojimbo.
-    add_test(NAME yojimbo_check_compile_commands_fp
-        COMMAND ${CMAKE_COMMAND}
-            -DGENERATOR=${CMAKE_GENERATOR}
-            -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
-            -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_compile_commands_fp.cmake)
+    if(CMAKE_GENERATOR MATCHES "Visual Studio")
+        # The Visual Studio generator writes no compile_commands.json, and CTest runs the
+        # -P script with no project targets (so TARGET/get_property cannot work in it).
+        # Resolve each target's compile options here at configure time and hand them to the
+        # script, which verifies /fp:precise is present on every one.
+        set(_fp_targets sodium-builtin netcode reliable yojimbo yojimbo_test)
+        set(_fp_vars SODIUM_BUILTIN_OPTS NETCODE_OPTS RELIABLE_OPTS YOJIMBO_OPTS YOJIMBO_TEST_OPTS)
+        list(LENGTH _fp_targets _fp_n)
+        math(EXPR _fp_last "${_fp_n} - 1")
+        foreach(i RANGE 0 ${_fp_last})
+            list(GET _fp_targets ${i} _fp_tgt)
+            list(GET _fp_vars ${i} _fp_var)
+            get_property(${_fp_var} TARGET ${_fp_tgt} PROPERTY COMPILE_OPTIONS)
+        endforeach()
+        add_test(NAME yojimbo_check_compile_commands_fp
+            COMMAND ${CMAKE_COMMAND}
+                -DGENERATOR=${CMAKE_GENERATOR}
+                -DSODIUM_BUILTIN_OPTS=${SODIUM_BUILTIN_OPTS}
+                -DNETCODE_OPTS=${NETCODE_OPTS}
+                -DRELIABLE_OPTS=${RELIABLE_OPTS}
+                -DYOJIMBO_OPTS=${YOJIMBO_OPTS}
+                -DYOJIMBO_TEST_OPTS=${YOJIMBO_TEST_OPTS}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_compile_commands_fp.cmake)
+    else()
+        add_test(NAME yojimbo_check_compile_commands_fp
+            COMMAND ${CMAKE_COMMAND}
+                -DGENERATOR=${CMAKE_GENERATOR}
+                -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_compile_commands_fp.cmake)
+    endif()
 
 endif()
