@@ -266,6 +266,12 @@ namespace yojimbo
 
         struct SendBlockData
         {
+            /**
+                Allocate the acked-fragment bit array and the per-fragment send times.
+                @param allocator The allocator used to allocate the block data.
+                @param maxFragmentsPerBlock The maximum number of fragments per block.
+             */
+
             SendBlockData( Allocator & allocator, int maxFragmentsPerBlock )
             {
                 m_allocator = &allocator;
@@ -281,6 +287,10 @@ namespace yojimbo
                 YOJIMBO_DELETE( *m_allocator, BitArray, ackedFragment );
                 YOJIMBO_FREE( *m_allocator, fragmentSendTime );
             }
+
+            /**
+                Reset the block send state so no block is being sent.
+             */
 
             void Reset()
             {
@@ -316,6 +326,13 @@ namespace yojimbo
 
         struct ReceiveBlockData
         {
+            /**
+                Allocate the received-fragment bit array and the block data buffer.
+                @param allocator The allocator used to allocate the block data.
+                @param maxBlockSize The maximum block size in bytes.
+                @param maxFragmentsPerBlock The maximum number of fragments per block.
+             */
+
             ReceiveBlockData( Allocator & allocator, int maxBlockSize, int maxFragmentsPerBlock )
             {
                 m_allocator = &allocator;
@@ -331,6 +348,10 @@ namespace yojimbo
                 YOJIMBO_DELETE( *m_allocator, BitArray, receivedFragment );
                 YOJIMBO_FREE( *m_allocator, blockData );
             }
+
+            /**
+                Reset the block receive state so no block is being received.
+             */
 
             void Reset()
             {

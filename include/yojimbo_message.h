@@ -329,6 +329,46 @@ namespace yojimbo
     };
 
     /**
+        Opaque debug-only message leak tracking state for a MessageFactory.
+        Defined and used entirely inside libyojimbo (yojimbo_message.cpp), for the same reason as
+        AllocatorDebugState: the pointer is present in every build, so MessageFactory has one
+        layout whatever NDEBUG a consumer compiles with.
+     */
+
+    class MessageFactoryDebugState;
+
+    /**
+        Allocate the debug leak-tracking state for a message factory.
+        @returns The state, or NULL when libyojimbo was built with YOJIMBO_DEBUG_MESSAGE_LEAKS zero.
+     */
+
+    MessageFactoryDebugState * yojimbo_message_factory_debug_create();
+
+    /**
+        Destroy the debug leak-tracking state for a message factory.
+        Reports any messages still tracked (leaked) when leak tracking is enabled.
+        @param debug The state returned by yojimbo_message_factory_debug_create.
+     */
+
+    void yojimbo_message_factory_debug_destroy( MessageFactoryDebugState * debug );
+
+    /**
+        Track a message as allocated.
+        @param debug The state returned by yojimbo_message_factory_debug_create.
+        @param message The message to track.
+     */
+
+    void yojimbo_message_factory_debug_track_create( MessageFactoryDebugState * debug, Message * message );
+
+    /**
+        Stop tracking a message on release.
+        @param debug The state returned by yojimbo_message_factory_debug_create.
+        @param message The message that was released.
+     */
+
+    void yojimbo_message_factory_debug_track_release( MessageFactoryDebugState * debug, Message * message );
+
+    /**
         Defines the set of message types that can be created.
 
         You can derive a message factory yourself to create your own message types, or you can use these helper macros to do it for you:
@@ -339,23 +379,6 @@ namespace yojimbo
 
         See shared.h for an example showing how to use the macros.
      */
-
-    /**
-        Opaque debug-only message leak tracking state for a MessageFactory.
-        Defined and used entirely inside libyojimbo (yojimbo_message.cpp), for the same reason as
-        AllocatorDebugState: the pointer is present in every build, so MessageFactory has one
-        layout whatever NDEBUG a consumer compiles with.
-     */
-
-    class MessageFactoryDebugState;
-
-    MessageFactoryDebugState * yojimbo_message_factory_debug_create();
-
-    void yojimbo_message_factory_debug_destroy( MessageFactoryDebugState * debug );
-
-    void yojimbo_message_factory_debug_track_create( MessageFactoryDebugState * debug, Message * message );
-
-    void yojimbo_message_factory_debug_track_release( MessageFactoryDebugState * debug, Message * message );
 
     class MessageFactory
     {

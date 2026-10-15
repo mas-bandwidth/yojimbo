@@ -30,28 +30,38 @@
 
 namespace yojimbo
 {
+    /**
+        Per-channel data included in a connection packet.
+        Holds either a set of regular messages or one block message fragment for a single
+        channel. See Connection::GeneratePacket and Connection::ProcessPacket.
+     */
+
     struct ChannelPacketData
     {
-        uint32_t channelIndex : 16;
-        uint32_t initialized : 1;
-        uint32_t blockMessage : 1;
-        uint32_t messageFailedToSerialize : 1;
+        uint32_t channelIndex : 16;                          ///< The channel index this data belongs to, in [0,numChannels-1].
+        uint32_t initialized : 1;                            ///< 1 if Initialize() has been called and the entry holds valid data.
+        uint32_t blockMessage : 1;                           ///< 1 if this entry carries a block message fragment, 0 if it carries regular messages.
+        uint32_t messageFailedToSerialize : 1;               ///< Set to 1 if serializing the messages failed, so the caller can drop them.
+
+        /// Regular (non-block) messages for the channel entry.
 
         struct MessageData
         {
-            int numMessages;
-            Message ** messages;
+            int numMessages;                                 ///< Number of messages in the messages array.
+            Message ** messages;                             ///< Array of messages. Owned until Free() is called.
         };
+
+        /// Block message fragment data for the channel entry.
 
         struct BlockData
         {
-            BlockMessage * message;
-            uint8_t * fragmentData;
-            uint64_t messageId : 16;
-            uint64_t fragmentId : 16;
-            uint64_t fragmentSize : 16;
-            uint64_t numFragments : 16;
-            int messageType;
+            BlockMessage * message;                          ///< The block message this fragment belongs to (created with fragment 0).
+            uint8_t * fragmentData;                          ///< The raw fragment bytes. Owned until Free() is called.
+            uint64_t messageId : 16;                         ///< The id of the block message.
+            uint64_t fragmentId : 16;                        ///< The fragment id within the block, in [0,numFragments-1].
+            uint64_t fragmentSize : 16;                      ///< The size of this fragment in bytes.
+            uint64_t numFragments : 16;                      ///< The total number of fragments in the block.
+            int messageType;                                 ///< The message type of the block (serialized with fragment 0).
         };
 
         // `blockMessage` selects which of these is live for a given packet. They were once a
@@ -61,18 +71,66 @@ namespace yojimbo
         // members both are always present and zero-initialized, so a mistaken access is benign
         // (NULL / zero) rather than a wild pointer. ChannelPacketData is transient (at most
         // MaxChannels per packet), so the extra bytes are irrelevant.
-        MessageData message;
-        BlockData block;
+        MessageData message;                                 ///< The regular-message arm of the entry.
+        BlockData block;                                     ///< The block-message arm of the entry.
+
+        /**
+            Zero-initialize both arms and mark the entry initialized.
+            Safe to call on an uninitialized entry; must be called before the entry is used.
+         */
 
         void Initialize();
 
+        /**
+            Release everything the entry holds and mark it no longer initialized.
+            Frees the message array (releasing each message) or the block fragment data (and
+            block message), depending on which arm was populated.
+            @param messageFactory The message factory used to release messages and free memory.
+         */
+
         void Free( MessageFactory & messageFactory );
+
+        /**
+            Serialize the channel entry (write, read or measure).
+            @param stream The stream to serialize to/from.
+            @param messageFactory The message factory used to create and release messages.
+            @param channelConfigs Array of channel configs, indexed by channel index.
+            @param numChannels The number of channels in the connection.
+            @returns True on success, false if serialization failed.
+         */
 
         template <typename Stream> bool Serialize( Stream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
+        /**
+            Serialize the channel entry from a read stream.
+            @param stream The stream to read from.
+            @param messageFactory The message factory used to create messages.
+            @param channelConfigs Array of channel configs, indexed by channel index.
+            @param numChannels The number of channels in the connection.
+            @returns True on success, false if serialization failed.
+         */
+
         bool SerializeInternal( ReadStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
 
+        /**
+            Serialize the channel entry to a write stream.
+            @param stream The stream to write to.
+            @param messageFactory The message factory used for allocations.
+            @param channelConfigs Array of channel configs, indexed by channel index.
+            @param numChannels The number of channels in the connection.
+            @returns True on success, false if serialization failed.
+         */
+
         bool SerializeInternal( WriteStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
+
+        /**
+            Measure the channel entry against a measure stream.
+            @param stream The measure stream to write to.
+            @param messageFactory The message factory used for allocations.
+            @param channelConfigs Array of channel configs, indexed by channel index.
+            @param numChannels The number of channels in the connection.
+            @returns True on success, false if serialization failed.
+         */
 
         bool SerializeInternal( MeasureStream & stream, MessageFactory & messageFactory, const ChannelConfig * channelConfigs, int numChannels );
     };

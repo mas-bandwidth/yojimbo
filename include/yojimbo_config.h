@@ -166,6 +166,12 @@ namespace yojimbo
             blockFragmentResendTime = 0.25f;
         }
 
+        /**
+            The maximum number of fragments a block can be split into for this channel.
+            Computed as maxBlockSize / blockFragmentSize, rounded up.
+            @returns The maximum number of fragments per block.
+         */
+
         int GetMaxFragmentsPerBlock() const
         {
             // Round up: a block of maxBlockSize needs ceil(maxBlockSize/blockFragmentSize)
