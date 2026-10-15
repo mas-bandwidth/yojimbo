@@ -41,7 +41,20 @@ namespace yojimbo
     {
     public:
 
+        /**
+            Base server constructor.
+            @param allocator The allocator for all memory used by the server.
+            @param config The base client/server configuration.
+            @param adapter The adapter to the game program. Specifies allocators, message factory to use etc.
+            @param time The current time in seconds. See ServerInterface::AdvanceTime
+         */
+
         BaseServer( Allocator & allocator, const ClientServerConfig & config, class Adapter & adapter, double time );
+
+        /**
+            Base server destructor.
+            IMPORTANT: Stop the server before destroying it.
+         */
 
         ~BaseServer();
 
@@ -66,11 +79,35 @@ namespace yojimbo
 
         double GetTime() const YOJIMBO_OVERRIDE { return m_time; }
 
+        /**
+            Set the latency applied by the network simulator.
+            Only has an effect when ClientServerConfig::networkSimulator is true.
+            @param milliseconds The latency in milliseconds.
+         */
+
         void SetLatency( float milliseconds );
+
+        /**
+            Set the jitter applied by the network simulator.
+            Only has an effect when ClientServerConfig::networkSimulator is true.
+            @param milliseconds The jitter in milliseconds.
+         */
 
         void SetJitter( float milliseconds );
 
+        /**
+            Set the packet loss applied by the network simulator.
+            Only has an effect when ClientServerConfig::networkSimulator is true.
+            @param percent The packet loss percentage, in [0,100].
+         */
+
         void SetPacketLoss( float percent );
+
+        /**
+            Set the duplicate packet percentage applied by the network simulator.
+            Only has an effect when ClientServerConfig::networkSimulator is true.
+            @param percent The duplicate percentage, in [0,100].
+         */
 
         void SetDuplicates( float percent );
 
@@ -83,6 +120,13 @@ namespace yojimbo
         void FreeBlock( int clientIndex, uint8_t * block ) YOJIMBO_OVERRIDE;
 
         bool CanSendMessage( int clientIndex, int channelIndex ) const YOJIMBO_OVERRIDE;
+
+        /**
+            Are there any messages in the send queue for a client's channel?
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+            @param channelIndex The channel index in [0,numChannels-1].
+            @returns True if there is at least one message in the channel send queue.
+         */
 
         bool HasMessagesToSend( int clientIndex, int channelIndex ) const;
 
@@ -106,37 +150,128 @@ namespace yojimbo
 
     protected:
 
+        /**
+            Set the reason the client in this slot was last disconnected.
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+            @param disconnectReason The disconnect reason (a ServerClientDisconnectReason value).
+         */
+
         void SetClientDisconnectReason( int clientIndex, int disconnectReason );
+
+        /**
+            Get the buffer used to write packets.
+            @returns The packet buffer.
+         */
 
         uint8_t * GetPacketBuffer() { return m_packetBuffer; }
 
+        /**
+            Get the serialization context passed to message serialize functions.
+            @returns The context, or NULL if none was set.
+         */
+
         void * GetContext() { return m_context; }
+
+        /**
+            Get the adapter passed in on construction.
+            @returns The adapter.
+         */
 
         Adapter & GetAdapter() { yojimbo_assert( m_adapter ); return *m_adapter; }
 
+        /**
+            Get the global allocator, used for allocations that don't belong to a specific client.
+            @returns The global allocator.
+         */
+
         Allocator & GetGlobalAllocator() { yojimbo_assert( m_globalAllocator ); return *m_globalAllocator; }
+
+        /**
+            Get the message factory for a client slot.
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+            @returns The per-client message factory.
+         */
 
         class MessageFactory & GetClientMessageFactory( int clientIndex );
 
+        /**
+            Get the network simulator, if configured.
+            @returns The network simulator, or NULL if ClientServerConfig::networkSimulator is false.
+         */
+
         class NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
+
+        /**
+            Get the reliable endpoint for a client slot.
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+            @returns The per-client reliable endpoint.
+         */
 
         reliable_endpoint_t * GetClientEndpoint( int clientIndex );
 
+        /**
+            Get the connection used to exchange messages with a client.
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+            @returns The per-client connection.
+         */
+
         class Connection & GetClientConnection( int clientIndex );
+
+        /**
+            Transmit a packet to a client. Implemented by the derived class.
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+            @param packetSequence The sequence number of the packet.
+            @param packetData The packet data.
+            @param packetBytes The number of bytes in the packet.
+         */
 
         virtual void TransmitPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
+        /**
+            Process a packet received from a client. Implemented by the derived class.
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+            @param packetSequence The sequence number of the packet.
+            @param packetData The packet data.
+            @param packetBytes The number of bytes in the packet.
+            @returns 1 to accept and ack the packet, 0 to reject it.
+         */
+
         virtual int ProcessPacketFunction( int clientIndex, uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
+
+        /**
+            Static trampoline passed to reliable as the transmit packet function.
+            Casts context to a BaseServer and calls TransmitPacketFunction.
+         */
 
         static void StaticTransmitPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
+        /**
+            Static trampoline passed to reliable as the process packet function.
+            Casts context to a BaseServer and calls ProcessPacketFunction.
+         */
+
         static int StaticProcessPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
+        /**
+            Static trampoline passed to reliable as the allocate function.
+            Casts context to an Allocator and allocates bytes from it.
+         */
+
         static void * StaticAllocateFunction( void * context, size_t bytes );
+
+        /**
+            Static trampoline passed to reliable as the free function.
+            Casts context to an Allocator and frees the pointer with it.
+         */
 
         static void StaticFreeFunction( void * context, void * pointer );
 
     protected:
+
+        /**
+            Reset a client's connection to its initial state.
+            @param clientIndex The index of the client slot in [0,maxClients-1].
+         */
 
         virtual void ResetClient( int clientIndex );
 

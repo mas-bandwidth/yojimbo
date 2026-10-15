@@ -51,29 +51,107 @@ namespace yojimbo
     {
     public:
 
+        /**
+            Connection constructor.
+            Creates the channels configured in connectionConfig.
+            @param allocator The allocator used to create the channels.
+            @param messageFactory The message factory for creating and destroying messages.
+            @param connectionConfig The connection configuration.
+            @param time The current time in seconds.
+         */
+
         Connection( Allocator & allocator, MessageFactory & messageFactory, const ConnectionConfig & connectionConfig, double time );
 
         ~Connection();
 
+        /**
+            Reset the connection and all its channels to their initial state.
+         */
+
         void Reset();
+
+        /**
+            Is a message able to be sent over a channel?
+            @param channelIndex The channel index in [0,numChannels-1].
+            @returns True if a message can be sent over the channel.
+         */
 
         bool CanSendMessage( int channelIndex ) const;
 
+        /**
+            Are there any messages in the send queue for a channel?
+            @param channelIndex The channel index in [0,numChannels-1].
+            @returns True if there is at least one message in the channel send queue.
+         */
+
         bool HasMessagesToSend( int channelIndex ) const;
+
+        /**
+            Queue a message to be sent over a channel.
+            @param channelIndex The channel index in [0,numChannels-1].
+            @param message The message to be sent.
+            @param context The serialization context, passed through to the message serialize functions. May be NULL.
+         */
 
         void SendMessage( int channelIndex, Message * message, void *context = 0);
 
+        /**
+            Pops the next message off a channel receive queue if one is available.
+            @param channelIndex The channel index in [0,numChannels-1].
+            @returns A pointer to the received message, NULL if there are no messages to receive. The caller owns the message and is responsible for releasing it.
+         */
+
         Message * ReceiveMessage( int channelIndex );
+
+        /**
+            Release a message back to the message factory.
+            @param message The message to release.
+         */
 
         void ReleaseMessage( Message * message );
 
+        /**
+            Generate a connection packet containing data from each channel with data to send.
+            @param context The serialization context, passed through to the message serialize functions. May be NULL.
+            @param packetSequence The sequence number of the packet being generated.
+            @param packetData The buffer to write the packet into.
+            @param maxPacketBytes The maximum number of bytes the packet can occupy.
+            @param packetBytes [out] The number of bytes written.
+            @returns True on success, false on error.
+         */
+
         bool GeneratePacket( void * context, uint16_t packetSequence, uint8_t * packetData, int maxPacketBytes, int & packetBytes );
+
+        /**
+            Process a connection packet received from the other side.
+            @param context The serialization context, passed through to the message serialize functions. May be NULL.
+            @param packetSequence The sequence number of the packet.
+            @param packetData The packet data.
+            @param packetBytes The number of bytes in the packet.
+            @returns True on success, false on error (the connection is put into an error state).
+         */
 
         bool ProcessPacket( void * context, uint16_t packetSequence, const uint8_t * packetData, int packetBytes );
 
+        /**
+            Process connection packet acks.
+            @param acks Array of connection packet sequence numbers that were acked.
+            @param numAcks The number of acks in the array.
+         */
+
         void ProcessAcks( const uint16_t * acks, int numAcks );
 
+        /**
+            Advance connection time.
+            @param time The current time in seconds.
+         */
+
         void AdvanceTime( double time );
+
+        /**
+            Get the connection error level.
+            @returns The connection error level.
+         */
 
         ConnectionErrorLevel GetErrorLevel() { return m_errorLevel; }
 

@@ -52,6 +52,11 @@ namespace yojimbo
 
         explicit BaseClient( class Allocator & allocator, const ClientServerConfig & config, class Adapter & adapter, double time );
 
+        /**
+            Base client destructor.
+            IMPORTANT: Disconnect the client before destroying it.
+         */
+
         ~BaseClient();
 
         void SetContext( void * context ) YOJIMBO_OVERRIDE { yojimbo_assert( IsDisconnected() ); m_context = context; }
@@ -74,11 +79,35 @@ namespace yojimbo
 
         double GetTime() const YOJIMBO_OVERRIDE { return m_time; }
 
+        /**
+            Set the latency applied by the network simulator.
+            Only has an effect when ClientServerConfig::networkSimulator is true.
+            @param milliseconds The latency in milliseconds.
+         */
+
         void SetLatency( float milliseconds );
+
+        /**
+            Set the jitter applied by the network simulator.
+            Only has an effect when ClientServerConfig::networkSimulator is true.
+            @param milliseconds The jitter in milliseconds.
+         */
 
         void SetJitter( float milliseconds );
 
+        /**
+            Set the packet loss applied by the network simulator.
+            Only has an effect when ClientServerConfig::networkSimulator is true.
+            @param percent The packet loss percentage, in [0,100].
+         */
+
         void SetPacketLoss( float percent );
+
+        /**
+            Set the duplicate packet percentage applied by the network simulator.
+            Only has an effect when ClientServerConfig::networkSimulator is true.
+            @param percent The duplicate percentage, in [0,100].
+         */
 
         void SetDuplicates( float percent );
 
@@ -91,6 +120,12 @@ namespace yojimbo
         void FreeBlock( uint8_t * block ) YOJIMBO_OVERRIDE;
 
         bool CanSendMessage( int channelIndex ) const YOJIMBO_OVERRIDE;
+
+        /**
+            Are there any messages in the send queue for a channel?
+            @param channelIndex The channel index in [0,numChannels-1].
+            @returns True if there is at least one message in the channel send queue.
+         */
 
         bool HasMessagesToSend( int channelIndex ) const;
 
@@ -113,11 +148,31 @@ namespace yojimbo
 
     protected:
 
+        /**
+            Set the reason this client was last disconnected.
+            @param disconnectReason The disconnect reason (a ClientDisconnectReason value).
+         */
+
         void SetDisconnectReason( int disconnectReason ) { m_disconnectReason = disconnectReason; }
+
+        /**
+            Get the buffer used to read and write packets.
+            @returns The packet buffer.
+         */
 
         uint8_t * GetPacketBuffer() { return m_packetBuffer; }
 
+        /**
+            Get the serialization context passed to message serialize functions.
+            @returns The context, or NULL if none was set.
+         */
+
         void * GetContext() { return m_context; }
+
+        /**
+            Get the adapter passed in on construction.
+            @returns The adapter.
+         */
 
         Adapter & GetAdapter() { yojimbo_assert( m_adapter ); return *m_adapter; }
 
@@ -131,33 +186,108 @@ namespace yojimbo
 
         bool CreateInternal();
 
+        /**
+            Destroy everything created by CreateInternal.
+            Safe to call on a partially created client: every pointer is checked rather than assumed.
+         */
+
         void DestroyInternal();
+
+        /**
+            Set the client state.
+            @param clientState The new client state.
+         */
 
         void SetClientState( ClientState clientState );
 
+        /**
+            Get the client allocator. Everything allocated between connect and disconnect
+            uses this allocator.
+            @returns The client allocator.
+         */
+
         class Allocator & GetClientAllocator() { yojimbo_assert( m_clientAllocator ); return *m_clientAllocator; }
+
+        /**
+            Get the client message factory, created and destroyed on each connection attempt.
+            @returns The message factory.
+         */
 
         class MessageFactory & GetMessageFactory() { yojimbo_assert( m_messageFactory ); return *m_messageFactory; }
 
+        /**
+            Get the network simulator, if configured.
+            @returns The network simulator, or NULL if ClientServerConfig::networkSimulator is false.
+         */
+
         class NetworkSimulator * GetNetworkSimulator() { return m_networkSimulator; }
+
+        /**
+            Get the reliable endpoint.
+            @returns The reliable endpoint, or NULL if the client has not been created.
+         */
 
         reliable_endpoint_t * GetEndpoint() { return m_endpoint; }
 
+        /**
+            Get the client connection used to exchange messages with the server.
+            @returns The connection.
+         */
+
         class Connection & GetConnection() { yojimbo_assert( m_connection ); return *m_connection; }
+
+        /**
+            Transmit a packet to the server. Implemented by the derived class.
+            @param packetSequence The sequence number of the packet.
+            @param packetData The packet data.
+            @param packetBytes The number of bytes in the packet.
+         */
 
         virtual void TransmitPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
 
+        /**
+            Process a packet received from the server. Implemented by the derived class.
+            @param packetSequence The sequence number of the packet.
+            @param packetData The packet data.
+            @param packetBytes The number of bytes in the packet.
+            @returns 1 to accept and ack the packet, 0 to reject it.
+         */
+
         virtual int ProcessPacketFunction( uint16_t packetSequence, uint8_t * packetData, int packetBytes ) = 0;
+
+        /**
+            Static trampoline passed to reliable as the transmit packet function.
+            Casts context to a BaseClient and calls TransmitPacketFunction.
+         */
 
         static void StaticTransmitPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
+        /**
+            Static trampoline passed to reliable as the process packet function.
+            Casts context to a BaseClient and calls ProcessPacketFunction.
+         */
+
         static int StaticProcessPacketFunction( void * context, uint64_t index, uint16_t packetSequence, uint8_t * packetData, int packetBytes );
 
+        /**
+            Static trampoline passed to reliable as the allocate function.
+            Casts context to an Allocator and allocates bytes from it.
+         */
+
         static void * StaticAllocateFunction( void * context, size_t bytes );
+
+        /**
+            Static trampoline passed to reliable as the free function.
+            Casts context to an Allocator and frees the pointer with it.
+         */
 
         static void StaticFreeFunction( void * context, void * pointer );
 
     protected:
+
+        /**
+            Reset the client connection to its initial state.
+         */
 
         virtual void Reset();
 

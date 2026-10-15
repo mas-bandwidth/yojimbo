@@ -94,6 +94,16 @@ namespace yojimbo
     {
     public:
 
+        /**
+            Server constructor.
+            @param allocator The allocator for all memory used by the server.
+            @param privateKey The server's private key (KeyBytes bytes), used to authenticate clients.
+            @param address The address to bind the server socket to.
+            @param config The client/server configuration.
+            @param adapter The adapter to the game program. Specifies allocators, message factory to use etc.
+            @param time The current time in seconds. See ServerInterface::AdvanceTime
+         */
+
         Server( Allocator & allocator, const uint8_t privateKey[], const Address & address, const ClientServerConfig & config, Adapter & adapter, double time );
 
         ~Server();

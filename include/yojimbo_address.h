@@ -241,7 +241,20 @@ namespace yojimbo
 
         bool IsGlobalUnicast() const;
 
+        /**
+            Compare two addresses for equality.
+            Two addresses are equal when their type, port and address bytes all match.
+            @param other The address to compare against.
+            @returns True if the addresses are equal.
+         */
+
         bool operator ==( const Address & other ) const;
+
+        /**
+            Compare two addresses for inequality.
+            @param other The address to compare against.
+            @returns True if the addresses differ.
+         */
 
         bool operator !=( const Address & other ) const;
 

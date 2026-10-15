@@ -32,6 +32,16 @@
 namespace yojimbo
 {
 
+    /**
+        Serialize a sequence number relative to the previous one, accounting for 16-bit wraparound.
+        On write, sequence2 is adjusted past sequence1 by 65536 when it has wrapped, then written
+        relative to sequence1. On read, the delta is unwrapped back into sequence2.
+        @param stream The stream to serialize to/from.
+        @param sequence1 The previous sequence number.
+        @param sequence2 The current sequence number (read back into this on read).
+        @returns Always true.
+     */
+
     template <typename Stream> bool serialize_sequence_relative_internal( Stream & stream, uint16_t sequence1, uint16_t & sequence2 )
     {
         if ( Stream::IsWriting )
