@@ -112,11 +112,26 @@ jobs:
           cmake -B "$DEPS_SRC/netcode-build" -S "$DEPS_SRC/netcode" -DCMAKE_BUILD_TYPE=Release -DNETCODE_SYSTEM_SODIUM=ON -DCMAKE_INSTALL_PREFIX="$PREFIX"
           cmake --build "$DEPS_SRC/netcode-build" -j
           cmake --install "$DEPS_SRC/netcode-build"
+          # tlsf: a package manager that ships tlsf as its own package (vcpkg does) builds
+          # yojimbo with -DYOJIMBO_SYSTEM_TLSF=ON, and there is no tlsf package on Ubuntu, so
+          # install the vendored copy into the prefix to stand in for one.
+          cc -O2 -ffp-contract=off -c tlsf/tlsf.c -Itlsf -o "$DEPS_SRC/tlsf.o"
+          ar rcs "$PREFIX/lib/libtlsf.a" "$DEPS_SRC/tlsf.o"
+          cp tlsf/tlsf.h "$PREFIX/include/"
       - name: Build & test yojimbo against the installed dependencies
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Debug -DYOJIMBO_SYSTEM_DEPS=ON -DCMAKE_PREFIX_PATH="$HOME/deps"
           cmake --build build -j
           ctest --test-dir build --output-on-failure
+      # ...and the same build with tlsf coming from the prefix too (-DYOJIMBO_SYSTEM_TLSF=ON),
+      # which is the full vcpkg configuration. No job configured that option before, and it had
+      # stopped configuring at all: CMakeLists found the system library but never created the
+      # Yojimbo::tlsf target it links, so configure failed on "the target was not found".
+      - name: Build & test yojimbo against the system tlsf as well
+        run: |
+          cmake -B build-system-tlsf -DCMAKE_BUILD_TYPE=Debug -DYOJIMBO_SYSTEM_DEPS=ON -DYOJIMBO_SYSTEM_TLSF=ON -DCMAKE_PREFIX_PATH="$HOME/deps"
+          cmake --build build-system-tlsf -j
+          ctest --test-dir build-system-tlsf --output-on-failure
       # The install is only good if something outside the source tree can use it. This builds
       # and runs tools/consumer against a clean prefix, using nothing but find_package(Yojimbo).
       - name: Install and build a clean-prefix consumer
