@@ -1,7 +1,7 @@
 Building yojimbo
 ================
 
-yojimbo builds with [CMake](https://cmake.org/) (3.16 or newer). By default it uses the
+yojimbo builds with [CMake](https://cmake.org/) (3.19 or newer). By default it uses the
 bundled minimal libsodium in `sodium/`, so there is nothing else to install.
 
 ## Building on macOS and Linux
