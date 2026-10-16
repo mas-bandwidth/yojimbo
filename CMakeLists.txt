@@ -118,6 +118,16 @@ if(YOJIMBO_SYSTEM_TLSF)
     find_path(YOJIMBO_TLSF_INCLUDE_DIR tlsf.h REQUIRED)
     find_library(YOJIMBO_TLSF_LIBRARY tlsf REQUIRED)
     message(STATUS "yojimbo: linking system tlsf: ${YOJIMBO_TLSF_LIBRARY}")
+    # The imported target the yojimbo target links below. It is created here, in the same shape
+    # the installed YojimboConfig.cmake creates it in, so that building yojimbo and consuming the
+    # install resolve system tlsf identically. Without it, configure reached target_link_libraries
+    # and failed with `Target "yojimbo" links to: Yojimbo::tlsf but the target was not found`:
+    # the target existed only in the config template, which runs in a consumer's configure and
+    # not in yojimbo's own.
+    if(NOT TARGET Yojimbo::tlsf)
+        add_library(Yojimbo::tlsf UNKNOWN IMPORTED)
+        set_target_properties(Yojimbo::tlsf PROPERTIES IMPORTED_LOCATION "${YOJIMBO_TLSF_LIBRARY}")
+    endif()
     set(YOJIMBO_TLSF_INCLUDE_DIRS "${YOJIMBO_TLSF_INCLUDE_DIR}")
 else()
     set(YOJIMBO_TLSF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tlsf")
