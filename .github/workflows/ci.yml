@@ -401,8 +401,5 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
       - name: ROADMAP.md matches its data
         run: make roadmap-check

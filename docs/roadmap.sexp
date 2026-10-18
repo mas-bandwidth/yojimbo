@@ -1,4 +1,4 @@
-; yojimbo roadmap: the data ROADMAP.md is generated from (nova-tools tools/roadmap;
+; yojimbo roadmap: the data ROADMAP.md is generated from (nova-roadmap, a nova-tools release binary;
 ; make roadmap renders, make roadmap-check fails on drift). Read as data, never evaluated.
 ; A cell is done only when its task is :done with :evidence, a test or a commit;
 ; :tested-revision is the main commit whose CI passed with that evidence.
