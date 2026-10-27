@@ -114,10 +114,17 @@ jobs:
       # dead: the comment arrives, no `if` matches, the job never starts, and
       # the contributor gets no run, no log and no error. It is also the only
       # way to clear a red check after a signature is recorded by hand.
+      # Dependabot (Glenn, 2026-10-27): its PRs skip the CAA. The test is the
+      # PR's author LOGIN, which GitHub verifies, never a commit author name
+      # (see `allowlist` below for why a name entry would be a bypass).
+      # Dependabot branches live in this repository, so only accounts with
+      # write access can push further commits onto them.
       - name: CAA check
         if: >-
-          github.event_name == 'pull_request_target' ||
+          (github.event_name == 'pull_request_target' &&
+          github.event.pull_request.user.login != 'dependabot[bot]') ||
           (github.event.issue.pull_request != null &&
+          github.event.issue.user.login != 'dependabot[bot]' &&
           (github.event.comment.body == 'I have read the CAA and I hereby sign it, assigning copyright in my contributions to Más Bandwidth LLC.' ||
           github.event.comment.body == 'recheck'))
         uses: contributor-assistant/github-action@v2.6.1
@@ -140,8 +147,9 @@ jobs:
           # GitHub and cannot be spoofed. Our agents commit as
           # Rowan Claude <305107455+rowan-claude@users.noreply.github.com>,
           # which GitHub links to the rowan-claude login. The action always
-          # skips github-actions[bot] itself (user id 41898282); any other bot,
-          # dependabot included, is not on this list and fails it. Never add a
+          # skips github-actions[bot] itself (user id 41898282); any other bot
+          # is not on this list and fails it (dependabot is skipped by the
+          # step's condition above, by verified PR author). Never add a
           # name or a wildcard here: a red caa check is fixed by committing
           # under a linked identity, never by widening this list.
           allowlist: gafferongames,rowan-claude
