@@ -25,9 +25,16 @@ for config in Debug Release; do
         # run the failing binaries again on a pty, where it is line-buffered, to see how far
         # they got. The BSD and util-linux script(1) take different arguments; try both.
         echo "== $config failed: rerunning the test binaries on a pty"
-        for t in "$dir"/bin/test "$dir"/bin/custom_packet_io_test; do
+        for t in "$dir"/bin/test; do
             echo "== $t"
-            script -q /dev/null "$t" 2>&1 </dev/null || script -qec "$t" /dev/null 2>&1 </dev/null || true
+            # a watchdog, because script(1) can outlive a child that trapped
+            rm -f pty.log
+            script -q pty.log "$t" </dev/null >/dev/null 2>&1 &
+            pid=$!
+            sleep 40
+            kill "$pid" 2>/dev/null || true
+            [ -s pty.log ] || { script -qec "$t" pty.log </dev/null >/dev/null 2>&1 & sleep 40; kill $! 2>/dev/null || true; }
+            tail -n 25 pty.log || true
         done
         exit 1
     fi
