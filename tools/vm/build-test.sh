@@ -20,6 +20,16 @@ for config in Debug Release; do
     echo "== $config"
     cmake -B "$dir" -DCMAKE_BUILD_TYPE="$config"
     cmake --build "$dir" -j "$JOBS"
-    ctest --test-dir "$dir" --output-on-failure
+    if ! ctest --test-dir "$dir" --output-on-failure; then
+        # A test's stdout is lost when it dies on a trap (it is block-buffered on a pipe), so
+        # run the failing binaries again on a pty, where it is line-buffered, to see how far
+        # they got. The BSD and util-linux script(1) take different arguments; try both.
+        echo "== $config failed: rerunning the test binaries on a pty"
+        for t in "$dir"/bin/test "$dir"/bin/custom_packet_io_test; do
+            echo "== $t"
+            script -q /dev/null "$t" 2>&1 || script -qec "$t" /dev/null 2>&1 || true
+        done
+        exit 1
+    fi
 done
 echo "== ok"
