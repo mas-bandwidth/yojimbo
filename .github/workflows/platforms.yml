@@ -132,14 +132,10 @@ jobs:
         with:
           release: '11.0'
           usesh: true
-          # netcode backs its socket buffer request off to a floor of 256 KiB, and a stock NetBSD
-          # refuses that (kern.sbmax is 256 KiB and a buffer may use less than all of it), so
-          # netcode_server_create fails and yojimbo_test dies on its first server. Raise the cap in
-          # the guest, as rocketnet's NetBSD guest does. Reported on the PR, not worked around in
-          # the vendored netcode.
+          # stock kern.sbmax on purpose: netcode 1.4.9 keeps the OS default socket buffer when the
+          # BSD refuses a larger one, and this leg proves it (1.4.8 failed every socket create here).
           prepare: |
             /usr/sbin/pkg_add cmake
-            /sbin/sysctl -w kern.sbmax=16777216
           run: sh tools/vm/build-test.sh
 
   openbsd:
