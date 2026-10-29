@@ -26,7 +26,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(CMAKE_TARGET_MESSAGES OFF)
 endif()
 
-project(Yojimbo VERSION 1.14.0 LANGUAGES C CXX)
+project(Yojimbo VERSION 1.15.0 LANGUAGES C CXX)
 
 # Emit build/compile_commands.json so the FP-contraction CTest (check_compile_commands_fp.cmake)
 # can inspect every .c/.cpp compilation, including the OBJECT libraries folded into

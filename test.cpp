@@ -1521,6 +1521,34 @@ void test_connection_process_packet_exact_allocation()
     messageFactory.ReleaseMessage( received );
 }
 
+void test_connection_reject_trailing_bytes()
+{
+    // serialize 2.0: ReadPacket ends the packet with serialize_end, so a valid packet
+    // followed by a trailing byte is refused rather than silently accepted.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    double time = 100.0;
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    sender.SendMessage( 0, message );
+
+    uint8_t packet[2048];
+    int packetBytes = 0;
+    check( sender.GeneratePacket( NULL, 0, packet, (int) sizeof( packet ) - 8, packetBytes ) );
+    check( packetBytes > 0 );
+
+    packet[packetBytes] = 0;
+    check( !receiver.ProcessPacket( NULL, 0, packet, packetBytes + 1 ) );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_READ_PACKET_FAILED );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
+}
+
 void test_connection_unreliable_rejects_block_fragment()
 {
     // An unreliable-unordered channel never sends a top-level block fragment (its blocks
@@ -4404,6 +4432,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_unreliable_unordered_blocks );
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_process_packet_exact_allocation );
+        RUN_TEST( test_connection_reject_trailing_bytes );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
