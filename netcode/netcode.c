@@ -493,14 +493,59 @@ struct netcode_socket_holder_t
 #define NETCODE_SOCKET_ERROR_CREATE_FAILED                           1
 #define NETCODE_SOCKET_ERROR_SET_NON_BLOCKING_FAILED                 2
 #define NETCODE_SOCKET_ERROR_SOCKOPT_IPV6_ONLY_FAILED                3
-#define NETCODE_SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED                   4
-#define NETCODE_SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED                   5
 #define NETCODE_SOCKET_ERROR_BIND_IPV4_FAILED                        6
 #define NETCODE_SOCKET_ERROR_BIND_IPV6_FAILED                        7
 #define NETCODE_SOCKET_ERROR_GET_SOCKNAME_IPV4_FAILED                8
 #define NETCODE_SOCKET_ERROR_GET_SOCKNAME_IPV6_FAILED                9
 #define NETCODE_SOCKET_ERROR_DISABLE_UDP_PORT_CONNRESET_FAILED      10
 #define NETCODE_SOCKET_ERROR_ENABLE_PACKET_TAGGING_FAILED           11
+
+#define NETCODE_SOCKET_BUFFER_SIZE_MINIMUM                ( 64 * 1024 )
+
+typedef int (*netcode_socket_buffer_size_try_t)( void * context, int size );
+
+// linux and windows clamp a socket buffer request that exceeds the OS limit, but the BSDs reject it
+// instead (a stock NetBSD rejects anything over about 227 KiB). halve the request until one is accepted.
+// a larger buffer is an optimisation, never a requirement: if no request down to the minimum is accepted,
+// the socket keeps the OS default. returns the size accepted, or 0 if the OS default was kept.
+
+static int netcode_socket_buffer_size_back_off( int requested_size, netcode_socket_buffer_size_try_t try_size, void * context )
+{
+    for ( int size = requested_size; size >= NETCODE_SOCKET_BUFFER_SIZE_MINIMUM; size /= 2 )
+    {
+        if ( try_size( context, size ) )
+            return size;
+    }
+    return 0;
+}
+
+struct netcode_socket_buffer_option_t
+{
+    netcode_socket_handle_t handle;
+    int option;
+};
+
+static int netcode_socket_buffer_size_set( void * context, int size )
+{
+    struct netcode_socket_buffer_option_t * buffer_option = (struct netcode_socket_buffer_option_t*) context;
+    return setsockopt( buffer_option->handle, SOL_SOCKET, buffer_option->option, (char*)&size, sizeof(int) ) == 0;
+}
+
+static void netcode_socket_increase_buffer_size( netcode_socket_handle_t handle, int option, int requested_size, const char * name )
+{
+    struct netcode_socket_buffer_option_t buffer_option;
+    buffer_option.handle = handle;
+    buffer_option.option = option;
+    const int size = netcode_socket_buffer_size_back_off( requested_size, netcode_socket_buffer_size_set, &buffer_option );
+    if ( size == 0 )
+    {
+        netcode_printf( NETCODE_LOG_LEVEL_INFO, "socket %s buffer size kept at the OS default (%d was not accepted)\n", name, requested_size );
+    }
+    else if ( size != requested_size )
+    {
+        netcode_printf( NETCODE_LOG_LEVEL_INFO, "socket %s buffer size reduced from %d to %d\n", name, requested_size, size );
+    }
+}
 
 void netcode_socket_destroy( struct netcode_socket_t * socket )
 {
@@ -691,44 +736,10 @@ int netcode_socket_create( struct netcode_socket_t * s, struct netcode_address_t
         }
     }
 
-    // increase socket send and receive buffer sizes. linux and windows clamp requests that
-    // exceed the OS limit, but the BSDs reject them instead, so back off until accepted.
+    // increase socket send and receive buffer sizes (see netcode_socket_buffer_size_back_off)
 
-    {
-        int size = send_buffer_size;
-        while ( setsockopt( s->handle, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(int) ) != 0 )
-        {
-            size /= 2;
-            if ( size < 256 * 1024 )
-            {
-                netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: failed to set socket send buffer size\n" );
-                netcode_socket_destroy( s );
-                return NETCODE_SOCKET_ERROR_SOCKOPT_SNDBUF_FAILED;
-            }
-        }
-        if ( size != send_buffer_size )
-        {
-            netcode_printf( NETCODE_LOG_LEVEL_INFO, "socket send buffer size reduced from %d to %d\n", send_buffer_size, size );
-        }
-    }
-
-    {
-        int size = receive_buffer_size;
-        while ( setsockopt( s->handle, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(int) ) != 0 )
-        {
-            size /= 2;
-            if ( size < 256 * 1024 )
-            {
-                netcode_printf( NETCODE_LOG_LEVEL_ERROR, "error: failed to set socket receive buffer size\n" );
-                netcode_socket_destroy( s );
-                return NETCODE_SOCKET_ERROR_SOCKOPT_RCVBUF_FAILED;
-            }
-        }
-        if ( size != receive_buffer_size )
-        {
-            netcode_printf( NETCODE_LOG_LEVEL_INFO, "socket receive buffer size reduced from %d to %d\n", receive_buffer_size, size );
-        }
-    }
+    netcode_socket_increase_buffer_size( s->handle, SO_SNDBUF, send_buffer_size, "send" );
+    netcode_socket_increase_buffer_size( s->handle, SO_RCVBUF, receive_buffer_size, "receive" );
 
     // bind to port
 
@@ -6006,6 +6017,60 @@ static void test_sequence()
     check( netcode_sequence_number_bytes_required( 0x1122334455667788 ) == 8 );
 }
 
+struct test_socket_buffer_os_t
+{
+    int limit;          // the largest size this fake OS accepts (a BSD rejects anything above it)
+    int calls;
+    int smallest_tried;
+};
+
+static int test_socket_buffer_os_try( void * context, int size )
+{
+    struct test_socket_buffer_os_t * os = (struct test_socket_buffer_os_t*) context;
+    os->calls++;
+    if ( os->smallest_tried == 0 || size < os->smallest_tried )
+        os->smallest_tried = size;
+    return size <= os->limit;
+}
+
+static void test_socket_buffer_size_back_off()
+{
+    const int requested = 4 * 1024 * 1024;
+
+    // an OS that accepts the request (or clamps it, as linux and windows do) takes it on the first try
+
+    {
+        struct test_socket_buffer_os_t os = { requested, 0, 0 };
+        check( netcode_socket_buffer_size_back_off( requested, test_socket_buffer_os_try, &os ) == requested );
+        check( os.calls == 1 );
+    }
+
+    // a stock NetBSD (kern.sbmax 256 KiB, about 227 KiB usable) refuses 4M, 2M, 1M, 512K and 256K, and takes 128K
+
+    {
+        struct test_socket_buffer_os_t os = { 227 * 1024, 0, 0 };
+        check( netcode_socket_buffer_size_back_off( requested, test_socket_buffer_os_try, &os ) == 128 * 1024 );
+        check( os.calls == 6 );
+    }
+
+    // an OS that refuses every request down to the minimum keeps its default: not an error, and never a request below the minimum
+
+    {
+        struct test_socket_buffer_os_t os = { 16 * 1024, 0, 0 };
+        check( netcode_socket_buffer_size_back_off( requested, test_socket_buffer_os_try, &os ) == 0 );
+        check( os.smallest_tried == NETCODE_SOCKET_BUFFER_SIZE_MINIMUM );
+        check( os.calls == 7 );
+    }
+
+    // a request already below the minimum is not made at all
+
+    {
+        struct test_socket_buffer_os_t os = { requested, 0, 0 };
+        check( netcode_socket_buffer_size_back_off( 32 * 1024, test_socket_buffer_os_try, &os ) == 0 );
+        check( os.calls == 0 );
+    }
+}
+
 static void test_address()
 {
     {
@@ -10539,6 +10604,7 @@ void netcode_test()
         RUN_TEST( test_endian );
         RUN_TEST( test_address );
         RUN_TEST( test_sequence );
+        RUN_TEST( test_socket_buffer_size_back_off );
         RUN_TEST( test_connect_token );
         RUN_TEST( test_generate_connect_token_out_of_range );
         RUN_TEST( test_challenge_token );

@@ -14,8 +14,9 @@
 # serialize's BitReader, which loads an eight-byte window, and only from 1.4.6 does a payload
 # packet carry eight bytes of slack behind the payload, so an older system netcode gives
 # yojimbo an out-of-bounds read on packets it accepts. Linking an older system netcode is
-# refused rather than warned about. The floor stays below the vendored 1.4.7, whose changes
-# yojimbo's sources do not depend on.
+# refused rather than warned about. The floor stays below the vendored 1.4.9, whose changes
+# yojimbo's sources do not depend on (1.4.9 keeps the OS default socket buffer instead of failing
+# socket create where a BSD refuses a larger one, as a stock NetBSD does).
 # serialize and reliable floor at the vendored version because yojimbo's sources are written
 # against it and both define wire formats.
 #
@@ -24,4 +25,4 @@
 
 serialize  2.1.2   v2.1.2   2.1.2
 reliable   1.4.5   v1.4.5   1.4.5
-netcode    1.4.8   v1.4.8   1.4.6
+netcode    1.4.9   v1.4.9   1.4.6
