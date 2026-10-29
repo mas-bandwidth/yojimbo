@@ -327,6 +327,14 @@ namespace yojimbo
             return false;
         }
 
+        // serialize 2.0: a packet reader ends its top-level object, refusing trailing bytes and set padding bits.
+
+        if ( !stream.SerializeEnd() )
+        {
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (read packet end)\n" );
+            return false;
+        }
+
         return true;
     }
 
