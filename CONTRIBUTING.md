@@ -40,6 +40,9 @@ green before a change is merged. The jobs are:
 - **fuzz-build**: builds all five libFuzzer targets in `fuzz/` and regenerates the seed
   corpus — but runs no fuzzing.
 
+**Other platforms are nightly and on release.** `.github/workflows/platforms.yml` builds and tests yojimbo inside
+VMs of FreeBSD, NetBSD, OpenBSD and Ubuntu 22.04, 24.04 and 26.04 LTS, nightly and on every `v*` tag.
+
 **Fuzzing itself is not part of the per-PR gate.** The runs are nightly and the builds are per
 commit: `.github/workflows/fuzz-nightly.yml` runs at 07:17 UTC (and on demand from the Actions
 tab) with short ASan+UBSan and MemorySanitizer passes over the parser targets seeded from

@@ -1,0 +1,143 @@
+name: Platforms (nightly + release)
+
+# ci.yml builds on the GitHub-hosted Linux, macOS and Windows images. This workflow proves the
+# platforms those images do not give us, each in its own virtual machine: FreeBSD, NetBSD,
+# OpenBSD, and the three supported Ubuntu LTS releases (22.04 jammy, 24.04 noble, 26.04
+# resolute). Every leg does what ci.yml's build-test job does: configure, build and run ctest,
+# Debug then Release, with tools/vm/build-test.sh, and fails on any failure.
+#
+# VM approach:
+#   - Ubuntu: the official amd64 cloud image of each release, booted by tools/vm/ubuntu-vm.sh
+#     under qemu with KVM and cloud-init, on a GitHub-hosted ubuntu-24.04 runner (the udev step
+#     below enables /dev/kvm). The release's SHA256SUMS is checked against the pinned Ubuntu
+#     image signing key and the image against that sum; the verified image is cached by its sum.
+#     The guest boots from a throwaway overlay and is always torn down. Same setup as rocketnet's
+#     nightly-ubuntu-lts-vms.yml, minus the self-hosted runner and the 24 GiB guest.
+#   - FreeBSD, NetBSD, OpenBSD: vmactions/{freebsd,netbsd,openbsd}-vm, pinned to a release tag.
+#     rocketnet bakes its BSD images with scripts that run an unattended installer for an hour
+#     on a dedicated host (anita for NetBSD, the serial installer for OpenBSD); that cannot be
+#     redone on every hosted-runner job, and a cache is not a place to keep a baked image alive.
+#     These actions boot prebuilt images of the same official releases under qemu on the hosted
+#     runner. Only the pinned tag is trusted code here; the leg gets no secrets.
+#
+# Triggers: nightly, on every v* tag (a release is only a release once these are green),
+# on demand, and on pull requests that touch this workflow or tools/vm/.
+#
+# What it does not cover: other architectures (everything here is x86-64), and performance.
+# The guests are small VMs, not benches. Not a per-commit gate; a red night is a finding to read.
+
+on:
+  schedule:
+    - cron: '43 5 * * *'   # daily at 05:43 UTC (fuzz-nightly runs at 07:17)
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/platforms.yml'
+      - 'tools/vm/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platforms-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ubuntu-lts:
+    name: ubuntu ${{ matrix.version }} (${{ matrix.series }}) vm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { series: jammy,    version: '22.04' }
+          - { series: noble,    version: '24.04' }
+          - { series: resolute, version: '26.04' }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install qemu and enable KVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils cloud-image-utils ubuntu-keyring
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -r /dev/kvm && test -w /dev/kvm
+
+      - name: Verify the release's SHA256SUMS signature
+        id: sums
+        run: tools/vm/ubuntu-vm.sh ${{ matrix.series }} ${{ matrix.version }} sums >> "$GITHUB_OUTPUT"
+
+      - name: Restore the cloud image (cached by SHA256)
+        uses: actions/cache@v4
+        with:
+          path: ~/cloud-images/${{ matrix.series }}
+          key: cloudimg-${{ matrix.series }}-${{ steps.sums.outputs.sum }}
+
+      - name: Boot the guest (KVM, cloud-init, stock kernel)
+        timeout-minutes: 15
+        run: tools/vm/ubuntu-vm.sh ${{ matrix.series }} ${{ matrix.version }} boot
+
+      - name: Build and test in the guest
+        timeout-minutes: 25
+        run: tools/vm/ubuntu-vm.sh ${{ matrix.series }} ${{ matrix.version }} run
+
+      - name: Collect the guest logs
+        if: failure()
+        id: logs
+        run: tools/vm/ubuntu-vm.sh ${{ matrix.series }} ${{ matrix.version }} collect >> "$GITHUB_OUTPUT"
+
+      - name: Upload the guest logs
+        if: failure() && steps.logs.outputs.logs != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-${{ matrix.series }}-vm-logs
+          path: ${{ steps.logs.outputs.logs }}
+          if-no-files-found: ignore
+
+      - name: Tear down the guest
+        if: always()
+        run: tools/vm/ubuntu-vm.sh ${{ matrix.series }} ${{ matrix.version }} teardown
+
+  freebsd:
+    name: freebsd 15.0 vm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/freebsd-vm@v1.5.9
+        with:
+          release: '15.0'
+          usesh: true
+          prepare: pkg install -y cmake-core
+          run: sh tools/vm/build-test.sh
+
+  netbsd:
+    name: netbsd 11.0 vm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/netbsd-vm@v1.5.2
+        with:
+          release: '11.0'
+          usesh: true
+          prepare: /usr/sbin/pkg_add cmake
+          run: sh tools/vm/build-test.sh
+
+  openbsd:
+    name: openbsd 8.0 vm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/openbsd-vm@v1.4.9
+        with:
+          release: '8.0'
+          usesh: true
+          prepare: pkg_add cmake
+          run: sh tools/vm/build-test.sh
