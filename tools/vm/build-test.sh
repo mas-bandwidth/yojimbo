@@ -27,7 +27,7 @@ for config in Debug Release; do
         echo "== $config failed: rerunning the test binaries on a pty"
         for t in "$dir"/bin/test "$dir"/bin/custom_packet_io_test; do
             echo "== $t"
-            script -q /dev/null "$t" 2>&1 || script -qec "$t" /dev/null 2>&1 || true
+            script -q /dev/null "$t" 2>&1 </dev/null || script -qec "$t" /dev/null 2>&1 </dev/null || true
         done
         exit 1
     fi
