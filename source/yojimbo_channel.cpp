@@ -146,6 +146,19 @@ namespace yojimbo
                     return false;
                 }
 
+                if ( messages[i]->IsBlockMessage() )
+                {
+                    // Block messages are carried by the fragment path on an ordered channel.
+                    // A block message type in the ordinary message list is not something a
+                    // conforming sender produces, so reject it rather than deliver a block
+                    // message with no block attached. Release it and clear the slot so
+                    // ChannelPacketData::Free does not release it a second time.
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: block message of type %d in ordered message list (SerializeOrderedMessages)\n", messageTypes[i] );
+                    messageFactory.ReleaseMessage( messages[i] );
+                    messages[i] = NULL;
+                    return false;
+                }
+
                 messages[i]->SetId( messageIds[i] );
             }
 

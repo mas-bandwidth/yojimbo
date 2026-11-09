@@ -1764,6 +1764,73 @@ template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream &
     return true;
 }
 
+// Hand-serialize a connection packet carrying a single reliable-ordered channel entry whose
+// ordinary (non-fragment) message list names a block message type. A conforming reliable-ordered
+// sender only ever carries block messages on the fragment path.
+template <typename Stream> static bool SerializeRawBlockMessageListPacket( Stream & stream, int maxMessagesPerPacket, int maxMessageType, uint16_t messageId, uint16_t sequence )
+{
+    int numChannelEntries = 1;
+    serialize_int( stream, numChannelEntries, 0, 1 );   // numChannels == 1, so channelIndex is not serialized
+
+    bool blockMessage = false;
+    serialize_bool( stream, blockMessage );
+
+    bool hasMessages = true;
+    serialize_bool( stream, hasMessages );
+
+    int numMessages = 1;
+    serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
+
+    serialize_bits( stream, messageId, 16 );
+
+    int messageType = TEST_BLOCK_MESSAGE;
+    serialize_int( stream, messageType, 0, maxMessageType );
+
+    // TestBlockMessage::Serialize writes a 16-bit sequence and no block payload.
+    serialize_bits( stream, sequence, 16 );
+
+    return true;
+}
+
+void test_connection_reliable_rejects_block_in_message_list()
+{
+    // A reliable-ordered block message is carried by the fragment path only. A message list
+    // that names a block type is not something a conforming sender produces; the receiver
+    // must reject the packet rather than deliver a block message with no attached block.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    uint8_t buffer[4096];
+    memset( buffer, 0, sizeof( buffer ) );
+    WriteStream stream( buffer, sizeof( buffer ) );
+    check( SerializeRawBlockMessageListPacket( stream,
+                                               config.channel[0].maxMessagesPerPacket,
+                                               messageFactory.GetNumTypes() - 1,
+                                               0,
+                                               0 ) );
+    stream.Flush();
+    const int packetBytes = stream.GetBytesProcessed();
+    check( packetBytes > 0 );
+
+    const bool processed = receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    check( !processed );
+
+    Message * message = receiver.ReceiveMessage( 0 );
+    if ( message )
+        messageFactory.ReleaseMessage( message );
+    check( message == NULL );
+
+    check( receiver.GetErrorLevel() != CONNECTION_ERROR_NONE );
+}
+
 void test_channel_config_fragment_counts_without_overflow()
 {
     // yojimbo#347: ceil(maxBlockSize / blockFragmentSize) used to add in int
@@ -4501,6 +4568,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_trailing_bytes );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
+        RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
