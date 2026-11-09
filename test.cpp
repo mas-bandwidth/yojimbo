@@ -1839,7 +1839,7 @@ YOJIMBO_MESSAGE_FACTORY_FINISH();
 
 void test_connection_reliable_ordered_block_fragment_fit_multiple_channels()
 {
-    double time = 100.0;
+    double time = 1000.0;
 
     ConnectionConfig config;
     config.numChannels = 2;
@@ -1985,7 +1985,7 @@ static void ExpectConfigValidateAssertHandler( const char * /*condition*/, const
 
 void test_connection_reliable_ordered_block_fragment_header_headroom()
 {
-    double time = 100.0;
+    double time = 1000.0;
 
 #ifdef YOJIMBO_DEBUG
     {
@@ -2005,6 +2005,20 @@ void test_connection_reliable_ordered_block_fragment_header_headroom()
             if ( setjmp( g_configValidateJmpBuf ) == 0 )
                 invalidConfig.Validate();
             check( g_configValidateAssertCount == 1 );
+        }
+
+        {
+            ConnectionConfig edgeConfig;
+            edgeConfig.numChannels = 1;
+            edgeConfig.maxPacketSize = 1200;
+            edgeConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+            edgeConfig.channel[0].maxBlockSize = 4800;
+            edgeConfig.channel[0].blockFragmentSize = 1185;
+
+            g_configValidateAssertCount = 0;
+            if ( setjmp( g_configValidateJmpBuf ) == 0 )
+                edgeConfig.Validate();
+            check( g_configValidateAssertCount == 0 );
         }
 
         {
@@ -2111,6 +2125,67 @@ void test_connection_reliable_ordered_block_fragment_header_headroom()
         check( received );
         free( buffer );
     }
+}
+
+void test_connection_reliable_ordered_block_ignores_packet_budget()
+{
+    double time = 1000.0;
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].packetBudget = 512;
+    config.Validate();
+
+    Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    TestBlockMessage * block = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( block );
+    block->sequence = 7;
+    const int blockSize = 2000;
+    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+    check( blockData );
+    for ( int i = 0; i < blockSize; ++i )
+        blockData[i] = (uint8_t) ( i * 5 );
+    block->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+    sender.SendMessage( 0, block );
+    check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+
+    uint8_t * buffer = (uint8_t*) malloc( (size_t) config.maxPacketSize );
+    check( buffer );
+    uint16_t sequence = 0;
+    bool received = false;
+
+    for ( int i = 0; i < 8 && !received; ++i )
+    {
+        int packetBytes = 0;
+        check( sender.GeneratePacket( NULL, sequence, buffer, config.maxPacketSize, packetBytes ) );
+        check( packetBytes > 0 );
+        check( packetBytes <= config.maxPacketSize );
+        check( receiver.ProcessPacket( NULL, sequence, buffer, packetBytes ) );
+        sender.ProcessAcks( &sequence, 1 );
+        sequence++;
+
+        Message * m = receiver.ReceiveMessage( 0 );
+        if ( m )
+        {
+            check( m->GetType() == TEST_BLOCK_MESSAGE );
+            TestBlockMessage * bm = (TestBlockMessage*) m;
+            check( bm->sequence == 7 );
+            check( bm->GetBlockSize() == blockSize );
+            for ( int j = 0; j < blockSize; ++j )
+                check( bm->GetBlockData()[j] == (uint8_t) ( j * 5 ) );
+            received = true;
+            messageFactory.ReleaseMessage( m );
+        }
+    }
+
+    check( received );
+    check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+    free( buffer );
 }
 
 void test_channel_config_fragment_counts_without_overflow()
@@ -4853,6 +4928,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
+        RUN_TEST( test_connection_reliable_ordered_block_ignores_packet_budget );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );
