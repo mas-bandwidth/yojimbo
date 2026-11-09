@@ -1095,6 +1095,71 @@ void test_connection_reliable_ordered_blocks_max_size()
     check( numMessagesReceived == NumMessagesSent );
 }
 
+void test_connection_reliable_ordered_blocks_fragment_count()
+{
+    // Sends a large block whose size is one byte past a multiple of blockFragmentSize,
+    // then checks that the whole block and its final byte arrive intact.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.channel[ReliableChannel].maxBlockSize = 32 * 1024 * 1024;
+    connectionConfig.channel[ReliableChannel].blockFragmentSize = 1024;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    const int BlockSize = 16 * 1024 * 1024 + 1;
+
+    TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), BlockSize );
+    check( blockData );
+    for ( int i = 0; i < BlockSize; ++i )
+        blockData[i] = uint8_t( i * 31 );
+    blockData[BlockSize - 1] = 0x5A;
+    message->AttachBlock( messageFactory.GetAllocator(), blockData, BlockSize );
+    sender.SendMessage( ReliableChannel, message );
+
+    bool received = false;
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+    const int NumIterations = 40000;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+        while ( true )
+        {
+            Message * msg = receiver.ReceiveMessage( ReliableChannel );
+            if ( !msg )
+                break;
+
+            check( msg->GetType() == TEST_BLOCK_MESSAGE );
+
+            TestBlockMessage * blockMessage = (TestBlockMessage*) msg;
+            check( blockMessage->GetBlockSize() == BlockSize );
+
+            const uint8_t * receivedData = blockMessage->GetBlockData();
+            check( receivedData );
+            for ( int j = 0; j < BlockSize - 1; ++j )
+                check( receivedData[j] == uint8_t( j * 31 ) );
+            check( receivedData[BlockSize - 1] == 0x5A );
+
+            received = true;
+            messageFactory.ReleaseMessage( msg );
+        }
+
+        if ( received )
+            break;
+    }
+
+    check( received );
+}
+
 void test_connection_reliable_ordered_messages_and_blocks()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
@@ -4426,6 +4491,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_ordered_messages );
         RUN_TEST( test_connection_reliable_ordered_blocks );
         RUN_TEST( test_connection_reliable_ordered_blocks_max_size );
+        RUN_TEST( test_connection_reliable_ordered_blocks_fragment_count );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
