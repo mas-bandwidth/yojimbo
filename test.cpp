@@ -2973,6 +2973,60 @@ void test_server_message_sent_before_client_connects()
     server.Stop();
 }
 
+class NoSocketTestAdapter : public TestAdapter
+{
+public:
+
+    bool UseCustomPacketIO() const YOJIMBO_OVERRIDE { return true; }
+
+    void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE
+    {
+        (void) to;
+        (void) packetData;
+        (void) packetBytes;
+    }
+
+    int ReceivePacket( Address & from, uint8_t * packetData, int maxPacketBytes ) YOJIMBO_OVERRIDE
+    {
+        (void) from;
+        (void) packetData;
+        (void) maxPacketBytes;
+        return 0;
+    }
+};
+
+void test_server_message_to_unconnected_slot_not_queued()
+{
+    // Sending a message to a slot with no client in it leaves nothing queued for that slot.
+
+    double time = 1000.0;
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    NoSocketTestAdapter noSocketAdapter;
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, noSocketAdapter, time );
+
+    check( server.Start( MaxClients ) );
+
+    check( !server.IsClientConnected( 0 ) );
+    check( !server.HasMessagesToSend( 0, 0 ) );
+
+    TestMessage * message = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+    check( message );
+    message->sequence = 1;
+    server.SendMessage( 0, 0, message );
+
+    check( !server.HasMessagesToSend( 0, 0 ) );
+
+    server.Stop();
+}
+
 void CreateClients( int numClients, Client ** clients, const Address & address, const ClientServerConfig & config, Adapter & _adapter, double time )
 {
     for ( int i = 0; i < numClients; ++i )
@@ -4629,6 +4683,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_connect_twice_with_one_connect_token );
         RUN_TEST( test_client_server_messages );
         RUN_TEST( test_server_message_sent_before_client_connects );
+        RUN_TEST( test_server_message_to_unconnected_slot_not_queued );
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_server_client_disconnect_reason );
