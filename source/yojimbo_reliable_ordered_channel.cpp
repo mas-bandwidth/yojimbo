@@ -27,6 +27,8 @@
 
 namespace yojimbo
 {
+    const int ReliableOrderedChannel::ConservativeFragmentHeaderBits;
+
     ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, const int maxPacketSize, int channelIndex, double time )
         : Channel( allocator, messageFactory, config, maxPacketSize, channelIndex, time )
     {
@@ -177,6 +179,28 @@ namespace yojimbo
             return;
         }
 
+        if ( message->IsBlockMessage() )
+        {
+            BlockMessage * blockMessage = (BlockMessage*) message;
+            const int blockSize = blockMessage->GetBlockSize();
+            yojimbo_assert( blockSize > 0 );
+            yojimbo_assert( blockSize <= m_config.maxBlockSize );
+
+            const int fragment0Bytes = yojimbo_min( blockSize, m_config.blockFragmentSize );
+            const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
+            const int64_t fragment0Bits = (int64_t) ConservativeFragmentHeaderBits + (int64_t) fragment0Bytes * 8 + (int64_t) measuredBits + (int64_t) messageTypeBits;
+            const int maxChannelPacketBits = ( m_maxPacketSize & ~7 ) * 8 - ConservativePacketHeaderBits - ConservativeChannelHeaderBits;
+            const bool isBlockOverBudget = m_config.packetBudget > 0 && fragment0Bits > (int64_t) m_config.packetBudget * 8;
+            const bool isBlockOverPacketSize = fragment0Bits > (int64_t) maxChannelPacketBits;
+
+            if ( isBlockOverBudget || isBlockOverPacketSize )
+            {
+                SetErrorLevel( CHANNEL_ERROR_MESSAGE_TOO_LARGE );
+                m_messageFactory->ReleaseMessage( message );
+                return;
+            }
+        }
+
         MessageSendQueueEntry * entry = m_messageSendQueue->Insert( m_sendMessageId );
 
         yojimbo_assert( entry );
@@ -185,12 +209,6 @@ namespace yojimbo
         entry->message = message;
         entry->measuredBits = 0;
         entry->timeLastSent = -1.0;
-
-        if ( message->IsBlockMessage() )
-        {
-            yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
-            yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
-        }
 
         entry->measuredBits = measuredBits;
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
@@ -231,7 +249,53 @@ namespace yojimbo
 
         if ( SendingBlockMessage() )
         {
-            if (m_config.blockFragmentSize * 8 > availableBits)
+            if ( m_config.packetBudget > 0 )
+                availableBits = yojimbo_min( m_config.packetBudget * 8, availableBits );
+
+            MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
+            yojimbo_assert( entry );
+            yojimbo_assert( entry->block );
+
+            BlockMessage * blockMessage = (BlockMessage*) entry->message;
+            yojimbo_assert( blockMessage );
+
+            const int blockSize = blockMessage->GetBlockSize();
+            const int totalFragments = m_sendBlock->active
+                ? m_sendBlock->numFragments
+                : (int) ceil( blockSize / float( m_config.blockFragmentSize ) );
+
+            uint16_t nextFragmentId = 0;
+            if ( m_sendBlock->active )
+            {
+                nextFragmentId = 0xFFFF;
+                for ( int i = 0; i < m_sendBlock->numFragments; ++i )
+                {
+                    if ( !m_sendBlock->ackedFragment->GetBit( i ) && m_sendBlock->fragmentSendTime[i] + m_config.blockFragmentResendTime < m_time )
+                    {
+                        nextFragmentId = uint16_t( i );
+                        break;
+                    }
+                }
+                if ( nextFragmentId == 0xFFFF )
+                {
+                    m_sentPackets->Advance( packetSequence );
+                    return 0;
+                }
+            }
+
+            int nextFragmentBytes = m_config.blockFragmentSize;
+            const int fragmentRemainder = blockSize % m_config.blockFragmentSize;
+            if ( fragmentRemainder && nextFragmentId == totalFragments - 1 )
+                nextFragmentBytes = fragmentRemainder;
+
+            int64_t neededBits = (int64_t) ConservativeFragmentHeaderBits + (int64_t) nextFragmentBytes * 8;
+            if ( nextFragmentId == 0 )
+            {
+                const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
+                neededBits += (int64_t) entry->measuredBits + (int64_t) messageTypeBits;
+            }
+
+            if ( neededBits > (int64_t) availableBits )
             {
                 m_sentPackets->Advance( packetSequence );
                 return 0;
@@ -248,6 +312,7 @@ namespace yojimbo
             if ( fragmentData )
             {
                 const int fragmentBits = GetFragmentPacketData( packetData, messageId, fragmentId, fragmentData, fragmentBytes, numFragments, messageType );
+                yojimbo_assert( fragmentBits <= availableBits );
                 AddFragmentPacketEntry( messageId, fragmentId, packetSequence );
                 return fragmentBits;
             }

@@ -1764,6 +1764,355 @@ template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream &
     return true;
 }
 
+
+struct TestSizedMessage : public Message
+{
+    int numBytes;
+    uint8_t data[8192];
+
+    TestSizedMessage() : numBytes( 0 )
+    {
+        memset( data, 0, sizeof( data ) );
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {
+        serialize_int( stream, numBytes, 0, (int) sizeof( data ) );
+        serialize_bytes( stream, data, numBytes );
+        return true;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
+};
+
+struct TestBodyBlockMessage : public BlockMessage
+{
+    uint16_t sequence;
+    uint8_t body[64];
+
+    TestBodyBlockMessage() : sequence( 0 )
+    {
+        memset( body, 0, sizeof( body ) );
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {
+        serialize_bits( stream, sequence, 16 );
+        serialize_bytes( stream, body, (int) sizeof( body ) );
+        return true;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
+};
+
+struct TestLargeBodyBlockMessage : public BlockMessage
+{
+    uint8_t body[8000];
+
+    TestLargeBodyBlockMessage()
+    {
+        memset( body, 0, sizeof( body ) );
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {
+        serialize_bytes( stream, body, (int) sizeof( body ) );
+        return true;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
+};
+
+enum TestFragmentFitMessageType
+{
+    TEST_FRAGMENT_FIT_SIZED_MESSAGE,
+    TEST_FRAGMENT_FIT_BODY_BLOCK_MESSAGE,
+    TEST_FRAGMENT_FIT_LARGE_BODY_BLOCK_MESSAGE,
+    NUM_TEST_FRAGMENT_FIT_MESSAGE_TYPES
+};
+
+YOJIMBO_MESSAGE_FACTORY_START( TestFragmentFitMessageFactory, NUM_TEST_FRAGMENT_FIT_MESSAGE_TYPES );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_FRAGMENT_FIT_SIZED_MESSAGE, TestSizedMessage );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_FRAGMENT_FIT_BODY_BLOCK_MESSAGE, TestBodyBlockMessage );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_FRAGMENT_FIT_LARGE_BODY_BLOCK_MESSAGE, TestLargeBodyBlockMessage );
+YOJIMBO_MESSAGE_FACTORY_FINISH();
+
+void test_connection_reliable_ordered_block_fragment_fit_multiple_channels()
+{
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 2;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    for ( int padBytes = 7090; padBytes <= 7160; ++padBytes )
+    {
+        TestFragmentFitMessageFactory messageFactory( GetDefaultAllocator() );
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+
+        TestSizedMessage * msg = (TestSizedMessage*) messageFactory.CreateMessage( TEST_FRAGMENT_FIT_SIZED_MESSAGE );
+        check( msg );
+        msg->numBytes = padBytes;
+        memset( msg->data, 0x11, (size_t) padBytes );
+        sender.SendMessage( 0, msg );
+
+        TestBodyBlockMessage * block = (TestBodyBlockMessage*) messageFactory.CreateMessage( TEST_FRAGMENT_FIT_BODY_BLOCK_MESSAGE );
+        check( block );
+        block->sequence = 7;
+        memset( block->body, 0x33, sizeof( block->body ) );
+        const int blockSize = 2000;
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+        check( blockData );
+        memset( blockData, 0x22, blockSize );
+        block->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+        sender.SendMessage( 1, block );
+
+        const int guardBytes = 64;
+        uint8_t * buffer = (uint8_t*) malloc( (size_t) config.maxPacketSize + guardBytes );
+        check( buffer );
+        memset( buffer, 0xCD, (size_t) config.maxPacketSize + guardBytes );
+
+        int packetBytes = 0;
+        check( sender.GeneratePacket( NULL, 0, buffer, config.maxPacketSize, packetBytes ) );
+        check( packetBytes > 0 );
+        check( packetBytes <= config.maxPacketSize );
+        for ( int g = 0; g < guardBytes; ++g )
+            check( buffer[config.maxPacketSize + g] == 0xCD );
+
+        free( buffer );
+    }
+
+    {
+        TestFragmentFitMessageFactory messageFactory( GetDefaultAllocator() );
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+        Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+        TestSizedMessage * msg = (TestSizedMessage*) messageFactory.CreateMessage( TEST_FRAGMENT_FIT_SIZED_MESSAGE );
+        check( msg );
+        msg->numBytes = 7120;
+        for ( int i = 0; i < msg->numBytes; ++i )
+            msg->data[i] = (uint8_t) ( i & 0xFF );
+        sender.SendMessage( 0, msg );
+
+        TestBodyBlockMessage * block = (TestBodyBlockMessage*) messageFactory.CreateMessage( TEST_FRAGMENT_FIT_BODY_BLOCK_MESSAGE );
+        check( block );
+        block->sequence = 42;
+        for ( int i = 0; i < (int) sizeof( block->body ); ++i )
+            block->body[i] = (uint8_t) ( 0xA0 + i );
+        const int blockSize = 2000;
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+        check( blockData );
+        for ( int i = 0; i < blockSize; ++i )
+            blockData[i] = (uint8_t) ( i * 3 );
+        block->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+        sender.SendMessage( 1, block );
+
+        uint8_t * packetData = (uint8_t*) malloc( (size_t) config.maxPacketSize );
+        check( packetData );
+        uint16_t sequence = 0;
+        bool gotUnreliable = false;
+        bool gotBlock = false;
+
+        for ( int i = 0; i < 4 && ( !gotUnreliable || !gotBlock ); ++i )
+        {
+            int packetBytes = 0;
+            check( sender.GeneratePacket( NULL, sequence, packetData, config.maxPacketSize, packetBytes ) );
+            check( packetBytes > 0 );
+            check( packetBytes <= config.maxPacketSize );
+            check( receiver.ProcessPacket( NULL, sequence, packetData, packetBytes ) );
+            sender.ProcessAcks( &sequence, 1 );
+            sequence++;
+
+            Message * m0 = receiver.ReceiveMessage( 0 );
+            if ( m0 )
+            {
+                check( m0->GetType() == TEST_FRAGMENT_FIT_SIZED_MESSAGE );
+                TestSizedMessage * sm = (TestSizedMessage*) m0;
+                check( sm->numBytes == 7120 );
+                gotUnreliable = true;
+                messageFactory.ReleaseMessage( m0 );
+            }
+
+            Message * m1 = receiver.ReceiveMessage( 1 );
+            if ( m1 )
+            {
+                check( m1->GetType() == TEST_FRAGMENT_FIT_BODY_BLOCK_MESSAGE );
+                TestBodyBlockMessage * bm = (TestBodyBlockMessage*) m1;
+                check( bm->sequence == 42 );
+                for ( int j = 0; j < (int) sizeof( bm->body ); ++j )
+                    check( bm->body[j] == (uint8_t) ( 0xA0 + j ) );
+                check( bm->GetBlockSize() == blockSize );
+                for ( int j = 0; j < blockSize; ++j )
+                    check( bm->GetBlockData()[j] == (uint8_t) ( j * 3 ) );
+                gotBlock = true;
+                messageFactory.ReleaseMessage( m1 );
+            }
+        }
+
+        check( gotUnreliable );
+        check( gotBlock );
+        free( packetData );
+    }
+
+    {
+        TestFragmentFitMessageFactory messageFactory( GetDefaultAllocator() );
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+
+        TestLargeBodyBlockMessage * largeBlock = (TestLargeBodyBlockMessage*) messageFactory.CreateMessage( TEST_FRAGMENT_FIT_LARGE_BODY_BLOCK_MESSAGE );
+        check( largeBlock );
+        const int blockSize = 1024;
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+        check( blockData );
+        memset( blockData, 0x55, blockSize );
+        largeBlock->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+        sender.SendMessage( 1, largeBlock );
+        check( sender.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_MESSAGE_TOO_LARGE );
+    }
+}
+
+#ifdef YOJIMBO_DEBUG
+#include <setjmp.h>
+static jmp_buf g_configValidateJmpBuf;
+static int g_configValidateAssertCount = 0;
+
+static void ExpectConfigValidateAssertHandler( const char * /*condition*/, const char * /*function*/, const char * /*file*/, int /*line*/ )
+{
+    g_configValidateAssertCount++;
+    longjmp( g_configValidateJmpBuf, 1 );
+}
+#endif // #ifdef YOJIMBO_DEBUG
+
+void test_connection_reliable_ordered_block_fragment_header_headroom()
+{
+    double time = 100.0;
+
+#ifdef YOJIMBO_DEBUG
+    {
+        void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+        yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+
+        for ( int fragmentSize = 1186; fragmentSize <= 1200; ++fragmentSize )
+        {
+            ConnectionConfig invalidConfig;
+            invalidConfig.numChannels = 1;
+            invalidConfig.maxPacketSize = 1200;
+            invalidConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+            invalidConfig.channel[0].maxBlockSize = 4800;
+            invalidConfig.channel[0].blockFragmentSize = fragmentSize;
+
+            g_configValidateAssertCount = 0;
+            if ( setjmp( g_configValidateJmpBuf ) == 0 )
+                invalidConfig.Validate();
+            check( g_configValidateAssertCount == 1 );
+        }
+
+        {
+            ConnectionConfig unalignedConfig;
+            unalignedConfig.numChannels = 1;
+            unalignedConfig.maxPacketSize = 1205;
+            unalignedConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+            unalignedConfig.channel[0].maxBlockSize = 4800;
+            unalignedConfig.channel[0].blockFragmentSize = 1186;
+
+            g_configValidateAssertCount = 0;
+            if ( setjmp( g_configValidateJmpBuf ) == 0 )
+                unalignedConfig.Validate();
+            check( g_configValidateAssertCount == 1 );
+        }
+
+        yojimbo_set_assert_function( prevAssertHandler );
+    }
+#endif // #ifdef YOJIMBO_DEBUG
+
+    for ( int fragmentSize = 1186; fragmentSize <= 1200; ++fragmentSize )
+    {
+        TestMessageFactory messageFactory( GetDefaultAllocator() );
+        ConnectionConfig config;
+        config.numChannels = 1;
+        config.maxPacketSize = 1200;
+        config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+        config.channel[0].maxBlockSize = 4800;
+        config.channel[0].blockFragmentSize = fragmentSize;
+
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+        TestBlockMessage * block = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+        check( block );
+        const int blockSize = 4000;
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+        check( blockData );
+        memset( blockData, 0x22, blockSize );
+        block->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+        sender.SendMessage( 0, block );
+        check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_MESSAGE_TOO_LARGE );
+
+        uint8_t * buffer = (uint8_t*) malloc( (size_t) config.maxPacketSize );
+        check( buffer );
+        int packetBytes = 0;
+        check( sender.GeneratePacket( NULL, 0, buffer, config.maxPacketSize, packetBytes ) );
+        check( packetBytes <= config.maxPacketSize );
+        free( buffer );
+    }
+
+    {
+        TestMessageFactory messageFactory( GetDefaultAllocator() );
+        ConnectionConfig config;
+        config.numChannels = 1;
+        config.maxPacketSize = 1200;
+        config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+        config.channel[0].maxBlockSize = 4800;
+        config.channel[0].blockFragmentSize = 1182;
+        config.Validate();
+
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+        Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+        TestBlockMessage * block = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+        check( block );
+        block->sequence = 99;
+        const int blockSize = 4000;
+        uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+        check( blockData );
+        for ( int i = 0; i < blockSize; ++i )
+            blockData[i] = (uint8_t) ( i & 0xFF );
+        block->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+        sender.SendMessage( 0, block );
+        check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+
+        uint8_t * buffer = (uint8_t*) malloc( (size_t) config.maxPacketSize );
+        check( buffer );
+        uint16_t sequence = 0;
+        bool received = false;
+
+        for ( int i = 0; i < 8 && !received; ++i )
+        {
+            int packetBytes = 0;
+            check( sender.GeneratePacket( NULL, sequence, buffer, config.maxPacketSize, packetBytes ) );
+            check( packetBytes > 0 );
+            check( packetBytes <= config.maxPacketSize );
+            check( receiver.ProcessPacket( NULL, sequence, buffer, packetBytes ) );
+            sender.ProcessAcks( &sequence, 1 );
+            sequence++;
+
+            Message * m = receiver.ReceiveMessage( 0 );
+            if ( m )
+            {
+                check( m->GetType() == TEST_BLOCK_MESSAGE );
+                TestBlockMessage * bm = (TestBlockMessage*) m;
+                check( bm->sequence == 99 );
+                check( bm->GetBlockSize() == blockSize );
+                for ( int j = 0; j < blockSize; ++j )
+                    check( bm->GetBlockData()[j] == (uint8_t) ( j & 0xFF ) );
+                received = true;
+                messageFactory.ReleaseMessage( m );
+            }
+        }
+
+        check( received );
+        free( buffer );
+    }
+}
+
 void test_channel_config_fragment_counts_without_overflow()
 {
     // yojimbo#347: ceil(maxBlockSize / blockFragmentSize) used to add in int
@@ -4502,6 +4851,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
+        RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
+        RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );

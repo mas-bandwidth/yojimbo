@@ -24,6 +24,7 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_platform.h"
+#include "yojimbo_reliable_ordered_channel.h"
 
 #include <math.h>
 
@@ -88,10 +89,13 @@ namespace yojimbo
                 YOJIMBO_CONFIG_CHECK( blockFragmentSize <= 65535,
                     "error: invalid config: channel %d blockFragmentSize (%d) must be <= 65535\n", channelIndex, blockFragmentSize );
 
-                // A block fragment must fit inside a packet, or the channel stalls forever trying
-                // to send the block (see ReliableOrderedChannel::GetPacketData).
-                YOJIMBO_CONFIG_CHECK( blockFragmentSize <= maxPacketSize,
-                    "error: invalid config: channel %d blockFragmentSize (%d) must be <= maxPacketSize (%d)\n", channelIndex, blockFragmentSize, maxPacketSize );
+                // A full block fragment plus packet, channel, and fragment headers must fit inside
+                // the qword-rounded packet buffer (maxPacketSize & ~7), or the channel either
+                // cannot fit the fragment inside a packet and stalls trying to send the block
+                // (see Connection::GeneratePacket and ReliableOrderedChannel::GetPacketData).
+                const int maxBlockFragmentBytes = ( maxPacketSize & ~7 ) - ( ConservativePacketHeaderBits + ConservativeChannelHeaderBits + ReliableOrderedChannel::ConservativeFragmentHeaderBits + 7 ) / 8;
+                YOJIMBO_CONFIG_CHECK( blockFragmentSize <= maxBlockFragmentBytes,
+                    "error: invalid config: channel %d blockFragmentSize (%d) plus headers must fit within maxPacketSize (%d, max blockFragmentSize %d)\n", channelIndex, blockFragmentSize, maxPacketSize, maxBlockFragmentBytes );
 
                 // Fragment id 0xFFFF is reserved as a sentinel (see GetFragmentToSend).
                 YOJIMBO_CONFIG_CHECK( GetMaxFragmentsPerBlock() <= 65535,
