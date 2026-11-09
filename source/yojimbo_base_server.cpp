@@ -253,9 +253,12 @@ namespace yojimbo
                 const ConnectionErrorLevel connectionErrorLevel = m_clientConnection[i]->GetErrorLevel();
                 if ( connectionErrorLevel != CONNECTION_ERROR_NONE )
                 {
-                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "client %d connection is in error state. disconnecting client\n", i );
-                    SetClientDisconnectReason( i, ClientDisconnectReasonForConnectionError( *m_clientConnection[i], connectionErrorLevel, m_config.numChannels ) );
-                    DisconnectClient( i );
+                    if ( IsClientConnected( i ) )
+                    {
+                        yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "client %d connection is in error state. disconnecting client\n", i );
+                        SetClientDisconnectReason( i, ClientDisconnectReasonForConnectionError( *m_clientConnection[i], connectionErrorLevel, m_config.numChannels ) );
+                        DisconnectClient( i );
+                    }
                     continue;
                 }
                 reliable_endpoint_update( m_clientEndpoint[i], m_time );
@@ -484,6 +487,8 @@ namespace yojimbo
 
     void BaseServer::ResetClient( int clientIndex )
     {
+        m_clientAllocator[clientIndex]->ClearError();
+        m_clientMessageFactory[clientIndex]->ClearErrorLevel();
         m_clientConnection[clientIndex]->Reset();
     }
 }

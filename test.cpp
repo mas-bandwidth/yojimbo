@@ -4319,6 +4319,153 @@ void interrupt_handler( int /*dummy*/ )
 }
 #endif // #if SOAK
 
+
+static void PumpClientServer( Client & client, Server & server, double & time )
+{
+    client.SendPackets();
+    server.SendPackets();
+    client.ReceivePackets();
+    server.ReceivePackets();
+    time += 0.1;
+    client.AdvanceTime( time );
+    server.AdvanceTime( time );
+}
+
+void test_server_slot_reused_by_new_client()
+{
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    double time = 100.0;
+
+    ClientServerConfig config;
+    config.networkSimulator = false;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
+    check( server.Start( 1 ) );
+
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    const int NumIterations = 200;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServer( client, server, time );
+        if ( client.ConnectionFailed() )
+            break;
+        if ( !client.IsConnecting() && client.IsConnected() && server.IsClientConnected( 0 ) )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( 0 ) );
+
+    const int BlockBytes = 64 * 1024;
+    const int MaxBlocks = 512;
+    uint8_t * blocks[MaxBlocks];
+    int numBlocks = 0;
+    for ( ; numBlocks < MaxBlocks; ++numBlocks )
+    {
+        uint8_t * block = server.AllocateBlock( 0, BlockBytes );
+        if ( !block )
+            break;
+        blocks[numBlocks] = block;
+    }
+    check( numBlocks > 0 );
+    check( numBlocks < MaxBlocks );
+    for ( int i = 0; i < numBlocks; ++i )
+        server.FreeBlock( 0, blocks[i] );
+
+    bool slotFreed = false;
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServer( client, server, time );
+        if ( !server.IsClientConnected( 0 ) )
+        {
+            slotFreed = true;
+            break;
+        }
+    }
+    check( slotFreed );
+
+    for ( int i = 0; i < NumIterations && client.IsConnected(); ++i )
+        PumpClientServer( client, server, time );
+
+    if ( client.IsConnected() )
+        client.Disconnect();
+
+    client.InsecureConnect( privateKey, clientId + 1, serverAddress );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServer( client, server, time );
+        if ( client.ConnectionFailed() )
+            break;
+        if ( !client.IsConnecting() && client.IsConnected() && server.IsClientConnected( 0 ) )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( 0 ) );
+
+    TestMessage * toServer = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
+    check( toServer );
+    toServer->sequence = 7;
+    client.SendMessage( ReliableChannel, toServer );
+
+    TestMessage * toClient = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+    check( toClient );
+    toClient->sequence = 11;
+    server.SendMessage( 0, ReliableChannel, toClient );
+
+    bool gotFromClient = false;
+    bool gotFromServer = false;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServer( client, server, time );
+
+        if ( !client.IsConnected() || !server.IsClientConnected( 0 ) )
+            break;
+
+        Message * message = server.ReceiveMessage( 0, ReliableChannel );
+        if ( message )
+        {
+            check( message->GetType() == TEST_MESSAGE );
+            check( ((TestMessage*) message)->sequence == 7 );
+            server.ReleaseMessage( 0, message );
+            gotFromClient = true;
+        }
+
+        message = client.ReceiveMessage( ReliableChannel );
+        if ( message )
+        {
+            check( message->GetType() == TEST_MESSAGE );
+            check( ((TestMessage*) message)->sequence == 11 );
+            client.ReleaseMessage( message );
+            gotFromServer = true;
+        }
+
+        if ( gotFromClient && gotFromServer )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( 0 ) );
+    check( gotFromClient );
+    check( gotFromServer );
+
+    client.Disconnect();
+    server.Stop();
+}
+
 void test_fp_contract_off()
 {
     // FP-contraction canary. If the compiler contracts a*b + c into a single fused
@@ -4458,6 +4605,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_server_client_disconnect_reason );
+        RUN_TEST( test_server_slot_reused_by_new_client );
         RUN_TEST( test_server_client_disconnect_reason_failed_to_serialize );
         RUN_TEST( test_client_disconnect_reason );
         RUN_TEST( test_client_disconnect_reason_failed_to_serialize );
