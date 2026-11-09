@@ -2480,6 +2480,61 @@ void test_server_start_per_client_memory_exhaustion()
     }
 }
 
+void test_container_allocation_failure_is_safe()
+{
+    // The sequence buffer, queue and bit array sit underneath every connection channel. When
+    // their backing allocation fails they must still be constructible and destructible: no
+    // touch of the missing buffer, and a size that keeps later use from indexing it.
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        SequenceBuffer<int> sequenceBuffer( allocator, 16 );
+        check( sequenceBuffer.GetSize() == 0 );
+        sequenceBuffer.Reset();
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        Queue<int> queue( allocator, 16 );
+        check( queue.GetSize() == 0 );
+        check( queue.IsEmpty() );
+        check( queue.IsFull() );
+        queue.Clear();
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        BitArray bitArray( allocator, 64 );
+        bitArray.Clear();
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
+void test_connection_unreliable_channel_alloc_failure_is_safe()
+{
+    // An unreliable-unordered channel whose queue object cannot be allocated must still be
+    // resettable and destructible. Arm the allocator so the channel object itself succeeds and
+    // the first thing it allocates fails, leaving the channel holding null queues.
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    ArmableAllocator allocator;
+    TestMessageFactory messageFactory( allocator );
+
+    allocator.Arm( 1 );
+    {
+        Connection connection( allocator, messageFactory, config, 0.0 );
+        check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_OUT_OF_MEMORY );
+        connection.Reset();
+    }
+    check( allocator.GetOutstanding() == 0 );
+}
+
 void test_client_connect_per_client_memory_exhaustion()
 {
     // The client side of the same contract: too little client memory for the configured
@@ -4518,6 +4573,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_server_start_alloc_failure );
         RUN_TEST( test_server_start_factory_failure );
         RUN_TEST( test_server_start_per_client_memory_exhaustion );
+        RUN_TEST( test_container_allocation_failure_is_safe );
+        RUN_TEST( test_connection_unreliable_channel_alloc_failure_is_safe );
         RUN_TEST( test_client_connect_per_client_memory_exhaustion );
         RUN_TEST( test_client_connect_alloc_failure );
         RUN_TEST( test_client_connect_factory_failure );

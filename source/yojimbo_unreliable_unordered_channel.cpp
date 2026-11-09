@@ -59,14 +59,19 @@ namespace yojimbo
     {
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
-        for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )
-            m_messageFactory->ReleaseMessage( (*m_messageSendQueue)[i] );
+        if ( m_messageSendQueue )
+        {
+            for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )
+                m_messageFactory->ReleaseMessage( (*m_messageSendQueue)[i] );
+            m_messageSendQueue->Clear();
+        }
 
-        for ( int i = 0; i < m_messageReceiveQueue->GetNumEntries(); ++i )
-            m_messageFactory->ReleaseMessage( (*m_messageReceiveQueue)[i] );
-
-        m_messageSendQueue->Clear();
-        m_messageReceiveQueue->Clear();
+        if ( m_messageReceiveQueue )
+        {
+            for ( int i = 0; i < m_messageReceiveQueue->GetNumEntries(); ++i )
+                m_messageFactory->ReleaseMessage( (*m_messageReceiveQueue)[i] );
+            m_messageReceiveQueue->Clear();
+        }
   
         ResetCounters();
     }

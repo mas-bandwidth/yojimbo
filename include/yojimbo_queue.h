@@ -54,6 +54,8 @@ namespace yojimbo
             m_entries = (T*) YOJIMBO_ALLOCATE( allocator, sizeof(T) * size );
             if ( m_entries )
                 memset( m_entries, 0, sizeof(T) * size );
+            else
+                m_arraySize = 0;
         }
 
         /**
