@@ -1767,6 +1767,98 @@ void test_connection_reliable_block_fragment_overflow()
     check( receiver.GetErrorLevel() == CONNECTION_ERROR_CHANNEL );
 }
 
+// Hand-serialize fragment 0 of a multi-fragment block. Unlike the helper above, fragment 0
+// also carries the message type and the block message body, so it must match the full
+// SerializeBlockFragment read path. fragmentSize may be shorter than blockFragmentSize.
+template <typename Stream> static bool SerializeRawBlockFragmentFirstPacket( Stream & stream, int maxFragmentsPerBlock, int blockFragmentSize, int maxMessageType, int messageType, uint16_t sequence, int numFragments, int fragmentId, int fragmentSize )
+{
+    int numChannelEntries = 1;
+    serialize_int( stream, numChannelEntries, 0, 1 );   // numChannels == 1, so channelIndex is not serialized
+
+    bool blockMessage = true;
+    serialize_bool( stream, blockMessage );
+
+    uint32_t messageId = 0;
+    serialize_bits( stream, messageId, 16 );
+
+    if ( maxFragmentsPerBlock > 1 )
+        serialize_int( stream, numFragments, 1, maxFragmentsPerBlock );
+
+    if ( numFragments > 1 )
+        serialize_int( stream, fragmentId, 0, numFragments - 1 );
+
+    serialize_int( stream, fragmentSize, 1, blockFragmentSize );
+
+    uint8_t payload[2048];
+    yojimbo_assert( fragmentSize <= (int) sizeof( payload ) );
+    memset( payload, 0xAB, sizeof( payload ) );
+    serialize_bytes( stream, payload, fragmentSize );
+
+    // fragmentId == 0: message type followed by the block message body.
+    serialize_int( stream, messageType, 0, maxMessageType );
+    serialize_bits( stream, sequence, 16 );
+
+    return true;
+}
+
+void test_connection_reliable_rejects_short_nonfinal_block_fragment()
+{
+    // Every non-final fragment of a multi-fragment block is a full blockFragmentSize on the
+    // wire. If a peer sends a shorter one, the rest of that fragment's slot in the receive
+    // buffer is never written, so a completed block would carry stale bytes from that buffer.
+    // The fragment must be rejected as a desync instead.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1100;      // not a multiple of blockFragmentSize
+    config.channel[0].blockFragmentSize = 500;  // => GetMaxFragmentsPerBlock() == 3
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+    const int maxMessageType = NUM_TEST_MESSAGE_TYPES - 1;
+
+    const int numFragments = maxFragmentsPerBlock;   // 3
+    check( numFragments > 1 );
+
+    uint8_t buffer[4096];
+
+    // Fragment 0, deliberately shorter than a full fragment.
+    {
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentFirstPacket( stream, maxFragmentsPerBlock, blockFragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0, numFragments, 0, blockFragmentSize / 2 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    }
+
+    // Feed the rest of the block too, so a receiver that accepted the short fragment would
+    // complete the block and deliver it with the unwritten gap still in the payload.
+    for ( int fragmentId = 1; fragmentId < numFragments; ++fragmentId )
+    {
+        const int fragmentSize = ( fragmentId == numFragments - 1 ) ? config.channel[0].maxBlockSize - ( numFragments - 1 ) * blockFragmentSize : blockFragmentSize;
+
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, fragmentId, fragmentSize ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    }
+
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
+}
+
 void test_connection_reliable_over_budget_packet()
 {
     // A peer sends more channel data than the receiver's configured packetBudget. On read this
@@ -4437,6 +4529,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
+        RUN_TEST( test_connection_reliable_rejects_short_nonfinal_block_fragment );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );
         RUN_TEST( test_connection_unreliable_message_alloc_failure );

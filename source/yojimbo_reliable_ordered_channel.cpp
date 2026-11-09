@@ -737,6 +737,15 @@ namespace yojimbo
                 return;
             }
 
+            // Every non-final fragment must be a full blockFragmentSize. A shorter one would
+            // leave part of that fragment's slot in blockData unwritten, and the completed
+            // block would then include whatever stale bytes were already in that buffer.
+            if ( fragmentId != numFragments - 1 && fragmentBytes != m_config.blockFragmentSize )
+            {
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                return;
+            }
+
             // receive the fragment
 
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )
