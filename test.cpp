@@ -1829,7 +1829,8 @@ void test_connection_reliable_rejects_short_nonfinal_block_fragment()
 
     uint8_t buffer[4096];
 
-    // Fragment 0, deliberately shorter than a full fragment.
+    // Fragment 0, deliberately shorter than a full fragment. The packet must be rejected on
+    // arrival, before its data is copied into the block buffer.
     {
         memset( buffer, 0, sizeof( buffer ) );
         WriteStream stream( buffer, sizeof( buffer ) );
@@ -1837,7 +1838,8 @@ void test_connection_reliable_rejects_short_nonfinal_block_fragment()
         stream.Flush();
         const int packetBytes = stream.GetBytesProcessed();
         check( packetBytes > 0 );
-        receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+        check( !receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+        check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
     }
 
     // Feed the rest of the block too, so a receiver that accepted the short fragment would
