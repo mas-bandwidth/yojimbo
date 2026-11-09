@@ -224,12 +224,18 @@ namespace yojimbo
     int ReliableOrderedChannel::GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
         if ( !HasMessagesToSend() )
+        {
+            m_sentPackets->Advance( packetSequence );
             return 0;
+        }
 
         if ( SendingBlockMessage() )
         {
             if (m_config.blockFragmentSize * 8 > availableBits)
+            {
+                m_sentPackets->Advance( packetSequence );
                 return 0;
+            }
 
             uint16_t messageId;
             uint16_t fragmentId;
@@ -255,12 +261,16 @@ namespace yojimbo
             if ( numMessageIds > 0 )
             {
                 if ( !GetMessagePacketData( packetData, messageIds, numMessageIds ) )
+                {
+                    m_sentPackets->Advance( packetSequence );
                     return 0;
+                }
                 AddMessagePacketEntry( messageIds, numMessageIds, packetSequence );
                 return messageBits;
             }
         }
 
+        m_sentPackets->Advance( packetSequence );
         return 0;
     }
 
@@ -473,7 +483,14 @@ namespace yojimbo
         if ( !sentPacketEntry )
             return;
 
-        yojimbo_assert( !sentPacketEntry->acked );
+        if ( sentPacketEntry->acked )
+        {
+            // Already processed. Drop the stale entry so a packet that later reuses this
+            // sequence number cannot be mistaken for it.
+            m_sentPackets->Remove( ack );
+            return;
+        }
+
         sentPacketEntry->acked = true;
 
         for ( int i = 0; i < (int) sentPacketEntry->numMessageIds; ++i )
@@ -510,6 +527,8 @@ namespace yojimbo
                 }
             }
         }
+
+        m_sentPackets->Remove( ack );
     }
 
     void ReliableOrderedChannel::UpdateOldestUnackedMessageId()

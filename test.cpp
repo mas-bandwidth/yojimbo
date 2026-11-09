@@ -947,6 +947,71 @@ void test_connection_reliable_ordered_messages()
     check( numMessagesReceived == NumMessagesSent );
 }
 
+void test_connection_reliable_idle_channel_packet_sequence_wrap()
+{
+    // A reliable channel that has sent and had a message acked must keep working when the
+    // connection packet sequence wraps all the way around while the channel is idle.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    sender.SendMessage( ReliableChannel, message );
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    // Send the message and let the ack come back. The channel is now idle.
+    PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+    check( !sender.HasMessagesToSend( ReliableChannel ) );
+
+    Message * received = receiver.ReceiveMessage( ReliableChannel );
+    check( received );
+    messageFactory.ReleaseMessage( received );
+
+    // Run the connection until the 16-bit packet sequence wraps back around to the sequence
+    // the message was sent on, with the channel idle the whole time.
+    const int NumPackets = 65536;
+    for ( int i = 0; i < NumPackets; ++i )
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+    check( !sender.HasMessagesToSend( ReliableChannel ) );
+
+    // The channel still delivers messages after the wrap.
+    TestMessage * message2 = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( message2 );
+    message2->sequence = 1;
+    sender.SendMessage( ReliableChannel, message2 );
+
+    int numMessagesReceived = 0;
+
+    for ( int i = 0; i < 100 && numMessagesReceived == 0; ++i )
+    {
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+        while ( true )
+        {
+            Message * messageFromSender = receiver.ReceiveMessage( ReliableChannel );
+            if ( !messageFromSender )
+                break;
+            check( messageFromSender->GetType() == TEST_MESSAGE );
+            messageFactory.ReleaseMessage( messageFromSender );
+            ++numMessagesReceived;
+        }
+    }
+
+    check( !sender.HasMessagesToSend( ReliableChannel ) );
+    check( numMessagesReceived == 1 );
+}
+
 void test_connection_reliable_ordered_blocks()
 {
     TestMessageFactory messageFactory( GetDefaultAllocator() );
@@ -4424,6 +4489,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_allocator_tlsf );
 
         RUN_TEST( test_connection_reliable_ordered_messages );
+        RUN_TEST( test_connection_reliable_idle_channel_packet_sequence_wrap );
         RUN_TEST( test_connection_reliable_ordered_blocks );
         RUN_TEST( test_connection_reliable_ordered_blocks_max_size );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks );
