@@ -190,10 +190,8 @@ namespace yojimbo
             const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
             const int64_t fragment0Bits = (int64_t) ConservativeFragmentHeaderBits + (int64_t) fragment0Bytes * 8 + (int64_t) measuredBits + (int64_t) messageTypeBits;
             const int maxChannelPacketBits = ( m_maxPacketSize & ~7 ) * 8 - ConservativePacketHeaderBits - ConservativeChannelHeaderBits;
-            const bool isBlockOverBudget = m_config.packetBudget > 0 && fragment0Bits > (int64_t) m_config.packetBudget * 8;
-            const bool isBlockOverPacketSize = fragment0Bits > (int64_t) maxChannelPacketBits;
 
-            if ( isBlockOverBudget || isBlockOverPacketSize )
+            if ( fragment0Bits > (int64_t) maxChannelPacketBits )
             {
                 SetErrorLevel( CHANNEL_ERROR_MESSAGE_TOO_LARGE );
                 m_messageFactory->ReleaseMessage( message );
@@ -249,9 +247,6 @@ namespace yojimbo
 
         if ( SendingBlockMessage() )
         {
-            if ( m_config.packetBudget > 0 )
-                availableBits = yojimbo_min( m_config.packetBudget * 8, availableBits );
-
             MessageSendQueueEntry * entry = m_messageSendQueue->Find( m_oldestUnackedMessageId );
             yojimbo_assert( entry );
             yojimbo_assert( entry->block );
