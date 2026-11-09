@@ -370,6 +370,11 @@ namespace yojimbo
         yojimbo_assert( m_clientConnection[clientIndex] );
         yojimbo_assert( channelIndex >= 0 );
         yojimbo_assert( channelIndex < m_config.numChannels );
+        if ( !IsClientConnected( clientIndex ) )
+        {
+            m_clientConnection[clientIndex]->ReleaseMessage( message );
+            return;
+        }
         return m_clientConnection[clientIndex]->SendMessage( channelIndex, message, GetContext() );
     }
 
