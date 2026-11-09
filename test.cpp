@@ -3024,6 +3024,17 @@ void test_server_message_to_unconnected_slot_not_queued()
 
     check( !server.HasMessagesToSend( 0, 0 ) );
 
+    // Repeated sends to the same unconnected slot also leave nothing queued.
+    for ( int i = 0; i < 16; ++i )
+    {
+        TestMessage * repeated = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+        check( repeated );
+        repeated->sequence = 2 + i;
+        server.SendMessage( 0, 0, repeated );
+
+        check( !server.HasMessagesToSend( 0, 0 ) );
+    }
+
     server.Stop();
 }
 
