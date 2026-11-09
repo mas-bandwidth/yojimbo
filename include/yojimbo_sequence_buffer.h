@@ -57,6 +57,11 @@ namespace yojimbo
             m_allocator = &allocator;
             m_entry_sequence = (uint32_t*) YOJIMBO_ALLOCATE( allocator, sizeof( uint32_t ) * size );
             m_entries = (T*) YOJIMBO_ALLOCATE( allocator, sizeof(T) * size );
+            if ( !m_entry_sequence || !m_entries )
+            {
+                m_size = 0;
+                return;
+            }
             Reset();
         }
 
@@ -80,7 +85,8 @@ namespace yojimbo
         void Reset()
         {
             m_sequence = 0;
-            memset( m_entry_sequence, 0xFF, sizeof( uint32_t ) * m_size );
+            if ( m_entry_sequence )
+                memset( m_entry_sequence, 0xFF, sizeof( uint32_t ) * m_size );
         }
 
         /**

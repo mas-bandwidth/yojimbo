@@ -2447,6 +2447,74 @@ void test_server_start_factory_failure()
     }
 }
 
+void test_server_start_per_client_memory_exhaustion()
+{
+    // A per-client heap smaller than what the configured channels need must make Start fail
+    // cleanly: return false, leave the server stopped, and free everything already taken. Both a
+    // size that runs out early and one that lets the first channel through before the second
+    // fails are covered.
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    const int perClientMemorySizes[] = { 65536, 1048576 };
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    for ( int i = 0; i < (int) ( sizeof( perClientMemorySizes ) / sizeof( perClientMemorySizes[0] ) ); ++i )
+    {
+        ClientServerConfig config;
+        config.serverPerClientMemory = perClientMemorySizes[i];
+
+        check( config.numChannels == 2 );
+        check( config.channel[0].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+        check( config.channel[1].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+
+        ArmableAllocator allocator;
+        {
+            Server server( allocator, privateKey, serverAddress, config, adapter, 100.0 );
+            check( !server.Start( 1 ) );
+            check( !server.IsRunning() );
+            check( server.GetMaxClients() == 0 );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
+void test_client_connect_per_client_memory_exhaustion()
+{
+    // The client side of the same contract: too little client memory for the configured
+    // channels must fail the connect cleanly, with no crash, no leak, and an out-of-memory
+    // disconnect reason.
+    Address clientAddress( "0.0.0.0", 0 );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    const int clientMemorySizes[] = { 65536, 1048576 };
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    for ( int i = 0; i < (int) ( sizeof( clientMemorySizes ) / sizeof( clientMemorySizes[0] ) ); ++i )
+    {
+        ClientServerConfig config;
+        config.clientMemory = clientMemorySizes[i];
+
+        check( config.numChannels == 2 );
+        check( config.channel[0].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+        check( config.channel[1].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+
+        ArmableAllocator allocator;
+        {
+            Client client( allocator, clientAddress, config, adapter, 100.0 );
+            check( !client.InsecureConnect( privateKey, 1, serverAddress ) );
+            check( !client.IsConnecting() );
+            check( !client.IsConnected() );
+            check( client.ConnectionFailed() );
+            check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
 void test_client_connect_alloc_failure()
 {
     // YJ-01 on the client side: BaseClient::CreateInternal bound a reference to *m_clientAllocator
@@ -4449,6 +4517,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_interface_methods_link );
         RUN_TEST( test_server_start_alloc_failure );
         RUN_TEST( test_server_start_factory_failure );
+        RUN_TEST( test_server_start_per_client_memory_exhaustion );
+        RUN_TEST( test_client_connect_per_client_memory_exhaustion );
         RUN_TEST( test_client_connect_alloc_failure );
         RUN_TEST( test_client_connect_factory_failure );
         RUN_TEST( test_client_connect_socket_failure_no_crash );

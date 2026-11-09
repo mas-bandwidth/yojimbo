@@ -80,23 +80,26 @@ namespace yojimbo
         m_receiveMessageId = 0;
         m_oldestUnackedMessageId = 0;
 
-        for ( int i = 0; i < m_messageSendQueue->GetSize(); ++i )
+        for ( int i = 0; i < ( m_messageSendQueue ? m_messageSendQueue->GetSize() : 0 ); ++i )
         {
             MessageSendQueueEntry * entry = m_messageSendQueue->GetAtIndex( i );
             if ( entry && entry->message )
                 m_messageFactory->ReleaseMessage( entry->message );
         }
 
-        for ( int i = 0; i < m_messageReceiveQueue->GetSize(); ++i )
+        for ( int i = 0; i < ( m_messageReceiveQueue ? m_messageReceiveQueue->GetSize() : 0 ); ++i )
         {
             MessageReceiveQueueEntry * entry = m_messageReceiveQueue->GetAtIndex( i );
             if ( entry && entry->message )
                 m_messageFactory->ReleaseMessage( entry->message );
         }
 
-        m_sentPackets->Reset();
-        m_messageSendQueue->Reset();
-        m_messageReceiveQueue->Reset();
+        if ( m_sentPackets )
+            m_sentPackets->Reset();
+        if ( m_messageSendQueue )
+            m_messageSendQueue->Reset();
+        if ( m_messageReceiveQueue )
+            m_messageReceiveQueue->Reset();
 
         if ( m_sendBlock )
         {

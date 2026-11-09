@@ -176,7 +176,8 @@ namespace yojimbo
         m_errorLevel = CONNECTION_ERROR_NONE;
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
         {
-            m_channel[i]->Reset();
+            if ( m_channel[i] )
+                m_channel[i]->Reset();
         }
     }
 
