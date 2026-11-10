@@ -3205,6 +3205,67 @@ void test_channel_config_max_messages_per_packet_bounds()
 #endif // #ifdef YOJIMBO_DEBUG
 }
 
+void test_channel_config_unreliable_unordered_block_fits_packet()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+
+    // An unreliable-unordered channel sends blocks without fragmenting them, so the configured
+    // block size must fit inside a single packet. maxBlockSize == maxPacketSize is the boundary.
+    {
+        ChannelConfig channel;
+        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        channel.disableBlocks = false;
+        channel.maxBlockSize = 8193;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    {
+        ChannelConfig channel;
+        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        channel.disableBlocks = false;
+        channel.maxBlockSize = 2048;
+        channel.packetBudget = 1024;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    {
+        ChannelConfig channel;
+        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        channel.disableBlocks = false;
+        channel.maxBlockSize = 8192;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    {
+        ChannelConfig channel;
+        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        channel.disableBlocks = true;
+        channel.maxBlockSize = 16384;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
 void test_connection_reliable_block_fragment_overflow()
 {
     // Regression test: a peer sends a reliable-ordered block fragment whose final fragment
@@ -6932,6 +6993,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_channel_config_max_messages_per_packet_bounds );
+        RUN_TEST( test_channel_config_unreliable_unordered_block_fits_packet );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
         RUN_TEST( test_client_server_config_packet_fragment_size_fits_netcode_payload );
