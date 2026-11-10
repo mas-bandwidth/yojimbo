@@ -68,7 +68,7 @@ Client slot state is reset on reuse: a reused slot starts with clean allocator a
 factory error state and a cleared disconnect reason, and a new client clears the reason left
 by the previous occupant (test_server_slot_reused_by_new_client,
 test_server_client_disconnect_reason).
-yojimbo also satisfies serialize's bytes%8 write contract deliberately at connection.cpp:248
+yojimbo also satisfies serialize's bytes%8 write contract deliberately at connection.cpp:255
 (maxPacketBytes &= ~7) -- do not "simplify" that line.
 FIXED 2026-07-26 (#320): Address::IsMulticast/IsLinkLocal/IsSiteLocal compared the first
 16-bit group for EXACT equality instead of masking the prefix, and IsGlobalUnicast is their
