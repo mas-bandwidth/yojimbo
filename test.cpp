@@ -6906,6 +6906,10 @@ int main( int argc, char ** argv )
     // later test aborts.
     unsigned int seed = SelectTestSeed( argc, argv );
 
+    // A failed check or assert traps without flushing, so keep stdout unbuffered: the name of
+    // the failing test and the failed condition must reach a log that is not a terminal.
+    setvbuf( stdout, NULL, _IONBF, 0 );
+
     printf( "test random seed %u\n", seed );
     fflush( stdout );
 
