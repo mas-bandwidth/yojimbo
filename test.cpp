@@ -6435,6 +6435,7 @@ void test_client_server_messages_network_sim_leak()
     ClientServerConfig config;
     config.networkSimulator = true;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[0].disableBlocks = true;
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
