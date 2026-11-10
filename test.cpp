@@ -838,7 +838,10 @@ void test_sequence_buffer_reinsert()
     next->sequence = 3;
 
     for ( int i = 0; i < 4; ++i )
+    {
         check( sequence_buffer.Find(i) );
+        check( sequence_buffer.Find(i)->sequence == i );
+    }
 
     check( sequence_buffer.GetSequence() == 4 );
 
@@ -847,7 +850,10 @@ void test_sequence_buffer_reinsert()
     older->sequence = 1;
 
     for ( int i = 0; i < 4; ++i )
+    {
         check( sequence_buffer.Find(i) );
+        check( sequence_buffer.Find(i)->sequence == i );
+    }
 
     check( sequence_buffer.GetSequence() == 4 );
 }
