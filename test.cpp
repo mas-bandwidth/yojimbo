@@ -3691,6 +3691,13 @@ void test_client_insecure_connect_token_failure_cleanup()
         Client client( allocator, clientAddress, config, noSocketAdapter, 100.0 );
         check( !client.InsecureConnect( privateKey, 1, invalidServerAddress ) );
         check( client.ConnectionFailed() );
+        check( !client.IsConnected() );
+        check( !client.IsConnecting() );
+        check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_INVALID_CONNECT_TOKEN );
+
+        // The failed attempt must have released what it allocated before returning, not only
+        // when the client is later destroyed.
+        check( allocator.GetOutstanding() == 0 );
     }
     check( allocator.GetOutstanding() == 0 );
 }
