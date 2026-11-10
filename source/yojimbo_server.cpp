@@ -327,8 +327,9 @@ namespace yojimbo
         else
         {
             // This slot now belongs to a new client: clear any disconnect reason left behind by
-            // the previous occupant of the slot.
+            // the previous occupant of the slot, and any messages queued while the slot was empty.
             SetClientDisconnectReason( clientIndex, YOJIMBO_SERVER_CLIENT_DISCONNECT_REASON_NONE );
+            ResetClient( clientIndex );
             GetAdapter().OnServerClientConnected( clientIndex );
         }
     }

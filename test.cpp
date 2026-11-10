@@ -1769,6 +1769,72 @@ template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream &
     return true;
 }
 
+// Hand-serialize a connection packet carrying a single reliable-ordered channel entry whose
+// ordinary (non-fragment) message list names a block message type. A conforming reliable-ordered
+// sender only ever carries block messages on the fragment path.
+template <typename Stream> static bool SerializeRawBlockMessageListPacket( Stream & stream, int maxMessagesPerPacket, int maxMessageType, uint16_t messageId, uint16_t sequence )
+{
+    int numChannelEntries = 1;
+    serialize_int( stream, numChannelEntries, 0, 1 );   // numChannels == 1, so channelIndex is not serialized
+
+    bool blockMessage = false;
+    serialize_bool( stream, blockMessage );
+
+    bool hasMessages = true;
+    serialize_bool( stream, hasMessages );
+
+    int numMessages = 1;
+    serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
+
+    serialize_bits( stream, messageId, 16 );
+
+    int messageType = TEST_BLOCK_MESSAGE;
+    serialize_int( stream, messageType, 0, maxMessageType );
+
+    // TestBlockMessage::Serialize writes a 16-bit sequence and no block payload.
+    serialize_bits( stream, sequence, 16 );
+
+    return true;
+}
+
+void test_connection_reliable_rejects_block_in_message_list()
+{
+    // A reliable-ordered block message is carried by the fragment path only. A message list
+    // that names a block type is not something a conforming sender produces; the receiver
+    // must reject the packet rather than deliver a block message with no attached block.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    uint8_t buffer[4096];
+    memset( buffer, 0, sizeof( buffer ) );
+    WriteStream stream( buffer, sizeof( buffer ) );
+    check( SerializeRawBlockMessageListPacket( stream,
+                                               config.channel[0].maxMessagesPerPacket,
+                                               messageFactory.GetNumTypes() - 1,
+                                               0,
+                                               0 ) );
+    stream.Flush();
+    const int packetBytes = stream.GetBytesProcessed();
+    check( packetBytes > 0 );
+
+    const bool processed = receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    check( !processed );
+
+    Message * message = receiver.ReceiveMessage( 0 );
+    if ( message )
+        messageFactory.ReleaseMessage( message );
+    check( message == NULL );
+
+    check( receiver.GetErrorLevel() != CONNECTION_ERROR_NONE );
+}
 
 struct TestSizedMessage : public Message
 {
@@ -3445,6 +3511,178 @@ void test_client_server_messages()
     server.Stop();
 }
 
+class LoopbackTestAdapter : public TestAdapter
+{
+public:
+
+    Client * client;
+    Server * server;
+
+    LoopbackTestAdapter() : client( NULL ), server( NULL ) {}
+
+    void ClientSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+    {
+        server->ProcessLoopbackPacket( clientIndex, packetData, packetBytes, packetSequence );
+    }
+
+    void ServerSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
+    {
+        (void) clientIndex;
+        client->ProcessLoopbackPacket( packetData, packetBytes, packetSequence );
+    }
+};
+
+void test_server_message_sent_before_client_connects()
+{
+    // A message the server sends to a slot with no client in it is not delivered to the
+    // client that later connects into that slot. Packets travel over loopback, in memory.
+
+    double time = 1000.0;
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    uint8_t userData[256];
+    memset( userData, 0, sizeof( userData ) );
+
+    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress( "0.0.0.0", ClientPort );
+
+    LoopbackTestAdapter loopbackAdapter;
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, loopbackAdapter, time );
+    Client client( GetDefaultAllocator(), clientAddress, config, loopbackAdapter, time );
+
+    loopbackAdapter.server = &server;
+    loopbackAdapter.client = &client;
+
+    check( server.Start( MaxClients ) );
+
+    check( !server.IsClientConnected( 0 ) );
+
+    TestMessage * before = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+    check( before );
+    before->sequence = 1;
+    server.SendMessage( 0, 0, before );
+
+    server.ConnectLoopbackClient( 0, 1, userData );
+    check( client.ConnectLoopback( 0, 1, MaxClients ) );
+    check( server.IsClientConnected( 0 ) );
+    check( client.IsConnected() );
+
+    TestMessage * after = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+    check( after );
+    after->sequence = 2;
+    server.SendMessage( 0, 0, after );
+
+    int numReceived = 0;
+    int numReceivedBefore = 0;
+    int numReceivedAfter = 0;
+
+    for ( int i = 0; i < 100 && numReceivedAfter == 0; ++i )
+    {
+        server.SendPackets();
+        client.SendPackets();
+
+        server.ReceivePackets();
+        client.ReceivePackets();
+
+        time += 0.1;
+        server.AdvanceTime( time );
+        client.AdvanceTime( time );
+
+        while ( true )
+        {
+            Message * message = client.ReceiveMessage( 0 );
+            if ( !message )
+                break;
+            check( message->GetType() == TEST_MESSAGE );
+            TestMessage * testMessage = (TestMessage*) message;
+            if ( testMessage->sequence == 1 )
+                numReceivedBefore++;
+            if ( testMessage->sequence == 2 )
+                numReceivedAfter++;
+            numReceived++;
+            client.ReleaseMessage( message );
+        }
+    }
+
+    check( numReceivedBefore == 0 );
+    check( numReceivedAfter == 1 );
+    check( numReceived == 1 );
+
+    client.DisconnectLoopback();
+    server.DisconnectLoopbackClient( 0 );
+    server.Stop();
+}
+
+class NoSocketTestAdapter : public TestAdapter
+{
+public:
+
+    bool UseCustomPacketIO() const YOJIMBO_OVERRIDE { return true; }
+
+    void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes ) YOJIMBO_OVERRIDE
+    {
+        (void) to;
+        (void) packetData;
+        (void) packetBytes;
+    }
+
+    int ReceivePacket( Address & from, uint8_t * packetData, int maxPacketBytes ) YOJIMBO_OVERRIDE
+    {
+        (void) from;
+        (void) packetData;
+        (void) maxPacketBytes;
+        return 0;
+    }
+};
+
+void test_server_message_to_unconnected_slot_not_queued()
+{
+    // Sending a message to a slot with no client in it leaves nothing queued for that slot.
+
+    double time = 1000.0;
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    NoSocketTestAdapter noSocketAdapter;
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, noSocketAdapter, time );
+
+    check( server.Start( MaxClients ) );
+
+    check( !server.IsClientConnected( 0 ) );
+    check( !server.HasMessagesToSend( 0, 0 ) );
+
+    TestMessage * message = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+    check( message );
+    message->sequence = 1;
+    server.SendMessage( 0, 0, message );
+
+    check( !server.HasMessagesToSend( 0, 0 ) );
+
+    // Repeated sends to the same unconnected slot also leave nothing queued.
+    for ( int i = 0; i < 16; ++i )
+    {
+        TestMessage * repeated = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+        check( repeated );
+        repeated->sequence = 2 + i;
+        server.SendMessage( 0, 0, repeated );
+
+        check( !server.HasMessagesToSend( 0, 0 ) );
+    }
+
+    server.Stop();
+}
+
 void CreateClients( int numClients, Client ** clients, const Address & address, const ClientServerConfig & config, Adapter & _adapter, double time )
 {
     for ( int i = 0; i < numClients; ++i )
@@ -4963,6 +5201,153 @@ void interrupt_handler( int /*dummy*/ )
 }
 #endif // #if SOAK
 
+
+static void PumpClientServer( Client & client, Server & server, double & time )
+{
+    client.SendPackets();
+    server.SendPackets();
+    client.ReceivePackets();
+    server.ReceivePackets();
+    time += 0.1;
+    client.AdvanceTime( time );
+    server.AdvanceTime( time );
+}
+
+void test_server_slot_reused_by_new_client()
+{
+    const uint64_t clientId = 1;
+
+    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    double time = 100.0;
+
+    ClientServerConfig config;
+    config.networkSimulator = false;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
+    check( server.Start( 1 ) );
+
+    Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
+
+    client.InsecureConnect( privateKey, clientId, serverAddress );
+
+    const int NumIterations = 200;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServer( client, server, time );
+        if ( client.ConnectionFailed() )
+            break;
+        if ( !client.IsConnecting() && client.IsConnected() && server.IsClientConnected( 0 ) )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( 0 ) );
+
+    const int BlockBytes = 64 * 1024;
+    const int MaxBlocks = 512;
+    uint8_t * blocks[MaxBlocks];
+    int numBlocks = 0;
+    for ( ; numBlocks < MaxBlocks; ++numBlocks )
+    {
+        uint8_t * block = server.AllocateBlock( 0, BlockBytes );
+        if ( !block )
+            break;
+        blocks[numBlocks] = block;
+    }
+    check( numBlocks > 0 );
+    check( numBlocks < MaxBlocks );
+    for ( int i = 0; i < numBlocks; ++i )
+        server.FreeBlock( 0, blocks[i] );
+
+    bool slotFreed = false;
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServer( client, server, time );
+        if ( !server.IsClientConnected( 0 ) )
+        {
+            slotFreed = true;
+            break;
+        }
+    }
+    check( slotFreed );
+
+    for ( int i = 0; i < NumIterations && client.IsConnected(); ++i )
+        PumpClientServer( client, server, time );
+
+    if ( client.IsConnected() )
+        client.Disconnect();
+
+    client.InsecureConnect( privateKey, clientId + 1, serverAddress );
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServer( client, server, time );
+        if ( client.ConnectionFailed() )
+            break;
+        if ( !client.IsConnecting() && client.IsConnected() && server.IsClientConnected( 0 ) )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( 0 ) );
+
+    TestMessage * toServer = (TestMessage*) client.CreateMessage( TEST_MESSAGE );
+    check( toServer );
+    toServer->sequence = 7;
+    client.SendMessage( ReliableChannel, toServer );
+
+    TestMessage * toClient = (TestMessage*) server.CreateMessage( 0, TEST_MESSAGE );
+    check( toClient );
+    toClient->sequence = 11;
+    server.SendMessage( 0, ReliableChannel, toClient );
+
+    bool gotFromClient = false;
+    bool gotFromServer = false;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpClientServer( client, server, time );
+
+        if ( !client.IsConnected() || !server.IsClientConnected( 0 ) )
+            break;
+
+        Message * message = server.ReceiveMessage( 0, ReliableChannel );
+        if ( message )
+        {
+            check( message->GetType() == TEST_MESSAGE );
+            check( ((TestMessage*) message)->sequence == 7 );
+            server.ReleaseMessage( 0, message );
+            gotFromClient = true;
+        }
+
+        message = client.ReceiveMessage( ReliableChannel );
+        if ( message )
+        {
+            check( message->GetType() == TEST_MESSAGE );
+            check( ((TestMessage*) message)->sequence == 11 );
+            client.ReleaseMessage( message );
+            gotFromServer = true;
+        }
+
+        if ( gotFromClient && gotFromServer )
+            break;
+    }
+
+    check( client.IsConnected() );
+    check( server.IsClientConnected( 0 ) );
+    check( gotFromClient );
+    check( gotFromServer );
+
+    client.Disconnect();
+    server.Stop();
+}
+
 void test_fp_contract_off()
 {
     // FP-contraction canary. If the compiler contracts a*b + c into a single fused
@@ -5094,6 +5479,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_trailing_bytes );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
+        RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
@@ -5122,9 +5508,12 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_is_loopback_when_disconnected );
         RUN_TEST( test_client_connect_twice_with_one_connect_token );
         RUN_TEST( test_client_server_messages );
+        RUN_TEST( test_server_message_sent_before_client_connects );
+        RUN_TEST( test_server_message_to_unconnected_slot_not_queued );
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_server_client_disconnect_reason );
+        RUN_TEST( test_server_slot_reused_by_new_client );
         RUN_TEST( test_server_client_disconnect_reason_failed_to_serialize );
         RUN_TEST( test_client_disconnect_reason );
         RUN_TEST( test_client_disconnect_reason_failed_to_serialize );

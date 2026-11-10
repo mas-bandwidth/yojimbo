@@ -178,6 +178,8 @@ namespace yojimbo
         {
             m_channel[i]->Reset();
         }
+        m_allocator->ClearError();
+        m_messageFactory->ClearErrorLevel();
     }
 
     bool Connection::CanSendMessage( int channelIndex ) const

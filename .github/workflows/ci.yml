@@ -337,7 +337,11 @@ jobs:
           set -o pipefail
           if ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
                ./build/bin/soak 20000 > soak.log 2>&1; then
-            echo "soak completed cleanly ($(grep -c 'received message' soak.log) messages exchanged)"
+            count=$(grep -c 'received message' soak.log || true)
+            echo "soak completed cleanly ($count messages exchanged)"
+            if [ "$count" -eq 0 ]; then
+              echo "soak failed: 0 messages exchanged"; tail -50 soak.log; exit 1
+            fi
           else
             echo "soak failed (exit $?)"; tail -50 soak.log; exit 1
           fi
