@@ -261,6 +261,12 @@ void test_address_malformed_port()
     check( parse_address( "[::1]]" ) == false );
     check( parse_address( "[::1]40000" ) == false );
 
+    // at most one port separator
+    check( Address( "1.2.3.4:5:6" ).IsValid() == false );
+    check( parse_address( "127.0.0.1:5:6" ) == false );
+    check( parse_address( "127.0.0.1::5" ) == false );
+    check( parse_address( "127.0.0.1:5:" ) == false );
+
     // ...and the forms that were always valid still are, with the port they say
     {
         Address address( "127.0.0.1:65535" );
