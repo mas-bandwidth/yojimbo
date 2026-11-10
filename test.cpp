@@ -2193,6 +2193,41 @@ void test_connection_reliable_ordered_block_fragment_header_headroom()
     }
 }
 
+void test_client_server_config_packet_fragment_size_fits_netcode_payload()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+
+    // A fragment is sent as fragment header (5 bytes) + packet header (up to 9 bytes) + packetFragmentSize
+    // bytes, and must fit within the 1200 byte netcode payload. The largest valid packetFragmentSize is 1186.
+
+    const int invalidFragmentSizes[] = { 1187, 1200, 4096 };
+    for ( int i = 0; i < (int) ( sizeof( invalidFragmentSizes ) / sizeof( invalidFragmentSizes[0] ) ); ++i )
+    {
+        ClientServerConfig invalidConfig;
+        invalidConfig.packetFragmentSize = invalidFragmentSizes[i];
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            invalidConfig.Validate();
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    {
+        ClientServerConfig edgeConfig;
+        edgeConfig.packetFragmentSize = 1186;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            edgeConfig.Validate();
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
 void test_connection_reliable_ordered_block_ignores_packet_budget()
 {
     double time = 1000.0;
@@ -5464,6 +5499,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
+        RUN_TEST( test_client_server_config_packet_fragment_size_fits_netcode_payload );
         RUN_TEST( test_connection_reliable_ordered_block_ignores_packet_budget );
         RUN_TEST( test_connection_reliable_ordered_message_packet_budget_fit );
         RUN_TEST( test_connection_unreliable_unordered_message_packet_budget_fit );
