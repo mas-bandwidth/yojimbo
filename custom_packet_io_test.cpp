@@ -167,6 +167,7 @@ int main()
         config.numChannels = 2;
         config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
         config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        config.channel[1].maxBlockSize = config.maxPacketSize;
 
         uint8_t privateKey[KeyBytes];
         memset( privateKey, 0, sizeof( privateKey ) );
@@ -254,6 +255,7 @@ int main()
         config.numChannels = 2;
         config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
         config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        config.channel[1].maxBlockSize = config.maxPacketSize;
 
         uint8_t privateKey[KeyBytes];
         memset( privateKey, 0, sizeof( privateKey ) );

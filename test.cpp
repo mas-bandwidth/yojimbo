@@ -2346,6 +2346,44 @@ void test_connection_reliable_ordered_message_packet_budget_fit()
     }
 }
 
+void test_unreliable_unordered_max_block_size_fits_one_packet()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+
+    {
+        ConnectionConfig oversized;
+        oversized.numChannels = 1;
+        oversized.maxPacketSize = 1024;
+        oversized.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        oversized.channel[0].disableBlocks = false;
+        oversized.channel[0].maxBlockSize = oversized.maxPacketSize + 1;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            oversized.Validate();
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    {
+        ConnectionConfig fitting;
+        fitting.numChannels = 1;
+        fitting.maxPacketSize = 1024;
+        fitting.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        fitting.channel[0].disableBlocks = false;
+        fitting.channel[0].maxBlockSize = fitting.maxPacketSize;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            fitting.Validate();
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
 void test_connection_unreliable_unordered_message_packet_budget_fit()
 {
     double time = 1000.0;
@@ -2356,6 +2394,7 @@ void test_connection_unreliable_unordered_message_packet_budget_fit()
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
     config.channel[0].packetBudget = 70;
+    config.channel[0].maxBlockSize = config.maxPacketSize;
     config.Validate();
 
     {
@@ -4987,6 +5026,7 @@ void test_client_server_messages_network_sim_leak()
     ClientServerConfig config;
     config.networkSimulator = true;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[0].maxBlockSize = config.maxPacketSize;
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -5466,6 +5506,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
         RUN_TEST( test_connection_reliable_ordered_block_ignores_packet_budget );
         RUN_TEST( test_connection_reliable_ordered_message_packet_budget_fit );
+        RUN_TEST( test_unreliable_unordered_max_block_size_fits_one_packet );
         RUN_TEST( test_connection_unreliable_unordered_message_packet_budget_fit );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
