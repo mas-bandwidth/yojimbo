@@ -3025,6 +3025,7 @@ void test_connection_unreliable_unordered_message_packet_budget_fit()
     ConnectionConfig config;
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[0].disableBlocks = true;
     config.channel[0].packetBudget = 70;
     config.Validate();
 
@@ -3092,6 +3093,7 @@ void test_connection_unreliable_send_queue_drains_when_packet_full()
     config.channel[0].disableBlocks = true;
     config.channel[0].messageResendTime = 0.0f;   // keep channel 0 saturating the packet every tick
     config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[1].disableBlocks = true;
     config.channel[1].messageSendQueueSize = 8;
     config.channel[1].messageReceiveQueueSize = 8;
     config.Validate();
