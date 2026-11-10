@@ -3243,7 +3243,7 @@ void test_client_connect_socket_failure_no_crash()
     uint8_t connectToken[ConnectTokenBytes];
     memset( connectToken, 0, sizeof( connectToken ) );
 
-    client.Connect( 1, connectToken );          // must not crash - CreateClient failed
+    check( !client.Connect( 1, connectToken ) );    // must not crash - CreateClient failed
     check( !client.IsConnected() );
 
     client.ConnectLoopback( 0, 1, 1 );          // must not crash either
