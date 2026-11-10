@@ -358,14 +358,10 @@ namespace yojimbo
         const int messageLimit = yojimbo_min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize );
         uint16_t previousMessageId = 0;
         int usedBits = ConservativeMessageHeaderBits;
-        int giveUpCounter = 0;
 
         for ( int i = 0; i < messageLimit; ++i )
         {
             if ( availableBits - usedBits < giveUpBits )
-                break;
-
-            if ( giveUpCounter > m_config.messageSendQueueSize )
                 break;
 
             uint16_t messageId = m_oldestUnackedMessageId + i;
@@ -398,7 +394,6 @@ namespace yojimbo
 
                 if ( usedBits + messageBits > availableBits )
                 {
-                    giveUpCounter++;
                     continue;
                 }
 
@@ -459,7 +454,6 @@ namespace yojimbo
         {
             sentPacket->acked = 0;
             sentPacket->block = 0;
-            sentPacket->timeSent = m_time;
             sentPacket->messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketBufferSize ) * m_config.maxMessagesPerPacket ];
             sentPacket->numMessageIds = numMessageIds;            
             for ( int i = 0; i < numMessageIds; ++i )
@@ -536,8 +530,7 @@ namespace yojimbo
 
         if ( packetData.blockMessage )
         {
-            ProcessPacketFragment( packetData.block.messageType, 
-                                   packetData.block.messageId, 
+            ProcessPacketFragment( packetData.block.messageId, 
                                    packetData.block.numFragments, 
                                    packetData.block.fragmentId, 
                                    packetData.block.fragmentData, 
@@ -649,7 +642,6 @@ namespace yojimbo
             // start sending this block
 
             m_sendBlock->active = true;
-            m_sendBlock->blockSize = blockSize;
             m_sendBlock->blockMessageId = messageId;
             m_sendBlock->numFragments = (int) ( ( (int64_t) blockSize + m_config.blockFragmentSize - 1 ) / m_config.blockFragmentSize );
             m_sendBlock->numAckedFragments = 0;
@@ -760,7 +752,6 @@ namespace yojimbo
         {
             sentPacket->numMessageIds = 0;
             sentPacket->messageIds = NULL;
-            sentPacket->timeSent = m_time;
             sentPacket->acked = 0;
             sentPacket->block = 1;
             sentPacket->blockMessageId = messageId;
@@ -768,8 +759,7 @@ namespace yojimbo
         }
     }
 
-    void ReliableOrderedChannel::ProcessPacketFragment( int messageType, 
-                                                        uint16_t messageId, 
+    void ReliableOrderedChannel::ProcessPacketFragment( uint16_t messageId, 
                                                         int numFragments, 
                                                         uint16_t fragmentId, 
                                                         const uint8_t * fragmentData, 
@@ -846,11 +836,6 @@ namespace yojimbo
                 m_receiveBlock->receivedFragment->SetBit( fragmentId );
 
                 memcpy( m_receiveBlock->blockData + fragmentId * m_config.blockFragmentSize, fragmentData, fragmentBytes );
-
-                if ( fragmentId == 0 )
-                {
-                    m_receiveBlock->messageType = messageType;
-                }
 
                 if ( fragmentId == m_receiveBlock->numFragments - 1 )
                 {
