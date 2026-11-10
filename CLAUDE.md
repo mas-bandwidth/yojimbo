@@ -45,16 +45,15 @@ DELIBERATELY ASSERT-ONLY, do NOT "fix" -- a future audit that finds these has fo
 contract: oversized block-message send (reliable_ordered_channel.cpp:562/611 -- SendMessage
 exempts block messages at :168 on purpose); BaseServer::Start's maxClients
 (base_server.cpp:54-55); Client::InsecureConnect's numServerAddresses (client.cpp:50-52); the
-whole clientIndex/channelIndex public surface. This rule is about CALLER-SUPPLIED values only:
-allocation and factory failure inside Start / CreateInternal is not a caller mistake, and those
-are checked in every build and reported through the bool those functions now return (YJ-01).
-Start and CreateInternal fail closed and unwind: the server is left stopped, the client is
-left disconnected with YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY, and everything already
-allocated (including adapter-created allocators/message factories and per-client heap
-exhaustion) is freed. Tests: test_server_start_alloc_failure,
-test_server_start_factory_failure, test_server_start_per_client_memory_exhaustion,
-test_client_connect_alloc_failure, test_client_connect_factory_failure,
-test_client_connect_per_client_memory_exhaustion and
+whole clientIndex/channelIndex public surface. This rule is about CALLER-SUPPLIED values only.
+Allocation and factory failure inside Start / CreateInternal is not a caller mistake: both
+functions report it through the bool they return (YJ-01) in every build, and fail closed --
+the server is left stopped, the client is left disconnected with
+YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY, and everything already allocated (including
+adapter-created allocators/message factories and per-client heaps) is released. Tests:
+test_server_start_alloc_failure, test_server_start_factory_failure,
+test_server_start_per_client_memory_exhaustion, test_client_connect_alloc_failure,
+test_client_connect_factory_failure, test_client_connect_per_client_memory_exhaustion and
 test_client_insecure_connect_token_failure_cleanup.
 The WIRE path is checked at runtime, not merely by audit: wire channelIndex
 (channel.cpp:459), numChannelEntries (connection.cpp:60), numFragments/fragmentId
@@ -148,8 +147,8 @@ receiver rejects a short non-final block fragment before copying it
 (test_connection_reliable_rejects_short_nonfinal_block_fragment,
 test_connection_reliable_rejects_short_middle_block_fragment); and a block message named in an
 ordinary ordered message list is rejected instead of delivered without its block
-(test_connection_reliable_rejects_block_in_message_list). With those in place this audit
-carries no open concerns.
+(test_connection_reliable_rejects_block_in_message_list). Each invariant above is enforced
+in code and pinned by the named test in test.cpp.
 
 ## What's genuinely good
 
