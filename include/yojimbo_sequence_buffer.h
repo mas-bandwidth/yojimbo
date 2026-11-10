@@ -97,7 +97,8 @@ namespace yojimbo
             {
                 if ( uint16_t( sequence + 1 ) != m_sequence )
                 {
-                    RemoveEntries( m_sequence, sequence );
+                    if ( sequence != m_sequence )
+                        RemoveEntries( m_sequence, int( sequence ) - 1 );
                     m_sequence = sequence + 1;
                 }
             }
