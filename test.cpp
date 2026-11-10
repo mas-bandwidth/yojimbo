@@ -27,6 +27,11 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <process.h>
+// <windows.h> maps SendMessage to SendMessageA/W. yojimbo.h removes the macro only after
+// Connection is declared, so remove it here before any yojimbo header is parsed.
+#ifdef SendMessage
+#undef SendMessage
+#endif
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -3146,11 +3151,11 @@ void test_channel_config_fragment_counts_without_overflow()
     check( n > 65535 );
 
     // yojimbo#346: fragmentSize on the wire is 16 bits.
-    ChannelConfig small;
-    small.maxBlockSize = 256 * 1024;
-    small.blockFragmentSize = 1024;
-    check( small.GetMaxFragmentsPerBlock() == 256 );
-    check( small.blockFragmentSize <= 65535 );
+    ChannelConfig smallChannel;
+    smallChannel.maxBlockSize = 256 * 1024;
+    smallChannel.blockFragmentSize = 1024;
+    check( smallChannel.GetMaxFragmentsPerBlock() == 256 );
+    check( smallChannel.blockFragmentSize <= 65535 );
 }
 
 void test_channel_config_max_messages_per_packet_bounds()
