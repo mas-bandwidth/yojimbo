@@ -5345,9 +5345,6 @@ void test_server_slot_reused_by_new_client()
 
 static const unsigned int DefaultTestSeed = 0x12345678u;
 
-static unsigned int g_testSeed;
-static bool g_testSeedExplicit;
-
 static unsigned int SelectTestSeed( int argc, char ** argv )
 {
     if ( argc > 1 )
@@ -5358,12 +5355,14 @@ static unsigned int SelectTestSeed( int argc, char ** argv )
 
 void test_default_seed_is_fixed()
 {
-    // an explicit seed on the command line is honoured, so only the default is asserted here
+    char program[] = "test";
+    char seed[] = "7";
 
-    if ( g_testSeedExplicit )
-        return;
+    char * no_seed[] = { program, NULL };
+    check( SelectTestSeed( 1, no_seed ) == DefaultTestSeed );
 
-    check( g_testSeed == DefaultTestSeed );
+    char * explicit_seed[] = { program, seed, NULL };
+    check( SelectTestSeed( 2, explicit_seed ) == 7 );
 }
 
 void test_fp_contract_off()
@@ -5405,9 +5404,7 @@ int main( int argc, char ** argv )
     // run is reproducible, but let a seed be passed on the command line to explore another
     // run: `./bin/test <seed>`. Print and flush the seed first so it survives even if a
     // later test aborts.
-    g_testSeedExplicit = ( argc > 1 );
-    g_testSeed = SelectTestSeed( argc, argv );
-    unsigned int seed = g_testSeed;
+    unsigned int seed = SelectTestSeed( argc, argv );
 
     printf( "test random seed %u\n", seed );
     fflush( stdout );
