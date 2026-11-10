@@ -621,6 +621,18 @@ void test_address()
     }
 }
 
+void test_address_ipv4_octets()
+{
+    Address address( "1.2.3.4:5000" );
+    check( address.IsValid() );
+    check( address.GetType() == ADDRESS_IPV4 );
+    check( address.GetPort() == 5000 );
+    check( address.GetAddress4()[0] == 1 );
+    check( address.GetAddress4()[1] == 2 );
+    check( address.GetAddress4()[2] == 3 );
+    check( address.GetAddress4()[3] == 4 );
+}
+
 void test_network_simulator_drains_all_slots()
 {
     // Regression: ReceivePackets used to scan only the first min(numEntries, maxPackets) ring
@@ -5440,6 +5452,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_fp_contract_off );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
+        RUN_TEST( test_address_ipv4_octets );
         RUN_TEST( test_address_malformed_port );
         RUN_TEST( test_address_classification );
         RUN_TEST( test_network_simulator_drains_all_slots );
