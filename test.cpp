@@ -806,6 +806,33 @@ void test_sequence_buffer()
         check( sequence_buffer.Find(i) == NULL );
 }
 
+void test_sequence_buffer_remove_entries_across_wrap()
+{
+    const int Size = 65536;
+
+    SequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
+
+    for ( int i = 0; i <= 65534; ++i )
+    {
+        TestSequenceData * entry = sequence_buffer.Insert( (uint16_t) i );
+        check( entry );
+        entry->sequence = (uint16_t) i;
+    }
+
+    check( sequence_buffer.GetSequence() == 65535 );
+    check( sequence_buffer.Find( 0 ) != NULL );
+    check( sequence_buffer.GetAtIndex( 0 ) != NULL );
+    check( sequence_buffer.Find( 65534 ) != NULL );
+
+    sequence_buffer.Advance( 0 );
+
+    check( sequence_buffer.GetSequence() == 1 );
+    check( sequence_buffer.GetAtIndex( 0 ) == NULL );
+    check( sequence_buffer.Find( 0 ) == NULL );
+    check( sequence_buffer.Available( 0 ) );
+    check( sequence_buffer.Find( 65534 ) != NULL );
+}
+
 void test_allocator_tlsf()
 {
     const int NumBlocks = 256;
@@ -5445,6 +5472,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_network_simulator_drains_all_slots );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
+        RUN_TEST( test_sequence_buffer_remove_entries_across_wrap );
         RUN_TEST( test_allocator_tlsf );
 
         RUN_TEST( test_connection_reliable_ordered_messages );
