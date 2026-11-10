@@ -839,6 +839,46 @@ void test_sequence_buffer()
         check( sequence_buffer.Find(i) == NULL );
 }
 
+template <typename T> class TestSequenceBuffer : public SequenceBuffer<T>
+{
+public:
+
+    TestSequenceBuffer( Allocator & allocator, int size ) : SequenceBuffer<T>( allocator, size ) {}
+
+    void RemoveEntries( int start_sequence, int finish_sequence )
+    {
+        SequenceBuffer<T>::RemoveEntries( start_sequence, finish_sequence );
+    }
+};
+
+void test_sequence_buffer_remove_entries_across_wrap()
+{
+    const int Size = 4;
+
+    TestSequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
+
+    const uint16_t sequences[] = { 65534, 65535, 0, 1 };
+
+    for ( int i = 0; i < 4; ++i )
+    {
+        TestSequenceData * entry = sequence_buffer.Insert( sequences[i], true );
+        check( entry );
+        entry->sequence = sequences[i];
+    }
+
+    for ( int i = 0; i < 4; ++i )
+        check( sequence_buffer.Find( sequences[i] ) != NULL );
+
+    sequence_buffer.RemoveEntries( 65535, 0 );
+
+    check( sequence_buffer.Available( 65535 ) );
+    check( sequence_buffer.Available( 0 ) );
+    check( sequence_buffer.Find( 65535 ) == NULL );
+    check( sequence_buffer.Find( 0 ) == NULL );
+    check( sequence_buffer.Find( 65534 ) != NULL );
+    check( sequence_buffer.Find( 1 ) != NULL );
+}
+
 void test_allocator_tlsf()
 {
     const int NumBlocks = 256;
@@ -5782,6 +5822,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_network_simulator_drains_all_slots );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
+        RUN_TEST( test_sequence_buffer_remove_entries_across_wrap );
         RUN_TEST( test_allocator_tlsf );
 
         RUN_TEST( test_connection_reliable_ordered_messages );
