@@ -22,6 +22,20 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <process.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/file.h>
+#endif
+
 #include "yojimbo.h"
 #include <time.h>
 #include <stdio.h>
@@ -29,6 +43,11 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <string.h>
+
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+#include <signal.h>
+#include <unistd.h>
+#endif
 
 #include "shared.h"
 #include <typeinfo>
@@ -41,6 +60,59 @@
 // which is what a matchmaker does and what Client::InsecureConnect deliberately will not do.
 // Present in both configurations, unlike sodium.h.
 #include "netcode.h"
+
+#if !defined(_WIN32)
+#include <dlfcn.h>
+
+// The network simulator makes its loss and duplicate decisions with rand(). A test that needs
+// the exact minimum draw can force rand() to zero here; every other call is forwarded to the
+// real implementation so the rest of the suite is unaffected.
+static bool g_force_zero_random = false;
+
+extern "C" int rand( void )
+{
+    if ( g_force_zero_random )
+        return 0;
+
+    typedef int ( * RandFunction )( void );
+    static RandFunction real_rand = (RandFunction) dlsym( RTLD_NEXT, "rand" );
+    return real_rand ? real_rand() : 0;
+}
+#endif // #if !defined(_WIN32)
+
+// Make the requested rand() draw return zero: force every draw on POSIX, or replay a suitable
+// seed on Windows, where the CRT's small rand() range makes the search cheap.
+static void ForceRandomMinimum( int callIndex )
+{
+#if defined(_WIN32)
+    for ( unsigned int seed = 0; ; ++seed )
+    {
+        srand( seed );
+        bool zero = false;
+        for ( int i = 0; i <= callIndex; ++i )
+        {
+            zero = ( rand() == 0 );
+            if ( i == callIndex )
+                break;
+        }
+        if ( zero )
+        {
+            srand( seed );
+            return;
+        }
+    }
+#else
+    (void) callIndex;
+    g_force_zero_random = true;
+#endif
+}
+
+static void RestoreRandom()
+{
+#if !defined(_WIN32)
+    g_force_zero_random = false;
+#endif
+}
 
 using namespace yojimbo;
 
@@ -68,6 +140,137 @@ do                                                                             \
         CheckHandler( #condition, __FUNCTION__, __FILE__, __LINE__ );          \
     }                                                                          \
 } while(0)
+
+// The unit tests must not bind the fixed ports the example programs use, otherwise two test
+// runs on the same machine collide. Pick an unused loopback port per server, starting from a
+// per-process offset so concurrent runs probe different ranges. Clients bind port zero: the
+// server learns their address from the first packet, so it need not be known in advance.
+static bool IsTestPortAvailable( int port )
+{
+#if defined(_WIN32)
+    SOCKET handle = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+    if ( handle == INVALID_SOCKET )
+        return false;
+    struct sockaddr_in address;
+    memset( &address, 0, sizeof( address ) );
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+    address.sin_port = htons( (u_short) port );
+    const bool available = bind( handle, (struct sockaddr*) &address, sizeof( address ) ) == 0;
+    closesocket( handle );
+    return available;
+#else
+    int handle = socket( AF_INET, SOCK_DGRAM, 0 );
+    if ( handle < 0 )
+        return false;
+    struct sockaddr_in address;
+    memset( &address, 0, sizeof( address ) );
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+    address.sin_port = htons( (uint16_t) port );
+    const bool available = bind( handle, (struct sockaddr*) &address, sizeof( address ) ) == 0;
+    close( handle );
+    return available;
+#endif
+}
+
+static int GetTestProcessId()
+{
+#if defined(_WIN32)
+    return (int) _getpid();
+#else
+    return (int) getpid();
+#endif
+}
+
+static int GetNextTestPort()
+{
+    static int nextPort = 0;
+    if ( nextPort == 0 )
+        nextPort = 20000 + ( GetTestProcessId() % 30000 );
+    for ( int i = 0; i < 30000; ++i )
+    {
+        const int port = nextPort;
+        if ( ++nextPort > 60000 )
+            nextPort = 20000;
+        if ( IsTestPortAvailable( port ) )
+            return port;
+    }
+    check( false );
+    return 0;
+}
+
+static Address TestClientAddress()
+{
+    return Address( "0.0.0.0", 0 );
+}
+
+static Address TestServerAddress()
+{
+    return Address( "127.0.0.1", GetNextTestPort() );
+}
+
+// The vendored netcode self-test section binds the example ports it was written against, so
+// two yojimbo_test processes would contend for them even though yojimbo's own socket tests
+// pick free ports. Hold an advisory per-user lock across that section only, so concurrent
+// test runs finish without colliding while the rest of the suite still runs in parallel.
+// This is best-effort: if the lock cannot be created the section runs unlocked rather than
+// failing the test run.
+class TestSuiteNetworkLock
+{
+public:
+#if defined(_WIN32)
+    TestSuiteNetworkLock() : m_handle( INVALID_HANDLE_VALUE )
+    {
+        char tempPath[MAX_PATH];
+        const DWORD length = GetTempPathA( MAX_PATH, tempPath );
+        if ( length == 0 || length >= MAX_PATH )
+            return;
+        char path[MAX_PATH];
+        _snprintf_s( path, sizeof( path ), _TRUNCATE, "%syojimbo_netcode_tests.lock", tempPath );
+        for ( ;; )
+        {
+            m_handle = CreateFileA( path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, NULL );
+            if ( m_handle != INVALID_HANDLE_VALUE )
+                break;
+            const DWORD error = GetLastError();
+            if ( error != ERROR_SHARING_VIOLATION && error != ERROR_ACCESS_DENIED )
+                break;
+            Sleep( 50 );
+        }
+    }
+#else
+    TestSuiteNetworkLock() : m_fd( -1 )
+    {
+        char path[128];
+        snprintf( path, sizeof( path ), "/tmp/yojimbo_netcode_tests_%u.lock", (unsigned int) getuid() );
+        m_fd = open( path, O_CREAT | O_RDWR, 0600 );
+        if ( m_fd >= 0 )
+            flock( m_fd, LOCK_EX );
+    }
+#endif
+
+    ~TestSuiteNetworkLock()
+    {
+#if defined(_WIN32)
+        if ( m_handle != INVALID_HANDLE_VALUE )
+            CloseHandle( m_handle );
+#else
+        if ( m_fd >= 0 )
+        {
+            flock( m_fd, LOCK_UN );
+            close( m_fd );
+        }
+#endif
+    }
+
+private:
+#if defined(_WIN32)
+    HANDLE m_handle;
+#else
+    int m_fd;
+#endif
+};
 
 // Allocator used by the allocation-failure tests. Delegates to malloc/free, tracks the number of
 // outstanding blocks so leaks are observable, and can be "armed" to start returning NULL after a
@@ -261,7 +464,25 @@ void test_address_malformed_port()
     check( parse_address( "[::1]]" ) == false );
     check( parse_address( "[::1]40000" ) == false );
 
+    // at most one port separator
+    {
+        Address address( "1.2.3.4:5:6" );
+        check( address.IsValid() == false );
+        check( address.GetPort() == 0 );
+    }
+    check( parse_address( "127.0.0.1:5:6" ) == false );
+    check( parse_address( "127.0.0.1::5" ) == false );
+    check( parse_address( "127.0.0.1:5:" ) == false );
+    check( parse_address( "1.2.3.4:5:6:7" ) == false );
+    check( parse_address( "1.2.3.4:5::" ) == false );
+    check( parse_address( "1.2.3.4:5:6 " ) == false );
+
     // ...and the forms that were always valid still are, with the port they say
+    {
+        Address address( "1.2.3.4:5" );
+        check( address.IsValid() );
+        check( address.GetPort() == 5 );
+    }
     {
         Address address( "127.0.0.1:65535" );
         check( address.IsValid() );
@@ -621,6 +842,21 @@ void test_address()
     }
 }
 
+void test_address_ipv4_octets()
+{
+    Address address( "1.2.3.4:5000" );
+    check( address.IsValid() );
+    check( address.GetType() == ADDRESS_IPV4 );
+    check( address.GetPort() == 5000 );
+    check( address.GetAddress4()[0] == 1 );
+    check( address.GetAddress4()[1] == 2 );
+    check( address.GetAddress4()[2] == 3 );
+    check( address.GetAddress4()[3] == 4 );
+
+    char buffer[MaxAddressLength];
+    check( strcmp( address.ToString( buffer, MaxAddressLength ), "1.2.3.4:5000" ) == 0 );
+}
+
 void test_network_simulator_drains_all_slots()
 {
     // Regression: ReceivePackets used to scan only the first min(numEntries, maxPackets) ring
@@ -672,6 +908,62 @@ void test_network_simulator_drains_all_slots()
     check( totalReceived == NumEntries );
     for ( int i = 0; i < NumEntries; ++i )
         check( seen[i] );       // tail slots (index >= maxPackets) were drained too
+}
+
+void test_network_simulator_zero_percent_no_loss_or_duplicates()
+{
+    // At 0% loss and 0% duplicates the simulator must not drop or duplicate a packet even when
+    // the random draw lands on its minimum value (0.0f). A <= comparison treats that draw as
+    // a hit and silently changes behavior at a zero setting.
+
+    const int NumEntries = 8;
+
+    uint8_t payload[8];
+    memset( payload, 0x5A, sizeof( payload ) );
+
+    // Loss is decided before the packet is stored. Disable duplicates so the zero draw reaches
+    // only the loss check.
+    {
+        NetworkSimulator sim( GetDefaultAllocator(), NumEntries, 0.0 );
+        sim.SetPacketLoss( 0.0f );
+        sim.SetDuplicates( -1.0f );
+
+        ForceRandomMinimum( 0 );
+
+        sim.SendPacket( 0, payload, sizeof( payload ) );
+        sim.AdvanceTime( 1.0 );
+
+        uint8_t * packetData[4];
+        int packetBytes[4];
+        int to[4];
+        const int n = sim.ReceivePackets( 4, packetData, packetBytes, to );
+        check( n == 1 );        // the packet must not be dropped
+        for ( int i = 0; i < n; ++i )
+            YOJIMBO_FREE( sim.GetAllocator(), packetData[i] );
+    }
+
+    // Duplicates are decided after the packet is stored, on the next draw. Disable loss so the
+    // zero draw reaches the duplicate check.
+    {
+        NetworkSimulator sim( GetDefaultAllocator(), NumEntries, 0.0 );
+        sim.SetPacketLoss( -1.0f );
+        sim.SetDuplicates( 0.0f );
+
+        ForceRandomMinimum( 1 );
+
+        sim.SendPacket( 0, payload, sizeof( payload ) );
+        sim.AdvanceTime( 1.0 );
+
+        uint8_t * packetData[4];
+        int packetBytes[4];
+        int to[4];
+        const int n = sim.ReceivePackets( 4, packetData, packetBytes, to );
+        check( n == 1 );        // the packet must not be duplicated
+        for ( int i = 0; i < n; ++i )
+            YOJIMBO_FREE( sim.GetAllocator(), packetData[i] );
+    }
+
+    RestoreRandom();
 }
 
 void test_bit_array()
@@ -792,10 +1084,11 @@ void test_sequence_buffer()
 
     for ( int i = 0; i <= Size; ++i )
     {
-        TestSequenceData * entry = sequence_buffer.Insert( i, true );
+        const uint16_t sequence = uint16_t( Size * 4 + 1 + i );
+        TestSequenceData * entry = sequence_buffer.Insert( sequence, true );
         check( entry );
-        entry->sequence = i;
-        check( sequence_buffer.GetSequence() == i + 1 );
+        entry->sequence = sequence;
+        check( sequence_buffer.GetSequence() == sequence + 1 );
     }
 
     sequence_buffer.Reset();
@@ -804,6 +1097,97 @@ void test_sequence_buffer()
 
     for ( int i = 0; i < Size; ++i )
         check( sequence_buffer.Find(i) == NULL );
+}
+
+void test_sequence_buffer_reinsert()
+{
+    const int Size = 256;
+
+    SequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
+
+    for ( int i = 0; i < 3; ++i )
+    {
+        TestSequenceData * entry = sequence_buffer.Insert( i, true );
+        check( entry );
+        entry->sequence = i;
+    }
+
+    TestSequenceData * entry = sequence_buffer.Insert( 2, true );
+    check( entry );
+    entry->sequence = 2;
+
+    check( sequence_buffer.Find(0) );
+    check( sequence_buffer.Find(0)->sequence == 0 );
+    check( sequence_buffer.Find(1) );
+    check( sequence_buffer.Find(1)->sequence == 1 );
+    check( sequence_buffer.Find(2) );
+    check( sequence_buffer.Find(2)->sequence == 2 );
+
+    check( sequence_buffer.GetSequence() == 3 );
+
+    TestSequenceData * next = sequence_buffer.Insert( 3, true );
+    check( next );
+    next->sequence = 3;
+
+    for ( int i = 0; i < 4; ++i )
+    {
+        check( sequence_buffer.Find(i) );
+        check( sequence_buffer.Find(i)->sequence == i );
+    }
+
+    check( sequence_buffer.GetSequence() == 4 );
+
+    TestSequenceData * older = sequence_buffer.Insert( 1, true );
+    check( older );
+    older->sequence = 1;
+
+    for ( int i = 0; i < 4; ++i )
+    {
+        check( sequence_buffer.Find(i) );
+        check( sequence_buffer.Find(i)->sequence == i );
+    }
+
+    check( sequence_buffer.GetSequence() == 4 );
+}
+
+template <typename T> class TestSequenceBuffer : public SequenceBuffer<T>
+{
+public:
+
+    TestSequenceBuffer( Allocator & allocator, int size ) : SequenceBuffer<T>( allocator, size ) {}
+
+    void RemoveEntries( int start_sequence, int finish_sequence )
+    {
+        SequenceBuffer<T>::RemoveEntries( start_sequence, finish_sequence );
+    }
+};
+
+void test_sequence_buffer_remove_entries_across_wrap()
+{
+    const int Size = 4;
+
+    TestSequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
+
+    const uint16_t sequences[] = { 65534, 65535, 0, 1 };
+
+    for ( int i = 0; i < 4; ++i )
+    {
+        TestSequenceData * entry = sequence_buffer.Insert( sequences[i], true );
+        check( entry );
+        entry->sequence = sequences[i];
+    }
+
+    for ( int i = 0; i < 4; ++i )
+        check( sequence_buffer.Find( sequences[i] ) != NULL );
+
+    sequence_buffer.RemoveEntries( 65535, 0 );
+
+    check( sequence_buffer.Available( 65535 ) );
+    check( sequence_buffer.Available( 0 ) );
+    check( sequence_buffer.Find( 65535 ) == NULL );
+    check( sequence_buffer.Find( 0 ) == NULL );
+    check( sequence_buffer.Find( 65534 ) != NULL );
+    check( sequence_buffer.Find( 1 ) != NULL );
 }
 
 void test_allocator_tlsf()
@@ -865,8 +1249,10 @@ void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, C
     {
         if ( yojimbo_random_int( 0, 100 ) >= packetLossPercent )
         {
-            receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes );
-            sender.ProcessAcks( &senderSequence, 1 );
+            if ( receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes ) )
+            {
+                sender.ProcessAcks( &senderSequence, 1 );
+            }
         }
     }
 
@@ -1158,6 +1544,71 @@ void test_connection_reliable_ordered_blocks_max_size()
     }
 
     check( numMessagesReceived == NumMessagesSent );
+}
+
+void test_connection_reliable_ordered_blocks_fragment_count()
+{
+    // Sends a large block whose size is one byte past a multiple of blockFragmentSize,
+    // then checks that the whole block and its final byte arrive intact.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.channel[ReliableChannel].maxBlockSize = 32 * 1024 * 1024;
+    connectionConfig.channel[ReliableChannel].blockFragmentSize = 1024;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    const int BlockSize = 16 * 1024 * 1024 + 1;
+
+    TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), BlockSize );
+    check( blockData );
+    for ( int i = 0; i < BlockSize; ++i )
+        blockData[i] = uint8_t( i * 31 );
+    blockData[BlockSize - 1] = 0x5A;
+    message->AttachBlock( messageFactory.GetAllocator(), blockData, BlockSize );
+    sender.SendMessage( ReliableChannel, message );
+
+    bool received = false;
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+    const int NumIterations = 40000;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+        while ( true )
+        {
+            Message * msg = receiver.ReceiveMessage( ReliableChannel );
+            if ( !msg )
+                break;
+
+            check( msg->GetType() == TEST_BLOCK_MESSAGE );
+
+            TestBlockMessage * blockMessage = (TestBlockMessage*) msg;
+            check( blockMessage->GetBlockSize() == BlockSize );
+
+            const uint8_t * receivedData = blockMessage->GetBlockData();
+            check( receivedData );
+            for ( int j = 0; j < BlockSize - 1; ++j )
+                check( receivedData[j] == uint8_t( j * 31 ) );
+            check( receivedData[BlockSize - 1] == 0x5A );
+
+            received = true;
+            messageFactory.ReleaseMessage( msg );
+        }
+
+        if ( received )
+            break;
+    }
+
+    check( received );
 }
 
 void test_connection_reliable_ordered_messages_and_blocks()
@@ -1614,6 +2065,120 @@ void test_connection_reject_trailing_bytes()
     check( receiver.ReceiveMessage( 0 ) == NULL );
 }
 
+void test_connection_rejected_packet_is_not_acked()
+{
+    // A packet the receiver rejects is never added to its received packet set, so no ack
+    // comes back for it and the sender must keep the message outstanding for retransmit.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    // Put the receiver into an error state so every subsequent packet is rejected.
+    uint8_t buffer[1] = { 0 };
+    check( !receiver.ProcessPacket( NULL, 0, buffer, 0 ) );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_READ_PACKET_FAILED );
+
+    TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    sender.SendMessage( 0, message );
+
+    check( sender.HasMessagesToSend( 0 ) );
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+    check( sender.HasMessagesToSend( 0 ) );
+}
+
+void test_connection_failed_message_body_not_partially_applied()
+{
+    // A packet can carry entries for several channels. If a later entry's message body
+    // fails to deserialize, the whole packet is rejected: an earlier channel entry must
+    // not enqueue its messages first.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 2;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    connectionConfig.channel[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    TestMessage * goodMessage = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( goodMessage );
+    goodMessage->sequence = 0;
+    sender.SendMessage( 0, goodMessage );
+
+    Message * failingMessage = messageFactory.CreateMessage( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
+    check( failingMessage );
+    sender.SendMessage( 1, failingMessage );
+
+    uint8_t packet[2048];
+    int packetBytes = 0;
+    check( sender.GeneratePacket( NULL, 0, packet, (int) sizeof( packet ), packetBytes ) );
+    check( packetBytes > 0 );
+
+    check( !receiver.ProcessPacket( NULL, 0, packet, packetBytes ) );
+
+    // Both channel entries travelled in this one packet: channel 1's body failure must
+    // reject the packet before channel 0's valid message is applied.
+    check( receiver.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
+    check( receiver.ReceiveMessage( 1 ) == NULL );
+}
+
+void test_connection_failed_unordered_message_body_not_partially_applied()
+{
+    // The same guarantee holds when the message body that fails to deserialize is carried
+    // by an unreliable-unordered channel: the valid entry for the other channel must not
+    // be applied from the rejected packet.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 2;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    connectionConfig.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    TestMessage * goodMessage = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( goodMessage );
+    goodMessage->sequence = 0;
+    sender.SendMessage( 0, goodMessage );
+
+    Message * failingMessage = messageFactory.CreateMessage( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
+    check( failingMessage );
+    sender.SendMessage( 1, failingMessage );
+
+    uint8_t packet[2048];
+    int packetBytes = 0;
+    check( sender.GeneratePacket( NULL, 0, packet, (int) sizeof( packet ), packetBytes ) );
+    check( packetBytes > 0 );
+
+    check( !receiver.ProcessPacket( NULL, 0, packet, packetBytes ) );
+
+    check( receiver.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
+    check( receiver.ReceiveMessage( 1 ) == NULL );
+}
+
 void test_connection_unreliable_rejects_block_fragment()
 {
     // An unreliable-unordered channel never sends a top-level block fragment (its blocks
@@ -1736,7 +2301,7 @@ void test_connection_reliable_block_fragment_on_disabled_blocks()
 // Hand-serialize a connection packet carrying a single reliable-ordered channel entry that is
 // a block fragment. Matches ConnectionPacket + ChannelPacketData::Serialize + SerializeBlockFragment
 // for a numChannels==1 config. Lets tests inject fragment fields a well-behaved sender never would.
-template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream & stream, int maxFragmentsPerBlock, int blockFragmentSize, int numFragments, int fragmentId, int fragmentSize )
+template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream & stream, int maxFragmentsPerBlock, int blockFragmentSize, int numFragments, int fragmentId, int fragmentSize, uint16_t messageId = 0 )
 {
     int numChannelEntries = 1;
     serialize_int( stream, numChannelEntries, 0, 1 );   // numChannels == 1, so channelIndex is not serialized
@@ -1744,7 +2309,6 @@ template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream &
     bool blockMessage = true;
     serialize_bool( stream, blockMessage );
 
-    uint32_t messageId = 0;
     serialize_bits( stream, messageId, 16 );
 
     if ( maxFragmentsPerBlock > 1 )
@@ -1761,6 +2325,77 @@ template <typename Stream> static bool SerializeRawBlockFragmentPacket( Stream &
     serialize_bytes( stream, payload, fragmentSize );
 
     // fragmentId != 0 here, so no message type / block message is serialized.
+    return true;
+}
+
+// Hand-serialize a connection packet carrying fragment 0 of a reliable-ordered block, including
+// the block message type and body. Lets a test choose the block's message id, which a conforming
+// sender assigns from its own send sequence.
+template <typename Stream> static bool SerializeRawBlockFragment0Packet( Stream & stream, int maxFragmentsPerBlock, int blockFragmentSize, int numFragments, uint16_t messageId, int fragmentSize, int maxMessageType, int messageType, uint16_t sequence )
+{
+    int numChannelEntries = 1;
+    serialize_int( stream, numChannelEntries, 0, 1 );   // numChannels == 1, so channelIndex is not serialized
+
+    bool blockMessage = true;
+    serialize_bool( stream, blockMessage );
+
+    serialize_bits( stream, messageId, 16 );
+
+    if ( maxFragmentsPerBlock > 1 )
+        serialize_int( stream, numFragments, 1, maxFragmentsPerBlock );
+
+    int fragmentId = 0;
+    if ( numFragments > 1 )
+        serialize_int( stream, fragmentId, 0, numFragments - 1 );
+
+    serialize_int( stream, fragmentSize, 1, blockFragmentSize );
+
+    uint8_t payload[2048];
+    yojimbo_assert( fragmentSize <= (int) sizeof( payload ) );
+    memset( payload, 0xAB, sizeof( payload ) );
+    serialize_bytes( stream, payload, fragmentSize );
+
+    // fragmentId == 0 here, so the message type and block message body follow.
+    serialize_int( stream, messageType, 0, maxMessageType );
+
+    // TestBlockMessage::Serialize writes a 16-bit sequence.
+    serialize_bits( stream, sequence, 16 );
+
+    return true;
+}
+
+// Hand-serialize a connection packet carrying a single reliable-ordered ordinary message with a
+// chosen message id. Uses TestMessage with the given sequence (16-bit sequence plus dummy bits).
+template <typename Stream> static bool SerializeRawOrderedMessagePacket( Stream & stream, int maxMessagesPerPacket, int maxMessageType, uint16_t messageId, uint16_t sequence )
+{
+    int numChannelEntries = 1;
+    serialize_int( stream, numChannelEntries, 0, 1 );   // numChannels == 1, so channelIndex is not serialized
+
+    bool blockMessage = false;
+    serialize_bool( stream, blockMessage );
+
+    bool hasMessages = true;
+    serialize_bool( stream, hasMessages );
+
+    int numMessages = 1;
+    serialize_int( stream, numMessages, 1, maxMessagesPerPacket );
+
+    serialize_bits( stream, messageId, 16 );
+
+    int messageType = TEST_MESSAGE;
+    serialize_int( stream, messageType, 0, maxMessageType );
+
+    serialize_bits( stream, sequence, 16 );
+
+    const int numBits = GetNumBitsForMessage( sequence );
+    const int numWords = numBits / 32;
+    uint32_t dummy = 0;
+    for ( int i = 0; i < numWords; ++i )
+        serialize_bits( stream, dummy, 32 );
+    const int numRemainderBits = numBits - numWords * 32;
+    if ( numRemainderBits > 0 )
+        serialize_bits( stream, dummy, numRemainderBits );
+
     return true;
 }
 
@@ -2193,6 +2828,41 @@ void test_connection_reliable_ordered_block_fragment_header_headroom()
     }
 }
 
+void test_client_server_config_packet_fragment_size_fits_netcode_payload()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+
+    // A fragment is sent as fragment header (5 bytes) + packet header (up to 9 bytes) + packetFragmentSize
+    // bytes, and must fit within the 1200 byte netcode payload. The largest valid packetFragmentSize is 1186.
+
+    const int invalidFragmentSizes[] = { 1187, 1200, 4096 };
+    for ( int i = 0; i < (int) ( sizeof( invalidFragmentSizes ) / sizeof( invalidFragmentSizes[0] ) ); ++i )
+    {
+        ClientServerConfig invalidConfig;
+        invalidConfig.packetFragmentSize = invalidFragmentSizes[i];
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            invalidConfig.Validate();
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    {
+        ClientServerConfig edgeConfig;
+        edgeConfig.packetFragmentSize = 1186;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            edgeConfig.Validate();
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
 void test_connection_reliable_ordered_block_ignores_packet_budget()
 {
     double time = 1000.0;
@@ -2443,6 +3113,62 @@ void test_connection_unreliable_unordered_message_packet_budget_fit()
     }
 }
 
+void test_connection_unreliable_send_queue_drains_when_packet_full()
+{
+    // An unreliable message can never be resent, so when a packet has no room left for it
+    // (here channel 0 reliably fills nearly the whole packet every tick) it must be dropped
+    // immediately instead of accumulating in the send queue across ticks. This sends more
+    // messages than the unreliable channel's send queue can hold, one per tick, and checks
+    // that the queue never fills and the channel never reports CHANNEL_ERROR_SEND_QUEUE_FULL.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 2;
+    config.maxPacketSize = 88;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].disableBlocks = true;
+    config.channel[0].messageResendTime = 0.0f;   // keep channel 0 saturating the packet every tick
+    config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[1].messageSendQueueSize = 8;
+    config.channel[1].messageReceiveQueueSize = 8;
+    config.Validate();
+
+    Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+
+    // One reliable message with sequence 16 measures 512 body bits, which leaves channel 1
+    // less than ConservativeMessageHeaderBits of room once channel 0 has claimed the packet.
+    TestMessage * reliableMessage = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( reliableMessage );
+    reliableMessage->sequence = 16;
+    sender.SendMessage( 0, reliableMessage );
+    check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+
+    uint8_t packetData[256];
+    int packetBytes = 0;
+
+    const int NumMessagesSent = config.channel[1].messageSendQueueSize * 4;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        check( sender.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_NONE );
+        check( sender.CanSendMessage( 1 ) );
+
+        TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+        check( message );
+        message->sequence = 0;
+        sender.SendMessage( 1, message );
+
+        sender.GeneratePacket( NULL, (uint16_t) i, packetData, config.maxPacketSize, packetBytes );
+
+        time += 0.1;
+        sender.AdvanceTime( time );
+    }
+
+    check( sender.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_NONE );
+}
+
 void test_channel_config_fragment_counts_without_overflow()
 {
     // yojimbo#347: ceil(maxBlockSize / blockFragmentSize) used to add in int
@@ -2462,6 +3188,60 @@ void test_channel_config_fragment_counts_without_overflow()
     small.blockFragmentSize = 1024;
     check( small.GetMaxFragmentsPerBlock() == 256 );
     check( small.blockFragmentSize <= 65535 );
+}
+
+void test_channel_config_max_messages_per_packet_bounds()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+
+    // maxMessagesPerPacket is bounded by the 16-bit SentPacketEntry::numMessageIds field.
+    const int invalidMaxMessagesPerPacket[] = { 0, -1, 65536, 2147483647 };
+    for ( int i = 0; i < (int) ( sizeof( invalidMaxMessagesPerPacket ) / sizeof( invalidMaxMessagesPerPacket[0] ) ); ++i )
+    {
+        ChannelConfig channel;
+        channel.maxMessagesPerPacket = invalidMaxMessagesPerPacket[i];
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    // maxMessagesPerPacket * sentPacketBufferSize is used as an int index, so it must fit in int.
+    {
+        ChannelConfig channel;
+        channel.maxMessagesPerPacket = 65535;
+        channel.sentPacketBufferSize = 65536;
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    const int validMaxMessagesPerPacket[] = { 1, 65535 };
+    for ( int i = 0; i < (int) ( sizeof( validMaxMessagesPerPacket ) / sizeof( validMaxMessagesPerPacket[0] ) ); ++i )
+    {
+        ChannelConfig channel;
+        channel.maxMessagesPerPacket = validMaxMessagesPerPacket[i];
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    {
+        ChannelConfig channel;
+        channel.maxMessagesPerPacket = 65535;
+        channel.sentPacketBufferSize = 32768;
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#endif // #ifdef YOJIMBO_DEBUG
 }
 
 void test_connection_reliable_block_fragment_overflow()
@@ -2509,6 +3289,266 @@ void test_connection_reliable_block_fragment_overflow()
 
     receiver.AdvanceTime( time );
     check( receiver.GetErrorLevel() == CONNECTION_ERROR_CHANNEL );
+}
+
+void test_connection_reliable_block_fragment_message_id_mismatch()
+{
+    // A block is in progress for message id 0. An ordinary message with the same id then
+    // advances the receive sequence, and a fragment for message id 1 arrives. The receiver
+    // must not reuse the in-progress block state (fragment count, received bits, block
+    // message) from message id 0; the id mismatch is a desync and must be rejected.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+    const int maxMessagesPerPacket = config.channel[0].maxMessagesPerPacket;
+    const int maxMessageType = messageFactory.GetNumTypes() - 1;
+    const int numFragments = 2;
+    const int fragmentSize = 16;
+
+    uint8_t buffer[4096];
+
+    // fragment 0 of block message id 0: leaves the block in progress (1 of 2 fragments)
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, blockFragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    }
+
+    // an ordinary message cannot claim the id of the block still being received
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawOrderedMessagePacket( stream, maxMessagesPerPacket, maxMessageType, 0, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( !receiver.ProcessPacket( NULL, 1, buffer, packetBytes ) );
+    }
+
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+
+    // a fragment for message id 1 reusing the stale block's fragment count
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 1, fragmentSize, 1 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 2, buffer, packetBytes );
+    }
+
+    receiver.AdvanceTime( time );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_CHANNEL );
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+}
+
+void test_connection_reliable_block_fragment_different_message_id()
+{
+    // A block is in progress for message id 0. An ordinary message with a different id moves
+    // the receive sequence past the block, and a fragment for that later id arrives. The
+    // receiver must not reassemble it into the block still in progress for message id 0.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+    const int maxMessagesPerPacket = config.channel[0].maxMessagesPerPacket;
+    const int maxMessageType = messageFactory.GetNumTypes() - 1;
+    const int numFragments = 2;
+    const int fragmentSize = 16;
+
+    uint8_t buffer[4096];
+
+    // fragment 0 of block message id 0: leaves the block in progress (1 of 2 fragments)
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, blockFragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+    }
+
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_NONE );
+
+    // ordinary message id 2 advances the receive sequence to 3 while block id 0 is in progress
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawOrderedMessagePacket( stream, maxMessagesPerPacket, maxMessageType, 2, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( receiver.ProcessPacket( NULL, 1, buffer, packetBytes ) );
+    }
+
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_NONE );
+
+    // final fragment for message id 3, which must not complete the block held for message id 0
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 1, fragmentSize, 3 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( !receiver.ProcessPacket( NULL, 2, buffer, packetBytes ) );
+    }
+
+    receiver.AdvanceTime( time );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_CHANNEL );
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+}
+
+void test_connection_reliable_rejects_short_nonfinal_block_fragment()
+{
+    // Every non-final fragment of a multi-fragment block must be a full blockFragmentSize.
+    // A shorter non-final fragment is rejected as a desync and the block is not delivered.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1100;      // not a multiple of blockFragmentSize
+    config.channel[0].blockFragmentSize = 500;  // => GetMaxFragmentsPerBlock() == 3
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+    const int maxMessageType = messageFactory.GetNumTypes() - 1;
+
+    const int numFragments = maxFragmentsPerBlock;   // 3
+    check( numFragments > 1 );
+
+    uint8_t buffer[4096];
+
+    // Fragment 0, deliberately shorter than a full fragment. The packet must be rejected on
+    // arrival, before its data is copied into the block buffer.
+    {
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, blockFragmentSize / 2, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( !receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+        check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    }
+
+    // Feed the rest of the block too; the block must still not be delivered.
+    for ( int fragmentId = 1; fragmentId < numFragments; ++fragmentId )
+    {
+        const int fragmentSize = ( fragmentId == numFragments - 1 ) ? config.channel[0].maxBlockSize - ( numFragments - 1 ) * blockFragmentSize : blockFragmentSize;
+
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, fragmentId, fragmentSize ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    }
+
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
+}
+
+void test_connection_reliable_rejects_short_middle_block_fragment()
+{
+    // The full-fragment rule applies to every non-final fragment, not only fragment 0. A short
+    // fragment in the middle of a block is rejected as a desync and the block is not delivered.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1100;      // not a multiple of blockFragmentSize
+    config.channel[0].blockFragmentSize = 500;  // => GetMaxFragmentsPerBlock() == 3
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+    const int maxMessageType = messageFactory.GetNumTypes() - 1;
+
+    const int numFragments = maxFragmentsPerBlock;   // 3
+    const int shortFragmentId = 1;                   // non-final and not fragment 0
+    check( numFragments > 2 );
+    check( shortFragmentId != 0 );
+    check( shortFragmentId != numFragments - 1 );
+
+    uint8_t buffer[4096];
+
+    // Fragment 0 arrives full size and carries the block message body.
+    {
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, blockFragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+    }
+
+    // A middle fragment, deliberately shorter than a full fragment, must be rejected on arrival.
+    {
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, shortFragmentId, blockFragmentSize / 2 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( !receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+        check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    }
+
+    // Feed the remaining fragments too; the block must still not be delivered.
+    for ( int fragmentId = shortFragmentId + 1; fragmentId < numFragments; ++fragmentId )
+    {
+        const int fragmentSize = ( fragmentId == numFragments - 1 ) ? config.channel[0].maxBlockSize - ( numFragments - 1 ) * blockFragmentSize : blockFragmentSize;
+
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, fragmentId, fragmentSize ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    }
+
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
 }
 
 void test_connection_reliable_over_budget_packet()
@@ -2845,6 +3885,81 @@ void test_connection_generate_packet_channel_data_alloc_failure()
     check( allocator.GetOutstanding() == 0 );   // no leak across teardown
 }
 
+#ifdef YOJIMBO_DEBUG
+#include <setjmp.h>
+
+static jmp_buf g_messageTypeLimitJmpBuf;
+static int g_messageTypeLimitAssertCount = 0;
+static int g_messageTypeLimitConstructed = 0;
+
+static void ExpectMessageTypeLimitAssertHandler( const char * /*condition*/, const char * /*function*/, const char * /*file*/, int /*line*/ )
+{
+    g_messageTypeLimitAssertCount++;
+    longjmp( g_messageTypeLimitJmpBuf, 1 );
+}
+#endif // #ifdef YOJIMBO_DEBUG
+
+void test_message_factory_num_types_within_type_field()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectMessageTypeLimitAssertHandler );
+
+    // Message::m_type is uint32_t : 15, so a factory count must stay in 0..32767.
+    const int rejected[] = { -1, 32768, 32769 };
+    for ( int i = 0; i < (int) ( sizeof( rejected ) / sizeof( rejected[0] ) ); ++i )
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), rejected[i] );
+            g_messageTypeLimitConstructed = 1;
+            (void) factory;
+        }
+        check( g_messageTypeLimitAssertCount == 1 );
+        check( g_messageTypeLimitConstructed == 0 );
+    }
+
+    const int accepted[] = { 0, 1, 32767 };
+    for ( int i = 0; i < (int) ( sizeof( accepted ) / sizeof( accepted[0] ) ); ++i )
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), accepted[i] );
+            check( factory.GetNumTypes() == accepted[i] );
+            g_messageTypeLimitConstructed = 1;
+        }
+        check( g_messageTypeLimitAssertCount == 0 );
+        check( g_messageTypeLimitConstructed == 1 );
+    }
+
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), 1 );
+            ConnectionConfig config;
+            config.numChannels = 1;
+            config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+            Connection connection( GetDefaultAllocator(), factory, config, 0.0 );
+            g_messageTypeLimitConstructed = 1;
+            (void) connection;
+        }
+        check( g_messageTypeLimitAssertCount == 0 );
+        check( g_messageTypeLimitConstructed == 1 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#else // #ifdef YOJIMBO_DEBUG
+    MessageFactory factory( GetDefaultAllocator(), 1 );
+    check( factory.GetNumTypes() == 1 );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
 void test_message_factory_create_message_alloc_failure()
 {
     // Regression: YOJIMBO_NEW used to run the constructor on a NULL pointer when the allocation
@@ -2980,7 +4095,7 @@ static void CallEveryServerInterfaceMethod( ServerInterface & server )
     memset( packet, 0, sizeof( packet ) );
 
     server.SetContext( NULL );
-    server.Start( 1 );
+    check( server.Start( 1 ) );
     server.Stop();
     server.DisconnectClient( 0 );
     server.DisconnectAllClients();
@@ -3044,6 +4159,33 @@ static void CallEveryClientInterfaceMethod( ClientInterface & client )
     client.ProcessLoopbackPacket( packet, sizeof( packet ), 0 );
 }
 
+void test_servers_bind_distinct_ports()
+{
+    // Two servers created from the same test configuration must be able to run at the same
+    // time: each binds its own free port, so two test processes can share one host.
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    const Address serverAddress1 = TestServerAddress();
+    const Address serverAddress2 = TestServerAddress();
+
+    Server server1( GetDefaultAllocator(), privateKey, serverAddress1, config, adapter, 100.0 );
+    Server server2( GetDefaultAllocator(), privateKey, serverAddress2, config, adapter, 100.0 );
+
+    check( server1.Start( 1 ) );
+    check( server2.Start( 1 ) );
+
+    check( server1.GetAddress().GetPort() != 0 );
+    check( server2.GetAddress().GetPort() != 0 );
+    check( server1.GetAddress().GetPort() != server2.GetAddress().GetPort() );
+
+    server2.Stop();
+    server1.Stop();
+}
+
 void test_interface_methods_link()
 {
     ClientServerConfig config;
@@ -3051,7 +4193,7 @@ void test_interface_methods_link()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, 100.0 );
+    Server server( GetDefaultAllocator(), privateKey, TestServerAddress(), config, adapter, 100.0 );
     Client client( GetDefaultAllocator(), Address( "0.0.0.0", 0 ), config, adapter, 100.0 );
 
     if ( g_callInterfaceMethods )
@@ -3119,7 +4261,7 @@ void test_server_start_alloc_failure()
     // under NDEBUG, so a release build bound references to failed allocations and ran on with a
     // half-built server. Fail at allocation N for every N up to the first N that succeeds: each
     // failure must return false, leave the server stopped, and free everything already taken.
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     ClientServerConfig config;
 
@@ -3156,7 +4298,7 @@ void test_server_start_factory_failure()
     // Same contract for the adapter factory results, which no allocator arming can reach: a user
     // allocator or message factory that fails to construct returns NULL and must be handled like
     // an allocation failure rather than dereferenced.
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     ClientServerConfig config;
 
@@ -3191,6 +4333,129 @@ void test_server_start_factory_failure()
     }
 }
 
+void test_server_start_per_client_memory_exhaustion()
+{
+    // A per-client heap smaller than what the configured channels need must make Start fail
+    // cleanly: return false, leave the server stopped, and free everything already taken. Both a
+    // size that runs out early and one that lets the first channel through before the second
+    // fails are covered.
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    const int perClientMemorySizes[] = { 65536, 1048576 };
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    for ( int i = 0; i < (int) ( sizeof( perClientMemorySizes ) / sizeof( perClientMemorySizes[0] ) ); ++i )
+    {
+        ClientServerConfig config;
+        config.serverPerClientMemory = perClientMemorySizes[i];
+
+        check( config.numChannels == 2 );
+        check( config.channel[0].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+        check( config.channel[1].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+
+        ArmableAllocator allocator;
+        {
+            Server server( allocator, privateKey, serverAddress, config, adapter, 100.0 );
+            check( !server.Start( 1 ) );
+            check( !server.IsRunning() );
+            check( server.GetMaxClients() == 0 );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
+void test_container_allocation_failure_is_safe()
+{
+    // The sequence buffer, queue and bit array sit underneath every connection channel. When
+    // their backing allocation fails they must still be constructible and destructible: no
+    // touch of the missing buffer, and a size that keeps later use from indexing it.
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        SequenceBuffer<int> sequenceBuffer( allocator, 16 );
+        check( sequenceBuffer.GetSize() == 0 );
+        sequenceBuffer.Reset();
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        Queue<int> queue( allocator, 16 );
+        check( queue.GetSize() == 0 );
+        check( queue.IsEmpty() );
+        check( queue.IsFull() );
+        queue.Clear();
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        BitArray bitArray( allocator, 64 );
+        bitArray.Clear();
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
+void test_connection_unreliable_channel_alloc_failure_is_safe()
+{
+    // An unreliable-unordered channel whose queue object cannot be allocated must still be
+    // resettable and destructible. Arm the allocator so the channel object itself succeeds and
+    // the first thing it allocates fails, leaving the channel holding null queues.
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    ArmableAllocator allocator;
+    TestMessageFactory messageFactory( allocator );
+
+    allocator.Arm( 1 );
+    {
+        Connection connection( allocator, messageFactory, config, 0.0 );
+        check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_OUT_OF_MEMORY );
+        connection.Reset();
+    }
+    check( allocator.GetOutstanding() == 0 );
+}
+
+void test_client_connect_per_client_memory_exhaustion()
+{
+    // The client side of the same contract: too little client memory for the configured
+    // channels must fail the connect cleanly, with no crash, no leak, and an out-of-memory
+    // disconnect reason.
+    Address clientAddress( "0.0.0.0", 0 );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    const int clientMemorySizes[] = { 65536, 1048576 };
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    for ( int i = 0; i < (int) ( sizeof( clientMemorySizes ) / sizeof( clientMemorySizes[0] ) ); ++i )
+    {
+        ClientServerConfig config;
+        config.clientMemory = clientMemorySizes[i];
+
+        check( config.numChannels == 2 );
+        check( config.channel[0].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+        check( config.channel[1].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+
+        ArmableAllocator allocator;
+        {
+            Client client( allocator, clientAddress, config, adapter, 100.0 );
+            check( !client.InsecureConnect( privateKey, 1, serverAddress ) );
+            check( !client.IsConnecting() );
+            check( !client.IsConnected() );
+            check( client.ConnectionFailed() );
+            check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
 void test_client_connect_alloc_failure()
 {
     // YJ-01 on the client side: BaseClient::CreateInternal bound a reference to *m_clientAllocator
@@ -3198,7 +4463,7 @@ void test_client_connect_alloc_failure()
     // returns false, leaves the client disconnected with an out-of-memory reason, and leaks
     // nothing.
     Address clientAddress( "0.0.0.0", 0 );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     ClientServerConfig config;
 
@@ -3234,7 +4499,7 @@ void test_client_connect_alloc_failure()
 void test_client_connect_factory_failure()
 {
     Address clientAddress( "0.0.0.0", 0 );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     ClientServerConfig config;
 
@@ -3282,7 +4547,7 @@ void test_client_connect_socket_failure_no_crash()
     uint8_t connectToken[ConnectTokenBytes];
     memset( connectToken, 0, sizeof( connectToken ) );
 
-    client.Connect( 1, connectToken );          // must not crash - CreateClient failed
+    check( !client.Connect( 1, connectToken ) );    // must not crash - CreateClient failed
     check( !client.IsConnected() );
 
     client.ConnectLoopback( 0, 1, 1 );          // must not crash either
@@ -3297,7 +4562,7 @@ void test_client_is_loopback_when_disconnected()
     // never-connected client (m_client == NULL) crashed. Like GetClientIndex(), it must be safe
     // to query in any state and simply report false.
     ClientServerConfig config;
-    Address clientAddress( "0.0.0.0", ClientPort );
+    Address clientAddress = TestClientAddress();
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, 100.0 );
 
     check( !client.IsLoopback() );              // must not crash; not connected -> not a loopback client
@@ -3313,8 +4578,8 @@ void test_client_connect_twice_with_one_connect_token()
     // address, after the client's slot is free again.
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -3331,6 +4596,8 @@ void test_client_connect_twice_with_one_connect_token()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     // One connect token, minted once and held, the way a matchmaker hands one to a client.
 
@@ -3430,8 +4697,8 @@ void test_client_server_messages()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -3448,7 +4715,9 @@ void test_client_server_messages()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     server.SetLatency( 250 );
     server.SetJitter( 100 );
@@ -3459,7 +4728,7 @@ void test_client_server_messages()
     {
         // connect and wait until connection completes
 
-        client.InsecureConnect( privateKey, clientId, serverAddress );
+        check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
         client.SetLatency( 250 );
         client.SetJitter( 100 );
@@ -3581,8 +4850,8 @@ void test_server_message_sent_before_client_connects()
     uint8_t userData[256];
     memset( userData, 0, sizeof( userData ) );
 
-    Address serverAddress( "127.0.0.1", ServerPort );
-    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress = TestServerAddress();
+    Address clientAddress = TestClientAddress();
 
     LoopbackTestAdapter loopbackAdapter;
 
@@ -3674,6 +4943,38 @@ public:
     }
 };
 
+void test_client_insecure_connect_token_failure_cleanup()
+{
+    // A failed insecure connect must leave the client in a clean, destroyable state: nothing
+    // allocated by the attempt may survive it, and destroying the client must be safe.
+    // The no-socket adapter keeps this to the token path regardless of the host's networking.
+    ArmableAllocator allocator;
+    {
+        Address clientAddress( "0.0.0.0", 0 );
+        Address invalidServerAddress;           // ADDRESS_NONE -> token generation fails
+        check( !invalidServerAddress.IsValid() );
+
+        ClientServerConfig config;
+
+        uint8_t privateKey[KeyBytes];
+        memset( privateKey, 0, KeyBytes );
+
+        NoSocketTestAdapter noSocketAdapter;
+
+        Client client( allocator, clientAddress, config, noSocketAdapter, 100.0 );
+        check( !client.InsecureConnect( privateKey, 1, invalidServerAddress ) );
+        check( client.ConnectionFailed() );
+        check( !client.IsConnected() );
+        check( !client.IsConnecting() );
+        check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_INVALID_CONNECT_TOKEN );
+
+        // The failed attempt must have released what it allocated before returning, not only
+        // when the client is later destroyed.
+        check( allocator.GetOutstanding() == 0 );
+    }
+    check( allocator.GetOutstanding() == 0 );
+}
+
 void test_server_message_to_unconnected_slot_not_queued()
 {
     // Sending a message to a slot with no client in it leaves nothing queued for that slot.
@@ -3685,7 +4986,7 @@ void test_server_message_to_unconnected_slot_not_queued()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     NoSocketTestAdapter noSocketAdapter;
 
@@ -3729,7 +5030,7 @@ void ConnectClients( int numClients, Client ** clients, const uint8_t privateKey
 {
     for ( int i = 0; i < numClients; ++i )
     {
-        clients[i]->InsecureConnect( privateKey, i + 1, serverAddress );
+        check( clients[i]->InsecureConnect( privateKey, i + 1, serverAddress ) );
         clients[i]->SetLatency( 250 );
         clients[i]->SetJitter( 100 );
         clients[i]->SetPacketLoss( 25 );
@@ -3775,7 +5076,7 @@ bool AnyClientDisconnected( int numClients, Client ** clients )
 void test_client_server_start_stop_restart()
 {
     Address clientAddress( "0.0.0.0", 0 );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -3802,7 +5103,9 @@ void test_client_server_start_stop_restart()
             numClients[iteration] = 1;
         }        
 
-        server.Start( numClients[iteration] );
+        check( server.Start( numClients[iteration] ) );
+
+        serverAddress = server.GetAddress();
 
         server.SetLatency( 250 );
         server.SetJitter( 100 );
@@ -3889,8 +5192,8 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -3906,11 +5209,13 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -3962,8 +5267,8 @@ void test_server_client_disconnect_reason()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -3974,7 +5279,9 @@ void test_server_client_disconnect_reason()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     // all client slots are cleared to none at server start
 
@@ -3989,7 +5296,7 @@ void test_server_client_disconnect_reason()
 
     // connect a client. while it is connected the reason stays none
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -4031,7 +5338,7 @@ void test_server_client_disconnect_reason()
 
     // reconnect. a new client connecting to the slot clears the reason back to none
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -4072,7 +5379,7 @@ void test_server_client_disconnect_reason()
     // reconnect, then let the client go silent. the server times it out and records that
     // as timed out, distinct from a clean disconnect
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -4110,7 +5417,7 @@ void test_server_client_disconnect_reason()
 
     server.Stop();
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     for ( int i = 0; i < MaxClients; ++i )
     {
@@ -4124,8 +5431,8 @@ void test_server_client_disconnect_reason_failed_to_serialize()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4141,11 +5448,13 @@ void test_server_client_disconnect_reason_failed_to_serialize()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -4197,8 +5506,8 @@ void test_client_disconnect_reason()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4209,7 +5518,9 @@ void test_client_disconnect_reason()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -4221,7 +5532,7 @@ void test_client_disconnect_reason()
 
     // connect. while connected the reason stays none
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -4261,7 +5572,7 @@ void test_client_disconnect_reason()
 
     // reconnect. a new connect attempt clears the reason back to none
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );
 
@@ -4305,7 +5616,7 @@ void test_client_disconnect_reason()
 
     server.Stop();
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );
 
@@ -4329,8 +5640,8 @@ void test_client_disconnect_reason_failed_to_serialize()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4346,11 +5657,13 @@ void test_client_disconnect_reason_failed_to_serialize()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -4402,8 +5715,8 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4419,11 +5732,13 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -4476,8 +5791,8 @@ void test_client_server_message_exhaust_stream_allocator()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4493,11 +5808,13 @@ void test_client_server_message_exhaust_stream_allocator()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -4549,8 +5866,8 @@ void test_client_server_message_receive_queue_overflow()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4568,11 +5885,13 @@ void test_client_server_message_receive_queue_overflow()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     while ( true )
     {
@@ -4621,8 +5940,8 @@ void test_reliable_outbound_sequence_outdated()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
     double deltaTime = 1.0 / 60.0;
@@ -4642,9 +5961,11 @@ void test_reliable_outbound_sequence_outdated()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    serverAddress = server.GetAddress();
+
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     Client * clients[] = { &client };
     Server * servers[] = { &server };
@@ -4747,6 +6068,70 @@ void test_reliable_outbound_sequence_outdated()
     check( !client.IsConnected() && server.GetNumConnectedClients() == 0 );
 
     server.Stop();
+}
+
+// Send and receive more than 65536 reliable-ordered messages over one connection pair so the
+// 16-bit message id crosses the 65535 -> 0 wraparound. Every message must still arrive in order.
+void test_reliable_ordered_message_id_wraparound()
+{
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    // The 16-bit message id wraps from 65535 back to 0 only after more than 65536 messages.
+    const int NumMessages = 66000;
+
+    int numMessagesSent = 0;
+    int numMessagesReceived = 0;
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    const int MaxIterations = 1000000;
+
+    for ( int i = 0; i < MaxIterations && numMessagesReceived < NumMessages; ++i )
+    {
+        // The send queue only holds messageSendQueueSize entries, so queue what fits and let the
+        // receiver drain and ack before adding more. Sending all 66000 at once is not possible.
+        while ( numMessagesSent < NumMessages && sender.CanSendMessage( ReliableChannel ) )
+        {
+            TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+            check( message );
+            message->sequence = (uint16_t) numMessagesSent;
+            sender.SendMessage( ReliableChannel, message );
+            ++numMessagesSent;
+        }
+
+        // No packet loss here: this test is about the id wrap, not about retransmission.
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage( ReliableChannel );
+            if ( !message )
+                break;
+
+            check( message->GetType() == TEST_MESSAGE );
+            check( message->GetId() == (int) (uint16_t) numMessagesReceived );
+
+            TestMessage * testMessage = (TestMessage*) message;
+            check( testMessage->sequence == (uint16_t) numMessagesReceived );
+
+            messageFactory.ReleaseMessage( message );
+
+            ++numMessagesReceived;
+        }
+    }
+
+    check( numMessagesSent == NumMessages );
+    check( numMessagesReceived == NumMessages );
+    check( sender.GetErrorLevel() == CONNECTION_ERROR_NONE );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_NONE );
 }
 
 void test_single_message_type_reliable()
@@ -5018,8 +6403,8 @@ void test_client_server_messages_network_sim_leak()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5035,7 +6420,9 @@ void test_client_server_messages_network_sim_leak()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     server.SetLatency( 500 );
     server.SetJitter( 100 );
@@ -5044,7 +6431,7 @@ void test_client_server_messages_network_sim_leak()
 
     for ( int iteration = 0; iteration < 2; ++iteration )
     {
-        client.InsecureConnect( privateKey, clientId, serverAddress );
+        check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
         client.SetLatency( 500 );
         client.SetJitter( 100 );
@@ -5252,8 +6639,8 @@ void test_server_slot_reused_by_new_client()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5266,9 +6653,11 @@ void test_server_slot_reused_by_new_client()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
     check( server.Start( 1 ) );
 
+    serverAddress = server.GetAddress();
+
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 200;
 
@@ -5318,7 +6707,7 @@ void test_server_slot_reused_by_new_client()
     if ( client.IsConnected() )
         client.Disconnect();
 
-    client.InsecureConnect( privateKey, clientId + 1, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId + 1, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -5383,6 +6772,28 @@ void test_server_slot_reused_by_new_client()
     server.Stop();
 }
 
+static const unsigned int DefaultTestSeed = 0x12345678u;
+
+static unsigned int SelectTestSeed( int argc, char ** argv )
+{
+    if ( argc > 1 )
+        return (unsigned int) strtoul( argv[1], NULL, 0 );
+
+    return DefaultTestSeed;
+}
+
+void test_default_seed_is_fixed()
+{
+    char program[] = "test";
+    char seed[] = "7";
+
+    char * no_seed[] = { program, NULL };
+    check( SelectTestSeed( 1, no_seed ) == DefaultTestSeed );
+
+    char * explicit_seed[] = { program, seed, NULL };
+    check( SelectTestSeed( 2, explicit_seed ) == 7 );
+}
+
 void test_fp_contract_off()
 {
     // FP-contraction canary. If the compiler contracts a*b + c into a single fused
@@ -5416,14 +6827,55 @@ void test_fp_contract_off()
     check( rdu == 0x0000000000000000ULL );    // one rounding would give 0x3C90000000000000
 }
 
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+
+static volatile sig_atomic_t sleep_alarm_fired = 0;
+
+static void sleep_alarm_handler( int )
+{
+    sleep_alarm_fired = 1;
+}
+
+void test_yojimbo_sleep_non_positive_returns_immediately()
+{
+    struct sigaction previous;
+    struct sigaction action;
+    memset( &action, 0, sizeof( action ) );
+    action.sa_handler = sleep_alarm_handler;
+    sigemptyset( &action.sa_mask );
+    sigaction( SIGALRM, &action, &previous );
+
+    sleep_alarm_fired = 0;
+    alarm( 2 );
+
+    const double start = yojimbo_time();
+    yojimbo_sleep( -1.0 );
+    const double elapsed = yojimbo_time() - start;
+
+    alarm( 0 );
+    sigaction( SIGALRM, &previous, NULL );
+
+    check( !sleep_alarm_fired );
+    check( elapsed < 1.0 );
+}
+
+void test_yojimbo_sleep_longer_than_one_second()
+{
+    const double start = yojimbo_time();
+    yojimbo_sleep( 1.1 );
+    const double elapsed = yojimbo_time() - start;
+    check( elapsed >= 1.0 );
+}
+
+#endif
+
 int main( int argc, char ** argv )
 {
-    // The tests are randomized (packet loss, ordering, ids). Seed rand() from the clock by
-    // default, but let a seed be passed on the command line so a flaky failure can be
-    // reproduced exactly: rerun `./bin/test <seed>` with the value printed below. Print and
-    // flush the seed first so it survives even if a later test aborts.
-    unsigned int seed = ( argc > 1 ) ? (unsigned int) strtoul( argv[1], NULL, 0 )
-                                     : (unsigned int) time( NULL );
+    // The tests are randomized (packet loss, ordering, ids). Use a fixed default seed so a
+    // run is reproducible, but let a seed be passed on the command line to explore another
+    // run: `./bin/test <seed>`. Print and flush the seed first so it survives even if a
+    // later test aborts.
+    unsigned int seed = SelectTestSeed( argc, argv );
 
     printf( "test random seed %u\n", seed );
     fflush( stdout );
@@ -5455,7 +6907,10 @@ int main( int argc, char ** argv )
 
             check( InitializeYojimbo() );
 
-            netcode_test();
+            {
+                TestSuiteNetworkLock lock;
+                netcode_test();
+            }
 
             ShutdownYojimbo();
         }
@@ -5478,19 +6933,30 @@ int main( int argc, char ** argv )
         RUN_TEST( test_crypto_aead_vectors );
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_fp_contract_off );
+        RUN_TEST( test_default_seed_is_fixed );
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+        RUN_TEST( test_yojimbo_sleep_non_positive_returns_immediately );
+        RUN_TEST( test_yojimbo_sleep_longer_than_one_second );
+#endif
+        RUN_TEST( test_servers_bind_distinct_ports );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
+        RUN_TEST( test_address_ipv4_octets );
         RUN_TEST( test_address_malformed_port );
         RUN_TEST( test_address_classification );
         RUN_TEST( test_network_simulator_drains_all_slots );
+        RUN_TEST( test_network_simulator_zero_percent_no_loss_or_duplicates );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
+        RUN_TEST( test_sequence_buffer_reinsert );
+        RUN_TEST( test_sequence_buffer_remove_entries_across_wrap );
         RUN_TEST( test_allocator_tlsf );
 
         RUN_TEST( test_connection_reliable_ordered_messages );
         RUN_TEST( test_connection_reliable_idle_channel_packet_sequence_wrap );
         RUN_TEST( test_connection_reliable_ordered_blocks );
         RUN_TEST( test_connection_reliable_ordered_blocks_max_size );
+        RUN_TEST( test_connection_reliable_ordered_blocks_fragment_count );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
@@ -5498,21 +6964,32 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_process_packet_exact_allocation );
         RUN_TEST( test_connection_reject_trailing_bytes );
+        RUN_TEST( test_connection_rejected_packet_is_not_acked );
+        RUN_TEST( test_connection_failed_message_body_not_partially_applied );
+        RUN_TEST( test_connection_failed_unordered_message_body_not_partially_applied );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
+        RUN_TEST( test_channel_config_max_messages_per_packet_bounds );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
+        RUN_TEST( test_client_server_config_packet_fragment_size_fits_netcode_payload );
         RUN_TEST( test_connection_reliable_ordered_block_ignores_packet_budget );
         RUN_TEST( test_connection_reliable_ordered_message_packet_budget_fit );
         RUN_TEST( test_unreliable_unordered_max_block_size_fits_one_packet );
         RUN_TEST( test_connection_unreliable_unordered_message_packet_budget_fit );
+        RUN_TEST( test_connection_unreliable_send_queue_drains_when_packet_full );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
+        RUN_TEST( test_connection_reliable_block_fragment_message_id_mismatch );
+        RUN_TEST( test_connection_reliable_block_fragment_different_message_id );
+        RUN_TEST( test_connection_reliable_rejects_short_nonfinal_block_fragment );
+        RUN_TEST( test_connection_reliable_rejects_short_middle_block_fragment );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );
         RUN_TEST( test_connection_unreliable_message_alloc_failure );
         RUN_TEST( test_connection_generate_packet_channel_data_alloc_failure );
+        RUN_TEST( test_message_factory_num_types_within_type_field );
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
@@ -5522,9 +6999,14 @@ int main( int argc, char ** argv )
         RUN_TEST( test_interface_methods_link );
         RUN_TEST( test_server_start_alloc_failure );
         RUN_TEST( test_server_start_factory_failure );
+        RUN_TEST( test_server_start_per_client_memory_exhaustion );
+        RUN_TEST( test_container_allocation_failure_is_safe );
+        RUN_TEST( test_connection_unreliable_channel_alloc_failure_is_safe );
+        RUN_TEST( test_client_connect_per_client_memory_exhaustion );
         RUN_TEST( test_client_connect_alloc_failure );
         RUN_TEST( test_client_connect_factory_failure );
         RUN_TEST( test_client_connect_socket_failure_no_crash );
+        RUN_TEST( test_client_insecure_connect_token_failure_cleanup );
         RUN_TEST( test_client_is_loopback_when_disconnected );
         RUN_TEST( test_client_connect_twice_with_one_connect_token );
         RUN_TEST( test_client_server_messages );
@@ -5541,6 +7023,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
         RUN_TEST( test_reliable_outbound_sequence_outdated );
+        RUN_TEST( test_reliable_ordered_message_id_wraparound );
 
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );

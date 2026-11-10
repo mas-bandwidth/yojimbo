@@ -59,14 +59,19 @@ namespace yojimbo
     {
         SetErrorLevel( CHANNEL_ERROR_NONE );
 
-        for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )
-            m_messageFactory->ReleaseMessage( (*m_messageSendQueue)[i] );
+        if ( m_messageSendQueue )
+        {
+            for ( int i = 0; i < m_messageSendQueue->GetNumEntries(); ++i )
+                m_messageFactory->ReleaseMessage( (*m_messageSendQueue)[i] );
+            m_messageSendQueue->Clear();
+        }
 
-        for ( int i = 0; i < m_messageReceiveQueue->GetNumEntries(); ++i )
-            m_messageFactory->ReleaseMessage( (*m_messageReceiveQueue)[i] );
-
-        m_messageSendQueue->Clear();
-        m_messageReceiveQueue->Clear();
+        if ( m_messageReceiveQueue )
+        {
+            for ( int i = 0; i < m_messageReceiveQueue->GetNumEntries(); ++i )
+                m_messageFactory->ReleaseMessage( (*m_messageReceiveQueue)[i] );
+            m_messageReceiveQueue->Clear();
+        }
   
         ResetCounters();
     }
@@ -238,6 +243,13 @@ namespace yojimbo
 
             messages[numMessages++] = message;
         }
+
+        // Unreliable messages are never resent, so any still queued could not be sent in this
+        // packet: drop them now instead of carrying them into later packets. Without this, a
+        // channel starved of packet space by an earlier channel accumulates messages across
+        // ticks until its send queue fills and reports CHANNEL_ERROR_SEND_QUEUE_FULL.
+        while ( !m_messageSendQueue->IsEmpty() )
+            m_messageFactory->ReleaseMessage( m_messageSendQueue->Pop() );
 
         if ( numMessages == 0 )
             return 0;

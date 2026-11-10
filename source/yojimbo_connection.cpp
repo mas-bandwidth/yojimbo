@@ -124,6 +124,8 @@ namespace yojimbo
         memset( m_channel, 0, sizeof( m_channel ) );
         yojimbo_assert( m_connectionConfig.numChannels >= 1 );
         yojimbo_assert( m_connectionConfig.numChannels <= MaxChannels );
+        // Same bound as MessageFactory: Message::m_type is an unsigned 15-bit field.
+        yojimbo_assert( messageFactory.GetNumTypes() >= 0 && messageFactory.GetNumTypes() <= 32767 );
         for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
         {
             switch ( m_connectionConfig.channel[channelIndex].type )
@@ -176,7 +178,8 @@ namespace yojimbo
         m_errorLevel = CONNECTION_ERROR_NONE;
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
         {
-            m_channel[i]->Reset();
+            if ( m_channel[i] )
+                m_channel[i]->Reset();
         }
         m_allocator->ClearError();
         m_messageFactory->ClearErrorLevel();
@@ -393,6 +396,30 @@ namespace yojimbo
 
         const bool readOk = ReadPacket( context, *m_messageFactory, m_connectionConfig, packet, padded, packetBytes );
         YOJIMBO_FREE( *m_allocator, padded );
+
+        // A message body that fails to deserialize rejects the whole packet, never just the
+        // channel it travelled on. Report the failure on its channel (so the precise
+        // disconnect reason is preserved) and reject the packet without applying any entry,
+        // including entries read before the one that failed. This check runs before any
+        // channel entry is applied so the packet is never partially applied.
+        bool messageBodyFailed = false;
+        for ( int i = 0; i < packet.numChannelEntries; ++i )
+        {
+            if ( packet.channelEntry[i].messageFailedToSerialize )
+            {
+                const int channelIndex = packet.channelEntry[i].channelIndex;
+                yojimbo_assert( channelIndex >= 0 );
+                yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
+                m_channel[channelIndex]->ProcessPacketData( packet.channelEntry[i], packetSequence );
+                messageBodyFailed = true;
+            }
+        }
+
+        if ( messageBodyFailed )
+        {
+            m_errorLevel = CONNECTION_ERROR_CHANNEL;
+            return false;
+        }
 
         if ( !readOk )
         {

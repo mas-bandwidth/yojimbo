@@ -57,6 +57,11 @@ namespace yojimbo
             m_allocator = &allocator;
             m_entry_sequence = (uint32_t*) YOJIMBO_ALLOCATE( allocator, sizeof( uint32_t ) * size );
             m_entries = (T*) YOJIMBO_ALLOCATE( allocator, sizeof(T) * size );
+            if ( !m_entry_sequence || !m_entries )
+            {
+                m_size = 0;
+                return;
+            }
             Reset();
         }
 
@@ -80,7 +85,8 @@ namespace yojimbo
         void Reset()
         {
             m_sequence = 0;
-            memset( m_entry_sequence, 0xFF, sizeof( uint32_t ) * m_size );
+            if ( m_entry_sequence )
+                memset( m_entry_sequence, 0xFF, sizeof( uint32_t ) * m_size );
         }
 
         /**
@@ -93,7 +99,16 @@ namespace yojimbo
 
         T * Insert( uint16_t sequence, bool guaranteed_order = false )
         {
-            if ( yojimbo_sequence_greater_than( sequence + 1, m_sequence ) || guaranteed_order )
+            if ( guaranteed_order )
+            {
+                if ( yojimbo_sequence_greater_than( sequence + 1, m_sequence ) )
+                {
+                    if ( sequence != m_sequence )
+                        RemoveEntries( m_sequence, int( sequence ) - 1 );
+                    m_sequence = sequence + 1;
+                }
+            }
+            else if ( yojimbo_sequence_greater_than( sequence + 1, m_sequence ) )
             {
                 RemoveEntries( m_sequence, sequence );
                 m_sequence = sequence + 1;
@@ -263,7 +278,7 @@ namespace yojimbo
         void RemoveEntries( int start_sequence, int finish_sequence )
         {
             if ( finish_sequence < start_sequence )
-                finish_sequence += 65535;
+                finish_sequence += 65536;
             yojimbo_assert( finish_sequence >= start_sequence );
             if ( finish_sequence - start_sequence < m_size )
             {
