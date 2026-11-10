@@ -30,6 +30,11 @@
 #include <inttypes.h>
 #include <string.h>
 
+#if !defined( _WIN32 )
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+
 #include "shared.h"
 #include <typeinfo>
 #include "serialize.h"
@@ -2186,6 +2191,156 @@ void test_connection_reliable_ordered_block_ignores_packet_budget()
     check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
     check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
     free( buffer );
+}
+
+template <int Size>
+struct TestFixedBodyMessage : public Message
+{
+    uint8_t body[Size];
+
+    TestFixedBodyMessage()
+    {
+        memset( body, 0, sizeof( body ) );
+    }
+
+    template <typename Stream> bool Serialize( Stream & stream )
+    {
+        // Serialized as raw 8-bit fields so the measured body is exactly Size bytes,
+        // with no integer prefix or alignment bits of its own.
+        for ( int i = 0; i < Size; ++i )
+            serialize_bits( stream, body[i], 8 );
+        return true;
+    }
+
+    YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
+};
+
+enum TestMessageBudgetType
+{
+    TEST_MESSAGE_BUDGET_FULL,
+    TEST_MESSAGE_BUDGET_FIT,
+    NUM_TEST_MESSAGE_BUDGET_TYPES
+};
+
+YOJIMBO_MESSAGE_FACTORY_START( TestMessageBudgetFactory, NUM_TEST_MESSAGE_BUDGET_TYPES );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE_BUDGET_FULL, TestFixedBodyMessage<70> );
+YOJIMBO_DECLARE_MESSAGE_TYPE( TEST_MESSAGE_BUDGET_FIT, TestFixedBodyMessage<50> );
+YOJIMBO_MESSAGE_FACTORY_FINISH();
+
+void test_connection_reliable_ordered_message_packet_budget_fit()
+{
+    double time = 1000.0;
+
+    TestMessageBudgetFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].packetBudget = 70;
+    config.Validate();
+
+    {
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+
+        TestFixedBodyMessage<70> * message = (TestFixedBodyMessage<70>*) messageFactory.CreateMessage( TEST_MESSAGE_BUDGET_FULL );
+        check( message );
+        sender.SendMessage( 0, message );
+        check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_MESSAGE_TOO_LARGE );
+    }
+
+    {
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+        Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+        TestFixedBodyMessage<50> * message = (TestFixedBodyMessage<50>*) messageFactory.CreateMessage( TEST_MESSAGE_BUDGET_FIT );
+        check( message );
+        for ( int i = 0; i < 50; ++i )
+            message->body[i] = (uint8_t) ( i + 1 );
+        sender.SendMessage( 0, message );
+        check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+
+        uint16_t senderSequence = 0;
+        uint16_t receiverSequence = 0;
+        bool received = false;
+
+        for ( int i = 0; i < 10 && !received; ++i )
+        {
+            PumpConnectionUpdate( config, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+            Message * receivedMessage = receiver.ReceiveMessage( 0 );
+            if ( receivedMessage )
+            {
+                check( receivedMessage->GetType() == TEST_MESSAGE_BUDGET_FIT );
+                TestFixedBodyMessage<50> * fitMessage = (TestFixedBodyMessage<50>*) receivedMessage;
+                for ( int j = 0; j < 50; ++j )
+                    check( fitMessage->body[j] == (uint8_t) ( j + 1 ) );
+                messageFactory.ReleaseMessage( receivedMessage );
+                received = true;
+            }
+        }
+
+        check( received );
+        check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+        check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+    }
+}
+
+void test_connection_unreliable_unordered_message_packet_budget_fit()
+{
+    double time = 1000.0;
+
+    TestMessageBudgetFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[0].packetBudget = 70;
+    config.Validate();
+
+    {
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+
+        TestFixedBodyMessage<70> * message = (TestFixedBodyMessage<70>*) messageFactory.CreateMessage( TEST_MESSAGE_BUDGET_FULL );
+        check( message );
+        sender.SendMessage( 0, message );
+        check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_MESSAGE_TOO_LARGE );
+    }
+
+    {
+        Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+        Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+        TestFixedBodyMessage<50> * message = (TestFixedBodyMessage<50>*) messageFactory.CreateMessage( TEST_MESSAGE_BUDGET_FIT );
+        check( message );
+        for ( int i = 0; i < 50; ++i )
+            message->body[i] = (uint8_t) ( 0xA0 + i );
+        sender.SendMessage( 0, message );
+        check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+
+        uint16_t senderSequence = 0;
+        uint16_t receiverSequence = 0;
+        bool received = false;
+
+        for ( int i = 0; i < 10 && !received; ++i )
+        {
+            PumpConnectionUpdate( config, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+            Message * receivedMessage = receiver.ReceiveMessage( 0 );
+            if ( receivedMessage )
+            {
+                check( receivedMessage->GetType() == TEST_MESSAGE_BUDGET_FIT );
+                TestFixedBodyMessage<50> * fitMessage = (TestFixedBodyMessage<50>*) receivedMessage;
+                for ( int j = 0; j < 50; ++j )
+                    check( fitMessage->body[j] == (uint8_t) ( 0xA0 + j ) );
+                messageFactory.ReleaseMessage( receivedMessage );
+                received = true;
+            }
+        }
+
+        check( received );
+        check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+        check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+    }
 }
 
 void test_channel_config_fragment_counts_without_overflow()
@@ -4841,6 +4996,19 @@ void test_fp_contract_off()
     check( rdu == 0x0000000000000000ULL );    // one rounding would give 0x3C90000000000000
 }
 
+static bool NetworkTestsAvailable()
+{
+#if defined( _WIN32 )
+    return true;
+#else
+    const int fd = socket( AF_INET, SOCK_DGRAM, 0 );
+    if ( fd < 0 )
+        return false;
+    close( fd );
+    return true;
+#endif
+}
+
 int main( int argc, char ** argv )
 {
     // The tests are randomized (packet loss, ordering, ids). Seed rand() from the clock by
@@ -4875,6 +5043,7 @@ int main( int argc, char ** argv )
 
 #ifndef YOJIMBO_SYSTEM_DEPS
 
+        if ( NetworkTestsAvailable() && !getenv( "YJ_SKIP_NETCODE" ) )
         {
             printf( "\n[netcode]\n\n" );
 
@@ -4929,6 +5098,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
         RUN_TEST( test_connection_reliable_ordered_block_ignores_packet_budget );
+        RUN_TEST( test_connection_reliable_ordered_message_packet_budget_fit );
+        RUN_TEST( test_connection_unreliable_unordered_message_packet_budget_fit );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );
@@ -4939,6 +5110,9 @@ int main( int argc, char ** argv )
 
         RUN_TEST( test_rtti_across_the_abi_boundary );
         RUN_TEST( test_public_layout_is_configuration_independent );
+
+        if ( NetworkTestsAvailable() )
+        {
         RUN_TEST( test_interface_methods_link );
         RUN_TEST( test_server_start_alloc_failure );
         RUN_TEST( test_server_start_factory_failure );
@@ -4964,6 +5138,11 @@ int main( int argc, char ** argv )
         RUN_TEST( test_single_message_type_unreliable );
 
         RUN_TEST( test_client_server_messages_network_sim_leak );
+        }
+        else
+        {
+            printf( "skipping client/server tests: UDP sockets unavailable\n" );
+        }
 
 #if SOAK
         if ( quit )
