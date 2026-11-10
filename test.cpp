@@ -3057,6 +3057,81 @@ void test_connection_generate_packet_channel_data_alloc_failure()
     check( allocator.GetOutstanding() == 0 );   // no leak across teardown
 }
 
+#ifdef YOJIMBO_DEBUG
+#include <setjmp.h>
+
+static jmp_buf g_messageTypeLimitJmpBuf;
+static int g_messageTypeLimitAssertCount = 0;
+static int g_messageTypeLimitConstructed = 0;
+
+static void ExpectMessageTypeLimitAssertHandler( const char * /*condition*/, const char * /*function*/, const char * /*file*/, int /*line*/ )
+{
+    g_messageTypeLimitAssertCount++;
+    longjmp( g_messageTypeLimitJmpBuf, 1 );
+}
+#endif // #ifdef YOJIMBO_DEBUG
+
+void test_message_factory_num_types_within_type_field()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectMessageTypeLimitAssertHandler );
+
+    // Message::m_type is uint32_t : 15, so a factory count must stay in 0..32767.
+    const int rejected[] = { -1, 32768, 32769 };
+    for ( int i = 0; i < (int) ( sizeof( rejected ) / sizeof( rejected[0] ) ); ++i )
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), rejected[i] );
+            g_messageTypeLimitConstructed = 1;
+            (void) factory;
+        }
+        check( g_messageTypeLimitAssertCount == 1 );
+        check( g_messageTypeLimitConstructed == 0 );
+    }
+
+    const int accepted[] = { 0, 1, 32767 };
+    for ( int i = 0; i < (int) ( sizeof( accepted ) / sizeof( accepted[0] ) ); ++i )
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), accepted[i] );
+            check( factory.GetNumTypes() == accepted[i] );
+            g_messageTypeLimitConstructed = 1;
+        }
+        check( g_messageTypeLimitAssertCount == 0 );
+        check( g_messageTypeLimitConstructed == 1 );
+    }
+
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), 1 );
+            ConnectionConfig config;
+            config.numChannels = 1;
+            config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+            Connection connection( GetDefaultAllocator(), factory, config, 0.0 );
+            g_messageTypeLimitConstructed = 1;
+            (void) connection;
+        }
+        check( g_messageTypeLimitAssertCount == 0 );
+        check( g_messageTypeLimitConstructed == 1 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#else // #ifdef YOJIMBO_DEBUG
+    MessageFactory factory( GetDefaultAllocator(), 1 );
+    check( factory.GetNumTypes() == 1 );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
 void test_message_factory_create_message_alloc_failure()
 {
     // Regression: YOJIMBO_NEW used to run the constructor on a NULL pointer when the allocation
@@ -5837,6 +5912,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_message_alloc_failure );
         RUN_TEST( test_connection_unreliable_message_alloc_failure );
         RUN_TEST( test_connection_generate_packet_channel_data_alloc_failure );
+        RUN_TEST( test_message_factory_num_types_within_type_field );
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 

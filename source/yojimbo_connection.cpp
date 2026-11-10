@@ -124,6 +124,8 @@ namespace yojimbo
         memset( m_channel, 0, sizeof( m_channel ) );
         yojimbo_assert( m_connectionConfig.numChannels >= 1 );
         yojimbo_assert( m_connectionConfig.numChannels <= MaxChannels );
+        // Same bound as MessageFactory: Message::m_type is an unsigned 15-bit field.
+        yojimbo_assert( messageFactory.GetNumTypes() >= 0 && messageFactory.GetNumTypes() <= 32767 );
         for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
         {
             switch ( m_connectionConfig.channel[channelIndex].type )
