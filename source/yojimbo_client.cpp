@@ -71,6 +71,7 @@ namespace yojimbo
         if ( !GenerateInsecureConnectToken( connectToken, privateKey, clientId, serverAddresses, numServerAddresses ) )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: failed to generate insecure connect token\n" );
+            Disconnect();
             SetDisconnectReason( YOJIMBO_CLIENT_DISCONNECT_REASON_INVALID_CONNECT_TOKEN );
             SetClientState( CLIENT_STATE_ERROR );
             return false;

@@ -95,7 +95,10 @@ namespace yojimbo
         /**
             Get messages to include in a packet.
             Messages are measured to see how many bits they take, and only messages that fit within the channel packet budget will be included. See ChannelConfig::packetBudget.
-            Takes care not to send messages too rapidly by respecting ChannelConfig::messageResendTime for each message, and to only include messages that that the receiver is able to buffer in their receive queue. In other words, won't run ahead of the receiver.
+            Takes care not to send messages too rapidly by respecting ChannelConfig::messageResendTime for each message.
+            Sending is not gated on the application dequeuing received messages: a message is acknowledged once the receiver inserts it into its receive queue, not when ReceiveMessage() returns it, so the sender can run ahead of the application.
+            The receiver accepts message ids in the window [next, next + ChannelConfig::messageReceiveQueueSize - 1], where next is the id of the next message ReceiveMessage() will return, and that window advances only as ReceiveMessage() is called. Drain the receive queue every tick alongside ReceivePackets().
+            If the application cannot drain every tick, size ChannelConfig::messageReceiveQueueSize to cover the largest burst it may leave queued; ChannelConfig::messageSendQueueSize is a safe bound. Otherwise the next message falls outside the receive window and the channel fails with CHANNEL_ERROR_DESYNC.
             @param messageIds Array of message ids to be filled [out]. Fills up to ChannelConfig::maxMessagesPerPacket messages, make sure your array is at least this size.
             @param numMessageIds The number of message ids written to the array.
             @param remainingPacketBits Number of bits remaining in the packet. Considers this as a hard limit when determining how many messages can fit into the packet.
@@ -207,7 +210,6 @@ namespace yojimbo
         /**
             Process a packet fragment.
             The fragment is added to the set of received fragments for the block. When all packet fragments are received, that block is reconstructed, attached to the block message and added to the message receive queue.
-            @param messageType The type of the message this block fragment is attached to. This is used to make sure this message type actually allows blocks to be attached to it.
             @param messageId The id of the message the block fragment belongs to.
             @param numFragments The number of fragments in the block.
             @param fragmentId The id of the fragment in [0,numFragments-1].
@@ -216,8 +218,7 @@ namespace yojimbo
             @param blockMessage Pointer to the block message. Passed this in only with the first fragment (0), pass NULL for all other fragments.
          */
 
-        void ProcessPacketFragment( int messageType,
-                                    uint16_t messageId,
+        void ProcessPacketFragment( uint16_t messageId,
                                     int numFragments,
                                     uint16_t fragmentId,
                                     const uint8_t * fragmentData,
@@ -254,7 +255,6 @@ namespace yojimbo
 
         struct SentPacketEntry
         {
-            double timeSent;                                                            ///< The time the packet was sent. Used to estimate round trip time.
             uint16_t * messageIds;                                                      ///< Pointer to an array of message ids. Dynamically allocated because the user can configure the maximum number of messages in a packet per-channel with ChannelConfig::maxMessagesPerPacket.
             uint32_t numMessageIds : 16;                                                ///< The number of message ids in in the array.
             uint32_t acked : 1;                                                         ///< 1 if this packet has been acked.
@@ -293,11 +293,9 @@ namespace yojimbo
                 numFragments = 0;
                 numAckedFragments = 0;
                 blockMessageId = 0;
-                blockSize = 0;
             }
 
             bool active;                                                                ///< True if we are currently sending a block.
-            int blockSize;                                                              ///< The size of the block (bytes).
             int numFragments;                                                           ///< Number of fragments in the block being sent.
             int numAckedFragments;                                                      ///< Number of acked fragments in the block being sent.
             uint16_t blockMessageId;                                                    ///< The message id the block is attached to.
@@ -343,7 +341,6 @@ namespace yojimbo
                 numFragments = 0;
                 numReceivedFragments = 0;
                 messageId = 0;
-                messageType = 0;
                 blockSize = 0;
             }
 
@@ -351,7 +348,6 @@ namespace yojimbo
             int numFragments;                                                           ///< The number of fragments in this block
             int numReceivedFragments;                                                   ///< The number of fragments received.
             uint16_t messageId;                                                         ///< The message id corresponding to the block.
-            int messageType;                                                            ///< Message type of the block being received.
             uint32_t blockSize;                                                         ///< Block size in bytes.
             BitArray * receivedFragment;                                                ///< Has fragment n been received?
             uint8_t * blockData;                                                        ///< Block data for receive.
