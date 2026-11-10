@@ -806,31 +806,44 @@ void test_sequence_buffer()
         check( sequence_buffer.Find(i) == NULL );
 }
 
+template <typename T> class TestSequenceBuffer : public SequenceBuffer<T>
+{
+public:
+
+    TestSequenceBuffer( Allocator & allocator, int size ) : SequenceBuffer<T>( allocator, size ) {}
+
+    void RemoveEntries( int start_sequence, int finish_sequence )
+    {
+        SequenceBuffer<T>::RemoveEntries( start_sequence, finish_sequence );
+    }
+};
+
 void test_sequence_buffer_remove_entries_across_wrap()
 {
-    const int Size = 65536;
+    const int Size = 4;
 
-    SequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
+    TestSequenceBuffer<TestSequenceData> sequence_buffer( GetDefaultAllocator(), Size );
 
-    for ( int i = 0; i <= 65534; ++i )
+    const uint16_t sequences[] = { 65534, 65535, 0, 1 };
+
+    for ( int i = 0; i < 4; ++i )
     {
-        TestSequenceData * entry = sequence_buffer.Insert( (uint16_t) i );
+        TestSequenceData * entry = sequence_buffer.Insert( sequences[i], true );
         check( entry );
-        entry->sequence = (uint16_t) i;
+        entry->sequence = sequences[i];
     }
 
-    check( sequence_buffer.GetSequence() == 65535 );
-    check( sequence_buffer.Find( 0 ) != NULL );
-    check( sequence_buffer.GetAtIndex( 0 ) != NULL );
-    check( sequence_buffer.Find( 65534 ) != NULL );
+    for ( int i = 0; i < 4; ++i )
+        check( sequence_buffer.Find( sequences[i] ) != NULL );
 
-    sequence_buffer.Advance( 0 );
+    sequence_buffer.RemoveEntries( 65535, 0 );
 
-    check( sequence_buffer.GetSequence() == 1 );
-    check( sequence_buffer.GetAtIndex( 0 ) == NULL );
-    check( sequence_buffer.Find( 0 ) == NULL );
+    check( sequence_buffer.Available( 65535 ) );
     check( sequence_buffer.Available( 0 ) );
+    check( sequence_buffer.Find( 65535 ) == NULL );
+    check( sequence_buffer.Find( 0 ) == NULL );
     check( sequence_buffer.Find( 65534 ) != NULL );
+    check( sequence_buffer.Find( 1 ) != NULL );
 }
 
 void test_allocator_tlsf()
