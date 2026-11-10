@@ -879,6 +879,26 @@ void test_sequence_buffer()
     wrap_insert_buffer.Remove( 0 );
     check( wrap_insert_buffer.Available( 0 ) );
     check( !wrap_insert_buffer.Exists( 0 ) );
+
+    // the non-guaranteed insert path across 65535 -> 0 must run the wrapped range clear
+    // without disturbing the entry immediately below the wrap
+
+    SequenceBuffer<TestSequenceData> wrap_insert_order_buffer( GetDefaultAllocator(), Size );
+
+    TestSequenceData * order_entry_65534 = wrap_insert_order_buffer.Insert( 65534, true );
+    check( order_entry_65534 );
+    order_entry_65534->sequence = 65534;
+    check( wrap_insert_order_buffer.GetSequence() == 65535 );
+
+    TestSequenceData * order_entry_0 = wrap_insert_order_buffer.Insert( 0 );
+    check( order_entry_0 );
+    order_entry_0->sequence = 0;
+    check( wrap_insert_order_buffer.GetSequence() == 1 );
+    check( wrap_insert_order_buffer.Exists( 0 ) );
+    check( wrap_insert_order_buffer.Find( 0 ) == order_entry_0 );
+    check( wrap_insert_order_buffer.Exists( 65534 ) );
+    check( wrap_insert_order_buffer.Find( 65534 ) == order_entry_65534 );
+    check( wrap_insert_order_buffer.Available( 65535 ) );
 }
 
 void test_allocator_tlsf()
