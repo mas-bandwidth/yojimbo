@@ -899,6 +899,35 @@ void test_sequence_buffer()
     check( wrap_insert_order_buffer.Exists( 65534 ) );
     check( wrap_insert_order_buffer.Find( 65534 ) == order_entry_65534 );
     check( wrap_insert_order_buffer.Available( 65535 ) );
+
+    // advancing across the wrap with a non-zero finish must clear an entry left over from
+    // the previous wrap whose index collides with a sequence inside the wrapped range
+
+    SequenceBuffer<TestSequenceData> wrap_advance_buffer( GetDefaultAllocator(), Size );
+
+    TestSequenceData * advance_entry_65282 = wrap_advance_buffer.Insert( 65282, true );
+    check( advance_entry_65282 );
+    advance_entry_65282->sequence = 65282;
+    check( wrap_advance_buffer.GetSequence() == 65283 );
+    check( wrap_advance_buffer.Exists( 65282 ) );
+
+    TestSequenceData * advance_entry_65530 = wrap_advance_buffer.Insert( 65530, true );
+    check( advance_entry_65530 );
+    advance_entry_65530->sequence = 65530;
+    check( wrap_advance_buffer.GetSequence() == 65531 );
+    check( wrap_advance_buffer.Exists( 65530 ) );
+    check( wrap_advance_buffer.Exists( 65282 ) );
+
+    wrap_advance_buffer.Advance( 3 );
+
+    check( wrap_advance_buffer.GetSequence() == 4 );
+    check( !wrap_advance_buffer.Exists( 65282 ) );
+    check( wrap_advance_buffer.Available( 65282 ) );
+    check( wrap_advance_buffer.Find( 65282 ) == NULL );
+    check( wrap_advance_buffer.Exists( 65530 ) );
+    check( wrap_advance_buffer.Find( 65530 ) == advance_entry_65530 );
+    check( !wrap_advance_buffer.Exists( 3 ) );
+    check( wrap_advance_buffer.Available( 3 ) );
 }
 
 void test_allocator_tlsf()
