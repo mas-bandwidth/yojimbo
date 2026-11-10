@@ -39,6 +39,21 @@ const uint64_t ProtocolId = 0x11223344556677ULL;
 const int ClientPort = 30000;
 const int ServerPort = 40000;
 
+// Socket tests bind port 0 so the OS assigns an ephemeral port. That keeps concurrent test
+// processes on the same host from colliding; StartTestServer publishes the port actually bound.
+inline Address GetTestServerAddress()
+{
+    return Address( "127.0.0.1", 0 );
+}
+
+inline bool StartTestServer( Server & server, Address & serverAddress, int maxClients )
+{
+    if ( !server.Start( maxClients ) )
+        return false;
+    serverAddress = server.GetAddress();
+    return true;
+}
+
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
     static int messageBitsArray[] = { 1, 320, 120, 4, 256, 45, 11, 13, 101, 100, 84, 95, 203, 2, 3, 8, 512, 5, 3, 7, 50 };
