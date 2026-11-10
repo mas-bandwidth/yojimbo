@@ -2579,7 +2579,7 @@ void test_connection_reliable_block_fragment_message_id_mismatch()
         receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
     }
 
-    // ordinary message with the same message id, advancing the receive sequence to 1
+    // an ordinary message cannot claim the id of the block still being received
     memset( buffer, 0, sizeof( buffer ) );
     {
         WriteStream stream( buffer, sizeof( buffer ) );
@@ -2587,8 +2587,10 @@ void test_connection_reliable_block_fragment_message_id_mismatch()
         stream.Flush();
         const int packetBytes = stream.GetBytesProcessed();
         check( packetBytes > 0 );
-        receiver.ProcessPacket( NULL, 1, buffer, packetBytes );
+        check( !receiver.ProcessPacket( NULL, 1, buffer, packetBytes ) );
     }
+
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
 
     // a fragment for message id 1 reusing the stale block's fragment count
     memset( buffer, 0, sizeof( buffer ) );
