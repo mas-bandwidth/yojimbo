@@ -1614,6 +1614,45 @@ void test_connection_reject_trailing_bytes()
     check( receiver.ReceiveMessage( 0 ) == NULL );
 }
 
+void test_connection_failed_message_body_not_partially_applied()
+{
+    // A packet can carry entries for several channels. If a later entry's message body
+    // fails to deserialize, the whole packet is rejected: an earlier channel entry must
+    // not enqueue its messages first.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 2;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    connectionConfig.channel[1].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    TestMessage * goodMessage = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( goodMessage );
+    goodMessage->sequence = 0;
+    sender.SendMessage( 0, goodMessage );
+
+    Message * failingMessage = messageFactory.CreateMessage( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
+    check( failingMessage );
+    sender.SendMessage( 1, failingMessage );
+
+    uint8_t packet[2048];
+    int packetBytes = 0;
+    check( sender.GeneratePacket( NULL, 0, packet, (int) sizeof( packet ), packetBytes ) );
+    check( packetBytes > 0 );
+
+    check( !receiver.ProcessPacket( NULL, 0, packet, packetBytes ) );
+
+    // Both channel entries travelled in this one packet: channel 1's body failure must
+    // reject the packet before channel 0's valid message is applied.
+    check( receiver.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
+}
+
 void test_connection_unreliable_rejects_block_fragment()
 {
     // An unreliable-unordered channel never sends a top-level block fragment (its blocks
@@ -5458,6 +5497,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_process_packet_exact_allocation );
         RUN_TEST( test_connection_reject_trailing_bytes );
+        RUN_TEST( test_connection_failed_message_body_not_partially_applied );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
