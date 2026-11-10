@@ -119,7 +119,7 @@ namespace yojimbo
             }
 
             m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config, m_time );
-            if ( !m_clientConnection[i] )
+            if ( !m_clientConnection[i] || m_clientAllocator[i]->GetErrorLevel() != ALLOCATOR_ERROR_NONE )
             {
                 Stop();
                 return false;
@@ -150,6 +150,11 @@ namespace yojimbo
                 return false;
             }
             reliable_endpoint_reset( m_clientEndpoint[i] );
+        }
+        if ( m_globalAllocator->GetErrorLevel() != ALLOCATOR_ERROR_NONE )
+        {
+            Stop();
+            return false;
         }
         m_packetBuffer = (uint8_t*) YOJIMBO_ALLOCATE( *m_globalAllocator, m_config.maxPacketSize );
         if ( !m_packetBuffer )
