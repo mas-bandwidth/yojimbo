@@ -40,8 +40,10 @@ zero is idle, positive is progress.** `IsConnecting()`, `IsConnected()`,
     DISCONNECTED ──ConnectLoopback()──> CONNECTED
 
 * **`Connect()`** moves DISCONNECTED (or ERROR, or CONNECTED) to CONNECTING. If
-  the connect token cannot be generated the client goes straight to ERROR
-  without ever reaching CONNECTING.
+  `InsecureConnect` cannot generate the connect token, or the client cannot
+  allocate its state, the client goes straight to ERROR without ever reaching
+  CONNECTING. If netcode refuses the connect token immediately, or the socket
+  cannot be created, the client ends in DISCONNECTED instead.
 * **CONNECTING → CONNECTED** happens when the underlying netcode client
   completes its handshake.
 * **`ConnectLoopback()`** is the exception to the handshake path: it connects a
