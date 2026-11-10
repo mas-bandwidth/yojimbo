@@ -27,10 +27,7 @@ zero is idle, positive is progress.** `IsConnecting()`, `IsConnected()`,
          │                          v                                v
          │                        ERROR <────────────────────────────┘
          │                          │
-         │  Disconnect(), or the    │
-         │  next AdvanceTime after  │
-         │  a token-generation      │
-         │  failure                 │
+         │  Disconnect()            │
          └──────────────────────────┘
 
     ERROR ──Connect()──> CONNECTING (a fresh attempt)
@@ -107,13 +104,10 @@ state tells you that it failed; the reason tells you why.
   never changes state, never times out, and never completes a handshake. There
   is no background thread.
 * **ERROR does not retry by itself.** `Connect()` starts a fresh attempt;
-  `Disconnect()` returns it to DISCONNECTED. ERROR is not always terminal,
-  though: after an `InsecureConnect` whose connect token could not be generated,
-  the client is left in ERROR with its netcode client still allocated, and the
-  next `AdvanceTime` sees netcode at DISCONNECTED and moves the client to
-  DISCONNECTED. Every other ERROR (out of memory at connect, or a failure
-  netcode reported) has no netcode client left to update, and stays put until
-  `Connect()` or `Disconnect()`.
+  `Disconnect()` returns it to DISCONNECTED. Every ERROR (out of memory at
+  connect, a connect token that could not be generated, or a failure netcode
+  reported) tears the netcode client down first, so `AdvanceTime` has nothing
+  to update and the client stays in ERROR until `Connect()` or `Disconnect()`.
 * **A clean server-side close and a connection-level error both land in
   DISCONNECTED, not ERROR.** ERROR is reserved for failures that stop the
   connect attempt before netcode can carry it (allocation or token generation)

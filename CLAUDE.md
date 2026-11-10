@@ -38,9 +38,16 @@ check." Plus Postel: "be conservative in what you send, permissive in what you r
   WRITE / caller-supplied -> the CALLER validates. Assert-only is the DESIGN; -DNDEBUG
     removing it is correct. Do NOT add runtime checks here.
   READ / off the wire     -> the library checks at runtime, for safety.
-yojimbo states this in its own code: yojimbo_config.cpp:34-36 explains that YOJIMBO_CONFIG_CHECK
+yojimbo states this in its own code: yojimbo_config.cpp:41-52 explains that YOJIMBO_CONFIG_CHECK
 logs-then-asserts and the whole Validate() family is compiled to nothing in release
-(yojimbo_config.cpp:163-175). That is deliberate, not an oversight.
+(yojimbo_config.cpp:198-210). That is deliberate, not an oversight.
+On an unreliable-unordered channel, which never fragments, SendMessage asserts in debug that a
+block message fits an empty packet with its headers (UnreliableUnorderedChannel::SendMessage);
+release is unchanged. Validate does not check maxBlockSize against the packet size for an
+unreliable-unordered channel: the default 256 KB would fail it. The reliable-ordered channel
+currently refuses at runtime, with CHANNEL_ERROR_MESSAGE_TOO_LARGE, a block whose fragment 0
+with its headers does not fit (reliable_ordered_channel.cpp:196-213); that differs from the
+oversized block-message entry below and is not yet resolved.
 DELIBERATELY ASSERT-ONLY, do NOT "fix" -- a future audit that finds these has found the
 contract: oversized block-message send (reliable_ordered_channel.cpp:562/611 -- SendMessage
 exempts block messages at :168 on purpose); BaseServer::Start's maxClients
@@ -57,8 +64,8 @@ test_client_connect_factory_failure, test_client_connect_per_client_memory_exhau
 test_client_insecure_connect_token_failure_cleanup.
 The WIRE path is checked at runtime, not merely by audit: wire channelIndex
 (channel.cpp:459), numChannelEntries (connection.cpp:60), numFragments/fragmentId
-(reliable_ordered_channel.cpp:807-814), the receive memcpy bounds test at :828, the
-full-blockFragmentSize rule for every non-final fragment at :836 (a short fragment is rejected
+(reliable_ordered_channel.cpp:817-829), the receive memcpy bounds test at :838, the
+full-blockFragmentSize rule for every non-final fragment at :846 (a short fragment is rejected
 before the copy), and the rejection of a block message in an ordinary ordered message list
 (channel.cpp:149-159). Tests: test_connection_reliable_rejects_short_nonfinal_block_fragment,
 test_connection_reliable_rejects_short_middle_block_fragment and
