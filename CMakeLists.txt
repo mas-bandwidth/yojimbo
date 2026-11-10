@@ -2,10 +2,10 @@
 #
 #   cmake -B build [-DCMAKE_BUILD_TYPE=Debug|Release] [-DYOJIMBO_SYSTEM_SODIUM=ON]
 #   cmake --build build -j
-#   ctest --test-dir build --output-on-failure     # or ./build/bin/test directly
+#   ctest --test-dir build --output-on-failure     # or ./build/bin/test and ./build/bin/functional_test
 #
 # Produces one library, libyojimbo, with the vendored netcode, reliable, tlsf and libsodium
-# objects folded in. Executables: client, server, loopback, soak, test — all written to
+# objects folded in. Executables: client, server, loopback, soak, test, functional_test — all written to
 # <build>/bin (multi-config generators: <build>/bin/<Config>).
 #
 # For package managers (e.g. homebrew): -DYOJIMBO_SYSTEM_DEPS=ON builds against
@@ -453,10 +453,20 @@ if(YOJIMBO_BUILD_TESTS)
     # setting fails the test instead of silently giving consumers a different layout.
     target_sources(yojimbo_test PRIVATE test_layout_debug.cpp test_layout_release.cpp)
 
+    # The functional tier: the tests that need real time or real sockets, built from the same
+    # test.cpp and run as their own executable, so the unit tests in bin/test stay off the clock
+    # and the network.
+    add_executable(yojimbo_functional_test test.cpp test_layout_debug.cpp test_layout_release.cpp)
+    set_target_properties(yojimbo_functional_test PROPERTIES OUTPUT_NAME functional_test)
+    target_link_libraries(yojimbo_functional_test PRIVATE yojimbo)
+    target_compile_options(yojimbo_functional_test PRIVATE ${YOJIMBO_STRICT_FP_FLAGS})
+    target_compile_definitions(yojimbo_functional_test PRIVATE SERIALIZE_ENABLE_TESTS=1 YOJIMBO_FUNCTIONAL_TESTS=1)
+
     if(YOJIMBO_SYSTEM_DEPS)
         # System netcode/reliable are built without their embedded test suites, so test.cpp
         # skips the [netcode] and [reliable] sections in this configuration (see test.cpp).
         target_compile_definitions(yojimbo_test PRIVATE YOJIMBO_SYSTEM_DEPS=1)
+        target_compile_definitions(yojimbo_functional_test PRIVATE YOJIMBO_SYSTEM_DEPS=1)
     endif()
 
     # CTest registration (YJ-06). `ctest --test-dir <build>` runs the binaries of that build tree
@@ -465,6 +475,7 @@ if(YOJIMBO_BUILD_TESTS)
     # runs until interrupted, so neither is a test; both stay buildable.
     enable_testing()
     add_test(NAME yojimbo_test COMMAND yojimbo_test)
+    add_test(NAME yojimbo_functional_test COMMAND yojimbo_functional_test)
     add_test(NAME yojimbo_custom_packet_io_test COMMAND yojimbo_custom_packet_io_test)
 
     # FP-contraction gate (the estate policy: network libraries build with -ffp-contract=off,

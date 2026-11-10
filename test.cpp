@@ -4922,6 +4922,24 @@ public:
 
     LoopbackTestAdapter() : client( NULL ), server( NULL ) {}
 
+    // Loopback packets never reach netcode's transport, so give it one that binds no socket.
+    bool UseCustomPacketIO() const { return true; }
+
+    void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes )
+    {
+        (void) to;
+        (void) packetData;
+        (void) packetBytes;
+    }
+
+    int ReceivePacket( Address & from, uint8_t * packetData, int maxPacketBytes )
+    {
+        (void) from;
+        (void) packetData;
+        (void) maxPacketBytes;
+        return 0;
+    }
+
     void ClientSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
     {
         server->ProcessLoopbackPacket( clientIndex, packetData, packetBytes, packetSequence );
@@ -4949,16 +4967,20 @@ void test_server_message_sent_before_client_connects()
     uint8_t userData[256];
     memset( userData, 0, sizeof( userData ) );
 
-    Address serverAddress = TestServerAddress();
+    Address serverAddress( "127.0.0.1", ServerPort );
     Address clientAddress = TestClientAddress();
 
-    LoopbackTestAdapter loopbackAdapter;
+    // A custom packet I/O adapter serves one object, so the server and client each get one.
+    LoopbackTestAdapter serverAdapter;
+    LoopbackTestAdapter clientAdapter;
 
-    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, loopbackAdapter, time );
-    Client client( GetDefaultAllocator(), clientAddress, config, loopbackAdapter, time );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, serverAdapter, time );
+    Client client( GetDefaultAllocator(), clientAddress, config, clientAdapter, time );
 
-    loopbackAdapter.server = &server;
-    loopbackAdapter.client = &client;
+    serverAdapter.server = &server;
+    serverAdapter.client = &client;
+    clientAdapter.server = &server;
+    clientAdapter.client = &client;
 
     check( server.Start( MaxClients ) );
 
@@ -5085,7 +5107,7 @@ void test_server_message_to_unconnected_slot_not_queued()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Address serverAddress = TestServerAddress();
+    Address serverAddress( "127.0.0.1", ServerPort );
 
     NoSocketTestAdapter noSocketAdapter;
 
@@ -6993,6 +7015,21 @@ int main( int argc, char ** argv )
     while ( true )
 #endif // #if SOAK
     {
+#if YOJIMBO_FUNCTIONAL_TESTS
+
+        // The functional tier (bin/functional_test): tests that need real time or real sockets.
+
+        printf( "[yojimbo functional]\n\n" );
+
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+        RUN_TEST( test_yojimbo_sleep_non_positive_returns_immediately );
+        RUN_TEST( test_yojimbo_sleep_longer_than_one_second );
+#endif
+        RUN_TEST( test_servers_bind_distinct_ports );
+        RUN_TEST( test_server_slot_reused_by_new_client );
+
+#else // #if YOJIMBO_FUNCTIONAL_TESTS
+
         {
             printf( "[serialize]\n\n" );
 
@@ -7037,11 +7074,6 @@ int main( int argc, char ** argv )
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_fp_contract_off );
         RUN_TEST( test_default_seed_is_fixed );
-#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
-        RUN_TEST( test_yojimbo_sleep_non_positive_returns_immediately );
-        RUN_TEST( test_yojimbo_sleep_longer_than_one_second );
-#endif
-        RUN_TEST( test_servers_bind_distinct_ports );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_address_ipv4_octets );
@@ -7120,7 +7152,6 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_server_client_disconnect_reason );
-        RUN_TEST( test_server_slot_reused_by_new_client );
         RUN_TEST( test_server_client_disconnect_reason_failed_to_serialize );
         RUN_TEST( test_client_disconnect_reason );
         RUN_TEST( test_client_disconnect_reason_failed_to_serialize );
@@ -7135,6 +7166,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_single_message_type_unreliable );
 
         RUN_TEST( test_client_server_messages_network_sim_leak );
+
+#endif // #if YOJIMBO_FUNCTIONAL_TESTS
 
 #if SOAK
         if ( quit )

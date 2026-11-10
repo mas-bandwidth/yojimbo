@@ -237,7 +237,7 @@ jobs:
             -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
-          cmake --build build -j --target yojimbo_test yojimbo_custom_packet_io_test
+          cmake --build build -j --target yojimbo_test yojimbo_functional_test yojimbo_custom_packet_io_test
       # custom_packet_io_test drives the whole client/server stack through the adapter's own
       # transport instead of netcode's sockets. It was built and run by every other job but not
       # under sanitizers, so that path had no ASan/UBSan/LSan coverage at all.
