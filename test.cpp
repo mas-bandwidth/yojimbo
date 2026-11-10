@@ -2954,6 +2954,60 @@ void test_channel_config_fragment_counts_without_overflow()
     check( small.blockFragmentSize <= 65535 );
 }
 
+void test_channel_config_max_messages_per_packet_bounds()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+
+    // maxMessagesPerPacket is bounded by the 16-bit SentPacketEntry::numMessageIds field.
+    const int invalidMaxMessagesPerPacket[] = { 0, -1, 65536, 2147483647 };
+    for ( int i = 0; i < (int) ( sizeof( invalidMaxMessagesPerPacket ) / sizeof( invalidMaxMessagesPerPacket[0] ) ); ++i )
+    {
+        ChannelConfig channel;
+        channel.maxMessagesPerPacket = invalidMaxMessagesPerPacket[i];
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    // maxMessagesPerPacket * sentPacketBufferSize is used as an int index, so it must fit in int.
+    {
+        ChannelConfig channel;
+        channel.maxMessagesPerPacket = 65535;
+        channel.sentPacketBufferSize = 65536;
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    const int validMaxMessagesPerPacket[] = { 1, 65535 };
+    for ( int i = 0; i < (int) ( sizeof( validMaxMessagesPerPacket ) / sizeof( validMaxMessagesPerPacket[0] ) ); ++i )
+    {
+        ChannelConfig channel;
+        channel.maxMessagesPerPacket = validMaxMessagesPerPacket[i];
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    {
+        ChannelConfig channel;
+        channel.maxMessagesPerPacket = 65535;
+        channel.sentPacketBufferSize = 32768;
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            channel.Validate( 0, 8192 );
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
 void test_connection_reliable_block_fragment_overflow()
 {
     // Regression test: a peer sends a reliable-ordered block fragment whose final fragment
@@ -6620,6 +6674,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
+        RUN_TEST( test_channel_config_max_messages_per_packet_bounds );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
         RUN_TEST( test_client_server_config_packet_fragment_size_fits_netcode_payload );
