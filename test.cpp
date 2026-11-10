@@ -2667,7 +2667,7 @@ void test_connection_reliable_block_fragment_different_message_id()
         stream.Flush();
         const int packetBytes = stream.GetBytesProcessed();
         check( packetBytes > 0 );
-        receiver.ProcessPacket( NULL, 2, buffer, packetBytes );
+        check( !receiver.ProcessPacket( NULL, 2, buffer, packetBytes ) );
     }
 
     receiver.AdvanceTime( time );
