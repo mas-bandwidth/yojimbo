@@ -87,7 +87,6 @@ namespace yojimbo
     {
         yojimbo_assert( message );
         yojimbo_assert( CanSendMessage() );
-        (void)context;
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
@@ -115,6 +114,33 @@ namespace yojimbo
         {
             yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
             yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
+        }
+        else
+        {
+            MeasureStream measureStream;
+            measureStream.SetContext( context );
+            measureStream.SetAllocator( &m_messageFactory->GetAllocator() );
+            message->SerializeInternal( measureStream );
+
+            const int measuredBits = measureStream.GetBitsProcessed();
+            const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
+
+            // A message must fit into an empty packet for this channel, including its
+            // per-message framing and the packet/channel headers around it, or it could never
+            // be sent. Messages on this channel carry no message id, matching GetPacketData.
+            const int64_t maxPacketBits = (int64_t) ( m_maxPacketSize & ~7 ) * 8 - ConservativePacketHeaderBits - ConservativeChannelHeaderBits;
+            const int64_t maxMessagePacketBits = m_config.packetBudget > 0 ? yojimbo_min( (int64_t) m_config.packetBudget * 8, maxPacketBits ) : maxPacketBits;
+            const int64_t messagePackedBits = (int64_t) ConservativeMessageHeaderBits + messageTypeBits + measuredBits;
+
+            const bool isTooLarge = messagePackedBits > maxMessagePacketBits;
+
+            if ( isTooLarge )
+            {
+                // You tried to send a message that is too large to ever fit into a packet for this channel. Large data should be sent as a block message over a reliable-ordered channel.
+                SetErrorLevel( CHANNEL_ERROR_MESSAGE_TOO_LARGE );
+                m_messageFactory->ReleaseMessage( message );
+                return;
+            }
         }
 
         m_messageSendQueue->Push( message );
