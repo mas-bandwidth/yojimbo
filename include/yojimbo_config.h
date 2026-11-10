@@ -133,7 +133,7 @@ namespace yojimbo
 
         Unreliable-unordered channels send blocks as-is without splitting them up into fragments. The idea is that transport level packet fragmentation
         should be used on top of the generated packet to split it up into into smaller packets that can be sent across typical Internet MTU (<1500 bytes).
-        Because of this, you need to make sure that the maximum block size for an unreliable-unordered channel fits within the maximum packet size.
+        Because of this, the maximum block size for an unreliable-unordered channel must fit within the maximum packet size, and within the channel's packet budget when one is set.
 
         Channels are typically configured as part of a ConnectionConfig, which is included inside the ClientServerConfig that is passed into the Client and Server constructors.
      */

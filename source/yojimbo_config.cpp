@@ -70,11 +70,13 @@ namespace yojimbo
                 "error: invalid config: channel %d maxBlockSize (%d) must be > 0\n", channelIndex, maxBlockSize );
 
             // Unreliable-unordered sends the whole block in one packet. There is no
-            // fragment path, so a block larger than maxPacketSize can never be sent.
+            // fragment path, so the block has to fit the bytes the channel may use: its
+            // packet budget, when one is set, never more than maxPacketSize.
             if ( type == CHANNEL_TYPE_UNRELIABLE_UNORDERED )
             {
-                YOJIMBO_CONFIG_CHECK( maxBlockSize <= maxPacketSize,
-                    "error: invalid config: channel %d maxBlockSize (%d) must fit within maxPacketSize (%d)\n", channelIndex, maxBlockSize, maxPacketSize );
+                const int64_t maxBlockBytes = ( packetBudget > 0 && packetBudget < maxPacketSize ) ? packetBudget : maxPacketSize;
+                YOJIMBO_CONFIG_CHECK( (int64_t) maxBlockSize <= maxBlockBytes,
+                    "error: invalid config: channel %d maxBlockSize (%d) must fit within the channel packet budget (%d)\n", channelIndex, maxBlockSize, (int) maxBlockBytes );
             }
         }
 

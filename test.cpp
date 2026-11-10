@@ -3037,6 +3037,23 @@ void test_unreliable_unordered_max_block_size_fits_one_packet()
     }
 
     {
+        // A block that fits maxPacketSize but not the channel's packet budget can never be
+        // sent either, because the budget is what the channel may actually put in a packet.
+        ConnectionConfig overBudget;
+        overBudget.numChannels = 1;
+        overBudget.maxPacketSize = 1024;
+        overBudget.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        overBudget.channel[0].disableBlocks = false;
+        overBudget.channel[0].packetBudget = 512;
+        overBudget.channel[0].maxBlockSize = overBudget.channel[0].packetBudget + 1;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            overBudget.Validate();
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    {
         ConnectionConfig fitting;
         fitting.numChannels = 1;
         fitting.maxPacketSize = 1024;
@@ -3047,6 +3064,37 @@ void test_unreliable_unordered_max_block_size_fits_one_packet()
         g_configValidateAssertCount = 0;
         if ( setjmp( g_configValidateJmpBuf ) == 0 )
             fitting.Validate();
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    {
+        ConnectionConfig fittingBudget;
+        fittingBudget.numChannels = 1;
+        fittingBudget.maxPacketSize = 1024;
+        fittingBudget.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        fittingBudget.channel[0].disableBlocks = false;
+        fittingBudget.channel[0].packetBudget = 512;
+        fittingBudget.channel[0].maxBlockSize = fittingBudget.channel[0].packetBudget;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            fittingBudget.Validate();
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    {
+        // Blocks are disabled on this channel, so maxBlockSize is not a usable block size
+        // and must not be validated against the packet.
+        ConnectionConfig blocksDisabled;
+        blocksDisabled.numChannels = 1;
+        blocksDisabled.maxPacketSize = 1024;
+        blocksDisabled.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        blocksDisabled.channel[0].disableBlocks = true;
+        blocksDisabled.channel[0].maxBlockSize = blocksDisabled.maxPacketSize + 1;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            blocksDisabled.Validate();
         check( g_configValidateAssertCount == 0 );
     }
 
@@ -3064,7 +3112,7 @@ void test_connection_unreliable_unordered_message_packet_budget_fit()
     config.numChannels = 1;
     config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
     config.channel[0].packetBudget = 70;
-    config.channel[0].maxBlockSize = config.maxPacketSize;
+    config.channel[0].maxBlockSize = config.channel[0].packetBudget;
     config.Validate();
 
     {
@@ -3131,6 +3179,7 @@ void test_connection_unreliable_send_queue_drains_when_packet_full()
     config.channel[0].disableBlocks = true;
     config.channel[0].messageResendTime = 0.0f;   // keep channel 0 saturating the packet every tick
     config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[1].disableBlocks = true;
     config.channel[1].messageSendQueueSize = 8;
     config.channel[1].messageReceiveQueueSize = 8;
     config.Validate();
