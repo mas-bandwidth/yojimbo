@@ -759,6 +759,18 @@ struct TestSequenceData
     uint16_t sequence;
 };
 
+template <typename T> class TestSequenceBufferRemoveEntries : public SequenceBuffer<T>
+{
+public:
+
+    TestSequenceBufferRemoveEntries( Allocator & allocator, int size ) : SequenceBuffer<T>( allocator, size ) {}
+
+    void RemoveEntries( int start_sequence, int finish_sequence )
+    {
+        SequenceBuffer<T>::RemoveEntries( start_sequence, finish_sequence );
+    }
+};
+
 void test_sequence_buffer()
 {
     const int Size = 256;
@@ -938,6 +950,41 @@ void test_sequence_buffer()
     check( wrap_advance_buffer.Find( 65530 ) == advance_entry_65530 );
     check( !wrap_advance_buffer.Exists( 3 ) );
     check( wrap_advance_buffer.Available( 3 ) );
+
+    // removing an explicit range directly across 65535 -> 0 must clear exactly the
+    // wrapped range and leave entries on either side of it intact
+
+    TestSequenceBufferRemoveEntries<TestSequenceData> remove_entries_buffer( GetDefaultAllocator(), Size );
+
+    const uint16_t remove_entries_sequences[] = { 65534, 65535, 0, 1 };
+
+    for ( int i = 0; i < 4; ++i )
+    {
+        TestSequenceData * entry = remove_entries_buffer.Insert( remove_entries_sequences[i], true );
+        check( entry );
+        entry->sequence = remove_entries_sequences[i];
+    }
+
+    for ( int i = 0; i < 4; ++i )
+    {
+        check( remove_entries_buffer.Exists( remove_entries_sequences[i] ) );
+        check( !remove_entries_buffer.Available( remove_entries_sequences[i] ) );
+    }
+
+    remove_entries_buffer.RemoveEntries( 65535, 0 );
+
+    check( remove_entries_buffer.Exists( 65534 ) );
+    check( remove_entries_buffer.Find( 65534 ) != NULL );
+    check( !remove_entries_buffer.Available( 65534 ) );
+    check( !remove_entries_buffer.Exists( 65535 ) );
+    check( remove_entries_buffer.Available( 65535 ) );
+    check( remove_entries_buffer.Find( 65535 ) == NULL );
+    check( !remove_entries_buffer.Exists( 0 ) );
+    check( remove_entries_buffer.Available( 0 ) );
+    check( remove_entries_buffer.Find( 0 ) == NULL );
+    check( remove_entries_buffer.Exists( 1 ) );
+    check( remove_entries_buffer.Find( 1 ) != NULL );
+    check( !remove_entries_buffer.Available( 1 ) );
 }
 
 void test_allocator_tlsf()
