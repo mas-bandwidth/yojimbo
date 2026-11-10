@@ -235,10 +235,11 @@ namespace yojimbo
         if ( inet_pton( AF_INET, address, &sockaddr4.sin_addr ) == 1 )
         {
             m_type = ADDRESS_IPV4;
-            m_address.ipv4[3] = (uint8_t) ( ( sockaddr4.sin_addr.s_addr & 0xFF000000 ) >> 24 );
-            m_address.ipv4[2] = (uint8_t) ( ( sockaddr4.sin_addr.s_addr & 0x00FF0000 ) >> 16 );
-            m_address.ipv4[1] = (uint8_t) ( ( sockaddr4.sin_addr.s_addr & 0x0000FF00 ) >> 8  );
-            m_address.ipv4[0] = (uint8_t) ( ( sockaddr4.sin_addr.s_addr & 0x000000FF )       );
+            const uint8_t * bytes = reinterpret_cast<const uint8_t *>( &sockaddr4.sin_addr.s_addr );
+            m_address.ipv4[0] = bytes[0];
+            m_address.ipv4[1] = bytes[1];
+            m_address.ipv4[2] = bytes[2];
+            m_address.ipv4[3] = bytes[3];
         }
         else
         {
