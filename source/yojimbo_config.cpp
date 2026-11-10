@@ -58,6 +58,12 @@ namespace yojimbo
         YOJIMBO_CONFIG_CHECK( maxMessagesPerPacket > 0,
             "error: invalid config: channel %d maxMessagesPerPacket (%d) must be > 0\n", channelIndex, maxMessagesPerPacket );
 
+        // The reliable-ordered channel records the number of message ids per sent packet in a
+        // 16-bit field (SentPacketEntry::numMessageIds), and uses maxMessagesPerPacket as the
+        // array stride. Larger values cannot be represented.
+        YOJIMBO_CONFIG_CHECK( maxMessagesPerPacket <= 65535,
+            "error: invalid config: channel %d maxMessagesPerPacket (%d) must be <= 65535\n", channelIndex, maxMessagesPerPacket );
+
         if ( !disableBlocks )
         {
             YOJIMBO_CONFIG_CHECK( maxBlockSize > 0,
@@ -75,6 +81,14 @@ namespace yojimbo
 
             YOJIMBO_CONFIG_CHECK( ( 65536 % sentPacketBufferSize ) == 0,
                 "error: invalid config: channel %d sentPacketBufferSize (%d) must be a power of two\n", channelIndex, sentPacketBufferSize );
+
+            // m_sentPacketMessageIds is indexed with the int expression
+            // ( sequence % sentPacketBufferSize ) * maxMessagesPerPacket, so the number of entries
+            // must fit in int. The 64-bit multiply keeps the check itself from overflowing.
+            const int64_t sentPacketMessageIdCount = (int64_t) maxMessagesPerPacket * (int64_t) sentPacketBufferSize;
+            YOJIMBO_CONFIG_CHECK( sentPacketMessageIdCount <= 2147483647,
+                "error: invalid config: channel %d maxMessagesPerPacket (%d) * sentPacketBufferSize (%d) must fit in int\n",
+                channelIndex, maxMessagesPerPacket, sentPacketBufferSize );
 
             YOJIMBO_CONFIG_CHECK( ( 65536 % messageSendQueueSize ) == 0,
                 "error: invalid config: channel %d messageSendQueueSize (%d) must be a power of two\n", channelIndex, messageSendQueueSize );
