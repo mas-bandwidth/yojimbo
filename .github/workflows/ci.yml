@@ -18,7 +18,7 @@ jobs:
           - os: ubuntu-24.04
             label: linux x86-64
           # macOS x86-64 (Intel, macos-13) temporarily disabled — runner is slow to allocate.
-          - os: macos-14
+          - os: [self-hosted, macOS, ARM64, fleet]
             label: macOS arm64 (Apple Silicon)
     runs-on: ${{ matrix.os }}
     steps:
