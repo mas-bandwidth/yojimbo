@@ -210,6 +210,7 @@ namespace yojimbo
 
         entry->block = message->IsBlockMessage();
         entry->message = message;
+        entry->measuredBits = 0;
         entry->timeLastSent = -1.0;
 
         entry->measuredBits = measuredBits;
