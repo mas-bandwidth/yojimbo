@@ -30,11 +30,6 @@
 #include <inttypes.h>
 #include <string.h>
 
-#if !defined( _WIN32 )
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
-
 #include "shared.h"
 #include <typeinfo>
 #include "serialize.h"
@@ -5381,19 +5376,6 @@ void test_fp_contract_off()
     check( rdu == 0x0000000000000000ULL );    // one rounding would give 0x3C90000000000000
 }
 
-static bool NetworkTestsAvailable()
-{
-#if defined( _WIN32 )
-    return true;
-#else
-    const int fd = socket( AF_INET, SOCK_DGRAM, 0 );
-    if ( fd < 0 )
-        return false;
-    close( fd );
-    return true;
-#endif
-}
-
 int main( int argc, char ** argv )
 {
     // The tests are randomized (packet loss, ordering, ids). Seed rand() from the clock by
@@ -5428,7 +5410,6 @@ int main( int argc, char ** argv )
 
 #ifndef YOJIMBO_SYSTEM_DEPS
 
-        if ( NetworkTestsAvailable() && !getenv( "YJ_SKIP_NETCODE" ) )
         {
             printf( "\n[netcode]\n\n" );
 
@@ -5497,8 +5478,6 @@ int main( int argc, char ** argv )
         RUN_TEST( test_rtti_across_the_abi_boundary );
         RUN_TEST( test_public_layout_is_configuration_independent );
 
-        if ( NetworkTestsAvailable() )
-        {
         RUN_TEST( test_interface_methods_link );
         RUN_TEST( test_server_start_alloc_failure );
         RUN_TEST( test_server_start_factory_failure );
@@ -5527,11 +5506,6 @@ int main( int argc, char ** argv )
         RUN_TEST( test_single_message_type_unreliable );
 
         RUN_TEST( test_client_server_messages_network_sim_leak );
-        }
-        else
-        {
-            printf( "skipping client/server tests: UDP sockets unavailable\n" );
-        }
 
 #if SOAK
         if ( quit )

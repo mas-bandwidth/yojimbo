@@ -127,10 +127,10 @@ namespace yojimbo
 
             // A message must fit into an empty packet for this channel, including its
             // per-message framing and the packet/channel headers around it, or it could never
-            // be sent and would sit in the send queue forever.
+            // be sent. Messages on this channel carry no message id, matching GetPacketData.
             const int64_t maxPacketBits = (int64_t) ( m_maxPacketSize & ~7 ) * 8 - ConservativePacketHeaderBits - ConservativeChannelHeaderBits;
             const int64_t maxMessagePacketBits = m_config.packetBudget > 0 ? yojimbo_min( (int64_t) m_config.packetBudget * 8, maxPacketBits ) : maxPacketBits;
-            const int64_t messagePackedBits = (int64_t) ConservativeMessageHeaderBits + 16 + messageTypeBits + measuredBits;
+            const int64_t messagePackedBits = (int64_t) ConservativeMessageHeaderBits + messageTypeBits + measuredBits;
 
             const bool isTooLarge = messagePackedBits > maxMessagePacketBits;
 
