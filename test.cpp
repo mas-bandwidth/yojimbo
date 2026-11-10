@@ -3635,6 +3635,31 @@ public:
     }
 };
 
+void test_client_insecure_connect_token_failure_cleanup()
+{
+    // A failed insecure connect must leave the client in a clean, destroyable state: nothing
+    // allocated by the attempt may survive it, and destroying the client must be safe.
+    // The no-socket adapter keeps this to the token path regardless of the host's networking.
+    ArmableAllocator allocator;
+    {
+        Address clientAddress( "0.0.0.0", 0 );
+        Address invalidServerAddress;           // ADDRESS_NONE -> token generation fails
+        check( !invalidServerAddress.IsValid() );
+
+        ClientServerConfig config;
+
+        uint8_t privateKey[KeyBytes];
+        memset( privateKey, 0, KeyBytes );
+
+        NoSocketTestAdapter noSocketAdapter;
+
+        Client client( allocator, clientAddress, config, noSocketAdapter, 100.0 );
+        check( !client.InsecureConnect( privateKey, 1, invalidServerAddress ) );
+        check( client.ConnectionFailed() );
+    }
+    check( allocator.GetOutstanding() == 0 );
+}
+
 void test_server_message_to_unconnected_slot_not_queued()
 {
     // Sending a message to a slot with no client in it leaves nothing queued for that slot.
@@ -5484,6 +5509,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_connect_alloc_failure );
         RUN_TEST( test_client_connect_factory_failure );
         RUN_TEST( test_client_connect_socket_failure_no_crash );
+        RUN_TEST( test_client_insecure_connect_token_failure_cleanup );
         RUN_TEST( test_client_is_loopback_when_disconnected );
         RUN_TEST( test_client_connect_twice_with_one_connect_token );
         RUN_TEST( test_client_server_messages );
