@@ -48,9 +48,23 @@ exempts block messages at :168 on purpose); BaseServer::Start's maxClients
 whole clientIndex/channelIndex public surface. This rule is about CALLER-SUPPLIED values only:
 allocation and factory failure inside Start / CreateInternal is not a caller mistake, and those
 are checked in every build and reported through the bool those functions now return (YJ-01).
-The WIRE path is properly checked and was verified clean by two independent audits: wire
-channelIndex (channel.cpp:446), numChannelEntries (connection.cpp:58), numFragments/fragmentId
-(reliable_ordered_channel.cpp:712-724) and the receive memcpy bounds test at :733-738.
+Start and CreateInternal fail closed and unwind: the server is left stopped, the client is
+left disconnected with YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY, and everything already
+allocated (including adapter-created allocators/message factories and per-client heap
+exhaustion) is freed. Tests: test_server_start_alloc_failure,
+test_server_start_factory_failure, test_server_start_per_client_memory_exhaustion,
+test_client_connect_alloc_failure, test_client_connect_factory_failure,
+test_client_connect_per_client_memory_exhaustion and
+test_client_insecure_connect_token_failure_cleanup.
+The WIRE path is checked at runtime, not merely by audit: wire channelIndex
+(channel.cpp:459), numChannelEntries (connection.cpp:60), numFragments/fragmentId
+(reliable_ordered_channel.cpp:807-814), the receive memcpy bounds test at :828, the
+full-blockFragmentSize rule for every non-final fragment at :836 (a short fragment is rejected
+before the copy), and the rejection of a block message in an ordinary ordered message list
+(channel.cpp:149-159). Tests: test_connection_reliable_rejects_short_nonfinal_block_fragment,
+test_connection_reliable_rejects_short_middle_block_fragment and
+test_connection_reliable_rejects_block_in_message_list, alongside the existing
+fragment-overflow and empty/trailing-packet cases.
 yojimbo also satisfies serialize's bytes%8 write contract deliberately at connection.cpp:248
 (maxPacketBytes &= ~7) -- do not "simplify" that line.
 FIXED 2026-07-26 (#320): Address::IsMulticast/IsLinkLocal/IsSiteLocal compared the first
@@ -122,8 +136,20 @@ untrusted parser, sanitizers and a sanitized soak test in CI, allocation-failure
 injection tests — puts it well above the norm for open-source game networking. My honest
 overall opinion: I would trust this library in production. The July 2026 audit raised a
 set of concerns; every one of them has since been fully addressed — fixed in code, or
-confirmed with the author as deliberate design and documented — so this audit carries no
-open concerns.
+confirmed with the author as deliberate design and documented. The latest pass closed the
+remaining slot-lifetime and parser gaps, each pinned by a test: a reused slot starts with
+clean error and disconnect-reason state (test_server_slot_reused_by_new_client) and a new
+client clears the reason left by the previous occupant (test_server_client_disconnect_reason);
+Start and CreateInternal fail closed and unwind on allocation, factory and per-client-heap
+failure (test_server_start_alloc_failure, test_server_start_factory_failure,
+test_server_start_per_client_memory_exhaustion, test_client_connect_alloc_failure,
+test_client_connect_factory_failure, test_client_connect_per_client_memory_exhaustion); the
+receiver rejects a short non-final block fragment before copying it
+(test_connection_reliable_rejects_short_nonfinal_block_fragment,
+test_connection_reliable_rejects_short_middle_block_fragment); and a block message named in an
+ordinary ordered message list is rejected instead of delivered without its block
+(test_connection_reliable_rejects_block_in_message_list). With those in place this audit
+carries no open concerns.
 
 ## What's genuinely good
 
