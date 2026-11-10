@@ -42,6 +42,59 @@
 // Present in both configurations, unlike sodium.h.
 #include "netcode.h"
 
+#if !defined(_WIN32)
+#include <dlfcn.h>
+
+// The network simulator makes its loss and duplicate decisions with rand(). A test that needs
+// the exact minimum draw can force rand() to zero here; every other call is forwarded to the
+// real implementation so the rest of the suite is unaffected.
+static bool g_force_zero_random = false;
+
+extern "C" int rand( void )
+{
+    if ( g_force_zero_random )
+        return 0;
+
+    typedef int ( * RandFunction )( void );
+    static RandFunction real_rand = (RandFunction) dlsym( RTLD_NEXT, "rand" );
+    return real_rand ? real_rand() : 0;
+}
+#endif // #if !defined(_WIN32)
+
+// Make the requested rand() draw return zero: force every draw on POSIX, or replay a suitable
+// seed on Windows, where the CRT's small rand() range makes the search cheap.
+static void ForceRandomMinimum( int callIndex )
+{
+#if defined(_WIN32)
+    for ( unsigned int seed = 0; ; ++seed )
+    {
+        srand( seed );
+        bool zero = false;
+        for ( int i = 0; i <= callIndex; ++i )
+        {
+            zero = ( rand() == 0 );
+            if ( i == callIndex )
+                break;
+        }
+        if ( zero )
+        {
+            srand( seed );
+            return;
+        }
+    }
+#else
+    (void) callIndex;
+    g_force_zero_random = true;
+#endif
+}
+
+static void RestoreRandom()
+{
+#if !defined(_WIN32)
+    g_force_zero_random = false;
+#endif
+}
+
 using namespace yojimbo;
 
 static void CheckHandler( const char * condition,
@@ -672,6 +725,62 @@ void test_network_simulator_drains_all_slots()
     check( totalReceived == NumEntries );
     for ( int i = 0; i < NumEntries; ++i )
         check( seen[i] );       // tail slots (index >= maxPackets) were drained too
+}
+
+void test_network_simulator_zero_percent_no_loss_or_duplicates()
+{
+    // At 0% loss and 0% duplicates the simulator must not drop or duplicate a packet even when
+    // the random draw lands on its minimum value (0.0f). A <= comparison treats that draw as
+    // a hit and silently changes behavior at a zero setting.
+
+    const int NumEntries = 8;
+
+    uint8_t payload[8];
+    memset( payload, 0x5A, sizeof( payload ) );
+
+    // Loss is decided before the packet is stored. Disable duplicates so the zero draw reaches
+    // only the loss check.
+    {
+        NetworkSimulator sim( GetDefaultAllocator(), NumEntries, 0.0 );
+        sim.SetPacketLoss( 0.0f );
+        sim.SetDuplicates( -1.0f );
+
+        ForceRandomMinimum( 0 );
+
+        sim.SendPacket( 0, payload, sizeof( payload ) );
+        sim.AdvanceTime( 1.0 );
+
+        uint8_t * packetData[4];
+        int packetBytes[4];
+        int to[4];
+        const int n = sim.ReceivePackets( 4, packetData, packetBytes, to );
+        check( n == 1 );        // the packet must not be dropped
+        for ( int i = 0; i < n; ++i )
+            YOJIMBO_FREE( sim.GetAllocator(), packetData[i] );
+    }
+
+    // Duplicates are decided after the packet is stored, on the next draw. Disable loss so the
+    // zero draw reaches the duplicate check.
+    {
+        NetworkSimulator sim( GetDefaultAllocator(), NumEntries, 0.0 );
+        sim.SetPacketLoss( -1.0f );
+        sim.SetDuplicates( 0.0f );
+
+        ForceRandomMinimum( 1 );
+
+        sim.SendPacket( 0, payload, sizeof( payload ) );
+        sim.AdvanceTime( 1.0 );
+
+        uint8_t * packetData[4];
+        int packetBytes[4];
+        int to[4];
+        const int n = sim.ReceivePackets( 4, packetData, packetBytes, to );
+        check( n == 1 );        // the packet must not be duplicated
+        for ( int i = 0; i < n; ++i )
+            YOJIMBO_FREE( sim.GetAllocator(), packetData[i] );
+    }
+
+    RestoreRandom();
 }
 
 void test_bit_array()
@@ -5581,6 +5690,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_address_malformed_port );
         RUN_TEST( test_address_classification );
         RUN_TEST( test_network_simulator_drains_all_slots );
+        RUN_TEST( test_network_simulator_zero_percent_no_loss_or_duplicates );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
         RUN_TEST( test_allocator_tlsf );
