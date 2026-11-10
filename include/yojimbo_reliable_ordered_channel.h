@@ -95,7 +95,7 @@ namespace yojimbo
         /**
             Get messages to include in a packet.
             Messages are measured to see how many bits they take, and only messages that fit within the channel packet budget will be included. See ChannelConfig::packetBudget.
-            Takes care not to send messages too rapidly by respecting ChannelConfig::messageResendTime for each message, and to only include messages that that the receiver is able to buffer in their receive queue. In other words, won't run ahead of the receiver.
+            Takes care not to send messages too rapidly by respecting ChannelConfig::messageResendTime for each message. Sending is not gated on the application dequeuing received messages: a message is acknowledged once it is inserted into the receiver's receive queue, not when ReceiveMessage() returns it. The application must therefore drain the receive queue every tick, or size ChannelConfig::messageReceiveQueueSize to cover the largest burst it may leave un-drained, otherwise the receive queue fills and the channel desyncs.
             @param messageIds Array of message ids to be filled [out]. Fills up to ChannelConfig::maxMessagesPerPacket messages, make sure your array is at least this size.
             @param numMessageIds The number of message ids written to the array.
             @param remainingPacketBits Number of bits remaining in the packet. Considers this as a hard limit when determining how many messages can fit into the packet.
