@@ -1651,6 +1651,45 @@ void test_connection_failed_message_body_not_partially_applied()
     // reject the packet before channel 0's valid message is applied.
     check( receiver.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_FAILED_TO_SERIALIZE );
     check( receiver.ReceiveMessage( 0 ) == NULL );
+    check( receiver.ReceiveMessage( 1 ) == NULL );
+}
+
+void test_connection_failed_unordered_message_body_not_partially_applied()
+{
+    // The same guarantee holds when the message body that fails to deserialize is carried
+    // by an unreliable-unordered channel: the valid entry for the other channel must not
+    // be applied from the rejected packet.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 2;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    connectionConfig.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    TestMessage * goodMessage = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( goodMessage );
+    goodMessage->sequence = 0;
+    sender.SendMessage( 0, goodMessage );
+
+    Message * failingMessage = messageFactory.CreateMessage( TEST_SERIALIZE_FAIL_ON_READ_MESSAGE );
+    check( failingMessage );
+    sender.SendMessage( 1, failingMessage );
+
+    uint8_t packet[2048];
+    int packetBytes = 0;
+    check( sender.GeneratePacket( NULL, 0, packet, (int) sizeof( packet ), packetBytes ) );
+    check( packetBytes > 0 );
+
+    check( !receiver.ProcessPacket( NULL, 0, packet, packetBytes ) );
+
+    check( receiver.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_FAILED_TO_SERIALIZE );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
+    check( receiver.ReceiveMessage( 1 ) == NULL );
 }
 
 void test_connection_unreliable_rejects_block_fragment()
@@ -5498,6 +5537,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_process_packet_exact_allocation );
         RUN_TEST( test_connection_reject_trailing_bytes );
         RUN_TEST( test_connection_failed_message_body_not_partially_applied );
+        RUN_TEST( test_connection_failed_unordered_message_body_not_partially_applied );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
