@@ -5714,6 +5714,28 @@ void test_server_slot_reused_by_new_client()
     server.Stop();
 }
 
+static const unsigned int DefaultTestSeed = 0x12345678u;
+
+static unsigned int SelectTestSeed( int argc, char ** argv )
+{
+    if ( argc > 1 )
+        return (unsigned int) strtoul( argv[1], NULL, 0 );
+
+    return DefaultTestSeed;
+}
+
+void test_default_seed_is_fixed()
+{
+    char program[] = "test";
+    char seed[] = "7";
+
+    char * no_seed[] = { program, NULL };
+    check( SelectTestSeed( 1, no_seed ) == DefaultTestSeed );
+
+    char * explicit_seed[] = { program, seed, NULL };
+    check( SelectTestSeed( 2, explicit_seed ) == 7 );
+}
+
 void test_fp_contract_off()
 {
     // FP-contraction canary. If the compiler contracts a*b + c into a single fused
@@ -5749,12 +5771,11 @@ void test_fp_contract_off()
 
 int main( int argc, char ** argv )
 {
-    // The tests are randomized (packet loss, ordering, ids). Seed rand() from the clock by
-    // default, but let a seed be passed on the command line so a flaky failure can be
-    // reproduced exactly: rerun `./bin/test <seed>` with the value printed below. Print and
-    // flush the seed first so it survives even if a later test aborts.
-    unsigned int seed = ( argc > 1 ) ? (unsigned int) strtoul( argv[1], NULL, 0 )
-                                     : (unsigned int) time( NULL );
+    // The tests are randomized (packet loss, ordering, ids). Use a fixed default seed so a
+    // run is reproducible, but let a seed be passed on the command line to explore another
+    // run: `./bin/test <seed>`. Print and flush the seed first so it survives even if a
+    // later test aborts.
+    unsigned int seed = SelectTestSeed( argc, argv );
 
     printf( "test random seed %u\n", seed );
     fflush( stdout );
@@ -5809,6 +5830,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_crypto_aead_vectors );
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_fp_contract_off );
+        RUN_TEST( test_default_seed_is_fixed );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_address_ipv4_octets );
