@@ -262,8 +262,11 @@ void test_address_malformed_port()
     check( parse_address( "[::1]40000" ) == false );
 
     // at most one port separator
-    check( Address( "1.2.3.4:5:6" ).IsValid() == false );
-    check( Address( "1.2.3.4:5:6" ).GetPort() == 0 );
+    {
+        Address address( "1.2.3.4:5:6" );
+        check( address.IsValid() == false );
+        check( address.GetPort() == 0 );
+    }
     check( parse_address( "127.0.0.1:5:6" ) == false );
     check( parse_address( "127.0.0.1::5" ) == false );
     check( parse_address( "127.0.0.1:5:" ) == false );
