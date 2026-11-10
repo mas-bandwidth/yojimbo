@@ -228,6 +228,12 @@ namespace yojimbo
                     return;
                 }
                 address[index] = '\0';
+                if ( strchr( address, ':' ) )
+                {
+                    Clear();
+                    return;
+                }
+                break;
             }
         }
 
