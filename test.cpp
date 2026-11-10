@@ -2404,6 +2404,62 @@ void test_connection_unreliable_unordered_message_packet_budget_fit()
     }
 }
 
+void test_connection_unreliable_send_queue_drains_when_packet_full()
+{
+    // An unreliable message can never be resent, so when a packet has no room left for it
+    // (here channel 0 reliably fills nearly the whole packet every tick) it must be dropped
+    // immediately instead of accumulating in the send queue across ticks. This sends more
+    // messages than the unreliable channel's send queue can hold, one per tick, and checks
+    // that the queue never fills and the channel never reports CHANNEL_ERROR_SEND_QUEUE_FULL.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 2;
+    config.maxPacketSize = 88;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].disableBlocks = true;
+    config.channel[0].messageResendTime = 0.0f;   // keep channel 0 saturating the packet every tick
+    config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[1].messageSendQueueSize = 8;
+    config.channel[1].messageReceiveQueueSize = 8;
+    config.Validate();
+
+    Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+
+    // One reliable message with sequence 16 measures 512 body bits, which leaves channel 1
+    // less than ConservativeMessageHeaderBits of room once channel 0 has claimed the packet.
+    TestMessage * reliableMessage = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( reliableMessage );
+    reliableMessage->sequence = 16;
+    sender.SendMessage( 0, reliableMessage );
+    check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+
+    uint8_t packetData[256];
+    int packetBytes = 0;
+
+    const int NumMessagesSent = config.channel[1].messageSendQueueSize * 4;
+
+    for ( int i = 0; i < NumMessagesSent; ++i )
+    {
+        check( sender.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_NONE );
+        check( sender.CanSendMessage( 1 ) );
+
+        TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+        check( message );
+        message->sequence = 0;
+        sender.SendMessage( 1, message );
+
+        sender.GeneratePacket( NULL, (uint16_t) i, packetData, config.maxPacketSize, packetBytes );
+
+        time += 0.1;
+        sender.AdvanceTime( time );
+    }
+
+    check( sender.GetChannelErrorLevel( 1 ) == CHANNEL_ERROR_NONE );
+}
+
 void test_channel_config_fragment_counts_without_overflow()
 {
     // yojimbo#347: ceil(maxBlockSize / blockFragmentSize) used to add in int
@@ -5467,6 +5523,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_ordered_block_ignores_packet_budget );
         RUN_TEST( test_connection_reliable_ordered_message_packet_budget_fit );
         RUN_TEST( test_connection_unreliable_unordered_message_packet_budget_fit );
+        RUN_TEST( test_connection_unreliable_send_queue_drains_when_packet_full );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );

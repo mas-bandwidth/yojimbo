@@ -239,6 +239,13 @@ namespace yojimbo
             messages[numMessages++] = message;
         }
 
+        // Unreliable messages are never resent, so any still queued could not be sent in this
+        // packet: drop them now instead of carrying them into later packets. Without this, a
+        // channel starved of packet space by an earlier channel accumulates messages across
+        // ticks until its send queue fills and reports CHANNEL_ERROR_SEND_QUEUE_FULL.
+        while ( !m_messageSendQueue->IsEmpty() )
+            m_messageFactory->ReleaseMessage( m_messageSendQueue->Pop() );
+
         if ( numMessages == 0 )
             return 0;
 
