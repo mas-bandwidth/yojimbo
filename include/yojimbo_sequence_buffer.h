@@ -95,7 +95,7 @@ namespace yojimbo
         {
             if ( guaranteed_order )
             {
-                if ( uint16_t( sequence + 1 ) != m_sequence )
+                if ( yojimbo_sequence_greater_than( sequence + 1, m_sequence ) )
                 {
                     if ( sequence != m_sequence )
                         RemoveEntries( m_sequence, int( sequence ) - 1 );

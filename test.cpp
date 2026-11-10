@@ -840,6 +840,15 @@ void test_sequence_buffer_reinsert()
         check( sequence_buffer.Find(i) );
 
     check( sequence_buffer.GetSequence() == 4 );
+
+    TestSequenceData * older = sequence_buffer.Insert( 1, true );
+    check( older );
+    older->sequence = 1;
+
+    for ( int i = 0; i < 4; ++i )
+        check( sequence_buffer.Find(i) );
+
+    check( sequence_buffer.GetSequence() == 4 );
 }
 
 void test_allocator_tlsf()
