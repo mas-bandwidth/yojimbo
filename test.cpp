@@ -804,6 +804,78 @@ void test_sequence_buffer()
 
     for ( int i = 0; i < Size; ++i )
         check( sequence_buffer.Find(i) == NULL );
+
+    // sequences across the 16-bit wrap
+
+    SequenceBuffer<TestSequenceData> wrap_buffer( GetDefaultAllocator(), Size );
+
+    check( wrap_buffer.GetSequence() == 0 );
+
+    TestSequenceData * entry_65534 = wrap_buffer.Insert( 65534, true );
+    check( entry_65534 );
+    entry_65534->sequence = 65534;
+    check( wrap_buffer.GetSequence() == 65535 );
+    check( wrap_buffer.Exists( 65534 ) );
+    check( wrap_buffer.Find( 65534 ) == entry_65534 );
+    check( !wrap_buffer.Available( 65534 ) );
+    check( wrap_buffer.Available( 65280 ) );
+    check( !wrap_buffer.Exists( 65280 ) );
+
+    // insert an older sequence out of order, still inside the current window
+
+    TestSequenceData * entry_65280 = wrap_buffer.Insert( 65280 );
+    check( entry_65280 );
+    entry_65280->sequence = 65280;
+    check( wrap_buffer.GetSequence() == 65535 );
+    check( wrap_buffer.Exists( 65280 ) );
+    check( wrap_buffer.Find( 65280 ) == entry_65280 );
+    check( !wrap_buffer.Available( 65280 ) );
+    check( wrap_buffer.GetIndex( 65280 ) == 65280 % Size );
+
+    // remove it and verify the slot becomes available again
+
+    wrap_buffer.Remove( 65280 );
+    check( wrap_buffer.Available( 65280 ) );
+    check( !wrap_buffer.Exists( 65280 ) );
+    check( wrap_buffer.Find( 65280 ) == NULL );
+    check( wrap_buffer.Exists( 65534 ) );
+
+    // reinsert, then advance across 65535 -> 0: the wrapped remove range must clear
+    // 65280 (now outside the window) while leaving 65534 (still inside it) alone
+
+    entry_65280 = wrap_buffer.Insert( 65280 );
+    check( entry_65280 );
+    entry_65280->sequence = 65280;
+
+    wrap_buffer.Advance( 0 );
+
+    check( wrap_buffer.GetSequence() == 1 );
+    check( !wrap_buffer.Exists( 65280 ) );
+    check( wrap_buffer.Available( 65280 ) );
+    check( wrap_buffer.Find( 65280 ) == NULL );
+    check( wrap_buffer.Exists( 65534 ) );
+    check( wrap_buffer.Find( 65534 ) == entry_65534 );
+
+    // insert across 65535 -> 0 on a fresh buffer
+
+    SequenceBuffer<TestSequenceData> wrap_insert_buffer( GetDefaultAllocator(), Size );
+
+    TestSequenceData * wrap_insert_entry = wrap_insert_buffer.Insert( 65535, true );
+    check( wrap_insert_entry );
+    wrap_insert_entry->sequence = 65535;
+    check( wrap_insert_buffer.GetSequence() == 0 );
+
+    wrap_insert_entry = wrap_insert_buffer.Insert( 0, true );
+    check( wrap_insert_entry );
+    wrap_insert_entry->sequence = 0;
+    check( wrap_insert_buffer.GetSequence() == 1 );
+    check( wrap_insert_buffer.Exists( 0 ) );
+    check( wrap_insert_buffer.Exists( 65535 ) );
+    check( wrap_insert_buffer.Find( 0 ) == wrap_insert_entry );
+
+    wrap_insert_buffer.Remove( 0 );
+    check( wrap_insert_buffer.Available( 0 ) );
+    check( !wrap_insert_buffer.Exists( 0 ) );
 }
 
 void test_allocator_tlsf()

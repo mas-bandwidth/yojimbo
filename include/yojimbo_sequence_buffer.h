@@ -263,7 +263,7 @@ namespace yojimbo
         void RemoveEntries( int start_sequence, int finish_sequence )
         {
             if ( finish_sequence < start_sequence )
-                finish_sequence += 65535;
+                finish_sequence += 65536;
             yojimbo_assert( finish_sequence >= start_sequence );
             if ( finish_sequence - start_sequence < m_size )
             {
