@@ -30,6 +30,10 @@
 #include <inttypes.h>
 #include <string.h>
 
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+#include <signal.h>
+#endif
+
 #include "shared.h"
 #include <typeinfo>
 #include "serialize.h"
@@ -5623,6 +5627,48 @@ void test_fp_contract_off()
     check( rdu == 0x0000000000000000ULL );    // one rounding would give 0x3C90000000000000
 }
 
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+
+static volatile sig_atomic_t sleep_alarm_fired = 0;
+
+static void sleep_alarm_handler( int )
+{
+    sleep_alarm_fired = 1;
+}
+
+void test_yojimbo_sleep_non_positive_returns_immediately()
+{
+    struct sigaction previous;
+    struct sigaction action;
+    memset( &action, 0, sizeof( action ) );
+    action.sa_handler = sleep_alarm_handler;
+    sigemptyset( &action.sa_mask );
+    sigaction( SIGALRM, &action, &previous );
+
+    sleep_alarm_fired = 0;
+    alarm( 2 );
+
+    const double start = yojimbo_time();
+    yojimbo_sleep( -1.0 );
+    const double elapsed = yojimbo_time() - start;
+
+    alarm( 0 );
+    sigaction( SIGALRM, &previous, NULL );
+
+    check( !sleep_alarm_fired );
+    check( elapsed < 1.0 );
+}
+
+void test_yojimbo_sleep_longer_than_one_second()
+{
+    const double start = yojimbo_time();
+    yojimbo_sleep( 1.1 );
+    const double elapsed = yojimbo_time() - start;
+    check( elapsed >= 1.0 );
+}
+
+#endif
+
 int main( int argc, char ** argv )
 {
     // The tests are randomized (packet loss, ordering, ids). Seed rand() from the clock by
@@ -5685,6 +5731,10 @@ int main( int argc, char ** argv )
         RUN_TEST( test_crypto_aead_vectors );
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_fp_contract_off );
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+        RUN_TEST( test_yojimbo_sleep_non_positive_returns_immediately );
+        RUN_TEST( test_yojimbo_sleep_longer_than_one_second );
+#endif
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_address_malformed_port );
