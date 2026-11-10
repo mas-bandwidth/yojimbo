@@ -831,6 +831,15 @@ void test_sequence_buffer_reinsert()
     check( sequence_buffer.Find(2)->sequence == 2 );
 
     check( sequence_buffer.GetSequence() == 3 );
+
+    TestSequenceData * next = sequence_buffer.Insert( 3, true );
+    check( next );
+    next->sequence = 3;
+
+    for ( int i = 0; i < 4; ++i )
+        check( sequence_buffer.Find(i) );
+
+    check( sequence_buffer.GetSequence() == 4 );
 }
 
 void test_allocator_tlsf()
