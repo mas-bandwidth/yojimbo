@@ -829,6 +829,13 @@ namespace yojimbo
                 return;
             }
 
+            // Every non-final fragment must be a full blockFragmentSize.
+            if ( fragmentId != numFragments - 1 && fragmentBytes != m_config.blockFragmentSize )
+            {
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                return;
+            }
+
             // receive the fragment
 
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )

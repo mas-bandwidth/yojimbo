@@ -3030,7 +3030,7 @@ void test_connection_reliable_block_fragment_message_id_mismatch()
     memset( buffer, 0, sizeof( buffer ) );
     {
         WriteStream stream( buffer, sizeof( buffer ) );
-        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, fragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, blockFragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
         stream.Flush();
         const int packetBytes = stream.GetBytesProcessed();
         check( packetBytes > 0 );
@@ -3095,7 +3095,7 @@ void test_connection_reliable_block_fragment_different_message_id()
     memset( buffer, 0, sizeof( buffer ) );
     {
         WriteStream stream( buffer, sizeof( buffer ) );
-        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, fragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, blockFragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
         stream.Flush();
         const int packetBytes = stream.GetBytesProcessed();
         check( packetBytes > 0 );
@@ -3131,6 +3131,133 @@ void test_connection_reliable_block_fragment_different_message_id()
     receiver.AdvanceTime( time );
     check( receiver.GetErrorLevel() == CONNECTION_ERROR_CHANNEL );
     check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+}
+
+void test_connection_reliable_rejects_short_nonfinal_block_fragment()
+{
+    // Every non-final fragment of a multi-fragment block must be a full blockFragmentSize.
+    // A shorter non-final fragment is rejected as a desync and the block is not delivered.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1100;      // not a multiple of blockFragmentSize
+    config.channel[0].blockFragmentSize = 500;  // => GetMaxFragmentsPerBlock() == 3
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+    const int maxMessageType = messageFactory.GetNumTypes() - 1;
+
+    const int numFragments = maxFragmentsPerBlock;   // 3
+    check( numFragments > 1 );
+
+    uint8_t buffer[4096];
+
+    // Fragment 0, deliberately shorter than a full fragment. The packet must be rejected on
+    // arrival, before its data is copied into the block buffer.
+    {
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, blockFragmentSize / 2, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( !receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+        check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    }
+
+    // Feed the rest of the block too; the block must still not be delivered.
+    for ( int fragmentId = 1; fragmentId < numFragments; ++fragmentId )
+    {
+        const int fragmentSize = ( fragmentId == numFragments - 1 ) ? config.channel[0].maxBlockSize - ( numFragments - 1 ) * blockFragmentSize : blockFragmentSize;
+
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, fragmentId, fragmentSize ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    }
+
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
+}
+
+void test_connection_reliable_rejects_short_middle_block_fragment()
+{
+    // The full-fragment rule applies to every non-final fragment, not only fragment 0. A short
+    // fragment in the middle of a block is rejected as a desync and the block is not delivered.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[0].maxBlockSize = 1100;      // not a multiple of blockFragmentSize
+    config.channel[0].blockFragmentSize = 500;  // => GetMaxFragmentsPerBlock() == 3
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+    const int maxMessageType = messageFactory.GetNumTypes() - 1;
+
+    const int numFragments = maxFragmentsPerBlock;   // 3
+    const int shortFragmentId = 1;                   // non-final and not fragment 0
+    check( numFragments > 2 );
+    check( shortFragmentId != 0 );
+    check( shortFragmentId != numFragments - 1 );
+
+    uint8_t buffer[4096];
+
+    // Fragment 0 arrives full size and carries the block message body.
+    {
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, blockFragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+    }
+
+    // A middle fragment, deliberately shorter than a full fragment, must be rejected on arrival.
+    {
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, shortFragmentId, blockFragmentSize / 2 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( !receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+        check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    }
+
+    // Feed the remaining fragments too; the block must still not be delivered.
+    for ( int fragmentId = shortFragmentId + 1; fragmentId < numFragments; ++fragmentId )
+    {
+        const int fragmentSize = ( fragmentId == numFragments - 1 ) ? config.channel[0].maxBlockSize - ( numFragments - 1 ) * blockFragmentSize : blockFragmentSize;
+
+        memset( buffer, 0, sizeof( buffer ) );
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, fragmentId, fragmentSize ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 0, buffer, packetBytes );
+    }
+
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+    check( receiver.ReceiveMessage( 0 ) == NULL );
 }
 
 void test_connection_reliable_over_budget_packet()
@@ -6347,6 +6474,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_block_fragment_message_id_mismatch );
         RUN_TEST( test_connection_reliable_block_fragment_different_message_id );
+        RUN_TEST( test_connection_reliable_rejects_short_nonfinal_block_fragment );
+        RUN_TEST( test_connection_reliable_rejects_short_middle_block_fragment );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );
         RUN_TEST( test_connection_unreliable_message_alloc_failure );
