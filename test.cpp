@@ -32,6 +32,7 @@
 
 #if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
 #include <signal.h>
+#include <unistd.h>
 #endif
 
 #include "shared.h"
