@@ -261,7 +261,25 @@ void test_address_malformed_port()
     check( parse_address( "[::1]]" ) == false );
     check( parse_address( "[::1]40000" ) == false );
 
+    // at most one port separator
+    {
+        Address address( "1.2.3.4:5:6" );
+        check( address.IsValid() == false );
+        check( address.GetPort() == 0 );
+    }
+    check( parse_address( "127.0.0.1:5:6" ) == false );
+    check( parse_address( "127.0.0.1::5" ) == false );
+    check( parse_address( "127.0.0.1:5:" ) == false );
+    check( parse_address( "1.2.3.4:5:6:7" ) == false );
+    check( parse_address( "1.2.3.4:5::" ) == false );
+    check( parse_address( "1.2.3.4:5:6 " ) == false );
+
     // ...and the forms that were always valid still are, with the port they say
+    {
+        Address address( "1.2.3.4:5" );
+        check( address.IsValid() );
+        check( address.GetPort() == 5 );
+    }
     {
         Address address( "127.0.0.1:65535" );
         check( address.IsValid() );
