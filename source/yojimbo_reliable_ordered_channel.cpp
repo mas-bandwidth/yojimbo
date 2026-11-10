@@ -27,7 +27,11 @@
 
 namespace yojimbo
 {
-    const int ReliableOrderedChannel::ConservativeFragmentHeaderBits;
+    // Bits a block fragment header can take: the block flag (1), messageId, numFragments,
+    // fragmentId and fragmentSize (16 each), plus up to 7 bits of alignment before the fragment
+    // bytes. The public ConservativeFragmentHeaderBits keeps the value it shipped with (64),
+    // because a public constant's value is part of the interface; this is the bound in use.
+    static const int BlockFragmentHeaderBits = 72;
 
     ReliableOrderedChannel::ReliableOrderedChannel( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, const int maxPacketSize, int channelIndex, double time )
         : Channel( allocator, messageFactory, config, maxPacketSize, channelIndex, time )
@@ -195,7 +199,7 @@ namespace yojimbo
             yojimbo_assert( blockSize <= m_config.maxBlockSize );
 
             const int fragment0Bytes = yojimbo_min( blockSize, m_config.blockFragmentSize );
-            const int64_t fragment0Bits = (int64_t) ConservativeFragmentHeaderBits + (int64_t) fragment0Bytes * 8 + (int64_t) measuredBits + (int64_t) messageTypeBits;
+            const int64_t fragment0Bits = (int64_t) BlockFragmentHeaderBits + (int64_t) fragment0Bytes * 8 + (int64_t) measuredBits + (int64_t) messageTypeBits;
             const int maxChannelPacketBits = ( m_maxPacketSize & ~7 ) * 8 - ConservativePacketHeaderBits - ConservativeChannelHeaderBits;
 
             if ( fragment0Bits > (int64_t) maxChannelPacketBits )
@@ -264,7 +268,7 @@ namespace yojimbo
             const int blockSize = blockMessage->GetBlockSize();
             const int totalFragments = m_sendBlock->active
                 ? m_sendBlock->numFragments
-                : (int) ceil( blockSize / float( m_config.blockFragmentSize ) );
+                : (int) ( ( (int64_t) blockSize + m_config.blockFragmentSize - 1 ) / m_config.blockFragmentSize );
 
             uint16_t nextFragmentId = 0;
             if ( m_sendBlock->active )
@@ -290,7 +294,7 @@ namespace yojimbo
             if ( fragmentRemainder && nextFragmentId == totalFragments - 1 )
                 nextFragmentBytes = fragmentRemainder;
 
-            int64_t neededBits = (int64_t) ConservativeFragmentHeaderBits + (int64_t) nextFragmentBytes * 8;
+            int64_t neededBits = (int64_t) BlockFragmentHeaderBits + (int64_t) nextFragmentBytes * 8;
             if ( nextFragmentId == 0 )
             {
                 const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
@@ -726,7 +730,7 @@ namespace yojimbo
 
         const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
-        int fragmentBits = ConservativeFragmentHeaderBits + fragmentSize * 8;
+        int fragmentBits = BlockFragmentHeaderBits + fragmentSize * 8;
 
         if ( fragmentId == 0 )
         {
