@@ -651,7 +651,7 @@ namespace yojimbo
             m_sendBlock->active = true;
             m_sendBlock->blockSize = blockSize;
             m_sendBlock->blockMessageId = messageId;
-            m_sendBlock->numFragments = (int) ceil( blockSize / float( m_config.blockFragmentSize ) );
+            m_sendBlock->numFragments = (int) ( ( (int64_t) blockSize + m_config.blockFragmentSize - 1 ) / m_config.blockFragmentSize );
             m_sendBlock->numAckedFragments = 0;
 
             const int MaxFragmentsPerBlock = m_config.GetMaxFragmentsPerBlock();

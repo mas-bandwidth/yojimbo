@@ -30,6 +30,10 @@
 #include <inttypes.h>
 #include <string.h>
 
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+#include <signal.h>
+#endif
+
 #include "shared.h"
 #include <typeinfo>
 #include "serialize.h"
@@ -41,6 +45,59 @@
 // which is what a matchmaker does and what Client::InsecureConnect deliberately will not do.
 // Present in both configurations, unlike sodium.h.
 #include "netcode.h"
+
+#if !defined(_WIN32)
+#include <dlfcn.h>
+
+// The network simulator makes its loss and duplicate decisions with rand(). A test that needs
+// the exact minimum draw can force rand() to zero here; every other call is forwarded to the
+// real implementation so the rest of the suite is unaffected.
+static bool g_force_zero_random = false;
+
+extern "C" int rand( void )
+{
+    if ( g_force_zero_random )
+        return 0;
+
+    typedef int ( * RandFunction )( void );
+    static RandFunction real_rand = (RandFunction) dlsym( RTLD_NEXT, "rand" );
+    return real_rand ? real_rand() : 0;
+}
+#endif // #if !defined(_WIN32)
+
+// Make the requested rand() draw return zero: force every draw on POSIX, or replay a suitable
+// seed on Windows, where the CRT's small rand() range makes the search cheap.
+static void ForceRandomMinimum( int callIndex )
+{
+#if defined(_WIN32)
+    for ( unsigned int seed = 0; ; ++seed )
+    {
+        srand( seed );
+        bool zero = false;
+        for ( int i = 0; i <= callIndex; ++i )
+        {
+            zero = ( rand() == 0 );
+            if ( i == callIndex )
+                break;
+        }
+        if ( zero )
+        {
+            srand( seed );
+            return;
+        }
+    }
+#else
+    (void) callIndex;
+    g_force_zero_random = true;
+#endif
+}
+
+static void RestoreRandom()
+{
+#if !defined(_WIN32)
+    g_force_zero_random = false;
+#endif
+}
 
 using namespace yojimbo;
 
@@ -707,6 +764,62 @@ void test_network_simulator_drains_all_slots()
         check( seen[i] );       // tail slots (index >= maxPackets) were drained too
 }
 
+void test_network_simulator_zero_percent_no_loss_or_duplicates()
+{
+    // At 0% loss and 0% duplicates the simulator must not drop or duplicate a packet even when
+    // the random draw lands on its minimum value (0.0f). A <= comparison treats that draw as
+    // a hit and silently changes behavior at a zero setting.
+
+    const int NumEntries = 8;
+
+    uint8_t payload[8];
+    memset( payload, 0x5A, sizeof( payload ) );
+
+    // Loss is decided before the packet is stored. Disable duplicates so the zero draw reaches
+    // only the loss check.
+    {
+        NetworkSimulator sim( GetDefaultAllocator(), NumEntries, 0.0 );
+        sim.SetPacketLoss( 0.0f );
+        sim.SetDuplicates( -1.0f );
+
+        ForceRandomMinimum( 0 );
+
+        sim.SendPacket( 0, payload, sizeof( payload ) );
+        sim.AdvanceTime( 1.0 );
+
+        uint8_t * packetData[4];
+        int packetBytes[4];
+        int to[4];
+        const int n = sim.ReceivePackets( 4, packetData, packetBytes, to );
+        check( n == 1 );        // the packet must not be dropped
+        for ( int i = 0; i < n; ++i )
+            YOJIMBO_FREE( sim.GetAllocator(), packetData[i] );
+    }
+
+    // Duplicates are decided after the packet is stored, on the next draw. Disable loss so the
+    // zero draw reaches the duplicate check.
+    {
+        NetworkSimulator sim( GetDefaultAllocator(), NumEntries, 0.0 );
+        sim.SetPacketLoss( -1.0f );
+        sim.SetDuplicates( 0.0f );
+
+        ForceRandomMinimum( 1 );
+
+        sim.SendPacket( 0, payload, sizeof( payload ) );
+        sim.AdvanceTime( 1.0 );
+
+        uint8_t * packetData[4];
+        int packetBytes[4];
+        int to[4];
+        const int n = sim.ReceivePackets( 4, packetData, packetBytes, to );
+        check( n == 1 );        // the packet must not be duplicated
+        for ( int i = 0; i < n; ++i )
+            YOJIMBO_FREE( sim.GetAllocator(), packetData[i] );
+    }
+
+    RestoreRandom();
+}
+
 void test_bit_array()
 {
     const int Size = 300;
@@ -938,8 +1051,10 @@ void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, C
     {
         if ( yojimbo_random_int( 0, 100 ) >= packetLossPercent )
         {
-            receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes );
-            sender.ProcessAcks( &senderSequence, 1 );
+            if ( receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes ) )
+            {
+                sender.ProcessAcks( &senderSequence, 1 );
+            }
         }
     }
 
@@ -1231,6 +1346,71 @@ void test_connection_reliable_ordered_blocks_max_size()
     }
 
     check( numMessagesReceived == NumMessagesSent );
+}
+
+void test_connection_reliable_ordered_blocks_fragment_count()
+{
+    // Sends a large block whose size is one byte past a multiple of blockFragmentSize,
+    // then checks that the whole block and its final byte arrive intact.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.channel[ReliableChannel].maxBlockSize = 32 * 1024 * 1024;
+    connectionConfig.channel[ReliableChannel].blockFragmentSize = 1024;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    const int BlockSize = 16 * 1024 * 1024 + 1;
+
+    TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), BlockSize );
+    check( blockData );
+    for ( int i = 0; i < BlockSize; ++i )
+        blockData[i] = uint8_t( i * 31 );
+    blockData[BlockSize - 1] = 0x5A;
+    message->AttachBlock( messageFactory.GetAllocator(), blockData, BlockSize );
+    sender.SendMessage( ReliableChannel, message );
+
+    bool received = false;
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+    const int NumIterations = 40000;
+
+    for ( int i = 0; i < NumIterations; ++i )
+    {
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+        while ( true )
+        {
+            Message * msg = receiver.ReceiveMessage( ReliableChannel );
+            if ( !msg )
+                break;
+
+            check( msg->GetType() == TEST_BLOCK_MESSAGE );
+
+            TestBlockMessage * blockMessage = (TestBlockMessage*) msg;
+            check( blockMessage->GetBlockSize() == BlockSize );
+
+            const uint8_t * receivedData = blockMessage->GetBlockData();
+            check( receivedData );
+            for ( int j = 0; j < BlockSize - 1; ++j )
+                check( receivedData[j] == uint8_t( j * 31 ) );
+            check( receivedData[BlockSize - 1] == 0x5A );
+
+            received = true;
+            messageFactory.ReleaseMessage( msg );
+        }
+
+        if ( received )
+            break;
+    }
+
+    check( received );
 }
 
 void test_connection_reliable_ordered_messages_and_blocks()
@@ -1685,6 +1865,42 @@ void test_connection_reject_trailing_bytes()
     check( !receiver.ProcessPacket( NULL, 0, packet, packetBytes + 1 ) );
     check( receiver.GetErrorLevel() == CONNECTION_ERROR_READ_PACKET_FAILED );
     check( receiver.ReceiveMessage( 0 ) == NULL );
+}
+
+void test_connection_rejected_packet_is_not_acked()
+{
+    // A packet the receiver rejects is never added to its received packet set, so no ack
+    // comes back for it and the sender must keep the message outstanding for retransmit.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    // Put the receiver into an error state so every subsequent packet is rejected.
+    uint8_t buffer[1] = { 0 };
+    check( !receiver.ProcessPacket( NULL, 0, buffer, 0 ) );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_READ_PACKET_FAILED );
+
+    TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    sender.SendMessage( 0, message );
+
+    check( sender.HasMessagesToSend( 0 ) );
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+    check( sender.HasMessagesToSend( 0 ) );
 }
 
 void test_connection_failed_message_body_not_partially_applied()
@@ -3193,6 +3409,81 @@ void test_connection_generate_packet_channel_data_alloc_failure()
         }
     }
     check( allocator.GetOutstanding() == 0 );   // no leak across teardown
+}
+
+#ifdef YOJIMBO_DEBUG
+#include <setjmp.h>
+
+static jmp_buf g_messageTypeLimitJmpBuf;
+static int g_messageTypeLimitAssertCount = 0;
+static int g_messageTypeLimitConstructed = 0;
+
+static void ExpectMessageTypeLimitAssertHandler( const char * /*condition*/, const char * /*function*/, const char * /*file*/, int /*line*/ )
+{
+    g_messageTypeLimitAssertCount++;
+    longjmp( g_messageTypeLimitJmpBuf, 1 );
+}
+#endif // #ifdef YOJIMBO_DEBUG
+
+void test_message_factory_num_types_within_type_field()
+{
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectMessageTypeLimitAssertHandler );
+
+    // Message::m_type is uint32_t : 15, so a factory count must stay in 0..32767.
+    const int rejected[] = { -1, 32768, 32769 };
+    for ( int i = 0; i < (int) ( sizeof( rejected ) / sizeof( rejected[0] ) ); ++i )
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), rejected[i] );
+            g_messageTypeLimitConstructed = 1;
+            (void) factory;
+        }
+        check( g_messageTypeLimitAssertCount == 1 );
+        check( g_messageTypeLimitConstructed == 0 );
+    }
+
+    const int accepted[] = { 0, 1, 32767 };
+    for ( int i = 0; i < (int) ( sizeof( accepted ) / sizeof( accepted[0] ) ); ++i )
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), accepted[i] );
+            check( factory.GetNumTypes() == accepted[i] );
+            g_messageTypeLimitConstructed = 1;
+        }
+        check( g_messageTypeLimitAssertCount == 0 );
+        check( g_messageTypeLimitConstructed == 1 );
+    }
+
+    {
+        g_messageTypeLimitAssertCount = 0;
+        g_messageTypeLimitConstructed = 0;
+        if ( setjmp( g_messageTypeLimitJmpBuf ) == 0 )
+        {
+            MessageFactory factory( GetDefaultAllocator(), 1 );
+            ConnectionConfig config;
+            config.numChannels = 1;
+            config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+            Connection connection( GetDefaultAllocator(), factory, config, 0.0 );
+            g_messageTypeLimitConstructed = 1;
+            (void) connection;
+        }
+        check( g_messageTypeLimitAssertCount == 0 );
+        check( g_messageTypeLimitConstructed == 1 );
+    }
+
+    yojimbo_set_assert_function( prevAssertHandler );
+#else // #ifdef YOJIMBO_DEBUG
+    MessageFactory factory( GetDefaultAllocator(), 1 );
+    check( factory.GetNumTypes() == 1 );
+#endif // #ifdef YOJIMBO_DEBUG
 }
 
 void test_message_factory_create_message_alloc_failure()
@@ -5099,6 +5390,70 @@ void test_reliable_outbound_sequence_outdated()
     server.Stop();
 }
 
+// Send and receive more than 65536 reliable-ordered messages over one connection pair so the
+// 16-bit message id crosses the 65535 -> 0 wraparound. Every message must still arrive in order.
+void test_reliable_ordered_message_id_wraparound()
+{
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    // The 16-bit message id wraps from 65535 back to 0 only after more than 65536 messages.
+    const int NumMessages = 66000;
+
+    int numMessagesSent = 0;
+    int numMessagesReceived = 0;
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    const int MaxIterations = 1000000;
+
+    for ( int i = 0; i < MaxIterations && numMessagesReceived < NumMessages; ++i )
+    {
+        // The send queue only holds messageSendQueueSize entries, so queue what fits and let the
+        // receiver drain and ack before adding more. Sending all 66000 at once is not possible.
+        while ( numMessagesSent < NumMessages && sender.CanSendMessage( ReliableChannel ) )
+        {
+            TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+            check( message );
+            message->sequence = (uint16_t) numMessagesSent;
+            sender.SendMessage( ReliableChannel, message );
+            ++numMessagesSent;
+        }
+
+        // No packet loss here: this test is about the id wrap, not about retransmission.
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage( ReliableChannel );
+            if ( !message )
+                break;
+
+            check( message->GetType() == TEST_MESSAGE );
+            check( message->GetId() == (int) (uint16_t) numMessagesReceived );
+
+            TestMessage * testMessage = (TestMessage*) message;
+            check( testMessage->sequence == (uint16_t) numMessagesReceived );
+
+            messageFactory.ReleaseMessage( message );
+
+            ++numMessagesReceived;
+        }
+    }
+
+    check( numMessagesSent == NumMessages );
+    check( numMessagesReceived == NumMessages );
+    check( sender.GetErrorLevel() == CONNECTION_ERROR_NONE );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_NONE );
+}
+
 void test_single_message_type_reliable()
 {
 	SingleTestMessageFactory messageFactory( GetDefaultAllocator() );
@@ -5787,6 +6142,48 @@ void test_fp_contract_off()
     check( rdu == 0x0000000000000000ULL );    // one rounding would give 0x3C90000000000000
 }
 
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+
+static volatile sig_atomic_t sleep_alarm_fired = 0;
+
+static void sleep_alarm_handler( int )
+{
+    sleep_alarm_fired = 1;
+}
+
+void test_yojimbo_sleep_non_positive_returns_immediately()
+{
+    struct sigaction previous;
+    struct sigaction action;
+    memset( &action, 0, sizeof( action ) );
+    action.sa_handler = sleep_alarm_handler;
+    sigemptyset( &action.sa_mask );
+    sigaction( SIGALRM, &action, &previous );
+
+    sleep_alarm_fired = 0;
+    alarm( 2 );
+
+    const double start = yojimbo_time();
+    yojimbo_sleep( -1.0 );
+    const double elapsed = yojimbo_time() - start;
+
+    alarm( 0 );
+    sigaction( SIGALRM, &previous, NULL );
+
+    check( !sleep_alarm_fired );
+    check( elapsed < 1.0 );
+}
+
+void test_yojimbo_sleep_longer_than_one_second()
+{
+    const double start = yojimbo_time();
+    yojimbo_sleep( 1.1 );
+    const double elapsed = yojimbo_time() - start;
+    check( elapsed >= 1.0 );
+}
+
+#endif
+
 int main( int argc, char ** argv )
 {
     // The tests are randomized (packet loss, ordering, ids). Use a fixed default seed so a
@@ -5849,12 +6246,17 @@ int main( int argc, char ** argv )
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_fp_contract_off );
         RUN_TEST( test_default_seed_is_fixed );
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+        RUN_TEST( test_yojimbo_sleep_non_positive_returns_immediately );
+        RUN_TEST( test_yojimbo_sleep_longer_than_one_second );
+#endif
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_address_ipv4_octets );
         RUN_TEST( test_address_malformed_port );
         RUN_TEST( test_address_classification );
         RUN_TEST( test_network_simulator_drains_all_slots );
+        RUN_TEST( test_network_simulator_zero_percent_no_loss_or_duplicates );
         RUN_TEST( test_bit_array );
         RUN_TEST( test_sequence_buffer );
         RUN_TEST( test_sequence_buffer_remove_entries_across_wrap );
@@ -5864,6 +6266,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_idle_channel_packet_sequence_wrap );
         RUN_TEST( test_connection_reliable_ordered_blocks );
         RUN_TEST( test_connection_reliable_ordered_blocks_max_size );
+        RUN_TEST( test_connection_reliable_ordered_blocks_fragment_count );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks );
         RUN_TEST( test_connection_reliable_ordered_messages_and_blocks_multiple_channels );
         RUN_TEST( test_connection_unreliable_unordered_messages );
@@ -5871,6 +6274,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_process_packet_exact_allocation );
         RUN_TEST( test_connection_reject_trailing_bytes );
+        RUN_TEST( test_connection_rejected_packet_is_not_acked );
         RUN_TEST( test_connection_failed_message_body_not_partially_applied );
         RUN_TEST( test_connection_failed_unordered_message_body_not_partially_applied );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
@@ -5890,6 +6294,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_message_alloc_failure );
         RUN_TEST( test_connection_unreliable_message_alloc_failure );
         RUN_TEST( test_connection_generate_packet_channel_data_alloc_failure );
+        RUN_TEST( test_message_factory_num_types_within_type_field );
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
@@ -5918,6 +6323,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
         RUN_TEST( test_reliable_outbound_sequence_outdated );
+        RUN_TEST( test_reliable_ordered_message_id_wraparound );
 
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );
