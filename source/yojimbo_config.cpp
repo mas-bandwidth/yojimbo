@@ -25,6 +25,8 @@
 #include "yojimbo_config.h"
 #include "yojimbo_platform.h"
 #include "yojimbo_reliable_ordered_channel.h"
+#include "netcode.h"
+#include "reliable.h"
 
 #include <math.h>
 
@@ -153,6 +155,13 @@ namespace yojimbo
 
         YOJIMBO_CONFIG_CHECK( packetFragmentSize > 0,
             "error: invalid config: packetFragmentSize (%d) must be > 0\n", packetFragmentSize );
+
+        // Each fragment is sent as a fragment header plus (on the first fragment) the packet
+        // header plus up to packetFragmentSize bytes, and must fit inside one netcode packet.
+        const int maxPacketFragmentSize = NETCODE_MAX_PACKET_SIZE - RELIABLE_FRAGMENT_HEADER_BYTES - RELIABLE_MAX_PACKET_HEADER_BYTES;
+        YOJIMBO_CONFIG_CHECK( packetFragmentSize <= maxPacketFragmentSize,
+            "error: invalid config: packetFragmentSize (%d) plus headers must fit within a netcode packet (%d bytes, max packetFragmentSize %d)\n",
+            packetFragmentSize, NETCODE_MAX_PACKET_SIZE, maxPacketFragmentSize );
 
         YOJIMBO_CONFIG_CHECK( fragmentPacketsAbove > 0,
             "error: invalid config: fragmentPacketsAbove (%d) must be > 0\n", fragmentPacketsAbove );
