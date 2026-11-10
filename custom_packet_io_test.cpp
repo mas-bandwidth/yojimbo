@@ -29,10 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef YOJIMBO_DEBUG
-#include <setjmp.h>
-#endif // #ifdef YOJIMBO_DEBUG
-
 using namespace yojimbo;
 
 struct MemoryPacket
@@ -153,28 +149,6 @@ static bool Require( bool condition, const char * message )
     return false;
 }
 
-#ifdef YOJIMBO_DEBUG
-static jmp_buf g_configValidateJmpBuf;
-static int g_configValidateAssertCount = 0;
-
-static void ConfigValidateAssertHandler( const char * /*condition*/, const char * /*function*/, const char * /*file*/, int /*line*/ )
-{
-    g_configValidateAssertCount++;
-    longjmp( g_configValidateJmpBuf, 1 );
-}
-
-static bool ConfigValidateAsserts( const ConnectionConfig & config )
-{
-    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
-    yojimbo_set_assert_function( ConfigValidateAssertHandler );
-    g_configValidateAssertCount = 0;
-    if ( setjmp( g_configValidateJmpBuf ) == 0 )
-        config.Validate();
-    yojimbo_set_assert_function( prevAssertHandler );
-    return g_configValidateAssertCount > 0;
-}
-#endif // #ifdef YOJIMBO_DEBUG
-
 int main()
 {
     if ( !InitializeYojimbo() )
@@ -193,7 +167,6 @@ int main()
         config.numChannels = 2;
         config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
         config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        config.channel[1].maxBlockSize = config.maxPacketSize;
 
         uint8_t privateKey[KeyBytes];
         memset( privateKey, 0, sizeof( privateKey ) );
@@ -281,7 +254,6 @@ int main()
         config.numChannels = 2;
         config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
         config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        config.channel[1].maxBlockSize = config.maxPacketSize;
 
         uint8_t privateKey[KeyBytes];
         memset( privateKey, 0, sizeof( privateKey ) );
@@ -358,25 +330,6 @@ int main()
         server.Stop();
         client.Disconnect();
     }
-
-#ifdef YOJIMBO_DEBUG
-    // An unreliable-unordered channel does not fragment blocks, so its configured block size
-    // must fit inside one packet. Validate that in memory, without touching a socket.
-    {
-        ConnectionConfig invalidConfig;
-        invalidConfig.numChannels = 1;
-        invalidConfig.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        invalidConfig.channel[0].disableBlocks = false;
-        invalidConfig.channel[0].maxBlockSize = invalidConfig.maxPacketSize + 1;
-        ok &= Require( ConfigValidateAsserts( invalidConfig ),
-                       "oversized unreliable-unordered block config was accepted" );
-
-        invalidConfig.channel[0].maxBlockSize = invalidConfig.maxPacketSize;
-        ok &= Require( !ConfigValidateAsserts( invalidConfig ),
-                       "max-size unreliable-unordered block config was rejected" );
-    }
-#endif // #ifdef YOJIMBO_DEBUG
-
     ShutdownYojimbo();
 
     if ( !ok )

@@ -3212,64 +3212,80 @@ void test_channel_config_max_messages_per_packet_bounds()
 #endif // #ifdef YOJIMBO_DEBUG
 }
 
-void test_channel_config_unreliable_unordered_block_fits_packet()
+void test_client_server_config_default_unreliable_channel_validates()
 {
 #ifdef YOJIMBO_DEBUG
     void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
     yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
 
-    // An unreliable-unordered channel sends blocks without fragmenting them, so the configured
-    // block size must fit inside a single packet. maxBlockSize == maxPacketSize is the boundary.
-    {
-        ChannelConfig channel;
-        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        channel.disableBlocks = false;
-        channel.maxBlockSize = 8193;
+    // The configuration USAGE.md shows: one reliable-ordered and one unreliable-unordered
+    // channel, every other field left at its default.
+    ClientServerConfig config;
+    config.numChannels = 2;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
-        g_configValidateAssertCount = 0;
-        if ( setjmp( g_configValidateJmpBuf ) == 0 )
-            channel.Validate( 0, 8192 );
-        check( g_configValidateAssertCount == 1 );
-    }
-
-    {
-        ChannelConfig channel;
-        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        channel.disableBlocks = false;
-        channel.maxBlockSize = 2048;
-        channel.packetBudget = 1024;
-
-        g_configValidateAssertCount = 0;
-        if ( setjmp( g_configValidateJmpBuf ) == 0 )
-            channel.Validate( 0, 8192 );
-        check( g_configValidateAssertCount == 1 );
-    }
-
-    {
-        ChannelConfig channel;
-        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        channel.disableBlocks = false;
-        channel.maxBlockSize = 8192;
-
-        g_configValidateAssertCount = 0;
-        if ( setjmp( g_configValidateJmpBuf ) == 0 )
-            channel.Validate( 0, 8192 );
-        check( g_configValidateAssertCount == 0 );
-    }
-
-    {
-        ChannelConfig channel;
-        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        channel.disableBlocks = true;
-        channel.maxBlockSize = 16384;
-
-        g_configValidateAssertCount = 0;
-        if ( setjmp( g_configValidateJmpBuf ) == 0 )
-            channel.Validate( 0, 8192 );
-        check( g_configValidateAssertCount == 0 );
-    }
+    g_configValidateAssertCount = 0;
+    if ( setjmp( g_configValidateJmpBuf ) == 0 )
+        config.Validate();
+    check( g_configValidateAssertCount == 0 );
 
     yojimbo_set_assert_function( prevAssertHandler );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
+void test_connection_unreliable_unordered_block_too_large_for_packet()
+{
+    // An unreliable-unordered channel sends a block whole, inside one packet. A block within
+    // maxBlockSize that does not fit a packet once the headers are added is the caller's
+    // mistake: it asserts at send in debug. Release is unchanged: the block is accepted, no
+    // channel error is set, and it is never delivered.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[0].maxBlockSize = config.maxPacketSize;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int blockSize = config.maxPacketSize - 12;
+    TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( message );
+    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+    check( blockData );
+    memset( blockData, 0, blockSize );
+    message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+    g_configValidateAssertCount = 0;
+    if ( setjmp( g_configValidateJmpBuf ) == 0 )
+        sender.SendMessage( 0, message );
+    yojimbo_set_assert_function( prevAssertHandler );
+    check( g_configValidateAssertCount == 1 );
+    // The assert stopped SendMessage before it took the message, so release it here.
+    messageFactory.ReleaseMessage( message );
+#else // #ifdef YOJIMBO_DEBUG
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    sender.SendMessage( 0, message );
+    check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+    for ( int i = 0; i < 10; ++i )
+    {
+        PumpConnectionUpdate( config, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+        Message * received = receiver.ReceiveMessage( 0 );
+        check( !received );
+    }
+
+    check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
 #endif // #ifdef YOJIMBO_DEBUG
 }
 
@@ -7005,7 +7021,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_channel_config_max_messages_per_packet_bounds );
-        RUN_TEST( test_channel_config_unreliable_unordered_block_fits_packet );
+        RUN_TEST( test_client_server_config_default_unreliable_channel_validates );
+        RUN_TEST( test_connection_unreliable_unordered_block_too_large_for_packet );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
         RUN_TEST( test_client_server_config_packet_fragment_size_fits_netcode_payload );

@@ -119,6 +119,22 @@ namespace yojimbo
         {
             yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() > 0 );
             yojimbo_assert( ((BlockMessage*)message)->GetBlockSize() <= m_config.maxBlockSize );
+#ifdef YOJIMBO_DEBUG
+            {
+                // This channel sends a block whole, inside one packet: a block that cannot fit an
+                // empty packet with its headers can never be sent. That is the caller's mistake.
+                BlockMessage * blockMessage = (BlockMessage*) message;
+                MeasureStream measureStream;
+                measureStream.SetContext( context );
+                measureStream.SetAllocator( &m_messageFactory->GetAllocator() );
+                message->SerializeInternal( measureStream );
+                SerializeMessageBlock( measureStream, *m_messageFactory, blockMessage, m_config.maxBlockSize );
+                const int64_t maxPacketBits = (int64_t) ( m_maxPacketSize & ~7 ) * 8 - ConservativePacketHeaderBits - ConservativeChannelHeaderBits;
+                const int64_t maxMessagePacketBits = m_config.packetBudget > 0 ? yojimbo_min( (int64_t) m_config.packetBudget * 8, maxPacketBits ) : maxPacketBits;
+                const int64_t messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
+                yojimbo_assert( ConservativeMessageHeaderBits + messageTypeBits + (int64_t) measureStream.GetBitsProcessed() <= maxMessagePacketBits );
+            }
+#endif // #ifdef YOJIMBO_DEBUG
         }
         else
         {
@@ -127,7 +143,7 @@ namespace yojimbo
             measureStream.SetAllocator( &m_messageFactory->GetAllocator() );
             message->SerializeInternal( measureStream );
 
-            const int measuredBits = measureStream.GetBitsProcessed();
+            const int64_t measuredBits = measureStream.GetBitsProcessed();
             const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
 
             // A message must fit into an empty packet for this channel, including its
