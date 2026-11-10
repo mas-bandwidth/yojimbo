@@ -631,6 +631,9 @@ void test_address_ipv4_octets()
     check( address.GetAddress4()[1] == 2 );
     check( address.GetAddress4()[2] == 3 );
     check( address.GetAddress4()[3] == 4 );
+
+    char buffer[MaxAddressLength];
+    check( strcmp( address.ToString( buffer, MaxAddressLength ), "1.2.3.4:5000" ) == 0 );
 }
 
 void test_network_simulator_drains_all_slots()
