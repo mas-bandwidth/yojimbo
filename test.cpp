@@ -792,10 +792,11 @@ void test_sequence_buffer()
 
     for ( int i = 0; i <= Size; ++i )
     {
-        TestSequenceData * entry = sequence_buffer.Insert( i, true );
+        const uint16_t sequence = uint16_t( Size * 4 + 1 + i );
+        TestSequenceData * entry = sequence_buffer.Insert( sequence, true );
         check( entry );
-        entry->sequence = i;
-        check( sequence_buffer.GetSequence() == i + 1 );
+        entry->sequence = sequence;
+        check( sequence_buffer.GetSequence() == sequence + 1 );
     }
 
     sequence_buffer.Reset();
