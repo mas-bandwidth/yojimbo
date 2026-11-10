@@ -195,7 +195,6 @@ namespace yojimbo
             yojimbo_assert( blockSize <= m_config.maxBlockSize );
 
             const int fragment0Bytes = yojimbo_min( blockSize, m_config.blockFragmentSize );
-            const int messageTypeBits = bits_required( 0, m_messageFactory->GetNumTypes() - 1 );
             const int64_t fragment0Bits = (int64_t) ConservativeFragmentHeaderBits + (int64_t) fragment0Bytes * 8 + (int64_t) measuredBits + (int64_t) messageTypeBits;
             const int maxChannelPacketBits = ( m_maxPacketSize & ~7 ) * 8 - ConservativePacketHeaderBits - ConservativeChannelHeaderBits;
 
