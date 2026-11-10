@@ -4061,6 +4061,46 @@ void test_connection_process_packet_channel_data_alloc_failure()
     check( receiverAlloc.GetOutstanding() == 0 );
 }
 
+// ReliableOrderedChannel's public and protected members are part of an installed header, so a
+// subclass written against an earlier release must still compile and see the same members.
+class ReliableOrderedChannelSubclass : public ReliableOrderedChannel
+{
+public:
+    ReliableOrderedChannelSubclass( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int maxPacketSize, double time )
+        : ReliableOrderedChannel( allocator, messageFactory, config, maxPacketSize, 0, time ) {}
+
+    void CheckProtectedInterface( Allocator & allocator )
+    {
+        SentPacketEntry sentPacket;
+        memset( &sentPacket, 0, sizeof( sentPacket ) );
+        sentPacket.timeSent = 1.0;
+        check( sentPacket.timeSent == 1.0 );
+
+        SendBlockData sendBlock( allocator, 4 );
+        check( sendBlock.blockSize == 0 );
+
+        ReceiveBlockData receiveBlock( allocator, 1024, 4 );
+        check( receiveBlock.messageType == 0 );
+    }
+};
+
+void test_reliable_ordered_channel_interface()
+{
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionConfig config;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    ReliableOrderedChannelSubclass channel( GetDefaultAllocator(), messageFactory, config.channel[0], config.maxPacketSize, 100.0 );
+
+    channel.CheckProtectedInterface( GetDefaultAllocator() );
+
+    // A fragment for a message id the channel is not expecting yet is ignored.
+    const uint8_t fragmentData[1] = { 0 };
+    channel.ProcessPacketFragment( TEST_BLOCK_MESSAGE, 1, 1, 0, fragmentData, 1, NULL );
+    check( channel.GetErrorLevel() == CHANNEL_ERROR_NONE );
+}
+
 // YJ-05: the build added -fno-rtti to every C++ target, so libyojimbo emitted "vtable for
 // yojimbo::Allocator" with no matching typeinfo. Allocator, MessageFactory, Adapter and the two
 // interfaces are all public polymorphic classes consumers derive from, and consumers build with
@@ -7043,6 +7083,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
+        RUN_TEST( test_reliable_ordered_channel_interface );
         RUN_TEST( test_rtti_across_the_abi_boundary );
         RUN_TEST( test_public_layout_is_configuration_independent );
 
