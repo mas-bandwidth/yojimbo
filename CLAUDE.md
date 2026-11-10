@@ -45,13 +45,30 @@ DELIBERATELY ASSERT-ONLY, do NOT "fix" -- a future audit that finds these has fo
 contract: oversized block-message send (reliable_ordered_channel.cpp:562/611 -- SendMessage
 exempts block messages at :168 on purpose); BaseServer::Start's maxClients
 (base_server.cpp:54-55); Client::InsecureConnect's numServerAddresses (client.cpp:50-52); the
-whole clientIndex/channelIndex public surface. This rule is about CALLER-SUPPLIED values only:
-allocation and factory failure inside Start / CreateInternal is not a caller mistake, and those
-are checked in every build and reported through the bool those functions now return (YJ-01).
-The WIRE path is properly checked and was verified clean by two independent audits: wire
-channelIndex (channel.cpp:446), numChannelEntries (connection.cpp:58), numFragments/fragmentId
-(reliable_ordered_channel.cpp:712-724) and the receive memcpy bounds test at :733-738.
-yojimbo also satisfies serialize's bytes%8 write contract deliberately at connection.cpp:248
+whole clientIndex/channelIndex public surface. This rule is about CALLER-SUPPLIED values only.
+Allocation and factory failure inside Start / CreateInternal is not a caller mistake: both
+functions report it through the bool they return (YJ-01) in every build, and fail closed --
+the server is left stopped, the client is left disconnected with
+YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY, and everything already allocated (including
+adapter-created allocators/message factories and per-client heaps) is released. Tests:
+test_server_start_alloc_failure, test_server_start_factory_failure,
+test_server_start_per_client_memory_exhaustion, test_client_connect_alloc_failure,
+test_client_connect_factory_failure, test_client_connect_per_client_memory_exhaustion and
+test_client_insecure_connect_token_failure_cleanup.
+The WIRE path is checked at runtime, not merely by audit: wire channelIndex
+(channel.cpp:459), numChannelEntries (connection.cpp:60), numFragments/fragmentId
+(reliable_ordered_channel.cpp:807-814), the receive memcpy bounds test at :828, the
+full-blockFragmentSize rule for every non-final fragment at :836 (a short fragment is rejected
+before the copy), and the rejection of a block message in an ordinary ordered message list
+(channel.cpp:149-159). Tests: test_connection_reliable_rejects_short_nonfinal_block_fragment,
+test_connection_reliable_rejects_short_middle_block_fragment and
+test_connection_reliable_rejects_block_in_message_list, alongside the existing
+fragment-overflow and empty/trailing-packet cases.
+Client slot state is reset on reuse: a reused slot starts with clean allocator and message
+factory error state and a cleared disconnect reason, and a new client clears the reason left
+by the previous occupant (test_server_slot_reused_by_new_client,
+test_server_client_disconnect_reason).
+yojimbo also satisfies serialize's bytes%8 write contract deliberately at connection.cpp:255
 (maxPacketBytes &= ~7) -- do not "simplify" that line.
 FIXED 2026-07-26 (#320): Address::IsMulticast/IsLinkLocal/IsSiteLocal compared the first
 16-bit group for EXACT equality instead of masking the prefix, and IsGlobalUnicast is their
@@ -122,8 +139,20 @@ untrusted parser, sanitizers and a sanitized soak test in CI, allocation-failure
 injection tests — puts it well above the norm for open-source game networking. My honest
 overall opinion: I would trust this library in production. The July 2026 audit raised a
 set of concerns; every one of them has since been fully addressed — fixed in code, or
-confirmed with the author as deliberate design and documented — so this audit carries no
-open concerns.
+confirmed with the author as deliberate design and documented. The latest pass closed the
+remaining slot-lifetime and parser gaps, each pinned by a test: a reused slot starts with
+clean error and disconnect-reason state (test_server_slot_reused_by_new_client) and a new
+client clears the reason left by the previous occupant (test_server_client_disconnect_reason);
+Start and CreateInternal fail closed and unwind on allocation, factory and per-client-heap
+failure (test_server_start_alloc_failure, test_server_start_factory_failure,
+test_server_start_per_client_memory_exhaustion, test_client_connect_alloc_failure,
+test_client_connect_factory_failure, test_client_connect_per_client_memory_exhaustion); the
+receiver rejects a short non-final block fragment before copying it
+(test_connection_reliable_rejects_short_nonfinal_block_fragment,
+test_connection_reliable_rejects_short_middle_block_fragment); and a block message named in an
+ordinary ordered message list is rejected instead of delivered without its block
+(test_connection_reliable_rejects_block_in_message_list). Each invariant above is enforced
+in code and pinned by the named test in test.cpp.
 
 ## What's genuinely good
 
@@ -167,9 +196,11 @@ open concerns.
   asserts are deliberately kept *off* the untrusted network read path, so the full-trust
   rule for programmer inputs is never confused with the zero-trust rule for wire data.
   This is the classic game-engine contract, applied consistently.
-- **Tests and CI.** 37 functional tests including adversarial cases (empty packets,
-  fragment overflow, over-budget packets, receive-queue overflow, allocation-failure
-  injection), Linux/macOS/Windows builds, ASan+UBSan+LSan, a separate MSan job with a
+- **Tests and CI.** The functional suite covers adversarial cases (empty packets, short
+  non-final block fragments, block messages named in an ordinary ordered message list,
+  over-budget packets, receive-queue overflow, allocation-failure injection) plus the
+  slot-reset, fail-closed startup and wire-validation cases named above,
+  Linux/macOS/Windows builds, ASan+UBSan+LSan, a separate MSan job with a
   written rationale for its build flags, and a sanitized 20k-iteration soak run per PR.
 - **Documentation.** Header comment density is exceptional, `USAGE.md` is a real
   integration walkthrough rather than API listing, and `SECURITY.md` is clear about
