@@ -97,7 +97,7 @@ namespace yojimbo
             Messages are measured to see how many bits they take, and only messages that fit within the channel packet budget will be included. See ChannelConfig::packetBudget.
             Takes care not to send messages too rapidly by respecting ChannelConfig::messageResendTime for each message.
             Sending is not gated on the application dequeuing received messages: a message is acknowledged once the receiver inserts it into its receive queue, not when ReceiveMessage() returns it, so the sender can run ahead of the application.
-            The receiver makes room for at most ChannelConfig::messageReceiveQueueSize messages starting at the next message ReceiveMessage() will return, and that window only advances as ReceiveMessage() is called. Drain the receive queue every tick alongside ReceivePackets().
+            The receiver accepts message ids in the window [next, next + ChannelConfig::messageReceiveQueueSize - 1], where next is the id of the next message ReceiveMessage() will return, and that window advances only as ReceiveMessage() is called. Drain the receive queue every tick alongside ReceivePackets().
             If the application cannot drain every tick, size ChannelConfig::messageReceiveQueueSize to cover the largest burst it may leave queued; ChannelConfig::messageSendQueueSize is a safe bound. Otherwise the next message falls outside the receive window and the channel fails with CHANNEL_ERROR_DESYNC.
             @param messageIds Array of message ids to be filled [out]. Fills up to ChannelConfig::maxMessagesPerPacket messages, make sure your array is at least this size.
             @param numMessageIds The number of message ids written to the array.
