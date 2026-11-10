@@ -22,6 +22,20 @@
     USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if defined(_WIN32)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <process.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/file.h>
+#endif
+
 #include "yojimbo.h"
 #include <time.h>
 #include <stdio.h>
@@ -126,6 +140,137 @@ do                                                                             \
         CheckHandler( #condition, __FUNCTION__, __FILE__, __LINE__ );          \
     }                                                                          \
 } while(0)
+
+// The unit tests must not bind the fixed ports the example programs use, otherwise two test
+// runs on the same machine collide. Pick an unused loopback port per server, starting from a
+// per-process offset so concurrent runs probe different ranges. Clients bind port zero: the
+// server learns their address from the first packet, so it need not be known in advance.
+static bool IsTestPortAvailable( int port )
+{
+#if defined(_WIN32)
+    SOCKET handle = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+    if ( handle == INVALID_SOCKET )
+        return false;
+    struct sockaddr_in address;
+    memset( &address, 0, sizeof( address ) );
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+    address.sin_port = htons( (u_short) port );
+    const bool available = bind( handle, (struct sockaddr*) &address, sizeof( address ) ) == 0;
+    closesocket( handle );
+    return available;
+#else
+    int handle = socket( AF_INET, SOCK_DGRAM, 0 );
+    if ( handle < 0 )
+        return false;
+    struct sockaddr_in address;
+    memset( &address, 0, sizeof( address ) );
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
+    address.sin_port = htons( (uint16_t) port );
+    const bool available = bind( handle, (struct sockaddr*) &address, sizeof( address ) ) == 0;
+    close( handle );
+    return available;
+#endif
+}
+
+static int GetTestProcessId()
+{
+#if defined(_WIN32)
+    return (int) _getpid();
+#else
+    return (int) getpid();
+#endif
+}
+
+static int GetNextTestPort()
+{
+    static int nextPort = 0;
+    if ( nextPort == 0 )
+        nextPort = 20000 + ( GetTestProcessId() % 30000 );
+    for ( int i = 0; i < 30000; ++i )
+    {
+        const int port = nextPort;
+        if ( ++nextPort > 60000 )
+            nextPort = 20000;
+        if ( IsTestPortAvailable( port ) )
+            return port;
+    }
+    check( false );
+    return 0;
+}
+
+static Address TestClientAddress()
+{
+    return Address( "0.0.0.0", 0 );
+}
+
+static Address TestServerAddress()
+{
+    return Address( "127.0.0.1", GetNextTestPort() );
+}
+
+// The vendored netcode self-test section binds the example ports it was written against, so
+// two yojimbo_test processes would contend for them even though yojimbo's own socket tests
+// pick free ports. Hold an advisory per-user lock across that section only, so concurrent
+// test runs finish without colliding while the rest of the suite still runs in parallel.
+// This is best-effort: if the lock cannot be created the section runs unlocked rather than
+// failing the test run.
+class TestSuiteNetworkLock
+{
+public:
+#if defined(_WIN32)
+    TestSuiteNetworkLock() : m_handle( INVALID_HANDLE_VALUE )
+    {
+        char tempPath[MAX_PATH];
+        const DWORD length = GetTempPathA( MAX_PATH, tempPath );
+        if ( length == 0 || length >= MAX_PATH )
+            return;
+        char path[MAX_PATH];
+        _snprintf_s( path, sizeof( path ), _TRUNCATE, "%syojimbo_netcode_tests.lock", tempPath );
+        for ( ;; )
+        {
+            m_handle = CreateFileA( path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, NULL );
+            if ( m_handle != INVALID_HANDLE_VALUE )
+                break;
+            const DWORD error = GetLastError();
+            if ( error != ERROR_SHARING_VIOLATION && error != ERROR_ACCESS_DENIED )
+                break;
+            Sleep( 50 );
+        }
+    }
+#else
+    TestSuiteNetworkLock() : m_fd( -1 )
+    {
+        char path[128];
+        snprintf( path, sizeof( path ), "/tmp/yojimbo_netcode_tests_%u.lock", (unsigned int) getuid() );
+        m_fd = open( path, O_CREAT | O_RDWR, 0600 );
+        if ( m_fd >= 0 )
+            flock( m_fd, LOCK_EX );
+    }
+#endif
+
+    ~TestSuiteNetworkLock()
+    {
+#if defined(_WIN32)
+        if ( m_handle != INVALID_HANDLE_VALUE )
+            CloseHandle( m_handle );
+#else
+        if ( m_fd >= 0 )
+        {
+            flock( m_fd, LOCK_UN );
+            close( m_fd );
+        }
+#endif
+    }
+
+private:
+#if defined(_WIN32)
+    HANDLE m_handle;
+#else
+    int m_fd;
+#endif
+};
 
 // Allocator used by the allocation-failure tests. Delegates to malloc/free, tracks the number of
 // outstanding blocks so leaks are observable, and can be "armed" to start returning NULL after a
@@ -3975,6 +4120,33 @@ static void CallEveryClientInterfaceMethod( ClientInterface & client )
     client.ProcessLoopbackPacket( packet, sizeof( packet ), 0 );
 }
 
+void test_servers_bind_distinct_ports()
+{
+    // Two servers created from the same test configuration must be able to run at the same
+    // time: each binds its own free port, so two test processes can share one host.
+
+    ClientServerConfig config;
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    const Address serverAddress1 = TestServerAddress();
+    const Address serverAddress2 = TestServerAddress();
+
+    Server server1( GetDefaultAllocator(), privateKey, serverAddress1, config, adapter, 100.0 );
+    Server server2( GetDefaultAllocator(), privateKey, serverAddress2, config, adapter, 100.0 );
+
+    check( server1.Start( 1 ) );
+    check( server2.Start( 1 ) );
+
+    check( server1.GetAddress().GetPort() != 0 );
+    check( server2.GetAddress().GetPort() != 0 );
+    check( server1.GetAddress().GetPort() != server2.GetAddress().GetPort() );
+
+    server2.Stop();
+    server1.Stop();
+}
+
 void test_interface_methods_link()
 {
     ClientServerConfig config;
@@ -3982,7 +4154,7 @@ void test_interface_methods_link()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Server server( GetDefaultAllocator(), privateKey, Address( "127.0.0.1", ServerPort ), config, adapter, 100.0 );
+    Server server( GetDefaultAllocator(), privateKey, TestServerAddress(), config, adapter, 100.0 );
     Client client( GetDefaultAllocator(), Address( "0.0.0.0", 0 ), config, adapter, 100.0 );
 
     if ( g_callInterfaceMethods )
@@ -4050,7 +4222,7 @@ void test_server_start_alloc_failure()
     // under NDEBUG, so a release build bound references to failed allocations and ran on with a
     // half-built server. Fail at allocation N for every N up to the first N that succeeds: each
     // failure must return false, leave the server stopped, and free everything already taken.
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     ClientServerConfig config;
 
@@ -4087,7 +4259,7 @@ void test_server_start_factory_failure()
     // Same contract for the adapter factory results, which no allocator arming can reach: a user
     // allocator or message factory that fails to construct returns NULL and must be handled like
     // an allocation failure rather than dereferenced.
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     ClientServerConfig config;
 
@@ -4252,7 +4424,7 @@ void test_client_connect_alloc_failure()
     // returns false, leaves the client disconnected with an out-of-memory reason, and leaks
     // nothing.
     Address clientAddress( "0.0.0.0", 0 );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     ClientServerConfig config;
 
@@ -4288,7 +4460,7 @@ void test_client_connect_alloc_failure()
 void test_client_connect_factory_failure()
 {
     Address clientAddress( "0.0.0.0", 0 );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     ClientServerConfig config;
 
@@ -4351,7 +4523,7 @@ void test_client_is_loopback_when_disconnected()
     // never-connected client (m_client == NULL) crashed. Like GetClientIndex(), it must be safe
     // to query in any state and simply report false.
     ClientServerConfig config;
-    Address clientAddress( "0.0.0.0", ClientPort );
+    Address clientAddress = TestClientAddress();
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, 100.0 );
 
     check( !client.IsLoopback() );              // must not crash; not connected -> not a loopback client
@@ -4367,8 +4539,8 @@ void test_client_connect_twice_with_one_connect_token()
     // address, after the client's slot is free again.
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4385,6 +4557,8 @@ void test_client_connect_twice_with_one_connect_token()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     // One connect token, minted once and held, the way a matchmaker hands one to a client.
 
@@ -4484,8 +4658,8 @@ void test_client_server_messages()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4503,6 +4677,8 @@ void test_client_server_messages()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     server.SetLatency( 250 );
     server.SetJitter( 100 );
@@ -4635,8 +4811,8 @@ void test_server_message_sent_before_client_connects()
     uint8_t userData[256];
     memset( userData, 0, sizeof( userData ) );
 
-    Address serverAddress( "127.0.0.1", ServerPort );
-    Address clientAddress( "0.0.0.0", ClientPort );
+    Address serverAddress = TestServerAddress();
+    Address clientAddress = TestClientAddress();
 
     LoopbackTestAdapter loopbackAdapter;
 
@@ -4771,7 +4947,7 @@ void test_server_message_to_unconnected_slot_not_queued()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     NoSocketTestAdapter noSocketAdapter;
 
@@ -4861,7 +5037,7 @@ bool AnyClientDisconnected( int numClients, Client ** clients )
 void test_client_server_start_stop_restart()
 {
     Address clientAddress( "0.0.0.0", 0 );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4889,6 +5065,8 @@ void test_client_server_start_stop_restart()
         }        
 
         check( server.Start( numClients[iteration] ) );
+
+        serverAddress = server.GetAddress();
 
         server.SetLatency( 250 );
         server.SetJitter( 100 );
@@ -4975,8 +5153,8 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -4993,6 +5171,8 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -5048,8 +5228,8 @@ void test_server_client_disconnect_reason()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5061,6 +5241,8 @@ void test_server_client_disconnect_reason()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     // all client slots are cleared to none at server start
 
@@ -5210,8 +5392,8 @@ void test_server_client_disconnect_reason_failed_to_serialize()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5228,6 +5410,8 @@ void test_server_client_disconnect_reason_failed_to_serialize()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -5283,8 +5467,8 @@ void test_client_disconnect_reason()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5296,6 +5480,8 @@ void test_client_disconnect_reason()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -5415,8 +5601,8 @@ void test_client_disconnect_reason_failed_to_serialize()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5433,6 +5619,8 @@ void test_client_disconnect_reason_failed_to_serialize()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -5488,8 +5676,8 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5506,6 +5694,8 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -5562,8 +5752,8 @@ void test_client_server_message_exhaust_stream_allocator()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5580,6 +5770,8 @@ void test_client_server_message_exhaust_stream_allocator()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -5635,8 +5827,8 @@ void test_client_server_message_receive_queue_overflow()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -5655,6 +5847,8 @@ void test_client_server_message_receive_queue_overflow()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -5707,8 +5901,8 @@ void test_reliable_outbound_sequence_outdated()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
     double deltaTime = 1.0 / 60.0;
@@ -5729,6 +5923,8 @@ void test_reliable_outbound_sequence_outdated()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
@@ -6168,8 +6364,8 @@ void test_client_server_messages_network_sim_leak()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -6185,6 +6381,8 @@ void test_client_server_messages_network_sim_leak()
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
     check( server.Start( MaxClients ) );
+
+    serverAddress = server.GetAddress();
 
     server.SetLatency( 500 );
     server.SetJitter( 100 );
@@ -6401,8 +6599,8 @@ void test_server_slot_reused_by_new_client()
 {
     const uint64_t clientId = 1;
 
-    Address clientAddress( "0.0.0.0", ClientPort );
-    Address serverAddress( "127.0.0.1", ServerPort );
+    Address clientAddress = TestClientAddress();
+    Address serverAddress = TestServerAddress();
 
     double time = 100.0;
 
@@ -6414,6 +6612,8 @@ void test_server_slot_reused_by_new_client()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
     check( server.Start( 1 ) );
+
+    serverAddress = server.GetAddress();
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -6667,7 +6867,10 @@ int main( int argc, char ** argv )
 
             check( InitializeYojimbo() );
 
-            netcode_test();
+            {
+                TestSuiteNetworkLock lock;
+                netcode_test();
+            }
 
             ShutdownYojimbo();
         }
@@ -6695,6 +6898,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_yojimbo_sleep_non_positive_returns_immediately );
         RUN_TEST( test_yojimbo_sleep_longer_than_one_second );
 #endif
+        RUN_TEST( test_servers_bind_distinct_ports );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_address_ipv4_octets );

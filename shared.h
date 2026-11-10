@@ -36,6 +36,9 @@ using namespace yojimbo;
 
 const uint64_t ProtocolId = 0x11223344556677ULL;
 
+// The example programs bind these fixed ports so separately launched processes can find
+// each other. The unit tests select their own ports instead (see test.cpp), so concurrent
+// test runs do not collide.
 const int ClientPort = 30000;
 const int ServerPort = 40000;
 
