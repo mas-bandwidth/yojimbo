@@ -814,7 +814,7 @@ void test_sequence_buffer_reinsert()
 
     for ( int i = 0; i < 3; ++i )
     {
-        TestSequenceData * entry = sequence_buffer.Insert( i );
+        TestSequenceData * entry = sequence_buffer.Insert( i, true );
         check( entry );
         entry->sequence = i;
     }
