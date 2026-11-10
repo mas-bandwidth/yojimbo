@@ -473,7 +473,10 @@ namespace yojimbo
                     if ( !SerializeOrderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket ) )
                     {
                         messageFailedToSerialize = 1;
-                        return true;
+                        // A failed message body leaves the read stream at an unknown position, so
+                        // the channel entries that follow cannot be located. Fail the packet read
+                        // instead of parsing the rest of it from a desynchronized stream.
+                        return !Stream::IsReading;
                     }
                 }
                 break;
@@ -488,7 +491,9 @@ namespace yojimbo
                                                       channelConfig.maxBlockSize ) )
                     {
                         messageFailedToSerialize = 1;
-                        return true;
+                        // As above: the failed body has consumed an unknown number of bits, so
+                        // later channel entries cannot be read from this stream. Fail the read.
+                        return !Stream::IsReading;
                     }
                 }
                 break;
