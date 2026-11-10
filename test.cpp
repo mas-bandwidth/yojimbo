@@ -3054,6 +3054,23 @@ void test_unreliable_unordered_max_block_size_fits_one_packet()
     }
 
     {
+        // A budget larger than maxPacketSize cannot raise the ceiling: one packet is still
+        // all the channel has, so a block over maxPacketSize is still unsendable.
+        ConnectionConfig capAtPacket;
+        capAtPacket.numChannels = 1;
+        capAtPacket.maxPacketSize = 1024;
+        capAtPacket.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        capAtPacket.channel[0].disableBlocks = false;
+        capAtPacket.channel[0].packetBudget = capAtPacket.maxPacketSize * 2;
+        capAtPacket.channel[0].maxBlockSize = capAtPacket.maxPacketSize + 1;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            capAtPacket.Validate();
+        check( g_configValidateAssertCount == 1 );
+    }
+
+    {
         ConnectionConfig fitting;
         fitting.numChannels = 1;
         fitting.maxPacketSize = 1024;
@@ -3064,6 +3081,21 @@ void test_unreliable_unordered_max_block_size_fits_one_packet()
         g_configValidateAssertCount = 0;
         if ( setjmp( g_configValidateJmpBuf ) == 0 )
             fitting.Validate();
+        check( g_configValidateAssertCount == 0 );
+    }
+
+    {
+        ConnectionConfig fittingCapAtPacket;
+        fittingCapAtPacket.numChannels = 1;
+        fittingCapAtPacket.maxPacketSize = 1024;
+        fittingCapAtPacket.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+        fittingCapAtPacket.channel[0].disableBlocks = false;
+        fittingCapAtPacket.channel[0].packetBudget = fittingCapAtPacket.maxPacketSize * 2;
+        fittingCapAtPacket.channel[0].maxBlockSize = fittingCapAtPacket.maxPacketSize;
+
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            fittingCapAtPacket.Validate();
         check( g_configValidateAssertCount == 0 );
     }
 
