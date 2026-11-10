@@ -2606,6 +2606,73 @@ void test_connection_reliable_block_fragment_message_id_mismatch()
     check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
 }
 
+void test_connection_reliable_block_fragment_different_message_id()
+{
+    // A block is in progress for message id 0. An ordinary message with a different id moves
+    // the receive sequence past the block, and a fragment for that later id arrives. The
+    // receiver must not reassemble it into the block still in progress for message id 0.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int maxFragmentsPerBlock = config.channel[0].GetMaxFragmentsPerBlock();
+    const int blockFragmentSize = config.channel[0].blockFragmentSize;
+    const int maxMessagesPerPacket = config.channel[0].maxMessagesPerPacket;
+    const int maxMessageType = messageFactory.GetNumTypes() - 1;
+    const int numFragments = 2;
+    const int fragmentSize = 16;
+
+    uint8_t buffer[4096];
+
+    // fragment 0 of block message id 0: leaves the block in progress (1 of 2 fragments)
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragment0Packet( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 0, fragmentSize, maxMessageType, TEST_BLOCK_MESSAGE, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( receiver.ProcessPacket( NULL, 0, buffer, packetBytes ) );
+    }
+
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_NONE );
+
+    // ordinary message id 2 advances the receive sequence to 3 while block id 0 is in progress
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawOrderedMessagePacket( stream, maxMessagesPerPacket, maxMessageType, 2, 0 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        check( receiver.ProcessPacket( NULL, 1, buffer, packetBytes ) );
+    }
+
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_NONE );
+
+    // final fragment for message id 3, which must not complete the block held for message id 0
+    memset( buffer, 0, sizeof( buffer ) );
+    {
+        WriteStream stream( buffer, sizeof( buffer ) );
+        check( SerializeRawBlockFragmentPacket( stream, maxFragmentsPerBlock, blockFragmentSize, numFragments, 1, fragmentSize, 3 ) );
+        stream.Flush();
+        const int packetBytes = stream.GetBytesProcessed();
+        check( packetBytes > 0 );
+        receiver.ProcessPacket( NULL, 2, buffer, packetBytes );
+    }
+
+    receiver.AdvanceTime( time );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_CHANNEL );
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
+}
+
 void test_connection_reliable_over_budget_packet()
 {
     // A peer sends more channel data than the receiver's configured packetBudget. On read this
@@ -5603,6 +5670,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_unreliable_unordered_message_packet_budget_fit );
         RUN_TEST( test_connection_reliable_block_fragment_overflow );
         RUN_TEST( test_connection_reliable_block_fragment_message_id_mismatch );
+        RUN_TEST( test_connection_reliable_block_fragment_different_message_id );
         RUN_TEST( test_connection_reliable_over_budget_packet );
         RUN_TEST( test_connection_reliable_message_alloc_failure );
         RUN_TEST( test_connection_unreliable_message_alloc_failure );
