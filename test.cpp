@@ -853,6 +853,9 @@ void test_sequence_buffer()
     check( !wrap_buffer.Exists( 65280 ) );
     check( wrap_buffer.Available( 65280 ) );
     check( wrap_buffer.Find( 65280 ) == NULL );
+    check( !wrap_buffer.Exists( 0 ) );
+    check( wrap_buffer.Available( 0 ) );
+    check( wrap_buffer.Find( 0 ) == NULL );
     check( wrap_buffer.Exists( 65534 ) );
     check( wrap_buffer.Find( 65534 ) == entry_65534 );
 
