@@ -93,7 +93,15 @@ namespace yojimbo
 
         T * Insert( uint16_t sequence, bool guaranteed_order = false )
         {
-            if ( yojimbo_sequence_greater_than( sequence + 1, m_sequence ) || guaranteed_order )
+            if ( guaranteed_order )
+            {
+                if ( uint16_t( sequence + 1 ) != m_sequence )
+                {
+                    RemoveEntries( m_sequence, sequence );
+                    m_sequence = sequence + 1;
+                }
+            }
+            else if ( yojimbo_sequence_greater_than( sequence + 1, m_sequence ) )
             {
                 RemoveEntries( m_sequence, sequence );
                 m_sequence = sequence + 1;
