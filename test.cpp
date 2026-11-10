@@ -2941,7 +2941,7 @@ static void CallEveryServerInterfaceMethod( ServerInterface & server )
     memset( packet, 0, sizeof( packet ) );
 
     server.SetContext( NULL );
-    server.Start( 1 );
+    check( server.Start( 1 ) );
     server.Stop();
     server.DisconnectClient( 0 );
     server.DisconnectAllClients();
@@ -3409,7 +3409,7 @@ void test_client_server_messages()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     server.SetLatency( 250 );
     server.SetJitter( 100 );
@@ -3420,7 +3420,7 @@ void test_client_server_messages()
     {
         // connect and wait until connection completes
 
-        client.InsecureConnect( privateKey, clientId, serverAddress );
+        check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
         client.SetLatency( 250 );
         client.SetJitter( 100 );
@@ -3690,7 +3690,7 @@ void ConnectClients( int numClients, Client ** clients, const uint8_t privateKey
 {
     for ( int i = 0; i < numClients; ++i )
     {
-        clients[i]->InsecureConnect( privateKey, i + 1, serverAddress );
+        check( clients[i]->InsecureConnect( privateKey, i + 1, serverAddress ) );
         clients[i]->SetLatency( 250 );
         clients[i]->SetJitter( 100 );
         clients[i]->SetPacketLoss( 25 );
@@ -3763,7 +3763,7 @@ void test_client_server_start_stop_restart()
             numClients[iteration] = 1;
         }        
 
-        server.Start( numClients[iteration] );
+        check( server.Start( numClients[iteration] ) );
 
         server.SetLatency( 250 );
         server.SetJitter( 100 );
@@ -3867,11 +3867,11 @@ void test_client_server_message_failed_to_serialize_reliable_ordered()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -3935,7 +3935,7 @@ void test_server_client_disconnect_reason()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     // all client slots are cleared to none at server start
 
@@ -3950,7 +3950,7 @@ void test_server_client_disconnect_reason()
 
     // connect a client. while it is connected the reason stays none
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -3992,7 +3992,7 @@ void test_server_client_disconnect_reason()
 
     // reconnect. a new client connecting to the slot clears the reason back to none
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -4033,7 +4033,7 @@ void test_server_client_disconnect_reason()
     // reconnect, then let the client go silent. the server times it out and records that
     // as timed out, distinct from a clean disconnect
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -4071,7 +4071,7 @@ void test_server_client_disconnect_reason()
 
     server.Stop();
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     for ( int i = 0; i < MaxClients; ++i )
     {
@@ -4102,11 +4102,11 @@ void test_server_client_disconnect_reason_failed_to_serialize()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -4170,7 +4170,7 @@ void test_client_disconnect_reason()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
@@ -4182,7 +4182,7 @@ void test_client_disconnect_reason()
 
     // connect. while connected the reason stays none
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
@@ -4222,7 +4222,7 @@ void test_client_disconnect_reason()
 
     // reconnect. a new connect attempt clears the reason back to none
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );
 
@@ -4266,7 +4266,7 @@ void test_client_disconnect_reason()
 
     server.Stop();
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_NONE );
 
@@ -4307,11 +4307,11 @@ void test_client_disconnect_reason_failed_to_serialize()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -4380,11 +4380,11 @@ void test_client_server_message_failed_to_serialize_unreliable_unordered()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -4454,11 +4454,11 @@ void test_client_server_message_exhaust_stream_allocator()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 10000;
 
@@ -4529,11 +4529,11 @@ void test_client_server_message_receive_queue_overflow()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     while ( true )
     {
@@ -4603,9 +4603,9 @@ void test_reliable_outbound_sequence_outdated()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     Client * clients[] = { &client };
     Server * servers[] = { &server };
@@ -4995,7 +4995,7 @@ void test_client_server_messages_network_sim_leak()
 
     Server server( GetDefaultAllocator(), privateKey, serverAddress, config, adapter, time );
 
-    server.Start( MaxClients );
+    check( server.Start( MaxClients ) );
 
     server.SetLatency( 500 );
     server.SetJitter( 100 );
@@ -5004,7 +5004,7 @@ void test_client_server_messages_network_sim_leak()
 
     for ( int iteration = 0; iteration < 2; ++iteration )
     {
-        client.InsecureConnect( privateKey, clientId, serverAddress );
+        check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
         client.SetLatency( 500 );
         client.SetJitter( 100 );
@@ -5228,7 +5228,7 @@ void test_server_slot_reused_by_new_client()
 
     Client client( GetDefaultAllocator(), clientAddress, config, adapter, time );
 
-    client.InsecureConnect( privateKey, clientId, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId, serverAddress ) );
 
     const int NumIterations = 200;
 
@@ -5278,7 +5278,7 @@ void test_server_slot_reused_by_new_client()
     if ( client.IsConnected() )
         client.Disconnect();
 
-    client.InsecureConnect( privateKey, clientId + 1, serverAddress );
+    check( client.InsecureConnect( privateKey, clientId + 1, serverAddress ) );
 
     for ( int i = 0; i < NumIterations; ++i )
     {
