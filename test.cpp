@@ -865,8 +865,10 @@ void PumpConnectionUpdate( ConnectionConfig & connectionConfig, double & time, C
     {
         if ( yojimbo_random_int( 0, 100 ) >= packetLossPercent )
         {
-            receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes );
-            sender.ProcessAcks( &senderSequence, 1 );
+            if ( receiver.ProcessPacket( NULL, senderSequence, packetData, packetBytes ) )
+            {
+                sender.ProcessAcks( &senderSequence, 1 );
+            }
         }
     }
 
@@ -1612,6 +1614,42 @@ void test_connection_reject_trailing_bytes()
     check( !receiver.ProcessPacket( NULL, 0, packet, packetBytes + 1 ) );
     check( receiver.GetErrorLevel() == CONNECTION_ERROR_READ_PACKET_FAILED );
     check( receiver.ReceiveMessage( 0 ) == NULL );
+}
+
+void test_connection_rejected_packet_is_not_acked()
+{
+    // A packet the receiver rejects is never added to its received packet set, so no ack
+    // comes back for it and the sender must keep the message outstanding for retransmit.
+
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+    connectionConfig.numChannels = 1;
+    connectionConfig.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    // Put the receiver into an error state so every subsequent packet is rejected.
+    uint8_t buffer[1] = { 0 };
+    check( !receiver.ProcessPacket( NULL, 0, buffer, 0 ) );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_READ_PACKET_FAILED );
+
+    TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+    check( message );
+    message->sequence = 0;
+    sender.SendMessage( 0, message );
+
+    check( sender.HasMessagesToSend( 0 ) );
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+    check( sender.HasMessagesToSend( 0 ) );
 }
 
 void test_connection_unreliable_rejects_block_fragment()
@@ -5458,6 +5496,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reject_empty_packet );
         RUN_TEST( test_connection_process_packet_exact_allocation );
         RUN_TEST( test_connection_reject_trailing_bytes );
+        RUN_TEST( test_connection_rejected_packet_is_not_acked );
         RUN_TEST( test_connection_unreliable_rejects_block_fragment );
         RUN_TEST( test_connection_reliable_block_fragment_on_disabled_blocks );
         RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
