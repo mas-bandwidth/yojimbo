@@ -179,6 +179,8 @@ namespace yojimbo
             if ( m_channel[i] )
                 m_channel[i]->Reset();
         }
+        m_allocator->ClearError();
+        m_messageFactory->ClearErrorLevel();
     }
 
     bool Connection::CanSendMessage( int channelIndex ) const
@@ -249,6 +251,11 @@ namespace yojimbo
         // maxPacketBytes so the writer can never overflow it. Budget the channels against the
         // same rounded size so what we pack always fits what we write.
         maxPacketBytes &= ~7;
+        if ( maxPacketBytes <= 0 )
+        {
+            packetBytes = 0;
+            return false;
+        }
 
         if ( m_connectionConfig.numChannels > 0 )
         {
@@ -261,9 +268,18 @@ namespace yojimbo
             
             for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
             {
-                int packetDataBits = m_channel[channelIndex]->GetPacketData( context, channelData[channelIndex], packetSequence, availableBits );
+                if ( availableBits <= ConservativeChannelHeaderBits )
+                    break;
+
+                const int channelAvailableBits = availableBits - ConservativeChannelHeaderBits;
+                int packetDataBits = m_channel[channelIndex]->GetPacketData( context, channelData[channelIndex], packetSequence, channelAvailableBits );
                 if ( packetDataBits > 0 )
                 {
+                    if ( packetDataBits > channelAvailableBits )
+                    {
+                        channelData[channelIndex].Free( *m_messageFactory );
+                        continue;
+                    }
                     availableBits -= ConservativeChannelHeaderBits;
                     availableBits -= packetDataBits;
                     channelHasData[channelIndex] = true;
@@ -302,6 +318,12 @@ namespace yojimbo
         }
 
         packetBytes = WritePacket( context, *m_messageFactory, m_connectionConfig, packet, packetData, maxPacketBytes );
+
+        if ( packetBytes <= 0 || packetBytes > maxPacketBytes )
+        {
+            packetBytes = 0;
+            return false;
+        }
 
         return true;
     }

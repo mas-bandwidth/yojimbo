@@ -92,6 +92,8 @@ int SoakMain( int iterations )
     uint64_t numMessagesSentToClient = 0;
     uint64_t numMessagesReceivedFromClient = 0;
     uint64_t numMessagesReceivedFromServer = 0;
+    uint64_t totalMessagesReceived = 0;
+    bool failed = false;
 
     signal( SIGINT, interrupt_handler );
 
@@ -118,6 +120,7 @@ int SoakMain( int iterations )
         if ( client.ConnectionFailed() )
         {
             printf( "error: client connect failed!\n" );
+            failed = true;
             break;
         }
 
@@ -131,6 +134,7 @@ int SoakMain( int iterations )
                 client.Disconnect();
                 client.InsecureConnect( privateKey, clientId, serverAddress );
                 clientConnected = false;
+                serverConnected = false;
                 numMessagesSentToServer = 0;
                 numMessagesSentToClient = 0;
                 numMessagesReceivedFromClient = 0;
@@ -281,6 +285,7 @@ int SoakMain( int iterations )
                             printf( "server received message %d\n", testMessage->sequence );
                             server.ReleaseMessage( clientIndex, message );
                             numMessagesReceivedFromClient++;
+                            totalMessagesReceived++;
                         }
                         break;
 
@@ -308,6 +313,7 @@ int SoakMain( int iterations )
                             printf( "server received message %d\n", uint16_t( numMessagesReceivedFromClient ) );
                             server.ReleaseMessage( clientIndex, message );
                             numMessagesReceivedFromClient++;
+                            totalMessagesReceived++;
                         }
                         break;
                     }
@@ -332,6 +338,7 @@ int SoakMain( int iterations )
                         printf( "client received message %d\n", testMessage->sequence );
                         client.ReleaseMessage( message );
                         numMessagesReceivedFromServer++;
+                        totalMessagesReceived++;
                     }
                     break;
 
@@ -359,16 +366,39 @@ int SoakMain( int iterations )
                         printf( "client received message %d\n", uint16_t( numMessagesReceivedFromServer ) );
                         client.ReleaseMessage( message );
                         numMessagesReceivedFromServer++;
+                        totalMessagesReceived++;
                     }
                     break;
                 }
             }
 
             if ( clientConnected && !client.IsConnected() )
+            {
+                printf( "error: client disconnected unexpectedly!\n" );
+                failed = true;
                 break;
+            }
 
             if ( serverConnected && server.GetNumConnectedClients() == 0 )
+            {
+                printf( "error: server disconnected client unexpectedly!\n" );
+                failed = true;
                 break;
+            }
+        }
+
+        if ( clientConnected && !client.IsConnected() )
+        {
+            printf( "error: client disconnected unexpectedly!\n" );
+            failed = true;
+            break;
+        }
+
+        if ( serverConnected && server.GetNumConnectedClients() == 0 )
+        {
+            printf( "error: server disconnected client unexpectedly!\n" );
+            failed = true;
+            break;
         }
 
         client.AdvanceTime( time );
@@ -381,8 +411,22 @@ int SoakMain( int iterations )
     }
 
     client.Disconnect();
-    
+
     server.Stop();
+
+    printf( "soak: %llu messages exchanged\n", (unsigned long long) totalMessagesReceived );
+
+    if ( failed )
+    {
+        printf( "error: soak failed\n" );
+        return 1;
+    }
+
+    if ( totalMessagesReceived == 0 )
+    {
+        printf( "error: soak exchanged no messages\n" );
+        return 1;
+    }
 
     return 0;
 }

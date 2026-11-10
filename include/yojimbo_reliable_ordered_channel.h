@@ -44,6 +44,11 @@ namespace yojimbo
     {
     public:
 
+        /// Conservative upper bound on the number of bits per block fragment header:
+        /// blockMessage (1) + messageId (16) + numFragments (16) + fragmentId (16) + fragmentSize (16)
+        /// + up to 7 bits of byte-alignment padding before serialize_bytes = 72 bits.
+        static const int ConservativeFragmentHeaderBits = 72;
+
         /**
             Reliable ordered channel constructor.
             @param allocator The allocator to use.

@@ -114,6 +114,23 @@ namespace yojimbo
         }
 
         /**
+            Advance the sequence buffer toward a sequence number without inserting an entry.
+            Removes entries that would be overwritten as the sequence advances, so a buffer that
+            is not inserting entries still ages its entries out instead of retaining them across a
+            full 16-bit sequence wrap.
+            @param sequence The newest sequence number observed.
+         */
+
+        void Advance( uint16_t sequence )
+        {
+            if ( yojimbo_sequence_greater_than( sequence + 1, m_sequence ) )
+            {
+                RemoveEntries( m_sequence, sequence );
+                m_sequence = sequence + 1;
+            }
+        }
+
+        /**
             Remove an entry from the sequence buffer.
             @param sequence The sequence number of the entry to remove.
          */
