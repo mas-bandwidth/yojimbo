@@ -2543,10 +2543,8 @@ template <typename Stream> static bool SerializeRawBlockFragmentFirstPacket( Str
 
 void test_connection_reliable_rejects_short_nonfinal_block_fragment()
 {
-    // Every non-final fragment of a multi-fragment block is a full blockFragmentSize on the
-    // wire. If a peer sends a shorter one, the rest of that fragment's slot in the receive
-    // buffer is never written, so a completed block would carry stale bytes from that buffer.
-    // The fragment must be rejected as a desync instead.
+    // Every non-final fragment of a multi-fragment block must be a full blockFragmentSize.
+    // A shorter non-final fragment is rejected as a desync and the block is not delivered.
 
     TestMessageFactory messageFactory( GetDefaultAllocator() );
 
@@ -2582,8 +2580,7 @@ void test_connection_reliable_rejects_short_nonfinal_block_fragment()
         check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_DESYNC );
     }
 
-    // Feed the rest of the block too, so a receiver that accepted the short fragment would
-    // complete the block and deliver it with the unwritten gap still in the payload.
+    // Feed the rest of the block too; the block must still not be delivered.
     for ( int fragmentId = 1; fragmentId < numFragments; ++fragmentId )
     {
         const int fragmentSize = ( fragmentId == numFragments - 1 ) ? config.channel[0].maxBlockSize - ( numFragments - 1 ) * blockFragmentSize : blockFragmentSize;
