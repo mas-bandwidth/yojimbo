@@ -21,27 +21,43 @@ zero is idle, positive is progress.** `IsConnecting()`, `IsConnected()`,
 
 ## Transitions
 
-    DISCONNECTED ──Connect()──> CONNECTING ──netcode connects──> CONNECTED
+    DISCONNECTED ──Connect()──> CONNECTING ──netcode handshake──> CONNECTED
          ^                          │                                │
-         │                          │ failure                        │ Disconnect()
-         │                          v                                │ or server closes
-         └──────────────────────  ERROR <───────────failure──────────┘
-                Connect()             │
-                                      └── Connect() starts a fresh attempt
+         │                          │ handshake failure              │ netcode failure
+         │                          v                                v
+         │                        ERROR <────────────────────────────┘
+         │                          │
+         │      Disconnect()        │
+         └──────────────────────────┘
+
+    CONNECTED ──Disconnect(), clean server close, or connection-level error──> DISCONNECTED
+
+    DISCONNECTED ──ConnectLoopback()──> CONNECTED
 
 * **`Connect()`** moves DISCONNECTED (or ERROR, or CONNECTED) to CONNECTING. If
   the connect token cannot be generated the client goes straight to ERROR
   without ever reaching CONNECTING.
 * **CONNECTING → CONNECTED** happens when the underlying netcode client
   completes its handshake.
+* **`ConnectLoopback()`** is the exception to the handshake path: it connects a
+  loopback client directly to a server slot and moves DISCONNECTED (or ERROR,
+  or CONNECTED) straight to CONNECTED, without passing through CONNECTING. It
+  tears any previous connection down first.
 * **CONNECTING → ERROR** on any handshake failure: token expired, token
   invalid, connection denied, or any of the three timeouts.
-* **CONNECTED → DISCONNECTED** when the server closes the connection cleanly.
-* **CONNECTED → ERROR** on timeout or transport failure.
+* **CONNECTED → DISCONNECTED** when the server closes the connection cleanly,
+  when the caller calls `Disconnect()`, or when a connection-level error is
+  detected (a channel error such as desync or a failed serialize, a read
+  error, or an allocator/message-factory error). The disconnect reason records
+  which one.
+* **CONNECTED → ERROR** when netcode reports a failure state while connected,
+  such as a connection timeout. A connection-level error takes the
+  DISCONNECTED edge above instead, because `BaseClient::AdvanceTime` disconnects
+  before netcode is updated again.
 * **`Disconnect()`** from any state ends at DISCONNECTED.
 
-There is no transition into CONNECTED that does not pass through CONNECTING,
-and no path from DISCONNECTED to CONNECTED that skips it.
+Apart from `ConnectLoopback()`, there is no transition into CONNECTED that does
+not pass through CONNECTING.
 
 ## Derivation from netcode
 
@@ -66,6 +82,12 @@ DISCONNECTED, states 1 and 2 are CONNECTING, and 3 is CONNECTED. New negative
 netcode states would map to ERROR automatically without a yojimbo change, which
 is why the comparison is `< 0` rather than an enumeration.
 
+That projection is only consulted while a netcode client exists. A
+connection-level error detected first (a channel, read, allocator or
+message-factory failure) makes `AdvanceTime` call `Disconnect()`, which tears
+the netcode client down and leaves the client in DISCONNECTED with the reason
+recorded, so the netcode state is never projected.
+
 The *reason* for a failure is not in the state — it is recorded separately as a
 disconnect reason, derived from which negative netcode state was seen. The
 state tells you that it failed; the reason tells you why.
@@ -77,12 +99,19 @@ state tells you that it failed; the reason tells you why.
 * **`AdvanceTime` is what moves the machine.** A client that is never updated
   never changes state, never times out, and never completes a handshake. There
   is no background thread.
-* **ERROR is terminal until acted on.** The client does not retry by itself.
-  `Connect()` starts a fresh attempt; `Disconnect()` returns it to
-  DISCONNECTED.
-* **A clean server-side close lands in DISCONNECTED, not ERROR.** Distinguish
-  "the server said goodbye" from "something broke" — they are different states
-  on purpose.
+* **ERROR does not retry by itself.** `Connect()` starts a fresh attempt;
+  `Disconnect()` returns it to DISCONNECTED. ERROR is not always terminal,
+  though: after an `InsecureConnect` whose connect token could not be generated,
+  the client is left in ERROR with its netcode client still allocated, and the
+  next `AdvanceTime` sees netcode at DISCONNECTED and moves the client to
+  DISCONNECTED. An ERROR recorded after netcode itself failed has no client
+  left to update, and stays put until `Connect()` or `Disconnect()`.
+* **A clean server-side close and a connection-level error both land in
+  DISCONNECTED, not ERROR.** ERROR is reserved for failures that stop the
+  connect attempt before netcode can carry it (allocation or token generation)
+  and for failures netcode reports (a failed handshake, a connection timeout).
+  Use the disconnect reason to tell "the server said goodbye" from "the
+  connection broke" — the state alone does not.
 
 ## Server side
 
