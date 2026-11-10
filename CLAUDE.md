@@ -196,9 +196,11 @@ in code and pinned by the named test in test.cpp.
   asserts are deliberately kept *off* the untrusted network read path, so the full-trust
   rule for programmer inputs is never confused with the zero-trust rule for wire data.
   This is the classic game-engine contract, applied consistently.
-- **Tests and CI.** 37 functional tests including adversarial cases (empty packets,
-  fragment overflow, over-budget packets, receive-queue overflow, allocation-failure
-  injection), Linux/macOS/Windows builds, ASan+UBSan+LSan, a separate MSan job with a
+- **Tests and CI.** The functional suite covers adversarial cases (empty packets, short
+  non-final block fragments, block messages named in an ordinary ordered message list,
+  over-budget packets, receive-queue overflow, allocation-failure injection) plus the
+  slot-reset, fail-closed startup and wire-validation cases named above,
+  Linux/macOS/Windows builds, ASan+UBSan+LSan, a separate MSan job with a
   written rationale for its build flags, and a sanitized 20k-iteration soak run per PR.
 - **Documentation.** Header comment density is exceptional, `USAGE.md` is a real
   integration walkthrough rather than API listing, and `SECURITY.md` is clear about
