@@ -225,6 +225,10 @@ Now that we're creating, sending, receiving and releasing messages, this is the 
 - On the server, messages belong to a **per-client** message factory. Create a message with the same client index you will send it to, and release received messages with the client index you received them from. A message created for one client cannot be sent to another.
 - A block allocated with `AllocateBlock` is owned by the message once you call `AttachBlockToMessage`, and is freed when the message is destroyed. If you allocate a block and never attach it, free it with `FreeBlock`.
 
+**Drain every channel's receive queue every tick.** `ReceivePackets` only moves messages into each channel's receive queue; it does not hand them to your game. Call `ReceiveMessage` in a loop for every channel after `ReceivePackets` and before `SendPackets`, as `ProcessMessages` does above, and release each message.
+
+Reliable-ordered channels acknowledge a message when the receiver accepts it into the receive queue, not when your loop calls `ReceiveMessage`, so the sender does not wait for your application to drain the queue. The receive window is `ChannelConfig::messageReceiveQueueSize` messages wide and advances only as `ReceiveMessage` is called. If a channel's receive queue fills with messages you have not dequeued, the next message is outside the receive window and the connection fails with `CHANNEL_ERROR_DESYNC`. If your tick can leave messages queued, size `ChannelConfig::messageReceiveQueueSize` to cover the largest such burst; `messageSendQueueSize` is a safe bound.
+
 In debug builds the message factory checks for leaked messages when the client or server shuts down, prints each leaked message, and fails an assert — so ownership mistakes are caught during development.
 
 Let's leave the server aside for a moment and take a look at the client. You need a `Client` and the same `ClientServerConfig` and `Adapter` as the server. In this example, the game is divided into "screens" and the screen handling the online game is called `OnlineGameScreen`. It looks like this:

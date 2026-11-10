@@ -261,7 +261,25 @@ void test_address_malformed_port()
     check( parse_address( "[::1]]" ) == false );
     check( parse_address( "[::1]40000" ) == false );
 
+    // at most one port separator
+    {
+        Address address( "1.2.3.4:5:6" );
+        check( address.IsValid() == false );
+        check( address.GetPort() == 0 );
+    }
+    check( parse_address( "127.0.0.1:5:6" ) == false );
+    check( parse_address( "127.0.0.1::5" ) == false );
+    check( parse_address( "127.0.0.1:5:" ) == false );
+    check( parse_address( "1.2.3.4:5:6:7" ) == false );
+    check( parse_address( "1.2.3.4:5::" ) == false );
+    check( parse_address( "1.2.3.4:5:6 " ) == false );
+
     // ...and the forms that were always valid still are, with the port they say
+    {
+        Address address( "1.2.3.4:5" );
+        check( address.IsValid() );
+        check( address.GetPort() == 5 );
+    }
     {
         Address address( "127.0.0.1:65535" );
         check( address.IsValid() );
@@ -619,6 +637,21 @@ void test_address()
         check( address.GetPort() == 65535 );
         check( strcmp( address.ToString( buffer, MaxAddressLength ), "[::1]:65535" ) == 0 );
     }
+}
+
+void test_address_ipv4_octets()
+{
+    Address address( "1.2.3.4:5000" );
+    check( address.IsValid() );
+    check( address.GetType() == ADDRESS_IPV4 );
+    check( address.GetPort() == 5000 );
+    check( address.GetAddress4()[0] == 1 );
+    check( address.GetAddress4()[1] == 2 );
+    check( address.GetAddress4()[2] == 3 );
+    check( address.GetAddress4()[3] == 4 );
+
+    char buffer[MaxAddressLength];
+    check( strcmp( address.ToString( buffer, MaxAddressLength ), "1.2.3.4:5000" ) == 0 );
 }
 
 void test_network_simulator_drains_all_slots()
@@ -5797,6 +5830,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_fp_contract_off );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
+        RUN_TEST( test_address_ipv4_octets );
         RUN_TEST( test_address_malformed_port );
         RUN_TEST( test_address_classification );
         RUN_TEST( test_network_simulator_drains_all_slots );
