@@ -25,12 +25,15 @@
 #if defined(_WIN32)
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #include <process.h>
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/file.h>
 #endif
 
 #include "yojimbo.h"
@@ -148,6 +151,68 @@ static Address TestServerAddress()
 {
     return Address( "127.0.0.1", GetNextTestPort() );
 }
+
+// The vendored netcode self-test section binds the example ports it was written against, so
+// two yojimbo_test processes would contend for them even though yojimbo's own socket tests
+// pick free ports. Hold an advisory per-user lock across that section only, so concurrent
+// test runs finish without colliding while the rest of the suite still runs in parallel.
+// This is best-effort: if the lock cannot be created the section runs unlocked rather than
+// failing the test run.
+class TestSuiteNetworkLock
+{
+public:
+#if defined(_WIN32)
+    TestSuiteNetworkLock() : m_handle( INVALID_HANDLE_VALUE )
+    {
+        char tempPath[MAX_PATH];
+        const DWORD length = GetTempPathA( MAX_PATH, tempPath );
+        if ( length == 0 || length >= MAX_PATH )
+            return;
+        char path[MAX_PATH];
+        _snprintf_s( path, sizeof( path ), _TRUNCATE, "%syojimbo_netcode_tests.lock", tempPath );
+        for ( ;; )
+        {
+            m_handle = CreateFileA( path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, NULL );
+            if ( m_handle != INVALID_HANDLE_VALUE )
+                break;
+            const DWORD error = GetLastError();
+            if ( error != ERROR_SHARING_VIOLATION && error != ERROR_ACCESS_DENIED )
+                break;
+            Sleep( 50 );
+        }
+    }
+#else
+    TestSuiteNetworkLock() : m_fd( -1 )
+    {
+        char path[128];
+        snprintf( path, sizeof( path ), "/tmp/yojimbo_netcode_tests_%u.lock", (unsigned int) getuid() );
+        m_fd = open( path, O_CREAT | O_RDWR, 0600 );
+        if ( m_fd >= 0 )
+            flock( m_fd, LOCK_EX );
+    }
+#endif
+
+    ~TestSuiteNetworkLock()
+    {
+#if defined(_WIN32)
+        if ( m_handle != INVALID_HANDLE_VALUE )
+            CloseHandle( m_handle );
+#else
+        if ( m_fd >= 0 )
+        {
+            flock( m_fd, LOCK_UN );
+            close( m_fd );
+        }
+#endif
+    }
+
+private:
+#if defined(_WIN32)
+    HANDLE m_handle;
+#else
+    int m_fd;
+#endif
+};
 
 // Allocator used by the allocation-failure tests. Delegates to malloc/free, tracks the number of
 // outstanding blocks so leaks are observable, and can be "armed" to start returning NULL after a
@@ -5550,7 +5615,10 @@ int main( int argc, char ** argv )
 
             check( InitializeYojimbo() );
 
-            netcode_test();
+            {
+                TestSuiteNetworkLock lock;
+                netcode_test();
+            }
 
             ShutdownYojimbo();
         }
