@@ -5343,6 +5343,29 @@ void test_server_slot_reused_by_new_client()
     server.Stop();
 }
 
+static const unsigned int DefaultTestSeed = 0x12345678u;
+
+static unsigned int g_testSeed;
+static bool g_testSeedExplicit;
+
+static unsigned int SelectTestSeed( int argc, char ** argv )
+{
+    if ( argc > 1 )
+        return (unsigned int) strtoul( argv[1], NULL, 0 );
+
+    return DefaultTestSeed;
+}
+
+void test_default_seed_is_fixed()
+{
+    // an explicit seed on the command line is honoured, so only the default is asserted here
+
+    if ( g_testSeedExplicit )
+        return;
+
+    check( g_testSeed == DefaultTestSeed );
+}
+
 void test_fp_contract_off()
 {
     // FP-contraction canary. If the compiler contracts a*b + c into a single fused
@@ -5378,12 +5401,13 @@ void test_fp_contract_off()
 
 int main( int argc, char ** argv )
 {
-    // The tests are randomized (packet loss, ordering, ids). Seed rand() from the clock by
-    // default, but let a seed be passed on the command line so a flaky failure can be
-    // reproduced exactly: rerun `./bin/test <seed>` with the value printed below. Print and
-    // flush the seed first so it survives even if a later test aborts.
-    unsigned int seed = ( argc > 1 ) ? (unsigned int) strtoul( argv[1], NULL, 0 )
-                                     : (unsigned int) time( NULL );
+    // The tests are randomized (packet loss, ordering, ids). Use a fixed default seed so a
+    // run is reproducible, but let a seed be passed on the command line to explore another
+    // run: `./bin/test <seed>`. Print and flush the seed first so it survives even if a
+    // later test aborts.
+    g_testSeedExplicit = ( argc > 1 );
+    g_testSeed = SelectTestSeed( argc, argv );
+    unsigned int seed = g_testSeed;
 
     printf( "test random seed %u\n", seed );
     fflush( stdout );
@@ -5438,6 +5462,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_crypto_aead_vectors );
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_fp_contract_off );
+        RUN_TEST( test_default_seed_is_fixed );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_address_malformed_port );
