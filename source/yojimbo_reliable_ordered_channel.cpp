@@ -482,6 +482,14 @@ namespace yojimbo
 
             const uint16_t messageId = message->GetId();
 
+            if ( m_receiveBlock && m_receiveBlock->active && messageId == m_receiveBlock->messageId )
+            {
+                // This id belongs to a block that is still being received. An ordinary message
+                // cannot claim it.
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                return;
+            }
+
             if ( yojimbo_sequence_less_than( messageId, minMessageId ) )
                 continue;
 
@@ -643,7 +651,7 @@ namespace yojimbo
             m_sendBlock->active = true;
             m_sendBlock->blockSize = blockSize;
             m_sendBlock->blockMessageId = messageId;
-            m_sendBlock->numFragments = (int) ceil( blockSize / float( m_config.blockFragmentSize ) );
+            m_sendBlock->numFragments = (int) ( ( (int64_t) blockSize + m_config.blockFragmentSize - 1 ) / m_config.blockFragmentSize );
             m_sendBlock->numAckedFragments = 0;
 
             const int MaxFragmentsPerBlock = m_config.GetMaxFragmentsPerBlock();
@@ -776,10 +784,20 @@ namespace yojimbo
             if ( messageId != expectedMessageId )
                 return;
 
-            // start receiving a new block
-
-            if ( !m_receiveBlock->active )
+            if ( m_receiveBlock->active )
             {
+                // A block is already in progress. It must be the same block, otherwise this
+                // fragment would be reassembled into the state of a different message.
+                if ( m_receiveBlock->messageId != messageId || m_receiveBlock->numFragments != numFragments )
+                {
+                    SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                    return;
+                }
+            }
+            else
+            {
+                // start receiving a new block
+
                 yojimbo_assert( numFragments >= 0 );
                 yojimbo_assert( numFragments <= m_config.GetMaxFragmentsPerBlock() );
 
