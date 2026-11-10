@@ -4015,6 +4015,129 @@ void test_server_start_factory_failure()
     }
 }
 
+void test_server_start_per_client_memory_exhaustion()
+{
+    // A per-client heap smaller than what the configured channels need must make Start fail
+    // cleanly: return false, leave the server stopped, and free everything already taken. Both a
+    // size that runs out early and one that lets the first channel through before the second
+    // fails are covered.
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    const int perClientMemorySizes[] = { 65536, 1048576 };
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    for ( int i = 0; i < (int) ( sizeof( perClientMemorySizes ) / sizeof( perClientMemorySizes[0] ) ); ++i )
+    {
+        ClientServerConfig config;
+        config.serverPerClientMemory = perClientMemorySizes[i];
+
+        check( config.numChannels == 2 );
+        check( config.channel[0].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+        check( config.channel[1].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+
+        ArmableAllocator allocator;
+        {
+            Server server( allocator, privateKey, serverAddress, config, adapter, 100.0 );
+            check( !server.Start( 1 ) );
+            check( !server.IsRunning() );
+            check( server.GetMaxClients() == 0 );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
+void test_container_allocation_failure_is_safe()
+{
+    // The sequence buffer, queue and bit array sit underneath every connection channel. When
+    // their backing allocation fails they must still be constructible and destructible: no
+    // touch of the missing buffer, and a size that keeps later use from indexing it.
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        SequenceBuffer<int> sequenceBuffer( allocator, 16 );
+        check( sequenceBuffer.GetSize() == 0 );
+        sequenceBuffer.Reset();
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        Queue<int> queue( allocator, 16 );
+        check( queue.GetSize() == 0 );
+        check( queue.IsEmpty() );
+        check( queue.IsFull() );
+        queue.Clear();
+        check( allocator.GetOutstanding() == 0 );
+    }
+
+    {
+        ArmableAllocator allocator;
+        allocator.Arm( 0 );
+        BitArray bitArray( allocator, 64 );
+        bitArray.Clear();
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
+void test_connection_unreliable_channel_alloc_failure_is_safe()
+{
+    // An unreliable-unordered channel whose queue object cannot be allocated must still be
+    // resettable and destructible. Arm the allocator so the channel object itself succeeds and
+    // the first thing it allocates fails, leaving the channel holding null queues.
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+
+    ArmableAllocator allocator;
+    TestMessageFactory messageFactory( allocator );
+
+    allocator.Arm( 1 );
+    {
+        Connection connection( allocator, messageFactory, config, 0.0 );
+        check( allocator.GetErrorLevel() == ALLOCATOR_ERROR_OUT_OF_MEMORY );
+        connection.Reset();
+    }
+    check( allocator.GetOutstanding() == 0 );
+}
+
+void test_client_connect_per_client_memory_exhaustion()
+{
+    // The client side of the same contract: too little client memory for the configured
+    // channels must fail the connect cleanly, with no crash, no leak, and an out-of-memory
+    // disconnect reason.
+    Address clientAddress( "0.0.0.0", 0 );
+    Address serverAddress( "127.0.0.1", ServerPort );
+
+    const int clientMemorySizes[] = { 65536, 1048576 };
+
+    uint8_t privateKey[KeyBytes];
+    memset( privateKey, 0, KeyBytes );
+
+    for ( int i = 0; i < (int) ( sizeof( clientMemorySizes ) / sizeof( clientMemorySizes[0] ) ); ++i )
+    {
+        ClientServerConfig config;
+        config.clientMemory = clientMemorySizes[i];
+
+        check( config.numChannels == 2 );
+        check( config.channel[0].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+        check( config.channel[1].type == CHANNEL_TYPE_RELIABLE_ORDERED );
+
+        ArmableAllocator allocator;
+        {
+            Client client( allocator, clientAddress, config, adapter, 100.0 );
+            check( !client.InsecureConnect( privateKey, 1, serverAddress ) );
+            check( !client.IsConnecting() );
+            check( !client.IsConnected() );
+            check( client.ConnectionFailed() );
+            check( client.GetDisconnectReason() == YOJIMBO_CLIENT_DISCONNECT_REASON_OUT_OF_MEMORY );
+        }
+        check( allocator.GetOutstanding() == 0 );
+    }
+}
+
 void test_client_connect_alloc_failure()
 {
     // YJ-01 on the client side: BaseClient::CreateInternal bound a reference to *m_clientAllocator
@@ -6522,6 +6645,10 @@ int main( int argc, char ** argv )
         RUN_TEST( test_interface_methods_link );
         RUN_TEST( test_server_start_alloc_failure );
         RUN_TEST( test_server_start_factory_failure );
+        RUN_TEST( test_server_start_per_client_memory_exhaustion );
+        RUN_TEST( test_container_allocation_failure_is_safe );
+        RUN_TEST( test_connection_unreliable_channel_alloc_failure_is_safe );
+        RUN_TEST( test_client_connect_per_client_memory_exhaustion );
         RUN_TEST( test_client_connect_alloc_failure );
         RUN_TEST( test_client_connect_factory_failure );
         RUN_TEST( test_client_connect_socket_failure_no_crash );

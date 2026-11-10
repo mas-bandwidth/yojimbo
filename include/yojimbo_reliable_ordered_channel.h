@@ -276,8 +276,6 @@ namespace yojimbo
                 m_allocator = &allocator;
                 ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
-                yojimbo_assert( ackedFragment );
-                yojimbo_assert( fragmentSendTime );
                 Reset();
             }
 
@@ -324,7 +322,6 @@ namespace yojimbo
                 m_allocator = &allocator;
                 receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-                yojimbo_assert( receivedFragment && blockData );
                 blockMessage = NULL;
                 Reset();
             }
