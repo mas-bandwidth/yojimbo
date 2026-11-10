@@ -4710,6 +4710,70 @@ void test_reliable_outbound_sequence_outdated()
     server.Stop();
 }
 
+// Send and receive more than 65536 reliable-ordered messages over one connection pair so the
+// 16-bit message id crosses the 65535 -> 0 wraparound. Every message must still arrive in order.
+void test_reliable_ordered_message_id_wraparound()
+{
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig connectionConfig;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+    Connection receiver( GetDefaultAllocator(), messageFactory, connectionConfig, time );
+
+    // The 16-bit message id wraps from 65535 back to 0 only after more than 65536 messages.
+    const int NumMessages = 66000;
+
+    int numMessagesSent = 0;
+    int numMessagesReceived = 0;
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+
+    const int MaxIterations = 1000000;
+
+    for ( int i = 0; i < MaxIterations && numMessagesReceived < NumMessages; ++i )
+    {
+        // The send queue only holds messageSendQueueSize entries, so queue what fits and let the
+        // receiver drain and ack before adding more. Sending all 66000 at once is not possible.
+        while ( numMessagesSent < NumMessages && sender.CanSendMessage( ReliableChannel ) )
+        {
+            TestMessage * message = (TestMessage*) messageFactory.CreateMessage( TEST_MESSAGE );
+            check( message );
+            message->sequence = (uint16_t) numMessagesSent;
+            sender.SendMessage( ReliableChannel, message );
+            ++numMessagesSent;
+        }
+
+        // No packet loss here: this test is about the id wrap, not about retransmission.
+        PumpConnectionUpdate( connectionConfig, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+
+        while ( true )
+        {
+            Message * message = receiver.ReceiveMessage( ReliableChannel );
+            if ( !message )
+                break;
+
+            check( message->GetType() == TEST_MESSAGE );
+            check( message->GetId() == (int) (uint16_t) numMessagesReceived );
+
+            TestMessage * testMessage = (TestMessage*) message;
+            check( testMessage->sequence == (uint16_t) numMessagesReceived );
+
+            messageFactory.ReleaseMessage( message );
+
+            ++numMessagesReceived;
+        }
+    }
+
+    check( numMessagesSent == NumMessages );
+    check( numMessagesReceived == NumMessages );
+    check( sender.GetErrorLevel() == CONNECTION_ERROR_NONE );
+    check( receiver.GetErrorLevel() == CONNECTION_ERROR_NONE );
+}
+
 void test_single_message_type_reliable()
 {
 	SingleTestMessageFactory messageFactory( GetDefaultAllocator() );
@@ -5500,6 +5564,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_server_message_exhaust_stream_allocator );
         RUN_TEST( test_client_server_message_receive_queue_overflow );
         RUN_TEST( test_reliable_outbound_sequence_outdated );
+        RUN_TEST( test_reliable_ordered_message_id_wraparound );
 
         RUN_TEST( test_single_message_type_reliable );
         RUN_TEST( test_single_message_type_reliable_blocks );
