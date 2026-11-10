@@ -183,6 +183,8 @@ namespace yojimbo
 
         const bool isTooLarge = !message->IsBlockMessage() && messagePackedBits > maxMessagePacketBits;
 
+        yojimbo_assert( !isTooLarge );
+
         if ( isTooLarge )
         {
             // You tried to send a message that is too large to ever fit into a packet for this channel. Large data should be sent as a block message instead.

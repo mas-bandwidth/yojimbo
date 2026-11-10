@@ -2980,8 +2980,22 @@ void test_connection_reliable_ordered_message_packet_budget_fit()
 
         TestFixedBodyMessage<70> * message = (TestFixedBodyMessage<70>*) messageFactory.CreateMessage( TEST_MESSAGE_BUDGET_FULL );
         check( message );
+#ifdef YOJIMBO_DEBUG
+        // Sending a message that can never fit is the caller's mistake: debug asserts at send.
+        void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+        yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            sender.SendMessage( 0, message );
+        yojimbo_set_assert_function( prevAssertHandler );
+        check( g_configValidateAssertCount == 1 );
+        // The assert stopped SendMessage before it took the message, so release it here.
+        messageFactory.ReleaseMessage( message );
+#else // #ifdef YOJIMBO_DEBUG
+        // Release handles it: the message is refused with a channel error.
         sender.SendMessage( 0, message );
         check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_MESSAGE_TOO_LARGE );
+#endif // #ifdef YOJIMBO_DEBUG
     }
 
     {
