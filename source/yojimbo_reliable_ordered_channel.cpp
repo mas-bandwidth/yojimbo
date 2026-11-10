@@ -82,23 +82,26 @@ namespace yojimbo
         m_receiveMessageId = 0;
         m_oldestUnackedMessageId = 0;
 
-        for ( int i = 0; i < m_messageSendQueue->GetSize(); ++i )
+        for ( int i = 0; i < ( m_messageSendQueue ? m_messageSendQueue->GetSize() : 0 ); ++i )
         {
             MessageSendQueueEntry * entry = m_messageSendQueue->GetAtIndex( i );
             if ( entry && entry->message )
                 m_messageFactory->ReleaseMessage( entry->message );
         }
 
-        for ( int i = 0; i < m_messageReceiveQueue->GetSize(); ++i )
+        for ( int i = 0; i < ( m_messageReceiveQueue ? m_messageReceiveQueue->GetSize() : 0 ); ++i )
         {
             MessageReceiveQueueEntry * entry = m_messageReceiveQueue->GetAtIndex( i );
             if ( entry && entry->message )
                 m_messageFactory->ReleaseMessage( entry->message );
         }
 
-        m_sentPackets->Reset();
-        m_messageSendQueue->Reset();
-        m_messageReceiveQueue->Reset();
+        if ( m_sentPackets )
+            m_sentPackets->Reset();
+        if ( m_messageSendQueue )
+            m_messageSendQueue->Reset();
+        if ( m_messageReceiveQueue )
+            m_messageReceiveQueue->Reset();
 
         if ( m_sendBlock )
         {
@@ -358,14 +361,10 @@ namespace yojimbo
         const int messageLimit = yojimbo_min( m_config.messageSendQueueSize, m_config.messageReceiveQueueSize );
         uint16_t previousMessageId = 0;
         int usedBits = ConservativeMessageHeaderBits;
-        int giveUpCounter = 0;
 
         for ( int i = 0; i < messageLimit; ++i )
         {
             if ( availableBits - usedBits < giveUpBits )
-                break;
-
-            if ( giveUpCounter > m_config.messageSendQueueSize )
                 break;
 
             uint16_t messageId = m_oldestUnackedMessageId + i;
@@ -398,7 +397,6 @@ namespace yojimbo
 
                 if ( usedBits + messageBits > availableBits )
                 {
-                    giveUpCounter++;
                     continue;
                 }
 
@@ -459,7 +457,6 @@ namespace yojimbo
         {
             sentPacket->acked = 0;
             sentPacket->block = 0;
-            sentPacket->timeSent = m_time;
             sentPacket->messageIds = &m_sentPacketMessageIds[ ( sequence % m_config.sentPacketBufferSize ) * m_config.maxMessagesPerPacket ];
             sentPacket->numMessageIds = numMessageIds;            
             for ( int i = 0; i < numMessageIds; ++i )
@@ -481,6 +478,14 @@ namespace yojimbo
             yojimbo_assert( message );  
 
             const uint16_t messageId = message->GetId();
+
+            if ( m_receiveBlock && m_receiveBlock->active && messageId == m_receiveBlock->messageId )
+            {
+                // This id belongs to a block that is still being received. An ordinary message
+                // cannot claim it.
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                return;
+            }
 
             if ( yojimbo_sequence_less_than( messageId, minMessageId ) )
                 continue;
@@ -528,8 +533,7 @@ namespace yojimbo
 
         if ( packetData.blockMessage )
         {
-            ProcessPacketFragment( packetData.block.messageType, 
-                                   packetData.block.messageId, 
+            ProcessPacketFragment( packetData.block.messageId, 
                                    packetData.block.numFragments, 
                                    packetData.block.fragmentId, 
                                    packetData.block.fragmentData, 
@@ -641,9 +645,8 @@ namespace yojimbo
             // start sending this block
 
             m_sendBlock->active = true;
-            m_sendBlock->blockSize = blockSize;
             m_sendBlock->blockMessageId = messageId;
-            m_sendBlock->numFragments = (int) ceil( blockSize / float( m_config.blockFragmentSize ) );
+            m_sendBlock->numFragments = (int) ( ( (int64_t) blockSize + m_config.blockFragmentSize - 1 ) / m_config.blockFragmentSize );
             m_sendBlock->numAckedFragments = 0;
 
             const int MaxFragmentsPerBlock = m_config.GetMaxFragmentsPerBlock();
@@ -752,7 +755,6 @@ namespace yojimbo
         {
             sentPacket->numMessageIds = 0;
             sentPacket->messageIds = NULL;
-            sentPacket->timeSent = m_time;
             sentPacket->acked = 0;
             sentPacket->block = 1;
             sentPacket->blockMessageId = messageId;
@@ -760,8 +762,7 @@ namespace yojimbo
         }
     }
 
-    void ReliableOrderedChannel::ProcessPacketFragment( int messageType, 
-                                                        uint16_t messageId, 
+    void ReliableOrderedChannel::ProcessPacketFragment( uint16_t messageId, 
                                                         int numFragments, 
                                                         uint16_t fragmentId, 
                                                         const uint8_t * fragmentData, 
@@ -776,10 +777,20 @@ namespace yojimbo
             if ( messageId != expectedMessageId )
                 return;
 
-            // start receiving a new block
-
-            if ( !m_receiveBlock->active )
+            if ( m_receiveBlock->active )
             {
+                // A block is already in progress. It must be the same block, otherwise this
+                // fragment would be reassembled into the state of a different message.
+                if ( m_receiveBlock->messageId != messageId || m_receiveBlock->numFragments != numFragments )
+                {
+                    SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                    return;
+                }
+            }
+            else
+            {
+                // start receiving a new block
+
                 yojimbo_assert( numFragments >= 0 );
                 yojimbo_assert( numFragments <= m_config.GetMaxFragmentsPerBlock() );
 
@@ -821,6 +832,13 @@ namespace yojimbo
                 return;
             }
 
+            // Every non-final fragment must be a full blockFragmentSize.
+            if ( fragmentId != numFragments - 1 && fragmentBytes != m_config.blockFragmentSize )
+            {
+                SetErrorLevel( CHANNEL_ERROR_DESYNC );
+                return;
+            }
+
             // receive the fragment
 
             if ( !m_receiveBlock->receivedFragment->GetBit( fragmentId ) )
@@ -828,11 +846,6 @@ namespace yojimbo
                 m_receiveBlock->receivedFragment->SetBit( fragmentId );
 
                 memcpy( m_receiveBlock->blockData + fragmentId * m_config.blockFragmentSize, fragmentData, fragmentBytes );
-
-                if ( fragmentId == 0 )
-                {
-                    m_receiveBlock->messageType = messageType;
-                }
 
                 if ( fragmentId == m_receiveBlock->numFragments - 1 )
                 {

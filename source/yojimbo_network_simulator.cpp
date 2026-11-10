@@ -77,7 +77,7 @@ namespace yojimbo
         yojimbo_assert( packetData );
         yojimbo_assert( packetBytes > 0 );
 
-        if ( yojimbo_random_float( 0.0f, 100.0f ) <= m_packetLoss )
+        if ( yojimbo_random_float( 0.0f, 100.0f ) < m_packetLoss )
         {
             return;
         }
@@ -109,7 +109,7 @@ namespace yojimbo
         packetEntry.deliveryTime = m_time + delay;
         m_currentIndex = ( m_currentIndex + 1 ) % m_numPacketEntries;
 
-        if ( yojimbo_random_float( 0.0f, 100.0f ) <= m_duplicates )
+        if ( yojimbo_random_float( 0.0f, 100.0f ) < m_duplicates )
         {
             PacketEntry & nextPacketEntry = m_packetEntries[m_currentIndex];
             if ( nextPacketEntry.packetData )
