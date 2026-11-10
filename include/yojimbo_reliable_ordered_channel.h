@@ -44,11 +44,6 @@ namespace yojimbo
     {
     public:
 
-        /// Conservative upper bound on the number of bits per block fragment header:
-        /// blockMessage (1) + messageId (16) + numFragments (16) + fragmentId (16) + fragmentSize (16)
-        /// + up to 7 bits of byte-alignment padding before serialize_bytes = 72 bits.
-        static const int ConservativeFragmentHeaderBits = 72;
-
         /**
             Reliable ordered channel constructor.
             @param allocator The allocator to use.
@@ -210,6 +205,7 @@ namespace yojimbo
         /**
             Process a packet fragment.
             The fragment is added to the set of received fragments for the block. When all packet fragments are received, that block is reconstructed, attached to the block message and added to the message receive queue.
+            @param messageType The type of the message this block fragment is attached to. This is used to make sure this message type actually allows blocks to be attached to it.
             @param messageId The id of the message the block fragment belongs to.
             @param numFragments The number of fragments in the block.
             @param fragmentId The id of the fragment in [0,numFragments-1].
@@ -218,7 +214,8 @@ namespace yojimbo
             @param blockMessage Pointer to the block message. Passed this in only with the first fragment (0), pass NULL for all other fragments.
          */
 
-        void ProcessPacketFragment( uint16_t messageId,
+        void ProcessPacketFragment( int messageType,
+                                    uint16_t messageId,
                                     int numFragments,
                                     uint16_t fragmentId,
                                     const uint8_t * fragmentData,
@@ -255,6 +252,7 @@ namespace yojimbo
 
         struct SentPacketEntry
         {
+            double timeSent;                                                            ///< The time the packet was sent. Used to estimate round trip time.
             uint16_t * messageIds;                                                      ///< Pointer to an array of message ids. Dynamically allocated because the user can configure the maximum number of messages in a packet per-channel with ChannelConfig::maxMessagesPerPacket.
             uint32_t numMessageIds : 16;                                                ///< The number of message ids in in the array.
             uint32_t acked : 1;                                                         ///< 1 if this packet has been acked.
@@ -291,9 +289,11 @@ namespace yojimbo
                 numFragments = 0;
                 numAckedFragments = 0;
                 blockMessageId = 0;
+                blockSize = 0;
             }
 
             bool active;                                                                ///< True if we are currently sending a block.
+            int blockSize;                                                              ///< The size of the block (bytes).
             int numFragments;                                                           ///< Number of fragments in the block being sent.
             int numAckedFragments;                                                      ///< Number of acked fragments in the block being sent.
             uint16_t blockMessageId;                                                    ///< The message id the block is attached to.
@@ -338,6 +338,7 @@ namespace yojimbo
                 numFragments = 0;
                 numReceivedFragments = 0;
                 messageId = 0;
+                messageType = 0;
                 blockSize = 0;
             }
 
@@ -345,6 +346,7 @@ namespace yojimbo
             int numFragments;                                                           ///< The number of fragments in this block
             int numReceivedFragments;                                                   ///< The number of fragments received.
             uint16_t messageId;                                                         ///< The message id corresponding to the block.
+            int messageType;                                                            ///< Message type of the block being received.
             uint32_t blockSize;                                                         ///< Block size in bytes.
             BitArray * receivedFragment;                                                ///< Has fragment n been received?
             uint8_t * blockData;                                                        ///< Block data for receive.

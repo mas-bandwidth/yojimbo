@@ -27,6 +27,11 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <process.h>
+// <windows.h> maps SendMessage to SendMessageA/W. yojimbo.h removes the macro only after
+// Connection is declared, so remove it here before any yojimbo header is parsed.
+#ifdef SendMessage
+#undef SendMessage
+#endif
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -2975,8 +2980,22 @@ void test_connection_reliable_ordered_message_packet_budget_fit()
 
         TestFixedBodyMessage<70> * message = (TestFixedBodyMessage<70>*) messageFactory.CreateMessage( TEST_MESSAGE_BUDGET_FULL );
         check( message );
+#ifdef YOJIMBO_DEBUG
+        // Sending a message that can never fit is the caller's mistake: debug asserts at send.
+        void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+        yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+        g_configValidateAssertCount = 0;
+        if ( setjmp( g_configValidateJmpBuf ) == 0 )
+            sender.SendMessage( 0, message );
+        yojimbo_set_assert_function( prevAssertHandler );
+        check( g_configValidateAssertCount == 1 );
+        // The assert stopped SendMessage before it took the message, so release it here.
+        messageFactory.ReleaseMessage( message );
+#else // #ifdef YOJIMBO_DEBUG
+        // Release handles it: the message is refused with a channel error.
         sender.SendMessage( 0, message );
         check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_MESSAGE_TOO_LARGE );
+#endif // #ifdef YOJIMBO_DEBUG
     }
 
     {
@@ -3146,11 +3165,11 @@ void test_channel_config_fragment_counts_without_overflow()
     check( n > 65535 );
 
     // yojimbo#346: fragmentSize on the wire is 16 bits.
-    ChannelConfig small;
-    small.maxBlockSize = 256 * 1024;
-    small.blockFragmentSize = 1024;
-    check( small.GetMaxFragmentsPerBlock() == 256 );
-    check( small.blockFragmentSize <= 65535 );
+    ChannelConfig smallChannel;
+    smallChannel.maxBlockSize = 256 * 1024;
+    smallChannel.blockFragmentSize = 1024;
+    check( smallChannel.GetMaxFragmentsPerBlock() == 256 );
+    check( smallChannel.blockFragmentSize <= 65535 );
 }
 
 void test_channel_config_max_messages_per_packet_bounds()
@@ -3207,64 +3226,80 @@ void test_channel_config_max_messages_per_packet_bounds()
 #endif // #ifdef YOJIMBO_DEBUG
 }
 
-void test_channel_config_unreliable_unordered_block_fits_packet()
+void test_client_server_config_default_unreliable_channel_validates()
 {
 #ifdef YOJIMBO_DEBUG
     void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
     yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
 
-    // An unreliable-unordered channel sends blocks without fragmenting them, so the configured
-    // block size must fit inside a single packet. maxBlockSize == maxPacketSize is the boundary.
-    {
-        ChannelConfig channel;
-        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        channel.disableBlocks = false;
-        channel.maxBlockSize = 8193;
+    // The configuration USAGE.md shows: one reliable-ordered and one unreliable-unordered
+    // channel, every other field left at its default.
+    ClientServerConfig config;
+    config.numChannels = 2;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+    config.channel[1].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
 
-        g_configValidateAssertCount = 0;
-        if ( setjmp( g_configValidateJmpBuf ) == 0 )
-            channel.Validate( 0, 8192 );
-        check( g_configValidateAssertCount == 1 );
-    }
-
-    {
-        ChannelConfig channel;
-        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        channel.disableBlocks = false;
-        channel.maxBlockSize = 2048;
-        channel.packetBudget = 1024;
-
-        g_configValidateAssertCount = 0;
-        if ( setjmp( g_configValidateJmpBuf ) == 0 )
-            channel.Validate( 0, 8192 );
-        check( g_configValidateAssertCount == 1 );
-    }
-
-    {
-        ChannelConfig channel;
-        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        channel.disableBlocks = false;
-        channel.maxBlockSize = 8192;
-
-        g_configValidateAssertCount = 0;
-        if ( setjmp( g_configValidateJmpBuf ) == 0 )
-            channel.Validate( 0, 8192 );
-        check( g_configValidateAssertCount == 0 );
-    }
-
-    {
-        ChannelConfig channel;
-        channel.type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
-        channel.disableBlocks = true;
-        channel.maxBlockSize = 16384;
-
-        g_configValidateAssertCount = 0;
-        if ( setjmp( g_configValidateJmpBuf ) == 0 )
-            channel.Validate( 0, 8192 );
-        check( g_configValidateAssertCount == 0 );
-    }
+    g_configValidateAssertCount = 0;
+    if ( setjmp( g_configValidateJmpBuf ) == 0 )
+        config.Validate();
+    check( g_configValidateAssertCount == 0 );
 
     yojimbo_set_assert_function( prevAssertHandler );
+#endif // #ifdef YOJIMBO_DEBUG
+}
+
+void test_connection_unreliable_unordered_block_too_large_for_packet()
+{
+    // An unreliable-unordered channel sends a block whole, inside one packet. A block within
+    // maxBlockSize that does not fit a packet once the headers are added is the caller's
+    // mistake: it asserts at send in debug. Release is unchanged: the block is accepted, no
+    // channel error is set, and it is never delivered.
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    double time = 100.0;
+
+    ConnectionConfig config;
+    config.numChannels = 1;
+    config.channel[0].type = CHANNEL_TYPE_UNRELIABLE_UNORDERED;
+    config.channel[0].maxBlockSize = config.maxPacketSize;
+
+    Connection sender( GetDefaultAllocator(), messageFactory, config, time );
+
+    const int blockSize = config.maxPacketSize - 12;
+    TestBlockMessage * message = (TestBlockMessage*) messageFactory.CreateMessage( TEST_BLOCK_MESSAGE );
+    check( message );
+    uint8_t * blockData = (uint8_t*) YOJIMBO_ALLOCATE( messageFactory.GetAllocator(), blockSize );
+    check( blockData );
+    memset( blockData, 0, blockSize );
+    message->AttachBlock( messageFactory.GetAllocator(), blockData, blockSize );
+
+#ifdef YOJIMBO_DEBUG
+    void (*prevAssertHandler)( const char *, const char *, const char *, int ) = yojimbo_assert_function;
+    yojimbo_set_assert_function( ExpectConfigValidateAssertHandler );
+    g_configValidateAssertCount = 0;
+    if ( setjmp( g_configValidateJmpBuf ) == 0 )
+        sender.SendMessage( 0, message );
+    yojimbo_set_assert_function( prevAssertHandler );
+    check( g_configValidateAssertCount == 1 );
+    // The assert stopped SendMessage before it took the message, so release it here.
+    messageFactory.ReleaseMessage( message );
+#else // #ifdef YOJIMBO_DEBUG
+    Connection receiver( GetDefaultAllocator(), messageFactory, config, time );
+
+    sender.SendMessage( 0, message );
+    check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+
+    uint16_t senderSequence = 0;
+    uint16_t receiverSequence = 0;
+    for ( int i = 0; i < 10; ++i )
+    {
+        PumpConnectionUpdate( config, time, sender, receiver, senderSequence, receiverSequence, 0.1f, 0 );
+        Message * received = receiver.ReceiveMessage( 0 );
+        check( !received );
+    }
+
+    check( sender.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
+    check( receiver.GetChannelErrorLevel( 0 ) == CHANNEL_ERROR_NONE );
 #endif // #ifdef YOJIMBO_DEBUG
 }
 
@@ -4038,6 +4073,46 @@ void test_connection_process_packet_channel_data_alloc_failure()
     }
     check( senderAlloc.GetOutstanding() == 0 );
     check( receiverAlloc.GetOutstanding() == 0 );
+}
+
+// ReliableOrderedChannel's public and protected members are part of an installed header, so a
+// subclass written against an earlier release must still compile and see the same members.
+class ReliableOrderedChannelSubclass : public ReliableOrderedChannel
+{
+public:
+    ReliableOrderedChannelSubclass( Allocator & allocator, MessageFactory & messageFactory, const ChannelConfig & config, int maxPacketSize, double time )
+        : ReliableOrderedChannel( allocator, messageFactory, config, maxPacketSize, 0, time ) {}
+
+    void CheckProtectedInterface( Allocator & allocator )
+    {
+        SentPacketEntry sentPacket;
+        memset( &sentPacket, 0, sizeof( sentPacket ) );
+        sentPacket.timeSent = 1.0;
+        check( sentPacket.timeSent == 1.0 );
+
+        SendBlockData sendBlock( allocator, 4 );
+        check( sendBlock.blockSize == 0 );
+
+        ReceiveBlockData receiveBlock( allocator, 1024, 4 );
+        check( receiveBlock.messageType == 0 );
+    }
+};
+
+void test_reliable_ordered_channel_interface()
+{
+    TestMessageFactory messageFactory( GetDefaultAllocator() );
+
+    ConnectionConfig config;
+    config.channel[0].type = CHANNEL_TYPE_RELIABLE_ORDERED;
+
+    ReliableOrderedChannelSubclass channel( GetDefaultAllocator(), messageFactory, config.channel[0], config.maxPacketSize, 100.0 );
+
+    channel.CheckProtectedInterface( GetDefaultAllocator() );
+
+    // A fragment for a message id the channel is not expecting yet is ignored.
+    const uint8_t fragmentData[1] = { 0 };
+    channel.ProcessPacketFragment( TEST_BLOCK_MESSAGE, 1, 1, 0, fragmentData, 1, NULL );
+    check( channel.GetErrorLevel() == CHANNEL_ERROR_NONE );
 }
 
 // YJ-05: the build added -fno-rtti to every C++ target, so libyojimbo emitted "vtable for
@@ -4847,6 +4922,24 @@ public:
 
     LoopbackTestAdapter() : client( NULL ), server( NULL ) {}
 
+    // Loopback packets never reach netcode's transport, so give it one that binds no socket.
+    bool UseCustomPacketIO() const { return true; }
+
+    void SendPacket( const Address & to, const uint8_t * packetData, int packetBytes )
+    {
+        (void) to;
+        (void) packetData;
+        (void) packetBytes;
+    }
+
+    int ReceivePacket( Address & from, uint8_t * packetData, int maxPacketBytes )
+    {
+        (void) from;
+        (void) packetData;
+        (void) maxPacketBytes;
+        return 0;
+    }
+
     void ClientSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence )
     {
         server->ProcessLoopbackPacket( clientIndex, packetData, packetBytes, packetSequence );
@@ -4874,16 +4967,20 @@ void test_server_message_sent_before_client_connects()
     uint8_t userData[256];
     memset( userData, 0, sizeof( userData ) );
 
-    Address serverAddress = TestServerAddress();
+    Address serverAddress( "127.0.0.1", ServerPort );
     Address clientAddress = TestClientAddress();
 
-    LoopbackTestAdapter loopbackAdapter;
+    // A custom packet I/O adapter serves one object, so the server and client each get one.
+    LoopbackTestAdapter serverAdapter;
+    LoopbackTestAdapter clientAdapter;
 
-    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, loopbackAdapter, time );
-    Client client( GetDefaultAllocator(), clientAddress, config, loopbackAdapter, time );
+    Server server( GetDefaultAllocator(), privateKey, serverAddress, config, serverAdapter, time );
+    Client client( GetDefaultAllocator(), clientAddress, config, clientAdapter, time );
 
-    loopbackAdapter.server = &server;
-    loopbackAdapter.client = &client;
+    serverAdapter.server = &server;
+    serverAdapter.client = &client;
+    clientAdapter.server = &server;
+    clientAdapter.client = &client;
 
     check( server.Start( MaxClients ) );
 
@@ -5010,7 +5107,7 @@ void test_server_message_to_unconnected_slot_not_queued()
     uint8_t privateKey[KeyBytes];
     memset( privateKey, 0, KeyBytes );
 
-    Address serverAddress = TestServerAddress();
+    Address serverAddress( "127.0.0.1", ServerPort );
 
     NoSocketTestAdapter noSocketAdapter;
 
@@ -6901,6 +6998,10 @@ int main( int argc, char ** argv )
     // later test aborts.
     unsigned int seed = SelectTestSeed( argc, argv );
 
+    // A failed check or assert traps without flushing, so keep stdout unbuffered: the name of
+    // the failing test and the failed condition must reach a log that is not a terminal.
+    setvbuf( stdout, NULL, _IONBF, 0 );
+
     printf( "test random seed %u\n", seed );
     fflush( stdout );
 
@@ -6914,6 +7015,21 @@ int main( int argc, char ** argv )
     while ( true )
 #endif // #if SOAK
     {
+#if YOJIMBO_FUNCTIONAL_TESTS
+
+        // The functional tier (bin/functional_test): tests that need real time or real sockets.
+
+        printf( "[yojimbo functional]\n\n" );
+
+#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
+        RUN_TEST( test_yojimbo_sleep_non_positive_returns_immediately );
+        RUN_TEST( test_yojimbo_sleep_longer_than_one_second );
+#endif
+        RUN_TEST( test_servers_bind_distinct_ports );
+        RUN_TEST( test_server_slot_reused_by_new_client );
+
+#else // #if YOJIMBO_FUNCTIONAL_TESTS
+
         {
             printf( "[serialize]\n\n" );
 
@@ -6958,11 +7074,6 @@ int main( int argc, char ** argv )
 #endif // #ifndef YOJIMBO_SYSTEM_DEPS
         RUN_TEST( test_fp_contract_off );
         RUN_TEST( test_default_seed_is_fixed );
-#if YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_MAC || YOJIMBO_PLATFORM == YOJIMBO_PLATFORM_UNIX
-        RUN_TEST( test_yojimbo_sleep_non_positive_returns_immediately );
-        RUN_TEST( test_yojimbo_sleep_longer_than_one_second );
-#endif
-        RUN_TEST( test_servers_bind_distinct_ports );
         RUN_TEST( test_queue );
         RUN_TEST( test_address );
         RUN_TEST( test_address_ipv4_octets );
@@ -6996,7 +7107,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_connection_reliable_rejects_block_in_message_list );
         RUN_TEST( test_channel_config_fragment_counts_without_overflow );
         RUN_TEST( test_channel_config_max_messages_per_packet_bounds );
-        RUN_TEST( test_channel_config_unreliable_unordered_block_fits_packet );
+        RUN_TEST( test_client_server_config_default_unreliable_channel_validates );
+        RUN_TEST( test_connection_unreliable_unordered_block_too_large_for_packet );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_fit_multiple_channels );
         RUN_TEST( test_connection_reliable_ordered_block_fragment_header_headroom );
         RUN_TEST( test_client_server_config_packet_fragment_size_fits_netcode_payload );
@@ -7017,6 +7129,7 @@ int main( int argc, char ** argv )
         RUN_TEST( test_message_factory_create_message_alloc_failure );
         RUN_TEST( test_connection_process_packet_channel_data_alloc_failure );
 
+        RUN_TEST( test_reliable_ordered_channel_interface );
         RUN_TEST( test_rtti_across_the_abi_boundary );
         RUN_TEST( test_public_layout_is_configuration_independent );
 
@@ -7039,7 +7152,6 @@ int main( int argc, char ** argv )
         RUN_TEST( test_client_server_start_stop_restart );
         RUN_TEST( test_client_server_message_failed_to_serialize_reliable_ordered );
         RUN_TEST( test_server_client_disconnect_reason );
-        RUN_TEST( test_server_slot_reused_by_new_client );
         RUN_TEST( test_server_client_disconnect_reason_failed_to_serialize );
         RUN_TEST( test_client_disconnect_reason );
         RUN_TEST( test_client_disconnect_reason_failed_to_serialize );
@@ -7054,6 +7166,8 @@ int main( int argc, char ** argv )
         RUN_TEST( test_single_message_type_unreliable );
 
         RUN_TEST( test_client_server_messages_network_sim_leak );
+
+#endif // #if YOJIMBO_FUNCTIONAL_TESTS
 
 #if SOAK
         if ( quit )

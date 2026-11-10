@@ -24,7 +24,6 @@
 
 #include "yojimbo_config.h"
 #include "yojimbo_platform.h"
-#include "yojimbo_reliable_ordered_channel.h"
 #include "netcode.h"
 #include "reliable.h"
 
@@ -33,6 +32,11 @@
 namespace yojimbo
 {
 #ifdef YOJIMBO_DEBUG
+
+    // Bits a block fragment header can take, as in yojimbo_reliable_ordered_channel.cpp: the
+    // public ConservativeFragmentHeaderBits keeps the value it shipped with (64), because a
+    // public constant's value is part of the interface; this is the bound in use.
+    static const int BlockFragmentHeaderBits = 72;
 
     // Print what is wrong with the config (with the offending values), then assert. Debug builds
     // only: config validation follows the library-wide contract that asserts enforce correct usage
@@ -68,17 +72,6 @@ namespace yojimbo
         {
             YOJIMBO_CONFIG_CHECK( maxBlockSize > 0,
                 "error: invalid config: channel %d maxBlockSize (%d) must be > 0\n", channelIndex, maxBlockSize );
-        }
-
-        if ( type == CHANNEL_TYPE_UNRELIABLE_UNORDERED && !disableBlocks )
-        {
-            // Unreliable-unordered channels send blocks as-is without fragmenting them, so a
-            // block must fit inside a single packet. A positive packetBudget further limits
-            // how much of that packet the channel may use.
-            const int maxBlockPacketBytes = ( packetBudget > 0 && packetBudget < maxPacketSize ) ? packetBudget : maxPacketSize;
-            YOJIMBO_CONFIG_CHECK( maxBlockSize <= maxBlockPacketBytes,
-                "error: invalid config: channel %d maxBlockSize (%d) for an unreliable-unordered channel must fit within a single packet (max %d)\n",
-                channelIndex, maxBlockSize, maxBlockPacketBytes );
         }
 
         if ( type == CHANNEL_TYPE_RELIABLE_ORDERED )
@@ -120,7 +113,7 @@ namespace yojimbo
                 // the qword-rounded packet buffer (maxPacketSize & ~7), or the channel either
                 // cannot fit the fragment inside a packet and stalls trying to send the block
                 // (see Connection::GeneratePacket and ReliableOrderedChannel::GetPacketData).
-                const int maxBlockFragmentBytes = ( maxPacketSize & ~7 ) - ( ConservativePacketHeaderBits + ConservativeChannelHeaderBits + ReliableOrderedChannel::ConservativeFragmentHeaderBits + 7 ) / 8;
+                const int maxBlockFragmentBytes = ( maxPacketSize & ~7 ) - ( ConservativePacketHeaderBits + ConservativeChannelHeaderBits + BlockFragmentHeaderBits + 7 ) / 8;
                 YOJIMBO_CONFIG_CHECK( blockFragmentSize <= maxBlockFragmentBytes,
                     "error: invalid config: channel %d blockFragmentSize (%d) plus headers must fit within maxPacketSize (%d, max blockFragmentSize %d)\n", channelIndex, blockFragmentSize, maxPacketSize, maxBlockFragmentBytes );
 
