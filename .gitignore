@@ -23,7 +23,6 @@ Testing/
 _deps/
 .cmake/
 # CMake generates the top-level Makefile for in-source builds; never commit it.
-/Makefile
 # Ninja generator (in-source builds)
 build.ninja
 .ninja_deps
