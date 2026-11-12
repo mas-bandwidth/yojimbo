@@ -13,6 +13,8 @@
  (
   (group "github-issues" :title "Moved from GitHub issues on 2026-10-14"
    :text "Open GitHub issues of mas-bandwidth/yojimbo, recorded here on 2026-10-14 when roadmaps became the standard for future work (Glenn, 2026-10-14). Each item names its issue; the issue is closed with a pointer here.")
+  (group "found-in-rocketnet" :title "Found while working on rocketnet"
+   :text "Defects found in code this repository shares with rocketnet, recorded here to fix later.")
  )
 
  :items
@@ -47,4 +49,9 @@
    :date "2026-10-14"
    :origin "mas-bandwidth/yojimbo issue #344, opened 2026-09-05 by gafferongames; moved here 2026-10-14"
    :kept (:github-issue "344" :labels ""))
+  (item "sodium-lock-dll-unload" :group "found-in-rocketnet" :area "sodium"
+   :title "Windows: sodium's lock is never deleted, so unloading a DLL that contains it trips Application Verifier"
+   :text "On Windows, sodium/sodium.c (line 1995) creates _sodium_lock as a CRITICAL_SECTION with InitializeCriticalSection on first use and never deletes it, so a game that loads the library in a DLL and unloads it gets Application Verifier stop Locks 0x201 (unloading a DLL containing an active critical section) on FreeLibrary. Upstream libsodium 1.0.22 has the same code; upstream master deletes the lock in DllMain for DLL builds only, which does not help a library linked statically into a game DLL. The fix: make it static SRWLOCK _sodium_lock = SRWLOCK_INIT with AcquireSRWLockExclusive and ReleaseSRWLockExclusive, which needs no init and no teardown; sodium never takes the lock recursively."
+   :date "2026-11-12"
+   :origin "Fixed in mas-bandwidth/rocketnet PR #1048, which has the same bundled sodium; recorded here on Glenn's instruction of 2026-11-12")
  ))
