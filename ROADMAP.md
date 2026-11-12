@@ -7,6 +7,7 @@ Planned work for yojimbo. The items below were open GitHub issues and pull reque
 ## Contents
 
 - [Moved from GitHub issues on 2026-10-14](#moved-from-github-issues-on-2026-10-14) (5)
+- [Found while working on rocketnet](#found-while-working-on-rocketnet) (1)
 
 ## Moved from GitHub issues on 2026-10-14
 
@@ -41,3 +42,13 @@ From: mas-bandwidth/yojimbo issue #341, opened 2026-09-04 by gafferongames; move
 From the schema message form (schema#530 and its second round, owner rulings 2026-09-05): a table-wire message body rides without its id table when the peer has announced its unit's vocabulary once, reliably, before the first body, and never re-announces for the connection's life.
 
 From: mas-bandwidth/yojimbo issue #344, opened 2026-09-05 by gafferongames; moved here 2026-10-14
+
+## Found while working on rocketnet
+
+Defects found in code this repository shares with rocketnet, recorded here to fix later.
+
+### Windows: sodium's lock is never deleted, so unloading a DLL that contains it trips Application Verifier
+
+On Windows, sodium/sodium.c (line 1995) creates _sodium_lock as a CRITICAL_SECTION with InitializeCriticalSection on first use and never deletes it, so a game that loads the library in a DLL and unloads it gets Application Verifier stop Locks 0x201 (unloading a DLL containing an active critical section) on FreeLibrary. Upstream libsodium 1.0.22 has the same code; upstream master deletes the lock in DllMain for DLL builds only, which does not help a library linked statically into a game DLL. The fix: make it static SRWLOCK _sodium_lock = SRWLOCK_INIT with AcquireSRWLockExclusive and ReleaseSRWLockExclusive, which needs no init and no teardown; sodium never takes the lock recursively.
+
+From: Fixed in mas-bandwidth/rocketnet PR #1048, which has the same bundled sodium; recorded here on Glenn's instruction of 2026-11-12
