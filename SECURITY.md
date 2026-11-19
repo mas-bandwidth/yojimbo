@@ -45,6 +45,8 @@ tooling or example/test code that are not reachable at runtime.
 
 ## Known issue: AEAD nonce reuse on unfinished handshakes and multi-server connect tokens in vendored netcode (fixed in 1.16.0)
 
+**Advisory: [GHSA-8mrq-q9c6-h23v](https://github.com/mas-bandwidth/netcode/security/advisories/GHSA-8mrq-q9c6-h23v)** (published 2026-11-19).
+
 **Affected: yojimbo 1.15.2 and earlier (`netcode` 1.4.9 and earlier, `NETCODE 1.02`). Fixed in 1.16.0 (`netcode` 1.5.0, `NETCODE 1.03`).**
 
 yojimbo 1.15.2 and earlier vendor `netcode` 1.4.9 (and earlier `NETCODE 1.02` releases), where
@@ -76,6 +78,8 @@ floor for `netcode` in `dependencies.manifest` to **1.5.0**:
   after `timeout_seconds` from creation; valid `connection disconnect` packets on a half-open
   mapping consume the history entry and remove the mapping.
 - The reference matchmaker under `matcher/` now emits `"NETCODE 1.03\0"` connect tokens.
+
+Thank you to [@magicaldave](https://github.com/magicaldave) ([DreamWeave-MP/dream-net](https://github.com/DreamWeave-MP/dream-net)) for discovering and privately reporting the unfinished-handshake connect-token reuse issue.
 
 ### What this asks of you
 
