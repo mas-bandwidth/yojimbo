@@ -152,9 +152,10 @@ static void gen_netcode( const char * root )
         write_seed( dir, "disconnect", buffer, bytes );
     }
 
-    // connection denied: zero-length encrypted payload, like disconnect but a different type
+    // connection denied: zero-length encrypted payload + 8-byte cleartext server_nonce header
     {
         struct netcode_connection_denied_packet_t p;
+        memset( &p, 0, sizeof( p ) );
         p.packet_type = NETCODE_CONNECTION_DENIED_PACKET;
         int bytes = netcode_write_packet( &p, buffer, sizeof( buffer ), sequence + 3, key, FUZZ_PROTOCOL_ID );
         verify_netcode( buffer, bytes );
@@ -182,6 +183,7 @@ static void gen_netcode( const char * root )
 
         {
             struct netcode_connection_challenge_packet_t p;
+            memset( &p, 0, sizeof( p ) );
             p.packet_type = NETCODE_CONNECTION_CHALLENGE_PACKET;
             p.challenge_token_sequence = challenge_token_sequence;
             memcpy( p.challenge_token_data, challenge_token_data, NETCODE_CHALLENGE_TOKEN_BYTES );
@@ -192,6 +194,7 @@ static void gen_netcode( const char * root )
 
         {
             struct netcode_connection_response_packet_t p;
+            memset( &p, 0, sizeof( p ) );
             p.packet_type = NETCODE_CONNECTION_RESPONSE_PACKET;
             p.challenge_token_sequence = challenge_token_sequence;
             memcpy( p.challenge_token_data, challenge_token_data, NETCODE_CHALLENGE_TOKEN_BYTES );
@@ -256,6 +259,7 @@ static void gen_connection_request( const char * dir )
     }
 
     struct netcode_connection_request_packet_t p;
+    memset( &p, 0, sizeof( p ) );
     p.packet_type = NETCODE_CONNECTION_REQUEST_PACKET;
     memcpy( p.version_info, NETCODE_VERSION_INFO, NETCODE_VERSION_INFO_BYTES );
     p.protocol_id = FUZZ_PROTOCOL_ID;
