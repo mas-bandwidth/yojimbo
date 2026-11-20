@@ -23,6 +23,11 @@
 */
 
 #include "reliable.h"
+
+#if defined(RELIABLE_DEBUG) && !defined(EXIT_FAILURE)
+#error reliable.h must declare exit for reliable_assert in debug builds
+#endif
+
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>
@@ -143,6 +148,11 @@ void reliable_term(void)
 
 // ---------------------------------------------------------------
 
+// the sequence buffers describe a window in the 16-bit sequence space. keeping their size well
+// within that space keeps the window arithmetic below unambiguous on both sides of a wrap
+
+#define RELIABLE_MAX_SEQUENCE_BUFFER_SIZE 16384
+
 static int reliable_sequence_greater_than( uint16_t s1, uint16_t s2 )
 {
     return ( ( s1 > s2 ) && ( s1 - s2 <= 32768 ) ) || 
@@ -178,6 +188,23 @@ static struct reliable_sequence_buffer_t * reliable_sequence_buffer_create( int 
 {
     reliable_assert( num_entries > 0 );
     reliable_assert( entry_stride > 0 );
+
+    // the sequence to slot mapping is a modulo of the 16-bit sequence. that mapping stays
+    // continuous across the 65535 -> 0 wrap only when num_entries divides 65536, so round up
+    // to the next power of two. callers may pass any positive size and still get a window at
+    // least that large.
+
+    {
+        int rounded_num_entries = 1;
+        while ( rounded_num_entries < num_entries && rounded_num_entries <= INT_MAX / 2 )
+        {
+            rounded_num_entries <<= 1;
+        }
+        if ( rounded_num_entries >= num_entries )
+        {
+            num_entries = rounded_num_entries;
+        }
+    }
 
     if ( allocate_function == NULL )
     {
@@ -598,6 +625,27 @@ static int reliable_config_valid( struct reliable_config_t * config )
         return 0;
     }
 
+    if ( config->sent_packets_buffer_size > RELIABLE_MAX_SEQUENCE_BUFFER_SIZE )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] sent_packets_buffer_size (%d) must not exceed %d\n",
+                         RELIABLE_MAX_NAME_CHARS, config->name, config->sent_packets_buffer_size, RELIABLE_MAX_SEQUENCE_BUFFER_SIZE );
+        return 0;
+    }
+
+    if ( config->received_packets_buffer_size > RELIABLE_MAX_SEQUENCE_BUFFER_SIZE )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] received_packets_buffer_size (%d) must not exceed %d\n",
+                         RELIABLE_MAX_NAME_CHARS, config->name, config->received_packets_buffer_size, RELIABLE_MAX_SEQUENCE_BUFFER_SIZE );
+        return 0;
+    }
+
+    if ( config->fragment_reassembly_buffer_size > RELIABLE_MAX_SEQUENCE_BUFFER_SIZE )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] fragment_reassembly_buffer_size (%d) must not exceed %d\n",
+                         RELIABLE_MAX_NAME_CHARS, config->name, config->fragment_reassembly_buffer_size, RELIABLE_MAX_SEQUENCE_BUFFER_SIZE );
+        return 0;
+    }
+
     if ( config->transmit_packet_function == NULL || config->process_packet_function == NULL )
     {
         reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] transmit and process packet functions are required\n", RELIABLE_MAX_NAME_CHARS, config->name );
@@ -641,10 +689,32 @@ static int reliable_config_valid( struct reliable_config_t * config )
         return 0;
     }
 
-    if ( (int64_t) config->packet_header_size + (int64_t) config->max_packet_size > INT_MAX )
+    if ( (int64_t) config->packet_header_size + (int64_t) config->max_packet_size +
+         RELIABLE_MAX_PACKET_HEADER_BYTES + RELIABLE_FRAGMENT_HEADER_BYTES > INT_MAX )
     {
-        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] packet_header_size (%d) plus max_packet_size (%d) does not fit a packet length\n",
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] packet_header_size (%d) plus max_packet_size (%d) does not fit a received packet length\n",
                          RELIABLE_MAX_NAME_CHARS, config->name, config->packet_header_size, config->max_packet_size );
+        return 0;
+    }
+
+    // smoothing factors are exponential moving average weights, so they must lie in [0,1].
+    // written as a negated range test so a NaN factor is refused as well as out of range values
+
+    if ( !( config->rtt_smoothing_factor >= 0.0f && config->rtt_smoothing_factor <= 1.0f ) )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] rtt_smoothing_factor must be between 0 and 1\n", RELIABLE_MAX_NAME_CHARS, config->name );
+        return 0;
+    }
+
+    if ( !( config->packet_loss_smoothing_factor >= 0.0f && config->packet_loss_smoothing_factor <= 1.0f ) )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] packet_loss_smoothing_factor must be between 0 and 1\n", RELIABLE_MAX_NAME_CHARS, config->name );
+        return 0;
+    }
+
+    if ( !( config->bandwidth_smoothing_factor >= 0.0f && config->bandwidth_smoothing_factor <= 1.0f ) )
+    {
+        reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%.*s] bandwidth_smoothing_factor must be between 0 and 1\n", RELIABLE_MAX_NAME_CHARS, config->name );
         return 0;
     }
 
@@ -782,7 +852,7 @@ void reliable_endpoint_destroy( struct reliable_endpoint_t * endpoint )
     if ( endpoint->fragment_reassembly )
     {
         int i;
-        for ( i = 0; i < endpoint->config.fragment_reassembly_buffer_size; ++i )
+        for ( i = 0; i < endpoint->fragment_reassembly->num_entries; ++i )
         {
             struct reliable_fragment_reassembly_data_t * reassembly_data = (struct reliable_fragment_reassembly_data_t*) 
                 reliable_sequence_buffer_at_index( endpoint->fragment_reassembly, i );
@@ -988,7 +1058,7 @@ void reliable_endpoint_send_packet( struct reliable_endpoint_t * endpoint, uint8
             }
 
             int bytes_to_copy = endpoint->config.fragment_size;
-            if ( q + bytes_to_copy > end )
+            if ( bytes_to_copy > (int) ( end - q ) )
             {
                 bytes_to_copy = (int) ( end - q );
             }
@@ -1196,7 +1266,7 @@ static int reliable_read_fragment_header( char * name,
     return (int) ( p - packet_data );
 }
 
-static void reliable_store_fragment_data( struct reliable_fragment_reassembly_data_t * reassembly_data, 
+static int reliable_store_fragment_data( struct reliable_fragment_reassembly_data_t * reassembly_data, 
                                    uint16_t sequence, 
                                    uint16_t ack, 
                                    uint32_t ack_bits, 
@@ -1225,7 +1295,7 @@ static void reliable_store_fragment_data( struct reliable_fragment_reassembly_da
     {
         const int64_t packet_bytes = (int64_t) ( reassembly_data->num_fragments_total - 1 ) * fragment_size + fragment_bytes;
         if ( packet_bytes < 0 || packet_bytes > INT_MAX )
-            return;
+            return 0;
         reassembly_data->packet_bytes = (int) packet_bytes;
     }
 
@@ -1239,17 +1309,27 @@ static void reliable_store_fragment_data( struct reliable_fragment_reassembly_da
         reliable_printf( RELIABLE_LOG_LEVEL_DEBUG,
             "[reliable] invalid fragment size %d (would write past %zu/%zu)\n",
             fragment_bytes, end_offset, max_size );
-        return;
+        return 0;
     }
     
     memcpy( reassembly_data->packet_data + offset, fragment_data, fragment_bytes );
+
+    reassembly_data->num_fragments_received++;
+    reassembly_data->fragment_received[fragment_id] = 1;
+
+    return 1;
 }
 
 void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, uint8_t * packet_data, int packet_bytes )
 {
     reliable_assert( endpoint );
     reliable_assert( packet_data );
-    reliable_assert( packet_bytes > 0 );
+
+    if ( packet_bytes <= 0 )
+    {
+        endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_INVALID]++;
+        return;
+    }
 
     if ( (int64_t) packet_bytes > (int64_t) endpoint->config.max_packet_size + RELIABLE_MAX_PACKET_HEADER_BYTES + RELIABLE_FRAGMENT_HEADER_BYTES )
     {
@@ -1285,7 +1365,7 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
 
         if ( packet_payload_bytes > endpoint->config.max_packet_size )
         {
-            reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] packet too large to receive. packet is at %d bytes, maximum is %d\n",
+            reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] packet too large to receive. packet is at %d bytes, maximum is %d\n",
                 endpoint->config.name, packet_payload_bytes, endpoint->config.max_packet_size );
             endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_TOO_LARGE_TO_RECEIVE]++;
             return;
@@ -1344,9 +1424,12 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
                             endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_ACKED]++;
                             sent_packet_data->acked = 1;
 
-                            const float rtt = (float) ( endpoint->time - sent_packet_data->time ) * 1000.0f;
+                            float rtt = (float) ( endpoint->time - sent_packet_data->time ) * 1000.0f;
 
-                            reliable_assert( rtt >= 0.0 );
+                            if ( rtt < 0.0f )
+                            {
+                                rtt = 0.0f;
+                            }
 
                             int index = ack_sequence % endpoint->config.rtt_history_size;
 
@@ -1373,7 +1456,7 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
         }
         else
         {
-            reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] process packet failed\n", endpoint->config.name );
+            reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] process packet failed\n", endpoint->config.name );
         }
     }
     else
@@ -1424,7 +1507,7 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
 
             if ( !reassembly_data )
             {
-                reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] ignoring invalid fragment. could not insert in reassembly buffer (stale)\n", endpoint->config.name );
+                reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] ignoring invalid fragment. could not insert in reassembly buffer (stale)\n", endpoint->config.name );
                 endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID]++;
                 return;
             }
@@ -1463,7 +1546,7 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
 
         if ( num_fragments != (int) reassembly_data->num_fragments_total )
         {
-            reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] ignoring invalid fragment. fragment count mismatch. expected %d, got %d\n", 
+            reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] ignoring invalid fragment. fragment count mismatch. expected %d, got %d\n", 
                 endpoint->config.name, (int) reassembly_data->num_fragments_total, num_fragments );
             endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID]++;
             return;
@@ -1471,7 +1554,7 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
 
         if ( reassembly_data->fragment_received[fragment_id] )
         {
-            reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] ignoring fragment %d of packet %d. fragment already received\n", 
+            reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] ignoring fragment %d of packet %d. fragment already received\n", 
                 endpoint->config.name, fragment_id, sequence );
             return;
         }
@@ -1479,17 +1562,20 @@ void reliable_endpoint_receive_packet( struct reliable_endpoint_t * endpoint, ui
         reliable_printf( RELIABLE_LOG_LEVEL_DEBUG, "[%s] received fragment %d of packet %d (%d/%d)\n", 
             endpoint->config.name, fragment_id, sequence, reassembly_data->num_fragments_received+1, num_fragments );
 
-        reassembly_data->num_fragments_received++;
-        reassembly_data->fragment_received[fragment_id] = 1;
-
-        reliable_store_fragment_data( reassembly_data, 
-                                      sequence, 
-                                      ack, 
-                                      ack_bits, 
-                                      fragment_id, 
-                                      endpoint->config.fragment_size, 
-                                      packet_data + fragment_header_bytes, 
-                                      packet_bytes - fragment_header_bytes );
+        if ( !reliable_store_fragment_data( reassembly_data, 
+                                            sequence, 
+                                            ack, 
+                                            ack_bits, 
+                                            fragment_id, 
+                                            endpoint->config.fragment_size, 
+                                            packet_data + fragment_header_bytes, 
+                                            packet_bytes - fragment_header_bytes ) )
+        {
+            reliable_printf( RELIABLE_LOG_LEVEL_ERROR, "[%s] ignoring fragment %d of packet %d. could not store fragment data\n", 
+                endpoint->config.name, fragment_id, sequence );
+            endpoint->counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID]++;
+            return;
+        }
 
         if ( reassembly_data->num_fragments_received == reassembly_data->num_fragments_total )
         {
@@ -1559,7 +1645,7 @@ void reliable_endpoint_reset( struct reliable_endpoint_t * endpoint )
     }
 
     int i;
-    for ( i = 0; i < endpoint->config.fragment_reassembly_buffer_size; ++i )
+    for ( i = 0; i < endpoint->fragment_reassembly->num_entries; ++i )
     {
         struct reliable_fragment_reassembly_data_t * reassembly_data = (struct reliable_fragment_reassembly_data_t*) 
             reliable_sequence_buffer_at_index( endpoint->fragment_reassembly, i );
@@ -2089,6 +2175,390 @@ static void test_generate_ack_bits()
     reliable_sequence_buffer_destroy( sequence_buffer );
 }
 
+// table driven walk of a small sequence buffer across the 65535 -> 0 wrap. every step is checked
+// against its row (accepted or not, the head afterwards) and against a reference model: the set
+// of sequences present with the tag stored for each. after every step the buffer's exists, find
+// and ack bits must agree with the model, and each cleanup the buffer makes must be the cleanup
+// of an entry the model evicted, replaced or removed.
+
+#define TEST_SEQUENCE_WINDOW_NUM_ENTRIES 4
+#define TEST_SEQUENCE_WINDOW_MAX_PRESENT 32
+#define TEST_SEQUENCE_WINDOW_MAX_CLEANUPS 32
+#define TEST_SEQUENCE_WINDOW_CHECK_RADIUS 8
+
+enum
+{
+    TEST_SEQUENCE_WINDOW_TEST_INSERT,
+    TEST_SEQUENCE_WINDOW_INSERT,
+    TEST_SEQUENCE_WINDOW_ADVANCE,
+    TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,
+    TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP,
+    TEST_SEQUENCE_WINDOW_REMOVE_WITH_CLEANUP
+};
+
+struct test_sequence_window_step_t
+{
+    int op;
+    uint16_t sequence;
+    int expect_accepted;                    // test_insert and the two inserts only
+    uint16_t expect_head;
+};
+
+struct test_sequence_window_entry_t
+{
+    uint32_t sequence;
+    uint32_t tag;
+};
+
+struct test_sequence_window_cleanups_t
+{
+    int num_cleanups;
+    uint32_t tags[TEST_SEQUENCE_WINDOW_MAX_CLEANUPS];
+};
+
+struct test_sequence_window_model_t
+{
+    uint16_t head;
+    int num_entries;
+    int num_present;
+    uint16_t present_sequence[TEST_SEQUENCE_WINDOW_MAX_PRESENT];
+    uint32_t present_tag[TEST_SEQUENCE_WINDOW_MAX_PRESENT];
+    int num_expected_cleanups;
+    uint32_t expected_cleanups[TEST_SEQUENCE_WINDOW_MAX_CLEANUPS];
+};
+
+static void test_sequence_window_cleanup( void * data, void * allocator_context, void (*free_function)(void*,void*) )
+{
+    (void) free_function;
+    struct test_sequence_window_entry_t * entry = (struct test_sequence_window_entry_t*) data;
+    struct test_sequence_window_cleanups_t * cleanups = (struct test_sequence_window_cleanups_t*) allocator_context;
+    if ( entry->tag != 0 )
+    {
+        check( cleanups->num_cleanups < TEST_SEQUENCE_WINDOW_MAX_CLEANUPS );
+        cleanups->tags[cleanups->num_cleanups++] = entry->tag;
+        entry->tag = 0;
+    }
+}
+
+// a is behind b by 1 .. 32768 in the 16-bit sequence space
+
+static int test_sequence_window_behind( uint16_t a, uint16_t b )
+{
+    uint16_t distance = (uint16_t) ( b - a );
+    return distance >= 1 && distance <= 32768;
+}
+
+static int test_sequence_window_model_find( struct test_sequence_window_model_t * model, uint16_t sequence )
+{
+    int i;
+    for ( i = 0; i < model->num_present; ++i )
+    {
+        if ( model->present_sequence[i] == sequence )
+            return i;
+    }
+    return -1;
+}
+
+static void test_sequence_window_model_drop( struct test_sequence_window_model_t * model, int index, int cleanup )
+{
+    if ( cleanup )
+    {
+        check( model->num_expected_cleanups < TEST_SEQUENCE_WINDOW_MAX_CLEANUPS );
+        model->expected_cleanups[model->num_expected_cleanups++] = model->present_tag[index];
+    }
+    model->num_present--;
+    model->present_sequence[index] = model->present_sequence[model->num_present];
+    model->present_tag[index] = model->present_tag[model->num_present];
+}
+
+// the oldest sequence the window accepts is head - num_entries. anything behind it is stale
+
+static int test_sequence_window_model_stale( struct test_sequence_window_model_t * model, uint16_t sequence )
+{
+    return test_sequence_window_behind( sequence, (uint16_t) ( model->head - model->num_entries ) );
+}
+
+// a sequence at or past the head moves the head to sequence + 1 and evicts what fell out the back
+
+static void test_sequence_window_model_advance( struct test_sequence_window_model_t * model, uint16_t sequence, int cleanup )
+{
+    if ( !test_sequence_window_behind( model->head, (uint16_t) ( sequence + 1 ) ) )
+        return;
+    model->head = (uint16_t) ( sequence + 1 );
+    int i = 0;
+    while ( i < model->num_present )
+    {
+        if ( test_sequence_window_model_stale( model, model->present_sequence[i] ) )
+        {
+            test_sequence_window_model_drop( model, i, cleanup );
+        }
+        else
+        {
+            ++i;
+        }
+    }
+}
+
+static void test_sequence_window_model_store( struct test_sequence_window_model_t * model, uint16_t sequence, uint32_t tag, int cleanup )
+{
+    int index = test_sequence_window_model_find( model, sequence );
+    if ( index >= 0 )
+    {
+        test_sequence_window_model_drop( model, index, cleanup );
+    }
+    check( model->num_present < TEST_SEQUENCE_WINDOW_MAX_PRESENT );
+    model->present_sequence[model->num_present] = sequence;
+    model->present_tag[model->num_present] = tag;
+    model->num_present++;
+}
+
+static void test_sequence_window_check( struct reliable_sequence_buffer_t * sequence_buffer,
+                                        struct test_sequence_window_model_t * model,
+                                        struct test_sequence_window_cleanups_t * cleanups )
+{
+    check( sequence_buffer->sequence == model->head );
+
+    int offset;
+    for ( offset = -TEST_SEQUENCE_WINDOW_CHECK_RADIUS; offset <= TEST_SEQUENCE_WINDOW_CHECK_RADIUS; ++offset )
+    {
+        uint16_t sequence = (uint16_t) ( model->head + offset );
+        int index = test_sequence_window_model_find( model, sequence );
+        struct test_sequence_window_entry_t * entry = (struct test_sequence_window_entry_t*) reliable_sequence_buffer_find( sequence_buffer, sequence );
+        check( reliable_sequence_buffer_exists( sequence_buffer, sequence ) == ( index >= 0 ) );
+        check( ( entry != NULL ) == ( index >= 0 ) );
+        if ( entry )
+        {
+            check( entry->sequence == (uint32_t) sequence );
+            check( entry->tag == model->present_tag[index] );
+        }
+    }
+
+    uint16_t ack = 0;
+    uint32_t ack_bits = 0;
+    reliable_sequence_buffer_generate_ack_bits( sequence_buffer, &ack, &ack_bits );
+    check( ack == (uint16_t) ( model->head - 1 ) );
+    int i;
+    for ( i = 0; i < 32; ++i )
+    {
+        int expected = test_sequence_window_model_find( model, (uint16_t) ( ack - i ) ) >= 0;
+        check( ( ( ack_bits >> i ) & 1 ) == (uint32_t) expected );
+    }
+
+    check( cleanups->num_cleanups == model->num_expected_cleanups );
+    for ( i = 0; i < model->num_expected_cleanups; ++i )
+    {
+        int found = 0;
+        int j;
+        for ( j = 0; j < cleanups->num_cleanups; ++j )
+        {
+            if ( cleanups->tags[j] == model->expected_cleanups[i] )
+                found = 1;
+        }
+        check( found );
+    }
+}
+
+static void test_sequence_window_walk( int requested_num_entries, RELIABLE_CONST struct test_sequence_window_step_t * steps, int num_steps )
+{
+    struct test_sequence_window_cleanups_t cleanups;
+    memset( &cleanups, 0, sizeof( cleanups ) );
+
+    struct reliable_sequence_buffer_t * sequence_buffer = reliable_sequence_buffer_create( requested_num_entries,
+                                                                                           sizeof( struct test_sequence_window_entry_t ),
+                                                                                           &cleanups,
+                                                                                           NULL,
+                                                                                           NULL );
+    check( sequence_buffer );
+
+    // the tables are written for a window of four. a request for three is rounded up to it
+
+    check( sequence_buffer->num_entries == TEST_SEQUENCE_WINDOW_NUM_ENTRIES );
+    check( sequence_buffer->num_entries >= requested_num_entries );
+
+    struct test_sequence_window_model_t model;
+    memset( &model, 0, sizeof( model ) );
+    model.num_entries = sequence_buffer->num_entries;
+
+    test_sequence_window_check( sequence_buffer, &model, &cleanups );
+
+    int step_index;
+    for ( step_index = 0; step_index < num_steps; ++step_index )
+    {
+        RELIABLE_CONST struct test_sequence_window_step_t * step = &steps[step_index];
+        uint16_t sequence = step->sequence;
+        uint32_t tag = (uint32_t) step_index + 1;
+
+        cleanups.num_cleanups = 0;
+        model.num_expected_cleanups = 0;
+
+        switch ( step->op )
+        {
+            case TEST_SEQUENCE_WINDOW_TEST_INSERT:
+            {
+                int expected = !test_sequence_window_model_stale( &model, sequence );
+                check( expected == step->expect_accepted );
+                check( reliable_sequence_buffer_test_insert( sequence_buffer, sequence ) == expected );
+            }
+            break;
+
+            case TEST_SEQUENCE_WINDOW_INSERT:
+            case TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP:
+            {
+                int with_cleanup = step->op == TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP;
+                int expected = !test_sequence_window_model_stale( &model, sequence );
+                if ( with_cleanup && test_sequence_window_behind( model.head, (uint16_t) ( sequence + 1 ) ) )
+                {
+                    expected = 1;
+                }
+                check( expected == step->expect_accepted );
+                if ( expected )
+                {
+                    test_sequence_window_model_advance( &model, sequence, with_cleanup );
+                    test_sequence_window_model_store( &model, sequence, tag, with_cleanup );
+                }
+                struct test_sequence_window_entry_t * entry = (struct test_sequence_window_entry_t*) ( with_cleanup ?
+                    reliable_sequence_buffer_insert_with_cleanup( sequence_buffer, sequence, test_sequence_window_cleanup ) :
+                    reliable_sequence_buffer_insert( sequence_buffer, sequence ) );
+                check( ( entry != NULL ) == expected );
+                if ( entry )
+                {
+                    entry->sequence = sequence;
+                    entry->tag = tag;
+                }
+            }
+            break;
+
+            case TEST_SEQUENCE_WINDOW_ADVANCE:
+            {
+                test_sequence_window_model_advance( &model, sequence, 0 );
+                reliable_sequence_buffer_advance( sequence_buffer, sequence );
+            }
+            break;
+
+            case TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP:
+            {
+                test_sequence_window_model_advance( &model, sequence, 1 );
+                reliable_sequence_buffer_advance_with_cleanup( sequence_buffer, sequence, test_sequence_window_cleanup );
+            }
+            break;
+
+            case TEST_SEQUENCE_WINDOW_REMOVE_WITH_CLEANUP:
+            {
+                int index = test_sequence_window_model_find( &model, sequence );
+                if ( index >= 0 )
+                {
+                    test_sequence_window_model_drop( &model, index, 1 );
+                }
+                reliable_sequence_buffer_remove_with_cleanup( sequence_buffer, sequence, test_sequence_window_cleanup );
+            }
+            break;
+
+            default:
+                check( 0 );
+        }
+
+        check( model.head == step->expect_head );
+        test_sequence_window_check( sequence_buffer, &model, &cleanups );
+    }
+
+    reliable_sequence_buffer_destroy( sequence_buffer );
+}
+
+// insert, test_insert and advance. the walk climbs to the top of the sequence space in jumps,
+// then crosses 65535 -> 0 with out of order inserts and the head - 4 / head - 5 boundary each side
+
+static RELIABLE_CONST struct test_sequence_window_step_t test_sequence_window_insert_steps[] =
+{
+    { TEST_SEQUENCE_WINDOW_TEST_INSERT, 65532, 1, 0     },      // head - 4 is accepted
+    { TEST_SEQUENCE_WINDOW_TEST_INSERT, 65531, 0, 0     },      // head - 5 is stale
+    { TEST_SEQUENCE_WINDOW_INSERT,      65531, 0, 0     },
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     16384, 0, 16385 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     32768, 0, 32769 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     49152, 0, 49153 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     65527, 0, 65528 },
+    { TEST_SEQUENCE_WINDOW_INSERT,      65530, 1, 65531 },
+    { TEST_SEQUENCE_WINDOW_INSERT,      65528, 1, 65531 },      // out of order
+    { TEST_SEQUENCE_WINDOW_INSERT,      65527, 1, 65531 },      // head - 4
+    { TEST_SEQUENCE_WINDOW_TEST_INSERT, 65526, 0, 65531 },      // head - 5
+    { TEST_SEQUENCE_WINDOW_INSERT,      65526, 0, 65531 },
+    { TEST_SEQUENCE_WINDOW_INSERT,      65533, 1, 65534 },      // evicts 65527 and 65528
+    { TEST_SEQUENCE_WINDOW_INSERT,      65535, 1, 0     },      // head wraps to 0, evicts 65530
+    { TEST_SEQUENCE_WINDOW_INSERT,      0,     1, 1     },
+    { TEST_SEQUENCE_WINDOW_INSERT,      65534, 1, 1     },      // out of order, behind the wrap
+    { TEST_SEQUENCE_WINDOW_TEST_INSERT, 65533, 1, 1     },      // head - 4, behind the wrap
+    { TEST_SEQUENCE_WINDOW_TEST_INSERT, 65532, 0, 1     },      // head - 5, behind the wrap
+    { TEST_SEQUENCE_WINDOW_INSERT,      65532, 0, 1     },
+    { TEST_SEQUENCE_WINDOW_INSERT,      2,     1, 3     },      // evicts 65533 and 65534
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     1,     0, 3     },      // behind the head: no change
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     2,     0, 3     },      // head - 1: no change
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     4,     0, 5     },      // evicts 65535 and 0
+    { TEST_SEQUENCE_WINDOW_INSERT,      1,     1, 5     },      // head - 4
+    { TEST_SEQUENCE_WINDOW_INSERT,      3,     1, 5     },
+    { TEST_SEQUENCE_WINDOW_INSERT,      6,     1, 7     },      // evicts 1 and 2
+    { TEST_SEQUENCE_WINDOW_INSERT,      10,    1, 11    },      // jump of 3 past the head: keeps nothing below 7
+    { TEST_SEQUENCE_WINDOW_INSERT,      8,     1, 11    },
+    { TEST_SEQUENCE_WINDOW_INSERT,      15,    1, 16    },      // jump of 4 past the head clears the window
+    { TEST_SEQUENCE_WINDOW_INSERT,      12,    1, 16    },      // head - 4
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     16000, 0, 16001 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     32000, 0, 32001 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     48000, 0, 48001 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE,     65530, 0, 65531 },
+    { TEST_SEQUENCE_WINDOW_INSERT,      65529, 1, 65531 },
+    { TEST_SEQUENCE_WINDOW_INSERT,      3,     1, 4     },      // jump of 8 across the wrap clears the window
+    { TEST_SEQUENCE_WINDOW_INSERT,      0,     1, 4     },      // head - 4
+    { TEST_SEQUENCE_WINDOW_TEST_INSERT, 65535, 0, 4     },      // head - 5, behind the wrap
+    { TEST_SEQUENCE_WINDOW_INSERT,      65535, 0, 4     },
+};
+
+// insert_with_cleanup, advance_with_cleanup and remove_with_cleanup over the same ground. every
+// entry that leaves the window, is replaced or is removed is cleaned up exactly once
+
+static RELIABLE_CONST struct test_sequence_window_step_t test_sequence_window_cleanup_steps[] =
+{
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 16384, 0, 16385 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 32768, 0, 32769 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 49152, 0, 49153 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 65529, 0, 65530 },
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65531, 1, 65532 },
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65529, 1, 65532 },     // out of order
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65528, 1, 65532 },     // head - 4
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65527, 0, 65532 },     // head - 5 is stale
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65529, 1, 65532 },     // replaces 65529, cleaning it up
+    { TEST_SEQUENCE_WINDOW_REMOVE_WITH_CLEANUP,  65531, 0, 65532 },
+    { TEST_SEQUENCE_WINDOW_REMOVE_WITH_CLEANUP,  65530, 0, 65532 },     // not present: no change
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  0,     1, 1     },     // head wraps to 1, cleans up 65528 and 65529
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65534, 1, 1     },     // out of order, behind the wrap
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 65535, 0, 1     },     // behind the head: no change
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 0,     0, 1     },     // head - 1: no change
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 2,     0, 3     },     // cleans up 65534
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65535, 1, 3     },     // head - 4, behind the wrap
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65534, 0, 3     },     // head - 5, behind the wrap
+    { TEST_SEQUENCE_WINDOW_REMOVE_WITH_CLEANUP,  65535, 0, 3     },
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  1,     1, 3     },
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 6,     0, 7     },     // cleans up 0 and 1
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  5,     1, 7     },
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  12,    1, 13    },     // jump of 6 clears the window, cleaning up 5
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 16000, 0, 16001 },     // cleans up 12
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 32000, 0, 32001 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 48000, 0, 48001 },
+    { TEST_SEQUENCE_WINDOW_ADVANCE_WITH_CLEANUP, 65530, 0, 65531 },
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  65530, 1, 65531 },
+    { TEST_SEQUENCE_WINDOW_INSERT_WITH_CLEANUP,  3,     1, 4     },     // jump of 8 across the wrap, cleans up 65530
+    { TEST_SEQUENCE_WINDOW_REMOVE_WITH_CLEANUP,  3,     0, 4     },
+};
+
+static void test_sequence_buffer_window()
+{
+    int num_insert_steps = (int) ( sizeof( test_sequence_window_insert_steps ) / sizeof( test_sequence_window_insert_steps[0] ) );
+    int num_cleanup_steps = (int) ( sizeof( test_sequence_window_cleanup_steps ) / sizeof( test_sequence_window_cleanup_steps[0] ) );
+
+    test_sequence_window_walk( 4, test_sequence_window_insert_steps, num_insert_steps );
+    test_sequence_window_walk( 4, test_sequence_window_cleanup_steps, num_cleanup_steps );
+
+    test_sequence_window_walk( 3, test_sequence_window_insert_steps, num_insert_steps );
+    test_sequence_window_walk( 3, test_sequence_window_cleanup_steps, num_cleanup_steps );
+}
+
 static void test_packet_header()
 {
     uint16_t write_sequence;
@@ -2234,6 +2704,10 @@ static int test_process_packet_function( void * _context, uint64_t id, uint16_t 
 
 #define TEST_ACKS_NUM_ITERATIONS 256
 
+// the most recent packets may still be waiting for an ack when the loop ends, so leave out one ack window (32 packets)
+
+#define TEST_ACKS_NUM_CHECKED ( TEST_ACKS_NUM_ITERATIONS - 32 )
+
 static void test_acks()
 {
     double time = 100.0;
@@ -2283,12 +2757,10 @@ static void test_acks()
     RELIABLE_CONST uint16_t * sender_acks = reliable_endpoint_get_acks( context.sender, &sender_num_acks );
     for ( i = 0; i < sender_num_acks; ++i )
     {
-        if ( sender_acks[i] < TEST_ACKS_NUM_ITERATIONS )
-        {
-            sender_acked_packet[sender_acks[i]] = 1;
-        }
+        check( sender_acks[i] < TEST_ACKS_NUM_ITERATIONS );
+        sender_acked_packet[sender_acks[i]] = 1;
     }
-    for ( i = 0; i < TEST_ACKS_NUM_ITERATIONS / 2; ++i )
+    for ( i = 0; i < TEST_ACKS_NUM_CHECKED; ++i )
     {
         check( sender_acked_packet[i] == 1 );
     }
@@ -2299,10 +2771,10 @@ static void test_acks()
     RELIABLE_CONST uint16_t * receiver_acks = reliable_endpoint_get_acks( context.receiver, &receiver_num_acks );
     for ( i = 0; i < receiver_num_acks; ++i )
     {
-        if ( receiver_acks[i] < TEST_ACKS_NUM_ITERATIONS )
-            receiver_acked_packet[receiver_acks[i]] = 1;
+        check( receiver_acks[i] < TEST_ACKS_NUM_ITERATIONS );
+        receiver_acked_packet[receiver_acks[i]] = 1;
     }
-    for ( i = 0; i < TEST_ACKS_NUM_ITERATIONS / 2; ++i )
+    for ( i = 0; i < TEST_ACKS_NUM_CHECKED; ++i )
     {
         check( receiver_acked_packet[i] == 1 );
     }
@@ -2362,12 +2834,10 @@ static void test_acks_packet_loss()
     RELIABLE_CONST uint16_t * sender_acks = reliable_endpoint_get_acks( context.sender, &sender_num_acks );
     for ( i = 0; i < sender_num_acks; ++i )
     {
-        if ( sender_acks[i] < TEST_ACKS_NUM_ITERATIONS )
-        {
-            sender_acked_packet[sender_acks[i]] = 1;
-        }
+        check( sender_acks[i] < TEST_ACKS_NUM_ITERATIONS );
+        sender_acked_packet[sender_acks[i]] = 1;
     }
-    for ( i = 0; i < TEST_ACKS_NUM_ITERATIONS / 2; ++i )
+    for ( i = 0; i < TEST_ACKS_NUM_CHECKED; ++i )
     {
         check( sender_acked_packet[i] == (i+1) % 2 );
     }
@@ -2378,12 +2848,10 @@ static void test_acks_packet_loss()
     RELIABLE_CONST uint16_t * receiver_acks = reliable_endpoint_get_acks( context.receiver, &receiver_num_acks );
     for ( i = 0; i < receiver_num_acks; ++i )
     {
-        if ( receiver_acks[i] < TEST_ACKS_NUM_ITERATIONS )
-        {
-            receiver_acked_packet[receiver_acks[i]] = 1;
-        }
+        check( receiver_acks[i] < TEST_ACKS_NUM_ITERATIONS );
+        receiver_acked_packet[receiver_acks[i]] = 1;
     }
-    for ( i = 0; i < TEST_ACKS_NUM_ITERATIONS / 2; ++i )
+    for ( i = 0; i < TEST_ACKS_NUM_CHECKED; ++i )
     {
         check( receiver_acked_packet[i] == (i+1) % 2 );
     }
@@ -2495,7 +2963,7 @@ static void test_stale_packets_transmit_packet_function( void * _context, uint64
     {
         if ( sequence == 0 && test_stale_packets_first_packet_bytes == 0 )
         {
-            reliable_assert( packet_bytes <= (int) sizeof( test_stale_packets_first_packet ) );
+            check( packet_bytes <= (int) sizeof( test_stale_packets_first_packet ) );
             memcpy( test_stale_packets_first_packet, packet_data, packet_bytes );
             test_stale_packets_first_packet_bytes = packet_bytes;
         }
@@ -2572,6 +3040,178 @@ static void test_stale_packets()
     RELIABLE_CONST uint64_t * receiver_counters = reliable_endpoint_counters( context.receiver );
 
     check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_STALE] == 1 );
+
+    reliable_endpoint_destroy( context.sender );
+    reliable_endpoint_destroy( context.receiver );
+}
+
+static void test_empty_packet_rejected()
+{
+    double time = 1000.0;
+
+    struct test_context_t context;
+    test_default_context( &context );
+
+    struct reliable_config_t config;
+    reliable_default_config( &config );
+
+    reliable_copy_string( config.name, "receiver", sizeof( config.name ) );
+    config.context = &context;
+    config.id = 1;
+    config.transmit_packet_function = &test_transmit_packet_function;
+    config.process_packet_function = &test_process_packet_function;
+
+    context.receiver = reliable_endpoint_create( &config, time );
+    check( context.receiver );
+
+    uint8_t packet_data[1] = { 0 };
+
+    reliable_endpoint_receive_packet( context.receiver, packet_data, 0 );
+
+    RELIABLE_CONST uint64_t * counters = reliable_endpoint_counters( context.receiver );
+
+    check( counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_INVALID] == 1 );
+    check( counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED] == 0 );
+    check( counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_RECEIVED] == 0 );
+
+    reliable_endpoint_receive_packet( context.receiver, packet_data, -1 );
+
+    check( counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_INVALID] == 2 );
+    check( counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED] == 0 );
+    check( counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_RECEIVED] == 0 );
+
+    reliable_endpoint_destroy( context.receiver );
+}
+
+#define TEST_SEQUENCE_BUFFER_NON_POWER_OF_TWO_SIZE 255
+
+struct test_sequence_buffer_non_power_of_two_context_t
+{
+    struct reliable_endpoint_t * sender;
+    struct reliable_endpoint_t * receiver;
+    int deliver_from_receiver;
+    uint8_t packet_65535[64];
+    int packet_65535_bytes;
+    int num_delivered_65535;
+};
+
+static void test_sequence_buffer_non_power_of_two_transmit_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    struct test_sequence_buffer_non_power_of_two_context_t * context = (struct test_sequence_buffer_non_power_of_two_context_t*) _context;
+
+    if ( id == 0 )
+    {
+        if ( sequence == 65535 )
+        {
+            reliable_assert( packet_bytes <= (int) sizeof( context->packet_65535 ) );
+            memcpy( context->packet_65535, packet_data, packet_bytes );
+            context->packet_65535_bytes = packet_bytes;
+        }
+
+        reliable_endpoint_receive_packet( context->receiver, packet_data, packet_bytes );
+    }
+    else if ( context->deliver_from_receiver )
+    {
+        reliable_endpoint_receive_packet( context->sender, packet_data, packet_bytes );
+    }
+}
+
+static int test_sequence_buffer_non_power_of_two_process_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) id;
+    (void) packet_data;
+    (void) packet_bytes;
+
+    struct test_sequence_buffer_non_power_of_two_context_t * context = (struct test_sequence_buffer_non_power_of_two_context_t*) _context;
+
+    if ( sequence == 65535 )
+    {
+        context->num_delivered_65535++;
+    }
+
+    return 1;
+}
+
+static void test_sequence_buffer_non_power_of_two_size()
+{
+    double time = 100.0;
+
+    struct test_sequence_buffer_non_power_of_two_context_t context;
+    memset( &context, 0, sizeof( context ) );
+
+    struct reliable_config_t sender_config;
+    struct reliable_config_t receiver_config;
+
+    reliable_default_config( &sender_config );
+    reliable_default_config( &receiver_config );
+
+    reliable_copy_string( sender_config.name, "sender", sizeof( sender_config.name ) );
+    sender_config.context = &context;
+    sender_config.id = 0;
+    sender_config.sent_packets_buffer_size = TEST_SEQUENCE_BUFFER_NON_POWER_OF_TWO_SIZE;
+    sender_config.received_packets_buffer_size = TEST_SEQUENCE_BUFFER_NON_POWER_OF_TWO_SIZE;
+    sender_config.transmit_packet_function = &test_sequence_buffer_non_power_of_two_transmit_packet_function;
+    sender_config.process_packet_function = &test_sequence_buffer_non_power_of_two_process_packet_function;
+
+    reliable_copy_string( receiver_config.name, "receiver", sizeof( receiver_config.name ) );
+    receiver_config.context = &context;
+    receiver_config.id = 1;
+    receiver_config.sent_packets_buffer_size = TEST_SEQUENCE_BUFFER_NON_POWER_OF_TWO_SIZE;
+    receiver_config.received_packets_buffer_size = TEST_SEQUENCE_BUFFER_NON_POWER_OF_TWO_SIZE;
+    receiver_config.transmit_packet_function = &test_sequence_buffer_non_power_of_two_transmit_packet_function;
+    receiver_config.process_packet_function = &test_sequence_buffer_non_power_of_two_process_packet_function;
+
+    context.sender = reliable_endpoint_create( &sender_config, time );
+    context.receiver = reliable_endpoint_create( &receiver_config, time );
+
+    check( context.sender );
+    check( context.receiver );
+
+    // drive the sender's sequence across the 65535 -> 0 boundary. the receiver's own packets
+    // are held back, so the ack for 65535 arrives after sequence 0 has been recorded.
+
+    int i;
+    for ( i = 0; i < 65537; ++i )
+    {
+        uint8_t packet[8];
+        memset( packet, 0, sizeof( packet ) );
+        reliable_endpoint_send_packet( context.sender, packet, sizeof( packet ) );
+    }
+
+    check( context.packet_65535_bytes > 0 );
+    check( context.num_delivered_65535 == 1 );
+
+    // let the receiver's traffic through. its ack covers 65535, which is still inside the
+    // send window and must be found and reported.
+
+    context.deliver_from_receiver = 1;
+
+    uint8_t packet[8];
+    memset( packet, 0, sizeof( packet ) );
+    reliable_endpoint_send_packet( context.receiver, packet, sizeof( packet ) );
+
+    int num_acks;
+    RELIABLE_CONST uint16_t * acks = reliable_endpoint_get_acks( context.sender, &num_acks );
+
+    int found_65535_ack = 0;
+    for ( i = 0; i < num_acks; ++i )
+    {
+        if ( acks[i] == 65535 )
+        {
+            found_65535_ack = 1;
+        }
+    }
+
+    check( found_65535_ack );
+
+    // replaying 65535 after 0 must be dropped as a duplicate, not delivered again
+
+    reliable_endpoint_receive_packet( context.receiver, context.packet_65535, context.packet_65535_bytes );
+
+    check( context.num_delivered_65535 == 1 );
+
+    RELIABLE_CONST uint64_t * receiver_counters = reliable_endpoint_counters( context.receiver );
+    check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_DUPLICATE] == 1 );
 
     reliable_endpoint_destroy( context.sender );
     reliable_endpoint_destroy( context.receiver );
@@ -2657,8 +3297,8 @@ static void test_ack_buffer_overflow()
 
 static void generate_packet_data_with_size( uint16_t sequence, uint8_t * packet_data, int packet_bytes )
 {
-    reliable_assert( packet_bytes >= 2 );
-    reliable_assert( packet_bytes <= TEST_MAX_PACKET_BYTES );
+    check( packet_bytes >= 2 );
+    check( packet_bytes <= TEST_MAX_PACKET_BYTES );
 
     packet_data[0] = (uint8_t) ( sequence & 0xFF );
     packet_data[1] = (uint8_t) ( (sequence>>8) & 0xFF );
@@ -2678,8 +3318,8 @@ static int generate_packet_data( uint16_t sequence, uint8_t * packet_data )
 
 static void validate_packet_data( uint8_t * packet_data, int packet_bytes )
 {
-    reliable_assert( packet_bytes >= 2 );
-    reliable_assert( packet_bytes <= TEST_MAX_PACKET_BYTES );
+    check( packet_bytes >= 2 );
+    check( packet_bytes <= TEST_MAX_PACKET_BYTES );
     uint16_t sequence = 0;
     sequence |= (uint16_t) packet_data[0];
     sequence |= ( (uint16_t) packet_data[1] ) << 8;
@@ -2691,17 +3331,21 @@ static void validate_packet_data( uint8_t * packet_data, int packet_bytes )
     }
 }
 
+static int test_process_packet_function_validate_num_processed[2];
+
 static int test_process_packet_function_validate( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
 {
-    reliable_assert( packet_data );
-    reliable_assert( packet_bytes > 0 );
-    reliable_assert( packet_bytes <= TEST_MAX_PACKET_BYTES );
+    check( packet_data );
+    check( packet_bytes > 0 );
+    check( packet_bytes <= TEST_MAX_PACKET_BYTES );
+    check( id < 2 );
 
     (void) context;
-    (void) id;
     (void) sequence;
 
     validate_packet_data( packet_data, packet_bytes );
+
+    test_process_packet_function_validate_num_processed[id]++;
 
     return 1;
 }
@@ -2709,8 +3353,8 @@ static int test_process_packet_function_validate( void * context, uint64_t id, u
 static int generate_packet_data_large( uint8_t* packet_data )
 {
     int data_bytes = TEST_MAX_PACKET_BYTES - 2;
-    reliable_assert( data_bytes >= 2) ;
-    reliable_assert( data_bytes <= (1 << 16) );
+    check( data_bytes >= 2 );
+    check( data_bytes <= (1 << 16) );
 
     packet_data[0] = (uint8_t) (data_bytes & 0xFF);
     packet_data[1] = (uint8_t) ( (data_bytes >> 8) & 0xFF );
@@ -2724,9 +3368,9 @@ static int generate_packet_data_large( uint8_t* packet_data )
 
 static int test_process_packet_function_validate_large( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
 {
-    reliable_assert( packet_data );
-    reliable_assert( packet_bytes >= 2 );
-    reliable_assert( packet_bytes <= TEST_MAX_PACKET_BYTES );
+    check( packet_data );
+    check( packet_bytes >= 2 );
+    check( packet_bytes <= TEST_MAX_PACKET_BYTES );
 
     (void) context;
     (void) id;
@@ -2744,6 +3388,8 @@ static int test_process_packet_function_validate_large( void * context, uint64_t
 
     return 1;
 }
+
+#define TEST_PACKETS_NUM_ITERATIONS 16
 
 void test_packets()
 {
@@ -2776,10 +3422,12 @@ void test_packets()
     context.sender = reliable_endpoint_create( &sender_config, time );
     context.receiver = reliable_endpoint_create( &receiver_config, time );
 
+    memset( test_process_packet_function_validate_num_processed, 0, sizeof( test_process_packet_function_validate_num_processed ) );
+
     double delta_time = 0.1;
 
     int i;
-    for ( i = 0; i < 16; ++i )
+    for ( i = 0; i < TEST_PACKETS_NUM_ITERATIONS; ++i )
     {
         {
             uint8_t packet_data[TEST_MAX_PACKET_BYTES];
@@ -2790,9 +3438,9 @@ void test_packets()
 
         {
             uint8_t packet_data[TEST_MAX_PACKET_BYTES];
-            uint16_t sequence = reliable_endpoint_next_packet_sequence( context.sender );
+            uint16_t sequence = reliable_endpoint_next_packet_sequence( context.receiver );
             int packet_bytes = generate_packet_data( sequence, packet_data );
-            reliable_endpoint_send_packet( context.sender, packet_data, packet_bytes );
+            reliable_endpoint_send_packet( context.receiver, packet_data, packet_bytes );
         }
 
         reliable_endpoint_update( context.sender, time );
@@ -2803,6 +3451,9 @@ void test_packets()
 
         time += delta_time;
     }
+
+    check( test_process_packet_function_validate_num_processed[0] == TEST_PACKETS_NUM_ITERATIONS );
+    check( test_process_packet_function_validate_num_processed[1] == TEST_PACKETS_NUM_ITERATIONS );
 
     reliable_endpoint_destroy( context.sender );
     reliable_endpoint_destroy( context.receiver );
@@ -2895,28 +3546,58 @@ void test_sequence_buffer_rollover()
     context.receiver = reliable_endpoint_create( &receiver_config, time );
 
     uint8_t packet_data[TEST_MAX_PACKET_BYTES] = {0};
+    int packet_bytes = sizeof( packet_data ) / sizeof( uint8_t );
+
+    // small packets up to 65534, then fragmented packets at 32768, 65535 and 0 either side of
+    // the half way point and the wrap, then a small packet after the wrap
 
     int num_packets_sent = 0;
     int i;
-    for (i = 0; i <= 32767; ++i)
+    for ( i = 0; i < 65535; ++i )
     {
-        uint8_t packet_data[16] = {0};
-        int packet_bytes = sizeof( packet_data ) / sizeof( uint8_t );
-        reliable_endpoint_next_packet_sequence( context.sender );
-        reliable_endpoint_send_packet( context.sender, packet_data, packet_bytes );
-
+        check( reliable_endpoint_next_packet_sequence( context.sender ) == (uint16_t) i );
+        if ( i == 32768 )
+        {
+            reliable_endpoint_send_packet( context.sender, packet_data, packet_bytes );
+        }
+        else
+        {
+            uint8_t small_packet_data[16] = {0};
+            reliable_endpoint_send_packet( context.sender, small_packet_data, (int) sizeof( small_packet_data ) );
+        }
         ++num_packets_sent;
     }
 
-    int packet_bytes = sizeof( packet_data ) / sizeof( uint8_t );
-    reliable_endpoint_next_packet_sequence( context.sender );
+    check( reliable_endpoint_next_packet_sequence( context.sender ) == 65535 );
     reliable_endpoint_send_packet( context.sender, packet_data, packet_bytes );
     ++num_packets_sent;
 
+    check( reliable_endpoint_next_packet_sequence( context.sender ) == 0 );
+    reliable_endpoint_send_packet( context.sender, packet_data, packet_bytes );
+    ++num_packets_sent;
+
+    check( reliable_endpoint_next_packet_sequence( context.sender ) == 1 );
+    {
+        uint8_t small_packet_data[16] = {0};
+        reliable_endpoint_send_packet( context.sender, small_packet_data, (int) sizeof( small_packet_data ) );
+        ++num_packets_sent;
+    }
+
+    check( reliable_endpoint_next_packet_sequence( context.sender ) == 2 );
+
     RELIABLE_CONST uint64_t * receiver_counters = reliable_endpoint_counters( context.receiver );
 
-    check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED] == (uint16_t) num_packets_sent );
+    check( num_packets_sent == 65538 );
+    check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED] == (uint64_t) num_packets_sent );
     check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_FRAGMENTS_INVALID] == 0 );
+    check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_STALE] == 0 );
+    check( receiver_counters[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_DUPLICATE] == 0 );
+
+    // the receiver's window now spans the wrap: 65535, 0 and 1 are all present
+
+    check( reliable_sequence_buffer_exists( context.receiver->received_packets, 65535 ) );
+    check( reliable_sequence_buffer_exists( context.receiver->received_packets, 0 ) );
+    check( reliable_sequence_buffer_exists( context.receiver->received_packets, 1 ) );
 
     reliable_endpoint_destroy( context.sender );
     reliable_endpoint_destroy( context.receiver );
@@ -2947,7 +3628,7 @@ void * test_tracking_allocate_function( void * context, size_t bytes )
         }
     }
 
-    reliable_assert(tracking_index < (int) ARRAY_LENGTH(tracking_context->active_allocations));
+    check( tracking_index < (int) ARRAY_LENGTH(tracking_context->active_allocations) );
     tracking_context->active_allocations[tracking_index] = allocation;
     return allocation;
 }
@@ -2964,7 +3645,7 @@ void test_tracking_free_function( void * context, void * pointer )
         }
     }
 
-    reliable_assert( tracking_index < (int) ARRAY_LENGTH(tracking_context->active_allocations) );
+    check( tracking_index < (int) ARRAY_LENGTH(tracking_context->active_allocations) );
     tracking_context->active_allocations[tracking_index] = NULL;
     free( pointer );
 }
@@ -3016,7 +3697,7 @@ void test_fragment_cleanup()
     };
 
     // Make sure we're sending more than receiver_config.fragment_reassembly_buffer_size packets, so the buffer wraps around.
-    reliable_assert( (int) ARRAY_LENGTH( packet_sizes ) > receiver_config.fragment_reassembly_buffer_size );
+    check( (int) ARRAY_LENGTH( packet_sizes ) > receiver_config.fragment_reassembly_buffer_size );
 
     int i;
     for ( i = 0; i < (int) ARRAY_LENGTH( packet_sizes ); ++i )
@@ -3224,6 +3905,43 @@ static void test_fragment_reassembly_buffer_zeroed()
     reliable_endpoint_destroy( context.receiver );
 }
 
+static void test_store_fragment_data_status()
+{
+    const int fragment_size = 64;
+    const int num_fragments = 4;
+
+    struct reliable_fragment_reassembly_data_t reassembly_data;
+    memset( &reassembly_data, 0, sizeof( reassembly_data ) );
+    reassembly_data.sequence = 1000;
+    reassembly_data.num_fragments_total = num_fragments;
+
+    const size_t packet_buffer_size = (size_t) RELIABLE_MAX_PACKET_HEADER_BYTES + (size_t) num_fragments * (size_t) fragment_size + 8;
+    reassembly_data.packet_data = (uint8_t*) malloc( packet_buffer_size );
+    check( reassembly_data.packet_data );
+    memset( reassembly_data.packet_data, 0, packet_buffer_size );
+
+    uint8_t fragment_data[128];
+    memset( fragment_data, 0xAB, sizeof( fragment_data ) );
+
+    // a last fragment larger than the fragment size does not fit the buffer: not stored, not received
+    check( reliable_store_fragment_data( &reassembly_data, 1000, 0, 0, num_fragments - 1, fragment_size, fragment_data, fragment_size + 1 ) == 0 );
+    check( reassembly_data.fragment_received[num_fragments - 1] == 0 );
+    check( reassembly_data.num_fragments_received == 0 );
+
+    // a negative size is rejected the same way
+    check( reliable_store_fragment_data( &reassembly_data, 1000, 0, 0, 1, fragment_size, fragment_data, -1 ) == 0 );
+    check( reassembly_data.fragment_received[1] == 0 );
+    check( reassembly_data.num_fragments_received == 0 );
+
+    // a well formed fragment is stored and marked received
+    check( reliable_store_fragment_data( &reassembly_data, 1000, 0, 0, 1, fragment_size, fragment_data, fragment_size ) == 1 );
+    check( reassembly_data.fragment_received[1] == 1 );
+    check( reassembly_data.num_fragments_received == 1 );
+    check( reassembly_data.packet_data[RELIABLE_MAX_PACKET_HEADER_BYTES + fragment_size] == 0xAB );
+
+    free( reassembly_data.packet_data );
+}
+
 static void test_endpoint_reset()
 {
     double time = 100.0;
@@ -3341,10 +4059,44 @@ static void test_endpoint_reset()
     }
 }
 
+// one step of a steady exchange: the sender sends at time, and the receiver replies reply_delay
+// later, so the reply acks the sender's packet with a round trip of exactly reply_delay
+
+#define TEST_EXCHANGE_MAX_PAYLOAD 256
+
+static void test_exchange_step( struct test_context_t * context, double time, double reply_delay, int drop_send, int payload_bytes )
+{
+    uint8_t packet[TEST_EXCHANGE_MAX_PAYLOAD];
+    memset( packet, 0, sizeof( packet ) );
+
+    reliable_assert( payload_bytes > 0 && payload_bytes <= TEST_EXCHANGE_MAX_PAYLOAD );
+
+    reliable_endpoint_update( context->sender, time );
+    reliable_endpoint_update( context->receiver, time );
+
+    context->drop = drop_send;
+    reliable_endpoint_send_packet( context->sender, packet, payload_bytes );
+    context->drop = 0;
+
+    reliable_endpoint_update( context->sender, time + reply_delay );
+    reliable_endpoint_update( context->receiver, time + reply_delay );
+
+    reliable_endpoint_send_packet( context->receiver, packet, payload_bytes );
+
+    reliable_endpoint_clear_acks( context->sender );
+    reliable_endpoint_clear_acks( context->receiver );
+}
+
+static int test_close( float value, float expected, float tolerance )
+{
+    return fabs( value - expected ) <= tolerance;
+}
+
 static void test_rtt()
 {
-    double time = 100.0;
-    double delta_time = 0.01;
+    double time = 1000.0;
+    const double delta_time = 0.25;
+    const double reply_delay = 0.0625;
 
     struct test_context_t context;
     test_default_context(&context);
@@ -3371,26 +4123,29 @@ static void test_rtt()
     int i;
     for (i = 0; i < 1000; ++i)
     {
-        uint8_t dummy_packet[8];
-        memset(dummy_packet, 0, sizeof(dummy_packet));
-
-        reliable_endpoint_send_packet(context.sender, dummy_packet, sizeof(dummy_packet));
-        reliable_endpoint_send_packet(context.receiver, dummy_packet, sizeof(dummy_packet));
-
-        reliable_endpoint_update(context.sender, time);
-        reliable_endpoint_update(context.receiver, time);
-
+        test_exchange_step( &context, time, reply_delay, 0, 8 );
         time += delta_time;
     }
 
-    float rtt = reliable_endpoint_rtt(context.sender);
-    float rtt_min = reliable_endpoint_rtt_min(context.sender);
-    float rtt_max = reliable_endpoint_rtt_max(context.sender);
-    float rtt_avg = reliable_endpoint_rtt_avg(context.sender);
+    reliable_endpoint_update( context.sender, time );
+    reliable_endpoint_update( context.receiver, time );
 
-    check(rtt == rtt && rtt >= 0); // Check rtt is finite and non-negative
-    check(rtt_min >= 0 && rtt_min <= rtt_avg && rtt_avg <= rtt_max);
-    check(rtt_max < 1000.0); // Assume RTT is in milliseconds
+    // the sender's packets are acked reply_delay after they are sent: 62.5 ms
+
+    check( test_close( reliable_endpoint_rtt( context.sender ), 62.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_rtt_min( context.sender ), 62.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_rtt_max( context.sender ), 62.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_rtt_avg( context.sender ), 62.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_jitter_avg_vs_min_rtt( context.sender ), 0.0f, 0.001f ) );
+    check( test_close( reliable_endpoint_jitter_max_vs_min_rtt( context.sender ), 0.0f, 0.001f ) );
+    check( test_close( reliable_endpoint_jitter_stddev_vs_avg_rtt( context.sender ), 0.0f, 0.001f ) );
+
+    // the receiver's replies are acked by the sender's next packet: 250 - 62.5 = 187.5 ms
+
+    check( test_close( reliable_endpoint_rtt( context.receiver ), 187.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_rtt_min( context.receiver ), 187.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_rtt_max( context.receiver ), 187.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_rtt_avg( context.receiver ), 187.5f, 0.001f ) );
 
     reliable_endpoint_destroy(context.sender);
     reliable_endpoint_destroy(context.receiver);
@@ -3482,6 +4237,42 @@ static void test_rtt_min_large()
     test_pair_destroy( &pair );
 }
 
+// a clock that steps backwards between a send and its ack gives an rtt sample of zero
+
+static void test_rtt_time_backwards()
+{
+    double time = 1010.0;
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+    test_pair_create( &pair, time );
+
+    uint8_t packet[8];
+    memset( packet, 0, sizeof( packet ) );
+
+    reliable_endpoint_send_packet( pair.context.sender, packet, sizeof( packet ) );
+
+    time = 1009.0;
+
+    reliable_endpoint_update( pair.context.sender, time );
+    reliable_endpoint_update( pair.context.receiver, time );
+
+    reliable_endpoint_send_packet( pair.context.receiver, packet, sizeof( packet ) );
+
+    reliable_endpoint_update( pair.context.sender, time );
+
+    int num_acks;
+    reliable_endpoint_get_acks( pair.context.sender, &num_acks );
+    check( num_acks == 1 );
+
+    check( reliable_endpoint_rtt( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_rtt_min( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_rtt_max( pair.context.sender ) == 0.0f );
+    check( reliable_endpoint_rtt_avg( pair.context.sender ) == 0.0f );
+
+    test_pair_destroy( &pair );
+}
+
 // RL-03: reset clears every field a getter can return, the rtt history included
 
 static void test_endpoint_reset_clears_stats()
@@ -3558,6 +4349,157 @@ static void test_endpoint_reset_clears_stats()
     check( reliable_endpoint_jitter_avg_vs_min_rtt( pair.context.sender ) == 0.0f );
     check( reliable_endpoint_jitter_max_vs_min_rtt( pair.context.sender ) == 0.0f );
     check( reliable_endpoint_jitter_stddev_vs_avg_rtt( pair.context.sender ) == 0.0f );
+
+    test_pair_destroy( &pair );
+}
+
+// a known fraction of the sender's packets is dropped, and the loss estimate converges to it
+
+static void test_packet_loss_estimate()
+{
+    double time = 1000.0;
+    const double delta_time = 0.25;
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+    test_pair_create( &pair, time );
+
+    // one packet in four is dropped. the loss window covers 128 consecutive sequence numbers,
+    // so it always holds exactly 32 dropped packets: 25%
+
+    int i;
+    for ( i = 0; i < 1000; ++i )
+    {
+        test_exchange_step( &pair.context, time, 0.0625, ( i % 4 ) == 0, 100 );
+        time += delta_time;
+    }
+
+    reliable_endpoint_update( pair.context.sender, time );
+    reliable_endpoint_update( pair.context.receiver, time );
+
+    check( test_close( reliable_endpoint_packet_loss( pair.context.sender ), 25.0f, 0.01f ) );
+
+    // nothing the receiver sent was dropped
+
+    check( test_close( reliable_endpoint_packet_loss( pair.context.receiver ), 0.0f, 0.01f ) );
+
+    // only three packets in four are acked, so acked bandwidth is about three quarters of sent
+    // bandwidth (the acked packets at the edges of the window move the span by up to two steps)
+
+    float sent_bandwidth, received_bandwidth, acked_bandwidth;
+    reliable_endpoint_bandwidth( pair.context.sender, &sent_bandwidth, &received_bandwidth, &acked_bandwidth );
+    check( sent_bandwidth > 0.0f );
+    check( acked_bandwidth >= sent_bandwidth * 0.74f );
+    check( acked_bandwidth <= sent_bandwidth * 0.77f );
+
+    test_pair_destroy( &pair );
+}
+
+// replies come back after two different delays, so the rtt history has a known spread
+
+static void test_jitter_estimate()
+{
+    double time = 1000.0;
+    const double delta_time = 0.25;
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+    test_pair_create( &pair, time );
+
+    // fewer steps than the rtt history holds, so every sample is still in it: half are 62.5 ms
+    // and half are 187.5 ms
+
+    int i;
+    for ( i = 0; i < 200; ++i )
+    {
+        const double reply_delay = ( i % 2 ) ? 0.1875 : 0.0625;
+        test_exchange_step( &pair.context, time, reply_delay, 0, 8 );
+        time += delta_time;
+    }
+
+    reliable_endpoint_update( pair.context.sender, time );
+
+    check( test_close( reliable_endpoint_rtt_min( pair.context.sender ), 62.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_rtt_max( pair.context.sender ), 187.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_rtt_avg( pair.context.sender ), 125.0f, 0.001f ) );
+    check( test_close( reliable_endpoint_jitter_avg_vs_min_rtt( pair.context.sender ), 62.5f, 0.001f ) );
+    check( test_close( reliable_endpoint_jitter_max_vs_min_rtt( pair.context.sender ), 125.0f, 0.001f ) );
+    check( test_close( reliable_endpoint_jitter_stddev_vs_avg_rtt( pair.context.sender ), 62.5f, 0.001f ) );
+
+    const float rtt = reliable_endpoint_rtt( pair.context.sender );
+    check( rtt >= 62.5f && rtt <= 187.5f );
+
+    test_pair_destroy( &pair );
+}
+
+// the bandwidth estimates match bytes * 8 / 1000 / seconds over the sampled window
+
+static int test_bandwidth_reply_bytes_min = 0;
+static int test_bandwidth_reply_bytes_max = 0;
+
+static void test_bandwidth_transmit_packet_function( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    if ( id == 1 )
+    {
+        if ( test_bandwidth_reply_bytes_min == 0 || packet_bytes < test_bandwidth_reply_bytes_min )
+        {
+            test_bandwidth_reply_bytes_min = packet_bytes;
+        }
+        if ( packet_bytes > test_bandwidth_reply_bytes_max )
+        {
+            test_bandwidth_reply_bytes_max = packet_bytes;
+        }
+    }
+
+    test_transmit_packet_function( context, id, sequence, packet_data, packet_bytes );
+}
+
+static void test_bandwidth_estimate()
+{
+    double time = 1000.0;
+    const double delta_time = 0.25;
+    const int payload_bytes = 100;
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+    pair.receiver_config.transmit_packet_function = &test_bandwidth_transmit_packet_function;
+    test_pair_create( &pair, time );
+
+    int i;
+    for ( i = 0; i < 1000; ++i )
+    {
+        // measure the size of the receiver's packets once the exchange is steady
+
+        if ( i == 500 )
+        {
+            test_bandwidth_reply_bytes_min = 0;
+            test_bandwidth_reply_bytes_max = 0;
+        }
+
+        test_exchange_step( &pair.context, time, 0.0625, 0, payload_bytes );
+        time += delta_time;
+    }
+
+    reliable_endpoint_update( pair.context.sender, time );
+
+    check( test_bandwidth_reply_bytes_min > 0 );
+    check( test_bandwidth_reply_bytes_min == test_bandwidth_reply_bytes_max );
+
+    // each window samples half the packets buffer: 128 packets, one step apart, so 127 steps
+
+    const int window_packets = pair.sender_config.sent_packets_buffer_size / 2;
+    const double window_seconds = ( window_packets - 1 ) * delta_time;
+    const int header_bytes = pair.sender_config.packet_header_size;
+
+    const float expected_sent = (float) ( window_packets * ( header_bytes + payload_bytes ) * 8.0 / 1000.0 / window_seconds );
+    const float expected_received = (float) ( window_packets * ( header_bytes + test_bandwidth_reply_bytes_min ) * 8.0 / 1000.0 / window_seconds );
+
+    float sent_bandwidth, received_bandwidth, acked_bandwidth;
+    reliable_endpoint_bandwidth( pair.context.sender, &sent_bandwidth, &received_bandwidth, &acked_bandwidth );
+
+    check( test_close( sent_bandwidth, expected_sent, expected_sent * 0.001f ) );
+    check( test_close( received_bandwidth, expected_received, expected_received * 0.001f ) );
+    check( test_close( acked_bandwidth, expected_sent, expected_sent * 0.001f ) );
 
     test_pair_destroy( &pair );
 }
@@ -3646,6 +4588,94 @@ static void test_endpoint_create_invalid_config()
     config = valid; config.rtt_history_size = 0;
     check( reliable_endpoint_create( &config, 0.0 ) == NULL );
 
+    // smoothing factors must be in [0,1], and NaN is refused
+
+    config = valid; config.rtt_smoothing_factor = -0.1f;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.rtt_smoothing_factor = 1.1f;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.rtt_smoothing_factor = NAN;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.packet_loss_smoothing_factor = -0.1f;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.packet_loss_smoothing_factor = 1.1f;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.packet_loss_smoothing_factor = NAN;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.bandwidth_smoothing_factor = -0.1f;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.bandwidth_smoothing_factor = 1.1f;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config = valid; config.bandwidth_smoothing_factor = NAN;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    // the boundaries 0 and 1 are accepted
+
+    config = valid;
+    config.rtt_smoothing_factor = 0.0f;
+    config.packet_loss_smoothing_factor = 0.0f;
+    config.bandwidth_smoothing_factor = 0.0f;
+    endpoint = reliable_endpoint_create( &config, 0.0 );
+    check( endpoint );
+    reliable_endpoint_destroy( endpoint );
+
+    config = valid;
+    config.rtt_smoothing_factor = 1.0f;
+    config.packet_loss_smoothing_factor = 1.0f;
+    config.bandwidth_smoothing_factor = 1.0f;
+    endpoint = reliable_endpoint_create( &config, 0.0 );
+    check( endpoint );
+    reliable_endpoint_destroy( endpoint );
+
+    // buffer sizes beyond the usable sequence window are refused too
+
+    int invalid_buffer_sizes[3] = { RELIABLE_MAX_SEQUENCE_BUFFER_SIZE + 1, 32768, 65536 };
+
+    int i;
+    for ( i = 0; i < 3; ++i )
+    {
+        config = valid; config.sent_packets_buffer_size = invalid_buffer_sizes[i];
+        check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+        config = valid; config.received_packets_buffer_size = invalid_buffer_sizes[i];
+        check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+        config = valid; config.fragment_reassembly_buffer_size = invalid_buffer_sizes[i];
+        check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+    }
+
+    // the largest accepted size creates an endpoint pair that still sends and receives
+
+    struct test_pair_t pair;
+    test_pair_configs( &pair );
+
+    pair.sender_config.sent_packets_buffer_size = RELIABLE_MAX_SEQUENCE_BUFFER_SIZE;
+    pair.sender_config.received_packets_buffer_size = RELIABLE_MAX_SEQUENCE_BUFFER_SIZE;
+    pair.sender_config.fragment_reassembly_buffer_size = RELIABLE_MAX_SEQUENCE_BUFFER_SIZE;
+
+    pair.receiver_config.sent_packets_buffer_size = RELIABLE_MAX_SEQUENCE_BUFFER_SIZE;
+    pair.receiver_config.received_packets_buffer_size = RELIABLE_MAX_SEQUENCE_BUFFER_SIZE;
+    pair.receiver_config.fragment_reassembly_buffer_size = RELIABLE_MAX_SEQUENCE_BUFFER_SIZE;
+
+    test_pair_create( &pair, 0.0 );
+
+    uint8_t packet[8];
+    memset( packet, 0, sizeof( packet ) );
+
+    reliable_endpoint_send_packet( pair.context.sender, packet, sizeof( packet ) );
+
+    check( reliable_endpoint_counters( pair.context.receiver )[RELIABLE_ENDPOINT_COUNTER_NUM_PACKETS_RECEIVED] == 1 );
+
+    test_pair_destroy( &pair );
+
     config = valid; config.packet_header_size = -1;
     check( reliable_endpoint_create( &config, 0.0 ) == NULL );
 
@@ -3676,6 +4706,29 @@ static void test_endpoint_create_invalid_config()
 
     check( !reliable_checked_size( 4, SIZE_MAX / 2, &bytes ) );
     check( !reliable_checked_size( INT_MAX, SIZE_MAX / 3, &bytes ) );
+}
+
+// the received byte statistic adds packet_header_size to the whole received length, which can
+// carry up to RELIABLE_MAX_PACKET_HEADER_BYTES + RELIABLE_FRAGMENT_HEADER_BYTES more than
+// max_packet_size, so the config check leaves room for both headers in a packet length
+
+static void test_config_refuses_header_plus_packet_near_int_max()
+{
+    struct reliable_config_t config;
+
+    reliable_default_config( &config );
+    config.transmit_packet_function = &test_transmit_packet_function;
+    config.process_packet_function = &test_process_packet_function;
+
+    const int largest_header_size = INT_MAX - config.max_packet_size - RELIABLE_MAX_PACKET_HEADER_BYTES - RELIABLE_FRAGMENT_HEADER_BYTES;
+
+    config.packet_header_size = largest_header_size + 1;
+    check( reliable_endpoint_create( &config, 0.0 ) == NULL );
+
+    config.packet_header_size = largest_header_size;
+    struct reliable_endpoint_t * endpoint = reliable_endpoint_create( &config, 0.0 );
+    check( endpoint );
+    reliable_endpoint_destroy( endpoint );
 }
 
 // RL-06: every allocation failure returns NULL, in every build, having freed what it took
@@ -4027,6 +5080,8 @@ static void test_fragment_counts()
 
     // one fragment: above the threshold by a single byte
     test_fragment_case( 512, 16, 513, 2 );
+    test_fragment_case( 512, 16, 1023, 2 );
+    test_fragment_case( 512, 16, 1025, 3 );
     test_fragment_case( 64, 256, 65, 2 );
 
     // 256 fragments, the maximum the wire format can express
@@ -4165,6 +5220,195 @@ static void test_truncated_packets()
     reliable_endpoint_destroy( receiver );
 }
 
+#define TEST_LOG_LEVEL_BUFFER_BYTES ( 256 * 1024 )
+
+static char test_log_level_buffer[TEST_LOG_LEVEL_BUFFER_BYTES];
+static int test_log_level_buffer_length = 0;
+
+static int test_log_level_printf_function( RELIABLE_CONST char * format, ... )
+{
+    if ( test_log_level_buffer_length < TEST_LOG_LEVEL_BUFFER_BYTES - 1 )
+    {
+        va_list args;
+        va_start( args, format );
+        const int written = vsnprintf( test_log_level_buffer + test_log_level_buffer_length,
+                                       (size_t) ( TEST_LOG_LEVEL_BUFFER_BYTES - test_log_level_buffer_length ),
+                                       format, args );
+        va_end( args );
+
+        if ( written > 0 )
+        {
+            test_log_level_buffer_length += written;
+            if ( test_log_level_buffer_length > TEST_LOG_LEVEL_BUFFER_BYTES - 1 )
+            {
+                test_log_level_buffer_length = TEST_LOG_LEVEL_BUFFER_BYTES - 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+static void test_log_level_transmit_packet_function( void * _context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) _context;
+    (void) id;
+    (void) sequence;
+    (void) packet_data;
+    (void) packet_bytes;
+}
+
+static int test_log_level_accept_process_packet_function( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) context;
+    (void) id;
+    (void) sequence;
+    (void) packet_data;
+    (void) packet_bytes;
+
+    return 1;
+}
+
+static int test_log_level_reject_process_packet_function( void * context, uint64_t id, uint16_t sequence, uint8_t * packet_data, int packet_bytes )
+{
+    (void) context;
+    (void) id;
+    (void) sequence;
+    (void) packet_data;
+    (void) packet_bytes;
+
+    return 0;
+}
+
+static struct reliable_endpoint_t * test_log_level_create_receiver( int reject )
+{
+    struct reliable_config_t config;
+    reliable_default_config( &config );
+
+    reliable_copy_string( config.name, "receiver", sizeof( config.name ) );
+    config.transmit_packet_function = &test_log_level_transmit_packet_function;
+    config.process_packet_function = reject ? &test_log_level_reject_process_packet_function : &test_log_level_accept_process_packet_function;
+
+    struct reliable_endpoint_t * endpoint = reliable_endpoint_create( &config, 100.0 );
+    check( endpoint );
+
+    return endpoint;
+}
+
+static int test_log_level_write_regular_packet( uint8_t * packet_data, uint16_t sequence, int payload_bytes )
+{
+    uint8_t * p = packet_data;
+    p += reliable_write_packet_header( p, sequence, 0, 0xFFFFFFFF );
+    memset( p, 0x11, payload_bytes );
+    p += payload_bytes;
+    return (int) ( p - packet_data );
+}
+
+static int test_log_level_write_fragment( uint8_t * packet_data, uint16_t sequence, int fragment_id, int num_fragments, int data_bytes )
+{
+    uint8_t * p = packet_data;
+    reliable_write_uint8( &p, 1 );
+    reliable_write_uint16( &p, sequence );
+    reliable_write_uint8( &p, (uint8_t) fragment_id );
+    reliable_write_uint8( &p, (uint8_t) ( num_fragments - 1 ) );
+    if ( fragment_id == 0 )
+    {
+        p += reliable_write_packet_header( p, sequence, 0, 0xFFFFFFFF );
+    }
+    memset( p, 0x22, data_bytes );
+    p += data_bytes;
+    return (int) ( p - packet_data );
+}
+
+#define TEST_LOG_LEVEL_OVERSIZED_PAYLOAD ( 16 * 1024 + 1 )
+
+static void test_log_level_inject_oversized_packet( struct reliable_endpoint_t * receiver )
+{
+    uint8_t packet[TEST_LOG_LEVEL_OVERSIZED_PAYLOAD + 16];
+    const int packet_bytes = test_log_level_write_regular_packet( packet, 0, TEST_LOG_LEVEL_OVERSIZED_PAYLOAD );
+    reliable_endpoint_receive_packet( receiver, packet, packet_bytes );
+}
+
+static void test_log_level_inject_rejected_packet( struct reliable_endpoint_t * receiver )
+{
+    uint8_t packet[64];
+    const int packet_bytes = test_log_level_write_regular_packet( packet, 0, 8 );
+    reliable_endpoint_receive_packet( receiver, packet, packet_bytes );
+}
+
+static void test_log_level_inject_stale_fragment( struct reliable_endpoint_t * receiver )
+{
+    uint8_t packet[64];
+    int i;
+    for ( i = 0; i < 300; ++i )
+    {
+        const int packet_bytes = test_log_level_write_regular_packet( packet, (uint16_t) i, 8 );
+        reliable_endpoint_receive_packet( receiver, packet, packet_bytes );
+    }
+
+    uint8_t fragment[64];
+    const int fragment_bytes = test_log_level_write_fragment( fragment, 0, 0, 1, 8 );
+    reliable_endpoint_receive_packet( receiver, fragment, fragment_bytes );
+}
+
+static void test_log_level_inject_fragment_count_mismatch( struct reliable_endpoint_t * receiver )
+{
+    uint8_t fragment[2048];
+    int fragment_bytes = test_log_level_write_fragment( fragment, 0, 0, 2, 1024 );
+    reliable_endpoint_receive_packet( receiver, fragment, fragment_bytes );
+    fragment_bytes = test_log_level_write_fragment( fragment, 0, 1, 3, 1024 );
+    reliable_endpoint_receive_packet( receiver, fragment, fragment_bytes );
+}
+
+static void test_log_level_inject_duplicate_fragment( struct reliable_endpoint_t * receiver )
+{
+    uint8_t fragment[2048];
+    const int fragment_bytes = test_log_level_write_fragment( fragment, 0, 0, 2, 1024 );
+    reliable_endpoint_receive_packet( receiver, fragment, fragment_bytes );
+    reliable_endpoint_receive_packet( receiver, fragment, fragment_bytes );
+}
+
+static void test_log_level_case( void (*inject)( struct reliable_endpoint_t * ), int reject, RELIABLE_CONST char * expected )
+{
+    const int previous_log_level = log_level;
+    int (*previous_printf_function)( RELIABLE_CONST char *, ... ) = printf_function;
+
+    reliable_set_printf_function( &test_log_level_printf_function );
+
+    test_log_level_buffer[0] = '\0';
+    test_log_level_buffer_length = 0;
+    reliable_log_level( RELIABLE_LOG_LEVEL_ERROR );
+    struct reliable_endpoint_t * endpoint = test_log_level_create_receiver( reject );
+    inject( endpoint );
+    reliable_endpoint_destroy( endpoint );
+    reliable_log_level( previous_log_level );
+    check( strstr( test_log_level_buffer, expected ) == NULL );
+
+    test_log_level_buffer[0] = '\0';
+    test_log_level_buffer_length = 0;
+    reliable_log_level( RELIABLE_LOG_LEVEL_DEBUG );
+    endpoint = test_log_level_create_receiver( reject );
+    inject( endpoint );
+    reliable_endpoint_destroy( endpoint );
+    reliable_log_level( previous_log_level );
+
+    reliable_set_printf_function( previous_printf_function );
+
+    check( strstr( test_log_level_buffer, expected ) != NULL );
+}
+
+static void test_wire_event_log_levels()
+{
+    char oversized_expected[64];
+    snprintf( oversized_expected, sizeof( oversized_expected ), "packet is at %d bytes", TEST_LOG_LEVEL_OVERSIZED_PAYLOAD );
+
+    test_log_level_case( &test_log_level_inject_oversized_packet, 0, oversized_expected );
+    test_log_level_case( &test_log_level_inject_rejected_packet, 1, "process packet failed" );
+    test_log_level_case( &test_log_level_inject_stale_fragment, 0, "could not insert in reassembly buffer (stale)" );
+    test_log_level_case( &test_log_level_inject_fragment_count_mismatch, 0, "fragment count mismatch" );
+    test_log_level_case( &test_log_level_inject_duplicate_fragment, 0, "fragment already received" );
+}
+
 // every function reliable.h declares is called at least once by the suite. this test names
 // them all in one place so a new entry point cannot be added without being exercised
 
@@ -4261,12 +5505,15 @@ void reliable_test()
     {
         RUN_TEST( test_endian );
         RUN_TEST( test_sequence_buffer );
+        RUN_TEST( test_sequence_buffer_window );
         RUN_TEST( test_generate_ack_bits );
         RUN_TEST( test_packet_header );
         RUN_TEST( test_acks );
         RUN_TEST( test_acks_packet_loss );
         RUN_TEST( test_duplicate_packets );
         RUN_TEST( test_stale_packets );
+        RUN_TEST( test_empty_packet_rejected );
+        RUN_TEST( test_sequence_buffer_non_power_of_two_size );
         RUN_TEST( test_ack_buffer_overflow );
         RUN_TEST( test_packets );
         RUN_TEST( test_large_packets );
@@ -4274,17 +5521,24 @@ void reliable_test()
         RUN_TEST( test_fragment_cleanup );
         RUN_TEST( test_fragment_reassembly_alloc_failure );
         RUN_TEST( test_fragment_reassembly_buffer_zeroed );
+        RUN_TEST( test_store_fragment_data_status );
         RUN_TEST( test_rtt );
         RUN_TEST( test_endpoint_reset );
         RUN_TEST( test_endpoint_reset_clears_stats );
         RUN_TEST( test_rtt_min_large );
+        RUN_TEST( test_rtt_time_backwards );
+        RUN_TEST( test_packet_loss_estimate );
+        RUN_TEST( test_jitter_estimate );
+        RUN_TEST( test_bandwidth_estimate );
         RUN_TEST( test_endpoint_create_invalid_config );
+        RUN_TEST( test_config_refuses_header_plus_packet_near_int_max );
         RUN_TEST( test_endpoint_create_allocation_failure );
         RUN_TEST( test_endpoint_name_terminated );
         RUN_TEST( test_config_name_bounded_in_rejection_log );
         RUN_TEST( test_sequence_wrap );
         RUN_TEST( test_fragment_counts );
         RUN_TEST( test_truncated_packets );
+        RUN_TEST( test_wire_event_log_levels );
         RUN_TEST( test_public_api_surface );
     }
 }
