@@ -8,20 +8,19 @@
 #              vendored build compiles
 #   minimum    the floor a system-installed copy must meet, enforced at configure time
 #
-# netcode's floor is 1.4.6: SECURITY.md records the connect token handling that lands in
-# 1.4.5, and yojimbo's server config passes max_connect_token_lifetime, a field netcode 1.4.4
-# and earlier do not have. 1.4.6 raises it again -- yojimbo reads netcode payloads through
-# serialize's BitReader, which loads an eight-byte window, and only from 1.4.6 does a payload
-# packet carry eight bytes of slack behind the payload, so an older system netcode gives
-# yojimbo an out-of-bounds read on packets it accepts. Linking an older system netcode is
-# refused rather than warned about. The floor stays below the vendored 1.4.7, whose changes
-# yojimbo's sources do not depend on.
-# serialize and reliable floor at the vendored version because yojimbo's sources are written
-# against it and both define wire formats.
+# netcode's floor is 1.5.0: SECURITY.md records the connect token handling that lands in
+# 1.4.5, yojimbo's server config passes max_connect_token_lifetime (a field netcode 1.4.4 and
+# earlier do not have), and 1.4.6 adds the eight-byte payload slack yojimbo's serialize
+# BitReader requires. 1.5.0 raises the floor to the vendored version: it upgrades the wire
+# protocol to NETCODE 1.03 with per-connection HChaCha20 key derivation, fixing the
+# unfinished-handshake and multi-server AEAD nonce-reuse issues recorded in SECURITY.md.
+# Linking an older system netcode is refused rather than warned about.
+# serialize and reliable also floor at the vendored version because yojimbo's sources are
+# written against it and both define wire formats.
 #
 # The vendored column is checked against the vendored headers at configure time, so this file
 # cannot drift from the tree it describes.
 
-serialize  1.16.2  v1.16.2  1.16.2
-reliable   1.4.5   v1.4.5   1.4.5
-netcode    1.4.8   v1.4.8   1.4.6
+serialize  2.1.5   v2.1.5   2.1.5
+reliable   1.4.6   v1.4.6   1.4.6
+netcode    1.5.0   v1.5.0   1.5.0

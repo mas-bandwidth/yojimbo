@@ -1,11 +1,13 @@
 # ROADMAP.md is generated from docs/roadmap.sexp by nova-roadmap, the one roadmap
-# generator (a nova-tools release binary): `make roadmap` renders the page and
-# `make roadmap-check` exits 1 when the committed page is not what the data
+# generator (a nova-tools release binary). This repo builds with CMake, which writes
+# its own top-level Makefile in an in-source build, so these targets live here:
+# `make -f tools/roadmap/roadmap.mk roadmap` renders the page and
+# `make -f tools/roadmap/roadmap.mk roadmap-check` exits 1 when the committed page is not what the data
 # renders (CI runs it). Edit the data, never the page; `nova-roadmap help form`
-# documents the form. The pinned binary is downloaded once into bin/ and checked
+# documents the form. The pinned binary is downloaded once into tools/roadmap/bin/ and checked
 # against the release's SHA256SUMS; NOVA_ROADMAP=<path> runs another one.
-NOVA_ROADMAP_VERSION ?= v1.6.0
-NOVA_ROADMAP ?= bin/nova-roadmap-$(NOVA_ROADMAP_VERSION)
+NOVA_ROADMAP_VERSION ?= v2.0.86
+NOVA_ROADMAP ?= tools/roadmap/bin/nova-roadmap-$(NOVA_ROADMAP_VERSION)
 
 .PHONY: roadmap roadmap-check
 roadmap: $(NOVA_ROADMAP)
@@ -14,8 +16,8 @@ roadmap: $(NOVA_ROADMAP)
 roadmap-check: $(NOVA_ROADMAP)
 	$(NOVA_ROADMAP) check
 
-bin/nova-roadmap-%:
-	@mkdir -p bin
+tools/roadmap/bin/nova-roadmap-%:
+	@mkdir -p tools/roadmap/bin
 	@os=$$(uname -s | tr A-Z a-z); arch=$$(uname -m); \
 	case $$arch in x86_64) arch=amd64;; aarch64) arch=arm64;; esac; \
 	asset=nova-roadmap_$*_$${os}_$${arch}; \

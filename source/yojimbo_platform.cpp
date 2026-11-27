@@ -100,12 +100,18 @@ void yojimbo_printf( int level, const char * format, ... )
 // ===============================
 
 #include <unistd.h>
+#include <time.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 
 void yojimbo_sleep( double time )
 {
-    usleep( (int) ( time * 1000000 ) );
+    if ( time <= 0.0 )
+        return;
+    struct timespec ts;
+    ts.tv_sec = (time_t) time;
+    ts.tv_nsec = (long) ( ( time - (double) ts.tv_sec ) * 1000000000.0 );
+    nanosleep( &ts, NULL );
 }
 
 double yojimbo_time()
@@ -148,7 +154,12 @@ double yojimbo_time()
 
 void yojimbo_sleep( double time )
 {
-    usleep( (int) ( time * 1000000 ) );
+    if ( time <= 0.0 )
+        return;
+    struct timespec ts;
+    ts.tv_sec = (time_t) time;
+    ts.tv_nsec = (long) ( ( time - (double) ts.tv_sec ) * 1000000000.0 );
+    nanosleep( &ts, NULL );
 }
 
 double yojimbo_time()

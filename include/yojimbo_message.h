@@ -365,11 +365,13 @@ namespace yojimbo
             Message factory allocator.
             Pass in the number of message types for the message factory from the derived class.
             @param allocator The allocator used to create messages.
-            @param numTypes The number of message types. Valid types are in [0,numTypes-1].
+            @param numTypes The number of message types, in [0,32767]. Valid types are in [0,numTypes-1].
          */
 
         MessageFactory( Allocator & allocator, int numTypes )
         {
+            // m_type is an unsigned 15-bit field and holds 0..32767.
+            yojimbo_assert( numTypes >= 0 && numTypes <= 32767 );
             m_allocator = &allocator;
             m_numTypes = numTypes;
             m_errorLevel = MESSAGE_FACTORY_ERROR_NONE;

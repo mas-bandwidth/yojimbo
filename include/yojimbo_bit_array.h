@@ -56,7 +56,8 @@ namespace yojimbo
             m_bytes = 8 * ( ( size / 64 ) + ( ( size % 64 ) ? 1 : 0 ) );
             yojimbo_assert( m_bytes > 0 );
             m_data = (uint64_t*) YOJIMBO_ALLOCATE( allocator, m_bytes );
-            Clear();
+            if ( m_data )
+                Clear();
         }
 
         /**
@@ -65,7 +66,6 @@ namespace yojimbo
 
         ~BitArray()
         {
-            yojimbo_assert( m_data );
             yojimbo_assert( m_allocator );
             YOJIMBO_FREE( *m_allocator, m_data );
             m_allocator = NULL;
@@ -77,8 +77,8 @@ namespace yojimbo
 
         void Clear()
         {
-            yojimbo_assert( m_data );
-            memset( m_data, 0, m_bytes );
+            if ( m_data )
+                memset( m_data, 0, m_bytes );
         }
 
         /**

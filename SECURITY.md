@@ -43,6 +43,51 @@ Out of scope: bugs in your own game code built on top of yojimbo, denial-of-serv
 requires an already-authenticated malicious peer flooding traffic, and issues in build
 tooling or example/test code that are not reachable at runtime.
 
+## Known issue: AEAD nonce reuse on unfinished handshakes and multi-server connect tokens in vendored netcode (fixed in 1.16.0)
+
+**Advisory: [GHSA-8mrq-q9c6-h23v](https://github.com/mas-bandwidth/netcode/security/advisories/GHSA-8mrq-q9c6-h23v)** (published 2026-11-19).
+
+**Affected: yojimbo 1.15.2 and earlier (`netcode` 1.4.9 and earlier, `NETCODE 1.02`). Fixed in 1.16.0 (`netcode` 1.5.0, `NETCODE 1.03`).**
+
+yojimbo 1.15.2 and earlier vendor `netcode` 1.4.9 (and earlier `NETCODE 1.02` releases), where
+packets encrypted directly under the 32-byte `client_to_server_key` and `server_to_client_key`
+carried inside a connect token. That allowed two AEAD nonce-reuse paths within a single connect
+token's lifetime:
+
+1. **Retried unfinished handshakes.** If a client received a connection challenge and sent one
+   or more connection response packets that were lost (or aborted the handshake before a client
+   slot was assigned), the server's connect token history entry remained _pending_. Reconnecting
+   with the same unexpired connect token reset the client's packet sequence to zero and
+   encrypted new connection response packets under the same `client_to_server_key` at
+   already-used nonces.
+2. **Multi-server connect tokens.** When a connect token listed multiple dedicated servers, two
+   freshly started servers shared the connect token's `server_to_client_key` and both began
+   their global packet sequence at `2^63` (for example, a full first server sending a
+   connection denied packet at `2^63` and the next server sending a connection challenge packet
+   at `2^63`).
+
+**yojimbo 1.16.0 vendors netcode 1.5.0 (`NETCODE 1.03`)** and raises the `-DYOJIMBO_SYSTEM_DEPS=ON`
+floor for `netcode` in `dependencies.manifest` to **1.5.0**:
+
+- Per-connection packet keys are derived via `HChaCha20(token_key, client_salt || server_nonce)`
+  from a fresh 8-byte client salt per attempt (`connection request`, now 1086 bytes) and a fresh
+  8-byte server nonce per server mapping or full-server denial (`connection denied` and
+  `connection challenge` headers, bound into 30-byte AEAD associated data). Connect token root
+  keys never encrypt packets directly.
+- Pending connect token history entries bind the 8-byte client salt and expire as admissible
+  after `timeout_seconds` from creation; valid `connection disconnect` packets on a half-open
+  mapping consume the history entry and remove the mapping.
+- The reference matchmaker under `matcher/` now emits `"NETCODE 1.03\0"` connect tokens.
+
+Thank you to [@magicaldave](https://github.com/magicaldave) ([DreamWeave-MP/dream-net](https://github.com/DreamWeave-MP/dream-net)) for discovering and privately reporting the unfinished-handshake connect-token reuse issue.
+
+### What this asks of you
+
+Upgrade to **yojimbo 1.16.0** or later (`netcode` **1.5.0** or later; `netcode.go`,
+`netcode.rs`, and `netcode.cs` **1.2.0** or later). Unlike 1.12.1, **`NETCODE 1.03` changes the
+wire protocol version string and handshake packet headers**, so clients, servers, and
+token-issuing matchmakers must be upgraded together.
+
 ## Known issue: connect token reuse after disconnect (fixed in 1.12.1)
 
 **Advisory: [GHSA-v29p-3vj4-vg4f](https://github.com/mas-bandwidth/netcode/security/advisories/GHSA-v29p-3vj4-vg4f)** (published 2026-09-04; filed against netcode, and it names yojimbo's affected range too).

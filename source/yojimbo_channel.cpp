@@ -146,6 +146,19 @@ namespace yojimbo
                     return false;
                 }
 
+                if ( messages[i]->IsBlockMessage() )
+                {
+                    // Block messages are carried by the fragment path on an ordered channel.
+                    // A block message type in the ordinary message list is not something a
+                    // conforming sender produces, so reject it rather than deliver a block
+                    // message with no block attached. Release it and clear the slot so
+                    // ChannelPacketData::Free does not release it a second time.
+                    yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: block message of type %d in ordered message list (SerializeOrderedMessages)\n", messageTypes[i] );
+                    messageFactory.ReleaseMessage( messages[i] );
+                    messages[i] = NULL;
+                    return false;
+                }
+
                 messages[i]->SetId( messageIds[i] );
             }
 
@@ -460,7 +473,10 @@ namespace yojimbo
                     if ( !SerializeOrderedMessages( stream, messageFactory, message.numMessages, message.messages, channelConfig.maxMessagesPerPacket ) )
                     {
                         messageFailedToSerialize = 1;
-                        return true;
+                        // A failed message body leaves the read stream at an unknown position, so
+                        // the channel entries that follow cannot be located. Fail the packet read
+                        // instead of parsing the rest of it from a desynchronized stream.
+                        return !Stream::IsReading;
                     }
                 }
                 break;
@@ -475,7 +491,9 @@ namespace yojimbo
                                                       channelConfig.maxBlockSize ) )
                     {
                         messageFailedToSerialize = 1;
-                        return true;
+                        // As above: the failed body has consumed an unknown number of bits, so
+                        // later channel entries cannot be read from this stream. Fail the read.
+                        return !Stream::IsReading;
                     }
                 }
                 break;

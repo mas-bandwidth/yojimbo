@@ -4,12 +4,10 @@
 ; :tested-revision is the main commit whose CI passed with that evidence.
 (:schema 1
  :root "goal"
- :page (:title "yojimbo roadmap"
-        :roadmaps ("connection" "messages" "network" "library" "testing"))
+ :page (:roadmaps ("connection" "messages" "network" "library" "testing"))
  :nodes
  ((:id "goal" :type :work-set :children ("connection" "messages" "network" "library" "testing"))
   (:id "connection" :type :roadmap :title "Connection"
-   :text "Secure connect tokens, connecting, disconnecting and timeouts between a client and a server."
    :rows (("connect-tokens" "secure connect with a connect token")
           ("token-single-use" "a connect token admits one connection only")
           ("client-server" "client/server connection management")
@@ -39,7 +37,6 @@
    :note "From the schema message form (schema#530 and its second round, owner rulings 2026-09-05): a table-wire message body rides without its id table when the peer has announced its unit's vocabulary once, reliably, before the first body, and never re-announces for the connection's life."
    :github-issue "344")
   (:id "messages" :type :roadmap :title "Messages"
-   :text "Channels of messages and data blocks sent over the connection."
    :rows (("reliable-ordered" "reliable-ordered messages, resent until acked")
           ("unreliable-unordered" "unreliable-unordered messages for time-sensitive data")
           ("blocks" "data blocks larger than a packet on reliable-ordered messages")
@@ -63,7 +60,6 @@
   (:id "messages/serialize" :type :task :title "bitpacker and serialization system" :state :done :evidence ("test.cpp: test_bit_array" "test.cpp: test_client_server_message_failed_to_serialize_reliable_ordered" "test.cpp: test_client_server_message_failed_to_serialize_unreliable_unordered") :tested-revision "3bdbaf2b5a669083c4dcf8d77a939e063567468b")
   (:id "messages/queue-limits" :type :task :title "full send and receive queues fail cleanly" :state :done :evidence ("test.cpp: test_client_server_message_receive_queue_overflow" "test.cpp: test_client_server_message_exhaust_stream_allocator") :tested-revision "3bdbaf2b5a669083c4dcf8d77a939e063567468b")
   (:id "network" :type :roadmap :title "Networking"
-   :text "Packets on the wire, the transports they ride, and the tools for testing under bad networks."
    :rows (("encrypted" "encrypted and signed packets over UDP")
           ("fragmentation" "packet fragmentation and reassembly")
           ("addresses" "IPv4 and IPv6 addresses")
@@ -89,7 +85,6 @@
    :note "GetNetworkInfo is only called by test_interface_methods_link, which checks it links, not its values; a test that asserts the estimates under the simulator makes this done.")
   (:id "network/standard" :type :task :title "wire format specified in STANDARD.md and checked against the code" :state :done :evidence (".github/workflows/ci.yml: conformance job, Verify STANDARD.md" "commit ace723e (conformance: check yojimbo's STANDARD.md against the implementation)") :tested-revision "3bdbaf2b5a669083c4dcf8d77a939e063567468b")
   (:id "library" :type :roadmap :title "Library"
-   :text "Building, installing and embedding yojimbo, on every platform it supports."
    :rows (("platforms" "Linux, macOS and Windows")
           ("startup-failure" "startup refuses cleanly when an allocation fails")
           ("abi" "one ABI across debug and release builds")
@@ -100,7 +95,8 @@
           ("strict-fp" "the wire builds with -ffp-contract=off on every target")
           ("matcher" "matcher: a sample web backend that issues connect tokens")
           ("docs" "API documentation built on every change, warnings are errors")
-          ("docs-complete" "every public declaration documented (WARN_IF_UNDOCUMENTED on)"))
+          ("docs-complete" "every public declaration documented (WARN_IF_UNDOCUMENTED on)")
+          ("dll-unload" "unloading a DLL that links yojimbo leaves no live lock (sodium on Windows)"))
    :columns (("done" "done"))
    :cells (("platforms" "done" "library/platforms")
            ("startup-failure" "done" "library/startup-failure")
@@ -112,7 +108,8 @@
            ("strict-fp" "done" "library/strict-fp")
            ("matcher" "done" "library/matcher")
            ("docs" "done" "library/docs")
-           ("docs-complete" "done" "library/docs-complete")))
+           ("docs-complete" "done" "library/docs-complete")
+           ("dll-unload" "done" "library/dll-unload")))
   (:id "library/platforms" :type :task :title "Linux, macOS and Windows" :state :done :evidence (".github/workflows/ci.yml: build-test job (linux x86-64, macOS arm64) and windows job (MSVC x64 Debug and Release), green on 3bdbaf2") :tested-revision "3bdbaf2b5a669083c4dcf8d77a939e063567468b")
   (:id "library/startup-failure" :type :task :title "startup refuses cleanly when an allocation fails" :state :done :evidence ("test.cpp: test_server_start_alloc_failure" "test.cpp: test_client_connect_alloc_failure" "test.cpp: test_connection_reliable_message_alloc_failure") :tested-revision "3bdbaf2b5a669083c4dcf8d77a939e063567468b")
   (:id "library/abi" :type :task :title "one ABI across debug and release builds" :state :done :evidence ("test.cpp: test_public_layout_is_configuration_independent" "test.cpp: test_rtti_across_the_abi_boundary" "commit f7cb323 (Library contracts: transactional startup, one ABI, consumable installs (YJ-01 to YJ-12) (#340))") :tested-revision "3bdbaf2b5a669083c4dcf8d77a939e063567468b")
@@ -126,8 +123,11 @@
   (:id "library/docs-complete" :type :task :title "every public declaration documented (WARN_IF_UNDOCUMENTED on)" :state :todo
    :note "Document every public declaration, then turn WARN_IF_UNDOCUMENTED on in doxygen.config."
    :github-issue "341")
+  (:id "library/dll-unload" :type :task :title "unloading a DLL that links yojimbo leaves no live lock (sodium on Windows)" :state :todo
+   :note "On Windows, sodium/sodium.c (line 1995) creates _sodium_lock as a CRITICAL_SECTION with InitializeCriticalSection on first use and never deletes it, so a game that loads the library in a DLL and unloads it gets Application Verifier stop Locks 0x201 (unloading a DLL containing an active critical section) on FreeLibrary. Upstream libsodium 1.0.22 has the same code; upstream master deletes the lock in DllMain for DLL builds only, which does not help a library linked statically into a game DLL. The fix: make it static SRWLOCK _sodium_lock = SRWLOCK_INIT with AcquireSRWLockExclusive and ReleaseSRWLockExclusive, which needs no init and no teardown; sodium never takes the lock recursively."
+   :origin "Fixed in mas-bandwidth/rocketnet PR #1048, which has the same bundled sodium; recorded on Glenn's instruction of 2026-11-12 (main ae64e14, #398)"
+   :date "2026-11-12")
   (:id "testing" :type :roadmap :title "Testing and security"
-   :text "How yojimbo is checked on every change, and the hardening work still open."
    :rows (("sanitizers" "ASan, UBSan and LSan on every change")
           ("fuzz" "fuzzed packet, token and connection parsers")
           ("soak" "soak test")

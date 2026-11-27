@@ -85,7 +85,8 @@ Building, installing and embedding yojimbo, on every platform it supports.
 | matcher: a sample web backend that issues connect tokens | ✅ |
 | API documentation built on every change, warnings are errors | ✅ |
 | every public declaration documented (WARN_IF_UNDOCUMENTED on) | ❌ |
-| complete | 90% |
+| unloading a DLL that links yojimbo leaves no live lock (sodium on Windows) | ❌ |
+| complete | 83% |
 
 [Source data](docs/roadmap.sexp)
 

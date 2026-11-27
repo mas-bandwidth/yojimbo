@@ -1,6 +1,6 @@
 /*
-    Drives a real yojimbo client and server through a full lifecycle over UDP and
-    prints every client state transition, for tools/conformance/verify_state_machine.py.
+    Drives a real yojimbo client and server through a full lifecycle and prints
+    every client state transition, for tools/conformance/verify_state_machine.py.
 
     Output: one line per transition,  STATE <from> <to> <phase>
     plus    RESULT <ok|fail> <note>
@@ -16,7 +16,34 @@ using namespace yojimbo;
 static const uint16_t ConformancePort = 41777;
 static const int NumClientSlots = 4;
 
-static TestAdapter conformanceAdapter;
+class ConformanceAdapter : public TestAdapter
+{
+public:
+
+    Client * client;
+    Server * server;
+
+    ConformanceAdapter()
+    {
+        client = NULL;
+        server = NULL;
+    }
+
+    void ClientSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence ) YOJIMBO_OVERRIDE
+    {
+        if ( server )
+            server->ProcessLoopbackPacket( clientIndex, packetData, packetBytes, packetSequence );
+    }
+
+    void ServerSendLoopbackPacket( int clientIndex, const uint8_t * packetData, int packetBytes, uint64_t packetSequence ) YOJIMBO_OVERRIDE
+    {
+        (void) clientIndex;
+        if ( client )
+            client->ProcessLoopbackPacket( packetData, packetBytes, packetSequence );
+    }
+};
+
+static ConformanceAdapter conformanceAdapter;
 
 static int last_state = -999;
 static void note( ClientInterface & client, const char * phase )
@@ -49,6 +76,9 @@ int main()
     uint64_t clientId = 0;
     yojimbo_random_bytes( (uint8_t*) &clientId, 8 );
     Client client( GetDefaultAllocator(), Address( "0.0.0.0" ), config, conformanceAdapter, time );
+
+    conformanceAdapter.client = &client;
+    conformanceAdapter.server = &server;
 
     note( client, "initial" );
     client.InsecureConnect( privateKey, clientId, Address( "127.0.0.1", ConformancePort ) );
@@ -91,8 +121,56 @@ int main()
         note( client, "post_disconnect" );
     }
 
+    client.ConnectLoopback( 0, clientId, NumClientSlots );
+    server.ConnectLoopbackClient( 0, clientId, NULL );
+    note( client, "loopback_connect" );
+    for ( int i = 0; i < 20; i++ )
+    {
+        client.SendPackets(); server.SendPackets();
+        client.ReceivePackets(); server.ReceivePackets();
+        time += dt;
+        client.AdvanceTime( time ); server.AdvanceTime( time );
+        note( client, "loopback_steady" );
+        yojimbo_sleep( 0.001 );
+    }
+    client.DisconnectLoopback();
+    note( client, "loopback_disconnect" );
+    server.DisconnectLoopbackClient( 0 );
+
+    client.InsecureConnect( privateKey, clientId, Address( "127.0.0.1", ConformancePort ) );
+    note( client, "reconnect" );
+    iterations = 0;
+    while ( iterations++ < 200 )
+    {
+        client.SendPackets(); server.SendPackets();
+        client.ReceivePackets(); server.ReceivePackets();
+        time += dt;
+        client.AdvanceTime( time ); server.AdvanceTime( time );
+        note( client, "reconnect_handshake" );
+        if ( client.IsConnected() ) break;
+        if ( client.ConnectionFailed() ) { printf( "RESULT fail reconnect\n" ); rc = 1; break; }
+        yojimbo_sleep( 0.001 );
+    }
+    if ( !client.IsConnected() && rc == 0 ) { printf( "RESULT fail reconnect_never_connected\n" ); rc = 1; }
+
+    /* stop answering the connected client so the connection times out */
+    for ( int i = 0; i < 400 && !client.ConnectionFailed(); i++ )
+    {
+        client.SendPackets();
+        client.ReceivePackets();
+        time += dt;
+        client.AdvanceTime( time );
+        note( client, "connection_error" );
+        yojimbo_sleep( 0.001 );
+    }
+    if ( !client.ConnectionFailed() ) { printf( "RESULT fail no_connection_error\n" ); rc = 1; }
+
+    client.Disconnect();
+    note( client, "error_cleared" );
+
     server.Stop();
-    printf( "RESULT ok complete\n" );
+    if ( rc == 0 )
+        printf( "RESULT ok complete\n" );
     }
     ShutdownYojimbo();
     return rc;

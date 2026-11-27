@@ -18,7 +18,7 @@ jobs:
           - os: ubuntu-24.04
             label: linux x86-64
           # macOS x86-64 (Intel, macos-13) temporarily disabled — runner is slow to allocate.
-          - os: macos-14
+          - os: [self-hosted, macOS, ARM64, fleet]
             label: macOS arm64 (Apple Silicon)
     runs-on: ${{ matrix.os }}
     steps:
@@ -143,8 +143,8 @@ jobs:
           cmake --build consumer-build -j
           ctest --test-dir consumer-build --output-on-failure
       # A system-deps install must refuse a netcode below the manifest floor, at configure time
-      # (SEC-04). The floor is 1.4.6, so the version to knock the installed netcode down to is
-      # 1.4.5: the newest netcode yojimbo now refuses, and the one an existing prefix is most
+      # (SEC-04). The floor is 1.5.0, so the version to knock the installed netcode down to is
+      # 1.4.10: the newest netcode yojimbo now refuses, and the one an existing prefix is most
       # likely to be holding. The sentence matched below is built from the manifest floor, so
       # only the knocked-down version above has to move when the floor does.
       - name: The netcode floor is enforced for consumers
@@ -153,9 +153,9 @@ jobs:
           floor="$(awk '$1 == "netcode" { print $4 }' dependencies.manifest)"
           echo "manifest netcode floor: $floor"
           cp "$HOME/deps/include/netcode.h" "$HOME/netcode.h.orig"
-          sed -i 's/#define NETCODE_VERSION_MINOR.*/#define NETCODE_VERSION_MINOR 4/; s/#define NETCODE_VERSION_PATCH.*/#define NETCODE_VERSION_PATCH 5/' "$HOME/deps/include/netcode.h"
+          sed -i 's/#define NETCODE_VERSION_MINOR.*/#define NETCODE_VERSION_MINOR 4/; s/#define NETCODE_VERSION_PATCH.*/#define NETCODE_VERSION_PATCH 10/' "$HOME/deps/include/netcode.h"
           if cmake -B floor-build -S tools/consumer -DCMAKE_PREFIX_PATH="$HOME/yojimbo-install;$HOME/deps" > floor.log 2>&1; then
-            echo "expected find_package(Yojimbo) to refuse netcode 1.4.5"; cat floor.log; exit 1
+            echo "expected find_package(Yojimbo) to refuse netcode 1.4.10"; cat floor.log; exit 1
           fi
           # CMake wraps message() text, so flatten the log before matching the sentence.
           tr '\n' ' ' < floor.log | tr -s ' ' | grep -q "yojimbo requires $floor or later"
@@ -237,7 +237,7 @@ jobs:
             -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
-          cmake --build build -j --target yojimbo_test yojimbo_custom_packet_io_test
+          cmake --build build -j --target yojimbo_test yojimbo_functional_test yojimbo_custom_packet_io_test
       # custom_packet_io_test drives the whole client/server stack through the adapter's own
       # transport instead of netcode's sockets. It was built and run by every other job but not
       # under sanitizers, so that path had no ASan/UBSan/LSan coverage at all.
@@ -337,7 +337,11 @@ jobs:
           set -o pipefail
           if ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
                ./build/bin/soak 20000 > soak.log 2>&1; then
-            echo "soak completed cleanly ($(grep -c 'received message' soak.log) messages exchanged)"
+            count=$(grep -c 'received message' soak.log || true)
+            echo "soak completed cleanly ($count messages exchanged)"
+            if [ "$count" -eq 0 ]; then
+              echo "soak failed: 0 messages exchanged"; tail -50 soak.log; exit 1
+            fi
           else
             echo "soak failed (exit $?)"; tail -50 soak.log; exit 1
           fi
@@ -402,4 +406,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: ROADMAP.md matches its data
-        run: make roadmap-check
+        run: make -f tools/roadmap/roadmap.mk roadmap-check

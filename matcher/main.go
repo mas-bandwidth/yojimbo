@@ -29,7 +29,7 @@ const (
 	connectTokenPrivateBytes = 1024
 	userDataBytes            = 256
 	timeoutSeconds           = 5
-	versionInfo              = "NETCODE 1.02\x00"
+	versionInfo              = "NETCODE 1.03\x00"
 	// verboseError echoes internal error details back to HTTP clients. Handy while
 	// developing, but it leaks server internals, so it defaults to off.
 	verboseError = false

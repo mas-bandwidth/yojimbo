@@ -215,7 +215,7 @@ namespace yojimbo
         }
 
         m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, m_config, m_time );
-        if ( !m_connection )
+        if ( !m_connection || m_clientAllocator->GetErrorLevel() != ALLOCATOR_ERROR_NONE )
         {
             DestroyInternal();
             return false;

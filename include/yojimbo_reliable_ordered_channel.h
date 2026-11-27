@@ -90,7 +90,10 @@ namespace yojimbo
         /**
             Get messages to include in a packet.
             Messages are measured to see how many bits they take, and only messages that fit within the channel packet budget will be included. See ChannelConfig::packetBudget.
-            Takes care not to send messages too rapidly by respecting ChannelConfig::messageResendTime for each message, and to only include messages that that the receiver is able to buffer in their receive queue. In other words, won't run ahead of the receiver.
+            Takes care not to send messages too rapidly by respecting ChannelConfig::messageResendTime for each message.
+            Sending is not gated on the application dequeuing received messages: a message is acknowledged once the receiver inserts it into its receive queue, not when ReceiveMessage() returns it, so the sender can run ahead of the application.
+            The receiver accepts message ids in the window [next, next + ChannelConfig::messageReceiveQueueSize - 1], where next is the id of the next message ReceiveMessage() will return, and that window advances only as ReceiveMessage() is called. Drain the receive queue every tick alongside ReceivePackets().
+            If the application cannot drain every tick, size ChannelConfig::messageReceiveQueueSize to cover the largest burst it may leave queued; ChannelConfig::messageSendQueueSize is a safe bound. Otherwise the next message falls outside the receive window and the channel fails with CHANNEL_ERROR_DESYNC.
             @param messageIds Array of message ids to be filled [out]. Fills up to ChannelConfig::maxMessagesPerPacket messages, make sure your array is at least this size.
             @param numMessageIds The number of message ids written to the array.
             @param remainingPacketBits Number of bits remaining in the packet. Considers this as a hard limit when determining how many messages can fit into the packet.
@@ -271,8 +274,6 @@ namespace yojimbo
                 m_allocator = &allocator;
                 ackedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 fragmentSendTime = (double*) YOJIMBO_ALLOCATE( allocator, sizeof( double) * maxFragmentsPerBlock );
-                yojimbo_assert( ackedFragment );
-                yojimbo_assert( fragmentSendTime );
                 Reset();
             }
 
@@ -321,7 +322,6 @@ namespace yojimbo
                 m_allocator = &allocator;
                 receivedFragment = YOJIMBO_NEW( allocator, BitArray, allocator, maxFragmentsPerBlock );
                 blockData = (uint8_t*) YOJIMBO_ALLOCATE( allocator, maxBlockSize );
-                yojimbo_assert( receivedFragment && blockData );
                 blockMessage = NULL;
                 Reset();
             }

@@ -86,7 +86,7 @@ namespace yojimbo
 
         /**
             Advance client time.
-            Call this at the end of each frame to advance the client time forward.
+            Call this at the start of each frame, before ReceivePackets and SendPackets, to advance the client time forward.
             IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
          */
 
@@ -118,7 +118,8 @@ namespace yojimbo
 
         /**
             Is the client in an error state?
-            When the client disconnects because of an error, it enters into this error state.
+            This is true when the connect attempt fails before the connection is established: the client could not allocate its state or generate a connect token, or netcode reported a handshake failure (token expired or invalid, connection denied, or a timeout). It is also true when an established connection later fails at the netcode level, such as a connection timeout.
+            A connection-level error detected while connected disconnects the client to the disconnected state instead, with the reason recorded (see BaseClient::GetDisconnectReason).
             @returns true if the client is in an error state.
          */
 

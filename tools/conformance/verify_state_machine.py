@@ -31,6 +31,22 @@ LEGAL = {
     (ERROR,        DISCONNECTED),  # Disconnect() clears the error
 }
 
+# Phase names emitted by drive_state_machine.cpp. Transitions are grouped by the
+# path that produced them so each path gets its own expected sequence.
+HAPPY_PHASES = {"initial", "after_connect_call", "handshake", "steady",
+                "after_disconnect_call", "post_disconnect"}
+LOOPBACK_PHASES = {"loopback_connect", "loopback_steady", "loopback_disconnect"}
+CONNECTION_ERROR_PHASES = {"reconnect", "reconnect_handshake",
+                           "connection_error", "error_cleared"}
+
+# ConnectLoopback / DisconnectLoopback establish and tear down the connection
+# directly, without netcode's handshake, so they are not edges in the
+# STATE-MACHINE.md table. Their exact path is checked separately below.
+LOOPBACK_LEGAL = {
+    (DISCONNECTED, CONNECTED),
+    (CONNECTED, DISCONNECTED),
+}
+
 
 def build_and_run(cxx, build_dir, src_name="drive_state_machine.cpp"):
     src = os.path.join(ROOT, "tools", "conformance", src_name)
@@ -87,15 +103,20 @@ def main():
 
     eq("driver completed the full lifecycle", result and result[0], "ok")
 
+    def moves_in(phases):
+        return [(f, t) for f, t, p in transitions if f != t and p in phases]
+
     # 1. every observed transition must be one the document permits
     for frm, to, phase in transitions:
         if frm == to: continue
+        if phase in LOOPBACK_PHASES:
+            continue  # the loopback path has its own exact check below
         checks += 1
         if (frm, to) not in LEGAL:
             fails.append(f"ILLEGAL transition {NAME.get(frm,frm)} -> {NAME.get(to,to)} "
                          f"during '{phase}' is not in STATE-MACHINE.md")
 
-    moves = [(f, t) for f, t, _ in transitions if f != t]
+    moves = moves_in(HAPPY_PHASES)
 
     # 2. the documented happy path, in order
     eq("happy path is DISCONNECTED->CONNECTING->CONNECTED->DISCONNECTED", moves,
@@ -115,6 +136,19 @@ def main():
 
     # 5. a clean disconnect lands in DISCONNECTED, never ERROR
     eq("clean disconnect ends in DISCONNECTED, not ERROR", moves[-1][1], DISCONNECTED)
+
+    # ---- loopback path: ConnectLoopback / DisconnectLoopback. These bypass
+    # netcode's handshake, so the client moves straight to CONNECTED.
+    loop_moves = moves_in(LOOPBACK_PHASES)
+    eq("loopback path is DISCONNECTED->CONNECTED->DISCONNECTED", loop_moves,
+       [(DISCONNECTED, CONNECTED), (CONNECTED, DISCONNECTED)])
+    eq("no state change while loopback client is idle",
+       [p for f, t, p in transitions if f != t and p == "loopback_steady"], [])
+    for frm, to in loop_moves:
+        checks += 1
+        if (frm, to) not in LOOPBACK_LEGAL:
+            fails.append(f"loopback transition {NAME.get(frm,frm)} -> {NAME.get(to,to)} "
+                         "is not on ConnectLoopback/DisconnectLoopback's path")
 
     # ---- error path: CONNECTING -> ERROR, which the happy path never takes.
     # STATE-MACHINE.md lists ERROR as a state and CONNECTING->ERROR as a legal
@@ -147,15 +181,34 @@ def main():
         eq("error is entered from CONNECTING, not by another route",
            [f for f, t in emoves if t == ERROR], [CONNECTING])
 
+    # ---- connection-level error disconnect: CONNECTED -> ERROR. Unlike the
+    # connect-failure driver above, this stays connected first, then the server
+    # stops answering so netcode's connection timeout projects to ERROR.
+    conn_moves = moves_in(CONNECTION_ERROR_PHASES)
+    eq("connection error path is DISCONNECTED->CONNECTING->CONNECTED->ERROR->DISCONNECTED",
+       conn_moves,
+       [(DISCONNECTED, CONNECTING), (CONNECTING, CONNECTED),
+        (CONNECTED, ERROR), (ERROR, DISCONNECTED)])
+    for frm, to in conn_moves:
+        checks += 1
+        if (frm, to) not in LEGAL:
+            fails.append(f"connection-error transition {NAME.get(frm,frm)} -> "
+                         f"{NAME.get(to,to)} is not permitted by STATE-MACHINE.md")
+    eq("connection error is entered from CONNECTED, not by another route",
+       [f for f, t in conn_moves if t == ERROR], [CONNECTED])
+    eq("Disconnect() clears the connection error back to DISCONNECTED",
+       conn_moves[-1] if conn_moves else None, (ERROR, DISCONNECTED))
+
     def path(ms):
         return " -> ".join([NAME.get(ms[0][0], "?")] + [NAME.get(t, "?") for _, t in ms])
 
-    # Both phases get their own line. A green run that printed only the happy
-    # path read as though the error phase had never executed, which is exactly
-    # the silence the error-path driver was added to remove.
+    # Each driven path gets its own line, so a path that produced no transitions
+    # cannot be mistaken for one that ran and matched.
     print(f"{checks} checks against STATE-MACHINE.md, {len(fails)} failures")
     print("  happy path: " + path(moves))
-    print("  error path: " + (path(emoves) if emoves else "no transitions observed"))
+    print("  loopback path: " + (path(loop_moves) if loop_moves else "no transitions observed"))
+    print("  connect-failure path: " + (path(emoves) if emoves else "no transitions observed"))
+    print("  connection error path: " + (path(conn_moves) if conn_moves else "no transitions observed"))
     for f in fails: print("  FAIL " + f)
     if fails:
         print("\nSTATE-MACHINE.md and the implementation disagree. One of them is wrong.")

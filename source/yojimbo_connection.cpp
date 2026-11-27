@@ -124,6 +124,8 @@ namespace yojimbo
         memset( m_channel, 0, sizeof( m_channel ) );
         yojimbo_assert( m_connectionConfig.numChannels >= 1 );
         yojimbo_assert( m_connectionConfig.numChannels <= MaxChannels );
+        // Same bound as MessageFactory: Message::m_type is an unsigned 15-bit field.
+        yojimbo_assert( messageFactory.GetNumTypes() >= 0 && messageFactory.GetNumTypes() <= 32767 );
         for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
         {
             switch ( m_connectionConfig.channel[channelIndex].type )
@@ -176,8 +178,11 @@ namespace yojimbo
         m_errorLevel = CONNECTION_ERROR_NONE;
         for ( int i = 0; i < m_connectionConfig.numChannels; ++i )
         {
-            m_channel[i]->Reset();
+            if ( m_channel[i] )
+                m_channel[i]->Reset();
         }
+        m_allocator->ClearError();
+        m_messageFactory->ClearErrorLevel();
     }
 
     bool Connection::CanSendMessage( int channelIndex ) const
@@ -248,6 +253,11 @@ namespace yojimbo
         // maxPacketBytes so the writer can never overflow it. Budget the channels against the
         // same rounded size so what we pack always fits what we write.
         maxPacketBytes &= ~7;
+        if ( maxPacketBytes <= 0 )
+        {
+            packetBytes = 0;
+            return false;
+        }
 
         if ( m_connectionConfig.numChannels > 0 )
         {
@@ -260,9 +270,18 @@ namespace yojimbo
             
             for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
             {
-                int packetDataBits = m_channel[channelIndex]->GetPacketData( context, channelData[channelIndex], packetSequence, availableBits );
+                if ( availableBits <= ConservativeChannelHeaderBits )
+                    break;
+
+                const int channelAvailableBits = availableBits - ConservativeChannelHeaderBits;
+                int packetDataBits = m_channel[channelIndex]->GetPacketData( context, channelData[channelIndex], packetSequence, channelAvailableBits );
                 if ( packetDataBits > 0 )
                 {
+                    if ( packetDataBits > channelAvailableBits )
+                    {
+                        channelData[channelIndex].Free( *m_messageFactory );
+                        continue;
+                    }
                     availableBits -= ConservativeChannelHeaderBits;
                     availableBits -= packetDataBits;
                     channelHasData[channelIndex] = true;
@@ -302,6 +321,12 @@ namespace yojimbo
 
         packetBytes = WritePacket( context, *m_messageFactory, m_connectionConfig, packet, packetData, maxPacketBytes );
 
+        if ( packetBytes <= 0 || packetBytes > maxPacketBytes )
+        {
+            packetBytes = 0;
+            return false;
+        }
+
         return true;
     }
 
@@ -324,6 +349,14 @@ namespace yojimbo
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (read packet)\n" );
+            return false;
+        }
+
+        // serialize 2.0: a packet reader ends its top-level object, refusing trailing bytes and set padding bits.
+
+        if ( !stream.SerializeEnd() )
+        {
+            yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (read packet end)\n" );
             return false;
         }
 
@@ -363,6 +396,30 @@ namespace yojimbo
 
         const bool readOk = ReadPacket( context, *m_messageFactory, m_connectionConfig, packet, padded, packetBytes );
         YOJIMBO_FREE( *m_allocator, padded );
+
+        // A message body that fails to deserialize rejects the whole packet, never just the
+        // channel it travelled on. Report the failure on its channel (so the precise
+        // disconnect reason is preserved) and reject the packet without applying any entry,
+        // including entries read before the one that failed. This check runs before any
+        // channel entry is applied so the packet is never partially applied.
+        bool messageBodyFailed = false;
+        for ( int i = 0; i < packet.numChannelEntries; ++i )
+        {
+            if ( packet.channelEntry[i].messageFailedToSerialize )
+            {
+                const int channelIndex = packet.channelEntry[i].channelIndex;
+                yojimbo_assert( channelIndex >= 0 );
+                yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
+                m_channel[channelIndex]->ProcessPacketData( packet.channelEntry[i], packetSequence );
+                messageBodyFailed = true;
+            }
+        }
+
+        if ( messageBodyFailed )
+        {
+            m_errorLevel = CONNECTION_ERROR_CHANNEL;
+            return false;
+        }
 
         if ( !readOk )
         {

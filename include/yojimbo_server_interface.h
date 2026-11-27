@@ -105,7 +105,7 @@ namespace yojimbo
 
         /**
             Advance server time.
-            Call this at the end of each frame to advance the server time forward.
+            Call this at the start of each frame, before ReceivePackets and SendPackets, to advance the server time forward.
             IMPORTANT: Please use a double for your time value so it maintains sufficient accuracy as time increases.
          */
 
