@@ -84,3 +84,5 @@ cov-int
 docker/yojimbo
 valgrind/yojimbo
 docs
+# nova-roadmap binaries downloaded by tools/roadmap/roadmap.mk
+/tools/roadmap/bin/
